@@ -41,13 +41,22 @@ router.post('/register', async (req: Request, res: Response) => {
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const [player] = await db('players')
-      .insert({ username, email, password_hash })
-      .returning(['id', 'username', 'email']);
+  .insert({ username, email, password_hash })
+  .returning(['id', 'username', 'email']);
 
-    const token = signToken({ playerId: player.id, username: player.username });
+// Initialize all skills at 0 XP for the new player
+const allSkills = await db('skills').select('id');
+const playerSkills = allSkills.map((skill: { id: number }) => ({
+  player_id: player.id,
+  skill_id: skill.id,
+  xp: 0,
+}));
+await db('player_skills').insert(playerSkills);
 
-    logger.info(`New player registered: ${username}`);
-    res.status(201).json({ token, player });
+const token = signToken({ playerId: player.id, username: player.username });
+
+logger.info(`New player registered: ${username}`);
+res.status(201).json({ token, player });
   } catch (err) {
     logger.error(`Registration error: ${err}`);
     res.status(500).json({ error: 'Server error' });
