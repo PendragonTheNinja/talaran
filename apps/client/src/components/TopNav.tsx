@@ -1,12 +1,17 @@
+import { Player } from '../types'
 import './TopNav.css'
+
+interface TopNavProps {
+  player: Player
+  onLogout: () => void
+}
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Clan', 'Journal',
-  'Quests', 'Events', 'Manual', 'Highscores',
-  'Settings', 'Log Out'
+  'Quests', 'Events', 'Manual', 'Highscores', 'Settings'
 ]
 
-export default function TopNav() {
+export default function TopNav({ onLogout }: TopNavProps) {
   return (
     <nav className="top-nav">
       <div className="top-nav-brand">
@@ -18,6 +23,9 @@ export default function TopNav() {
             {item}
           </button>
         ))}
+        <button className="top-nav-btn btn btn-red" onClick={onLogout}>
+          Log Out
+        </button>
       </div>
     </nav>
   )

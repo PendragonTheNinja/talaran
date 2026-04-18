@@ -1,34 +1,37 @@
+import { Player } from '../types'
 import './RightPanel.css'
 
+interface RightPanelProps {
+  player: Player
+}
+
 const SKILLS = [
-  { name: 'Attack',      type: 'combat',   level: 1 },
-  { name: 'Strength',    type: 'combat',   level: 1 },
-  { name: 'Defense',     type: 'combat',   level: 1 },
-  { name: 'Constitution',type: 'combat',   level: 1 },
-  { name: 'Talar',       type: 'combat',   level: 1 },
-  { name: 'Mining',      type: 'gathering',level: 1 },
-  { name: 'Fishing',     type: 'gathering',level: 1 },
-  { name: 'Woodcutting', type: 'gathering',level: 1 },
-  { name: 'Foraging',    type: 'gathering',level: 1 },
-  { name: 'Farming',     type: 'gathering',level: 1 },
-  { name: 'Hunting',     type: 'gathering',level: 1 },
-  { name: 'Smithing',    type: 'crafting', level: 1 },
-  { name: 'Cooking',     type: 'crafting', level: 1 },
-  { name: 'Crafting',    type: 'crafting', level: 1 },
-  { name: 'Carpentry',   type: 'crafting', level: 1 },
-  { name: 'Agility',     type: 'utility',  level: 1 },
-  { name: 'Equitation',  type: 'utility',  level: 1 },
-  { name: 'Sailing',     type: 'utility',  level: 1 },
-  { name: 'Husbandry',   type: 'utility',  level: 1 },
-  { name: 'Thieving',    type: 'utility',  level: 1 },
-  { name: 'Exploration', type: 'utility',  level: 1 },
+  { name: 'Attack',       type: 'combat' },
+  { name: 'Strength',     type: 'combat' },
+  { name: 'Defense',      type: 'combat' },
+  { name: 'Constitution', type: 'combat' },
+  { name: 'Talar',        type: 'combat' },
+  { name: 'Mining',       type: 'gathering' },
+  { name: 'Fishing',      type: 'gathering' },
+  { name: 'Woodcutting',  type: 'gathering' },
+  { name: 'Foraging',     type: 'gathering' },
+  { name: 'Farming',      type: 'gathering' },
+  { name: 'Hunting',      type: 'gathering' },
+  { name: 'Smithing',     type: 'crafting' },
+  { name: 'Cooking',      type: 'crafting' },
+  { name: 'Crafting',     type: 'crafting' },
+  { name: 'Carpentry',    type: 'crafting' },
+  { name: 'Agility',      type: 'utility' },
+  { name: 'Equitation',   type: 'utility' },
+  { name: 'Sailing',      type: 'utility' },
+  { name: 'Husbandry',    type: 'utility' },
+  { name: 'Thieving',     type: 'utility' },
+  { name: 'Exploration',  type: 'utility' },
 ]
 
-export default function RightPanel() {
+export default function RightPanel({ player }: RightPanelProps) {
   return (
     <aside className="right-panel">
-
-      {/* Minimap */}
       <div className="minimap panel">
         <div className="panel-title">Map — Taiar Island</div>
         <div className="minimap-canvas panel-inset">
@@ -40,9 +43,8 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* Player stats */}
       <div className="player-stats panel">
-        <div className="panel-title">Pendragon</div>
+        <div className="panel-title">{player.username}</div>
         <div className="stat-row">
           <span>Gold</span>
           <span className="gold-text">0</span>
@@ -61,19 +63,21 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* Skills */}
       <div className="skills-panel panel">
         <div className="panel-title">Skills</div>
         <div className="skills-grid">
           {SKILLS.map(skill => (
-            <div key={skill.name} className={`skill-item skill-${skill.type}`} title={skill.name}>
+            <div
+              key={skill.name}
+              className={`skill-item skill-${skill.type}`}
+              title={skill.name}
+            >
               <span className="skill-name">{skill.name}</span>
-              <span className="skill-level">{skill.level}</span>
+              <span className="skill-level">1</span>
             </div>
           ))}
         </div>
       </div>
-
     </aside>
   )
 }

@@ -139,7 +139,7 @@ body {
   background-color: var(--color-bg-deepest);
   color: var(--color-text-base);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
