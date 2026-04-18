@@ -1,0 +1,46 @@
+.game-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--color-bg-deepest);
+  overflow: hidden;
+}
+
+.game-body {
+  display: flex;
+  flex: 1;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.game-center {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--space-sm);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ============================================
+   RESPONSIVE — Tablet
+   ============================================ */
+@media (max-width: 1024px) {
+  .game-body {
+    padding: var(--space-xs);
+    gap: var(--space-xs);
+  }
+}
+
+/* ============================================
+   RESPONSIVE — Mobile
+   ============================================ */
+@media (max-width: 700px) {
+  .game-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+}

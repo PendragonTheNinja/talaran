@@ -1,0 +1,123 @@
+.right-panel {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  overflow-y: auto;
+}
+
+/* Minimap */
+.minimap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+}
+
+.minimap-canvas {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-deepest);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.minimap-placeholder {
+  font-family: var(--font-heading);
+  color: var(--color-border-gold);
+  opacity: 0.4;
+  font-size: 20px;
+  letter-spacing: 0.2em;
+}
+
+.minimap-btns {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* Player stats */
+.player-stats {
+  overflow: hidden;
+}
+
+.player-stats .panel-title {
+  color: var(--color-gold-shine);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px var(--space-sm);
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+/* Skills */
+.skills-panel {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: var(--space-xs);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.skill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-size: 12px;
+}
+
+.skill-item:hover {
+  border-color: var(--color-border-gold);
+  background: var(--color-bg-raised);
+}
+
+.skill-name {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skill-level {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
+}
+
+.skill-combat   .skill-level { color: var(--color-red-glow); }
+.skill-gathering .skill-level { color: var(--color-xp); }
+.skill-crafting  .skill-level { color: #e67e22; }
+.skill-utility   .skill-level { color: var(--color-gold-bright); }
+
+@media (max-width: 1024px) {
+  .right-panel { width: 190px; }
+}
+
+@media (max-width: 700px) {
+  .right-panel { width: 100%; }
+}

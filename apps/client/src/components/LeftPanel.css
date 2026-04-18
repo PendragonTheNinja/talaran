@@ -1,0 +1,68 @@
+.left-panel {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  overflow-y: auto;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+}
+
+.equipment-slot {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.equipment-slot:hover {
+  border-color: var(--color-gold);
+}
+
+.stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-xs);
+}
+
+.combat-stats {
+  padding: 0;
+  overflow: hidden;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px var(--space-sm);
+  font-size: 13px;
+  color: var(--color-text-base);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row span:last-child {
+  color: var(--color-gold-bright);
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .left-panel {
+    width: 150px;
+  }
+}
+
+@media (max-width: 700px) {
+  .left-panel {
+    width: 100%;
+  }
+}
