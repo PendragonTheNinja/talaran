@@ -124,3 +124,52 @@
   min-width: 30px;
   text-align: right;
 }
+
+.location-description {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 14px;
+  text-align: center;
+  max-width: 600px;
+}
+
+.action-log {
+  width: 100%;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-entry {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.log-success { color: var(--color-gold-bright); }
+.log-info    { color: var(--color-text-muted); }
+.log-error   { color: var(--color-red-glow); }
+.log-level   { color: var(--color-xp); font-weight: bold; }
+
+.bot-check {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.bot-check-question {
+  font-size: 18px;
+  text-align: center;
+}
+
+.bot-check-input-row {
+  display: flex;
+  gap: var(--space-sm);
+  width: 100%;
+}

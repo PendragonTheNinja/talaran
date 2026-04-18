@@ -65,11 +65,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // Calculate next timer
       const node = await db('resource_nodes').where({ id: action.resource_node_id }).first();
       const woodcuttingSkill = await db('skills').where({ name: 'Woodcutting' }).first();
-      const playerSkill = await db('player_skills')
-        .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
-        .first();
+const playerSkill = await db('player_skills')
+  .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
+  .first();
 
-      const playerLevel = levelFromXp(playerSkill.xp);
+const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
       const axe = await db('player_inventory')
         .join('items', 'player_inventory.item_id', 'items.id')
         .where({ 'player_inventory.player_id': action.player_id, 'items.subtype': 'axe' })

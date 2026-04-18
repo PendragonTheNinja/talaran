@@ -57,10 +57,12 @@ app.get('/health', (req, res) => {
 });
 
 import playerRoutes from './routes/player';
+import locationRoutes from './routes/location';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/player', playerRoutes);
+app.use('/api/location', locationRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

@@ -3,10 +3,20 @@ import './LeftPanel.css'
 export default function LeftPanel() {
   return (
     <aside className="left-panel panel">
-      <div className="panel-title">Equipment</div>
 
+      {/* Inventory */}
+      <div className="panel-title">Inventory</div>
+      <div className="inventory-grid panel-inset">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <div key={i} className="inventory-slot" />
+        ))}
+      </div>
+
+      <div className="divider" />
+
+      {/* Equipment */}
+      <div className="panel-title">Equipment</div>
       <div className="equipment-grid">
-        {/* Equipment slots — to be filled with real items later */}
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="equipment-slot panel-inset" />
         ))}
@@ -14,30 +24,7 @@ export default function LeftPanel() {
 
       <div className="divider" />
 
-      <div className="stat-bars">
-        <div className="stat-bar-wrapper">
-          <div className="stat-bar-label">
-            <span>Health</span>
-            <span>100 / 100</span>
-          </div>
-          <div className="stat-bar-track">
-            <div className="stat-bar-fill health" style={{ width: '100%' }} />
-          </div>
-        </div>
-
-        <div className="stat-bar-wrapper">
-          <div className="stat-bar-label">
-            <span>Mana</span>
-            <span>50 / 50</span>
-          </div>
-          <div className="stat-bar-track">
-            <div className="stat-bar-fill mana" style={{ width: '100%' }} />
-          </div>
-        </div>
-      </div>
-
-      <div className="divider" />
-
+      {/* Combat stats */}
       <div className="combat-stats panel-inset">
         <div className="panel-title">Combat Stats</div>
         <div className="stat-row">
@@ -50,6 +37,31 @@ export default function LeftPanel() {
           <span>Power</span><span>0</span>
         </div>
       </div>
+
+      <div className="divider" />
+
+      {/* Health & Mana */}
+      <div className="stat-bars">
+        <div className="stat-bar-wrapper">
+          <div className="stat-bar-label">
+            <span>Health</span>
+            <span>100 / 100</span>
+          </div>
+          <div className="stat-bar-track">
+            <div className="stat-bar-fill health" style={{ width: '100%' }} />
+          </div>
+        </div>
+        <div className="stat-bar-wrapper">
+          <div className="stat-bar-label">
+            <span>Mana</span>
+            <span>50 / 50</span>
+          </div>
+          <div className="stat-bar-track">
+            <div className="stat-bar-fill mana" style={{ width: '100%' }} />
+          </div>
+        </div>
+      </div>
+
     </aside>
   )
 }

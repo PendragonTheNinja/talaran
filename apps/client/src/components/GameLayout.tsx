@@ -23,20 +23,56 @@ interface PlayerData {
   currentAction: any
 }
 
+interface LocationData {
+  location: {
+    id: number
+    name: string
+    region: string
+    type: string
+    description: string
+  } | null
+  nodes: {
+    id: number
+    skill: string
+    name: string
+    required_level: number
+    xp_reward: number
+  }[]
+  connections: {
+    id: number
+    to_location_id: number
+    to_location_name: string
+    base_travel_time: number
+    travel_type: string
+  }[]
+}
+
 interface GameLayoutProps {
   player: Player
   playerData: PlayerData | null
+  locationData: LocationData | null
   onLogout: () => void
+  onPlayerDataUpdate: () => void
 }
 
-export default function GameLayout({ player, playerData, onLogout }: GameLayoutProps) {
+export default function GameLayout({
+  player,
+  playerData,
+  locationData,
+  onLogout,
+  onPlayerDataUpdate
+}: GameLayoutProps) {
   return (
     <div className="game-root">
       <TopNav player={player} onLogout={onLogout} />
       <div className="game-body">
         <LeftPanel />
         <div className="game-center">
-          <GameView />
+          <GameView
+            locationData={locationData}
+            playerData={playerData}
+            onPlayerDataUpdate={onPlayerDataUpdate}
+          />
           <ChatPanel />
         </div>
         <RightPanel player={player} playerData={playerData} />
