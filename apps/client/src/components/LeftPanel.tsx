@@ -1,15 +1,63 @@
+import { getItemIcon, getQualityColor } from '../lib/items'
 import './LeftPanel.css'
 
-export default function LeftPanel() {
-  return (
+interface InventoryItem {
+  id: number
+  item_id: number
+  name: string
+  type: string
+  subtype: string | null
+  quality: string | null
+  tier: number
+  description: string
+  stackable: boolean
+  quantity: number
+}
+
+interface LeftPanelProps {
+  inventoryData: InventoryItem[]
+}
+
+export default function LeftPanel({ inventoryData }: LeftPanelProps) {
+    const INVENTORY_SLOTS = Math.max(16, inventoryData.length)
+  
+    return (
     <aside className="left-panel panel">
 
       {/* Inventory */}
       <div className="panel-title">Inventory</div>
       <div className="inventory-grid panel-inset">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <div key={i} className="inventory-slot" />
-        ))}
+        {Array.from({ length: INVENTORY_SLOTS }).map((_, i) => {
+          const item = inventoryData[i]
+          const icon = item ? getItemIcon(item.name) : null
+          const qualityColor = item ? getQualityColor(item.quality) : null
+
+          return (
+            <div
+              key={i}
+              className={`inventory-slot ${item ? 'occupied' : ''}`}
+              title={item ? `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}\n${item.description}` : ''}
+              style={item && qualityColor ? { borderColor: qualityColor } : {}}
+            >
+              {item && (
+                <>
+                  {icon ? (
+                    <img
+                      src={icon}
+                      alt={item.name}
+                      className="inventory-item-icon"
+                    />
+                  ) : (
+                    <span className="inventory-item-text">{item.name.split(' ')[0]}</span>
+                  )}
+                  {item.quantity > 1 && (
+                    <span className="inventory-item-qty">{item.quantity}</span>
+                  )}
+                </>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="divider" />

@@ -46,11 +46,25 @@ interface LocationData {
   }[]
 }
 
+interface InventoryItem {
+  id: number
+  item_id: number
+  name: string
+  type: string
+  subtype: string | null
+  quality: string | null
+  tier: number
+  description: string
+  stackable: boolean
+  quantity: number
+}
+
 function App() {
   const [player, setPlayer] = useState<Player | null>(null)
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [locationData, setLocationData] = useState<LocationData | null>(null)
   const [checking, setChecking] = useState(true)
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([])
 
   const loadPlayerData = useCallback(async () => {
     try {
@@ -75,21 +89,25 @@ function App() {
     setPlayer(playerInfo)
     const data = await loadPlayerData()
     await loadLocationData()
+    await loadInventory()
 
     if (data) {
       const socket = connectSocket(playerInfo.id)
-
-      // Listen for action completions
-      socket.on('action_complete', () => {
-        loadPlayerData()
-      })
-
-      // Listen for bot check
-      socket.on('bot_check_required', () => {
-        // We'll handle this in the GameView
-      })
+socket.on('action_complete', () => {
+  loadPlayerData()
+  loadInventory()
+})
     }
   }, [loadPlayerData, loadLocationData])
+
+  const loadInventory = useCallback(async () => {
+  try {
+    const data = await apiFetch<{ inventory: InventoryItem[] }>('/api/inventory')
+    setInventoryData(data.inventory)
+  } catch (err) {
+    console.error('Failed to load inventory:', err)
+  }
+}, [])
 
   useEffect(() => {
     const token = localStorage.getItem('talaran_token')
@@ -116,13 +134,14 @@ function App() {
   }
 
   const handleLogout = () => {
-    disconnectSocket()
-    localStorage.removeItem('talaran_token')
-    localStorage.removeItem('talaran_player')
-    setPlayer(null)
-    setPlayerData(null)
-    setLocationData(null)
-  }
+  disconnectSocket()
+  localStorage.removeItem('talaran_token')
+  localStorage.removeItem('talaran_player')
+  setPlayer(null)
+  setPlayerData(null)
+  setLocationData(null)
+  setInventoryData([])
+}
 
   if (checking) return null
 
@@ -132,12 +151,13 @@ function App() {
 
   return (
     <GameLayout
-      player={player}
-      playerData={playerData}
-      locationData={locationData}
-      onLogout={handleLogout}
-      onPlayerDataUpdate={loadPlayerData}
-    />
+  player={player}
+  playerData={playerData}
+  locationData={locationData}
+  inventoryData={inventoryData}
+  onLogout={handleLogout}
+  onPlayerDataUpdate={loadPlayerData}
+/>
   )
 }
 

@@ -47,10 +47,24 @@ interface LocationData {
   }[]
 }
 
+interface InventoryItem {
+  id: number
+  item_id: number
+  name: string
+  type: string
+  subtype: string | null
+  quality: string | null
+  tier: number
+  description: string
+  stackable: boolean
+  quantity: number
+}
+
 interface GameLayoutProps {
   player: Player
   playerData: PlayerData | null
   locationData: LocationData | null
+  inventoryData: InventoryItem[]
   onLogout: () => void
   onPlayerDataUpdate: () => void
 }
@@ -59,6 +73,7 @@ export default function GameLayout({
   player,
   playerData,
   locationData,
+  inventoryData,
   onLogout,
   onPlayerDataUpdate
 }: GameLayoutProps) {
@@ -66,7 +81,7 @@ export default function GameLayout({
     <div className="game-root">
       <TopNav player={player} onLogout={onLogout} />
       <div className="game-body">
-        <LeftPanel />
+        <LeftPanel inventoryData={inventoryData} />
         <div className="game-center">
           <GameView
             locationData={locationData}

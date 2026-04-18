@@ -112,11 +112,6 @@
   animation: timer-drain 30s linear forwards;
 }
 
-@keyframes timer-drain {
-  from { width: 100%; }
-  to   { width: 0%; }
-}
-
 .action-timer-label {
   font-family: var(--font-heading);
   color: var(--color-gold-bright);
@@ -172,4 +167,34 @@
   display: flex;
   gap: var(--space-sm);
   width: 100%;
+}
+
+.log-xp { color: var(--color-xp); }
+
+.last-result {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  border-top: 1px solid var(--color-border-dark);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.last-result-item {
+  color: var(--color-gold-bright);
+  font-size: 15px;
+}
+
+.last-result-xp {
+  color: var(--color-xp);
+  font-size: 14px;
+}
+
+.last-result-next {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-style: italic;
 }

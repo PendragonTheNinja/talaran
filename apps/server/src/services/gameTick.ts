@@ -3,7 +3,7 @@ import db from '../db';
 import { logger } from '../index';
 import { processWoodcuttingAction } from './woodcutting';
 import { canChopHere, calculateTimer } from './woodcutting';
-import { levelFromXp } from './xp';
+import { levelFromXp, xpToNextLevel } from './xp';
 
 const TICK_INTERVAL = 2000; // check every 2 seconds
 const BOT_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes in ms
@@ -91,13 +91,26 @@ const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
         .where({ id: action.id })
         .update({ completes_at: nextCompletion });
 
-      // Send update to client
-      io.to(`player_${action.player_id}`).emit('action_complete', {
-        actionType: action.action_type,
-        result,
-        nextCompletes: nextCompletion,
-        timerSeconds: nextTimer,
-      });
+      // Get updated XP after the action
+const updatedSkill = await db('player_skills')
+  .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
+  .first();
+
+const currentXp = updatedSkill ? parseInt(updatedSkill.xp) : 0;
+const currentLevel = levelFromXp(currentXp);
+const xpNeeded = xpToNextLevel(currentXp);
+
+io.to(`player_${action.player_id}`).emit('action_complete', {
+  actionType: action.action_type,
+  result,
+  nextCompletes: nextCompletion,
+  timerSeconds: nextTimer,
+  xpInfo: {
+    totalXp: currentXp,
+    level: currentLevel,
+    xpToNext: xpNeeded,
+  }
+});
 
     } else if (!action.auto_restart) {
       await db('player_actions').where({ id: action.id }).delete();

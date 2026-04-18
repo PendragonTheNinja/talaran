@@ -36,6 +36,12 @@ interface ActionResult {
   xpAwarded: number
 }
 
+interface XpInfo {
+  totalXp: number
+  level: number
+  xpToNext: number
+}
+
 interface GameViewProps {
   locationData: LocationData | null
   playerData: any
@@ -67,25 +73,32 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
 
   // Listen for Socket.io events
   useEffect(() => {
+  const interval = setInterval(() => {
     const socket = getSocket()
     if (!socket) return
 
-    socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string }) => {
-      if (data.result?.itemName) {
-        addLog(`You received 1 ${data.result.itemName}. (+${data.result.xpAwarded} XP)`, 'success')
-      }
-      onPlayerDataUpdate()
+    clearInterval(interval)
 
-      // Reset timer
-      if (data.timerSeconds) {
-        setTimerSeconds(data.timerSeconds)
-        setTimerMax(data.timerSeconds)
-        startCountdown(data.timerSeconds)
-      }
+    socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
+  if (data.result?.itemName) {
+    setLastResult({
+      itemName: data.result.itemName,
+      xpAwarded: data.result.xpAwarded,
+      totalXp: data.xpInfo.totalXp,
+      level: data.xpInfo.level,
+      xpToNext: data.xpInfo.xpToNext,
     })
+  }
+  onPlayerDataUpdate()
+
+  if (data.timerSeconds) {
+    setTimerSeconds(data.timerSeconds)
+    setTimerMax(data.timerSeconds)
+    startCountdown(data.timerSeconds)
+  }
+})
 
     socket.on('bot_check_required', () => {
-      // Generate a simple math question
       const a = Math.floor(Math.random() * 20) + 1
       const b = Math.floor(Math.random() * 20) + 1
       setBotCheckQuestion({ a, b })
@@ -93,12 +106,17 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
       addLog('Bot check required! Please answer the question to continue.', 'error')
       if (timerRef.current) clearInterval(timerRef.current)
     })
+  }, 100)
 
-    return () => {
+  return () => {
+    clearInterval(interval)
+    const socket = getSocket()
+    if (socket) {
       socket.off('action_complete')
       socket.off('bot_check_required')
     }
-  }, [onPlayerDataUpdate])
+  }
+}, [onPlayerDataUpdate])
 
   const startCountdown = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -116,22 +134,24 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
   }
 
   const startAction = async (node: Node) => {
-    if (currentAction) return
+  if (currentAction) return
 
-    try {
-      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>(
-        '/api/actions/woodcutting/start',
-        {
-          method: 'POST',
-          body: JSON.stringify({ nodeId: node.id }),
-        }
-      )
+  try {
+    const res = await apiFetch<{ timerSeconds: number; completesAt: string }>(
+      '/api/actions/woodcutting/start',
+      {
+        method: 'POST',
+        body: JSON.stringify({ nodeId: node.id }),
+      }
+    )
 
-      setCurrentAction('woodcutting')
-      setActiveNodeId(node.id)
-      setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
-      addLog(`You begin chopping a ${node.name}.`, 'info')
+    console.log('Action started, timerSeconds:', res.timerSeconds)
+    
+    setCurrentAction('woodcutting')
+    setActiveNodeId(node.id)
+    setTimerMax(res.timerSeconds)
+    startCountdown(res.timerSeconds)
+    addLog(`You begin chopping a ${node.name}.`, 'info')
 
     } catch (err: any) {
       addLog(err.message || 'Could not start action.', 'error')
@@ -177,6 +197,29 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
 
   const timerPercent = timerMax > 0 ? (timerSeconds / timerMax) * 100 : 0
 
+  const [lastResult, setLastResult] = useState<{
+  itemName: string
+  xpAwarded: number
+  totalXp: number
+  level: number
+  xpToNext: number
+} | null>(null)
+
+useEffect(() => {
+  if (!playerData?.currentAction) return
+  if (playerData.currentAction.action_type !== 'woodcutting') return
+  if (currentAction) return // already running
+
+  const now = new Date().getTime()
+  const completesAt = new Date(playerData.currentAction.completes_at).getTime()
+  const secondsLeft = Math.max(0, Math.round((completesAt - now) / 1000))
+
+  setCurrentAction('woodcutting')
+  setActiveNodeId(playerData.currentAction.resource_node_id)
+  setTimerMax(secondsLeft || 5)
+  startCountdown(secondsLeft)
+}, [playerData])
+
   return (
     <div className="game-view panel">
       <div className="game-view-location-bar">
@@ -206,18 +249,15 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
           </div>
         </div>
 
-        {locationDesc && (
-          <p className="location-description">{locationDesc}</p>
-        )}
-
         {currentAction && !botCheckPending && (
           <div className="game-view-action-log">
             <div className="action-timer">
               <div className="action-timer-bar">
                 <div
-                  className="action-timer-fill"
-                  style={{ width: `${timerPercent}%`, transition: 'width 1s linear' }}
-                />
+  key={timerMax}
+  className="action-timer-fill"
+  style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+/>
               </div>
               <span className="action-timer-label">{timerSeconds}s</span>
             </div>
@@ -245,6 +285,14 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
             </div>
           </div>
         )}
+
+        {lastResult && (
+  <div className="last-result">
+    <p className="last-result-item">You gained 1 × {lastResult.itemName}</p>
+    <p className="last-result-xp">+{lastResult.xpAwarded} Woodcutting XP (Total: {lastResult.totalXp.toLocaleString()})</p>
+    <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
+  </div>
+)}
 
         <div className="action-log panel-inset">
           {log.length === 0 ? (
