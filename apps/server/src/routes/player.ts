@@ -48,7 +48,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
     });
 
     const totalLevel = skillsWithLevels.reduce((sum: number, s: any) => sum + s.level, 0);
-    const totalXp = skillsWithLevels.reduce((sum: number, s: any) => sum + s.xp, 0);
+    const totalXp = skillsWithLevels.reduce((sum: number, s: any) => sum + parseInt(s.xp) || 0, 0);
 
     // Get current action if any
     const currentAction = await db('player_actions')

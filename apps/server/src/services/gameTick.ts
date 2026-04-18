@@ -92,13 +92,16 @@ const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
         .update({ completes_at: nextCompletion });
 
       // Get updated XP after the action
-const updatedSkill = await db('player_skills')
+      const updatedSkill = await db('player_skills')
   .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
   .first();
 
-const currentXp = updatedSkill ? parseInt(updatedSkill.xp) : 0;
-const currentLevel = levelFromXp(currentXp);
-const xpNeeded = xpToNextLevel(currentXp);
+console.log('Updated skill raw:', updatedSkill);
+
+const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+console.log('Current XP parsed:', currentXp);
+    const currentLevel = levelFromXp(currentXp);
+    const xpNeeded = xpToNextLevel(currentXp);
 
 io.to(`player_${action.player_id}`).emit('action_complete', {
   actionType: action.action_type,

@@ -71,13 +71,13 @@ export default function RightPanel({ player, playerData }: RightPanelProps) {
           ) : (
             skills.map(skill => (
               <div
-                key={skill.id}
-                className={`skill-item skill-${skill.type}`}
-                title={`${skill.name} — ${skill.xp.toLocaleString()} XP (${skill.xpToNext.toLocaleString()} to next level)`}
-              >
-                <span className="skill-name">{skill.name}</span>
-                <span className="skill-level">{skill.level}</span>
-              </div>
+  key={skill.id}
+  className={`skill-item skill-${skill.type}`}
+  title={`${skill.name}\n${skill.xp.toLocaleString()} XP total\n${skill.xpToNext.toLocaleString()} XP to next level`}
+>
+  <span className="skill-name">{skill.name}</span>
+  <span className="skill-level">{skill.level}</span>
+</div>
             ))
           )}
         </div>
