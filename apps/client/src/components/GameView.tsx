@@ -40,6 +40,7 @@ interface XpInfo {
   totalXp: number
   level: number
   xpToNext: number
+  leveledUp: boolean
 }
 
 interface GameViewProps {
@@ -81,13 +82,22 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
 
     socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
   if (data.result?.itemName) {
+    const oldLevel = data.xpInfo.level
+    const newXp = data.xpInfo.totalXp
+    const newLevel = data.xpInfo.level
+
     setLastResult({
       itemName: data.result.itemName,
       xpAwarded: data.result.xpAwarded,
-      totalXp: data.xpInfo.totalXp,
-      level: data.xpInfo.level,
+      totalXp: newXp,
+      level: newLevel,
       xpToNext: data.xpInfo.xpToNext,
     })
+
+    // Check for level up — server sends level AFTER xp award
+    if (data.xpInfo.leveledUp) {
+      setLevelUpSkill({ name: 'Woodcutting', level: data.xpInfo.level })
+    }
   }
   onPlayerDataUpdate()
 
@@ -220,6 +230,8 @@ useEffect(() => {
   startCountdown(secondsLeft)
 }, [playerData])
 
+const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
+
   return (
     <div className="game-view panel">
       <div className="game-view-location-bar">
@@ -306,6 +318,21 @@ useEffect(() => {
           )}
         </div>
       </div>
+      {levelUpSkill && (
+  <div className="levelup-popup">
+    <div className="levelup-inner">
+      <button
+        className="levelup-close"
+        onClick={() => setLevelUpSkill(null)}
+      >
+        ✕
+      </button>
+      <p className="levelup-title">Level Up!</p>
+      <p className="levelup-skill">{levelUpSkill.name}</p>
+      <p className="levelup-level">Level {levelUpSkill.level}</p>
+    </div>
+  </div>
+)}
     </div>
   )
 }

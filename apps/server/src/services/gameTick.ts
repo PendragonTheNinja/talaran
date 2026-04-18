@@ -96,12 +96,12 @@ const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
   .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
   .first();
 
-console.log('Updated skill raw:', updatedSkill);
-
-const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
-console.log('Current XP parsed:', currentXp);
-    const currentLevel = levelFromXp(currentXp);
-    const xpNeeded = xpToNextLevel(currentXp);
+    const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+const previousXp = currentXp - node.xp_reward;
+const currentLevel = levelFromXp(currentXp);
+const previousLevel = levelFromXp(previousXp);
+const leveledUp = currentLevel > previousLevel;
+const xpNeeded = xpToNextLevel(currentXp);
 
 io.to(`player_${action.player_id}`).emit('action_complete', {
   actionType: action.action_type,
@@ -112,6 +112,7 @@ io.to(`player_${action.player_id}`).emit('action_complete', {
     totalXp: currentXp,
     level: currentLevel,
     xpToNext: xpNeeded,
+    leveledUp,
   }
 });
 
