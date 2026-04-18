@@ -1,35 +1,33 @@
 import { Player } from '../types'
 import './RightPanel.css'
 
-interface RightPanelProps {
-  player: Player
+interface Skill {
+  id: number
+  name: string
+  type: string
+  xp: number
+  level: number
+  xpToNext: number
 }
 
-const SKILLS = [
-  { name: 'Attack',       type: 'combat' },
-  { name: 'Strength',     type: 'combat' },
-  { name: 'Defense',      type: 'combat' },
-  { name: 'Constitution', type: 'combat' },
-  { name: 'Talar',        type: 'combat' },
-  { name: 'Mining',       type: 'gathering' },
-  { name: 'Fishing',      type: 'gathering' },
-  { name: 'Woodcutting',  type: 'gathering' },
-  { name: 'Foraging',     type: 'gathering' },
-  { name: 'Farming',      type: 'gathering' },
-  { name: 'Hunting',      type: 'gathering' },
-  { name: 'Smithing',     type: 'crafting' },
-  { name: 'Cooking',      type: 'crafting' },
-  { name: 'Crafting',     type: 'crafting' },
-  { name: 'Carpentry',    type: 'crafting' },
-  { name: 'Agility',      type: 'utility' },
-  { name: 'Equitation',   type: 'utility' },
-  { name: 'Sailing',      type: 'utility' },
-  { name: 'Husbandry',    type: 'utility' },
-  { name: 'Thieving',     type: 'utility' },
-  { name: 'Exploration',  type: 'utility' },
-]
+interface PlayerData {
+  player: Player
+  skills: Skill[]
+  totalLevel: number
+  totalXp: number
+  currentAction: any
+}
 
-export default function RightPanel({ player }: RightPanelProps) {
+interface RightPanelProps {
+  player: Player
+  playerData: PlayerData | null
+}
+
+export default function RightPanel({ player, playerData }: RightPanelProps) {
+  const skills = playerData?.skills || []
+  const totalLevel = playerData?.totalLevel || 0
+  const totalXp = playerData?.totalXp || 0
+
   return (
     <aside className="right-panel">
       <div className="minimap panel">
@@ -51,11 +49,11 @@ export default function RightPanel({ player }: RightPanelProps) {
         </div>
         <div className="stat-row">
           <span>Total Level</span>
-          <span className="gold-text">21</span>
+          <span className="gold-text">{totalLevel}</span>
         </div>
         <div className="stat-row">
           <span>Total XP</span>
-          <span className="gold-text">0</span>
+          <span className="gold-text">{totalXp.toLocaleString()}</span>
         </div>
         <div className="stat-row">
           <span>Combat Level</span>
@@ -66,16 +64,22 @@ export default function RightPanel({ player }: RightPanelProps) {
       <div className="skills-panel panel">
         <div className="panel-title">Skills</div>
         <div className="skills-grid">
-          {SKILLS.map(skill => (
-            <div
-              key={skill.name}
-              className={`skill-item skill-${skill.type}`}
-              title={skill.name}
-            >
-              <span className="skill-name">{skill.name}</span>
-              <span className="skill-level">1</span>
-            </div>
-          ))}
+          {skills.length === 0 ? (
+            <p className="muted-text" style={{ padding: '8px', gridColumn: '1/-1' }}>
+              Loading skills...
+            </p>
+          ) : (
+            skills.map(skill => (
+              <div
+                key={skill.id}
+                className={`skill-item skill-${skill.type}`}
+                title={`${skill.name} — ${skill.xp.toLocaleString()} XP (${skill.xpToNext.toLocaleString()} to next level)`}
+              >
+                <span className="skill-name">{skill.name}</span>
+                <span className="skill-level">{skill.level}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </aside>

@@ -56,8 +56,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', game: 'Talaran' });
 });
 
+import playerRoutes from './routes/player';
+
 app.use('/api/auth', authRoutes);
 app.use('/api/actions', actionRoutes);
+app.use('/api/player', playerRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
