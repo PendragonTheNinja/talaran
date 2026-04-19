@@ -4,7 +4,6 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Get current location with available actions
 router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
 
@@ -15,11 +14,11 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .first();
 
     if (!player?.current_location_id) {
-      res.json({ location: null, nodes: [], connections: [] });
+      res.json({ location: null, nodes: [], connections: [], allLocations: [], allConnections: [] });
       return;
     }
 
-    const location = await db('locations')
+    const currentLocation = await db('locations')
       .where({ id: player.current_location_id })
       .first();
 
@@ -27,7 +26,8 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .where({ location_id: player.current_location_id, is_active: true })
       .select('*');
 
-    const connections = await db('location_connections')
+    // Direct connections FROM current location
+    const directConnections = await db('location_connections')
       .where({ from_location_id: player.current_location_id })
       .join('locations', 'location_connections.to_location_id', 'locations.id')
       .select(
@@ -36,7 +36,55 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
         'locations.type as to_location_type'
       );
 
-    res.json({ location, nodes, connections });
+    // Reverse bidirectional connections TO current location
+    const reverseConnections = await db('location_connections')
+      .where({ to_location_id: player.current_location_id, is_bidirectional: true })
+      .join('locations', 'location_connections.from_location_id', 'locations.id')
+      .select(
+        'location_connections.*',
+        'locations.name as to_location_name',
+        'locations.type as to_location_type'
+      );
+
+    // Merge and deduplicate
+    const seen = new Set<number>();
+    const connections = [];
+    for (const conn of [...directConnections, ...reverseConnections]) {
+      const otherId = conn.from_location_id === player.current_location_id
+        ? conn.to_location_id
+        : conn.from_location_id;
+      if (!seen.has(otherId)) {
+        seen.add(otherId);
+        connections.push({
+          ...conn,
+          to_location_id: otherId,
+        });
+      }
+    }
+
+    // All locations on the same island for minimap
+    const allLocations = await db('locations')
+      .where({ region: currentLocation.region, is_accessible: true })
+      .select('id', 'name', 'type', 'map_x', 'map_y');
+
+    // All connections on this island for road drawing
+    const allConnections = await db('location_connections')
+      .join('locations as from_loc', 'location_connections.from_location_id', 'from_loc.id')
+      .join('locations as to_loc', 'location_connections.to_location_id', 'to_loc.id')
+      .where('from_loc.region', currentLocation.region)
+      .select(
+        'location_connections.*',
+        'to_loc.name as to_location_name',
+        'to_loc.type as to_location_type'
+      );
+
+    res.json({
+      location: currentLocation,
+      nodes,
+      connections,
+      allLocations,
+      allConnections,
+    });
 
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

@@ -1,6 +1,26 @@
 import { Player } from '../types'
 import './RightPanel.css'
 
+import MiniMap from './MiniMap'
+
+interface Location {
+  id: number
+  name: string
+  map_x: number
+  map_y: number
+  type: string
+}
+
+interface RightPanelProps {
+  player: Player
+  playerData: PlayerData | null
+  currentLocationId: number | null
+  locationName: string
+  allLocations: Location[]
+  connections: any[]
+  onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
+}
+
 interface Skill {
   id: number
   name: string
@@ -18,12 +38,7 @@ interface PlayerData {
   currentAction: any
 }
 
-interface RightPanelProps {
-  player: Player
-  playerData: PlayerData | null
-}
-
-export default function RightPanel({ player, playerData }: RightPanelProps) {
+export default function RightPanel({ player, playerData, currentLocationId, locationName, allLocations, connections, onTravel }: RightPanelProps) {
   const skills = playerData?.skills || []
   const totalLevel = playerData?.totalLevel || 0
   const totalXp = playerData?.totalXp || 0
@@ -31,15 +46,23 @@ export default function RightPanel({ player, playerData }: RightPanelProps) {
   return (
     <aside className="right-panel">
       <div className="minimap panel">
-        <div className="panel-title">Map — Taiar Island</div>
-        <div className="minimap-canvas panel-inset">
-          <span className="minimap-placeholder">Map</span>
-        </div>
-        <div className="minimap-btns">
-          <button className="btn" style={{ flex: 1 }}>Island Map</button>
-          <button className="btn" style={{ flex: 1 }}>World Map</button>
-        </div>
-      </div>
+  <div className="panel-title">Map — Taiar Island</div>
+  <div className="minimap-frame">
+  <div className="minimap-canvas panel-inset">
+    <MiniMap
+  currentLocationId={currentLocationId}
+  locationName={locationName}
+  locations={allLocations}
+  connections={connections}
+  onTravel={onTravel}
+/>
+  </div>
+</div>
+  <div className="minimap-btns">
+    <button className="btn" style={{ flex: 1 }}>Island Map</button>
+    <button className="btn" style={{ flex: 1 }}>World Map</button>
+  </div>
+</div>
 
       <div className="player-stats panel">
         <div className="panel-title">{player.username}</div>

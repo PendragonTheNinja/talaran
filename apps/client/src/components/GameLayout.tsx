@@ -1,9 +1,11 @@
+import { useState, useCallback } from 'react'
 import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
 import RightPanel from './RightPanel'
 import ChatPanel from './ChatPanel'
 import { Player } from '../types'
+import { apiFetch } from '../lib/api'
 import './GameLayout.css'
 
 interface Skill {
@@ -38,13 +40,8 @@ interface LocationData {
     required_level: number
     xp_reward: number
   }[]
-  connections: {
-    id: number
-    to_location_id: number
-    to_location_name: string
-    base_travel_time: number
-    travel_type: string
-  }[]
+  connections: any[]
+  allLocations: any[]
 }
 
 interface InventoryItem {
@@ -75,8 +72,26 @@ export default function GameLayout({
   locationData,
   inventoryData,
   onLogout,
-  onPlayerDataUpdate
+  onPlayerDataUpdate,
 }: GameLayoutProps) {
+  const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
+
+  const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
+  try {
+    const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
+      method: 'POST',
+      body: JSON.stringify({ toLocationId }),
+    })
+    setTravelStatus({ message: `Traveling to ${toLocationName}...`, seconds: res.travelTime })
+  } catch (err: any) {
+    setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
+  }
+}
+
+const clearAllActions = useCallback(() => {
+  setTravelStatus(null)
+}, [])
+
   return (
     <div className="game-root">
       <TopNav player={player} onLogout={onLogout} />
@@ -84,13 +99,23 @@ export default function GameLayout({
         <LeftPanel inventoryData={inventoryData} />
         <div className="game-center">
           <GameView
-            locationData={locationData}
-            playerData={playerData}
-            onPlayerDataUpdate={onPlayerDataUpdate}
-          />
+  locationData={locationData}
+  playerData={playerData}
+  onPlayerDataUpdate={onPlayerDataUpdate}
+  travelStatus={travelStatus}
+  onClearTravel={() => setTravelStatus(null)}
+/>
           <ChatPanel />
         </div>
-        <RightPanel player={player} playerData={playerData} />
+        <RightPanel
+  player={player}
+  playerData={playerData}
+  currentLocationId={locationData?.location?.id || null}
+  locationName={locationData?.location?.name || ''}
+  allLocations={locationData?.allLocations || []}
+  connections={locationData?.connections || []}
+  onTravel={handleTravel}
+/>
       </div>
     </div>
   )

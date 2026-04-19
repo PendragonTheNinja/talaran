@@ -27,6 +27,23 @@ export function startGameTick(io: Server): void {
   }, TICK_INTERVAL);
 }
 
+async function processTravelAction(playerId: number, locationId: number): Promise<any> {
+  try {
+    await db('players')
+      .where({ id: playerId })
+      .update({ current_location_id: locationId });
+
+    const location = await db('locations').where({ id: locationId }).first();
+
+    logger.info(`Player ${playerId} arrived at ${location.name}`);
+
+    return { success: true, locationName: location.name };
+  } catch (err) {
+    logger.error(`Travel completion error: ${err}`);
+    return { success: false };
+  }
+}
+
 async function processCompletedAction(io: Server, action: any): Promise<void> {
   try {
     let result;
@@ -34,6 +51,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     switch (action.action_type) {
       case 'woodcutting':
         result = await processWoodcuttingAction(action.player_id, action.resource_node_id);
+        break;
+      case 'traveling':
+        result = await processTravelAction(action.player_id, action.location_id);
         break;
       default:
         logger.warn(`Unknown action type: ${action.action_type}`);
@@ -60,6 +80,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       logger.info(`Bot check triggered for player ${action.player_id}`);
       return;
     }
+
+    if (action.action_type === 'traveling') {
+  await db('player_actions').where({ id: action.id }).delete();
+  io.to(`player_${action.player_id}`).emit('travel_complete', {
+    result,
+  });
+  return;
+}
 
     if (result.success && action.auto_restart) {
       // Calculate next timer

@@ -1,0 +1,26 @@
+.minimap-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.minimap-svg {
+  display: block;
+}
+
+.map-node {
+  cursor: default;
+}
+
+.map-node.clickable {
+  cursor: pointer;
+}
+
+.map-node.clickable:hover circle {
+  fill: var(--color-gold-bright);
+}
+
+.map-node.clickable:hover text {
+  fill: var(--color-gold-bright);
+}

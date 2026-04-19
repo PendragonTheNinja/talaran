@@ -97,6 +97,10 @@ socket.on('action_complete', () => {
   loadPlayerData()
   loadInventory()
 })
+socket.on('travel_complete', () => {
+  loadLocationData()
+  loadPlayerData()
+})
     }
   }, [loadPlayerData, loadLocationData])
 

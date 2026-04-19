@@ -47,7 +47,11 @@ interface GameViewProps {
   locationData: LocationData | null
   playerData: any
   onPlayerDataUpdate: () => void
+  travelStatus: { message: string; seconds: number } | null
+  onClearTravel: () => void
 }
+
+
 
 interface LogEntry {
   id: number
@@ -55,7 +59,7 @@ interface LogEntry {
   type: 'success' | 'info' | 'error' | 'level'
 }
 
-export default function GameView({ locationData, playerData, onPlayerDataUpdate }: GameViewProps) {
+export default function GameView({ locationData, playerData, onPlayerDataUpdate, travelStatus, onClearTravel }: GameViewProps) {
   const [currentAction, setCurrentAction] = useState<string | null>(null)
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(0)
@@ -128,6 +132,19 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
   }
 }, [onPlayerDataUpdate])
 
+useEffect(() => {
+  if (!travelStatus?.seconds) return
+  setLastResult(null)
+  setCurrentAction('traveling')
+  setActiveNodeId(null)
+  setTimerMax(travelStatus.seconds)
+  startCountdown(travelStatus.seconds)
+
+  return () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+  }
+}, [travelStatus])
+
   const startCountdown = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
     setTimerSeconds(seconds)
@@ -144,9 +161,18 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
   }
 
   const startAction = async (node: Node) => {
-  if (currentAction) return
-
   try {
+    if (currentAction) {
+      await apiFetch('/api/actions/stop', { method: 'POST' })
+    }
+
+    setLastResult(null)
+    setCurrentAction(null)
+    setActiveNodeId(null)
+    setTimerSeconds(0)
+    onClearTravel()
+    if (timerRef.current) clearInterval(timerRef.current)
+
     const res = await apiFetch<{ timerSeconds: number; completesAt: string }>(
       '/api/actions/woodcutting/start',
       {
@@ -155,31 +181,29 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate 
       }
     )
 
-    console.log('Action started, timerSeconds:', res.timerSeconds)
-    
     setCurrentAction('woodcutting')
     setActiveNodeId(node.id)
     setTimerMax(res.timerSeconds)
     startCountdown(res.timerSeconds)
-    addLog(`You begin chopping a ${node.name}.`, 'info')
 
-    } catch (err: any) {
-      addLog(err.message || 'Could not start action.', 'error')
-    }
+  } catch (err: any) {
+    addLog(err.message || 'Could not start action.', 'error')
   }
+}
 
   const stopAction = async () => {
-    try {
-      await apiFetch('/api/actions/stop', { method: 'POST' })
-      setCurrentAction(null)
-      setActiveNodeId(null)
-      setTimerSeconds(0)
-      if (timerRef.current) clearInterval(timerRef.current)
-      addLog('You stop what you are doing.', 'info')
-    } catch (err: any) {
-      addLog(err.message || 'Could not stop action.', 'error')
-    }
+  try {
+    await apiFetch('/api/actions/stop', { method: 'POST' })
+    setCurrentAction(null)
+    setActiveNodeId(null)
+    setTimerSeconds(0)
+    setLastResult(null)
+    onClearTravel()
+    if (timerRef.current) clearInterval(timerRef.current)
+  } catch (err: any) {
+    addLog(err.message || 'Could not stop action.', 'error')
   }
+}
 
   const handleBotCheck = async () => {
     const correct = botCheckQuestion.a + botCheckQuestion.b
@@ -235,24 +259,31 @@ const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number }
   return (
     <div className="game-view panel">
       <div className="game-view-location-bar">
-        <span className="game-view-location gold-text">{locationName}</span>
-        <div className="game-view-actions">
-          {woodcuttingNodes.map(node => (
-            <button
-              key={node.id}
-              className={`btn ${activeNodeId === node.id ? 'btn-gold' : ''}`}
-              onClick={() => currentAction ? stopAction() : startAction(node)}
-            >
-              {activeNodeId === node.id ? 'Stop Chopping' : `Chop ${node.name}`}
-            </button>
-          ))}
-          {connections.map(conn => (
-            <button key={conn.id} className="btn">
-              → {conn.to_location_name}
-            </button>
-          ))}
-        </div>
-      </div>
+  <span className="game-view-location gold-text">{locationName}</span>
+  <div className="game-view-actions">
+    {!currentAction && woodcuttingNodes.map(node => (
+      <button
+        key={node.id}
+        className="btn"
+        onClick={() => startAction(node)}
+      >
+        Chop {node.name}
+      </button>
+    ))}
+
+    {currentAction === 'woodcutting' && (
+      <button className="btn btn-red" onClick={stopAction}>
+        Stop Chopping
+      </button>
+    )}
+
+    {!currentAction && connections.map(conn => (
+      <button key={conn.id} className="btn" onClick={() => {/* travel handled by minimap */}}>
+        → {conn.to_location_name}
+      </button>
+    ))}
+  </div>
+</div>
 
       <div className="game-view-main">
         <div className="game-view-scene">
@@ -261,20 +292,39 @@ const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number }
           </div>
         </div>
 
-        {currentAction && !botCheckPending && (
-          <div className="game-view-action-log">
-            <div className="action-timer">
-              <div className="action-timer-bar">
-                <div
-  key={timerMax}
-  className="action-timer-fill"
-  style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
-/>
-              </div>
-              <span className="action-timer-label">{timerSeconds}s</span>
-            </div>
-          </div>
-        )}
+        {currentAction === 'traveling' && !botCheckPending && (
+  <div className="game-view-action-log">
+    <p className="travel-status gold-text">{travelStatus?.message}</p>
+    <div className="action-timer">
+      <div className="action-timer-bar">
+        <div
+          key={timerMax}
+          className="action-timer-fill"
+          style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+        />
+      </div>
+      <span className="action-timer-label">{timerSeconds}s</span>
+    </div>
+    <button className="btn btn-red" onClick={stopAction}>
+      Cancel Travel
+    </button>
+  </div>
+)}
+
+{currentAction === 'woodcutting' && !botCheckPending && (
+  <div className="game-view-action-log">
+    <div className="action-timer">
+      <div className="action-timer-bar">
+        <div
+          key={timerMax}
+          className="action-timer-fill"
+          style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+        />
+      </div>
+      <span className="action-timer-label">{timerSeconds}s</span>
+    </div>
+  </div>
+)}
 
         {botCheckPending && (
           <div className="bot-check panel-inset">
