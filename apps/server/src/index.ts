@@ -7,6 +7,7 @@ import authRoutes from './routes/auth';
 import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
 import travelRoutes from './routes/travel';
+import equipmentRoutes from './routes/equipment';
 
 dotenv.config();
 
@@ -67,6 +68,7 @@ app.use('/api/player', playerRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/travel', travelRoutes);
+app.use('/api/equipment', equipmentRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

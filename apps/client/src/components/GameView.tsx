@@ -112,6 +112,14 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
   }
 })
 
+    socket.on('action_failed', (data: { error: string }) => {
+  addLog(data.error || 'Action stopped.', 'error')
+  setCurrentAction(null)
+  setActiveNodeId(null)
+  setTimerSeconds(0)
+  if (timerRef.current) clearInterval(timerRef.current)
+})
+
     socket.on('bot_check_required', () => {
       const a = Math.floor(Math.random() * 20) + 1
       const b = Math.floor(Math.random() * 20) + 1
@@ -128,6 +136,7 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
     if (socket) {
       socket.off('action_complete')
       socket.off('bot_check_required')
+      socket.off('action_failed')
     }
   }
 }, [onPlayerDataUpdate])

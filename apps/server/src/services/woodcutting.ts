@@ -2,14 +2,10 @@ import db from '../db';
 import { levelFromXp } from './xp';
 import { logger } from '../index';
 
-const TOOL_TIER_PENALTY = 0.4; // 40% slower per tier below optimal
-const MAX_TIER_DIFFERENCE = 3; // can't use axe more than 3 tiers below node
-
-// How much the timer reduces per level over requirement (as a fraction)
-const LEVEL_TIMER_REDUCTION = 0.005; // 0.5% per level over requirement
-
-// How much quality shifts per level over requirement
-const LEVEL_QUALITY_SHIFT = 0.3; // 0.3% shift from poor to fine/excellent per level
+const TOOL_TIER_PENALTY = 0.4;
+const MAX_TIER_DIFFERENCE = 3;
+const LEVEL_TIMER_REDUCTION = 0.005;
+const LEVEL_QUALITY_SHIFT = 0.3;
 
 export interface WoodcuttingResult {
   success: boolean;
@@ -26,12 +22,10 @@ export function calculateTimer(
   playerToolTier: number,
   requiredToolTier: number
 ): number {
-  // Level bonus — reduce timer based on levels over requirement
   const levelsOver = Math.max(0, playerLevel - requiredLevel);
   const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION);
   let timer = baseTimer * (1 - levelReduction);
 
-  // Tool tier penalty — slower if using lower tier axe
   const tierDifference = requiredToolTier - playerToolTier;
   if (tierDifference > 0) {
     timer = timer * (1 + tierDifference * TOOL_TIER_PENALTY);
@@ -50,7 +44,6 @@ export function determineLogQuality(
   const levelsOver = Math.max(0, playerLevel - requiredLevel);
   const shift = Math.min(30, levelsOver * LEVEL_QUALITY_SHIFT);
 
-  // Shift quality distribution toward better logs as player levels up
   const adjustedPoor = Math.max(5, poorChance - shift);
   const adjustedExcellent = Math.min(60, excellentChance + shift * 0.5);
   const adjustedFine = 100 - adjustedPoor - adjustedExcellent;
@@ -80,23 +73,26 @@ export async function canChopHere(
     return { allowed: false, reason: `You need Woodcutting level ${node.required_level} to chop here` };
   }
 
-  // Check player has an axe equipped (for now just check inventory)
-  const axeInInventory = await db('player_inventory')
-    .join('items', 'player_inventory.item_id', 'items.id')
-    .where({ 'player_inventory.player_id': playerId, 'items.subtype': 'axe' })
-    .orderBy('items.tier', 'desc')
-    .first();
+  // Check equipped axe in mainhand
+  const equipment = await db('player_equipment').where({ player_id: playerId }).first();
+  const equippedAxeId = equipment?.mainhand_item_id;
 
-  if (!axeInInventory) {
-    return { allowed: false, reason: 'You need a hatchet to chop trees' };
+  if (!equippedAxeId) {
+    return { allowed: false, reason: 'You need a hatchet equipped to chop trees' };
   }
 
-  const tierDifference = node.required_tool_tier - axeInInventory.tier;
+  const equippedAxe = await db('items').where({ id: equippedAxeId, subtype: 'axe' }).first();
+
+  if (!equippedAxe) {
+    return { allowed: false, reason: 'You need a hatchet equipped to chop trees' };
+  }
+
+  const tierDifference = node.required_tool_tier - equippedAxe.tier;
   if (tierDifference > MAX_TIER_DIFFERENCE) {
     return { allowed: false, reason: 'Your hatchet is not sharp enough to cut these trees' };
   }
 
-  return { allowed: true, toolTier: axeInInventory.tier };
+  return { allowed: true, toolTier: equippedAxe.tier };
 }
 
 export async function processWoodcuttingAction(
@@ -104,6 +100,12 @@ export async function processWoodcuttingAction(
   nodeId: number
 ): Promise<WoodcuttingResult> {
   try {
+    // Verify player can still chop here (tool still equipped, etc.)
+const canChop = await canChopHere(playerId, nodeId);
+if (!canChop.allowed) {
+  return { success: false, error: canChop.reason };
+}
+    
     const node = await db('resource_nodes').where({ id: nodeId }).first();
     if (!node) return { success: false, error: 'Node not found' };
 
@@ -113,6 +115,12 @@ export async function processWoodcuttingAction(
       .first();
 
     const playerLevel = playerSkill ? levelFromXp(playerSkill.xp) : 1;
+
+    // Get equipped axe
+    const equipment = await db('player_equipment').where({ player_id: playerId }).first();
+    const equippedAxe = equipment?.mainhand_item_id
+      ? await db('items').where({ id: equipment.mainhand_item_id }).first()
+      : null;
 
     // Determine log quality
     const quality = determineLogQuality(
@@ -158,7 +166,7 @@ export async function processWoodcuttingAction(
       .where({ player_id: playerId, skill_id: woodcuttingSkill.id })
       .increment('xp', node.xp_reward);
 
-    // Check exploration — first time chopping this node type
+    // Check exploration
     const discoveryKey = `woodcutting_node_${nodeId}`;
     const alreadyDiscovered = await db('player_exploration')
       .where({ player_id: playerId, discovery_type: 'resource_node', discovery_key: discoveryKey })
@@ -173,7 +181,6 @@ export async function processWoodcuttingAction(
         xp_awarded: explorationXp,
       });
 
-      // Award exploration XP
       const explorationSkill = await db('skills').where({ name: 'Exploration' }).first();
       await db('player_skills')
         .where({ player_id: playerId, skill_id: explorationSkill.id })

@@ -59,6 +59,21 @@ interface InventoryItem {
   quantity: number
 }
 
+interface EquipmentData {
+  head: any | null
+  neck: any | null
+  back: any | null
+  chest: any | null
+  mainhand: any | null
+  offhand: any | null
+  legs: any | null
+  hands: any | null
+  feet: any | null
+  finger: any | null
+  mount: any | null
+  trophy: any | null
+}
+
 function App() {
   const [player, setPlayer] = useState<Player | null>(null)
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
@@ -147,6 +162,17 @@ socket.on('travel_complete', () => {
   setInventoryData([])
 }
 
+  const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
+
+  const loadEquipment = useCallback(async () => {
+  try {
+    const data = await apiFetch<{ equipment: EquipmentData }>('/api/equipment')
+    setEquipmentData(data.equipment)
+  } catch (err) {
+    console.error('Failed to load equipment:', err)
+  }
+}, [])
+
   if (checking) return null
 
   if (!player) {
@@ -159,8 +185,11 @@ socket.on('travel_complete', () => {
   playerData={playerData}
   locationData={locationData}
   inventoryData={inventoryData}
+  equipmentData={equipmentData}
   onLogout={handleLogout}
   onPlayerDataUpdate={loadPlayerData}
+  onEquipmentUpdate={loadEquipment}
+  onInventoryUpdate={loadInventory}
 />
   )
 }

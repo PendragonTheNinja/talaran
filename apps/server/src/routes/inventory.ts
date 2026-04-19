@@ -12,17 +12,19 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
       .join('items', 'player_inventory.item_id', 'items.id')
       .where({ 'player_inventory.player_id': playerId })
       .select(
-        'player_inventory.id',
-        'player_inventory.quantity',
-        'items.id as item_id',
-        'items.name',
-        'items.type',
-        'items.subtype',
-        'items.quality',
-        'items.tier',
-        'items.description',
-        'items.stackable'
-      );
+  'player_inventory.id',
+  'player_inventory.quantity',
+  'items.id as item_id',
+  'items.name',
+  'items.type',
+  'items.subtype',
+  'items.quality',
+  'items.tier',
+  'items.slot',
+  'items.level_required',
+  'items.description',
+  'items.stackable'
+);
 
     res.json({ inventory });
   } catch (err) {

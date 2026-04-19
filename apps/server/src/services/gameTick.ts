@@ -51,6 +51,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     switch (action.action_type) {
       case 'woodcutting':
         result = await processWoodcuttingAction(action.player_id, action.resource_node_id);
+        
         break;
       case 'traveling':
         result = await processTravelAction(action.player_id, action.location_id);
@@ -89,6 +90,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
   return;
 }
 
+    if (!result.success) {
+  await db('player_actions').where({ id: action.id }).delete();
+  io.to(`player_${action.player_id}`).emit('action_failed', {
+    error: result.error || 'Action failed',
+  });
+  return;
+}
+
     if (result.success && action.auto_restart) {
       // Calculate next timer
       const node = await db('resource_nodes').where({ id: action.resource_node_id }).first();
@@ -98,11 +107,10 @@ const playerSkill = await db('player_skills')
   .first();
 
 const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
-      const axe = await db('player_inventory')
-        .join('items', 'player_inventory.item_id', 'items.id')
-        .where({ 'player_inventory.player_id': action.player_id, 'items.subtype': 'axe' })
-        .orderBy('items.tier', 'desc')
-        .first();
+      const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
+const axe = equipment?.mainhand_item_id
+  ? await db('items').where({ id: equipment.mainhand_item_id }).first()
+  : null;
 
       const nextTimer = calculateTimer(
         node.base_timer,

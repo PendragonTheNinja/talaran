@@ -57,13 +57,31 @@ interface InventoryItem {
   quantity: number
 }
 
+interface EquipmentData {
+  head: any | null
+  neck: any | null
+  back: any | null
+  chest: any | null
+  mainhand: any | null
+  offhand: any | null
+  legs: any | null
+  hands: any | null
+  feet: any | null
+  finger: any | null
+  mount: any | null
+  trophy: any | null
+}
+
 interface GameLayoutProps {
   player: Player
   playerData: PlayerData | null
   locationData: LocationData | null
   inventoryData: InventoryItem[]
+  equipmentData: EquipmentData | null
   onLogout: () => void
   onPlayerDataUpdate: () => void
+  onEquipmentUpdate: () => void
+  onInventoryUpdate: () => void
 }
 
 export default function GameLayout({
@@ -71,12 +89,15 @@ export default function GameLayout({
   playerData,
   locationData,
   inventoryData,
+  equipmentData,
   onLogout,
   onPlayerDataUpdate,
+  onEquipmentUpdate,
+  onInventoryUpdate,
 }: GameLayoutProps) {
-  const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
+    const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
 
-  const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
+    const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
   try {
     const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
       method: 'POST',
@@ -96,7 +117,12 @@ const clearAllActions = useCallback(() => {
     <div className="game-root">
       <TopNav player={player} onLogout={onLogout} />
       <div className="game-body">
-        <LeftPanel inventoryData={inventoryData} />
+        <LeftPanel
+  inventoryData={inventoryData}
+  equipmentData={equipmentData}
+  onEquipmentUpdate={onEquipmentUpdate}
+  onInventoryUpdate={onInventoryUpdate}
+/>
         <div className="game-center">
           <GameView
   locationData={locationData}

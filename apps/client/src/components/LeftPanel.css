@@ -149,3 +149,43 @@
   text-shadow: 0 0 3px black;
   line-height: 1;
 }
+
+.equipment-slot-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 1;
+}
+
+.equipment-item-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2px;
+}
+
+.equipment-item-text {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2px;
+}
+
+.equipment-slot.occupied {
+  border-color: var(--color-gold-dim);
+  background: var(--color-bg-mid);
+}
+
+.equipment-slot.occupied:hover {
+  border-color: var(--color-red-bright);
+}
+
+.equipment-error {
+  background: var(--color-red-dark);
+  border: 1px solid var(--color-red-bright);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  color: #f5a5a5;
+  font-size: 13px;
+  text-align: center;
+}

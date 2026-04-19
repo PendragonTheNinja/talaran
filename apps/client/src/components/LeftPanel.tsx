@@ -1,4 +1,6 @@
-import { getItemIcon, getQualityColor } from '../lib/items'
+import { useState } from 'react'
+import { getItemIcon, getSlotIcon, getQualityColor } from '../lib/items'
+import { apiFetch } from '../lib/api'
 import './LeftPanel.css'
 
 interface InventoryItem {
@@ -12,16 +14,87 @@ interface InventoryItem {
   description: string
   stackable: boolean
   quantity: number
+  slot?: string
+}
+
+interface EquipmentData {
+  head: any | null
+  neck: any | null
+  back: any | null
+  chest: any | null
+  mainhand: any | null
+  offhand: any | null
+  legs: any | null
+  hands: any | null
+  feet: any | null
+  finger: any | null
+  mount: any | null
+  trophy: any | null
 }
 
 interface LeftPanelProps {
   inventoryData: InventoryItem[]
+  equipmentData: EquipmentData | null
+  onEquipmentUpdate: () => void
+  onInventoryUpdate: () => void
 }
 
-export default function LeftPanel({ inventoryData }: LeftPanelProps) {
-    const INVENTORY_SLOTS = Math.max(16, inventoryData.length)
-  
-    return (
+const SLOTS = [
+  { key: 'neck',     label: 'Neck' },
+  { key: 'head',     label: 'Head' },
+  { key: 'back',     label: 'Back' },
+  { key: 'mainhand', label: 'Main Hand' },
+  { key: 'chest',    label: 'Chest' },
+  { key: 'offhand',  label: 'Off Hand' },
+  { key: 'finger',   label: 'Finger' },
+  { key: 'legs',     label: 'Legs' },
+  { key: 'hands',    label: 'Hands' },
+  { key: 'mount',    label: 'Mount' },
+  { key: 'feet',     label: 'Feet' },
+  { key: 'trophy',   label: 'Trophy' },
+]
+
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate }: LeftPanelProps) {
+  const [tooltip, setTooltip] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const INVENTORY_SLOTS = Math.max(16, inventoryData.length)
+
+  const handleEquip = async (item: InventoryItem) => {
+    if (!item.slot) {
+      setError('This item cannot be equipped')
+      setTimeout(() => setError(null), 3000)
+      return
+    }
+
+    try {
+      await apiFetch('/api/equipment/equip', {
+        method: 'POST',
+        body: JSON.stringify({ itemId: item.item_id }),
+      })
+      onEquipmentUpdate()
+      onInventoryUpdate()
+    } catch (err: any) {
+      setError(err.message || 'Could not equip item')
+      setTimeout(() => setError(null), 3000)
+    }
+  }
+
+  const handleUnequip = async (slot: string) => {
+    try {
+      await apiFetch('/api/equipment/unequip', {
+        method: 'POST',
+        body: JSON.stringify({ slot }),
+      })
+      onEquipmentUpdate()
+      onInventoryUpdate()
+    } catch (err: any) {
+      setError(err.message || 'Could not unequip item')
+      setTimeout(() => setError(null), 3000)
+    }
+  }
+
+  return (
     <aside className="left-panel panel">
 
       {/* Inventory */}
@@ -36,17 +109,14 @@ export default function LeftPanel({ inventoryData }: LeftPanelProps) {
             <div
               key={i}
               className={`inventory-slot ${item ? 'occupied' : ''}`}
-              title={item ? `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}\n${item.description}` : ''}
+              title={item ? `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}\n${item.description}${item.slot ? '\nClick to equip' : ''}` : ''}
               style={item && qualityColor ? { borderColor: qualityColor } : {}}
+              onClick={() => item && handleEquip(item)}
             >
               {item && (
                 <>
                   {icon ? (
-                    <img
-                      src={icon}
-                      alt={item.name}
-                      className="inventory-item-icon"
-                    />
+                    <img src={icon} alt={item.name} className="inventory-item-icon" />
                   ) : (
                     <span className="inventory-item-text">{item.name.split(' ')[0]}</span>
                   )}
@@ -60,14 +130,39 @@ export default function LeftPanel({ inventoryData }: LeftPanelProps) {
         })}
       </div>
 
+      {error && (
+        <div className="equipment-error">{error}</div>
+      )}
+
       <div className="divider" />
 
-      {/* Equipment */}
+      {/* Equipment / Paper Doll */}
       <div className="panel-title">Equipment</div>
       <div className="equipment-grid">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="equipment-slot panel-inset" />
-        ))}
+        {SLOTS.map(({ key, label }) => {
+          const equipped = equipmentData?.[key as keyof EquipmentData]
+          const slotIcon = getSlotIcon(key)
+          const itemIcon = equipped ? getItemIcon(equipped.name) : null
+
+          return (
+            <div
+              key={key}
+              className={`equipment-slot panel-inset ${equipped ? 'occupied' : ''}`}
+              title={equipped ? `${equipped.name}\nClick to unequip` : label}
+              onClick={() => equipped && handleUnequip(key)}
+            >
+              {equipped ? (
+                itemIcon ? (
+                  <img src={itemIcon} alt={equipped.name} className="equipment-item-icon" />
+                ) : (
+                  <span className="equipment-item-text">{equipped.name.split(' ')[0]}</span>
+                )
+              ) : (
+                <img src={slotIcon} alt={label} className="equipment-slot-icon" />
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="divider" />
