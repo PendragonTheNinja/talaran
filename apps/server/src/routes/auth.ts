@@ -40,8 +40,15 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    const [player] = await db('players')
-  .insert({ username, email, password_hash })
+    const startingLocation = await db('locations').where({ name: 'Talador' }).first();
+
+const [player] = await db('players')
+  .insert({ 
+    username, 
+    email, 
+    password_hash,
+    current_location_id: startingLocation?.id || null,
+  })
   .returning(['id', 'username', 'email']);
 
 // Initialize all skills at 0 XP for the new player
