@@ -1,12 +1,20 @@
 export function getItemIcon(itemName: string): string | null {
   const filename = itemName.replace(/ /g, '_') + '.png'
   const known = [
+    // Logs
     'Poor_Lanai_Log.png',
     'Fine_Lanai_Log.png',
     'Excellent_Lanai_Log.png',
     'Poor_Hatch_Log.png',
     'Fine_Hatch_Log.png',
     'Excellent_Hatch_Log.png',
+    // Ores
+    'Ambren_Ore.png',
+    'Burgh_Ore.png',
+    'Serph_Ore.png',
+    'Dense_Ambren_Ore.png',
+    'Dense_Burgh_Ore.png',
+    'Dense_Serph_Ore.png',
   ]
 
   if (known.includes(filename)) {
