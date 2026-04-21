@@ -1,6 +1,7 @@
 import db from '../db';
 import { levelFromXp } from './xp';
 import { logger } from '../index';
+import { incrementStats } from './stats';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -180,6 +181,17 @@ if (!canChop.allowed) {
         discovery_key: discoveryKey,
         xp_awarded: explorationXp,
       });
+
+      // Track stats
+const qualityKey = `${quality}_logs_chopped` as string;
+const subtypeKey = `${subtype}_logs_chopped` as string;
+await incrementStats(playerId, {
+  total_logs_chopped: 1,
+  total_actions_completed: 1,
+  total_xp_earned: node.xp_reward,
+  [qualityKey]: 1,
+  [subtypeKey]: 1,
+});
 
       const explorationSkill = await db('skills').where({ name: 'Exploration' }).first();
       await db('player_skills')

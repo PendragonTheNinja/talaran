@@ -2,10 +2,11 @@ import db from '../db';
 import { levelFromXp } from './xp';
 import { logger } from '../index';
 import { io } from '../index';
+import { incrementStats } from './stats';
 
-const VEIN_ANNOUNCE_DELAY = 5 * 60 * 1000; // 5 minutes in ms
-const DENSE_ORE_START_LEVELS = 15; // levels over required to start getting dense ore
-const DENSE_ORE_GUARANTEED_LEVELS = 45; // levels over required to always get dense ore
+const VEIN_ANNOUNCE_DELAY = 5 * 60 * 1000;
+const DENSE_ORE_START_LEVELS = 15;
+const DENSE_ORE_GUARANTEED_LEVELS = 45;
 const MAX_TIER_DIFFERENCE = 3;
 const TOOL_TIER_PENALTY = 0.4;
 const LEVEL_TIMER_REDUCTION = 0.005;
@@ -30,12 +31,10 @@ export function calculateMiningTimer(
   const levelsOver = Math.max(0, playerLevel - requiredLevel);
   const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION);
   let timer = baseTimer * (1 - levelReduction);
-
   const tierDifference = requiredToolTier - playerToolTier;
   if (tierDifference > 0) {
     timer = timer * (1 + tierDifference * TOOL_TIER_PENALTY);
   }
-
   return Math.max(minTimer, Math.round(timer));
 }
 
@@ -50,7 +49,6 @@ export async function canMineHere(
   const playerSkill = await db('player_skills')
     .where({ player_id: playerId, skill_id: miningSkill.id })
     .first();
-
   const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
 
   if (playerLevel < node.required_level) {
@@ -80,7 +78,6 @@ export async function canMineHere(
   return { allowed: true, toolTier: equippedPickaxe.tier };
 }
 
-// Check if player is mining a vein specifically
 export async function canMineVein(
   playerId: number,
   veinId: number
@@ -94,7 +91,6 @@ export async function canMineVein(
   const playerSkill = await db('player_skills')
     .where({ player_id: playerId, skill_id: miningSkill.id })
     .first();
-
   const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
 
   if (playerLevel < ore.level_required) {
@@ -104,13 +100,10 @@ export async function canMineVein(
   return { allowed: true };
 }
 
-// Get active veins at a location visible to this player
 export async function getActiveVeins(
   locationId: number,
   playerId: number
 ): Promise<any[]> {
-  const now = new Date();
-
   const veins = await db('ore_veins')
     .where({ location_id: locationId, is_depleted: false })
     .join('items', 'ore_veins.ore_item_id', 'items.id')
@@ -120,7 +113,6 @@ export async function getActiveVeins(
       'items.level_required as ore_level_required'
     );
 
-  // Filter: show if announced OR if discovered by this player
   return veins.filter(vein => {
     if (vein.is_announced) return true;
     if (vein.discovered_by_player_id === playerId) return true;
@@ -128,7 +120,6 @@ export async function getActiveVeins(
   });
 }
 
-// Process mining a rock node
 export async function processMiningRock(
   playerId: number,
   nodeId: number
@@ -137,7 +128,6 @@ export async function processMiningRock(
     const node = await db('resource_nodes').where({ id: nodeId }).first();
     if (!node) return { success: false, error: 'Node not found' };
 
-    // Verify still can mine
     const canMine = await canMineHere(playerId, nodeId);
     if (!canMine.allowed) return { success: false, error: canMine.reason };
 
@@ -145,25 +135,20 @@ export async function processMiningRock(
     const playerSkill = await db('player_skills')
       .where({ player_id: playerId, skill_id: miningSkill.id })
       .first();
-
     const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
 
-    // Determine rock type based on node name
     const rockSubtype = node.name.toLowerCase().includes('granite') ? 'granite'
       : node.name.toLowerCase().includes('limestone') ? 'limestone'
       : node.name.toLowerCase().includes('sandstone') ? 'sandstone'
       : node.name.toLowerCase().includes('marble') ? 'marble'
       : 'basalt';
 
-    const rockItem = await db('items')
-      .where({ subtype: rockSubtype, type: 'rock' })
-      .first();
+    const rockItem = await db('items').where({ subtype: rockSubtype, type: 'rock' }).first();
 
     if (rockItem) {
       const existing = await db('player_inventory')
         .where({ player_id: playerId, item_id: rockItem.id })
         .first();
-
       if (existing) {
         await db('player_inventory')
           .where({ player_id: playerId, item_id: rockItem.id })
@@ -177,12 +162,10 @@ export async function processMiningRock(
       }
     }
 
-    // Award XP
     await db('player_skills')
       .where({ player_id: playerId, skill_id: miningSkill.id })
       .increment('xp', node.xp_reward);
 
-    // Check for vein discovery
     let veinFound = false;
     let veinOreName: string | undefined;
 
@@ -197,7 +180,6 @@ export async function processMiningRock(
       }
     }
 
-    // Exploration XP for first rock mined here
     const discoveryKey = `mining_node_${nodeId}`;
     const alreadyDiscovered = await db('player_exploration')
       .where({ player_id: playerId, discovery_type: 'resource_node', discovery_key: discoveryKey })
@@ -217,6 +199,12 @@ export async function processMiningRock(
         .increment('xp', explorationXp);
     }
 
+    await incrementStats(playerId, {
+      total_rocks_mined: 1,
+      total_actions_completed: 1,
+      total_xp_earned: node.xp_reward,
+    });
+
     logger.info(`Player ${playerId} mined ${rockItem?.name || 'rock'} at node ${nodeId}`);
     return {
       success: true,
@@ -232,7 +220,6 @@ export async function processMiningRock(
   }
 }
 
-// Process mining an ore vein
 export async function processMiningVein(
   playerId: number,
   veinId: number
@@ -254,7 +241,6 @@ export async function processMiningVein(
 
     const ore = await db('items').where({ id: vein.ore_item_id }).first();
 
-    // Check for dense ore
     const levelsOver = playerLevel - ore.level_required;
     let isDense = false;
 
@@ -265,7 +251,6 @@ export async function processMiningVein(
       isDense = Math.random() < denseChance;
     }
 
-    // Get the right ore item (dense or normal)
     let oreItem = ore;
     if (isDense) {
       const denseOre = await db('items')
@@ -274,11 +259,9 @@ export async function processMiningVein(
       if (denseOre) oreItem = denseOre;
     }
 
-    // Add ore to inventory
     const existing = await db('player_inventory')
       .where({ player_id: playerId, item_id: oreItem.id })
       .first();
-
     if (existing) {
       await db('player_inventory')
         .where({ player_id: playerId, item_id: oreItem.id })
@@ -291,35 +274,27 @@ export async function processMiningVein(
       });
     }
 
-    // Award XP (ores give more XP than rocks)
     const oreXp = Math.floor(ore.level_required * 1.2) + 15;
     await db('player_skills')
       .where({ player_id: playerId, skill_id: miningSkill.id })
       .increment('xp', oreXp);
 
-    // Deplete vein
     const newRemaining = vein.remaining_quantity - 1;
     if (newRemaining <= 0) {
       await db('ore_veins').where({ id: veinId }).update({
         remaining_quantity: 0,
         is_depleted: true,
       });
-
-      // Notify all players at this location that vein is depleted
       io.to(`location_${vein.location_id}`).emit('vein_depleted', {
         veinId,
         oreName: ore.name,
         locationId: vein.location_id,
       });
-
       logger.info(`Vein ${veinId} (${ore.name}) depleted at location ${vein.location_id}`);
     } else {
-      await db('ore_veins').where({ id: veinId }).update({
-        remaining_quantity: newRemaining,
-      });
+      await db('ore_veins').where({ id: veinId }).update({ remaining_quantity: newRemaining });
     }
 
-    // Exploration XP for first time mining this ore
     const discoveryKey = `mining_ore_${ore.subtype}`;
     const alreadyDiscovered = await db('player_exploration')
       .where({ player_id: playerId, discovery_type: 'ore', discovery_key: discoveryKey })
@@ -339,6 +314,14 @@ export async function processMiningVein(
         .increment('xp', explorationXp);
     }
 
+    await incrementStats(playerId, {
+      total_ores_mined: 1,
+      total_dense_ores_mined: isDense ? 1 : 0,
+      total_actions_completed: 1,
+      total_xp_earned: oreXp,
+      [`${ore.subtype}_ore_mined`]: 1,
+    });
+
     logger.info(`Player ${playerId} mined ${oreItem.name} from vein ${veinId} (${newRemaining} remaining)`);
     return {
       success: true,
@@ -352,7 +335,6 @@ export async function processMiningVein(
   }
 }
 
-// Discover a new vein
 async function discoverVein(
   playerId: number,
   nodeId: number,
@@ -360,19 +342,8 @@ async function discoverVein(
   locationId: number
 ): Promise<{ oreName: string } | null> {
   try {
-    // Don't discover new veins if active ones already exist at this location
-    const existingVeins = await db('ore_veins')
-      .where({ location_id: locationId, is_depleted: false })
-      .count('id as count')
-      .first();
-
-    if (parseInt(existingVeins?.count as string) > 0) {
-      return null;
-    }
-
     const node = await db('resource_nodes').where({ id: nodeId }).first();
 
-    // Get eligible ores based on player level
     const eligibleOres = await db('items')
       .where({ type: 'ore' })
       .whereNull('quality')
@@ -382,6 +353,12 @@ async function discoverVein(
     if (eligibleOres.length === 0) return null;
 
     const ore = eligibleOres[Math.floor(Math.random() * eligibleOres.length)];
+
+    const existingVein = await db('ore_veins')
+      .where({ location_id: locationId, is_depleted: false, ore_item_id: ore.id })
+      .first();
+
+    if (existingVein) return null;
 
     const quantity = Math.floor(Math.random() * (node.max_vein_quantity - node.min_vein_quantity + 1)) + node.min_vein_quantity;
     const now = new Date();
@@ -400,6 +377,8 @@ async function discoverVein(
       is_depleted: false,
     });
 
+    await incrementStats(playerId, { veins_discovered: 1 });
+
     io.to(`player_${playerId}`).emit('vein_discovered', {
       oreName: ore.name,
       quantity,
@@ -415,7 +394,6 @@ async function discoverVein(
   }
 }
 
-// Called by game tick to announce veins whose timer has expired
 export async function checkVeinAnnouncements(): Promise<void> {
   const now = new Date();
 
@@ -429,7 +407,6 @@ export async function checkVeinAnnouncements(): Promise<void> {
     const ore = await db('items').where({ id: vein.ore_item_id }).first();
     const location = await db('locations').where({ id: vein.location_id }).first();
 
-    // Announce to all players at this location
     io.to(`location_${vein.location_id}`).emit('vein_announced', {
       veinId: vein.id,
       oreName: ore.name,
@@ -437,7 +414,6 @@ export async function checkVeinAnnouncements(): Promise<void> {
       locationName: location.name,
     });
 
-    // Also send as a region event
     io.emit('region_event', {
       message: `A ${ore.name} vein has been discovered at ${location.name}!`,
       type: 'mining',

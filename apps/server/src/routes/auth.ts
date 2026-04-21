@@ -58,7 +58,11 @@ const playerSkills = allSkills.map((skill: { id: number }) => ({
   skill_id: skill.id,
   xp: 0,
 }));
+
+// Initialize player skills
 await db('player_skills').insert(playerSkills);
+// Initialize player stats
+await db('player_stats').insert({ player_id: player.id });
 
 const token = signToken({ playerId: player.id, username: player.username });
 

@@ -95,12 +95,58 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     if (action.action_type === 'mining_vein') {
       const vein = await db('ore_veins').where({ id: action.action_data }).first();
       if (!vein || vein.is_depleted) {
-        await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
-          error: 'The ore vein has been depleted.',
-        });
-        return;
-      }
+  // Find the rock node at this location and auto-restart
+  const rockNode = await db('resource_nodes')
+    .where({ location_id: action.location_id, skill: 'mining' })
+    .first();
+
+  if (rockNode) {
+    const miningSkill = await db('skills').where({ name: 'Mining' }).first();
+    const playerSkillRow = await db('player_skills')
+      .where({ player_id: action.player_id, skill_id: miningSkill.id })
+      .first();
+    const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
+
+    const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
+    const tool = equipment?.mainhand_item_id
+      ? await db('items').where({ id: equipment.mainhand_item_id }).first()
+      : null;
+
+    const nextTimer = calculateTimer(
+      rockNode.base_timer,
+      rockNode.min_timer,
+      playerLevel,
+      rockNode.required_level,
+      tool ? tool.tier : 1,
+      rockNode.required_tool_tier
+    );
+
+    const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+
+    await db('player_actions').where({ id: action.id }).update({
+      action_type: 'mining_rock',
+      resource_node_id: rockNode.id,
+      action_data: null,
+      completes_at: nextCompletion,
+    });
+
+    io.to(`player_${action.player_id}`).emit('vein_depleted', {
+      oreName: vein ? (await db('items').where({ id: vein.ore_item_id }).first())?.name : 'Unknown',
+    });
+
+    io.to(`player_${action.player_id}`).emit('action_switched', {
+      newActionType: 'mining_rock',
+      nodeName: rockNode.name,
+      timerSeconds: nextTimer,
+    });
+  } else {
+    await db('player_actions').where({ id: action.id }).delete();
+    io.to(`player_${action.player_id}`).emit('vein_depleted', {
+      oreName: 'Unknown',
+    });
+  }
+  return;
+}
 
       const miningSkill = await db('skills').where({ name: 'Mining' }).first();
       const playerSkillRow = await db('player_skills')

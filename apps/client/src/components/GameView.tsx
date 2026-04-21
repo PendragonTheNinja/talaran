@@ -205,6 +205,13 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
         loadVeins()
       })
 
+      socket.on('action_switched', (data: { newActionType: string; nodeName: string; timerSeconds: number }) => {
+  setCurrentAction(data.newActionType)
+  setTimerMax(data.timerSeconds)
+  startCountdown(data.timerSeconds)
+  addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
+})
+
     }, 100)
 
     return () => {
@@ -218,6 +225,7 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
         socket.off('vein_discovered')
         socket.off('vein_announced')
         socket.off('vein_depleted')
+        socket.off('action_switched')
       }
     }
   }, [onPlayerDataUpdate, loadVeins])
