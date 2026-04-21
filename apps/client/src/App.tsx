@@ -80,46 +80,32 @@ function App() {
   const [locationData, setLocationData] = useState<LocationData | null>(null)
   const [checking, setChecking] = useState(true)
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>([])
+  const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
 
   const loadPlayerData = useCallback(async () => {
-    try {
-      const data = await apiFetch<PlayerData>('/api/player/me')
-      setPlayerData(data)
-      return data
-    } catch (err) {
-      console.error('Failed to load player data:', err)
+  try {
+    const data = await apiFetch<PlayerData>('/api/player/me')
+    setPlayerData(data)
+    return data
+  } catch (err) {
+    console.error('Failed to load player data:', err)
+  }
+}, [])
+
+const loadLocationData = useCallback(async () => {
+  try {
+    const data = await apiFetch<LocationData>('/api/location/current')
+    setLocationData(data)
+    const socket = getSocket()
+    if (socket && data.location?.id) {
+      socket.emit('join_location', data.location.id)
     }
-  }, [])
+  } catch (err) {
+    console.error('Failed to load location data:', err)
+  }
+}, [])
 
-  const loadLocationData = useCallback(async () => {
-    try {
-      const data = await apiFetch<LocationData>('/api/location/current')
-      setLocationData(data)
-    } catch (err) {
-      console.error('Failed to load location data:', err)
-    }
-  }, [])
-
-  const initializeSession = useCallback(async (playerInfo: Player) => {
-    setPlayer(playerInfo)
-    const data = await loadPlayerData()
-    await loadLocationData()
-    await loadInventory()
-
-    if (data) {
-      const socket = connectSocket(playerInfo.id)
-socket.on('action_complete', () => {
-  loadPlayerData()
-  loadInventory()
-})
-socket.on('travel_complete', () => {
-  loadLocationData()
-  loadPlayerData()
-})
-    }
-  }, [loadPlayerData, loadLocationData])
-
-  const loadInventory = useCallback(async () => {
+const loadInventory = useCallback(async () => {
   try {
     const data = await apiFetch<{ inventory: InventoryItem[] }>('/api/inventory')
     setInventoryData(data.inventory)
@@ -128,43 +114,7 @@ socket.on('travel_complete', () => {
   }
 }, [])
 
-  useEffect(() => {
-    const token = localStorage.getItem('talaran_token')
-    const savedPlayer = localStorage.getItem('talaran_player')
-
-    if (token && savedPlayer) {
-      try {
-        const playerInfo = JSON.parse(savedPlayer)
-        initializeSession(playerInfo).finally(() => setChecking(false))
-      } catch {
-        localStorage.removeItem('talaran_token')
-        localStorage.removeItem('talaran_player')
-        setChecking(false)
-      }
-    } else {
-      setChecking(false)
-    }
-  }, [])
-
-  const handleLogin = async (token: string, playerInfo: Player) => {
-    localStorage.setItem('talaran_token', token)
-    localStorage.setItem('talaran_player', JSON.stringify(playerInfo))
-    await initializeSession(playerInfo)
-  }
-
-  const handleLogout = () => {
-  disconnectSocket()
-  localStorage.removeItem('talaran_token')
-  localStorage.removeItem('talaran_player')
-  setPlayer(null)
-  setPlayerData(null)
-  setLocationData(null)
-  setInventoryData([])
-}
-
-  const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
-
-  const loadEquipment = useCallback(async () => {
+const loadEquipment = useCallback(async () => {
   try {
     const data = await apiFetch<{ equipment: EquipmentData }>('/api/equipment')
     setEquipmentData(data.equipment)
@@ -172,6 +122,71 @@ socket.on('travel_complete', () => {
     console.error('Failed to load equipment:', err)
   }
 }, [])
+
+const initializeSession = useCallback(async (playerInfo: Player) => {
+  setPlayer(playerInfo)
+  const data = await loadPlayerData()
+  await loadLocationData()
+  await loadInventory()
+  await loadEquipment()
+
+  if (data) {
+    const socket = connectSocket(playerInfo.id)
+    socket.on('action_complete', () => {
+  loadPlayerData()
+  loadInventory()
+  loadLocationData()
+})
+    socket.on('travel_complete', () => {
+      loadLocationData()
+      loadPlayerData()
+    })
+    socket.on('vein_discovered', () => {
+      loadLocationData()
+    })
+    socket.on('vein_announced', () => {
+      loadLocationData()
+    })
+    socket.on('vein_depleted', () => {
+      loadLocationData()
+    })
+  }
+}, [loadPlayerData, loadLocationData, loadInventory, loadEquipment])
+
+useEffect(() => {
+  const token = localStorage.getItem('talaran_token')
+  const savedPlayer = localStorage.getItem('talaran_player')
+
+  if (token && savedPlayer) {
+    try {
+      const playerInfo = JSON.parse(savedPlayer)
+      initializeSession(playerInfo).finally(() => setChecking(false))
+    } catch {
+      localStorage.removeItem('talaran_token')
+      localStorage.removeItem('talaran_player')
+      setChecking(false)
+    }
+  } else {
+    setChecking(false)
+  }
+}, [])
+
+const handleLogin = async (token: string, playerInfo: Player) => {
+  localStorage.setItem('talaran_token', token)
+  localStorage.setItem('talaran_player', JSON.stringify(playerInfo))
+  await initializeSession(playerInfo)
+}
+
+const handleLogout = () => {
+  disconnectSocket()
+  localStorage.removeItem('talaran_token')
+  localStorage.removeItem('talaran_player')
+  setPlayer(null)
+  setPlayerData(null)
+  setLocationData(null)
+  setInventoryData([])
+  setEquipmentData(null)
+}
 
   if (checking) return null
 

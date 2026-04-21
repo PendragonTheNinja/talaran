@@ -286,3 +286,42 @@
   from { opacity: 1; }
   to   { opacity: 0; }
 }
+
+.action-timer-fill.mining {
+  background: linear-gradient(90deg, #4a3520, #8a6030);
+}
+
+.vein-notification {
+  width: 100%;
+  max-width: 500px;
+  background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+  border: 1px solid var(--color-gold-bright);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  color: var(--color-gold-bright);
+  font-style: italic;
+  animation: levelup-appear 0.3s ease;
+}
+
+.vein-notification button {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+}
+
+.vein-notification button:hover {
+  color: var(--color-gold-bright);
+}
+
+.last-result-remaining {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-style: italic;
+}

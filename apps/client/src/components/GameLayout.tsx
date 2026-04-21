@@ -130,6 +130,7 @@ const clearAllActions = useCallback(() => {
   onPlayerDataUpdate={onPlayerDataUpdate}
   travelStatus={travelStatus}
   onClearTravel={() => setTravelStatus(null)}
+  onTravel={handleTravel}
 />
           <ChatPanel />
         </div>

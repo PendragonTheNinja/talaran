@@ -8,6 +8,7 @@ import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
 import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
+import miningRoutes from './routes/mining';
 
 dotenv.config();
 
@@ -41,7 +42,7 @@ app.use((req, res, next) => {
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
+export const io = new Server(server, {
   cors: {
     origin: [
       'http://localhost:5173',
@@ -69,6 +70,7 @@ app.use('/api/location', locationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/travel', travelRoutes);
 app.use('/api/equipment', equipmentRoutes);
+app.use('/api/mining', miningRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
@@ -82,6 +84,14 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     logger.info(`Socket disconnected: ${socket.id}`);
   });
+
+  socket.on('join_location', (locationId: number) => {
+  // Leave all location rooms first
+  socket.rooms.forEach(room => {
+    if (room.startsWith('location_')) socket.leave(room);
+  });
+  socket.join(`location_${locationId}`);
+});
 });
 
 // Start the game tick

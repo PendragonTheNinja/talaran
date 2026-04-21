@@ -110,4 +110,50 @@ export async function seed(knex: Knex): Promise<void> {
       xp_reward: 18,
     },
   ]);
+
+    await knex('locations').insert([
+  {
+    name: 'Taiar Mines',
+    region: 'Taiar Island',
+    type: 'mine',
+    description: 'A network of tunnels carved into the upper mountain range of Taiar Island. The air is thick with dust and the ring of pickaxes.',
+    map_x: 10,
+    map_y: 3,
+    is_safe: true,
+    is_accessible: true,
+  },
+]);
+
+const taiarMines = await knex('locations').where({ name: 'Taiar Mines' }).first();
+
+// Connect Lanai Forest to Taiar Mines
+await knex('location_connections').insert([
+  {
+    from_location_id: lanaiForest.id,
+    to_location_id: taiarMines.id,
+    base_travel_time: 90,
+    travel_type: 'walking',
+    is_bidirectional: true,
+  },
+]);
+
+// Add rock mining node at Taiar Mines
+await knex('resource_nodes').insert([
+  {
+    location_id: taiarMines.id,
+    skill: 'mining',
+    name: 'Granite Rock',
+    required_level: 1,
+    base_timer: 8,
+    min_timer: 4,
+    required_tool_tier: 1,
+    poor_chance: 0,
+    fine_chance: 0,
+    excellent_chance: 0,
+    xp_reward: 8,
+    vein_discovery_chance: 15, // 1.5% per rock mined
+    min_vein_quantity: 50,
+    max_vein_quantity: 100,
+  },
+]);
 }

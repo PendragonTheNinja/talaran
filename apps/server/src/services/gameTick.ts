@@ -1,23 +1,22 @@
 import { Server } from 'socket.io';
 import db from '../db';
 import { logger } from '../index';
-import { processWoodcuttingAction } from './woodcutting';
-import { canChopHere, calculateTimer } from './woodcutting';
+import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { levelFromXp, xpToNextLevel } from './xp';
+import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 
-const TICK_INTERVAL = 2000; // check every 2 seconds
-const BOT_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes in ms
+const TICK_INTERVAL = 2000;
+const BOT_CHECK_INTERVAL = 30 * 60 * 1000;
 
 export function startGameTick(io: Server): void {
   logger.info('Game tick started');
 
   setInterval(async () => {
     try {
-      // Find all actions that have completed
+      await checkVeinAnnouncements();
       const completedActions = await db('player_actions')
         .where('completes_at', '<=', new Date())
         .where('bot_check_pending', false);
-
       for (const action of completedActions) {
         await processCompletedAction(io, action);
       }
@@ -29,14 +28,9 @@ export function startGameTick(io: Server): void {
 
 async function processTravelAction(playerId: number, locationId: number): Promise<any> {
   try {
-    await db('players')
-      .where({ id: playerId })
-      .update({ current_location_id: locationId });
-
+    await db('players').where({ id: playerId }).update({ current_location_id: locationId });
     const location = await db('locations').where({ id: locationId }).first();
-
     logger.info(`Player ${playerId} arrived at ${location.name}`);
-
     return { success: true, locationName: location.name };
   } catch (err) {
     logger.error(`Travel completion error: ${err}`);
@@ -46,15 +40,20 @@ async function processTravelAction(playerId: number, locationId: number): Promis
 
 async function processCompletedAction(io: Server, action: any): Promise<void> {
   try {
-    let result;
+    let result: any;
 
     switch (action.action_type) {
       case 'woodcutting':
         result = await processWoodcuttingAction(action.player_id, action.resource_node_id);
-        
         break;
       case 'traveling':
         result = await processTravelAction(action.player_id, action.location_id);
+        break;
+      case 'mining_rock':
+        result = await processMiningRock(action.player_id, action.resource_node_id);
+        break;
+      case 'mining_vein':
+        result = await processMiningVein(action.player_id, action.action_data);
         break;
       default:
         logger.warn(`Unknown action type: ${action.action_type}`);
@@ -62,95 +61,131 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         return;
     }
 
-    // Check if bot check is due
     const now = new Date();
     const lastBotCheck = action.last_bot_check ? new Date(action.last_bot_check) : new Date(action.started_at);
     const timeSinceCheck = now.getTime() - lastBotCheck.getTime();
     const botCheckDue = timeSinceCheck >= BOT_CHECK_INTERVAL;
 
     if (botCheckDue) {
-      // Pause action and send bot check to client
-      await db('player_actions')
-        .where({ id: action.id })
-        .update({ bot_check_pending: true });
-
+      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true });
       io.to(`player_${action.player_id}`).emit('bot_check_required', {
         message: 'Please confirm you are still playing.',
       });
-
       logger.info(`Bot check triggered for player ${action.player_id}`);
       return;
     }
 
+    // Handle travel
     if (action.action_type === 'traveling') {
-  await db('player_actions').where({ id: action.id }).delete();
-  io.to(`player_${action.player_id}`).emit('travel_complete', {
-    result,
-  });
-  return;
-}
+      await db('player_actions').where({ id: action.id }).delete();
+      io.to(`player_${action.player_id}`).emit('travel_complete', { result });
+      return;
+    }
 
+    // Handle failed actions
     if (!result.success) {
-  await db('player_actions').where({ id: action.id }).delete();
-  io.to(`player_${action.player_id}`).emit('action_failed', {
-    error: result.error || 'Action failed',
-  });
-  return;
-}
+      await db('player_actions').where({ id: action.id }).delete();
+      io.to(`player_${action.player_id}`).emit('action_failed', {
+        error: result.error || 'Action failed',
+      });
+      return;
+    }
 
+    // Handle vein mining (no resource_node_id)
+    if (action.action_type === 'mining_vein') {
+      const vein = await db('ore_veins').where({ id: action.action_data }).first();
+      if (!vein || vein.is_depleted) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: 'The ore vein has been depleted.',
+        });
+        return;
+      }
+
+      const miningSkill = await db('skills').where({ name: 'Mining' }).first();
+      const playerSkillRow = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: miningSkill.id })
+        .first();
+      const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
+      const nextTimer = Math.max(3, Math.round(8 * (1 - Math.min(0.5, (playerLevel - 1) * 0.005))));
+      const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+
+      await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
+
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: miningSkill.id })
+        .first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+      const xpNeeded = xpToNextLevel(currentXp);
+
+      const updatedVein = await db('ore_veins').where({ id: action.action_data }).first();
+
+      io.to(`player_${action.player_id}`).emit('action_complete', {
+        actionType: action.action_type,
+        result: {
+          ...result,
+          remainingQuantity: updatedVein?.remaining_quantity ?? 0,
+        },
+        nextCompletes: nextCompletion,
+        timerSeconds: nextTimer,
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+      });
+      return;
+    }
+
+    // Handle woodcutting and mining_rock (have resource_node_id)
     if (result.success && action.auto_restart) {
-      // Calculate next timer
       const node = await db('resource_nodes').where({ id: action.resource_node_id }).first();
-      const woodcuttingSkill = await db('skills').where({ name: 'Woodcutting' }).first();
-const playerSkill = await db('player_skills')
-  .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
-  .first();
+      if (!node) {
+        await db('player_actions').where({ id: action.id }).delete();
+        return;
+      }
 
-const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
+      const skillName = action.action_type === 'mining_rock' ? 'Mining' : 'Woodcutting';
+      const relevantSkill = await db('skills').where({ name: skillName }).first();
+      const playerSkillRow = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: relevantSkill.id })
+        .first();
+      const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
+
       const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
-const axe = equipment?.mainhand_item_id
-  ? await db('items').where({ id: equipment.mainhand_item_id }).first()
-  : null;
+      const tool = equipment?.mainhand_item_id
+        ? await db('items').where({ id: equipment.mainhand_item_id }).first()
+        : null;
 
       const nextTimer = calculateTimer(
         node.base_timer,
         node.min_timer,
         playerLevel,
         node.required_level,
-        axe ? axe.tier : 1,
+        tool ? tool.tier : 1,
         node.required_tool_tier
       );
 
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+      await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
 
-      await db('player_actions')
-        .where({ id: action.id })
-        .update({ completes_at: nextCompletion });
-
-      // Get updated XP after the action
       const updatedSkill = await db('player_skills')
-  .where({ player_id: action.player_id, skill_id: woodcuttingSkill.id })
-  .first();
+        .where({ player_id: action.player_id, skill_id: relevantSkill.id })
+        .first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+      const xpNeeded = xpToNextLevel(currentXp);
 
-    const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
-const previousXp = currentXp - node.xp_reward;
-const currentLevel = levelFromXp(currentXp);
-const previousLevel = levelFromXp(previousXp);
-const leveledUp = currentLevel > previousLevel;
-const xpNeeded = xpToNextLevel(currentXp);
-
-io.to(`player_${action.player_id}`).emit('action_complete', {
-  actionType: action.action_type,
-  result,
-  nextCompletes: nextCompletion,
-  timerSeconds: nextTimer,
-  xpInfo: {
-    totalXp: currentXp,
-    level: currentLevel,
-    xpToNext: xpNeeded,
-    leveledUp,
-  }
-});
+      io.to(`player_${action.player_id}`).emit('action_complete', {
+        actionType: action.action_type,
+        result,
+        nextCompletes: nextCompletion,
+        timerSeconds: nextTimer,
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+      });
 
     } else if (!action.auto_restart) {
       await db('player_actions').where({ id: action.id }).delete();
