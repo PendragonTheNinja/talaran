@@ -61,4 +61,3 @@ export async function seed(knex: Knex): Promise<void> {
 }
 
   console.log('Dev setup complete for Pendragon');
-}

@@ -92,6 +92,17 @@ function App() {
   }
 }, [])
 
+const [veinsData, setVeinsData] = useState<any[]>([])
+
+const loadVeins = useCallback(async () => {
+  try {
+    const data = await apiFetch<{ veins: any[] }>('/api/mining/veins')
+    setVeinsData(data.veins)
+  } catch (err) {
+    console.error('Failed to load veins:', err)
+  }
+}, [])
+
 const loadLocationData = useCallback(async () => {
   try {
     const data = await apiFetch<LocationData>('/api/location/current')
@@ -100,6 +111,9 @@ const loadLocationData = useCallback(async () => {
     if (socket && data.location?.id) {
       socket.emit('join_location', data.location.id)
     }
+    // Load veins for new location
+    const veinData = await apiFetch<{ veins: any[] }>('/api/mining/veins')
+    setVeinsData(veinData.veins)
   } catch (err) {
     console.error('Failed to load location data:', err)
   }
@@ -205,6 +219,7 @@ const handleLogout = () => {
   onPlayerDataUpdate={loadPlayerData}
   onEquipmentUpdate={loadEquipment}
   onInventoryUpdate={loadInventory}
+  veinsData={veinsData}
 />
   )
 }

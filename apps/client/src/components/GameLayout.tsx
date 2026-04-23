@@ -4,6 +4,7 @@ import LeftPanel from './LeftPanel'
 import GameView from './GameView'
 import RightPanel from './RightPanel'
 import ChatPanel from './ChatPanel'
+import LocationPanel from './LocationPanel'
 import { Player } from '../types'
 import { apiFetch } from '../lib/api'
 import './GameLayout.css'
@@ -55,6 +56,7 @@ interface InventoryItem {
   description: string
   stackable: boolean
   quantity: number
+  slot?: string
 }
 
 interface EquipmentData {
@@ -82,6 +84,7 @@ interface GameLayoutProps {
   onPlayerDataUpdate: () => void
   onEquipmentUpdate: () => void
   onInventoryUpdate: () => void
+  veinsData: any[]
 }
 
 export default function GameLayout({
@@ -94,55 +97,72 @@ export default function GameLayout({
   onPlayerDataUpdate,
   onEquipmentUpdate,
   onInventoryUpdate,
+  veinsData,
 }: GameLayoutProps) {
-    const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
+  const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
+  const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number } | null>(null)
 
-    const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
-  try {
-    const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
-      method: 'POST',
-      body: JSON.stringify({ toLocationId }),
-    })
-    setTravelStatus({ message: `Traveling to ${toLocationName}...`, seconds: res.travelTime })
-  } catch (err: any) {
-    setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
+  const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
+    try {
+      const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
+        method: 'POST',
+        body: JSON.stringify({ toLocationId }),
+      })
+      setTravelStatus({ message: `Traveling to ${toLocationName}...`, seconds: res.travelTime })
+    } catch (err: any) {
+      setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
+    }
   }
-}
 
-const clearAllActions = useCallback(() => {
-  setTravelStatus(null)
-}, [])
+  const handleLocationAction = useCallback((type: string, id: number) => {
+  if (type === 'travel') {
+    const conn = locationData?.connections.find((c: any) => c.to_location_id === id)
+    if (conn) handleTravel(id, conn.to_location_name, conn.base_travel_time)
+  } else {
+    setGameViewAction({ type, id })
+  }
+}, [locationData])
 
   return (
     <div className="game-root">
       <TopNav player={player} onLogout={onLogout} />
       <div className="game-body">
         <LeftPanel
-  inventoryData={inventoryData}
-  equipmentData={equipmentData}
-  onEquipmentUpdate={onEquipmentUpdate}
-  onInventoryUpdate={onInventoryUpdate}
-/>
+          inventoryData={inventoryData}
+          equipmentData={equipmentData}
+          onEquipmentUpdate={onEquipmentUpdate}
+          onInventoryUpdate={onInventoryUpdate}
+        />
         <div className="game-center">
-          <GameView
+  <div className="game-scene-wrapper">
+    <GameView
+      locationData={locationData}
+      playerData={playerData}
+      onPlayerDataUpdate={onPlayerDataUpdate}
+      travelStatus={travelStatus}
+      onClearTravel={() => setTravelStatus(null)}
+      onTravel={handleTravel}
+      externalAction={gameViewAction}
+      onExternalActionHandled={() => setGameViewAction(null)}
+    />
+    <LocationPanel
   locationData={locationData}
-  playerData={playerData}
-  onPlayerDataUpdate={onPlayerDataUpdate}
-  travelStatus={travelStatus}
-  onClearTravel={() => setTravelStatus(null)}
-  onTravel={handleTravel}
+  currentAction={playerData?.currentAction?.action_type || null}
+  onStartAction={handleLocationAction}
+  veins={veinsData}
 />
-          <ChatPanel />
-        </div>
+  </div>
+  <ChatPanel />
+</div>
         <RightPanel
-  player={player}
-  playerData={playerData}
-  currentLocationId={locationData?.location?.id || null}
-  locationName={locationData?.location?.name || ''}
-  allLocations={locationData?.allLocations || []}
-  connections={locationData?.connections || []}
-  onTravel={handleTravel}
-/>
+          player={player}
+          playerData={playerData}
+          currentLocationId={locationData?.location?.id || null}
+          locationName={locationData?.location?.name || ''}
+          allLocations={locationData?.allLocations || []}
+          connections={locationData?.connections || []}
+          onTravel={handleTravel}
+        />
       </div>
     </div>
   )

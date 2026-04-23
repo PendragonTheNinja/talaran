@@ -45,3 +45,11 @@
     overflow-y: auto;
   }
 }
+
+.game-scene-wrapper {
+  display: flex;
+  flex: 1;
+  gap: var(--space-sm);
+  min-height: 0;
+  overflow: hidden;
+}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
+import LocationAtmosphere from './LocationAtmosphere'
 
 interface Node {
   id: number
@@ -51,6 +52,8 @@ interface GameViewProps {
   travelStatus: { message: string; seconds: number } | null
   onClearTravel: () => void
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
+  externalAction: { type: string; id: number } | null
+  onExternalActionHandled: () => void
 }
 
 interface LogEntry {
@@ -59,7 +62,7 @@ interface LogEntry {
   type: 'success' | 'info' | 'error' | 'level'
 }
 
-export default function GameView({ locationData, playerData, onPlayerDataUpdate, travelStatus, onClearTravel, onTravel }: GameViewProps) {
+export default function GameView({ locationData, playerData, onPlayerDataUpdate, travelStatus, onClearTravel, onTravel, externalAction, onExternalActionHandled }: GameViewProps) {
   // ── All state at the top ──────────────────────────────────────────
   const [currentAction, setCurrentAction] = useState<string | null>(null)
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null)
@@ -259,6 +262,22 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
     startCountdown(secondsLeft)
   }, [playerData])
 
+  useEffect(() => {
+  if (!externalAction) return
+
+  if (externalAction.type === 'woodcutting') {
+    const node = locationData?.nodes.find(n => n.id === externalAction.id)
+    if (node) startAction(node)
+  } else if (externalAction.type === 'mining_rock') {
+    const node = locationData?.nodes.find(n => n.id === externalAction.id)
+    if (node) startMiningRock(node)
+  } else if (externalAction.type === 'mining_vein') {
+    startMiningVein({ id: externalAction.id, ore_name: '', remaining_quantity: 0 })
+  }
+
+  onExternalActionHandled()
+}, [externalAction])
+
   // ── Actions ───────────────────────────────────────────────────────
   const startAction = async (node: Node) => {
     try {
@@ -374,155 +393,109 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
   return (
     <div className="game-view panel">
       <div className="game-view-location-bar">
-        <span className="game-view-location gold-text">{locationName}</span>
-        <div className="game-view-actions">
-          {/* Woodcutting */}
-          {!currentAction && woodcuttingNodes.map(node => (
-            <button key={node.id} className="btn" onClick={() => startAction(node)}>
-              Chop {node.name}
-            </button>
-          ))}
-          {currentAction === 'woodcutting' && (
-            <button className="btn btn-red" onClick={stopAction}>Stop Chopping</button>
-          )}
-
-          {/* Mining rocks */}
-          {!currentAction && miningNodes.map(node => (
-            <button key={node.id} className="btn" onClick={() => startMiningRock(node)}>
-              Mine {node.name}
-            </button>
-          ))}
-
-          {/* Active veins */}
-          {!currentAction && veins.map(vein => (
-            <button
-              key={vein.id}
-              className="btn btn-gold"
-              onClick={() => startMiningVein(vein)}
-              title={`${vein.remaining_quantity} ore remaining`}
-            >
-              ⛏ {vein.ore_name} Vein ({vein.remaining_quantity})
-            </button>
-          ))}
-
-          {/* Stop mining */}
-          {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && (
-            <button className="btn btn-red" onClick={stopAction}>Stop Mining</button>
-          )}
-
-          {/* Travel */}
-          {!currentAction && connections.map(conn => (
-            <button key={conn.id} className="btn" onClick={() => onTravel(conn.to_location_id, conn.to_location_name, conn.base_travel_time)}>
-              → {conn.to_location_name}
-            </button>
-          ))}
-        </div>
-      </div>
+  <span className="game-view-location gold-text">{locationName}</span>
+</div>
 
       <div className="game-view-main">
-        <div className="game-view-scene">
-          <div className="scene-placeholder">
-            <span className="scene-placeholder-text">{locationName}</span>
-          </div>
+  {/* Main scene container — everything lives inside this */}
+  <div className="game-scene">
+
+    <LocationAtmosphere
+  locationName={locationName}
+  locationType={locationData?.location?.type || ''}
+/>
+
+  {/* Idle state — show description */}
+  {!currentAction && (
+    <div className="scene-idle">
+      <p className="scene-description">{locationDesc || 'You stand ready.'}</p>
+    </div>
+  )}
+
+  {/* Active action — centered */}
+  {currentAction && !botCheckPending && (
+    <div className="scene-action-overlay">
+      {currentAction === 'traveling' && (
+        <p className="scene-action-text gold-text">{travelStatus?.message}</p>
+      )}
+      {currentAction === 'woodcutting' && (
+        <p className="scene-action-text gold-text">You are chopping a Lanai Tree.</p>
+      )}
+      {currentAction === 'mining_rock' && (
+        <p className="scene-action-text gold-text">You are mining rocks.</p>
+      )}
+      {currentAction === 'mining_vein' && (
+        <p className="scene-action-text gold-text">You are mining an ore vein.</p>
+      )}
+
+      <div className="scene-timer">
+        <div className="scene-timer-bar">
+          <div
+            key={timerMax}
+            className={`scene-timer-fill ${currentAction.startsWith('mining') ? 'mining' : ''}`}
+            style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+          />
         </div>
+        <span className="scene-timer-label">{timerSeconds}s</span>
+      </div>
 
-        {currentAction === 'traveling' && !botCheckPending && (
-          <div className="game-view-action-log">
-            <p className="travel-status gold-text">{travelStatus?.message}</p>
-            <div className="action-timer">
-              <div className="action-timer-bar">
-                <div
-                  key={timerMax}
-                  className="action-timer-fill"
-                  style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
-                />
-              </div>
-              <span className="action-timer-label">{timerSeconds}s</span>
-            </div>
-            <button className="btn btn-red" onClick={stopAction}>Cancel Travel</button>
-          </div>
-        )}
+      {currentAction === 'traveling' && (
+        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Cancel Travel</button>
+      )}
+      {currentAction === 'woodcutting' && (
+        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Chopping</button>
+      )}
+      {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && (
+        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Mining</button>
+      )}
+    </div>
+  )}
 
-        {currentAction === 'woodcutting' && !botCheckPending && (
-          <div className="game-view-action-log">
-            <div className="action-timer">
-              <div className="action-timer-bar">
-                <div
-                  key={timerMax}
-                  className="action-timer-fill"
-                  style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
-                />
-              </div>
-              <span className="action-timer-label">{timerSeconds}s</span>
-            </div>
-          </div>
-        )}
-
-        {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && !botCheckPending && (
-          <div className="game-view-action-log">
-            <div className="action-timer">
-              <div className="action-timer-bar">
-                <div
-                  key={timerMax}
-                  className="action-timer-fill mining"
-                  style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
-                />
-              </div>
-              <span className="action-timer-label">{timerSeconds}s</span>
-            </div>
-          </div>
-        )}
-
-        {botCheckPending && (
-          <div className="bot-check panel-inset">
-            <p className="bot-check-question gold-text">
-              Bot Check: What is {botCheckQuestion.a} + {botCheckQuestion.b}?
-            </p>
-            <div className="bot-check-input-row">
-              <input
-                className="chat-input"
-                type="number"
-                value={botCheckAnswer}
-                onChange={e => setBotCheckAnswer(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleBotCheck()}
-                placeholder="Your answer..."
-                autoFocus
-              />
-              <button className="btn btn-gold" onClick={handleBotCheck}>Confirm</button>
-            </div>
-          </div>
-        )}
-
-        {lastResult && (
-          <div className="last-result">
-            <p className="last-result-item">You gained 1 × {lastResult.itemName}</p>
-            <p className="last-result-xp">+{lastResult.xpAwarded} {lastResult.skillName} XP (Total: {lastResult.totalXp.toLocaleString()})</p>
-            <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
-            {lastResult.remainingQuantity !== undefined && (
-              <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
-            )}
-          </div>
-        )}
-
-        {veinNotification && (
-          <div className="vein-notification">
-            <span>⛏ {veinNotification}</span>
-            <button onClick={() => setVeinNotification(null)}>✕</button>
-          </div>
-        )}
-
-        <div className="action-log panel-inset">
-          {log.length === 0 ? (
-            <p className="muted-text">{locationDesc || 'You stand ready.'}</p>
-          ) : (
-            [...log].reverse().map(entry => (
-              <p key={entry.id} className={`log-entry log-${entry.type}`}>
-                {entry.message}
-              </p>
-            ))
-          )}
+  {/* Bot check — centered */}
+  {botCheckPending && (
+    <div className="scene-action-overlay">
+      <div className="bot-check">
+        <p className="bot-check-question gold-text">
+          Bot Check: What is {botCheckQuestion.a} + {botCheckQuestion.b}?
+        </p>
+        <div className="bot-check-input-row">
+          <input
+            className="chat-input"
+            type="number"
+            value={botCheckAnswer}
+            onChange={e => setBotCheckAnswer(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleBotCheck()}
+            placeholder="Your answer..."
+            autoFocus
+          />
+          <button className="btn btn-gold" onClick={handleBotCheck}>Confirm</button>
         </div>
       </div>
+    </div>
+  )}
+
+  {/* Last result — bottom */}
+  {lastResult && (
+    <div className="scene-last-result">
+      <p className="last-result-item">You gained 1 × {lastResult.itemName}</p>
+      <p className="last-result-xp">+{lastResult.xpAwarded} {lastResult.skillName} XP (Total: {lastResult.totalXp.toLocaleString()})</p>
+      <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
+      {lastResult.remainingQuantity !== undefined && (
+        <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
+      )}
+    </div>
+  )}
+
+  {/* Vein notification — top */}
+  {veinNotification && (
+    <div className="scene-vein-notification">
+      <span>⛏ {veinNotification}</span>
+      <button onClick={() => setVeinNotification(null)}>✕</button>
+    </div>
+  )}
+
+</div>
+</div>
 
       {levelUpSkill && (
         <div className="levelup-popup">
