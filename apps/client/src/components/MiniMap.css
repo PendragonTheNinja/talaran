@@ -34,9 +34,9 @@
 
 .minimap-location-img {
   width: 100%;
-  flex: 1;
+  height: 100%;
   object-fit: cover;
-  min-height: 0;
+  display: block;
 }
 
 .minimap-connections {
@@ -66,4 +66,24 @@
 .minimap-travel-btn:hover {
   background: var(--color-bg-hover);
   color: var(--color-gold);
+}
+
+.minimap-img-wrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.minimap-exit-zone {
+  position: absolute;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.minimap-exit-zone:hover {
+  background: rgba(200, 146, 42, 0.3);
+  outline: 1px solid rgba(200, 146, 42, 0.6);
 }

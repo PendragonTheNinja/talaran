@@ -78,16 +78,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   </button>
 ))}
 
-        {connections.map((conn: any) => (
-          <button
-            key={conn.id}
-            className="location-action-btn travel"
-            onClick={() => onStartAction('travel', conn.to_location_id)}
-          >
-            → {conn.to_location_name}
-          </button>
-        ))}
-
         {nodes.length === 0 && connections.length === 0 && (
           <p className="location-panel-empty">Nothing to do here yet.</p>
         )}
