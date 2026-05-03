@@ -102,6 +102,11 @@ export default function GameLayout({
   const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
   const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number } | null>(null)
 
+  const [showKilnModal, setShowKilnModal] = useState(false)
+const [showSmithingMenu, setShowSmithingMenu] = useState(false)
+
+const [externalMessage, setExternalMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
+
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
       const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
@@ -114,14 +119,65 @@ export default function GameLayout({
     }
   }
 
-  const handleLocationAction = useCallback((type: string, id: number) => {
+  const handleKilnCollect = async () => {
+  try {
+    const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/kiln/collect/start', {
+      method: 'POST',
+    })
+    setExternalMessage({ text: 'Collecting Charc...', type: 'info' })
+    setGameViewAction({ type: 'kiln_collecting', id: res.timerSeconds })
+  } catch (err: any) {
+    setExternalMessage({ text: err.message || 'Could not collect Charc.', type: 'error' })
+  }
+}
+
+const handleSmithingSetup = async () => {
+  try {
+    await apiFetch('/api/smithing/workstation/setup', { method: 'POST' })
+    setExternalMessage({ text: 'Workstation set up! You can now smelt and smith at Emberra.', type: 'success' })
+    onInventoryUpdate()
+  } catch (err: any) {
+    setExternalMessage({ text: err.message || 'Could not set up workstation.', type: 'error' })
+  }
+}
+
+const handleLocationAction = useCallback((type: string, id: number | string) => {
   if (type === 'travel') {
     const conn = locationData?.connections.find((c: any) => c.to_location_id === id)
-    if (conn) handleTravel(id, conn.to_location_name, conn.base_travel_time)
+    if (conn) handleTravel(id as number, conn.to_location_name, conn.base_travel_time)
+  } else if (type === 'kiln_load') {
+    setKilnError(null)
+    setShowKilnModal(true)
+  } else if (type === 'kiln_collect') {
+    handleKilnCollect()
+  } else if (type === 'smithing_setup') {
+    handleSmithingSetup()
+  } else if (type === 'smithing_menu') {
+    setShowSmithingMenu(true)
   } else {
     setGameViewAction({ type, id })
   }
 }, [locationData])
+
+const [kilnLogCount, setKilnLogCount] = useState(20)
+const [kilnMaxLogs, setKilnMaxLogs] = useState(20)
+
+const [kilnError, setKilnError] = useState<string | null>(null)
+
+const handleKilnLoad = async () => {
+  try {
+    const res = await apiFetch<any>('/api/smithing/kiln/load', {
+      method: 'POST',
+      body: JSON.stringify({ logCount: kilnLogCount }),
+    })
+    setShowKilnModal(false)
+    setKilnLogCount(20)
+    setExternalMessage({ text: `Kiln loaded with ${kilnLogCount} logs. Charc ready in 3 hours!`, type: 'success' })
+    onInventoryUpdate()
+  } catch (err: any) {
+    setKilnError(err.message || 'Could not load kiln.')
+  }
+}
 
   return (
     <div className="game-root">
@@ -144,12 +200,15 @@ export default function GameLayout({
       onTravel={handleTravel}
       externalAction={gameViewAction}
       onExternalActionHandled={() => setGameViewAction(null)}
+      externalMessage={externalMessage}
+      onExternalMessageHandled={() => setExternalMessage(null)}
     />
     <LocationPanel
   locationData={locationData}
   currentAction={playerData?.currentAction?.action_type || null}
   onStartAction={handleLocationAction}
   veins={veinsData}
+  onKilnMaxLogs={(max) => setKilnMaxLogs(max)}
 />
   </div>
   <ChatPanel />
@@ -164,6 +223,32 @@ export default function GameLayout({
           onTravel={handleTravel}
         />
       </div>
+
+      {showKilnModal && (
+  <div className="modal-overlay" onClick={() => setShowKilnModal(false)}>
+    <div className="modal-box" onClick={e => e.stopPropagation()}>
+  <h3 className="gold-text">Load Kiln</h3>
+  <p className="muted-text">Add logs in multiples of 20. Each batch of 20 logs produces 60 Charc over 3 hours.</p>
+  <p className="muted-text">Max {kilnMaxLogs} logs at your Smithing level.</p>
+  <div className="modal-input-row">
+        <button className="btn" onClick={() => setKilnLogCount(Math.max(20, kilnLogCount - 20))}>−</button>
+        <span className="modal-count gold-text">{kilnLogCount} logs → {(kilnLogCount / 20) * 60} Charc</span>
+        <button 
+  className="btn" 
+  onClick={() => setKilnLogCount(Math.min(kilnMaxLogs, kilnLogCount + 20))}
+  disabled={kilnLogCount >= kilnMaxLogs}
+>+</button>
+      </div>
+      {kilnError && (
+  <p style={{ color: 'var(--color-red-glow)', fontSize: '13px' }}>{kilnError}</p>
+)}
+      <div className="modal-actions">
+        <button className="btn btn-gold" onClick={handleKilnLoad}>Load Kiln</button>
+        <button className="btn" onClick={() => setShowKilnModal(false)}>Cancel</button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   )
 }

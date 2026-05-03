@@ -1,6 +1,6 @@
 import db from '../db';
 import { levelFromXp } from './xp';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 
 const TOOL_TIER_PENALTY = 0.4;

@@ -9,6 +9,7 @@ import { startGameTick } from './services/gameTick';
 import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import miningRoutes from './routes/mining';
+import smithingRoutes from './routes/smithing';
 
 dotenv.config();
 
@@ -71,6 +72,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/travel', travelRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/mining', miningRoutes);
+app.use('/api/smithing', smithingRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

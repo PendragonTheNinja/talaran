@@ -4,6 +4,7 @@ import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { levelFromXp, xpToNextLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
+import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } from './smithing';
 
 const TICK_INTERVAL = 2000;
 const BOT_CHECK_INTERVAL = 30 * 60 * 1000;
@@ -54,6 +55,20 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'mining_vein':
         result = await processMiningVein(action.player_id, action.action_data);
+        break;
+      case 'smelting':
+        result = await smeltIngots(action.player_id, action.location_id, action.action_data);
+        break;
+      case 'smithing':
+        result = await smithPart(
+          action.player_id,
+          action.location_id,
+          action.action_data.split('_').slice(1).join('_'),
+          action.action_data.split('_')[0]
+        );
+        break;
+      case 'kiln_collect':
+        result = await collectKiln(action.player_id, action.location_id);
         break;
       default:
         logger.warn(`Unknown action type: ${action.action_type}`);
@@ -183,6 +198,71 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       return;
     }
 
+    if (action.action_type === 'smelting' || action.action_type === 'smithing') {
+  // Check resources before restarting timer
+  const recipe = action.action_type === 'smelting'
+    ? SMELT_RECIPES[action.action_data]
+    : SMITH_RECIPES[action.action_data];
+
+  if (recipe) {
+    for (const ingredient of recipe.ingredients) {
+      const item = await db('items').where({ name: ingredient.name }).first();
+      const inv = item ? await db('player_inventory')
+        .where({ player_id: action.player_id, item_id: item.id })
+        .first() : null;
+      if (!inv || inv.quantity < ingredient.quantity) {
+        await db('player_actions').where({ id: action.id }).delete();
+
+        const smithingSkill2 = await db('skills').where({ name: 'Smithing' }).first();
+        const lastSkill = await db('player_skills')
+          .where({ player_id: action.player_id, skill_id: smithingSkill2.id })
+          .first();
+        const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
+        const lastLevel = levelFromXp(lastXp);
+        const lastXpNeeded = xpToNextLevel(lastXp);
+
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result,
+          nextCompletes: null,
+          timerSeconds: 0,
+          xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: lastXpNeeded, leveledUp: false },
+        });
+
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: `You need ${ingredient.quantity}x ${ingredient.name}.`,
+        });
+        return;
+      }
+    }
+  }
+
+  const timerSeconds = action.action_type === 'smelting' ? 10 : 20;
+  const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
+
+  await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
+
+  const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
+  const updatedSkill = await db('player_skills')
+    .where({ player_id: action.player_id, skill_id: smithingSkill.id })
+    .first();
+  const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+  const previousXp = currentXp - (result.xpAwarded || 0);
+  const currentLevel = levelFromXp(currentXp);
+  const previousLevel = levelFromXp(previousXp);
+  const leveledUp = currentLevel > previousLevel;
+  const xpNeeded = xpToNextLevel(currentXp);
+
+  io.to(`player_${action.player_id}`).emit('action_complete', {
+    actionType: action.action_type,
+    result,
+    nextCompletes: nextCompletion,
+    timerSeconds,
+    xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+  });
+  return;
+}
+
     // Handle woodcutting and mining_rock (have resource_node_id)
     if (result.success && action.auto_restart) {
       const node = await db('resource_nodes').where({ id: action.resource_node_id }).first();
@@ -234,13 +314,35 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       });
 
     } else if (!action.auto_restart) {
-      await db('player_actions').where({ id: action.id }).delete();
-      io.to(`player_${action.player_id}`).emit('action_complete', {
-        actionType: action.action_type,
-        result,
-        nextCompletes: null,
-      });
-    }
+  await db('player_actions').where({ id: action.id }).delete();
+
+  if (action.action_type === 'kiln_collect' && result.success) {
+    const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
+    const updatedSkill = await db('player_skills')
+      .where({ player_id: action.player_id, skill_id: smithingSkill.id })
+      .first();
+    const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+    const previousXp = currentXp - (result.xpAwarded || 0);
+    const currentLevel = levelFromXp(currentXp);
+    const previousLevel = levelFromXp(previousXp);
+    const leveledUp = currentLevel > previousLevel;
+    const xpNeeded = xpToNextLevel(currentXp);
+
+    io.to(`player_${action.player_id}`).emit('action_complete', {
+      actionType: action.action_type,
+      result,
+      nextCompletes: null,
+      timerSeconds: 0,
+      xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+    });
+  } else {
+    io.to(`player_${action.player_id}`).emit('action_complete', {
+      actionType: action.action_type,
+      result,
+      nextCompletes: null,
+    });
+  }
+}
 
   } catch (err) {
     logger.error(`Error processing action ${action.id}: ${err}`);

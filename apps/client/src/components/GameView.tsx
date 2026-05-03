@@ -54,6 +54,8 @@ interface GameViewProps {
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
   externalAction: { type: string; id: number } | null
   onExternalActionHandled: () => void
+  externalMessage: { text: string; type: 'success' | 'info' | 'error' } | null
+  onExternalMessageHandled: () => void
 }
 
 interface LogEntry {
@@ -62,7 +64,18 @@ interface LogEntry {
   type: 'success' | 'info' | 'error' | 'level'
 }
 
-export default function GameView({ locationData, playerData, onPlayerDataUpdate, travelStatus, onClearTravel, onTravel, externalAction, onExternalActionHandled }: GameViewProps) {
+export default function GameView({ 
+  locationData, 
+  playerData, 
+  onPlayerDataUpdate, 
+  travelStatus, 
+  onClearTravel, 
+  onTravel, 
+  externalAction, 
+  onExternalActionHandled,
+  externalMessage,
+  onExternalMessageHandled,
+}: GameViewProps) {
   // ── All state at the top ──────────────────────────────────────────
   const [currentAction, setCurrentAction] = useState<string | null>(null)
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null)
@@ -82,6 +95,7 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
     xpToNext: number
     skillName: string
     remainingQuantity?: number
+    quantity?: number
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
 
@@ -139,8 +153,10 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
       socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
         console.log('Action complete data:', JSON.stringify(data))
         if (data.result?.itemName) {
-          const skillName = currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein'
-            ? 'Mining' : 'Woodcutting'
+          const skillName = 
+        currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
+        currentActionRef.current === 'smelting' || currentActionRef.current === 'smithing' || currentActionRef.current === 'kiln_collect' ? 'Smithing' :
+        'Woodcutting'
 
           setLastResult({
             itemName: data.result.itemName,
@@ -150,6 +166,7 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
             xpToNext: data.xpInfo?.xpToNext || 0,
             skillName,
             remainingQuantity: data.result.remainingQuantity,
+            quantity: data.result.quantity,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -173,12 +190,13 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
       })
 
       socket.on('action_failed', (data: { error: string }) => {
-        addLog(data.error || 'Action stopped.', 'error')
-        setCurrentAction(null)
-        setActiveNodeId(null)
-        setTimerSeconds(0)
-        if (timerRef.current) clearInterval(timerRef.current)
-      })
+  console.log('Action failed:', data.error)
+  addLog(data.error || 'Action stopped.', 'error')
+  setCurrentAction(null)
+  setActiveNodeId(null)
+  setTimerSeconds(0)
+  if (timerRef.current) clearInterval(timerRef.current)
+})
 
       socket.on('bot_check_required', () => {
         const a = Math.floor(Math.random() * 20) + 1
@@ -273,7 +291,15 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
     if (node) startMiningRock(node)
   } else if (externalAction.type === 'mining_vein') {
     startMiningVein({ id: externalAction.id, ore_name: '', remaining_quantity: 0 })
-  }
+  } else if (externalAction.type === 'smelting') {
+    startSmelting(externalAction.id as string)
+  } else if (externalAction.type === 'smithing') {
+    startSmithing(externalAction.id as string)
+  } else if (externalAction.type === 'kiln_collecting') {
+    setCurrentAction('kiln_collect')
+    setTimerMax(externalAction.id as number)
+    startCountdown(externalAction.id as number)
+}
 
   onExternalActionHandled()
 }, [externalAction])
@@ -381,6 +407,52 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
     }
   }
 
+  const startSmelting = async (metalType: string) => {
+  try {
+    if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+    setLastResult(null)
+    setCurrentAction(null)
+    setTimerSeconds(0)
+    onClearTravel()
+    if (timerRef.current) clearInterval(timerRef.current)
+
+    const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
+      method: 'POST',
+      body: JSON.stringify({ metalType }),
+    })
+    setCurrentAction('smelting')
+    setTimerMax(res.timerSeconds)
+    startCountdown(res.timerSeconds)
+  } catch (err: any) {
+  console.log('Smelting error:', err.message)
+  addLog(err.message || 'Could not start smelting.', 'error')
+}
+}
+
+const startSmithing = async (recipe: string) => {
+  try {
+    if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+    setLastResult(null)
+    setCurrentAction(null)
+    setTimerSeconds(0)
+    onClearTravel()
+    if (timerRef.current) clearInterval(timerRef.current)
+
+    const [metalType, ...partParts] = recipe.split('_')
+    const partType = partParts.join('_')
+
+    const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smith/start', {
+      method: 'POST',
+      body: JSON.stringify({ metalType, partType }),
+    })
+    setCurrentAction('smithing')
+    setTimerMax(res.timerSeconds)
+    startCountdown(res.timerSeconds)
+  } catch (err: any) {
+    addLog(err.message || 'Could not start smithing.', 'error')
+  }
+}
+
   // ── Derived values ────────────────────────────────────────────────
   const woodcuttingNodes = locationData?.nodes.filter(n => n.skill === 'woodcutting') || []
   const miningNodes = locationData?.nodes.filter(n => n.skill === 'mining') || []
@@ -427,7 +499,15 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
       {currentAction === 'mining_vein' && (
         <p className="scene-action-text gold-text">You are mining an ore vein.</p>
       )}
-
+      {currentAction === 'smelting' && (
+        <p className="scene-action-text gold-text">You are smelting ingots.</p>
+      )}
+      {currentAction === 'smithing' && (
+        <p className="scene-action-text gold-text">You are working the forge.</p>
+      )}
+      {currentAction === 'kiln_collect' && (
+        <p className="scene-action-text gold-text">Collecting Charc from the kiln...</p>
+      )}
       <div className="scene-timer">
         <div className="scene-timer-bar">
           <div
@@ -447,6 +527,12 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
       )}
       {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && (
         <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Mining</button>
+      )}
+      {(currentAction === 'smelting' || currentAction === 'smithing') && (
+        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Smithing</button>
+      )} 
+      {currentAction === 'kiln_collect' && (
+        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop</button>
       )}
     </div>
   )}
@@ -477,7 +563,7 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
   {/* Last result — bottom */}
   {lastResult && (
     <div className="scene-last-result">
-      <p className="last-result-item">You gained 1 × {lastResult.itemName}</p>
+      <p className="last-result-item">You gained {lastResult.quantity ?? 1} × {lastResult.itemName}</p>
       <p className="last-result-xp">+{lastResult.xpAwarded} {lastResult.skillName} XP (Total: {lastResult.totalXp.toLocaleString()})</p>
       <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
       {lastResult.remainingQuantity !== undefined && (
@@ -493,6 +579,16 @@ export default function GameView({ locationData, playerData, onPlayerDataUpdate,
       <button onClick={() => setVeinNotification(null)}>✕</button>
     </div>
   )}
+  {/* Action log — errors and info messages */}
+{log.length > 0 && (
+  <div className="scene-log">
+    {[...log].reverse().slice(0, 3).map(entry => (
+      <p key={entry.id} className={`scene-log-entry log-${entry.type}`}>
+        {entry.message}
+      </p>
+    ))}
+  </div>
+)}
 
 </div>
 </div>

@@ -1,6 +1,6 @@
 import db from '../db';
 import { levelFromXp } from './xp';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { io } from '../index';
 import { incrementStats } from './stats';
 

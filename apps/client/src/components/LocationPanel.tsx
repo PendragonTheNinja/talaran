@@ -7,7 +7,6 @@ interface GroundItem {
   item_name: string
   quantity: number
   dropped_by: string
-  dropped_at: string
 }
 
 interface PlayerAtLocation {
@@ -19,23 +18,31 @@ interface PlayerAtLocation {
 interface LocationPanelProps {
   locationData: any
   currentAction: string | null
-  onStartAction: (type: string, id: number) => void
+  onStartAction: (type: string, id: number | string) => void
   veins: any[]
+  onKilnMaxLogs?: (max: number) => void
 }
 
 export default function LocationPanel({ locationData, currentAction, onStartAction, veins }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<GroundItem[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
+  const [forgeOpen, setForgeOpen] = useState(false)
+  const [smithingStatus, setSmithingStatus] = useState<any>(null)
 
   const location = locationData?.location
   const nodes = locationData?.nodes || []
   const connections = locationData?.connections || []
+  const isEmberra = location?.name === 'Emberra'
 
-  // For now players at location and ground items are placeholders
-  // We'll wire these up with real API calls next
   useEffect(() => {
-    setPlayersHere([{ id: 1, username: 'Pendragon', combat_level: 1 }])
+    setPlayersHere([])
     setGroundItems([])
+    if (isEmberra) {
+      apiFetch<any>('/api/smithing/status').then(data => {
+  setSmithingStatus(data)
+  if (data.maxLogs) onKilnMaxLogs?.(data.maxLogs)
+}).catch(() => {})
+    }
   }, [locationData])
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
@@ -69,17 +76,85 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         ))}
 
         {veins.map((vein: any) => (
-  <button
-    key={vein.id}
-    className={`location-action-btn ${currentAction === 'mining_vein' ? 'active' : ''}`}
-    onClick={() => onStartAction('mining_vein', vein.id)}
-  >
-    ⛏ {vein.ore_name} Vein ({vein.remaining_quantity})
-  </button>
-))}
+          <button
+            key={vein.id}
+            className={`location-action-btn vein ${currentAction === 'mining_vein' ? 'active' : ''}`}
+            onClick={() => onStartAction('mining_vein', vein.id)}
+          >
+            ⛏ {vein.ore_name} Vein ({vein.remaining_quantity})
+          </button>
+        ))}
 
-        {nodes.length === 0 && connections.length === 0 && (
-          <p className="location-panel-empty">Nothing to do here yet.</p>
+        {/* Smithing — Emberra only */}
+        {isEmberra && (
+          <div className="location-submenu">
+            <button
+              className={`location-action-btn submenu-toggle ${forgeOpen ? 'open' : ''}`}
+              onClick={() => setForgeOpen(!forgeOpen)}
+            >
+              {forgeOpen ? '▼' : '▶'} Forge
+            </button>
+
+            {forgeOpen && (
+              <div className="submenu-items">
+                {/* Workstation setup */}
+                {smithingStatus && !smithingStatus.workstation && (
+                  <button
+                    className="location-action-btn sub"
+                    onClick={() => onStartAction('smithing_setup', 0)}
+                  >
+                    Set Up Workstation
+                  </button>
+                )}
+
+                {/* Kiln */}
+                {smithingStatus?.kilnStatus ? (
+                  smithingStatus.kilnStatus.isReady ? (
+                    <button
+                      className="location-action-btn sub gold"
+                      onClick={() => onStartAction('kiln_collect', 0)}
+                    >
+                      Collect Charc ({smithingStatus.kilnStatus.charcYield})
+                    </button>
+                  ) : (
+                    <div className="location-action-info">
+                      Kiln burning... {smithingStatus.kilnStatus.minutesRemaining}m
+                    </div>
+                  )
+                ) : (
+                  <button
+                    className="location-action-btn sub"
+                    onClick={() => onStartAction('kiln_load', 0)}
+                  >
+                    Load Kiln
+                  </button>
+                )}
+
+                {/* Smelt */}
+                {smithingStatus?.workstation?.is_active && (
+                  <button
+  className={`location-action-btn sub ${currentAction === 'smelting' ? 'active' : ''}`}
+  onClick={() => {
+    console.log('Smelt button clicked')
+    onStartAction('smelting', 'ambren')
+  }}
+>
+  Smelt Ambren Ingots
+</button>
+                )}
+
+                {/* Smith items */}
+                {smithingStatus?.workstation?.is_active && (
+                  <button
+                    className={`location-action-btn sub ${currentAction === 'smithing' ? 'active' : ''}`}
+                    onClick={() => onStartAction('smithing_menu', 0)}
+                  >
+                    Smith Ambren Items →
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

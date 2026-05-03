@@ -83,6 +83,29 @@ await knex('items').del();
 { name: 'Dense Midrath Ore', type: 'ore', subtype: 'midrath', tier: 5, quality: 'dense', slot: null, level_required: 50, description: 'A dense Midrath ore. Smelts into extra bars.', stackable: true },
 { name: 'Dense Ghaal Ore',   type: 'ore', subtype: 'ghaal',   tier: 7, quality: 'dense', slot: null, level_required: 75, description: 'A dense Ghaal ore. Smelts into extra bars.', stackable: true },
 { name: 'Dense Runafax Ore', type: 'ore', subtype: 'runafax', tier: 8, quality: 'dense', slot: null, level_required: 87, description: 'A dense Runafax ore. Smelts into extra bars.', stackable: true },
+
+// ── Smithing tools (workstation) ─────────────────────────────────
+{ name: 'Ambren Hammer',       type: 'tool', subtype: 'hammer',  tier: 1, quality: null, slot: null, level_required: 1,  description: 'A heavy hammer used for shaping hot metal on an anvil.', stackable: false },
+{ name: 'Ambren Tongs',        type: 'tool', subtype: 'tongs',   tier: 1, quality: null, slot: null, level_required: 1,  description: 'Iron tongs for handling hot metal safely.', stackable: false },
+{ name: 'Lanai Bucket',       type: 'tool', subtype: 'bucket',  tier: 1, quality: null, slot: null, level_required: 1,  description: 'A bucket of water for quenching hot metal.', stackable: false },
+
+// ── Anvils ───────────────────────────────────────────────────────
+{ name: 'Ambren Anvil', type: 'tool', subtype: 'anvil',   tier: 1, quality: null, slot: null, level_required: 1,  description: 'A sturdy Ambren anvil. Required for smithing tier 1 items.', stackable: false },
+
+// ── Fuel ─────────────────────────────────────────────────────────
+{ name: 'Charc',        type: 'fuel', subtype: 'charc',   tier: 1, quality: null, slot: null, level_required: 1,  description: 'Charcoal produced from burning wood in a kiln. Used as fuel for smelting.', stackable: true },
+{ name: 'Koric',        type: 'fuel', subtype: 'koric',   tier: 2, quality: null, slot: null, level_required: 50, description: 'Processed coal coke. Required for smelting higher tier metals.', stackable: true },
+
+// ── Ingots ───────────────────────────────────────────────────────
+{ name: 'Ambren Ingot', type: 'ingot', subtype: 'ambren', tier: 1, quality: null, slot: null, level_required: 1,  description: 'An ingot of Ambren alloy. Used to forge tier 1 tools and equipment.', stackable: true },
+
+// ── Leather strips ───────────────────────────────────────────────
+{ name: 'Leather Strips', type: 'material', subtype: 'leather_strips', tier: 1, quality: null, slot: null, level_required: 1, description: 'Strips of leather used as grip wrapping on tool handles.', stackable: true },
+
+// ── Tool parts ───────────────────────────────────────────────────
+{ name: 'Ambren Pickaxe Head', type: 'tool_part', subtype: 'pickaxe_head', tier: 1, quality: null, slot: null, level_required: 1, description: 'A forged Ambren pickaxe head. Attach to a tool rod to create a pickaxe.', stackable: false },
+{ name: 'Ambren Hatchet Head', type: 'tool_part', subtype: 'hatchet_head', tier: 1, quality: null, slot: null, level_required: 1, description: 'A forged Ambren hatchet head. Attach to a tool rod to create a hatchet.', stackable: false },
+{ name: 'Lanai Tool Rod',     type: 'tool_part', subtype: 'tool_rod',     tier: 1, quality: null, slot: null, level_required: 1, description: 'A sturdy rod of Ambren used as the handle for tools.', stackable: false },
 ]);
 }
 
