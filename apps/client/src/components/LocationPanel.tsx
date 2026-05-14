@@ -21,9 +21,10 @@ interface LocationPanelProps {
   onStartAction: (type: string, id: number | string) => void
   veins: any[]
   onKilnMaxLogs?: (max: number) => void
+  onActionLimitChange?: (limit: number | null) => void
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<GroundItem[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -152,6 +153,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     Smith Ambren Items →
                   </button>
                 )}
+
               </div>
             )}
           </div>

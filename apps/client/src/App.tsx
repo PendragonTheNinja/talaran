@@ -4,6 +4,7 @@ import AuthScreen from './components/AuthScreen'
 import { Player } from './types'
 import { connectSocket, disconnectSocket, getSocket } from './lib/socket'
 import { apiFetch } from './lib/api'
+import WelcomeModal from './components/WelcomeModal'
 
 interface Skill {
   id: number
@@ -81,11 +82,16 @@ function App() {
   const [checking, setChecking] = useState(true)
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>([])
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
+  const [showWelcome, setShowWelcome] = useState(false)
 
   const loadPlayerData = useCallback(async () => {
   try {
     const data = await apiFetch<PlayerData>('/api/player/me')
+    console.log('Player data:', JSON.stringify(data.player))
     setPlayerData(data)
+    if (data.player?.has_seen_welcome === false) {
+      setShowWelcome(true)
+    }
     return data
   } catch (err) {
     console.error('Failed to load player data:', err)
@@ -209,18 +215,26 @@ const handleLogout = () => {
   }
 
   return (
-    <GameLayout
-  player={player}
-  playerData={playerData}
-  locationData={locationData}
-  inventoryData={inventoryData}
-  equipmentData={equipmentData}
-  onLogout={handleLogout}
-  onPlayerDataUpdate={loadPlayerData}
-  onEquipmentUpdate={loadEquipment}
-  onInventoryUpdate={loadInventory}
-  veinsData={veinsData}
-/>
+    <>
+      <GameLayout
+        player={player}
+        playerData={playerData}
+        locationData={locationData}
+        inventoryData={inventoryData}
+        equipmentData={equipmentData}
+        onLogout={handleLogout}
+        onPlayerDataUpdate={loadPlayerData}
+        onEquipmentUpdate={loadEquipment}
+        onInventoryUpdate={loadInventory}
+        veinsData={veinsData}
+      />
+      {showWelcome && player && (
+        <WelcomeModal
+          username={player.username}
+          onClose={() => setShowWelcome(false)}
+        />
+      )}
+    </>
   )
 }
 

@@ -64,6 +64,25 @@ await db('player_skills').insert(playerSkills);
 // Initialize player stats
 await db('player_stats').insert({ player_id: player.id });
 
+// Give starter tools
+const hatchet = await db('items').where({ name: 'Ambren Hatchet' }).first();
+const pickaxe = await db('items').where({ name: 'Ambren Pickaxe' }).first();
+
+if (hatchet) {
+  await db('player_inventory').insert({
+    player_id: player.id,
+    item_id: hatchet.id,
+    quantity: 1,
+  });
+}
+if (pickaxe) {
+  await db('player_inventory').insert({
+    player_id: player.id,
+    item_id: pickaxe.id,
+    quantity: 1,
+  });
+}
+
 const token = signToken({ playerId: player.id, username: player.username });
 
 logger.info(`New player registered: ${username}`);

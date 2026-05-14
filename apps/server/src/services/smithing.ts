@@ -372,36 +372,27 @@ export async function smithPart(
       if (inv.quantity <= ingredient.quantity) {
         await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
       } else {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).decrement('quantity', ingredient.quantity);
+        await db('player_inventory')
+          .where({ player_id: playerId, item_id: item.id })
+          .decrement('quantity', ingredient.quantity);
       }
     }
 
-    // Create tool part
-    const partItem = await db('items').where({ name: recipe.output }).first();
-    const newPart = await db('tool_parts').insert({
-      player_id: playerId,
-      part_type: partType,
-      tool_type: recipe.toolType,
-      tier: recipe.tier,
-      item_id: partItem.id,
-      max_durability: recipe.durability,
-      current_durability: recipe.durability,
-      is_broken: false,
-      in_inventory: true,
-    }).returning('*');
+    // Add finished item to inventory
+    const outputItem = await db('items').where({ name: recipe.output }).first();
+    if (!outputItem) return { success: false, error: `Output item not found: ${recipe.output}` };
 
-    // Also add to player inventory as item
-    const existingPart = await db('player_inventory')
-      .where({ player_id: playerId, item_id: partItem.id })
+    const existing = await db('player_inventory')
+      .where({ player_id: playerId, item_id: outputItem.id })
       .first();
-    if (existingPart) {
+    if (existing) {
       await db('player_inventory')
-        .where({ player_id: playerId, item_id: partItem.id })
+        .where({ player_id: playerId, item_id: outputItem.id })
         .increment('quantity', 1);
     } else {
       await db('player_inventory').insert({
         player_id: playerId,
-        item_id: partItem.id,
+        item_id: outputItem.id,
         quantity: 1,
       });
     }
@@ -424,97 +415,7 @@ export async function smithPart(
       xpAwarded: recipe.xp,
     };
   } catch (err) {
-    logger.error(`Smith part error: ${err}`);
-    return { success: false, error: 'Server error' };
-  }
-}
-
-// ── Combine tool ──────────────────────────────────────────────────
-
-export async function combineTool(
-  playerId: number,
-  toolName: string,
-  headPartId: number,
-  rodPartId: number,
-): Promise<{ success: boolean; toolInstanceId?: number; error?: string }> {
-  try {
-    const head = await db('tool_parts').where({ id: headPartId, player_id: playerId, in_inventory: true }).first();
-    const rod = await db('tool_parts').where({ id: rodPartId, player_id: playerId, in_inventory: true }).first();
-
-    if (!head) return { success: false, error: 'Pickaxe head not found in your inventory.' };
-    if (!rod) return { success: false, error: 'Tool rod not found in your inventory.' };
-    if (head.is_broken) return { success: false, error: 'That head is broken.' };
-    if (rod.is_broken) return { success: false, error: 'That rod is broken.' };
-
-    // Check leather strips
-    const leatherStrips = await db('items').where({ name: 'Leather Strips' }).first();
-    const strips = await db('player_inventory')
-      .where({ player_id: playerId, item_id: leatherStrips.id })
-      .first();
-    if (!strips || strips.quantity < 1) {
-      return { success: false, error: 'You need Leather Strips to bind the tool.' };
-    }
-
-    // Remove leather strips
-    if (strips.quantity <= 1) {
-      await db('player_inventory').where({ player_id: playerId, item_id: leatherStrips.id }).delete();
-    } else {
-      await db('player_inventory').where({ player_id: playerId, item_id: leatherStrips.id }).decrement('quantity', 1);
-    }
-
-    // Remove part items from inventory
-    const headItem = await db('items').where({ id: head.item_id }).first();
-    const rodItem = await db('items').where({ id: rod.item_id }).first();
-
-    for (const item of [headItem, rodItem]) {
-      const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-      if (inv) {
-        if (inv.quantity <= 1) {
-          await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
-        } else {
-          await db('player_inventory').where({ player_id: playerId, item_id: item.id }).decrement('quantity', 1);
-        }
-      }
-    }
-
-    // Mark parts as attached
-    await db('tool_parts').where({ id: headPartId }).update({ in_inventory: false });
-    await db('tool_parts').where({ id: rodPartId }).update({ in_inventory: false });
-
-    // Create tool instance
-    const [toolInstance] = await db('tool_instances').insert({
-      player_id: playerId,
-      name: toolName,
-      tool_type: head.tool_type,
-      tier: head.tier,
-      head_part_id: headPartId,
-      rod_part_id: rodPartId,
-      total_actions: 0,
-      is_equipped: false,
-      is_broken: false,
-    }).returning('*');
-
-    // Add finished tool to inventory as item
-    const toolItemName = head.tool_type === 'pickaxe'
-      ? `${tierName(head.tier)} Pickaxe`
-      : `${tierName(head.tier)} Hatchet`;
-
-    const toolItem = await db('items').where({ name: toolItemName }).first();
-    if (toolItem) {
-      const existingTool = await db('player_inventory')
-        .where({ player_id: playerId, item_id: toolItem.id })
-        .first();
-      if (existingTool) {
-        await db('player_inventory').where({ player_id: playerId, item_id: toolItem.id }).increment('quantity', 1);
-      } else {
-        await db('player_inventory').insert({ player_id: playerId, item_id: toolItem.id, quantity: 1 });
-      }
-    }
-
-    logger.info(`Player ${playerId} combined tool: ${toolName}`);
-    return { success: true, toolInstanceId: toolInstance.id };
-  } catch (err) {
-    logger.error(`Combine tool error: ${err}`);
+    logger.error(`Smith error: ${err}`);
     return { success: false, error: 'Server error' };
   }
 }
@@ -567,31 +468,60 @@ export const SMELT_RECIPES: Record<string, SmeltRecipe> = {
 };
 
 export const SMITH_RECIPES: Record<string, SmithRecipe> = {
-  'ambren_pickaxe_head': {
-    ingredients: [{ name: 'Ambren Ingot', quantity: 2 }],
-    output: 'Ambren Pickaxe Head',
+  'ambren_pickaxe': {
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Tool Rod', quantity: 1 },
+      { name: 'Leather Strips', quantity: 1 },
+    ],
+    output: 'Ambren Pickaxe',
     toolType: 'pickaxe',
     tier: 1,
-    durability: 300,
+    durability: 0,
     requiredLevel: 1,
     xp: 60,
   },
-  'ambren_hatchet_head': {
-    ingredients: [{ name: 'Ambren Ingot', quantity: 2 }],
-    output: 'Ambren Hatchet Head',
+  'ambren_hatchet': {
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Tool Rod', quantity: 1 },
+      { name: 'Leather Strips', quantity: 1 },
+    ],
+    output: 'Ambren Hatchet',
     toolType: 'hatchet',
     tier: 1,
-    durability: 300,
+    durability: 0,
     requiredLevel: 1,
     xp: 60,
   },
-  'ambren_tool_rod': {
-    ingredients: [{ name: 'Ambren Ingot', quantity: 1 }],
-    output: 'Ambren Tool Rod',
-    toolType: 'any',
+  'ambren_hammer': {
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Tool Rod', quantity: 1 },
+    ],
+    output: 'Ambren Hammer',
+    toolType: 'workstation',
     tier: 1,
-    durability: 500,
+    durability: 0,
     requiredLevel: 1,
-    xp: 40,
+    xp: 50,
+  },
+  'ambren_tongs': {
+    ingredients: [{ name: 'Ambren Ingot', quantity: 1 }],
+    output: 'Ambren Tongs',
+    toolType: 'workstation',
+    tier: 1,
+    durability: 0,
+    requiredLevel: 1,
+    xp: 30,
+  },
+  'ambren_anvil': {
+    ingredients: [{ name: 'Ambren Ingot', quantity: 5 }],
+    output: 'Ambren Anvil',
+    toolType: 'workstation',
+    tier: 1,
+    durability: 0,
+    requiredLevel: 1,
+    xp: 100,
   },
 };

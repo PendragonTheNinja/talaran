@@ -10,6 +10,7 @@ import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import miningRoutes from './routes/mining';
 import smithingRoutes from './routes/smithing';
+import hintsRoutes from './routes/hints';
 
 dotenv.config();
 
@@ -73,6 +74,7 @@ app.use('/api/travel', travelRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/mining', miningRoutes);
 app.use('/api/smithing', smithingRoutes);
+app.use('/api/hints', hintsRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

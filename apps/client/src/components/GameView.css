@@ -333,3 +333,45 @@
 .scene-log-entry.log-error { color: var(--color-red-glow); }
 .scene-log-entry.log-info  { color: var(--color-text-muted); }
 .scene-log-entry.log-success { color: var(--color-gold-bright); }
+
+.action-limit-display {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  font-family: var(--font-heading);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  z-index: 2;
+}
+
+.action-limit-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px var(--space-sm);
+}
+
+.action-limit-bar {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  z-index: 2;
+  background: rgba(0,0,0,0.5);
+  padding: 6px var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-dark);
+}
+
+.action-limit-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.action-limit-progress {
+  font-family: var(--font-heading);
+  font-size: 14px;
+}

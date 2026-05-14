@@ -12,8 +12,10 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const player = await db('players')
       .where({ id: playerId })
-      .select('id', 'username', 'email', 'current_location_id', 'created_at')
+      .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome')
       .first();
+
+    console.log('Player me result:', player);
 
     if (!player) {
       res.status(404).json({ error: 'Player not found' });
@@ -66,6 +68,16 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+
+  router.post('/welcome-seen', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  try {
+    await db('players').where({ id: playerId }).update({ has_seen_welcome: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 });
 
 export default router;

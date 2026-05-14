@@ -56,6 +56,8 @@ interface GameViewProps {
   onExternalActionHandled: () => void
   externalMessage: { text: string; type: 'success' | 'info' | 'error' } | null
   onExternalMessageHandled: () => void
+  actionLimit: number | null
+  onActionLimitChange: (limit: number | null) => void
 }
 
 interface LogEntry {
@@ -75,8 +77,10 @@ export default function GameView({
   onExternalActionHandled,
   externalMessage,
   onExternalMessageHandled,
+  actionLimit,
+  onActionLimitChange,
 }: GameViewProps) {
-  // ── All state at the top ──────────────────────────────────────────
+
   const [currentAction, setCurrentAction] = useState<string | null>(null)
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(0)
@@ -98,22 +102,40 @@ export default function GameView({
     quantity?: number
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
+  const [actionsCompleted, setActionsCompleted] = useState(0)
 
   // ── Refs ──────────────────────────────────────────────────────────
   const logIdRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentActionRef = useRef<string | null>(null)
+  const actionLimitRef = useRef<number | null>(null)
 
   // ── Keep ref in sync with state ───────────────────────────────────
   useEffect(() => {
     currentActionRef.current = currentAction
   }, [currentAction])
 
+  useEffect(() => {
+  actionLimitRef.current = actionLimit
+}, [actionLimit])
+
   // ── Helpers ───────────────────────────────────────────────────────
   const addLog = (message: string, type: LogEntry['type'] = 'info') => {
-    logIdRef.current += 1
-    setLog(prev => [...prev.slice(-20), { id: logIdRef.current, message, type }])
+  logIdRef.current += 1
+  const id = logIdRef.current
+  setLog(prev => {
+    // Don't stack duplicate messages
+    if (prev.length > 0 && prev[prev.length - 1].message === message) return prev
+    return [...prev.slice(-20), { id, message, type }]
+  })
+
+  // Auto-dismiss errors after 5 seconds
+  if (type === 'error') {
+    setTimeout(() => {
+      setLog(prev => prev.filter(entry => entry.id !== id))
+    }, 5000)
   }
+}
 
   const startCountdown = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -151,7 +173,6 @@ export default function GameView({
       clearInterval(interval)
 
       socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
-        console.log('Action complete data:', JSON.stringify(data))
         if (data.result?.itemName) {
           const skillName = 
         currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
@@ -174,6 +195,7 @@ export default function GameView({
           }
         }
         onPlayerDataUpdate()
+        setActionsCompleted(prev => prev + 1)
         if (data.timerSeconds) {
           setTimerSeconds(data.timerSeconds)
           setTimerMax(data.timerSeconds)
@@ -190,7 +212,6 @@ export default function GameView({
       })
 
       socket.on('action_failed', (data: { error: string }) => {
-  console.log('Action failed:', data.error)
   addLog(data.error || 'Action stopped.', 'error')
   setCurrentAction(null)
   setActiveNodeId(null)
@@ -233,6 +254,14 @@ export default function GameView({
   addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
 })
 
+      socket.on('action_limit_reached', (data: { message: string }) => {
+  addLog(data.message, 'info')
+  setCurrentAction(null)
+  setActiveNodeId(null)
+  setTimerSeconds(0)
+  if (timerRef.current) clearInterval(timerRef.current)
+})
+
     }, 100)
 
     return () => {
@@ -247,6 +276,7 @@ export default function GameView({
         socket.off('vein_announced')
         socket.off('vein_depleted')
         socket.off('action_switched')
+        socket.off('action_limit_reached')
       }
     }
   }, [onPlayerDataUpdate, loadVeins])
@@ -299,7 +329,9 @@ export default function GameView({
     setCurrentAction('kiln_collect')
     setTimerMax(externalAction.id as number)
     startCountdown(externalAction.id as number)
-}
+  } else if (externalAction.type === 'set_action_limit') {
+  setActionLimit(externalAction.id === 0 ? null : externalAction.id as number)
+  }
 
   onExternalActionHandled()
 }, [externalAction])
@@ -413,20 +445,25 @@ export default function GameView({
     setLastResult(null)
     setCurrentAction(null)
     setTimerSeconds(0)
+    setActionsCompleted(0)
     onClearTravel()
     if (timerRef.current) clearInterval(timerRef.current)
 
+    const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
+    const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
+    console.log('Action limit input element:', limitInput, 'value:', limitInput?.value, 'currentLimit:', currentLimit)
     const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
       method: 'POST',
-      body: JSON.stringify({ metalType }),
+      body: JSON.stringify({ metalType, actionLimit: currentLimit }),
     })
     setCurrentAction('smelting')
+    setLog([])
+    setActionsCompleted(0)
     setTimerMax(res.timerSeconds)
     startCountdown(res.timerSeconds)
   } catch (err: any) {
-  console.log('Smelting error:', err.message)
-  addLog(err.message || 'Could not start smelting.', 'error')
-}
+    addLog(err.message || 'Could not start smelting.', 'error')
+  }
 }
 
 const startSmithing = async (recipe: string) => {
@@ -435,17 +472,23 @@ const startSmithing = async (recipe: string) => {
     setLastResult(null)
     setCurrentAction(null)
     setTimerSeconds(0)
+    setActionsCompleted(0)
     onClearTravel()
     if (timerRef.current) clearInterval(timerRef.current)
 
     const [metalType, ...partParts] = recipe.split('_')
     const partType = partParts.join('_')
 
-    const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smith/start', {
-      method: 'POST',
-      body: JSON.stringify({ metalType, partType }),
-    })
+    const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
+const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
+
+const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
+  method: 'POST',
+  body: JSON.stringify({ metalType, actionLimit: currentLimit }),
+})
     setCurrentAction('smithing')
+    setLog([])
+    setActionsCompleted(0)
     setTimerMax(res.timerSeconds)
     startCountdown(res.timerSeconds)
   } catch (err: any) {
@@ -559,6 +602,38 @@ const startSmithing = async (recipe: string) => {
       </div>
     </div>
   )}
+
+  {(currentAction === 'smelting' || currentAction === 'smithing' || !currentAction) && locationData?.location?.name === 'Emberra' && (
+  <div className="action-limit-bar">
+    <div className="action-limit-controls">
+      <label className="muted-text" style={{ fontSize: '12px' }}>Action Limit:</label>
+      <input
+        id="action-limit-input"
+        type="number"
+        min="1"
+        placeholder="∞"
+        className="action-limit-field"
+        disabled={currentAction === 'smelting' || currentAction === 'smithing'}
+        onChange={e => {
+          const val = e.target.value ? parseInt(e.target.value) : null
+          if (onActionLimitChange) onActionLimitChange(val)
+        }}
+        style={{
+          width: '50px',
+          fontSize: '13px',
+          padding: '2px 6px',
+          opacity: (currentAction === 'smelting' || currentAction === 'smithing') ? 0.5 : 1,
+          cursor: (currentAction === 'smelting' || currentAction === 'smithing') ? 'not-allowed' : 'text',
+        }}
+      />
+    </div>
+    {actionLimit && (
+  <span className="scene-actions-remaining muted-text">
+    {actionLimit - actionsCompleted} actions remaining
+  </span>
+)}
+  </div>
+)}
 
   {/* Last result — bottom */}
   {lastResult && (

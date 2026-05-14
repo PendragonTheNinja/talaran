@@ -260,6 +260,22 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     timerSeconds,
     xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
   });
+
+        // Check action limit
+if (action.action_limit !== null && action.action_limit !== undefined) {
+  console.log('Action limit check:', action.action_limit, 'completed:', action.actions_completed)
+  const actionsCompleted = (action.actions_completed || 0) + 1;
+  if (actionsCompleted >= action.action_limit) {
+    await db('player_actions').where({ id: action.id }).delete();
+    io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+      message: `Action limit of ${action.action_limit} reached.`,
+    });
+    return;
+  }
+  await db('player_actions').where({ id: action.id }).update({
+    actions_completed: actionsCompleted,
+  });
+}
   return;
 }
 

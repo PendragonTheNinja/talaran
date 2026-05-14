@@ -102,10 +102,8 @@ await knex('items').del();
 // ── Leather strips ───────────────────────────────────────────────
 { name: 'Leather Strips', type: 'material', subtype: 'leather_strips', tier: 1, quality: null, slot: null, level_required: 1, description: 'Strips of leather used as grip wrapping on tool handles.', stackable: true },
 
-// ── Tool parts ───────────────────────────────────────────────────
-{ name: 'Ambren Pickaxe Head', type: 'tool_part', subtype: 'pickaxe_head', tier: 1, quality: null, slot: null, level_required: 1, description: 'A forged Ambren pickaxe head. Attach to a tool rod to create a pickaxe.', stackable: false },
-{ name: 'Ambren Hatchet Head', type: 'tool_part', subtype: 'hatchet_head', tier: 1, quality: null, slot: null, level_required: 1, description: 'A forged Ambren hatchet head. Attach to a tool rod to create a hatchet.', stackable: false },
-{ name: 'Lanai Tool Rod',     type: 'tool_part', subtype: 'tool_rod',     tier: 1, quality: null, slot: null, level_required: 1, description: 'A sturdy rod of Ambren used as the handle for tools.', stackable: false },
+// ── Tool Rods ───────────────────────────────────────────────────────
+{ name: 'Lanai Tool Rod', type: 'material', subtype: 'tool_rod', tier: 1, quality: null, slot: null, level_required: 1, description: 'A smooth rod of Lanai wood. Used as a handle for tools.', stackable: true },
 ]);
 }
 

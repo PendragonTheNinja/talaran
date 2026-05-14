@@ -4,8 +4,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
   getWorkstation, setupWorkstation,
   loadKiln, collectKiln, getKilnStatus,
-  smeltIngots, smithPart, combineTool,
-  canSmithHere, SMELT_RECIPES,
+  smeltIngots, smithPart,
+  canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
 } from '../services/smithing';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../index';
@@ -127,16 +127,13 @@ router.post('/kiln/collect/start', requireAuth, async (req: AuthRequest, res: Re
 // Start smelting action
 router.post('/smelt/start', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
-  const { metalType } = req.body;
-  console.log('Smelt start called, playerId:', playerId, 'metalType:', metalType);
+  const { metalType, actionLimit } = req.body;
   
   try {
     const player = await db('players').where({ id: playerId }).first();
     const locationId = player.current_location_id;
-    console.log('Location ID:', locationId);
 
     const canSmith = await canSmithHere(playerId, locationId);
-    console.log('Can smith:', canSmith);
     if (!canSmith.allowed) {
       res.status(403).json({ error: canSmith.error });
       return;
@@ -165,12 +162,10 @@ for (const ingredient of recipe.ingredients) {
 }
 
     const existing = await db('player_actions').where({ player_id: playerId }).first();
-console.log('Existing action:', existing);
 
 const timerSeconds = 10;
 const now = new Date();
 const completesAt = new Date(now.getTime() + timerSeconds * 1000);
-console.log('About to insert action');
 
 await db('player_actions').insert({
   player_id: playerId,
@@ -183,9 +178,9 @@ await db('player_actions').insert({
   auto_restart: true,
   last_bot_check: now,
   bot_check_pending: false,
+  action_limit: actionLimit || null,
+  actions_completed: 0,
 });
-
-console.log('Action inserted successfully');
 
     res.json({ message: `Smelting ${metalType} ingots...`, timerSeconds, completesAt });
   } catch (err) {
@@ -213,7 +208,29 @@ router.post('/smith/start', requireAuth, async (req: AuthRequest, res: Response)
       return;
     }
 
-    const timerSeconds = 20; // smithing timer — longer than smelting
+    // Check ingredients before starting
+    const recipe = SMITH_RECIPES[`${metalType}_${partType}`];
+    if (!recipe) {
+      res.status(400).json({ error: 'Unknown recipe.' });
+      return;
+    }
+
+    for (const ingredient of recipe.ingredients) {
+      const item = await db('items').where({ name: ingredient.name }).first();
+      if (!item) {
+        res.status(400).json({ error: `Required item not found: ${ingredient.name}` });
+        return;
+      }
+      const inv = await db('player_inventory')
+        .where({ player_id: playerId, item_id: item.id })
+        .first();
+      if (!inv || inv.quantity < ingredient.quantity) {
+        res.status(400).json({ error: `You need ${ingredient.quantity}x ${ingredient.name}.` });
+        return;
+      }
+    }
+
+    const timerSeconds = 20;
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 
@@ -231,22 +248,6 @@ router.post('/smith/start', requireAuth, async (req: AuthRequest, res: Response)
     });
 
     res.json({ message: `Smithing ${metalType} ${partType}...`, timerSeconds, completesAt });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Combine tool parts into a tool instance
-router.post('/combine', requireAuth, async (req: AuthRequest, res: Response) => {
-  const playerId = req.player!.playerId;
-  const { toolName, headPartId, rodPartId } = req.body;
-  try {
-    const result = await combineTool(playerId, toolName, headPartId, rodPartId);
-    if (!result.success) {
-      res.status(400).json({ error: result.error });
-      return;
-    }
-    res.json({ message: `${toolName} created!`, toolInstanceId: result.toolInstanceId });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

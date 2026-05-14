@@ -8,6 +8,7 @@ import LocationPanel from './LocationPanel'
 import { Player } from '../types'
 import { apiFetch } from '../lib/api'
 import './GameLayout.css'
+import SmithingMenu from './SmithingMenu'
 
 interface Skill {
   id: number
@@ -179,6 +180,8 @@ const handleKilnLoad = async () => {
   }
 }
 
+const [actionLimit, setActionLimit] = useState<number | null>(null)
+
   return (
     <div className="game-root">
       <TopNav player={player} onLogout={onLogout} />
@@ -202,6 +205,8 @@ const handleKilnLoad = async () => {
       onExternalActionHandled={() => setGameViewAction(null)}
       externalMessage={externalMessage}
       onExternalMessageHandled={() => setExternalMessage(null)}
+      actionLimit={actionLimit}
+      onActionLimitChange={setActionLimit}
     />
     <LocationPanel
   locationData={locationData}
@@ -209,6 +214,10 @@ const handleKilnLoad = async () => {
   onStartAction={handleLocationAction}
   veins={veinsData}
   onKilnMaxLogs={(max) => setKilnMaxLogs(max)}
+  onActionLimitChange={(limit) => {
+  console.log('Action limit set to:', limit)
+  setActionLimit(limit)
+}}
 />
   </div>
   <ChatPanel />
@@ -249,6 +258,17 @@ const handleKilnLoad = async () => {
     </div>
   </div>
 )}
+      {showSmithingMenu && (
+  <SmithingMenu
+    onClose={() => setShowSmithingMenu(false)}
+    onStartSmithing={(recipe) => {
+      setShowSmithingMenu(false)
+      setGameViewAction({ type: 'smithing', id: recipe })
+    }}
+    playerSmithingLevel={playerData?.skills?.find((s: any) => s.name === 'Smithing')?.level || 1}
+  />
+)}
+
     </div>
   )
 }
