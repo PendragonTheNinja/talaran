@@ -11,6 +11,8 @@ import equipmentRoutes from './routes/equipment';
 import miningRoutes from './routes/mining';
 import smithingRoutes from './routes/smithing';
 import hintsRoutes from './routes/hints';
+import chatRoutes from './routes/chat';
+import db from './db';
 
 dotenv.config();
 
@@ -75,6 +77,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/mining', miningRoutes);
 app.use('/api/smithing', smithingRoutes);
 app.use('/api/hints', hintsRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
@@ -89,12 +92,23 @@ io.on('connection', (socket) => {
     logger.info(`Socket disconnected: ${socket.id}`);
   });
 
-  socket.on('join_location', (locationId: number) => {
-  // Leave all location rooms first
+  socket.on('join_location', async (locationId: number) => {
   socket.rooms.forEach(room => {
-    if (room.startsWith('location_')) socket.leave(room);
+    if (room.startsWith('location_') || room.startsWith('region_')) {
+      socket.leave(room);
+    }
   });
   socket.join(`location_${locationId}`);
+
+  // Also join region room
+  try {
+    const location = await db('locations').where({ id: locationId }).first();
+    if (location?.region) {
+      socket.join(`region_${location.region.replace(/ /g, '_')}`);
+    }
+  } catch (err) {
+    logger.error(`Region join error: ${err}`);
+  }
 });
 });
 
