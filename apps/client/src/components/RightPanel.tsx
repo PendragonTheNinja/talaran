@@ -46,7 +46,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
   return (
     <aside className="right-panel">
       <div className="minimap panel">
-  <div className="panel-title">Map — Taiar Island</div>
+  <div className="panel-title">Taiar Island</div>
   <div className="minimap-frame">
   <div className="minimap-canvas panel-inset">
     <MiniMap

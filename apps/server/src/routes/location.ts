@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { connectedPlayers } from '../index';
 
 const router = Router();
 
@@ -91,4 +92,44 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  try {
+    const player = await db('players').where({ id: playerId }).first();
+    if (!player?.current_location_id) {
+      res.json({ players: [] });
+      return;
+    }
+
+    const players = await db('players')
+      .where({ current_location_id: player.current_location_id })
+      .select('id', 'username');
+
+    res.json({ players });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  try {
+    const player = await db('players').where({ id: playerId }).first();
+    if (!player?.current_location_id) {
+      res.json({ players: [] });
+      return;
+    }
+
+    const onlineIds = [...connectedPlayers, playerId];
+
+    const players = await db('players')
+      .where({ current_location_id: player.current_location_id })
+      .whereIn('id', onlineIds)
+      .select('id', 'username');
+
+    res.json({ players });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 export default router;

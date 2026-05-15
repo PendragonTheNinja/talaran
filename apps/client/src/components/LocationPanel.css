@@ -24,7 +24,7 @@
   padding: 6px var(--space-sm);
   color: var(--color-text-base);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.1s;
 }
@@ -49,7 +49,7 @@
 }
 
 .location-panel-empty {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-dim);
   font-style: italic;
   padding: 2px var(--space-sm);
@@ -123,7 +123,7 @@
 }
 
 .location-action-btn.sub {
-  font-size: 13px;
+  font-size: 14px;
   padding: 4px var(--space-sm);
   color: var(--color-text-muted);
 }

@@ -28,6 +28,8 @@ export const logger = createLogger({
   transports: [new transports.Console()],
 });
 
+export const connectedPlayers = new Set<number>();
+
 const app = express();
 app.use(express.json());
 
@@ -83,33 +85,37 @@ app.use('/api/chat', chatRoutes);
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id}`);
 
-  socket.on('join', (playerId: number) => {
+  socket.on('join', async (playerId: number) => {
     socket.join(`player_${playerId}`);
+    socket.data.playerId = playerId;
+    connectedPlayers.add(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
   });
 
   socket.on('disconnect', () => {
     logger.info(`Socket disconnected: ${socket.id}`);
+    if (socket.data.playerId) {
+      connectedPlayers.delete(socket.data.playerId);
+    }
   });
 
   socket.on('join_location', async (locationId: number) => {
-  socket.rooms.forEach(room => {
-    if (room.startsWith('location_') || room.startsWith('region_')) {
-      socket.leave(room);
+    socket.rooms.forEach(room => {
+      if (room.startsWith('location_') || room.startsWith('region_')) {
+        socket.leave(room);
+      }
+    });
+    socket.join(`location_${locationId}`);
+
+    try {
+      const location = await db('locations').where({ id: locationId }).first();
+      if (location?.region) {
+        socket.join(`region_${location.region.replace(/ /g, '_')}`);
+      }
+    } catch (err) {
+      logger.error(`Region join error: ${err}`);
     }
   });
-  socket.join(`location_${locationId}`);
-
-  // Also join region room
-  try {
-    const location = await db('locations').where({ id: locationId }).first();
-    if (location?.region) {
-      socket.join(`region_${location.region.replace(/ /g, '_')}`);
-    }
-  } catch (err) {
-    logger.error(`Region join error: ${err}`);
-  }
-});
 });
 
 // Start the game tick

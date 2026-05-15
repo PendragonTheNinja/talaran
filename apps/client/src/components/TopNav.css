@@ -17,10 +17,10 @@
 
 .top-nav-title {
   font-family: var(--font-heading);
-  font-size: 28px;
+  font-size: 32px;
   color: var(--color-gold-bright);
   text-shadow: 0 0 12px rgba(200,146,42,0.6);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
 }
 
 .top-nav-links {
@@ -30,8 +30,8 @@
 }
 
 .top-nav-btn {
-  font-size: 11px;
-  padding: 3px var(--space-sm);
+  font-size: 16px;
+  padding: 4px var(--space-sm);
 }
 
 @media (max-width: 700px) {

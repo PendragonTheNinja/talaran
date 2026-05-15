@@ -1,10 +1,10 @@
 .chat-panel {
-  height: 220px;
+  height: 300px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .chat-tabs {
@@ -39,7 +39,7 @@
 .chat-sending-to {
   margin-left: auto;
   padding-right: var(--space-sm);
-  font-size: 11px;
+  font-size: 12px;
   font-style: italic;
 }
 
@@ -49,7 +49,7 @@
   padding: var(--space-xs) var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: .1px;
 }
 
 .chat-empty {
@@ -60,30 +60,32 @@
 
 .chat-message {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.1;
   word-break: break-word;
 }
 
 .chat-timestamp {
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .chat-channel-tag {
-  font-size: 11px;
+  display: inline-block;
+  width: 22px;
+  text-align: center;
 }
 
 .chat-player {
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .chat-guild-tag {
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: 14px;
   margin-left: 1px;
 }
 
 .chat-text {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .chat-input-row {
@@ -102,7 +104,7 @@
   padding: 4px var(--space-sm);
   color: var(--color-text-base);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .chat-input:focus {
@@ -111,6 +113,6 @@
 }
 
 .chat-send-btn {
-  font-size: 12px;
-  padding: 4px var(--space-md);
+  font-size: 16px;
+  padding: 2px var(--space-md);
 }

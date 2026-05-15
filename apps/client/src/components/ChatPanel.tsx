@@ -23,11 +23,11 @@ const CHANNELS = [
 ]
 
 const CHANNEL_COLORS: Record<string, string> = {
-  world: '#f8d698',
-  region: '#ffffff',
-  guild: '#6ab87e',
-  trade: '#b87eb8',
-  help: '#fac431',
+  world: '#877A6C',
+  region: '#a8a8a8',
+  guild: '#F74B07',
+  trade: '#ae00ff',
+  help: '#ECFF00',
   whisper: '#08f8d0',
 }
 
@@ -160,6 +160,15 @@ export default function ChatPanel() {
     return found ? found.label : channel
   }
 
+  const CHANNEL_SHORT: Record<string, string> = {
+  world: 'W',
+  region: 'R',
+  guild: 'G',
+  trade: 'T',
+  help: 'H',
+  whisper: 'w',
+}
+
   return (
     <div className="chat-panel panel">
       <div className="chat-tabs">
@@ -186,7 +195,7 @@ export default function ChatPanel() {
               <span className="chat-timestamp muted-text">{msg.timestamp}</span>
               {' '}
               <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                [{channelLabel(msg.channel)}]
+                [{CHANNEL_SHORT[msg.channel] || msg.channel}]
               </span>
               {' '}
               <span
