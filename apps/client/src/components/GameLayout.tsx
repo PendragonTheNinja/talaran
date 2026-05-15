@@ -9,6 +9,7 @@ import { Player } from '../types'
 import { apiFetch } from '../lib/api'
 import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
+import GuildModal from './GuildModal'
 
 interface Skill {
   id: number
@@ -182,9 +183,11 @@ const handleKilnLoad = async () => {
 
 const [actionLimit, setActionLimit] = useState<number | null>(null)
 
+const [showGuildModal, setShowGuildModal] = useState(false)
+
   return (
     <div className="game-root">
-      <TopNav player={player} onLogout={onLogout} />
+      <TopNav player={player} onLogout={onLogout} onGuildClick={() => setShowGuildModal(true)} />
       <div className="game-body">
         <LeftPanel
           inventoryData={inventoryData}
@@ -266,6 +269,13 @@ const [actionLimit, setActionLimit] = useState<number | null>(null)
       setGameViewAction({ type: 'smithing', id: recipe })
     }}
     playerSmithingLevel={playerData?.skills?.find((s: any) => s.name === 'Smithing')?.level || 1}
+  />
+)}
+
+{showGuildModal && (
+  <GuildModal
+    onClose={() => setShowGuildModal(false)}
+    playerUsername={player.username}
   />
 )}
 

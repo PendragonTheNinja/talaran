@@ -4,14 +4,15 @@ import './TopNav.css'
 interface TopNavProps {
   player: Player
   onLogout: () => void
+  onGuildClick: () => void
 }
 
 const NAV_ITEMS = [
-  'Messages', 'Forum', 'Clan', 'Journal',
+  'Messages', 'Forum', 'Guild', 'Journal',
   'Quests', 'Events', 'Manual', 'Highscores', 'Settings'
 ]
 
-export default function TopNav({ onLogout }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick }: TopNavProps) {
   return (
     <nav className="top-nav">
       <div className="top-nav-brand">
@@ -19,7 +20,11 @@ export default function TopNav({ onLogout }: TopNavProps) {
       </div>
       <div className="top-nav-links">
         {NAV_ITEMS.map(item => (
-          <button key={item} className="top-nav-btn btn">
+          <button
+            key={item}
+            className="top-nav-btn btn"
+            onClick={item === 'Guild' ? onGuildClick : undefined}
+          >
             {item}
           </button>
         ))}

@@ -13,6 +13,7 @@ import smithingRoutes from './routes/smithing';
 import hintsRoutes from './routes/hints';
 import chatRoutes from './routes/chat';
 import db from './db';
+import guildRoutes from './routes/guilds';
 
 dotenv.config();
 
@@ -80,24 +81,28 @@ app.use('/api/mining', miningRoutes);
 app.use('/api/smithing', smithingRoutes);
 app.use('/api/hints', hintsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/guilds', guildRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id}`);
 
   socket.on('join', async (playerId: number) => {
-    socket.join(`player_${playerId}`);
-    socket.data.playerId = playerId;
-    connectedPlayers.add(playerId);
-    logger.info(`Player ${playerId} joined their socket room`);
-  });
+  socket.join(`player_${playerId}`);
+  socket.data.playerId = playerId;
+  connectedPlayers.add(playerId);
+  logger.info(`Player ${playerId} joined their socket room`);
 
-  socket.on('disconnect', () => {
-    logger.info(`Socket disconnected: ${socket.id}`);
-    if (socket.data.playerId) {
-      connectedPlayers.delete(socket.data.playerId);
+  // Join guild room if in a guild
+  try {
+    const player = await db('players').where({ id: playerId }).select('guild_id').first();
+    if (player?.guild_id) {
+      socket.join(`guild_${player.guild_id}`);
     }
-  });
+  } catch (err) {
+    logger.error(`Guild room join error: ${err}`);
+  }
+});
 
   socket.on('join_location', async (locationId: number) => {
     socket.rooms.forEach(room => {

@@ -115,10 +115,10 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
       player_id: playerId,
       channel,
       region: channel === 'region' ? region : null,
-      guild_id: null,
+      guild_id: player.guild_id || null,
       message: message.trim(),
       player_name: player.username,
-      guild_tag: null,
+      guild_tag: player.guild_tag || null,
       sent_at: now,
     }).returning('*');
 
@@ -138,7 +138,13 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
     } else if (channel === 'region') {
       io.to(`region_${region.replace(/ /g, '_')}`).emit('chat_region', messageData);
       io.to(`player_${playerId}`).emit('chat_region', messageData);
-    }
+    } else if (channel === 'guild') {
+  if (!player.guild_id) {
+    res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
+    return;
+  }
+  io.to(`guild_${player.guild_id}`).emit('chat_guild', messageData);
+}
 
     logger.info(`[${channel}] ${player.username}: ${message.trim()}`);
     res.json({ success: true, message: messageData });
