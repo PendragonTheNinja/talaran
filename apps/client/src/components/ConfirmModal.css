@@ -1,0 +1,23 @@
+.confirm-modal {
+  background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 300px;
+  text-align: center;
+}
+
+.confirm-message {
+  font-size: 15px;
+  color: var(--color-text-base);
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}

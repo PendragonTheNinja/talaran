@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/api'
 import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
 import GuildModal from './GuildModal'
+import MessagesPanel from './MessagesPanel'
 
 interface Skill {
   id: number
@@ -185,9 +186,29 @@ const [actionLimit, setActionLimit] = useState<number | null>(null)
 
 const [showGuildModal, setShowGuildModal] = useState(false)
 
+const [showMessages, setShowMessages] = useState(false)
+const [unreadMessages, setUnreadMessages] = useState(0)
+
+useEffect(() => {
+  const loadCount = () => {
+    apiFetch<{ count: number }>('/api/messages/unread/count')
+      .then(data => setUnreadMessages(data.count))
+      .catch(() => {})
+  }
+  loadCount()
+  const interval = setInterval(loadCount, 60000)
+  return () => clearInterval(interval)
+}, [])
+
   return (
     <div className="game-root">
-      <TopNav player={player} onLogout={onLogout} onGuildClick={() => setShowGuildModal(true)} />
+      <TopNav
+      player={player}
+      onLogout={onLogout}
+      onGuildClick={() => setShowGuildModal(true)}
+      onMessagesClick={() => setShowMessages(!showMessages)}
+      unreadMessages={unreadMessages}
+      />
       <div className="game-body">
         <LeftPanel
           inventoryData={inventoryData}
@@ -276,6 +297,13 @@ const [showGuildModal, setShowGuildModal] = useState(false)
   <GuildModal
     onClose={() => setShowGuildModal(false)}
     playerUsername={player.username}
+  />
+)}
+
+{showMessages && (
+  <MessagesPanel
+    onClose={() => setShowMessages(false)}
+    onUnreadChange={setUnreadMessages}
   />
 )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './GuildModal.css'
+import ConfirmModal from './ConfirmModal'
 
 interface GuildMember {
   id: number
@@ -54,6 +55,7 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
   const [applications, setApplications] = useState<Application[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
 
   // Create form
   const [createName, setCreateName] = useState('')
@@ -132,7 +134,10 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
   }
 
   const handleKick = async (targetId: number, username: string) => {
-    if (!confirm(`Kick ${username} from the guild?`)) return
+    setConfirmDialog({
+  message: `Kick ${username} from the guild?`,
+  onConfirm: async () => {
+    setConfirmDialog(null)
     setError(null)
     try {
       await apiFetch('/api/guilds/kick', {
@@ -145,9 +150,15 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
       setError(err.message)
     }
   }
+})
+return
+  }
 
   const handleTransferLeadership = async (targetId: number, username: string) => {
-    if (!confirm(`Transfer leadership to ${username}?`)) return
+    setConfirmDialog({
+  message: `Transfer leadership to ${username}?`,
+  onConfirm: async () => {
+    setConfirmDialog(null)
     setError(null)
     try {
       await apiFetch('/api/guilds/transfer-leadership', {
@@ -160,9 +171,15 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
       setError(err.message)
     }
   }
+})
+return
+  }
 
   const handleLeave = async () => {
-    if (!confirm('Are you sure you want to leave the guild?')) return
+    setConfirmDialog({
+  message: 'Are you sure you want to leave the guild?',
+  onConfirm: async () => {
+    setConfirmDialog(null)
     setError(null)
     try {
       await apiFetch('/api/guilds/leave', { method: 'POST' })
@@ -172,6 +189,9 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
     } catch (err: any) {
       setError(err.message)
     }
+  }
+})
+return
   }
 
   const handleApply = async () => {
@@ -427,6 +447,13 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
           </div>
         )}
       </div>
+      {confirmDialog && (
+  <ConfirmModal
+    message={confirmDialog.message}
+    onConfirm={confirmDialog.onConfirm}
+    onCancel={() => setConfirmDialog(null)}
+  />
+)}
     </div>
   )
 }

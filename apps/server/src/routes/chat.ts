@@ -66,12 +66,16 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 
   if (channel === 'guild') {
+  const playerCheck = await db('players').where({ id: playerId }).first();
+  if (!playerCheck.guild_id) {
     res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
     return;
   }
+}
 
   try {
     const player = await db('players').where({ id: playerId }).first();
+console.log('Player guild_tag:', player.guild_tag);
     const location = await db('locations').where({ id: player.current_location_id }).first();
     const region = location?.region || 'Unknown';
 
@@ -126,7 +130,7 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
       id: chatMessage[0].id,
       channel,
       playerName: player.username,
-      guildTag: null,
+      guildTag: player.guild_tag || null,
       message: message.trim(),
       timestamp,
       region: channel === 'region' ? region : null,

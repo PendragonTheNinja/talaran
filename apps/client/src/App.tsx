@@ -170,6 +170,10 @@ const initializeSession = useCallback(async (playerInfo: Player) => {
     socket.on('vein_depleted', () => {
       loadLocationData()
     })
+    socket.on('new_message', () => {
+     // Will be handled by MessagesPanel when open
+     // Just increment the count
+    })
   }
 }, [loadPlayerData, loadLocationData, loadInventory, loadEquipment])
 
