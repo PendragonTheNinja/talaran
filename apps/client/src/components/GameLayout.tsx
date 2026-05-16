@@ -11,6 +11,7 @@ import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
 import GuildModal from './GuildModal'
 import MessagesPanel from './MessagesPanel'
+import ForumPanel from './ForumPanel'
 
 interface Skill {
   id: number
@@ -189,6 +190,8 @@ const [showGuildModal, setShowGuildModal] = useState(false)
 const [showMessages, setShowMessages] = useState(false)
 const [unreadMessages, setUnreadMessages] = useState(0)
 
+const [showForum, setShowForum] = useState(false)
+
 useEffect(() => {
   const loadCount = () => {
     apiFetch<{ count: number }>('/api/messages/unread/count')
@@ -207,6 +210,7 @@ useEffect(() => {
       onLogout={onLogout}
       onGuildClick={() => setShowGuildModal(true)}
       onMessagesClick={() => setShowMessages(!showMessages)}
+      onForumClick={() => setShowForum(!showForum)}
       unreadMessages={unreadMessages}
       />
       <div className="game-body">
@@ -297,6 +301,15 @@ useEffect(() => {
   <GuildModal
     onClose={() => setShowGuildModal(false)}
     playerUsername={player.username}
+  />
+)}
+
+{showForum && (
+  <ForumPanel
+    onClose={() => setShowForum(false)}
+    playerUsername={player.username}
+    isAdmin={playerData?.player?.is_admin || false}
+    isMod={playerData?.player?.is_mod || false}
   />
 )}
 

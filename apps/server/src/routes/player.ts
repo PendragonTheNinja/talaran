@@ -11,9 +11,9 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
 
   try {
     const player = await db('players')
-      .where({ id: playerId })
-      .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome')
-      .first();
+  .where({ id: playerId })
+  .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod')
+  .first();
 
     console.log('Player me result:', player);
 

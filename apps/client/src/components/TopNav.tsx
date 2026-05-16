@@ -11,10 +11,11 @@ interface TopNavProps {
   onLogout: () => void
   onGuildClick: () => void
   onMessagesClick: () => void
+  onForumClick: () => void
   unreadMessages: number
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, unreadMessages }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, unreadMessages }: TopNavProps) {
   return (
     <nav className="top-nav">
       <div className="top-nav-brand">
@@ -28,6 +29,7 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, unread
             onClick={
               item === 'Guild' ? onGuildClick :
               item === 'Messages' ? onMessagesClick :
+              item === 'Forum' ? onForumClick :
               undefined
             }
             style={{ position: 'relative' }}

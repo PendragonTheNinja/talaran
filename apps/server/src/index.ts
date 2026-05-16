@@ -15,6 +15,7 @@ import chatRoutes from './routes/chat';
 import db from './db';
 import guildRoutes from './routes/guilds';
 import messagesRoutes from './routes/messages';
+import forumRoutes from './routes/forum';
 
 dotenv.config();
 
@@ -84,6 +85,7 @@ app.use('/api/hints', hintsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/guilds', guildRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/forum', forumRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

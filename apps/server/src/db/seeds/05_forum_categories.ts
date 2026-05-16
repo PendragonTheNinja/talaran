@@ -1,0 +1,88 @@
+import type { Knex } from 'knex';
+
+export async function seed(knex: Knex): Promise<void> {
+  await knex('forum_categories').del();
+
+  await knex('forum_categories').insert([
+    {
+      name: 'Announcements',
+      description: 'Official news and updates from the Talaran team. Stay up to date with the latest changes.',
+      sort_order: 1,
+      staff_only: false,
+      admin_post_only: true,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: false,
+    },
+    {
+      name: 'Feedback',
+      description: 'Share your thoughts on the game. Upvote ideas you love, downvote ones you disagree with.',
+      sort_order: 2,
+      staff_only: false,
+      admin_post_only: false,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: true,
+    },
+    {
+      name: 'General',
+      description: 'General discussion about Talaran. If it relates to the game and doesn\'t fit elsewhere, it goes here.',
+      sort_order: 3,
+      staff_only: false,
+      admin_post_only: false,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: false,
+    },
+    {
+      name: 'Guides',
+      description: 'Player-written guides to help you get the most out of Talaran.',
+      sort_order: 4,
+      staff_only: false,
+      admin_post_only: false,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: false,
+    },
+    {
+      name: 'Guilds',
+      description: 'Guild recruitment, guild news, and guild discussion.',
+      sort_order: 5,
+      staff_only: false,
+      admin_post_only: false,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: false,
+    },
+    {
+      name: 'Market',
+      description: 'Buy, sell, and auction items with other players. Listings auto-lock after 30 days.',
+      sort_order: 6,
+      staff_only: false,
+      admin_post_only: false,
+      auto_lock_days: true,
+      lock_after_days: 30,
+      has_voting: false,
+    },
+    {
+      name: 'Off-Topic',
+      description: 'For discussion of anything outside the game, within the rules.',
+      sort_order: 7,
+      staff_only: false,
+      admin_post_only: false,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: false,
+    },
+    {
+      name: 'Staff Forum',
+      description: 'Internal staff discussion. Not visible to regular players.',
+      sort_order: 8,
+      staff_only: true,
+      admin_post_only: false,
+      auto_lock_days: false,
+      lock_after_days: null,
+      has_voting: false,
+    },
+  ]);
+}
