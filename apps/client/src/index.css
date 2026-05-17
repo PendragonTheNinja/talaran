@@ -298,3 +298,8 @@ body {
 .stat-bar-fill.health { background: linear-gradient(90deg, #7b1a1a, var(--color-health)); }
 .stat-bar-fill.mana   { background: linear-gradient(90deg, #3d1a5c, var(--color-mana)); }
 .stat-bar-fill.xp     { background: linear-gradient(90deg, #1a5c2a, var(--color-xp)); }
+
+html, body {
+  overflow-y: auto !important;
+  height: auto !important;
+}

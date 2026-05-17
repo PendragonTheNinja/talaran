@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   z-index: 500;
-  animation: slide-in-right 0.2s ease;
+  animation: slide-in-right 0.4s ease;
 }
 
 .forum-header {
@@ -25,11 +25,13 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
+  font-size: 24px;
 }
 
 .forum-breadcrumb-item {
   cursor: pointer;
+  font-size: 24px;
+  font-weight: 500;
 }
 
 .forum-header-actions {
@@ -45,7 +47,7 @@
 }
 
 .forum-section-title {
-  font-size: 18px;
+  font-size: 32px;
   font-family: var(--font-heading);
   margin-bottom: var(--space-md);
   border-bottom: 1px solid var(--color-border-dark);
@@ -86,25 +88,25 @@
 .forum-category-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
   flex: 1;
 }
 
 .forum-category-name {
-  font-size: 16px;
+  font-size: 26px;
   font-family: var(--font-heading);
 }
 
 .forum-category-desc {
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .forum-category-stats {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
-  font-size: 12px;
+  gap: 1px;
+  font-size: 18px;
   text-align: right;
   flex-shrink: 0;
 }
@@ -136,22 +138,22 @@
 }
 
 .forum-recent-title {
-  font-size: 13px;
+  font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 240px;
 }
 
 .forum-recent-category {
-  font-size: 11px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
 .forum-recent-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* Category view */
@@ -191,7 +193,7 @@
 }
 
 .forum-thread-title {
-  font-size: 15px;
+  font-size: 24px;
 }
 
 .forum-thread-stats {
@@ -199,7 +201,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
-  font-size: 12px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
@@ -214,7 +216,7 @@
   display: flex;
   gap: var(--space-md);
   align-items: center;
-  font-size: 13px;
+  font-size: 16px;
   margin-top: 4px;
 }
 
@@ -239,8 +241,8 @@
 }
 
 .forum-post-sidebar {
-  width: 140px;
-  min-width: 140px;
+  width: 200px;
+  min-width: 200x;
   background: var(--color-bg-deep);
   padding: var(--space-md);
   display: flex;
@@ -251,8 +253,8 @@
 }
 
 .forum-post-avatar {
-  width: 80px;
-  height: 80px;
+  width: 128px;
+  height: 128px;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-border-dark);
@@ -278,12 +280,12 @@
 }
 
 .forum-post-author {
-  font-size: 14px;
+  font-size: 22px;
   font-weight: bold;
 }
 
 .forum-post-badge {
-  font-size: 10px;
+  font-size: 14px;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   font-weight: bold;
@@ -310,11 +312,11 @@
 }
 
 .forum-post-timestamp {
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .forum-post-body {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--color-text-base);
 }
@@ -324,8 +326,7 @@
 }
 
 .forum-post-signature {
-  font-size: 12px;
-  font-style: italic;
+  font-size: 16px;
   margin-top: auto;
 }
 
@@ -382,7 +383,7 @@
 }
 
 .forum-poll-question {
-  font-size: 15px;
+  font-size: 16px;
   margin-bottom: var(--space-md);
 }
 
@@ -407,7 +408,7 @@
 .forum-poll-bar-label {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .forum-poll-bar {
@@ -442,6 +443,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  font-size: 22px;
 }
 
 .forum-poll-builder {

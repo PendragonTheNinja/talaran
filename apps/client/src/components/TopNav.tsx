@@ -3,7 +3,7 @@ import './TopNav.css'
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Guild', 'Journal',
-  'Quests', 'Events', 'Manual', 'Highscores', 'Settings'
+  'Quests', 'Events', 'Manual', 'News', 'Highscores', 'Settings'
 ]
 
 interface TopNavProps {
@@ -12,10 +12,11 @@ interface TopNavProps {
   onGuildClick: () => void
   onMessagesClick: () => void
   onForumClick: () => void
+  onNewsClick: () => void
   unreadMessages: number
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, unreadMessages }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, unreadMessages }: TopNavProps) {
   return (
     <nav className="top-nav">
       <div className="top-nav-brand">
@@ -30,6 +31,7 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
               item === 'Guild' ? onGuildClick :
               item === 'Messages' ? onMessagesClick :
               item === 'Forum' ? onForumClick :
+              item === 'News' ? onNewsClick :
               undefined
             }
             style={{ position: 'relative' }}

@@ -2,8 +2,23 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { levelFromXp, xpToNextLevel } from '../services/xp';
+import { Request } from 'express';
+import { connectedPlayers } from '../index';
 
 const router = Router();
+
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const totalPlayers = await db('players').count('id as count').first();
+    const onlinePlayers = connectedPlayers.size;
+    res.json({
+      totalPlayers: parseInt(totalPlayers?.count as string) || 0,
+      onlinePlayers,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Get current player data including skills
 router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {

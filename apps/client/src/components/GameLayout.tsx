@@ -12,6 +12,7 @@ import SmithingMenu from './SmithingMenu'
 import GuildModal from './GuildModal'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
+import NewsPanel from './NewsPanel'
 
 interface Skill {
   id: number
@@ -192,6 +193,8 @@ const [unreadMessages, setUnreadMessages] = useState(0)
 
 const [showForum, setShowForum] = useState(false)
 
+const [showNews, setShowNews] = useState(false)
+
 useEffect(() => {
   const loadCount = () => {
     apiFetch<{ count: number }>('/api/messages/unread/count')
@@ -212,6 +215,7 @@ useEffect(() => {
       onMessagesClick={() => setShowMessages(!showMessages)}
       onForumClick={() => setShowForum(!showForum)}
       unreadMessages={unreadMessages}
+      onNewsClick={() => setShowNews(!showNews)}
       />
       <div className="game-body">
         <LeftPanel
@@ -317,6 +321,13 @@ useEffect(() => {
   <MessagesPanel
     onClose={() => setShowMessages(false)}
     onUnreadChange={setUnreadMessages}
+  />
+)}
+
+{showNews && (
+  <NewsPanel
+    onClose={() => setShowNews(false)}
+    isAdmin={playerData?.player?.is_admin || false}
   />
 )}
 

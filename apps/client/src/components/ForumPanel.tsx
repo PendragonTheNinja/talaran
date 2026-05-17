@@ -345,7 +345,7 @@ setRecentThreads(recentData.recentThreads)
                   <div className="forum-category-stats muted-text">
                     <span>{cat.threadCount} threads</span>
                     {cat.lastThread && (
-                      <span style={{ fontSize: '11px' }}>
+                      <span style={{ fontSize: '16px' }}>
                         Last: {cat.lastThread.last_post_username} · {formatDate(cat.lastThread.last_post_at)}
                       </span>
                     )}
@@ -357,13 +357,13 @@ setRecentThreads(recentData.recentThreads)
             <div className="forum-recent">
   <h3 className="forum-section-title gold-text">Recent Activity</h3>
   {recentThreads.length === 0 ? (
-    <p className="muted-text" style={{ fontStyle: 'italic', fontSize: '13px' }}>No posts yet.</p>
+    <p className="muted-text" style={{ fontStyle: 'italic', fontSize: '16px' }}>No posts yet.</p>
   ) : (
     recentThreads.map(thread => (
       <div key={thread.thread_id} className="forum-recent-row" onClick={() => loadThread(thread.thread_id)}>
         <span className="forum-recent-title gold-text">{thread.thread_title}</span>
         <span className="forum-recent-category muted-text">[{thread.category_name}]</span>
-        <span className="muted-text" style={{ fontSize: '11px' }}>— {thread.last_poster_name} · {formatDate(thread.last_post_at)}</span>
+        <span className="muted-text" style={{ fontSize: '16px' }}>— {thread.last_poster_name} · {formatDate(thread.last_post_at)}</span>
       </div>
     ))
   )}
@@ -376,7 +376,7 @@ setRecentThreads(recentData.recentThreads)
           <div className="forum-category-view">
             <div className="forum-category-header">
               <h3 className="gold-text">{currentCategory.name}</h3>
-              <p className="muted-text" style={{ fontSize: '13px' }}>{currentCategory.description}</p>
+              <p className="muted-text" style={{ fontSize: '16px' }}>{currentCategory.description}</p>
             </div>
 
             {threads.length === 0 ? (
@@ -391,7 +391,7 @@ setRecentThreads(recentData.recentThreads)
                     </div>
                     <div className="forum-thread-info">
                       <span className="forum-thread-title gold-text">{thread.title}</span>
-                      <span className="muted-text" style={{ fontSize: '12px' }}>
+                      <span className="muted-text" style={{ fontSize: '16px' }}>
                         by {thread.author_name} · {formatDate(thread.created_at)}
                       </span>
                     </div>
@@ -399,12 +399,12 @@ setRecentThreads(recentData.recentThreads)
                       <span>{thread.reply_count} replies</span>
                       <span>{thread.view_count} views</span>
                       {thread.last_poster_name && (
-                        <span style={{ fontSize: '11px' }}>Last: {thread.last_poster_name}</span>
+                        <span style={{ fontSize: '16px' }}>Last: {thread.last_poster_name}</span>
                       )}
                     </div>
                     {(isAdmin || isMod) && (
                       <div className="forum-mod-actions" onClick={e => e.stopPropagation()}>
-                        <button className="btn" style={{ fontSize: '10px' }} onClick={() => handlePin(thread.id)}>
+                        <button className="btn" style={{ fontSize: '12px' }} onClick={() => handlePin(thread.id)}>
                           {thread.is_pinned ? 'Unpin' : 'Pin'}
                         </button>
                       </div>
@@ -439,10 +439,10 @@ setRecentThreads(recentData.recentThreads)
               </div>
               {(isAdmin || isMod) && (
                 <div className="forum-mod-actions">
-                  <button className="btn" style={{ fontSize: '11px' }} onClick={() => handlePin(currentThread.id)}>
+                  <button className="btn" style={{ fontSize: '12px' }} onClick={() => handlePin(currentThread.id)}>
                     {currentThread.is_pinned ? 'Unpin' : 'Pin'}
                   </button>
-                  <button className="btn" style={{ fontSize: '11px' }} onClick={() => handleLock(currentThread.id)}>
+                  <button className="btn" style={{ fontSize: '12px' }} onClick={() => handleLock(currentThread.id)}>
                     {currentThread.is_locked ? 'Unlock' : 'Lock'}
                   </button>
                 </div>
@@ -503,8 +503,8 @@ setRecentThreads(recentData.recentThreads)
                     </span>
                     {post.is_admin && <span className="forum-post-badge admin">Admin</span>}
                     {post.is_mod && !post.is_admin && <span className="forum-post-badge mod">Mod</span>}
-                    <span className="muted-text" style={{ fontSize: '11px' }}>Posts: {post.forum_post_count}</span>
-                    <span className="muted-text" style={{ fontSize: '11px' }}>
+                    <span className="muted-text" style={{ fontSize: '14px' }}>Posts: {post.forum_post_count}</span>
+                    <span className="muted-text" style={{ fontSize: '14px' }}>
                       Joined: {new Date(post.player_joined).toLocaleDateString()}
                     </span>
                   </div>
@@ -534,7 +534,7 @@ setRecentThreads(recentData.recentThreads)
                         </div>
                       )}
                       {(post.author_name === playerUsername || isAdmin || isMod) && (
-                        <button className="btn btn-red" style={{ fontSize: '11px' }} onClick={() => handleDeletePost(post.id)}>
+                        <button className="btn btn-red" style={{ fontSize: '10px' }} onClick={() => handleDeletePost(post.id)}>
                           Delete
                         </button>
                       )}
@@ -562,7 +562,7 @@ setRecentThreads(recentData.recentThreads)
                 ) : (
                   <div className="forum-reply-form">
                     <p className="gold-text" style={{ fontSize: '14px' }}>Your Reply</p>
-                    <p className="muted-text" style={{ fontSize: '11px' }}>Formatting: [b]bold[/b] [i]italic[/i] [url=link]text[/url]</p>
+                    <p className="muted-text" style={{ fontSize: '12px' }}>Formatting: [b]bold[/b] [i]italic[/i] [url=link]text[/url]</p>
                     <textarea
                       className="chat-input forum-reply-textarea"
                       value={replyContent}
@@ -616,14 +616,14 @@ setRecentThreads(recentData.recentThreads)
 
             <div className="guild-form-group">
               <label className="muted-text">Content</label>
-              <p className="muted-text" style={{ fontSize: '11px' }}>Formatting: [b]bold[/b] [i]italic[/i] [url=link]text[/url]</p>
+              <p className="muted-text" style={{ fontSize: '14px' }}>Formatting: [b]bold[/b] [i]italic[/i] [url=link]text[/url]</p>
               <textarea
                 className="chat-input"
                 value={newContent}
                 onChange={e => setNewContent(e.target.value)}
                 placeholder="Write your post..."
                 rows={8}
-                style={{ width: '100%', resize: 'vertical' }}
+                style={{ width: '100%', resize: 'vertical', fontSize: '16px',}}
               />
             </div>
 
