@@ -4,6 +4,7 @@ import db from '../db';
 import { signToken } from '../config/jwt';
 import { Player } from '../types';
 import { logger } from '../index';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
 const SALT_ROUNDS = 12;
@@ -42,51 +43,55 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const startingLocation = await db('locations').where({ name: 'Talador' }).first();
 
-const [player] = await db('players')
-  .insert({ 
-    username, 
-    email, 
-    password_hash,
-    current_location_id: startingLocation?.id || null,
-  })
-  .returning(['id', 'username', 'email']);
+    const [player] = await db('players')
+      .insert({
+        username,
+        email,
+        password_hash,
+        current_location_id: startingLocation?.id || null,
+      })
+      .returning(['id', 'username', 'email']);
 
-// Initialize all skills at 0 XP for the new player
-const allSkills = await db('skills').select('id');
-const playerSkills = allSkills.map((skill: { id: number }) => ({
-  player_id: player.id,
-  skill_id: skill.id,
-  xp: 0,
-}));
+    // Initialize all skills at 0 XP for the new player
+    const allSkills = await db('skills').select('id');
+    const playerSkills = allSkills.map((skill: { id: number }) => ({
+      player_id: player.id,
+      skill_id: skill.id,
+      xp: 0,
+    }));
 
-// Initialize player skills
-await db('player_skills').insert(playerSkills);
-// Initialize player stats
-await db('player_stats').insert({ player_id: player.id });
+    // Initialize player skills
+    await db('player_skills').insert(playerSkills);
+    // Initialize player stats
+    await db('player_stats').insert({ player_id: player.id });
 
-// Give starter tools
-const hatchet = await db('items').where({ name: 'Ambren Hatchet' }).first();
-const pickaxe = await db('items').where({ name: 'Ambren Pickaxe' }).first();
+    // Give starter tools
+    const hatchet = await db('items').where({ name: 'Ambren Hatchet' }).first();
+    const pickaxe = await db('items').where({ name: 'Ambren Pickaxe' }).first();
 
-if (hatchet) {
-  await db('player_inventory').insert({
-    player_id: player.id,
-    item_id: hatchet.id,
-    quantity: 1,
-  });
-}
-if (pickaxe) {
-  await db('player_inventory').insert({
-    player_id: player.id,
-    item_id: pickaxe.id,
-    quantity: 1,
-  });
-}
+    if (hatchet) {
+      await db('player_inventory').insert({
+        player_id: player.id,
+        item_id: hatchet.id,
+        quantity: 1,
+      });
+    }
+    if (pickaxe) {
+      await db('player_inventory').insert({
+        player_id: player.id,
+        item_id: pickaxe.id,
+        quantity: 1,
+      });
+    }
 
-const token = signToken({ playerId: player.id, username: player.username });
+    const token = jwt.sign(
+      { playerId: player.id },
+      process.env.JWT_SECRET!,
+      { expiresIn: 60 * 60 * 24 * 30 } // 30 days in seconds
+    )
 
-logger.info(`New player registered: ${username}`);
-res.status(201).json({ token, player });
+    logger.info(`New player registered: ${username}`);
+    res.status(201).json({ token, player });
   } catch (err) {
     logger.error(`Registration error: ${err}`);
     res.status(500).json({ error: 'Server error' });
@@ -128,7 +133,11 @@ router.post('/login', async (req: Request, res: Response) => {
       .where({ id: player.id })
       .update({ last_login: new Date() });
 
-    const token = signToken({ playerId: player.id, username: player.username });
+    const token = jwt.sign(
+      { playerId: player.id },
+      process.env.JWT_SECRET!,
+      { expiresIn: 60 * 60 * 24 * 30 } // 30 days in seconds
+    )
 
     logger.info(`Player logged in: ${username}`);
     res.json({ token, player: { id: player.id, username: player.username, email: player.email } });

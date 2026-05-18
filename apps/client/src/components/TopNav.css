@@ -5,7 +5,7 @@
   padding: var(--space-xs) var(--space-md);
   background: var(--color-bg-dark);
   border-bottom: 2px solid var(--color-border-gold);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
   flex-shrink: 0;
   min-height: 40px;
 }
@@ -19,7 +19,7 @@
   font-family: var(--font-heading);
   font-size: 32px;
   color: var(--color-gold-bright);
-  text-shadow: 0 0 12px rgba(200,146,42,0.6);
+  text-shadow: 0 0 12px rgba(200, 146, 42, 0.6);
   letter-spacing: 0.06em;
 }
 

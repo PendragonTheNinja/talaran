@@ -1,189 +1,189 @@
 .guild-modal {
-  background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
-  border: 1px solid var(--color-border-gold);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
-  width: 750px;
-  max-width: 90vw;
-  max-height: 85vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    width: 750px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
 }
 
 .guild-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--color-border-dark);
-  padding-bottom: var(--space-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border-dark);
+    padding-bottom: var(--space-sm);
 }
 
 .guild-error {
-  color: var(--color-red-glow);
-  font-size: 13px;
-  text-align: center;
+    color: var(--color-red-glow);
+    font-size: 13px;
+    text-align: center;
 }
 
 .guild-success {
-  color: #6ab87e;
-  font-size: 13px;
-  text-align: center;
+    color: #6ab87e;
+    font-size: 13px;
+    text-align: center;
 }
 
 .guild-no-guild {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) 0;
 }
 
 .guild-actions {
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
 }
 
 .guild-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .guild-form-group label {
-  font-size: 12px;
+    font-size: 12px;
 }
 
 .guild-create {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
 }
 
 .guild-browse {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
 }
 
 .guild-list-item {
-  background: var(--color-bg-deep);
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 }
 
 .guild-list-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 15px;
 }
 
 .guild-list-desc {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  font-style: italic;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-style: italic;
 }
 
 .guild-list-meta {
-  font-size: 12px;
+    font-size: 12px;
 }
 
 .guild-my-guild {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
 }
 
 .guild-info-row {
-  display: flex;
-  gap: var(--space-lg);
-  font-size: 13px;
+    display: flex;
+    gap: var(--space-lg);
+    font-size: 13px;
 }
 
 .guild-section-title {
-  font-size: 16px;
-  border-bottom: 1px solid var(--color-border-dark);
-  padding-bottom: 4px;
+    font-size: 16px;
+    border-bottom: 1px solid var(--color-border-dark);
+    padding-bottom: 4px;
 }
 
 .guild-applications {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
 }
 
 .guild-application-item {
-  background: var(--color-bg-deep);
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--radius-sm);
-  padding: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .guild-invite {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
 }
 
 .guild-invite-row {
-  display: flex;
-  gap: var(--space-xs);
+    display: flex;
+    gap: var(--space-xs);
 }
 
 .guild-members-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 300px;
-  overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .guild-member-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 6px var(--space-md);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-deep);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px var(--space-md);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-deep);
 }
 
 .guild-member-status {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
 .guild-member-info {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--space-md);
-  flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
 }
 
 .guild-member-name {
-  font-size: 16px;
+    font-size: 16px;
 }
 
 .guild-member-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .guild-apply-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
 }

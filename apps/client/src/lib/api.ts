@@ -4,26 +4,30 @@ function getToken(): string | null {
   return localStorage.getItem('talaran_token')
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = getToken()
+export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('talaran_token')
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`http://localhost:3000${url}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...options?.headers,
     },
   })
 
-  const data = await res.json()
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Request failed')
+  if (res.status === 401) {
+    // Token expired or invalid — clear storage and reload to login
+    localStorage.removeItem('talaran_token')
+    localStorage.removeItem('talaran_player')
+    window.location.href = '/'
+    throw new Error('Session expired. Please log in again.')
   }
 
-  return data as T
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || `Request failed: ${res.status}`)
+  }
+
+  return res.json()
 }

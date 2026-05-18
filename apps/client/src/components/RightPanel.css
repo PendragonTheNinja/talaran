@@ -29,7 +29,7 @@
   overflow: hidden;
   border: 2px solid var(--color-gold-dim);
   box-shadow:
-    inset 0 0 8px rgba(0,0,0,0.8),
+    inset 0 0 8px rgba(0, 0, 0, 0.8),
     0 0 0 5px var(--color-bg-dark),
     0 0 0 7px var(--color-border-gold);
 }
@@ -118,17 +118,32 @@
   margin-left: var(--space-xs);
 }
 
-.skill-combat   .skill-level { color: var(--color-red-glow); }
-.skill-gathering .skill-level { color: var(--color-xp); }
-.skill-crafting  .skill-level { color: #e67e22; }
-.skill-utility   .skill-level { color: var(--color-gold-bright); }
+.skill-combat .skill-level {
+  color: var(--color-red-glow);
+}
+
+.skill-gathering .skill-level {
+  color: var(--color-xp);
+}
+
+.skill-crafting .skill-level {
+  color: #e67e22;
+}
+
+.skill-utility .skill-level {
+  color: var(--color-gold-bright);
+}
 
 @media (max-width: 1024px) {
-  .right-panel { width: 190px; }
+  .right-panel {
+    width: 190px;
+  }
 }
 
 @media (max-width: 700px) {
-  .right-panel { width: 100%; }
+  .right-panel {
+    width: 100%;
+  }
 }
 
 .minimap-frame {
@@ -137,8 +152,8 @@
   border: 2px solid var(--color-border-gold);
   border-radius: var(--radius-sm);
   box-shadow:
-    inset 0 0 6px rgba(0,0,0,0.6),
-    0 0 8px rgba(200,146,42,0.2);
+    inset 0 0 6px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(200, 146, 42, 0.2);
 }
 
 .minimap-canvas {

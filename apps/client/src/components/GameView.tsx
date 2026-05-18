@@ -66,14 +66,14 @@ interface LogEntry {
   type: 'success' | 'info' | 'error' | 'level'
 }
 
-export default function GameView({ 
-  locationData, 
-  playerData, 
-  onPlayerDataUpdate, 
-  travelStatus, 
-  onClearTravel, 
-  onTravel, 
-  externalAction, 
+export default function GameView({
+  locationData,
+  playerData,
+  onPlayerDataUpdate,
+  travelStatus,
+  onClearTravel,
+  onTravel,
+  externalAction,
   onExternalActionHandled,
   externalMessage,
   onExternalMessageHandled,
@@ -116,26 +116,26 @@ export default function GameView({
   }, [currentAction])
 
   useEffect(() => {
-  actionLimitRef.current = actionLimit
-}, [actionLimit])
+    actionLimitRef.current = actionLimit
+  }, [actionLimit])
 
   // ── Helpers ───────────────────────────────────────────────────────
   const addLog = (message: string, type: LogEntry['type'] = 'info') => {
-  logIdRef.current += 1
-  const id = logIdRef.current
-  setLog(prev => {
-    // Don't stack duplicate messages
-    if (prev.length > 0 && prev[prev.length - 1].message === message) return prev
-    return [...prev.slice(-20), { id, message, type }]
-  })
+    logIdRef.current += 1
+    const id = logIdRef.current
+    setLog(prev => {
+      // Don't stack duplicate messages
+      if (prev.length > 0 && prev[prev.length - 1].message === message) return prev
+      return [...prev.slice(-20), { id, message, type }]
+    })
 
-  // Auto-dismiss errors after 5 seconds
-  if (type === 'error') {
-    setTimeout(() => {
-      setLog(prev => prev.filter(entry => entry.id !== id))
-    }, 5000)
+    // Auto-dismiss errors after 5 seconds
+    if (type === 'error') {
+      setTimeout(() => {
+        setLog(prev => prev.filter(entry => entry.id !== id))
+      }, 5000)
+    }
   }
-}
 
   const startCountdown = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -174,10 +174,10 @@ export default function GameView({
 
       socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
         if (data.result?.itemName) {
-          const skillName = 
-        currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
-        currentActionRef.current === 'smelting' || currentActionRef.current === 'smithing' || currentActionRef.current === 'kiln_collect' ? 'Smithing' :
-        'Woodcutting'
+          const skillName =
+            currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
+              currentActionRef.current === 'smelting' || currentActionRef.current === 'smithing' || currentActionRef.current === 'kiln_collect' ? 'Smithing' :
+                'Woodcutting'
 
           setLastResult({
             itemName: data.result.itemName,
@@ -212,12 +212,12 @@ export default function GameView({
       })
 
       socket.on('action_failed', (data: { error: string }) => {
-  addLog(data.error || 'Action stopped.', 'error')
-  setCurrentAction(null)
-  setActiveNodeId(null)
-  setTimerSeconds(0)
-  if (timerRef.current) clearInterval(timerRef.current)
-})
+        addLog(data.error || 'Action stopped.', 'error')
+        setCurrentAction(null)
+        setActiveNodeId(null)
+        setTimerSeconds(0)
+        if (timerRef.current) clearInterval(timerRef.current)
+      })
 
       socket.on('bot_check_required', () => {
         const a = Math.floor(Math.random() * 20) + 1
@@ -248,19 +248,19 @@ export default function GameView({
       })
 
       socket.on('action_switched', (data: { newActionType: string; nodeName: string; timerSeconds: number }) => {
-  setCurrentAction(data.newActionType)
-  setTimerMax(data.timerSeconds)
-  startCountdown(data.timerSeconds)
-  addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
-})
+        setCurrentAction(data.newActionType)
+        setTimerMax(data.timerSeconds)
+        startCountdown(data.timerSeconds)
+        addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
+      })
 
       socket.on('action_limit_reached', (data: { message: string }) => {
-  addLog(data.message, 'info')
-  setCurrentAction(null)
-  setActiveNodeId(null)
-  setTimerSeconds(0)
-  if (timerRef.current) clearInterval(timerRef.current)
-})
+        addLog(data.message, 'info')
+        setCurrentAction(null)
+        setActiveNodeId(null)
+        setTimerSeconds(0)
+        if (timerRef.current) clearInterval(timerRef.current)
+      })
 
     }, 100)
 
@@ -311,30 +311,30 @@ export default function GameView({
   }, [playerData])
 
   useEffect(() => {
-  if (!externalAction) return
+    if (!externalAction) return
 
-  if (externalAction.type === 'woodcutting') {
-    const node = locationData?.nodes.find(n => n.id === externalAction.id)
-    if (node) startAction(node)
-  } else if (externalAction.type === 'mining_rock') {
-    const node = locationData?.nodes.find(n => n.id === externalAction.id)
-    if (node) startMiningRock(node)
-  } else if (externalAction.type === 'mining_vein') {
-    startMiningVein({ id: externalAction.id, ore_name: '', remaining_quantity: 0 })
-  } else if (externalAction.type === 'smelting') {
-    startSmelting(externalAction.id as string)
-  } else if (externalAction.type === 'smithing') {
-    startSmithing(externalAction.id as string)
-  } else if (externalAction.type === 'kiln_collecting') {
-    setCurrentAction('kiln_collect')
-    setTimerMax(externalAction.id as number)
-    startCountdown(externalAction.id as number)
-  } else if (externalAction.type === 'set_action_limit') {
-  setActionLimit(externalAction.id === 0 ? null : externalAction.id as number)
-  }
+    if (externalAction.type === 'woodcutting') {
+      const node = locationData?.nodes.find(n => n.id === externalAction.id)
+      if (node) startAction(node)
+    } else if (externalAction.type === 'mining_rock') {
+      const node = locationData?.nodes.find(n => n.id === externalAction.id)
+      if (node) startMiningRock(node)
+    } else if (externalAction.type === 'mining_vein') {
+      startMiningVein({ id: externalAction.id, ore_name: '', remaining_quantity: 0 })
+    } else if (externalAction.type === 'smelting') {
+      startSmelting(externalAction.id as string)
+    } else if (externalAction.type === 'smithing') {
+      startSmithing(externalAction.id as string)
+    } else if (externalAction.type === 'kiln_collecting') {
+      setCurrentAction('kiln_collect')
+      setTimerMax(externalAction.id as number)
+      startCountdown(externalAction.id as number)
+    } else if (externalAction.type === 'set_action_limit') {
+      setActionLimit(externalAction.id === 0 ? null : externalAction.id as number)
+    }
 
-  onExternalActionHandled()
-}, [externalAction])
+    onExternalActionHandled()
+  }, [externalAction])
 
   // ── Actions ───────────────────────────────────────────────────────
   const startAction = async (node: Node) => {
@@ -440,61 +440,61 @@ export default function GameView({
   }
 
   const startSmelting = async (metalType: string) => {
-  try {
-    if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
-    setLastResult(null)
-    setCurrentAction(null)
-    setTimerSeconds(0)
-    setActionsCompleted(0)
-    onClearTravel()
-    if (timerRef.current) clearInterval(timerRef.current)
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setTimerSeconds(0)
+      setActionsCompleted(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
 
-    const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
-    const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
-    console.log('Action limit input element:', limitInput, 'value:', limitInput?.value, 'currentLimit:', currentLimit)
-    const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
-      method: 'POST',
-      body: JSON.stringify({ metalType, actionLimit: currentLimit }),
-    })
-    setCurrentAction('smelting')
-    setLog([])
-    setActionsCompleted(0)
-    setTimerMax(res.timerSeconds)
-    startCountdown(res.timerSeconds)
-  } catch (err: any) {
-    addLog(err.message || 'Could not start smelting.', 'error')
+      const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
+      const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
+      console.log('Action limit input element:', limitInput, 'value:', limitInput?.value, 'currentLimit:', currentLimit)
+      const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
+        method: 'POST',
+        body: JSON.stringify({ metalType, actionLimit: currentLimit }),
+      })
+      setCurrentAction('smelting')
+      setLog([])
+      setActionsCompleted(0)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds)
+    } catch (err: any) {
+      addLog(err.message || 'Could not start smelting.', 'error')
+    }
   }
-}
 
-const startSmithing = async (recipe: string) => {
-  try {
-    if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
-    setLastResult(null)
-    setCurrentAction(null)
-    setTimerSeconds(0)
-    setActionsCompleted(0)
-    onClearTravel()
-    if (timerRef.current) clearInterval(timerRef.current)
+  const startSmithing = async (recipe: string) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setTimerSeconds(0)
+      setActionsCompleted(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
 
-    const [metalType, ...partParts] = recipe.split('_')
-    const partType = partParts.join('_')
+      const [metalType, ...partParts] = recipe.split('_')
+      const partType = partParts.join('_')
 
-    const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
-const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
+      const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
+      const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
 
-const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
-  method: 'POST',
-  body: JSON.stringify({ metalType, actionLimit: currentLimit }),
-})
-    setCurrentAction('smithing')
-    setLog([])
-    setActionsCompleted(0)
-    setTimerMax(res.timerSeconds)
-    startCountdown(res.timerSeconds)
-  } catch (err: any) {
-    addLog(err.message || 'Could not start smithing.', 'error')
+      const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
+        method: 'POST',
+        body: JSON.stringify({ metalType, actionLimit: currentLimit }),
+      })
+      setCurrentAction('smithing')
+      setLog([])
+      setActionsCompleted(0)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds)
+    } catch (err: any) {
+      addLog(err.message || 'Could not start smithing.', 'error')
+    }
   }
-}
 
   // ── Derived values ────────────────────────────────────────────────
   const woodcuttingNodes = locationData?.nodes.filter(n => n.skill === 'woodcutting') || []
@@ -508,165 +508,165 @@ const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start'
   return (
     <div className="game-view panel">
       <div className="game-view-location-bar">
-  <span className="game-view-location gold-text">{locationName}</span>
-</div>
+        <span className="game-view-location gold-text">{locationName}</span>
+      </div>
 
       <div className="game-view-main">
-  {/* Main scene container — everything lives inside this */}
-  <div className="game-scene">
+        {/* Main scene container — everything lives inside this */}
+        <div className="game-scene">
 
-    <LocationAtmosphere
-  locationName={locationName}
-  locationType={locationData?.location?.type || ''}
-/>
-
-  {/* Idle state — show description */}
-  {!currentAction && (
-    <div className="scene-idle">
-      <p className="scene-description">{locationDesc || 'You stand ready.'}</p>
-    </div>
-  )}
-
-  {/* Active action — centered */}
-  {currentAction && !botCheckPending && (
-    <div className="scene-action-overlay">
-      {currentAction === 'traveling' && (
-        <p className="scene-action-text gold-text">{travelStatus?.message}</p>
-      )}
-      {currentAction === 'woodcutting' && (
-        <p className="scene-action-text gold-text">You are chopping a Lanai Tree.</p>
-      )}
-      {currentAction === 'mining_rock' && (
-        <p className="scene-action-text gold-text">You are mining rocks.</p>
-      )}
-      {currentAction === 'mining_vein' && (
-        <p className="scene-action-text gold-text">You are mining an ore vein.</p>
-      )}
-      {currentAction === 'smelting' && (
-        <p className="scene-action-text gold-text">You are smelting ingots.</p>
-      )}
-      {currentAction === 'smithing' && (
-        <p className="scene-action-text gold-text">You are working the forge.</p>
-      )}
-      {currentAction === 'kiln_collect' && (
-        <p className="scene-action-text gold-text">Collecting Charc from the kiln...</p>
-      )}
-      <div className="scene-timer">
-        <div className="scene-timer-bar">
-          <div
-            key={timerMax}
-            className={`scene-timer-fill ${currentAction.startsWith('mining') ? 'mining' : ''}`}
-            style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+          <LocationAtmosphere
+            locationName={locationName}
+            locationType={locationData?.location?.type || ''}
           />
+
+          {/* Idle state — show description */}
+          {!currentAction && (
+            <div className="scene-idle">
+              <p className="scene-description">{locationDesc || 'You stand ready.'}</p>
+            </div>
+          )}
+
+          {/* Active action — centered */}
+          {currentAction && !botCheckPending && (
+            <div className="scene-action-overlay">
+              {currentAction === 'traveling' && (
+                <p className="scene-action-text gold-text">{travelStatus?.message}</p>
+              )}
+              {currentAction === 'woodcutting' && (
+                <p className="scene-action-text gold-text">You are chopping a Lanai Tree.</p>
+              )}
+              {currentAction === 'mining_rock' && (
+                <p className="scene-action-text gold-text">You are mining rocks.</p>
+              )}
+              {currentAction === 'mining_vein' && (
+                <p className="scene-action-text gold-text">You are mining an ore vein.</p>
+              )}
+              {currentAction === 'smelting' && (
+                <p className="scene-action-text gold-text">You are smelting ingots.</p>
+              )}
+              {currentAction === 'smithing' && (
+                <p className="scene-action-text gold-text">You are working the forge.</p>
+              )}
+              {currentAction === 'kiln_collect' && (
+                <p className="scene-action-text gold-text">Collecting Charc from the kiln...</p>
+              )}
+              <div className="scene-timer">
+                <div className="scene-timer-bar">
+                  <div
+                    key={timerMax}
+                    className={`scene-timer-fill ${currentAction.startsWith('mining') ? 'mining' : ''}`}
+                    style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+                  />
+                </div>
+                <span className="scene-timer-label">{timerSeconds}s</span>
+              </div>
+
+              {currentAction === 'traveling' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Cancel Travel</button>
+              )}
+              {currentAction === 'woodcutting' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Chopping</button>
+              )}
+              {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Mining</button>
+              )}
+              {(currentAction === 'smelting' || currentAction === 'smithing') && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Smithing</button>
+              )}
+              {currentAction === 'kiln_collect' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop</button>
+              )}
+            </div>
+          )}
+
+          {/* Bot check — centered */}
+          {botCheckPending && (
+            <div className="scene-action-overlay">
+              <div className="bot-check">
+                <p className="bot-check-question gold-text">
+                  Bot Check: What is {botCheckQuestion.a} + {botCheckQuestion.b}?
+                </p>
+                <div className="bot-check-input-row">
+                  <input
+                    className="chat-input"
+                    type="number"
+                    value={botCheckAnswer}
+                    onChange={e => setBotCheckAnswer(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleBotCheck()}
+                    placeholder="Your answer..."
+                    autoFocus
+                  />
+                  <button className="btn btn-gold" onClick={handleBotCheck}>Confirm</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(currentAction === 'smelting' || currentAction === 'smithing' || !currentAction) && locationData?.location?.name === 'Emberra' && (
+            <div className="action-limit-bar">
+              <div className="action-limit-controls">
+                <label className="muted-text" style={{ fontSize: '12px' }}>Action Limit:</label>
+                <input
+                  id="action-limit-input"
+                  type="number"
+                  min="1"
+                  placeholder="∞"
+                  className="action-limit-field"
+                  disabled={currentAction === 'smelting' || currentAction === 'smithing'}
+                  onChange={e => {
+                    const val = e.target.value ? parseInt(e.target.value) : null
+                    if (onActionLimitChange) onActionLimitChange(val)
+                  }}
+                  style={{
+                    width: '50px',
+                    fontSize: '13px',
+                    padding: '2px 6px',
+                    opacity: (currentAction === 'smelting' || currentAction === 'smithing') ? 0.5 : 1,
+                    cursor: (currentAction === 'smelting' || currentAction === 'smithing') ? 'not-allowed' : 'text',
+                  }}
+                />
+              </div>
+              {actionLimit && (
+                <span className="scene-actions-remaining muted-text">
+                  {actionLimit - actionsCompleted} actions remaining
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Last result — bottom */}
+          {lastResult && (
+            <div className="scene-last-result">
+              <p className="last-result-item">You gained {lastResult.quantity ?? 1} × {lastResult.itemName}</p>
+              <p className="last-result-xp">+{lastResult.xpAwarded} {lastResult.skillName} XP (Total: {lastResult.totalXp.toLocaleString()})</p>
+              <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
+              {lastResult.remainingQuantity !== undefined && (
+                <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
+              )}
+            </div>
+          )}
+
+          {/* Vein notification — top */}
+          {veinNotification && (
+            <div className="scene-vein-notification">
+              <span>⛏ {veinNotification}</span>
+              <button onClick={() => setVeinNotification(null)}>✕</button>
+            </div>
+          )}
+          {/* Action log — errors and info messages */}
+          {log.length > 0 && (
+            <div className="scene-log">
+              {[...log].reverse().slice(0, 3).map(entry => (
+                <p key={entry.id} className={`scene-log-entry log-${entry.type}`}>
+                  {entry.message}
+                </p>
+              ))}
+            </div>
+          )}
+
         </div>
-        <span className="scene-timer-label">{timerSeconds}s</span>
       </div>
-
-      {currentAction === 'traveling' && (
-        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Cancel Travel</button>
-      )}
-      {currentAction === 'woodcutting' && (
-        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Chopping</button>
-      )}
-      {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && (
-        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Mining</button>
-      )}
-      {(currentAction === 'smelting' || currentAction === 'smithing') && (
-        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Smithing</button>
-      )} 
-      {currentAction === 'kiln_collect' && (
-        <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop</button>
-      )}
-    </div>
-  )}
-
-  {/* Bot check — centered */}
-  {botCheckPending && (
-    <div className="scene-action-overlay">
-      <div className="bot-check">
-        <p className="bot-check-question gold-text">
-          Bot Check: What is {botCheckQuestion.a} + {botCheckQuestion.b}?
-        </p>
-        <div className="bot-check-input-row">
-          <input
-            className="chat-input"
-            type="number"
-            value={botCheckAnswer}
-            onChange={e => setBotCheckAnswer(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleBotCheck()}
-            placeholder="Your answer..."
-            autoFocus
-          />
-          <button className="btn btn-gold" onClick={handleBotCheck}>Confirm</button>
-        </div>
-      </div>
-    </div>
-  )}
-
-  {(currentAction === 'smelting' || currentAction === 'smithing' || !currentAction) && locationData?.location?.name === 'Emberra' && (
-  <div className="action-limit-bar">
-    <div className="action-limit-controls">
-      <label className="muted-text" style={{ fontSize: '12px' }}>Action Limit:</label>
-      <input
-        id="action-limit-input"
-        type="number"
-        min="1"
-        placeholder="∞"
-        className="action-limit-field"
-        disabled={currentAction === 'smelting' || currentAction === 'smithing'}
-        onChange={e => {
-          const val = e.target.value ? parseInt(e.target.value) : null
-          if (onActionLimitChange) onActionLimitChange(val)
-        }}
-        style={{
-          width: '50px',
-          fontSize: '13px',
-          padding: '2px 6px',
-          opacity: (currentAction === 'smelting' || currentAction === 'smithing') ? 0.5 : 1,
-          cursor: (currentAction === 'smelting' || currentAction === 'smithing') ? 'not-allowed' : 'text',
-        }}
-      />
-    </div>
-    {actionLimit && (
-  <span className="scene-actions-remaining muted-text">
-    {actionLimit - actionsCompleted} actions remaining
-  </span>
-)}
-  </div>
-)}
-
-  {/* Last result — bottom */}
-  {lastResult && (
-    <div className="scene-last-result">
-      <p className="last-result-item">You gained {lastResult.quantity ?? 1} × {lastResult.itemName}</p>
-      <p className="last-result-xp">+{lastResult.xpAwarded} {lastResult.skillName} XP (Total: {lastResult.totalXp.toLocaleString()})</p>
-      <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
-      {lastResult.remainingQuantity !== undefined && (
-        <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
-      )}
-    </div>
-  )}
-
-  {/* Vein notification — top */}
-  {veinNotification && (
-    <div className="scene-vein-notification">
-      <span>⛏ {veinNotification}</span>
-      <button onClick={() => setVeinNotification(null)}>✕</button>
-    </div>
-  )}
-  {/* Action log — errors and info messages */}
-{log.length > 0 && (
-  <div className="scene-log">
-    {[...log].reverse().slice(0, 3).map(entry => (
-      <p key={entry.id} className={`scene-log-entry log-${entry.type}`}>
-        {entry.message}
-      </p>
-    ))}
-  </div>
-)}
-
-</div>
-</div>
 
       {levelUpSkill && (
         <div className="levelup-popup">

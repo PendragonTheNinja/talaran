@@ -46,23 +46,23 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
   return (
     <aside className="right-panel">
       <div className="minimap panel">
-  <div className="panel-title">Taiar Island</div>
-  <div className="minimap-frame">
-  <div className="minimap-canvas panel-inset">
-    <MiniMap
-  currentLocationId={currentLocationId}
-  locationName={locationName}
-  locations={allLocations}
-  connections={connections}
-  onTravel={onTravel}
-/>
-  </div>
-</div>
-  <div className="minimap-btns">
-    <button className="btn" style={{ flex: 1 }}>Island Map</button>
-    <button className="btn" style={{ flex: 1 }}>World Map</button>
-  </div>
-</div>
+        <div className="panel-title">Taiar Island</div>
+        <div className="minimap-frame">
+          <div className="minimap-canvas panel-inset">
+            <MiniMap
+              currentLocationId={currentLocationId}
+              locationName={locationName}
+              locations={allLocations}
+              connections={connections}
+              onTravel={onTravel}
+            />
+          </div>
+        </div>
+        <div className="minimap-btns">
+          <button className="btn" style={{ flex: 1 }}>Island Map</button>
+          <button className="btn" style={{ flex: 1 }}>World Map</button>
+        </div>
+      </div>
 
       <div className="player-stats panel">
         <div className="panel-title">{player.username}</div>
@@ -94,13 +94,13 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
           ) : (
             skills.map(skill => (
               <div
-  key={skill.id}
-  className={`skill-item skill-${skill.type}`}
-  title={`${skill.name}\n${skill.xp.toLocaleString()} XP total\n${skill.xpToNext.toLocaleString()} XP to next level`}
->
-  <span className="skill-name">{skill.name}</span>
-  <span className="skill-level">{skill.level}</span>
-</div>
+                key={skill.id}
+                className={`skill-item skill-${skill.type}`}
+                title={`${skill.name}\n${skill.xp.toLocaleString()} XP total\n${skill.xpToNext.toLocaleString()} XP to next level`}
+              >
+                <span className="skill-name">{skill.name}</span>
+                <span className="skill-level">{skill.level}</span>
+              </div>
             ))
           )}
         </div>

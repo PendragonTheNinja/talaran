@@ -81,17 +81,17 @@ export default function SmithingMenu({ onClose, onStartSmithing, playerSmithingL
   const [selectedCategory, setSelectedCategory] = useState<string>('mining')
 
   const categories = [
-  { key: 'mining', label: 'Mining' },
-  { key: 'woodcutting', label: 'Woodcutting' },
-  { key: 'smithing', label: 'Smithing' },
-]
+    { key: 'mining', label: 'Mining' },
+    { key: 'woodcutting', label: 'Woodcutting' },
+    { key: 'smithing', label: 'Smithing' },
+  ]
 
-const filteredRecipes = RECIPES.filter(r => {
-  if (selectedCategory === 'mining') return r.partType === 'pickaxe'
-  if (selectedCategory === 'woodcutting') return r.partType === 'hatchet'
-  if (selectedCategory === 'smithing') return ['hammer', 'tongs', 'anvil'].includes(r.partType)
-  return true
-})
+  const filteredRecipes = RECIPES.filter(r => {
+    if (selectedCategory === 'mining') return r.partType === 'pickaxe'
+    if (selectedCategory === 'woodcutting') return r.partType === 'hatchet'
+    if (selectedCategory === 'smithing') return ['hammer', 'tongs', 'anvil'].includes(r.partType)
+    return true
+  })
 
   return (
     <div className="modal-overlay" onClick={onClose}>

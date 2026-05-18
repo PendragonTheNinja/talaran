@@ -40,18 +40,18 @@ interface LeftPanelProps {
 }
 
 const SLOTS = [
-  { key: 'neck',     label: 'Neck' },
-  { key: 'head',     label: 'Head' },
-  { key: 'back',     label: 'Back' },
+  { key: 'neck', label: 'Neck' },
+  { key: 'head', label: 'Head' },
+  { key: 'back', label: 'Back' },
   { key: 'mainhand', label: 'Main Hand' },
-  { key: 'chest',    label: 'Chest' },
-  { key: 'offhand',  label: 'Off Hand' },
-  { key: 'finger',   label: 'Finger' },
-  { key: 'legs',     label: 'Legs' },
-  { key: 'hands',    label: 'Hands' },
-  { key: 'mount',    label: 'Mount' },
-  { key: 'feet',     label: 'Feet' },
-  { key: 'trophy',   label: 'Trophy' },
+  { key: 'chest', label: 'Chest' },
+  { key: 'offhand', label: 'Off Hand' },
+  { key: 'finger', label: 'Finger' },
+  { key: 'legs', label: 'Legs' },
+  { key: 'hands', label: 'Hands' },
+  { key: 'mount', label: 'Mount' },
+  { key: 'feet', label: 'Feet' },
+  { key: 'trophy', label: 'Trophy' },
 ]
 
 export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate }: LeftPanelProps) {

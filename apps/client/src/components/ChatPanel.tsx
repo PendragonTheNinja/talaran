@@ -134,21 +134,21 @@ export default function ChatPanel() {
   }, [])
 
   const handleSend = async () => {
-  const trimmed = input.trim()
-  console.log('handleSend called, input:', trimmed, 'channel:', activeChannel)
-  if (!trimmed) return
+    const trimmed = input.trim()
+    console.log('handleSend called, input:', trimmed, 'channel:', activeChannel)
+    if (!trimmed) return
 
-  try {
-    const result = await apiFetch('/api/chat/send', {
-      method: 'POST',
-      body: JSON.stringify({ channel: activeChannel, message: trimmed }),
-    })
-    console.log('Chat send result:', result)
-    setInput('')
-  } catch (err: any) {
-    console.error('Chat send error:', err.message)
+    try {
+      const result = await apiFetch('/api/chat/send', {
+        method: 'POST',
+        body: JSON.stringify({ channel: activeChannel, message: trimmed }),
+      })
+      console.log('Chat send result:', result)
+      setInput('')
+    } catch (err: any) {
+      console.error('Chat send error:', err.message)
+    }
   }
-}
 
   const handlePlayerClick = (playerName: string) => {
     setInput(`${playerName}@`)
@@ -161,13 +161,13 @@ export default function ChatPanel() {
   }
 
   const CHANNEL_SHORT: Record<string, string> = {
-  world: 'W',
-  region: 'R',
-  guild: 'G',
-  trade: 'T',
-  help: 'H',
-  whisper: 'w',
-}
+    world: 'W',
+    region: 'R',
+    guild: 'G',
+    trade: 'T',
+    help: 'H',
+    whisper: 'w',
+  }
 
   return (
     <div className="chat-panel panel">

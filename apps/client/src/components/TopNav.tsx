@@ -1,5 +1,6 @@
 import { Player } from '../types'
 import './TopNav.css'
+import { useNavigate } from 'react-router-dom'
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Guild', 'Journal',
@@ -13,10 +14,12 @@ interface TopNavProps {
   onMessagesClick: () => void
   onForumClick: () => void
   onNewsClick: () => void
+  onHighscoresClick: () => void
   unreadMessages: number
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, unreadMessages }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages }: TopNavProps) {
+  const navigate = useNavigate()
   return (
     <nav className="top-nav">
       <div className="top-nav-brand">
@@ -29,10 +32,11 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
             className="top-nav-btn btn"
             onClick={
               item === 'Guild' ? onGuildClick :
-              item === 'Messages' ? onMessagesClick :
-              item === 'Forum' ? onForumClick :
-              item === 'News' ? onNewsClick :
-              undefined
+                item === 'Messages' ? onMessagesClick :
+                  item === 'Forum' ? onForumClick :
+                    item === 'News' ? onNewsClick :
+                      item === 'Highscores' ? onHighscoresClick :
+                        undefined
             }
             style={{ position: 'relative' }}
           >

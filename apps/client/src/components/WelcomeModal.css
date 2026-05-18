@@ -1,7 +1,7 @@
 .welcome-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0, 0, 0, 0.85);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -18,7 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  box-shadow: 0 0 60px rgba(200,146,42,0.3);
+  box-shadow: 0 0 60px rgba(200, 146, 42, 0.3);
   animation: levelup-appear 0.4s ease;
 }
 

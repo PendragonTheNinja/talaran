@@ -17,6 +17,8 @@ import guildRoutes from './routes/guilds';
 import messagesRoutes from './routes/messages';
 import forumRoutes from './routes/forum';
 import newsRoutes from './routes/news';
+import { takeWeeklySnapshot, getWeekStart } from './services/weeklySnapshot';
+import highscoresRoutes from './routes/highscores';
 
 dotenv.config();
 
@@ -88,27 +90,28 @@ app.use('/api/guilds', guildRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/highscores', highscoresRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id}`);
 
   socket.on('join', async (playerId: number) => {
-  socket.join(`player_${playerId}`);
-  socket.data.playerId = playerId;
-  connectedPlayers.add(playerId);
-  logger.info(`Player ${playerId} joined their socket room`);
+    socket.join(`player_${playerId}`);
+    socket.data.playerId = playerId;
+    connectedPlayers.add(playerId);
+    logger.info(`Player ${playerId} joined their socket room`);
 
-  // Join guild room if in a guild
-  try {
-    const player = await db('players').where({ id: playerId }).select('guild_id').first();
-    if (player?.guild_id) {
-      socket.join(`guild_${player.guild_id}`);
+    // Join guild room if in a guild
+    try {
+      const player = await db('players').where({ id: playerId }).select('guild_id').first();
+      if (player?.guild_id) {
+        socket.join(`guild_${player.guild_id}`);
+      }
+    } catch (err) {
+      logger.error(`Guild room join error: ${err}`);
     }
-  } catch (err) {
-    logger.error(`Guild room join error: ${err}`);
-  }
-});
+  });
 
   socket.on('join_location', async (locationId: number) => {
     socket.rooms.forEach(room => {
@@ -136,3 +139,28 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   logger.info(`Talaran server running on port ${PORT}`);
 });
+
+// Take weekly snapshot on startup if not taken this week
+const now = new Date();
+const weekStart = getWeekStart(now);
+db('skill_snapshots')
+  .where('snapshot_date', weekStart)
+  .count('id as count')
+  .first()
+  .then(result => {
+    if (parseInt(result?.count as string) === 0) {
+      takeWeeklySnapshot();
+    }
+  });
+
+// Schedule weekly snapshot every Monday
+const msUntilMonday = () => {
+  const now = new Date();
+  const nextMonday = getWeekStart(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
+  return nextMonday.getTime() - now.getTime();
+};
+
+setTimeout(function scheduleSnapshot() {
+  takeWeeklySnapshot();
+  setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
+}, msUntilMonday());

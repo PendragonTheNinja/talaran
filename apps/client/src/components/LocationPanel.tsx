@@ -36,20 +36,20 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const isEmberra = location?.name === 'Emberra'
 
   useEffect(() => {
-  setGroundItems([])
-  
-  // Fetch players at this location
-  apiFetch<{ players: PlayerAtLocation[] }>('/api/location/players-here')
-    .then(data => setPlayersHere(data.players))
-    .catch(() => setPlayersHere([]))
+    setGroundItems([])
 
-  if (isEmberra) {
-    apiFetch<any>('/api/smithing/status').then(data => {
-      setSmithingStatus(data)
-      if (data.maxLogs && onKilnMaxLogs) onKilnMaxLogs(data.maxLogs)
-    }).catch(() => {})
-  }
-}, [locationData])
+    // Fetch players at this location
+    apiFetch<{ players: PlayerAtLocation[] }>('/api/location/players-here')
+      .then(data => setPlayersHere(data.players))
+      .catch(() => setPlayersHere([]))
+
+    if (isEmberra) {
+      apiFetch<any>('/api/smithing/status').then(data => {
+        setSmithingStatus(data)
+        if (data.maxLogs && onKilnMaxLogs) onKilnMaxLogs(data.maxLogs)
+      }).catch(() => { })
+    }
+  }, [locationData])
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
   const miningNodes = nodes.filter((n: any) => n.skill === 'mining')
@@ -139,14 +139,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                 {/* Smelt */}
                 {smithingStatus?.workstation?.is_active && (
                   <button
-  className={`location-action-btn sub ${currentAction === 'smelting' ? 'active' : ''}`}
-  onClick={() => {
-    console.log('Smelt button clicked')
-    onStartAction('smelting', 'ambren')
-  }}
->
-  Smelt Ambren Ingots
-</button>
+                    className={`location-action-btn sub ${currentAction === 'smelting' ? 'active' : ''}`}
+                    onClick={() => {
+                      console.log('Smelt button clicked')
+                      onStartAction('smelting', 'ambren')
+                    }}
+                  >
+                    Smelt Ambren Ingots
+                  </button>
                 )}
 
                 {/* Smith items */}
@@ -175,11 +175,11 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         ) : (
           playersHere.map(p => (
             <div key={p.id} className="location-player">
-  <span className="location-player-name gold-text">{p.username}</span>
-  {p.combat_level && (
-    <span className="location-player-level muted-text">Lv {p.combat_level}</span>
-  )}
-</div>
+              <span className="location-player-name gold-text">{p.username}</span>
+              {p.combat_level && (
+                <span className="location-player-level muted-text">Lv {p.combat_level}</span>
+              )}
+            </div>
           ))
         )}
       </div>
