@@ -93,6 +93,23 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     // Handle travel
     if (action.action_type === 'traveling') {
       await db('player_actions').where({ id: action.id }).delete();
+
+      const travelTime = action.completes_at
+        ? (new Date(action.completes_at).getTime() - new Date(action.started_at).getTime()) / 1000
+        : 120;
+      const agilityXp = Math.round(travelTime / 10);
+
+      const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
+      const hasMountEquipped = equipment?.mount_item_id !== null && equipment?.mount_item_id !== undefined;
+      const skillName = hasMountEquipped ? 'Equitation' : 'Agility';
+      const travelSkill = await db('skills').where({ name: skillName }).first();
+
+      if (travelSkill) {
+        await db('player_skills')
+          .where({ player_id: action.player_id, skill_id: travelSkill.id })
+          .increment('xp', agilityXp);
+      }
+
       io.to(`player_${action.player_id}`).emit('travel_complete', { result });
       return;
     }
@@ -110,58 +127,58 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     if (action.action_type === 'mining_vein') {
       const vein = await db('ore_veins').where({ id: action.action_data }).first();
       if (!vein || vein.is_depleted) {
-  // Find the rock node at this location and auto-restart
-  const rockNode = await db('resource_nodes')
-    .where({ location_id: action.location_id, skill: 'mining' })
-    .first();
+        // Find the rock node at this location and auto-restart
+        const rockNode = await db('resource_nodes')
+          .where({ location_id: action.location_id, skill: 'mining' })
+          .first();
 
-  if (rockNode) {
-    const miningSkill = await db('skills').where({ name: 'Mining' }).first();
-    const playerSkillRow = await db('player_skills')
-      .where({ player_id: action.player_id, skill_id: miningSkill.id })
-      .first();
-    const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
+        if (rockNode) {
+          const miningSkill = await db('skills').where({ name: 'Mining' }).first();
+          const playerSkillRow = await db('player_skills')
+            .where({ player_id: action.player_id, skill_id: miningSkill.id })
+            .first();
+          const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
 
-    const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
-    const tool = equipment?.mainhand_item_id
-      ? await db('items').where({ id: equipment.mainhand_item_id }).first()
-      : null;
+          const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
+          const tool = equipment?.mainhand_item_id
+            ? await db('items').where({ id: equipment.mainhand_item_id }).first()
+            : null;
 
-    const nextTimer = calculateTimer(
-      rockNode.base_timer,
-      rockNode.min_timer,
-      playerLevel,
-      rockNode.required_level,
-      tool ? tool.tier : 1,
-      rockNode.required_tool_tier
-    );
+          const nextTimer = calculateTimer(
+            rockNode.base_timer,
+            rockNode.min_timer,
+            playerLevel,
+            rockNode.required_level,
+            tool ? tool.tier : 1,
+            rockNode.required_tool_tier
+          );
 
-    const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+          const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
-    await db('player_actions').where({ id: action.id }).update({
-      action_type: 'mining_rock',
-      resource_node_id: rockNode.id,
-      action_data: null,
-      completes_at: nextCompletion,
-    });
+          await db('player_actions').where({ id: action.id }).update({
+            action_type: 'mining_rock',
+            resource_node_id: rockNode.id,
+            action_data: null,
+            completes_at: nextCompletion,
+          });
 
-    io.to(`player_${action.player_id}`).emit('vein_depleted', {
-      oreName: vein ? (await db('items').where({ id: vein.ore_item_id }).first())?.name : 'Unknown',
-    });
+          io.to(`player_${action.player_id}`).emit('vein_depleted', {
+            oreName: vein ? (await db('items').where({ id: vein.ore_item_id }).first())?.name : 'Unknown',
+          });
 
-    io.to(`player_${action.player_id}`).emit('action_switched', {
-      newActionType: 'mining_rock',
-      nodeName: rockNode.name,
-      timerSeconds: nextTimer,
-    });
-  } else {
-    await db('player_actions').where({ id: action.id }).delete();
-    io.to(`player_${action.player_id}`).emit('vein_depleted', {
-      oreName: 'Unknown',
-    });
-  }
-  return;
-}
+          io.to(`player_${action.player_id}`).emit('action_switched', {
+            newActionType: 'mining_rock',
+            nodeName: rockNode.name,
+            timerSeconds: nextTimer,
+          });
+        } else {
+          await db('player_actions').where({ id: action.id }).delete();
+          io.to(`player_${action.player_id}`).emit('vein_depleted', {
+            oreName: 'Unknown',
+          });
+        }
+        return;
+      }
 
       const miningSkill = await db('skills').where({ name: 'Mining' }).first();
       const playerSkillRow = await db('player_skills')
@@ -199,85 +216,85 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     }
 
     if (action.action_type === 'smelting' || action.action_type === 'smithing') {
-  // Check resources before restarting timer
-  const recipe = action.action_type === 'smelting'
-    ? SMELT_RECIPES[action.action_data]
-    : SMITH_RECIPES[action.action_data];
+      // Check resources before restarting timer
+      const recipe = action.action_type === 'smelting'
+        ? SMELT_RECIPES[action.action_data]
+        : SMITH_RECIPES[action.action_data];
 
-  if (recipe) {
-    for (const ingredient of recipe.ingredients) {
-      const item = await db('items').where({ name: ingredient.name }).first();
-      const inv = item ? await db('player_inventory')
-        .where({ player_id: action.player_id, item_id: item.id })
-        .first() : null;
-      if (!inv || inv.quantity < ingredient.quantity) {
-        await db('player_actions').where({ id: action.id }).delete();
+      if (recipe) {
+        for (const ingredient of recipe.ingredients) {
+          const item = await db('items').where({ name: ingredient.name }).first();
+          const inv = item ? await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: item.id })
+            .first() : null;
+          if (!inv || inv.quantity < ingredient.quantity) {
+            await db('player_actions').where({ id: action.id }).delete();
 
-        const smithingSkill2 = await db('skills').where({ name: 'Smithing' }).first();
-        const lastSkill = await db('player_skills')
-          .where({ player_id: action.player_id, skill_id: smithingSkill2.id })
-          .first();
-        const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
-        const lastLevel = levelFromXp(lastXp);
-        const lastXpNeeded = xpToNextLevel(lastXp);
+            const smithingSkill2 = await db('skills').where({ name: 'Smithing' }).first();
+            const lastSkill = await db('player_skills')
+              .where({ player_id: action.player_id, skill_id: smithingSkill2.id })
+              .first();
+            const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
+            const lastLevel = levelFromXp(lastXp);
+            const lastXpNeeded = xpToNextLevel(lastXp);
 
-        io.to(`player_${action.player_id}`).emit('action_complete', {
-          actionType: action.action_type,
-          result,
-          nextCompletes: null,
-          timerSeconds: 0,
-          xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: lastXpNeeded, leveledUp: false },
-        });
+            io.to(`player_${action.player_id}`).emit('action_complete', {
+              actionType: action.action_type,
+              result,
+              nextCompletes: null,
+              timerSeconds: 0,
+              xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: lastXpNeeded, leveledUp: false },
+            });
 
-        io.to(`player_${action.player_id}`).emit('action_failed', {
-          error: `You need ${ingredient.quantity}x ${ingredient.name}.`,
-        });
-        return;
+            io.to(`player_${action.player_id}`).emit('action_failed', {
+              error: `You need ${ingredient.quantity}x ${ingredient.name}.`,
+            });
+            return;
+          }
+        }
       }
+
+      const timerSeconds = action.action_type === 'smelting' ? 10 : 20;
+      const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
+
+      await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
+
+      const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: smithingSkill.id })
+        .first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+      const xpNeeded = xpToNextLevel(currentXp);
+
+      io.to(`player_${action.player_id}`).emit('action_complete', {
+        actionType: action.action_type,
+        result,
+        nextCompletes: nextCompletion,
+        timerSeconds,
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+      });
+
+      // Check action limit
+      if (action.action_limit !== null && action.action_limit !== undefined) {
+        console.log('Action limit check:', action.action_limit, 'completed:', action.actions_completed)
+        const actionsCompleted = (action.actions_completed || 0) + 1;
+        if (actionsCompleted >= action.action_limit) {
+          await db('player_actions').where({ id: action.id }).delete();
+          io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+            message: `Action limit of ${action.action_limit} reached.`,
+          });
+          return;
+        }
+        await db('player_actions').where({ id: action.id }).update({
+          actions_completed: actionsCompleted,
+        });
+      }
+      return;
     }
-  }
-
-  const timerSeconds = action.action_type === 'smelting' ? 10 : 20;
-  const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
-
-  await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
-
-  const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
-  const updatedSkill = await db('player_skills')
-    .where({ player_id: action.player_id, skill_id: smithingSkill.id })
-    .first();
-  const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
-  const previousXp = currentXp - (result.xpAwarded || 0);
-  const currentLevel = levelFromXp(currentXp);
-  const previousLevel = levelFromXp(previousXp);
-  const leveledUp = currentLevel > previousLevel;
-  const xpNeeded = xpToNextLevel(currentXp);
-
-  io.to(`player_${action.player_id}`).emit('action_complete', {
-    actionType: action.action_type,
-    result,
-    nextCompletes: nextCompletion,
-    timerSeconds,
-    xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
-  });
-
-        // Check action limit
-if (action.action_limit !== null && action.action_limit !== undefined) {
-  console.log('Action limit check:', action.action_limit, 'completed:', action.actions_completed)
-  const actionsCompleted = (action.actions_completed || 0) + 1;
-  if (actionsCompleted >= action.action_limit) {
-    await db('player_actions').where({ id: action.id }).delete();
-    io.to(`player_${action.player_id}`).emit('action_limit_reached', {
-      message: `Action limit of ${action.action_limit} reached.`,
-    });
-    return;
-  }
-  await db('player_actions').where({ id: action.id }).update({
-    actions_completed: actionsCompleted,
-  });
-}
-  return;
-}
 
     // Handle woodcutting and mining_rock (have resource_node_id)
     if (result.success && action.auto_restart) {
@@ -330,35 +347,35 @@ if (action.action_limit !== null && action.action_limit !== undefined) {
       });
 
     } else if (!action.auto_restart) {
-  await db('player_actions').where({ id: action.id }).delete();
+      await db('player_actions').where({ id: action.id }).delete();
 
-  if (action.action_type === 'kiln_collect' && result.success) {
-    const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
-    const updatedSkill = await db('player_skills')
-      .where({ player_id: action.player_id, skill_id: smithingSkill.id })
-      .first();
-    const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
-    const previousXp = currentXp - (result.xpAwarded || 0);
-    const currentLevel = levelFromXp(currentXp);
-    const previousLevel = levelFromXp(previousXp);
-    const leveledUp = currentLevel > previousLevel;
-    const xpNeeded = xpToNextLevel(currentXp);
+      if (action.action_type === 'kiln_collect' && result.success) {
+        const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
+        const updatedSkill = await db('player_skills')
+          .where({ player_id: action.player_id, skill_id: smithingSkill.id })
+          .first();
+        const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+        const previousXp = currentXp - (result.xpAwarded || 0);
+        const currentLevel = levelFromXp(currentXp);
+        const previousLevel = levelFromXp(previousXp);
+        const leveledUp = currentLevel > previousLevel;
+        const xpNeeded = xpToNextLevel(currentXp);
 
-    io.to(`player_${action.player_id}`).emit('action_complete', {
-      actionType: action.action_type,
-      result,
-      nextCompletes: null,
-      timerSeconds: 0,
-      xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
-    });
-  } else {
-    io.to(`player_${action.player_id}`).emit('action_complete', {
-      actionType: action.action_type,
-      result,
-      nextCompletes: null,
-    });
-  }
-}
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result,
+          nextCompletes: null,
+          timerSeconds: 0,
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+        });
+      } else {
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result,
+          nextCompletes: null,
+        });
+      }
+    }
 
   } catch (err) {
     logger.error(`Error processing action ${action.id}: ${err}`);
