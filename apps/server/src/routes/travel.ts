@@ -28,26 +28,35 @@ router.post('/start', requireAuth, async (req: AuthRequest, res: Response) => {
 
     // Verify connection exists
     const connection = await db('location_connections')
-  .where({
-    from_location_id: player.current_location_id,
-    to_location_id: toLocationId,
-  })
-  .first();
+      .where({
+        from_location_id: player.current_location_id,
+        to_location_id: toLocationId,
+      })
+      .first();
 
-const reverseConnection = await db('location_connections')
-  .where({
-    from_location_id: toLocationId,
-    to_location_id: player.current_location_id,
-    is_bidirectional: true,
-  })
-  .first();
+    const reverseConnection = await db('location_connections')
+      .where({
+        from_location_id: toLocationId,
+        to_location_id: player.current_location_id,
+        is_bidirectional: true,
+      })
+      .first();
 
-if (!connection && !reverseConnection) {
-  res.status(400).json({ error: 'No path to that location' });
-  return;
-}
+    if (!connection && !reverseConnection) {
+      res.status(400).json({ error: 'No path to that location' });
+      return;
+    }
 
-const travelTime = 5; // TODO: restore to real travel times after testing
+    const activeConnection = connection || reverseConnection;
+    const baseTravelTime = activeConnection?.base_travel_time ?? 30;
+
+    // Check for equipped mount and apply speed modifier
+    const equipment = await db('player_equipment').where({ player_id: playerId }).first();
+    const mountItem = equipment?.mount_item_id
+      ? await db('items').where({ id: equipment.mount_item_id }).first()
+      : null;
+    const speedModifier = mountItem?.travel_speed_modifier ?? 1.0;
+    const travelTime = Math.round(baseTravelTime * speedModifier);
 
     // Cancel any existing action
     await db('player_actions').where({ player_id: playerId }).delete();
@@ -72,11 +81,11 @@ const travelTime = 5; // TODO: restore to real travel times after testing
 
     logger.info(`Player ${playerId} traveling to ${toLocation.name}`);
     res.json({
-  message: `You begin traveling to ${toLocation.name}`,
-  travelTime,
-  completesAt,
-  destination: toLocation.name,
-});
+      message: `You begin traveling to ${toLocation.name}`,
+      travelTime,
+      completesAt,
+      destination: toLocation.name,
+    });
 
   } catch (err) {
     logger.error(`Travel error: ${err}`);

@@ -106,7 +106,7 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Lanai Tool Rod', type: 'material', subtype: 'tool_rod', tier: 1, quality: null, slot: null, level_required: 1, description: 'A smooth rod of Lanai wood. Used as a handle for tools.', stackable: true },
 
     // ── Mounts ───────────────────────────────────────────────────────
-    { name: "Novice's Pony", type: 'mount', subtype: 'pony', tier: 0, quality: 'starter', slot: 'mount', level_required: 1, description: 'A gentle pony given to new arrivals in Talaran. A humble but reliable companion for your first journeys.', stackable: false },
+    { name: "Novice's Pony", type: 'mount', subtype: 'pony', tier: 0, quality: 'starter', slot: 'mount', level_required: 1, travel_speed_modifier: 0.333, description: 'A gentle pony given to new arrivals in Talaran. A humble but reliable companion for your first journeys.', stackable: false },
   ]);
 }
 

@@ -102,50 +102,51 @@ export async function seed(knex: Knex): Promise<void> {
   ]);
 
   // ── Fetch all locations ──────────────────────────────────────────
-  const talador   = await knex('locations').where({ name: 'Talador' }).first();
-  const emberra   = await knex('locations').where({ name: 'Emberra' }).first();
-  const grundagr  = await knex('locations').where({ name: 'Grundagr' }).first();
-  const origrund  = await knex('locations').where({ name: 'Origrund' }).first();
-  const eldGrove  = await knex('locations').where({ name: 'Eld Grove' }).first();
-  const novita    = await knex('locations').where({ name: 'Novita' }).first();
-  const caliwen   = await knex('locations').where({ name: 'Caliwen' }).first();
-  const verdale   = await knex('locations').where({ name: 'Verdale' }).first();
+  const talador = await knex('locations').where({ name: 'Talador' }).first();
+  const emberra = await knex('locations').where({ name: 'Emberra' }).first();
+  const grundagr = await knex('locations').where({ name: 'Grundagr' }).first();
+  const origrund = await knex('locations').where({ name: 'Origrund' }).first();
+  const eldGrove = await knex('locations').where({ name: 'Eld Grove' }).first();
+  const novita = await knex('locations').where({ name: 'Novita' }).first();
+  const caliwen = await knex('locations').where({ name: 'Caliwen' }).first();
+  const verdale = await knex('locations').where({ name: 'Verdale' }).first();
   const lanaivale = await knex('locations').where({ name: 'Lanaivale' }).first();
   const phoenwick = await knex('locations').where({ name: 'Phoenwick' }).first();
   const dawncrest = await knex('locations').where({ name: 'Dawncrest' }).first();
-  const luxmere   = await knex('locations').where({ name: 'Luxmere' }).first();
+  const luxmere = await knex('locations').where({ name: 'Luxmere' }).first();
   const talarRift = await knex('locations').where({ name: 'Talar Rift' }).first();
 
   // ── Connections ──────────────────────────────────────────────────
   await knex('location_connections').insert([
-  // Talador
-  { from_location_id: talador.id,   to_location_id: emberra.id,   base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: talador.id,   to_location_id: origrund.id,  base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: talador.id,   to_location_id: phoenwick.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Emberra
-  { from_location_id: emberra.id,   to_location_id: origrund.id,  base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: emberra.id,   to_location_id: grundagr.id,  base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Grundagr
-  { from_location_id: grundagr.id,  to_location_id: talarRift.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: grundagr.id,  to_location_id: novita.id,    base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Novita
-  { from_location_id: novita.id,    to_location_id: eldGrove.id,  base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Eld Grove
-  { from_location_id: eldGrove.id,  to_location_id: caliwen.id,   base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Caliwen
-  { from_location_id: caliwen.id,   to_location_id: verdale.id,   base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Verdale
-  { from_location_id: verdale.id,   to_location_id: lanaivale.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Lanaivale
-  { from_location_id: lanaivale.id, to_location_id: phoenwick.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: lanaivale.id, to_location_id: luxmere.id,   base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Phoenwick
-  { from_location_id: phoenwick.id, to_location_id: dawncrest.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: phoenwick.id, to_location_id: luxmere.id,   base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  { from_location_id: phoenwick.id, to_location_id: origrund.id,  base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-  // Dawncrest
-  { from_location_id: dawncrest.id, to_location_id: luxmere.id,   base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
-]);
+    // Talador
+    { from_location_id: talador.id, to_location_id: emberra.id, base_travel_time: 111, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: talador.id, to_location_id: origrund.id, base_travel_time: 119, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: talador.id, to_location_id: phoenwick.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
+    // Emberra
+    { from_location_id: emberra.id, to_location_id: origrund.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: emberra.id, to_location_id: grundagr.id, base_travel_time: 66, travel_type: 'walking', is_bidirectional: true },
+    // Grundagr
+    { from_location_id: grundagr.id, to_location_id: talarRift.id, base_travel_time: 242, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: grundagr.id, to_location_id: novita.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
+    // Novita
+    { from_location_id: novita.id, to_location_id: eldGrove.id, base_travel_time: 83, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: novita.id, to_location_id: talarRift.id, base_travel_time: 300, travel_type: 'walking', is_bidirectional: true },
+    // Eld Grove
+    { from_location_id: eldGrove.id, to_location_id: caliwen.id, base_travel_time: 109, travel_type: 'walking', is_bidirectional: true },
+    // Caliwen
+    { from_location_id: caliwen.id, to_location_id: verdale.id, base_travel_time: 96, travel_type: 'walking', is_bidirectional: true },
+    // Verdale
+    { from_location_id: verdale.id, to_location_id: lanaivale.id, base_travel_time: 104, travel_type: 'walking', is_bidirectional: true },
+    // Lanaivale
+    { from_location_id: lanaivale.id, to_location_id: phoenwick.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: lanaivale.id, to_location_id: luxmere.id, base_travel_time: 160, travel_type: 'walking', is_bidirectional: true },
+    // Phoenwick
+    { from_location_id: phoenwick.id, to_location_id: dawncrest.id, base_travel_time: 137, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: phoenwick.id, to_location_id: luxmere.id, base_travel_time: 5, travel_type: 'walking', is_bidirectional: true },
+    { from_location_id: phoenwick.id, to_location_id: origrund.id, base_travel_time: 119, travel_type: 'walking', is_bidirectional: true },
+    // Dawncrest
+    { from_location_id: dawncrest.id, to_location_id: luxmere.id, base_travel_time: 255, travel_type: 'walking', is_bidirectional: true },
+  ]);
 
   // ── Resource nodes ───────────────────────────────────────────────
   await knex('resource_nodes').insert([

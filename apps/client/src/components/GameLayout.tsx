@@ -113,6 +113,10 @@ export default function GameLayout({
 
   const [externalMessage, setExternalMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
 
+  const [dropMode, setDropMode] = useState(false)
+  const [dropAmount, setDropAmount] = useState(1)
+  const [groundItemsKey, setGroundItemsKey] = useState(0)
+
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
       const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
@@ -230,6 +234,19 @@ export default function GameLayout({
   const [showHighscores, setShowHighscores] = useState(false)
   const [highscoresClosing, setHighscoresClosing] = useState(false)
 
+  const handleDropItem = async (itemId: number, quantity: number) => {
+    try {
+      await apiFetch('/api/ground-items/drop', {
+        method: 'POST',
+        body: JSON.stringify({ itemId, quantity }),
+      })
+      onInventoryUpdate()
+      setGroundItemsKey(k => k + 1)
+    } catch (err: any) {
+      console.error('Drop failed:', err.message)
+    }
+  }
+
   return (
     <div className="game-root">
       <TopNav
@@ -260,6 +277,11 @@ export default function GameLayout({
           equipmentData={equipmentData}
           onEquipmentUpdate={onEquipmentUpdate}
           onInventoryUpdate={onInventoryUpdate}
+          dropMode={dropMode}
+          onToggleDropMode={() => setDropMode(d => !d)}
+          onDropItem={handleDropItem}
+          dropMode={dropMode}
+          dropAmount={dropAmount}
         />
         <div className="game-center">
           <div className="game-scene-wrapper">
@@ -287,6 +309,12 @@ export default function GameLayout({
                 console.log('Action limit set to:', limit)
                 setActionLimit(limit)
               }}
+              onInventoryUpdate={onInventoryUpdate}
+              onDropModeChange={(active, amount) => {
+                setDropMode(active)
+                if (amount !== undefined) setDropAmount(amount)
+              }}
+              groundItemsKey={groundItemsKey}
             />
           </div>
           <ChatPanel />

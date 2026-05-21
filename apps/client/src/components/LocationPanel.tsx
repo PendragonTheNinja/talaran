@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './LocationPanel.css'
+import { getItemIcon } from '../lib/items'
 
 interface GroundItem {
   id: number
@@ -22,10 +23,13 @@ interface LocationPanelProps {
   veins: any[]
   onKilnMaxLogs?: (max: number) => void
   onActionLimitChange?: (limit: number | null) => void
+  onInventoryUpdate?: () => void
+  onDropModeChange?: (active: boolean, amount?: number) => void
+  groundItemsKey?: number
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange }: LocationPanelProps) {
-  const [groundItems, setGroundItems] = useState<GroundItem[]>([])
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, onInventoryUpdate, onDropModeChange, groundItemsKey }: LocationPanelProps) {
+  const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
   const [smithingStatus, setSmithingStatus] = useState<any>(null)
@@ -35,10 +39,22 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const connections = locationData?.connections || []
   const isEmberra = location?.name === 'Emberra'
 
-  useEffect(() => {
-    setGroundItems([])
+  const [dropMode, setDropMode] = useState(false)
+  const [dropAmount, setDropAmount] = useState(1)
 
-    // Fetch players at this location
+  const loadGroundItems = async () => {
+    try {
+      const data = await apiFetch<{ items: any[] }>('/api/ground-items')
+      setGroundItems(data.items)
+    } catch (err) { }
+  }
+
+  useEffect(() => {
+    loadGroundItems()
+  }, [locationData, groundItemsKey])
+
+  useEffect(() => {
+    setPlayersHere([])
     apiFetch<{ players: PlayerAtLocation[] }>('/api/location/players-here')
       .then(data => setPlayersHere(data.players))
       .catch(() => setPlayersHere([]))
@@ -53,6 +69,19 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
   const miningNodes = nodes.filter((n: any) => n.skill === 'mining')
+
+  const handlePickup = async (groundItemId: number) => {
+    try {
+      const data = await apiFetch<{ itemName: string; quantity: number }>('/api/ground-items/pickup', {
+        method: 'POST',
+        body: JSON.stringify({ groundItemId }),
+      })
+      loadGroundItems()
+      onInventoryUpdate?.()
+    } catch (err: any) {
+      console.error('Pickup failed:', err.message)
+    }
+  }
 
   return (
     <aside className="location-panel panel">
@@ -188,19 +217,63 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
       {/* Ground items */}
       <div className="location-panel-section">
-        <div className="panel-title">On the Ground</div>
+        <div className="panel-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>On the Ground</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {dropMode && (
+              <input
+                type="number"
+                min={1}
+                value={dropAmount}
+                onChange={e => {
+                  const amt = Math.max(1, parseInt(e.target.value) || 1)
+                  setDropAmount(amt)
+                  if (dropMode) onDropModeChange?.(true, amt)
+                }}
+                style={{ width: '45px', fontSize: '12px', padding: '2px 4px' }}
+                className="context-menu-qty-input"
+              />
+            )}
+            <button
+              className={`drop-mode-btn ${dropMode ? 'active' : ''}`}
+              onClick={() => {
+                const next = !dropMode
+                setDropMode(next)
+                onDropModeChange?.(next, dropAmount)
+              }}
+              title={dropMode ? 'Drop Mode ON' : 'Toggle Drop Mode'}
+            >
+              {dropMode ? '🗑 ON' : '🗑 Drop'}
+            </button>
+          </div>
+        </div>
         {groundItems.length === 0 ? (
           <p className="location-panel-empty">Nothing on the ground.</p>
         ) : (
-          groundItems.map(item => (
-            <div key={item.id} className="ground-item">
-              <span className="ground-item-name">{item.item_name}</span>
-              {item.quantity > 1 && (
-                <span className="ground-item-qty muted-text">×{item.quantity}</span>
-              )}
-              <button className="btn ground-item-pick">Pick Up</button>
-            </div>
-          ))
+          <div className="ground-items-grid">
+            {groundItems.map(item => (
+              <div
+                key={item.id}
+                className="ground-item-slot"
+                title={`${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}\nClick to pick up`}
+                onClick={() => handlePickup(item.id)}
+              >
+                <img
+                  src={getItemIcon(item.name)}
+                  alt={item.name}
+                  className="inventory-item-icon"
+                  onError={e => {
+                    e.currentTarget.style.display = 'none'
+                    e.currentTarget.nextElementSibling?.removeAttribute('style')
+                  }}
+                />
+                <span className="inventory-item-text" style={{ display: 'none' }}>{item.name.split(' ')[0]}</span>
+                {item.quantity > 1 && (
+                  <span className="inventory-item-qty">{item.quantity}</span>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

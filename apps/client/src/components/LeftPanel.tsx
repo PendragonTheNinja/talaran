@@ -37,6 +37,9 @@ interface LeftPanelProps {
   equipmentData: EquipmentData | null
   onEquipmentUpdate: () => void
   onInventoryUpdate: () => void
+  onDropItem: (itemId: number, quantity: number) => void
+  dropMode?: boolean
+  dropAmount?: number
 }
 
 const SLOTS = [
@@ -54,9 +57,11 @@ const SLOTS = [
   { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate }: LeftPanelProps) {
-  const [tooltip, setTooltip] = useState<string | null>(null)
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, dropAmount }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem } | null>(null)
+  const [dropQuantity, setDropQuantity] = useState(1)
+  const [showDropQuantity, setShowDropQuantity] = useState(false)
 
   const INVENTORY_SLOTS = Math.max(16, inventoryData.length)
 
@@ -66,7 +71,6 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
       setTimeout(() => setError(null), 3000)
       return
     }
-
     try {
       await apiFetch('/api/equipment/equip', {
         method: 'POST',
@@ -94,15 +98,21 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     }
   }
 
+  const handleContextMenu = (e: React.MouseEvent, item: InventoryItem) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, item })
+    setDropQuantity(1)
+    setShowDropQuantity(false)
+  }
+
   return (
     <aside className="left-panel panel">
 
       {/* Inventory */}
       <div className="panel-title">Inventory</div>
-      <div className="inventory-grid panel-inset">
+      <div className={`inventory-grid panel-inset ${dropMode ? 'drop-mode-active' : ''}`}>
         {Array.from({ length: INVENTORY_SLOTS }).map((_, i) => {
           const item = inventoryData[i]
-          const icon = item ? getItemIcon(item.name) : null
           const qualityColor = item ? getQualityColor(item.quality) : null
 
           return (
@@ -111,15 +121,32 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               className={`inventory-slot ${item ? 'occupied' : ''}`}
               title={item ? `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}\n${item.description}${item.slot ? '\nClick to equip' : ''}` : ''}
               style={item && qualityColor ? { borderColor: qualityColor } : {}}
-              onClick={() => item && handleEquip(item)}
+              onClick={() => {
+                if (dropMode) {
+                  const qty = Math.min(dropAmount || 1, item.quantity)
+                  onDropItem(item.item_id, qty)
+                } else {
+                  handleEquip(item)
+                }
+              }}
+              onContextMenu={e => item && handleContextMenu(e, item)}
             >
               {item && (
                 <>
-                  {icon ? (
-                    <img src={icon} alt={item.name} className="inventory-item-icon" />
-                  ) : (
-                    <span className="inventory-item-text">{item.name.split(' ')[0]}</span>
-                  )}
+                  <img
+                    src={getItemIcon(item.name)}
+                    alt={item.name}
+                    className="inventory-item-icon"
+                    onLoad={e => {
+                      e.currentTarget.style.display = ''
+                      e.currentTarget.nextElementSibling?.setAttribute('style', 'display: none')
+                    }}
+                    onError={e => {
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.nextElementSibling?.removeAttribute('style')
+                    }}
+                  />
+                  <span className="inventory-item-text" style={{ display: 'none' }}>{item.name.split(' ')[0]}</span>
                   {item.quantity > 1 && (
                     <span className="inventory-item-qty">{item.quantity}</span>
                   )}
@@ -130,9 +157,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         })}
       </div>
 
-      {error && (
-        <div className="equipment-error">{error}</div>
-      )}
+      {error && <div className="equipment-error">{error}</div>}
 
       <div className="divider" />
 
@@ -142,7 +167,6 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         {SLOTS.map(({ key, label }) => {
           const equipped = equipmentData?.[key as keyof EquipmentData]
           const slotIcon = getSlotIcon(key)
-          const itemIcon = equipped ? getItemIcon(equipped.name) : null
 
           return (
             <div
@@ -152,11 +176,18 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               onClick={() => equipped && handleUnequip(key)}
             >
               {equipped ? (
-                itemIcon ? (
-                  <img src={itemIcon} alt={equipped.name} className="equipment-item-icon" />
-                ) : (
-                  <span className="equipment-item-text">{equipped.name.split(' ')[0]}</span>
-                )
+                <>
+                  <img
+                    src={getItemIcon(equipped.name)}
+                    alt={equipped.name}
+                    className="equipment-item-icon"
+                    onError={e => {
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.nextElementSibling?.removeAttribute('style')
+                    }}
+                  />
+                  <span className="equipment-item-text" style={{ display: 'none' }}>{equipped.name.split(' ')[0]}</span>
+                </>
               ) : (
                 <img src={slotIcon} alt={label} className="equipment-slot-icon" />
               )}
@@ -170,15 +201,9 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
       {/* Combat stats */}
       <div className="combat-stats panel-inset">
         <div className="panel-title">Combat Stats</div>
-        <div className="stat-row">
-          <span>Armor</span><span>0</span>
-        </div>
-        <div className="stat-row">
-          <span>Accuracy</span><span>0</span>
-        </div>
-        <div className="stat-row">
-          <span>Power</span><span>0</span>
-        </div>
+        <div className="stat-row"><span>Armor</span><span>0</span></div>
+        <div className="stat-row"><span>Accuracy</span><span>0</span></div>
+        <div className="stat-row"><span>Power</span><span>0</span></div>
       </div>
 
       <div className="divider" />
@@ -205,6 +230,64 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         </div>
       </div>
 
-    </aside>
+      {/* Context Menu */}
+      {contextMenu && (
+        <>
+          {console.log('contextMenu open, showDropQuantity:', showDropQuantity, 'item qty:', contextMenu.item.quantity)}
+          <div
+            className="context-menu-overlay"
+            onClick={() => { setContextMenu(null); setShowDropQuantity(false) }}
+          />
+          <div
+            className="context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <div className="context-menu-title">{contextMenu.item.name}</div>
+            <div className="context-menu-divider" />
+            {contextMenu.item.slot && (
+              <button className="context-menu-item" onClick={() => {
+                handleEquip(contextMenu.item)
+                setContextMenu(null)
+              }}>
+                {equipmentData?.[contextMenu.item.slot as keyof EquipmentData] ? 'Unequip' : 'Equip'}
+              </button>
+            )}
+            <button className="context-menu-item" onClick={() => {
+              setShowDropQuantity(true)
+              setDropQuantity(1)
+            }}>
+              Drop
+            </button>
+            {showDropQuantity && (
+              <div className="context-menu-drop-qty">
+                {contextMenu.item.quantity > 1 && (
+                  <input
+                    type="number"
+                    min={1}
+                    max={contextMenu.item.quantity}
+                    value={dropQuantity}
+                    onChange={e => setDropQuantity(Math.min(contextMenu.item.quantity, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="context-menu-qty-input"
+                    autoFocus
+                  />
+                )}
+                <button className="context-menu-item confirm" onClick={() => {
+                  onDropItem(contextMenu.item.item_id, dropQuantity)
+                  setContextMenu(null)
+                  setShowDropQuantity(false)
+                }}>
+                  Confirm Drop {contextMenu.item.stackable && contextMenu.item.quantity > 1 ? `(${dropQuantity})` : ''}
+                </button>
+              </div>
+            )}
+            <button className="context-menu-item" onClick={() => setContextMenu(null)}>
+              Cancel
+            </button>
+          </div>
+        </>
+      )
+      }
+
+    </aside >
   )
 }

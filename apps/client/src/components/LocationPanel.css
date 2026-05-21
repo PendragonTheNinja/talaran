@@ -146,3 +146,46 @@
 .location-action-btn.vein {
   color: var(--color-gold);
 }
+
+.ground-items-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.ground-item-slot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+
+.ground-item-slot:hover {
+  border-color: var(--color-gold-bright);
+}
+
+.drop-mode-btn {
+  background: none;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.drop-mode-btn.active {
+  border-color: var(--color-red-glow);
+  color: var(--color-red-glow);
+  background: rgba(180, 60, 60, 0.1);
+}
