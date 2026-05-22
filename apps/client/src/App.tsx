@@ -86,6 +86,7 @@ function App() {
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>([])
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
+  const [serverAnnouncement, setServerAnnouncement] = useState<string | null>(null)
 
   const loadPlayerData = useCallback(async () => {
     try {
@@ -177,6 +178,14 @@ function App() {
         // Will be handled by MessagesPanel when open
         // Just increment the count
       })
+      socket.on('force_logout', (data: { message: string }) => {
+        alert(data.message)
+        handleLogout()
+      })
+      socket.on('server_announcement', (data: { message: string }) => {
+        setServerAnnouncement(data.message)
+        setTimeout(() => setServerAnnouncement(null), 10000)
+      })
     }
   }, [loadPlayerData, loadLocationData, loadInventory, loadEquipment])
 
@@ -243,6 +252,28 @@ function App() {
                 username={player.username}
                 onClose={() => setShowWelcome(false)}
               />
+            )}
+            {serverAnnouncement && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 9999,
+                background: 'rgba(180,30,30,0.95)',
+                color: 'white',
+                padding: '12px 24px',
+                textAlign: 'center',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '16px',
+                letterSpacing: '0.05em',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <span>📢 {serverAnnouncement}</span>
+                <button onClick={() => setServerAnnouncement(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+              </div>
             )}
           </>
         )

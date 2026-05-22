@@ -120,17 +120,15 @@ export default function GameView({
   }, [actionLimit])
 
   // ── Helpers ───────────────────────────────────────────────────────
-  const addLog = (message: string, type: LogEntry['type'] = 'info') => {
+  const addLog = (message: string, type: LogEntry['type'] = 'info', persist = false) => {
     logIdRef.current += 1
     const id = logIdRef.current
     setLog(prev => {
-      // Don't stack duplicate messages
       if (prev.length > 0 && prev[prev.length - 1].message === message) return prev
       return [...prev.slice(-20), { id, message, type }]
     })
 
-    // Auto-dismiss errors after 5 seconds
-    if (type === 'error') {
+    if (type === 'error' && !persist) {
       setTimeout(() => {
         setLog(prev => prev.filter(entry => entry.id !== id))
       }, 5000)

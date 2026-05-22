@@ -29,6 +29,7 @@ const CHANNEL_COLORS: Record<string, string> = {
   trade: '#ae00ff',
   help: '#ECFF00',
   whisper: '#08f8d0',
+  server: '#ff4444',
 }
 
 export default function ChatPanel() {
@@ -119,6 +120,30 @@ export default function ChatPanel() {
         setAllMessages(prev => [...prev.slice(-499), msg])
       })
 
+      socket.on('chat_muted', (data: { message: string }) => {
+        const msg = {
+          id: Date.now(),
+          channel: 'server',
+          playerName: '[SERVER]',
+          guildTag: null,
+          message: data.message,
+          timestamp: new Date().toTimeString().slice(0, 5),
+        }
+        setAllMessages(prev => [...prev.slice(-499), msg])
+      })
+
+      socket.on('chat_warning', (data: { message: string }) => {
+        const msg = {
+          id: Date.now(),
+          channel: 'server',
+          playerName: '[SERVER]',
+          guildTag: null,
+          message: data.message,
+          timestamp: new Date().toTimeString().slice(0, 5),
+        }
+        setAllMessages(prev => [...prev.slice(-499), msg])
+      })
+
       return () => {
         socket.off('chat_world')
         socket.off('chat_region')
@@ -127,6 +152,8 @@ export default function ChatPanel() {
         socket.off('chat_help')
         socket.off('whisper')
         socket.off('whisper_sent')
+        socket.off('chat_muted')
+        socket.off('chat_warning')
       }
     }, 100)
 
@@ -135,18 +162,25 @@ export default function ChatPanel() {
 
   const handleSend = async () => {
     const trimmed = input.trim()
-    console.log('handleSend called, input:', trimmed, 'channel:', activeChannel)
     if (!trimmed) return
 
     try {
-      const result = await apiFetch('/api/chat/send', {
+      await apiFetch('/api/chat/send', {
         method: 'POST',
         body: JSON.stringify({ channel: activeChannel, message: trimmed }),
       })
-      console.log('Chat send result:', result)
       setInput('')
     } catch (err: any) {
-      console.error('Chat send error:', err.message)
+      // Show mute warning in chat
+      const errorMsg = {
+        id: Date.now(),
+        channel: 'server',
+        playerName: '[SERVER]',
+        guildTag: null,
+        message: err.message || 'Could not send message.',
+        timestamp: new Date().toTimeString().slice(0, 5),
+      }
+      setAllMessages(prev => [...prev.slice(-499), errorMsg])
     }
   }
 
@@ -167,6 +201,7 @@ export default function ChatPanel() {
     trade: 'T',
     help: 'H',
     whisper: 'w',
+    server: 'S',
   }
 
   return (

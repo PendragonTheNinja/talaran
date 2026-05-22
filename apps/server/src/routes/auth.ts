@@ -127,7 +127,13 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     if (player.is_banned) {
-      res.status(403).json({ error: 'This account has been banned' });
+      res.status(403).json({ error: 'This account has been permanently banned.' });
+      return;
+    }
+
+    if (player.banned_until && new Date(player.banned_until) > new Date()) {
+      const until = new Date(player.banned_until).toLocaleDateString()
+      res.status(403).json({ error: `Your account is banned until ${until}. Reason: ${player.ban_reason || 'No reason given.'}` });
       return;
     }
 

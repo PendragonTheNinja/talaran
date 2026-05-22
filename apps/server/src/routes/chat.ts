@@ -66,16 +66,28 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 
   if (channel === 'guild') {
-  const playerCheck = await db('players').where({ id: playerId }).first();
-  if (!playerCheck.guild_id) {
-    res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
-    return;
+    const playerCheck = await db('players').where({ id: playerId }).first();
+    if (!playerCheck.guild_id) {
+      res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
+      return;
+    }
   }
-}
 
   try {
     const player = await db('players').where({ id: playerId }).first();
-console.log('Player guild_tag:', player.guild_tag);
+    // Check if player is muted
+    if (player.is_chat_muted) {
+      const now = new Date();
+      if (!player.chat_muted_until || new Date(player.chat_muted_until) > now) {
+        if (channel !== 'guild') {
+          res.status(403).json({ error: 'You are muted and cannot send chat messages.' });
+          return;
+        }
+      } else {
+        await db('players').where({ id: playerId }).update({ is_chat_muted: false, chat_muted_until: null });
+      }
+    }
+    console.log('Player guild_tag:', player.guild_tag);
     const location = await db('locations').where({ id: player.current_location_id }).first();
     const region = location?.region || 'Unknown';
 
@@ -143,12 +155,12 @@ console.log('Player guild_tag:', player.guild_tag);
       io.to(`region_${region.replace(/ /g, '_')}`).emit('chat_region', messageData);
       io.to(`player_${playerId}`).emit('chat_region', messageData);
     } else if (channel === 'guild') {
-  if (!player.guild_id) {
-    res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
-    return;
-  }
-  io.to(`guild_${player.guild_id}`).emit('chat_guild', messageData);
-}
+      if (!player.guild_id) {
+        res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
+        return;
+      }
+      io.to(`guild_${player.guild_id}`).emit('chat_guild', messageData);
+    }
 
     logger.info(`[${channel}] ${player.username}: ${message.trim()}`);
     res.json({ success: true, message: messageData });

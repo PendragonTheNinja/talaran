@@ -16,9 +16,12 @@ interface TopNavProps {
   onNewsClick: () => void
   onHighscoresClick: () => void
   unreadMessages: number
+  isAdmin?: boolean
+  isMod?: boolean
+  onAdminClick?: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -46,6 +49,11 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
             )}
           </button>
         ))}
+        {(isAdmin || isMod) && (
+          <button className="top-nav-btn btn" style={{ color: 'var(--color-red-glow)', borderColor: 'var(--color-red-glow)' }} onClick={onAdminClick}>
+            ADMIN
+          </button>
+        )}
         <button className="top-nav-btn btn btn-red" onClick={onLogout}>
           Log Out
         </button>

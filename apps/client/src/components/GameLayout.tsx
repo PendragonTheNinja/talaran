@@ -7,6 +7,7 @@ import ChatPanel from './ChatPanel'
 import LocationPanel from './LocationPanel'
 import { Player } from '../types'
 import { apiFetch } from '../lib/api'
+import { getSocket } from '../lib/socket'
 import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
 import GuildModal from './GuildModal'
@@ -14,6 +15,7 @@ import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
 import NewsPanel from './NewsPanel'
 import HighscoresPanel from './HighscoresPanel'
+import AdminPanel from './AdminPanel'
 
 interface Skill {
   id: number
@@ -117,6 +119,9 @@ export default function GameLayout({
   const [dropAmount, setDropAmount] = useState(1)
   const [groundItemsKey, setGroundItemsKey] = useState(0)
 
+  const [showAdmin, setShowAdmin] = useState(false)
+  const [adminClosing, setAdminClosing] = useState(false)
+
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
       const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
@@ -207,11 +212,28 @@ export default function GameLayout({
   useEffect(() => {
     const loadCount = () => {
       apiFetch<{ count: number }>('/api/messages/unread/count')
-        .then(data => setUnreadMessages(data.count))
+        .then(data => {
+          console.log('Unread count:', data.count)
+          setUnreadMessages(data.count)
+        })
         .catch(() => { })
     }
     loadCount()
-    const interval = setInterval(loadCount, 60000)
+    const interval = setInterval(loadCount, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const socket = getSocket()
+      if (!socket) return
+      clearInterval(interval)
+      socket.on('new_message', () => {
+        apiFetch<{ count: number }>('/api/messages/unread/count')
+          .then(data => setUnreadMessages(data.count))
+          .catch(() => { })
+      })
+    }, 100)
     return () => clearInterval(interval)
   }, [])
 
@@ -229,6 +251,7 @@ export default function GameLayout({
     if (showForum) closePanel(setForumClosing, setShowForum, 400)
     if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
     if (showGuildModal) setShowGuildModal(false)
+    if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
   }
 
   const [showHighscores, setShowHighscores] = useState(false)
@@ -252,6 +275,7 @@ export default function GameLayout({
       <TopNav
         player={player}
         onLogout={onLogout}
+        unreadMessages={unreadMessages}
         onGuildClick={() => { closeAllPanels(); setShowGuildModal(true) }}
         onMessagesClick={() => {
           if (showMessages) closePanel(setMessagesClosing, setShowMessages)
@@ -268,6 +292,12 @@ export default function GameLayout({
         onHighscoresClick={() => {
           if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
           else { closeAllPanels(); setShowHighscores(true) }
+        }}
+        isAdmin={playerData?.player?.is_admin || false}
+        isMod={playerData?.player?.is_mod || false}
+        onAdminClick={() => {
+          if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
+          else { closeAllPanels(); setShowAdmin(true) }
         }}
         unreadMessages={unreadMessages}
       />
@@ -403,6 +433,15 @@ export default function GameLayout({
         <HighscoresPanel
           onClose={() => closePanel(setHighscoresClosing, setShowHighscores)}
           closing={highscoresClosing}
+        />
+      )}
+
+      {showAdmin && (
+        <AdminPanel
+          onClose={() => closePanel(setAdminClosing, setShowAdmin)}
+          closing={adminClosing}
+          isAdmin={playerData?.player?.is_admin || false}
+          isMod={playerData?.player?.is_mod || false}
         />
       )}
 
