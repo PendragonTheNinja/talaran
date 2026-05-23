@@ -1,0 +1,142 @@
+.settings-panel {
+    position: fixed;
+    top: 50px;
+    right: 0;
+    width: 560px;
+    max-width: 95vw;
+    height: calc(100vh - 50px);
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border-left: 1px solid var(--color-border-gold);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    animation: slide-in-right 0.2s ease;
+}
+
+.settings-panel.closing {
+    animation: slide-out-right 0.2s ease forwards;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border-gold);
+    flex-shrink: 0;
+}
+
+.settings-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border-dark);
+    flex-shrink: 0;
+}
+
+.settings-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px var(--space-lg);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.settings-tab.active {
+    color: var(--color-gold-bright);
+    border-bottom-color: var(--color-gold-bright);
+}
+
+.settings-tab:hover {
+    color: var(--color-gold);
+}
+
+.settings-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+}
+
+.settings-section-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.settings-section-title {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    color: var(--color-gold-bright);
+    margin: 0;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border-dark);
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-field label {
+    font-size: 13px;
+    letter-spacing: 0.05em;
+}
+
+.settings-field .chat-input {
+    font-size: 15px;
+    padding: 8px 12px;
+}
+
+.settings-divider {
+    height: 1px;
+    background: var(--color-border-dark);
+}
+
+.settings-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border-dark);
+}
+
+.settings-toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.settings-toggle-label {
+    font-size: 15px;
+    color: var(--color-text-base);
+}
+
+.settings-toggle-btn {
+    background: none;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 80px;
+}
+
+.settings-toggle-btn.active {
+    border-color: #6ab87e;
+    color: #6ab87e;
+}
+
+.settings-toggle-btn.muted {
+    border-color: var(--color-red-glow);
+    color: var(--color-red-glow);
+}

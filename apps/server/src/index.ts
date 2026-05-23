@@ -21,6 +21,7 @@ import { takeWeeklySnapshot, getWeekStart } from './services/weeklySnapshot';
 import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
 import adminRoutes from './routes/admin';
+import settingsRoutes from './routes/settings';
 
 dotenv.config();
 
@@ -95,6 +96,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/highscores', highscoresRoutes);
 app.use('/api/ground-items', groundItemsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

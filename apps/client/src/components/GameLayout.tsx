@@ -16,6 +16,7 @@ import ForumPanel from './ForumPanel'
 import NewsPanel from './NewsPanel'
 import HighscoresPanel from './HighscoresPanel'
 import AdminPanel from './AdminPanel'
+import SettingsPanel from './SettingsPanel'
 
 interface Skill {
   id: number
@@ -121,6 +122,9 @@ export default function GameLayout({
 
   const [showAdmin, setShowAdmin] = useState(false)
   const [adminClosing, setAdminClosing] = useState(false)
+
+  const [showSettings, setShowSettings] = useState(false)
+  const [settingsClosing, setSettingsClosing] = useState(false)
 
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
@@ -252,6 +256,7 @@ export default function GameLayout({
     if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
     if (showGuildModal) setShowGuildModal(false)
     if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
+    if (showSettings) closePanel(setSettingsClosing, setShowSettings)
   }
 
   const [showHighscores, setShowHighscores] = useState(false)
@@ -300,6 +305,10 @@ export default function GameLayout({
           else { closeAllPanels(); setShowAdmin(true) }
         }}
         unreadMessages={unreadMessages}
+        onSettingsClick={() => {
+          if (showSettings) closePanel(setSettingsClosing, setShowSettings)
+          else { closeAllPanels(); setShowSettings(true) }
+        }}
       />
       <div className="game-body">
         <LeftPanel
@@ -442,6 +451,13 @@ export default function GameLayout({
           closing={adminClosing}
           isAdmin={playerData?.player?.is_admin || false}
           isMod={playerData?.player?.is_mod || false}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => closePanel(setSettingsClosing, setShowSettings)}
+          closing={settingsClosing}
         />
       )}
 

@@ -104,7 +104,7 @@
   width: 64px;
   height: 64px;
   background: var(--color-bg-deepest);
-  border: 1px solid var(--color-border-dark);
+
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-color 0.15s;

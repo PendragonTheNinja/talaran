@@ -204,6 +204,15 @@ export default function ChatPanel() {
     server: 'S',
   }
 
+  const [mutedChannels, setMutedChannels] = useState<string[]>([])
+  const visibleMessages = allMessages.filter(msg => !mutedChannels.includes(msg.channel))
+
+  useEffect(() => {
+    apiFetch<{ mutedChannels: string[] }>('/api/settings')
+      .then(data => setMutedChannels(data.mutedChannels || []))
+      .catch(() => { })
+  }, [])
+
   return (
     <div className="chat-panel panel">
       <div className="chat-tabs">
@@ -222,10 +231,10 @@ export default function ChatPanel() {
       </div>
 
       <div className="chat-messages">
-        {allMessages.length === 0 ? (
+        {visibleMessages.length === 0 ? (
           <p className="chat-empty muted-text">Welcome to Talaran, adventurer. The world awaits.</p>
         ) : (
-          allMessages.map((msg, i) => (
+          visibleMessages.map((msg, i) => (
             <div key={`${msg.id}-${i}`} className="chat-message">
               <span className="chat-timestamp muted-text">{msg.timestamp}</span>
               {' '}
