@@ -22,6 +22,10 @@ import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
 import adminRoutes from './routes/admin';
 import settingsRoutes from './routes/settings';
+import { generalLimit, authLimit, chatLimit, forumLimit } from './middleware/rateLimit';
+import playerRoutes from './routes/player';
+import locationRoutes from './routes/location';
+import inventoryRoutes from './routes/inventory';
 
 dotenv.config();
 
@@ -74,11 +78,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', game: 'Talaran' });
 });
 
-import playerRoutes from './routes/player';
-import locationRoutes from './routes/location';
-import inventoryRoutes from './routes/inventory';
-
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimit, authRoutes);
+app.use('/api/chat', chatLimit, chatRoutes);
+app.use('/api/forum', forumLimit, forumRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/player', playerRoutes);
 app.use('/api/location', locationRoutes);
@@ -88,15 +90,14 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/mining', miningRoutes);
 app.use('/api/smithing', smithingRoutes);
 app.use('/api/hints', hintsRoutes);
-app.use('/api/chat', chatRoutes);
 app.use('/api/guilds', guildRoutes);
 app.use('/api/messages', messagesRoutes);
-app.use('/api/forum', forumRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/highscores', highscoresRoutes);
 app.use('/api/ground-items', groundItemsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api', generalLimit);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
