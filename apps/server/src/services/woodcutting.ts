@@ -23,16 +23,19 @@ export function calculateTimer(
   playerToolTier: number,
   requiredToolTier: number
 ): number {
-  const levelsOver = Math.max(0, playerLevel - requiredLevel);
-  const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION);
-  let timer = baseTimer * (1 - levelReduction);
+  const levelsOver = Math.max(0, playerLevel - requiredLevel)
+  const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION)
+  let timer = baseTimer * (1 - levelReduction)
 
-  const tierDifference = requiredToolTier - playerToolTier;
-  if (tierDifference > 0) {
-    timer = timer * (1 + tierDifference * TOOL_TIER_PENALTY);
+  const tierDifference = playerToolTier - requiredToolTier
+  if (tierDifference < 0) {
+    timer = timer * (1 + Math.abs(tierDifference) * TOOL_TIER_PENALTY)
+  } else if (tierDifference > 0) {
+    const bonusPercent = Math.min(0.30, tierDifference * 0.10)
+    timer = timer * (1 - bonusPercent)
   }
 
-  return Math.max(minTimer, Math.round(timer));
+  return Math.max(minTimer, Math.round(timer))
 }
 
 export function determineLogQuality(
@@ -102,11 +105,11 @@ export async function processWoodcuttingAction(
 ): Promise<WoodcuttingResult> {
   try {
     // Verify player can still chop here (tool still equipped, etc.)
-const canChop = await canChopHere(playerId, nodeId);
-if (!canChop.allowed) {
-  return { success: false, error: canChop.reason };
-}
-    
+    const canChop = await canChopHere(playerId, nodeId);
+    if (!canChop.allowed) {
+      return { success: false, error: canChop.reason };
+    }
+
     const node = await db('resource_nodes').where({ id: nodeId }).first();
     if (!node) return { success: false, error: 'Node not found' };
 
@@ -135,9 +138,9 @@ if (!canChop.allowed) {
     // Find the log item
     const subtype = node.name.toLowerCase().includes('lanai') ? 'lanai'
       : node.name.toLowerCase().includes('hatch') ? 'hatch'
-      : node.name.toLowerCase().includes('bearn') ? 'bearn'
-      : node.name.toLowerCase().includes('mirrith') ? 'mirrith'
-      : 'craxial';
+        : node.name.toLowerCase().includes('bearn') ? 'bearn'
+          : node.name.toLowerCase().includes('mirrith') ? 'mirrith'
+            : 'craxial';
 
     const logItem = await db('items')
       .where({ subtype, quality, type: 'log' })
@@ -183,15 +186,15 @@ if (!canChop.allowed) {
       });
 
       // Track stats
-const qualityKey = `${quality}_logs_chopped` as string;
-const subtypeKey = `${subtype}_logs_chopped` as string;
-await incrementStats(playerId, {
-  total_logs_chopped: 1,
-  total_actions_completed: 1,
-  total_xp_earned: node.xp_reward,
-  [qualityKey]: 1,
-  [subtypeKey]: 1,
-});
+      const qualityKey = `${quality}_logs_chopped` as string;
+      const subtypeKey = `${subtype}_logs_chopped` as string;
+      await incrementStats(playerId, {
+        total_logs_chopped: 1,
+        total_actions_completed: 1,
+        total_xp_earned: node.xp_reward,
+        [qualityKey]: 1,
+        [subtypeKey]: 1,
+      });
 
       const explorationSkill = await db('skills').where({ name: 'Exploration' }).first();
       await db('player_skills')

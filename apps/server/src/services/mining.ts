@@ -31,10 +31,17 @@ export function calculateMiningTimer(
   const levelsOver = Math.max(0, playerLevel - requiredLevel);
   const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION);
   let timer = baseTimer * (1 - levelReduction);
-  const tierDifference = requiredToolTier - playerToolTier;
-  if (tierDifference > 0) {
-    timer = timer * (1 + tierDifference * TOOL_TIER_PENALTY);
+
+  const tierDifference = playerToolTier - requiredToolTier;
+  if (tierDifference < 0) {
+    // Penalty for lower tier tool
+    timer = timer * (1 + Math.abs(tierDifference) * TOOL_TIER_PENALTY);
+  } else if (tierDifference > 0) {
+    // Bonus for higher tier tool
+    const bonusPercent = Math.min(0.30, tierDifference * 0.10);
+    timer = timer * (1 - bonusPercent);
   }
+
   return Math.max(minTimer, Math.round(timer));
 }
 
@@ -139,9 +146,9 @@ export async function processMiningRock(
 
     const rockSubtype = node.name.toLowerCase().includes('granite') ? 'granite'
       : node.name.toLowerCase().includes('limestone') ? 'limestone'
-      : node.name.toLowerCase().includes('sandstone') ? 'sandstone'
-      : node.name.toLowerCase().includes('marble') ? 'marble'
-      : 'basalt';
+        : node.name.toLowerCase().includes('sandstone') ? 'sandstone'
+          : node.name.toLowerCase().includes('marble') ? 'marble'
+            : 'basalt';
 
     const rockItem = await db('items').where({ subtype: rockSubtype, type: 'rock' }).first();
 
@@ -274,7 +281,7 @@ export async function processMiningVein(
       });
     }
 
-    const oreXp = Math.floor(ore.level_required * 1.2) + 15;
+    const oreXp = Math.floor(ore.level_required * 2.5) + 30;
     await db('player_skills')
       .where({ player_id: playerId, skill_id: miningSkill.id })
       .increment('xp', oreXp);

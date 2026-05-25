@@ -109,6 +109,35 @@ export default function GameLayout({
   veinsData,
 }: GameLayoutProps) {
   const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
+
+  // Restore travel status on refresh
+  useEffect(() => {
+    if (!playerData?.currentAction) return
+    if (playerData.currentAction.action_type !== 'traveling') return
+
+    const now = new Date().getTime()
+    const completesAt = new Date(playerData.currentAction.completes_at).getTime()
+    const secondsLeft = Math.max(0, Math.round((completesAt - now) / 1000))
+
+    if (secondsLeft > 0) {
+      const destination = playerData.currentAction.location_id
+      // Fetch destination name
+      apiFetch<{ location: { name: string } }>(`/api/location/${destination}`)
+        .then(data => {
+          setTravelStatus({
+            message: `Traveling to ${data.location?.name || 'destination'}...`,
+            seconds: secondsLeft,
+          })
+        })
+        .catch(() => {
+          setTravelStatus({
+            message: 'Traveling...',
+            seconds: secondsLeft,
+          })
+        })
+    }
+  }, [playerData])
+
   const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number } | null>(null)
 
   const [showKilnModal, setShowKilnModal] = useState(false)

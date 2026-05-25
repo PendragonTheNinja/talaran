@@ -65,6 +65,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
 
   const INVENTORY_SLOTS = Math.max(16, inventoryData.length)
 
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; item: InventoryItem } | null>(null)
+
   const handleEquip = async (item: InventoryItem) => {
     if (!item.slot) {
       setError('This item cannot be equipped')
@@ -105,6 +107,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     setShowDropQuantity(false)
   }
 
+
+
   return (
     <aside className="left-panel panel">
 
@@ -119,7 +123,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
             <div
               key={i}
               className={`inventory-slot ${item ? 'occupied' : ''}`}
-              title={item ? `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}\n${item.description}${item.slot ? '\nClick to equip' : ''}` : ''}
+              title=""
               style={item && qualityColor ? { borderColor: qualityColor } : {}}
               onClick={() => {
                 if (dropMode) {
@@ -130,6 +134,9 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                 }
               }}
               onContextMenu={e => item && handleContextMenu(e, item)}
+              onMouseEnter={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
+              onMouseLeave={() => setTooltip(null)}
+              onMouseMove={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
             >
               {item && (
                 <>
@@ -287,6 +294,30 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         </>
       )
       }
+
+      {tooltip && (
+        <div
+          className="item-tooltip"
+          style={{
+            left: Math.min(tooltip.x + 12, window.innerWidth - 220),
+            top: Math.min(tooltip.y + 12, window.innerHeight - 150),
+          }}
+        >
+          <p className="item-tooltip-name" style={{ color: getQualityColor(tooltip.item.quality) || 'var(--color-gold-bright)' }}>
+            {tooltip.item.name}
+          </p>
+          {tooltip.item.quality && (
+            <p className="item-tooltip-quality">{tooltip.item.quality.charAt(0).toUpperCase() + tooltip.item.quality.slice(1)}</p>
+          )}
+          <p className="item-tooltip-desc">{tooltip.item.description}</p>
+          {tooltip.item.slot && (
+            <p className="item-tooltip-hint">Left-click to equip · Right-click for options</p>
+          )}
+          {!tooltip.item.slot && (
+            <p className="item-tooltip-hint">Right-click for options</p>
+          )}
+        </div>
+      )}
 
     </aside >
   )

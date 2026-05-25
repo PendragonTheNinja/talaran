@@ -115,9 +115,22 @@ router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) =
         completes_at: completesAt,
       });
 
+    // Also update player's last_bot_check for idle tracking
+    await db('players').where({ id: playerId }).update({ last_bot_check: now });
+
     res.json({ message: 'Bot check passed. Action resumed.' });
   } catch (err) {
     logger.error(`Bot check error: ${err}`);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/bot-check/idle', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  try {
+    await db('players').where({ id: playerId }).update({ last_bot_check: new Date() });
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });

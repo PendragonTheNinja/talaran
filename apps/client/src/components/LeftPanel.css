@@ -104,7 +104,6 @@
   width: 64px;
   height: 64px;
   background: var(--color-bg-deepest);
-
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-color 0.15s;
@@ -261,4 +260,45 @@
   color: var(--color-text-base);
   font-size: 14px;
   width: 100%;
+}
+
+.item-tooltip {
+  position: fixed;
+  z-index: 2000;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  max-width: 220px;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.item-tooltip-name {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+
+.item-tooltip-quality {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 6px;
+  font-style: italic;
+}
+
+.item-tooltip-desc {
+  font-size: 13px;
+  color: var(--color-text-base);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.item-tooltip-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+  border-top: 1px solid var(--color-border-dark);
+  padding-top: 6px;
+  font-style: italic;
 }

@@ -132,4 +132,18 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const locationId = parseInt(req.params.id as string)
+  try {
+    const location = await db('locations').where({ id: locationId }).first()
+    if (!location) {
+      res.status(404).json({ error: 'Location not found' })
+      return
+    }
+    res.json({ location })
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
 export default router;

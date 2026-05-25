@@ -90,9 +90,9 @@ export async function loadKiln(playerId: number, locationId: number, logCount: n
     // Calculate max batches based on level
     const maxBatches = playerLevel >= 40 ? 5
       : playerLevel >= 30 ? 4
-      : playerLevel >= 20 ? 3
-      : playerLevel >= 10 ? 2
-      : 1;
+        : playerLevel >= 20 ? 3
+          : playerLevel >= 10 ? 2
+            : 1;
     const maxLogs = maxBatches * KILN_LOGS_PER_BATCH;
 
     if (logCount % KILN_LOGS_PER_BATCH !== 0 || logCount <= 0) {
@@ -457,8 +457,8 @@ export const SMELT_RECIPES: Record<string, SmeltRecipe> = {
   'ambren': {
     ingredients: [
       { name: 'Ambren Ore', quantity: 1 },
-      { name: 'Burgh Ore',  quantity: 1 },
-      { name: 'Charc',      quantity: 2 },
+      { name: 'Burgh Ore', quantity: 1 },
+      { name: 'Charc', quantity: 2 },
     ],
     output: 'Ambren Ingot',
     outputQuantity: 2,
@@ -525,3 +525,18 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     xp: 100,
   },
 };
+
+export function getSmithingCost(recipeName: string): { timer: number; xp: number } {
+  const recipe = SMITH_RECIPES[recipeName]
+  if (!recipe) return { timer: 60, xp: 50 }
+
+  const ingotsUsed = recipe.ingredients
+    .filter(i => i.name.toLowerCase().includes('ingot'))
+    .reduce((sum, i) => sum + i.quantity, 0)
+
+  const count = Math.max(1, ingotsUsed)
+  return {
+    timer: count * 60,
+    xp: count * 50,
+  }
+}

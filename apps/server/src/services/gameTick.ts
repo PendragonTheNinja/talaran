@@ -4,7 +4,7 @@ import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { levelFromXp, xpToNextLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
-import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } from './smithing';
+import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
 
 const TICK_INTERVAL = 2000;
 const BOT_CHECK_INTERVAL = 30 * 60 * 1000;
@@ -43,6 +43,20 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
   try {
     let result: any;
 
+    const now = new Date();
+    const lastBotCheck = action.last_bot_check ? new Date(action.last_bot_check) : new Date(action.started_at);
+    const timeSinceCheck = now.getTime() - lastBotCheck.getTime();
+    const botCheckDue = timeSinceCheck >= BOT_CHECK_INTERVAL;
+
+    if (botCheckDue) {
+      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true });
+      io.to(`player_${action.player_id}`).emit('bot_check_required', {
+        message: 'Please confirm you are still playing.',
+      });
+      logger.info(`Bot check triggered for player ${action.player_id}`);
+      return;
+    }
+
     switch (action.action_type) {
       case 'woodcutting':
         result = await processWoodcuttingAction(action.player_id, action.resource_node_id);
@@ -74,20 +88,6 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         logger.warn(`Unknown action type: ${action.action_type}`);
         await db('player_actions').where({ id: action.id }).delete();
         return;
-    }
-
-    const now = new Date();
-    const lastBotCheck = action.last_bot_check ? new Date(action.last_bot_check) : new Date(action.started_at);
-    const timeSinceCheck = now.getTime() - lastBotCheck.getTime();
-    const botCheckDue = timeSinceCheck >= BOT_CHECK_INTERVAL;
-
-    if (botCheckDue) {
-      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true });
-      io.to(`player_${action.player_id}`).emit('bot_check_required', {
-        message: 'Please confirm you are still playing.',
-      });
-      logger.info(`Bot check triggered for player ${action.player_id}`);
-      return;
     }
 
     // Handle travel
@@ -185,7 +185,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         .where({ player_id: action.player_id, skill_id: miningSkill.id })
         .first();
       const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
-      const nextTimer = Math.max(3, Math.round(8 * (1 - Math.min(0.5, (playerLevel - 1) * 0.005))));
+      const oreItem = await db('items').where({ id: vein.ore_item_id }).first()
+      const veinBaseTimer = 20 + (Math.floor((oreItem?.level_required || 1) / 13) * 6)
+      const veinMinTimer = 12 + (Math.floor((oreItem?.level_required || 1) / 13) * 4)
+      const nextTimer = Math.max(veinMinTimer, Math.round(veinBaseTimer * (1 - Math.min(0.5, (playerLevel - 1) * 0.005))))
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
       await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
@@ -254,7 +257,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
-      const timerSeconds = action.action_type === 'smelting' ? 10 : 20;
+      const timerSeconds = action.action_type === 'smelting'
+        ? 60
+        : getSmithingCost(action.action_data?.split('_').slice(1).join('_') || '').timer;
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });

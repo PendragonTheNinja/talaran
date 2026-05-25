@@ -171,3 +171,31 @@ setTimeout(function scheduleSnapshot() {
   takeWeeklySnapshot();
   setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
 }, msUntilMonday());
+
+// Bot check for idle players — runs every 5 minutes
+setInterval(async () => {
+  const now = new Date();
+  const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+
+  for (const playerId of connectedPlayers) {
+    try {
+      const player = await db('players').where({ id: playerId }).first();
+
+      // Skip if they have an active action (gameTick handles those)
+      const activeAction = await db('player_actions').where({ player_id: playerId }).first();
+      if (activeAction) continue;
+
+      // Check last bot check time
+      const lastCheck = player.last_bot_check ? new Date(player.last_bot_check) : new Date(player.last_login || player.created_at);
+
+      if (lastCheck < thirtyMinutesAgo) {
+        io.to(`player_${playerId}`).emit('bot_check_required', {
+          message: 'Please confirm you are still playing.',
+        });
+        logger.info(`Idle bot check triggered for player ${playerId}`);
+      }
+    } catch (err) {
+      logger.error(`Idle bot check error for player ${playerId}: ${err}`);
+    }
+  }
+}, 5 * 60 * 1000); // check every 5 minutes

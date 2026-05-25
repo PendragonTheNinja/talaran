@@ -128,7 +128,7 @@ export default function GameView({
       return [...prev.slice(-20), { id, message, type }]
     })
 
-    if (type === 'error' && !persist) {
+    if (!persist) {
       setTimeout(() => {
         setLog(prev => prev.filter(entry => entry.id !== id))
       }, 5000)
@@ -295,17 +295,57 @@ export default function GameView({
   // ── Restore timer on refresh ──────────────────────────────────────
   useEffect(() => {
     if (!playerData?.currentAction) return
-    if (playerData.currentAction.action_type !== 'woodcutting') return
     if (currentAction) return
 
+    const action = playerData.currentAction
     const now = new Date().getTime()
-    const completesAt = new Date(playerData.currentAction.completes_at).getTime()
+    const completesAt = new Date(action.completes_at).getTime()
     const secondsLeft = Math.max(0, Math.round((completesAt - now) / 1000))
 
-    setCurrentAction('woodcutting')
-    setActiveNodeId(playerData.currentAction.resource_node_id)
-    setTimerMax(secondsLeft || 5)
-    startCountdown(secondsLeft)
+    switch (action.action_type) {
+      case 'woodcutting':
+        setCurrentAction('woodcutting')
+        setActiveNodeId(action.resource_node_id)
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft)
+        break
+
+      case 'mining_rock':
+        setCurrentAction('mining_rock')
+        setActiveNodeId(action.resource_node_id)
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft)
+        break
+
+      case 'mining_vein':
+        setCurrentAction('mining_vein')
+        setActiveNodeId(action.action_data)
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft)
+        break
+
+      case 'smelting':
+        setCurrentAction('smelting')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft)
+        break
+
+      case 'smithing':
+        setCurrentAction('smithing')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft)
+        break
+
+      case 'kiln_collect':
+        setCurrentAction('kiln_collect')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft)
+        break
+
+      case 'traveling':
+        // Travel is handled by travelStatus prop, not here
+        break
+    }
   }, [playerData])
 
   useEffect(() => {
@@ -380,11 +420,18 @@ export default function GameView({
       return
     }
     try {
-      await apiFetch('/api/actions/bot-check', { method: 'POST' })
-      setBotCheckPending(false)
-      setBotCheckAnswer('')
-      addLog('Bot check passed. Continuing...', 'info')
-      startCountdown(30)
+      if (currentAction) {
+        await apiFetch('/api/actions/bot-check', { method: 'POST' })
+        setBotCheckPending(false)
+        setBotCheckAnswer('')
+        addLog('Bot check passed. Continuing...', 'info')
+        startCountdown(30)
+      } else {
+        await apiFetch('/api/actions/bot-check/idle', { method: 'POST' })
+        setBotCheckPending(false)
+        setBotCheckAnswer('')
+        addLog('Bot check passed.', 'info')
+      }
     } catch (err: any) {
       addLog(err.message || 'Bot check failed.', 'error')
     }

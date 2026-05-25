@@ -150,25 +150,48 @@ export async function seed(knex: Knex): Promise<void> {
 
   // ── Resource nodes ───────────────────────────────────────────────
   await knex('resource_nodes').insert([
-    // Lanaivale — Woodcutting
+
+    // Lanaivale — Lanai Tree (level 1)
     {
       location_id: lanaivale.id, skill: 'woodcutting', name: 'Lanai Tree',
-      required_level: 1, base_timer: 5, min_timer: 3, required_tool_tier: 1,
-      poor_chance: 65, fine_chance: 30, excellent_chance: 5, xp_reward: 10,
+      required_level: 1, base_timer: 45, min_timer: 25, required_tool_tier: 1,
+      poor_chance: 65, fine_chance: 30, excellent_chance: 5, xp_reward: 25,
     },
-    // Grundagr — Mining
+
+    // Eld Grove — Deep Lanai Tree (level 13)
+    {
+      location_id: eldGrove.id, skill: 'woodcutting', name: 'Deep Lanai Tree',
+      required_level: 13, base_timer: 60, min_timer: 32, required_tool_tier: 1,
+      poor_chance: 55, fine_chance: 35, excellent_chance: 10, xp_reward: 65,
+    },
+
+    // Grundagr — Mining (level 1)
     {
       location_id: grundagr.id, skill: 'mining', name: 'Granite Rock',
-      required_level: 1, base_timer: 5, min_timer: 3, required_tool_tier: 1,
-      poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 8,
-      vein_discovery_chance: 15, min_vein_quantity: 50, max_vein_quantity: 100,
+      required_level: 1, base_timer: 20, min_timer: 12, required_tool_tier: 1,
+      poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 6,
+      vein_discovery_chance: 20, min_vein_quantity: 50, max_vein_quantity: 100,
     },
-    // Origrund — Mining
+    {
+      location_id: grundagr.id, skill: 'mining', name: 'Burgh Ore Node',
+      required_level: 1, base_timer: 28, min_timer: 16, required_tool_tier: 1,
+      poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 20,
+      vein_discovery_chance: 5, min_vein_quantity: 25, max_vein_quantity: 50,
+    },
+
+    // Origrund — Mining (level 1)
     {
       location_id: origrund.id, skill: 'mining', name: 'Granite Rock',
-      required_level: 1, base_timer: 5, min_timer: 3, required_tool_tier: 1,
-      poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 8,
-      vein_discovery_chance: 15, min_vein_quantity: 50, max_vein_quantity: 100,
+      required_level: 1, base_timer: 20, min_timer: 12, required_tool_tier: 1,
+      poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 6,
+      vein_discovery_chance: 20, min_vein_quantity: 50, max_vein_quantity: 100,
     },
+    {
+      location_id: origrund.id, skill: 'mining', name: 'Ambren Ore Node',
+      required_level: 1, base_timer: 28, min_timer: 16, required_tool_tier: 1,
+      poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 20,
+      vein_discovery_chance: 5, min_vein_quantity: 25, max_vein_quantity: 50,
+    },
+
   ]);
 }
