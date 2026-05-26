@@ -1,7 +1,7 @@
 import { Player } from '../types'
 import './RightPanel.css'
-
 import MiniMap from './MiniMap'
+import { useState } from 'react'
 
 interface Location {
   id: number
@@ -42,6 +42,8 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
   const skills = playerData?.skills || []
   const totalLevel = playerData?.totalLevel || 0
   const totalXp = playerData?.totalXp || 0
+
+  const [skillTooltip, setSkillTooltip] = useState<{ x: number; y: number; skill: Skill } | null>(null)
 
   return (
     <aside className="right-panel">
@@ -96,15 +98,39 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
               <div
                 key={skill.id}
                 className={`skill-item skill-${skill.type}`}
-                title={`${skill.name}\n${skill.xp.toLocaleString()} XP total\n${skill.xpToNext.toLocaleString()} XP to next level`}
+                onMouseEnter={e => setSkillTooltip({ x: e.clientX, y: e.clientY, skill })}
+                onMouseLeave={() => setSkillTooltip(null)}
+                onMouseMove={e => setSkillTooltip({ x: e.clientX, y: e.clientY, skill })}
               >
-                <span className="skill-name">{skill.name}</span>
-                <span className="skill-level">{skill.level}</span>
+                <div className="skill-icon-wrap">
+                  <img
+                    src={`/images/skills/${skill.name.replace(/ /g, '_')}Skill.png`}
+                    alt={skill.name}
+                    className="skill-icon"
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                  />
+                  <span className="skill-level">{skill.level}</span>
+                </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {skillTooltip && (
+        <div
+          className="skill-tooltip"
+          style={{
+            left: Math.min(skillTooltip.x + 12, window.innerWidth - 220),
+            top: Math.min(skillTooltip.y + 12, window.innerHeight - 150),
+          }}
+        >
+          <p className="skill-tooltip-name">{skillTooltip.skill.name}</p>
+          <p className="skill-tooltip-level">Level {skillTooltip.skill.level}</p>
+          <p className="skill-tooltip-xp">{skillTooltip.skill.xp.toLocaleString()} XP</p>
+          <p className="skill-tooltip-next">{skillTooltip.skill.xpToNext.toLocaleString()} XP to next level</p>
+        </div>
+      )}
     </aside>
   )
 }

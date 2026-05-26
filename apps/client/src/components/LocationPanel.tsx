@@ -26,9 +26,10 @@ interface LocationPanelProps {
   onInventoryUpdate?: () => void
   onDropModeChange?: (active: boolean, amount?: number) => void
   groundItemsKey?: number
+  onLocationRefresh?: () => void
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, onInventoryUpdate, onDropModeChange, groundItemsKey }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -88,7 +89,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
       {/* Location actions */}
       <div className="location-panel-section">
-        <div className="panel-title">Location Menu</div>
+        <div className="panel-title" style={{ cursor: 'pointer' }} onClick={() => { console.log('Location refresh clicked'); onLocationRefresh?.() }}>
+          {locationData?.location?.name || 'Location Menu'}
+        </div>
 
         {woodcuttingNodes.map((node: any) => (
           <button

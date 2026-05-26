@@ -10,7 +10,7 @@ import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
-import GuildModal from './GuildModal'
+import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
 import NewsPanel from './NewsPanel'
@@ -94,6 +94,7 @@ interface GameLayoutProps {
   onEquipmentUpdate: () => void
   onInventoryUpdate: () => void
   veinsData: any[]
+  onLocationDataUpdate: () => void
 }
 
 export default function GameLayout({
@@ -107,6 +108,7 @@ export default function GameLayout({
   onEquipmentUpdate,
   onInventoryUpdate,
   veinsData,
+  onLocationDataUpdate,
 }: GameLayoutProps) {
   const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
 
@@ -230,6 +232,7 @@ export default function GameLayout({
   const [actionLimit, setActionLimit] = useState<number | null>(null)
 
   const [showGuildModal, setShowGuildModal] = useState(false)
+  const [guildClosing, setGuildClosing] = useState(false)
 
   const [showMessages, setShowMessages] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
@@ -283,7 +286,7 @@ export default function GameLayout({
     if (showNews) closePanel(setNewsClosing, setShowNews)
     if (showForum) closePanel(setForumClosing, setShowForum, 400)
     if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
-    if (showGuildModal) setShowGuildModal(false)
+    if (showGuildModal) closePanel(setGuildClosing, setShowGuildModal)
     if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
     if (showSettings) closePanel(setSettingsClosing, setShowSettings)
   }
@@ -383,6 +386,10 @@ export default function GameLayout({
                 if (amount !== undefined) setDropAmount(amount)
               }}
               groundItemsKey={groundItemsKey}
+              onLocationRefresh={() => {
+                onPlayerDataUpdate()
+                onLocationDataUpdate()
+              }}
             />
           </div>
           <ChatPanel />
@@ -435,8 +442,9 @@ export default function GameLayout({
       )}
 
       {showGuildModal && (
-        <GuildModal
-          onClose={() => setShowGuildModal(false)}
+        <GuildPanel
+          onClose={() => closePanel(setGuildClosing, setShowGuildModal)}
+          closing={guildClosing}
           playerUsername={player.username}
         />
       )}

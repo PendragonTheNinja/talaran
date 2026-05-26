@@ -109,6 +109,21 @@ io.on('connection', (socket) => {
     connectedPlayers.add(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
 
+    // Re-send bot check if one is pending
+    try {
+      const pendingBotCheck = await db('player_actions')
+        .where({ player_id: playerId, bot_check_pending: true })
+        .first();
+      if (pendingBotCheck) {
+        socket.emit('bot_check_required', {
+          message: 'Please confirm you are still playing.',
+        });
+        logger.info(`Re-sent bot check to reconnecting player ${playerId}`);
+      }
+    } catch (err) {
+      logger.error(`Bot check reconnect error: ${err}`);
+    }
+
     // Join guild room if in a guild
     try {
       const player = await db('players').where({ id: playerId }).select('guild_id').first();

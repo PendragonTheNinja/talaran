@@ -296,6 +296,7 @@ export default function GameView({
   useEffect(() => {
     if (!playerData?.currentAction) return
     if (currentAction) return
+    if (playerData.currentAction.bot_check_pending) return
 
     const action = playerData.currentAction
     const now = new Date().getTime()
@@ -552,10 +553,6 @@ export default function GameView({
   // ── Render ────────────────────────────────────────────────────────
   return (
     <div className="game-view panel">
-      <div className="game-view-location-bar">
-        <span className="game-view-location gold-text">{locationName}</span>
-      </div>
-
       <div className="game-view-main">
         {/* Main scene container — everything lives inside this */}
         <div className="game-scene">

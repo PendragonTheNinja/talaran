@@ -1,0 +1,220 @@
+.guild-panel {
+    position: fixed;
+    top: 50px;
+    right: 0;
+    width: 480px;
+    max-width: 95vw;
+    height: calc(100vh - 50px);
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border-left: 1px solid var(--color-border-gold);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    animation: slide-in-right 0.2s ease;
+}
+
+.guild-panel.closing {
+    animation: slide-out-right 0.2s ease forwards;
+}
+
+.guild-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border-gold);
+    flex-shrink: 0;
+}
+
+.guild-panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border-dark);
+    flex-shrink: 0;
+}
+
+.guild-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px var(--space-lg);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.guild-tab.active {
+    color: var(--color-gold-bright);
+    border-bottom-color: var(--color-gold-bright);
+}
+
+.guild-tab:hover {
+    color: var(--color-gold);
+}
+
+.guild-tab-badge {
+    background: var(--color-gold-bright);
+    color: var(--color-bg-dark);
+    font-size: 11px;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 99px;
+}
+
+.guild-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg);
+}
+
+.guild-overview-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.guild-overview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.guild-overview-desc {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
+    border-left: 2px solid var(--color-border-gold);
+}
+
+.guild-invite-section {
+    margin-top: var(--space-lg);
+}
+
+.guild-section-title {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--color-gold-bright);
+    margin-bottom: 8px;
+}
+
+.guild-members {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.guild-member-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s;
+}
+
+.guild-member-item:hover {
+    border-color: var(--color-border-gold);
+}
+
+.guild-member-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.guild-member-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.guild-member-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.guild-applications {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.guild-application-item {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}
+
+.guild-list-item {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.guild-list-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.guild-list-desc {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin: 4px 0;
+}
+
+.guild-no-guild {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.guild-create {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.guild-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.guild-form-group .chat-input {
+    font-size: 15px;
+    padding: 8px 12px;
+}
+
+.guild-invites-section {
+    margin-bottom: var(--space-lg);
+}
+
+.guild-divider {
+    height: 1px;
+    background: var(--color-border-dark);
+    margin: var(--space-lg) 0;
+}

@@ -80,8 +80,8 @@
 
 .skills-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0px;
   padding: var(--space-xs);
   overflow-y: auto;
   flex: 1;
@@ -89,14 +89,15 @@
 
 .skill-item {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding: 3px var(--space-sm);
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 2px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-border-dark);
   border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  font-size: 12px;
+  cursor: default;
 }
 
 .skill-item:hover {
@@ -112,10 +113,14 @@
 }
 
 .skill-level {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 18px;
   font-family: var(--font-heading);
-  font-size: 13px;
-  flex-shrink: 0;
-  margin-left: var(--space-xs);
+  color: white;
+  text-shadow: 1px 1px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black;
+  line-height: 1;
 }
 
 .skill-combat .skill-level {
@@ -132,6 +137,20 @@
 
 .skill-utility .skill-level {
   color: var(--color-gold-bright);
+}
+
+.skill-icon {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.skill-icon-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
 }
 
 @media (max-width: 1024px) {
@@ -163,4 +182,45 @@
   overflow: hidden;
   border-radius: 2px;
   border: 1px solid var(--color-border-dark);
+}
+
+.skill-tooltip {
+  position: fixed;
+  z-index: 2000;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  min-width: 180px;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.skill-tooltip-name {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  color: var(--color-gold-bright);
+  margin: 0 0 6px;
+}
+
+.skill-tooltip-level {
+  font-size: 14px;
+  color: var(--color-text-base);
+  margin: 0 0 4px;
+}
+
+.skill-tooltip-xp {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 2px;
+}
+
+.skill-tooltip-next {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  font-style: italic;
+  border-top: 1px solid var(--color-border-dark);
+  padding-top: 6px;
+  margin-top: 4px;
 }

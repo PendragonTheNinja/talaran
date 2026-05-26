@@ -186,6 +186,10 @@ function App() {
         setServerAnnouncement(data.message)
         setTimeout(() => setServerAnnouncement(null), 10000)
       })
+      socket.on('guild_invite', (data: { guildName: string; guildTag: string; inviterName: string }) => {
+        setServerAnnouncement(`📨 ${data.inviterName} has invited you to join ${data.guildName} [${data.guildTag}]! Check the Guild panel.`)
+        setTimeout(() => setServerAnnouncement(null), 15000)
+      })
     }
   }, [loadPlayerData, loadLocationData, loadInventory, loadEquipment])
 
@@ -246,6 +250,7 @@ function App() {
               onEquipmentUpdate={loadEquipment}
               onInventoryUpdate={loadInventory}
               veinsData={veinsData}
+              onLocationDataUpdate={loadLocationData}
             />
             {showWelcome && player && (
               <WelcomeModal
