@@ -29,4 +29,10 @@
     "node_modules",
     "dist"
   ]
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
 }
