@@ -69,7 +69,7 @@ interface RecentThread {
 
 type ForumView = 'home' | 'category' | 'thread' | 'new_thread'
 
-export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing }: {
+export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile }: {
     onClose: () => void
     playerUsername: string
     isAdmin: boolean
@@ -498,7 +498,11 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="forum-post-author gold-text">
+                                        <span
+                                            className="forum-post-author gold-text"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => onViewProfile?.(post.author_id)}
+                                        >
                                             {post.author_name}
                                             {post.guild_tag && <span className="chat-guild-tag">[{post.guild_tag}]</span>}
                                         </span>

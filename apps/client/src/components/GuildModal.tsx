@@ -46,7 +46,7 @@ interface GuildModalProps {
     playerUsername: string
 }
 
-export default function GuildModal({ onClose, playerUsername }: GuildModalProps) {
+export default function GuildModal({ onClose, playerUsername, onViewProfile }: GuildModalProps) {
     const [view, setView] = useState<'loading' | 'no_guild' | 'my_guild' | 'create' | 'browse'>('loading')
     const [guild, setGuild] = useState<Guild | null>(null)
     const [members, setMembers] = useState<GuildMember[]>([])
@@ -410,7 +410,7 @@ export default function GuildModal({ onClose, playerUsername }: GuildModalProps)
                                 const roleOrder = { founder: 0, leader: 1, member: 2 }
                                 return (roleOrder[a.role as keyof typeof roleOrder] ?? 3) - (roleOrder[b.role as keyof typeof roleOrder] ?? 3)
                             }).map(m => (
-                                <div key={m.id} className="guild-member-item">
+                                <div key={m.id} className="guild-member-item" style={{ cursor: 'pointer' }} onClick={() => onViewProfile?.(m.id)}>
                                     <div className="guild-member-status" style={{ background: m.online ? '#6ab87e' : '#c87e7e' }} />
                                     <div className="guild-member-info">
                                         <span className="guild-member-name" style={{ color: m.online ? '#6ab87e' : '#c87e7e' }}>

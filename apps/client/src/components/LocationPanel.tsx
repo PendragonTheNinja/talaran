@@ -27,9 +27,10 @@ interface LocationPanelProps {
   onDropModeChange?: (active: boolean, amount?: number) => void
   groundItemsKey?: number
   onLocationRefresh?: () => void
+  onViewProfile?: (playerId: number) => void
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh, onViewProfile }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -206,11 +207,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           <p className="location-panel-empty">No other players here.</p>
         ) : (
           playersHere.map(p => (
-            <div key={p.id} className="location-player">
+            <div key={p.id} className="location-player" style={{ cursor: 'pointer' }} onClick={() => onViewProfile?.(p.id)}>
               <span className="location-player-name gold-text">{p.username}</span>
-              {p.combat_level && (
-                <span className="location-player-level muted-text">Lv {p.combat_level}</span>
-              )}
             </div>
           ))
         )}

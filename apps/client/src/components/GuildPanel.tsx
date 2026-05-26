@@ -45,9 +45,10 @@ interface GuildPanelProps {
     onClose: () => void
     closing?: boolean
     playerUsername: string
+    onViewProfile?: (playerId: number) => void
 }
 
-export default function GuildPanel({ onClose, closing, playerUsername }: GuildPanelProps) {
+export default function GuildPanel({ onClose, closing, playerUsername, onViewProfile }: GuildPanelProps) {
     const [view, setView] = useState<'loading' | 'no_guild' | 'my_guild' | 'create' | 'browse'>('loading')
     const [tab, setTab] = useState<'overview' | 'members' | 'applications'>('overview')
     const [guild, setGuild] = useState<Guild | null>(null)
@@ -447,7 +448,7 @@ export default function GuildPanel({ onClose, closing, playerUsername }: GuildPa
                                 const roleOrder = { founder: 0, leader: 1, member: 2 }
                                 return (roleOrder[a.role as keyof typeof roleOrder] ?? 3) - (roleOrder[b.role as keyof typeof roleOrder] ?? 3)
                             }).map(m => (
-                                <div key={m.id} className="guild-member-item">
+                                <div key={m.id} className="guild-member-item" style={{ cursor: 'pointer' }} onClick={() => onViewProfile?.(m.id)}>
                                     <div className="guild-member-status" style={{ background: m.online ? '#6ab87e' : '#c87e7e' }} />
                                     <div className="guild-member-info">
                                         <span className="guild-member-name" style={{ color: m.online ? '#6ab87e' : 'var(--color-text-base)', fontSize: '15px' }}>
@@ -459,7 +460,7 @@ export default function GuildPanel({ onClose, closing, playerUsername }: GuildPa
                                         </span>
                                     </div>
                                     {isLeader && m.username !== playerUsername && m.role !== 'founder' && (
-                                        <div className="guild-member-actions">
+                                        <div className="guild-member-actions" onClick={e => e.stopPropagation()}>
                                             {myRole === 'founder' && m.role !== 'leader' && (
                                                 <button className="btn" style={{ fontSize: '11px' }} onClick={() => handleTransferLeadership(m.id, m.username)}>
                                                     Make Leader

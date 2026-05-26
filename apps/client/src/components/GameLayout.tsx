@@ -17,6 +17,7 @@ import NewsPanel from './NewsPanel'
 import HighscoresPanel from './HighscoresPanel'
 import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
+import PlayerProfile from './PlayerProfile'
 
 interface Skill {
   id: number
@@ -245,6 +246,8 @@ export default function GameLayout({
   const [newsClosing, setNewsClosing] = useState(false)
   const [forumClosing, setForumClosing] = useState(false)
 
+  const [profilePlayerId, setProfilePlayerId] = useState<number | null>(null)
+
   useEffect(() => {
     const loadCount = () => {
       apiFetch<{ count: number }>('/api/messages/unread/count')
@@ -390,6 +393,7 @@ export default function GameLayout({
                 onPlayerDataUpdate()
                 onLocationDataUpdate()
               }}
+              onViewProfile={(id: number) => setProfilePlayerId(id)}
             />
           </div>
           <ChatPanel />
@@ -446,6 +450,7 @@ export default function GameLayout({
           onClose={() => closePanel(setGuildClosing, setShowGuildModal)}
           closing={guildClosing}
           playerUsername={player.username}
+          onViewProfile={(id) => setProfilePlayerId(id)}
         />
       )}
 
@@ -472,6 +477,7 @@ export default function GameLayout({
           isAdmin={playerData?.player?.is_admin || false}
           isMod={playerData?.player?.is_mod || false}
           closing={forumClosing}
+          onViewProfile={(id) => setProfilePlayerId(id)}
         />
       )}
 
@@ -495,6 +501,13 @@ export default function GameLayout({
         <SettingsPanel
           onClose={() => closePanel(setSettingsClosing, setShowSettings)}
           closing={settingsClosing}
+        />
+      )}
+
+      {profilePlayerId && (
+        <PlayerProfile
+          playerId={profilePlayerId}
+          onClose={() => setProfilePlayerId(null)}
         />
       )}
 
