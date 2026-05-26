@@ -135,19 +135,39 @@ export default function GameView({
     }
   }
 
-  const startCountdown = (seconds: number) => {
+  const startCountdown = (seconds: number, completesAt?: string) => {
     if (timerRef.current) clearInterval(timerRef.current)
-    setTimerSeconds(seconds)
-    timerRef.current = setInterval(() => {
-      setTimerSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+
+    const endTime = completesAt
+      ? new Date(completesAt).getTime()
+      : Date.now() + seconds * 1000
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000))
+      setTimerSeconds(remaining)
+      if (remaining <= 0 && timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+
+    tick()
+    timerRef.current = setInterval(tick, 1000)
   }
+
+  // ── Visibility resync ─────────────────────────────────────────────
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && playerData?.currentAction) {
+        const action = playerData.currentAction
+        const completesAt = new Date(action.completes_at).getTime()
+        const secondsLeft = Math.max(0, Math.round((completesAt - Date.now()) / 1000))
+        setTimerSeconds(secondsLeft)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [playerData])
 
   // ── Load veins ────────────────────────────────────────────────────
   const loadVeins = useCallback(async () => {
@@ -185,7 +205,7 @@ export default function GameView({
             xpToNext: data.xpInfo?.xpToNext || 0,
             skillName,
             remainingQuantity: data.result.remainingQuantity,
-            quantity: data.result.quantity,
+            quantity: (data.result as any).quantity,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -197,7 +217,7 @@ export default function GameView({
         if (data.timerSeconds) {
           setTimerSeconds(data.timerSeconds)
           setTimerMax(data.timerSeconds)
-          startCountdown(data.timerSeconds)
+          startCountdown(data.timerSeconds, data.nextCompletes)
         }
       })
 
@@ -248,6 +268,7 @@ export default function GameView({
       socket.on('action_switched', (data: { newActionType: string; nodeName: string; timerSeconds: number }) => {
         setCurrentAction(data.newActionType)
         setTimerMax(data.timerSeconds)
+        // No completesAt available here, use seconds only
         startCountdown(data.timerSeconds)
         addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
       })
@@ -286,6 +307,7 @@ export default function GameView({
     setCurrentAction('traveling')
     setActiveNodeId(null)
     setTimerMax(travelStatus.seconds)
+    // No completesAt for travel status, use seconds only
     startCountdown(travelStatus.seconds)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -308,47 +330,47 @@ export default function GameView({
         setCurrentAction('woodcutting')
         setActiveNodeId(action.resource_node_id)
         setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft)
+        startCountdown(secondsLeft, action.completes_at)
         break
 
       case 'mining_rock':
         setCurrentAction('mining_rock')
         setActiveNodeId(action.resource_node_id)
         setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft)
+        startCountdown(secondsLeft, action.completes_at)
         break
 
       case 'mining_vein':
         setCurrentAction('mining_vein')
         setActiveNodeId(action.action_data)
         setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft)
+        startCountdown(secondsLeft, action.completes_at)
         break
 
       case 'smelting':
         setCurrentAction('smelting')
         setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft)
+        startCountdown(secondsLeft, action.completes_at)
         break
 
       case 'smithing':
         setCurrentAction('smithing')
         setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft)
+        startCountdown(secondsLeft, action.completes_at)
         break
 
       case 'kiln_collect':
         setCurrentAction('kiln_collect')
         setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft)
+        startCountdown(secondsLeft, action.completes_at)
         break
 
       case 'traveling':
-        // Travel is handled by travelStatus prop, not here
         break
     }
   }, [playerData])
 
+  // ── External action handler ───────────────────────────────────────
   useEffect(() => {
     if (!externalAction) return
 
@@ -369,7 +391,7 @@ export default function GameView({
       setTimerMax(externalAction.id as number)
       startCountdown(externalAction.id as number)
     } else if (externalAction.type === 'set_action_limit') {
-      setActionLimit(externalAction.id === 0 ? null : externalAction.id as number)
+      onActionLimitChange(externalAction.id === 0 ? null : externalAction.id as number)
     }
 
     onExternalActionHandled()
@@ -393,7 +415,7 @@ export default function GameView({
       setCurrentAction('woodcutting')
       setActiveNodeId(node.id)
       setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
       addLog(err.message || 'Could not start action.', 'error')
     }
@@ -426,6 +448,7 @@ export default function GameView({
         setBotCheckPending(false)
         setBotCheckAnswer('')
         addLog('Bot check passed. Continuing...', 'info')
+        // No completesAt here, just a short resume timer
         startCountdown(30)
       } else {
         await apiFetch('/api/actions/bot-check/idle', { method: 'POST' })
@@ -448,14 +471,14 @@ export default function GameView({
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
 
-      const res = await apiFetch<{ timerSeconds: number }>('/api/mining/rock/start', {
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/mining/rock/start', {
         method: 'POST',
         body: JSON.stringify({ nodeId: node.id }),
       })
       setCurrentAction('mining_rock')
       setActiveNodeId(node.id)
       setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
       addLog(err.message || 'Could not start mining.', 'error')
     }
@@ -471,14 +494,14 @@ export default function GameView({
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
 
-      const res = await apiFetch<{ timerSeconds: number }>('/api/mining/vein/start', {
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/mining/vein/start', {
         method: 'POST',
         body: JSON.stringify({ veinId: vein.id }),
       })
       setCurrentAction('mining_vein')
       setActiveNodeId(vein.id)
       setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
       addLog(`You begin mining the ${vein.ore_name} vein. (${vein.remaining_quantity} ore remaining)`, 'info')
     } catch (err: any) {
       addLog(err.message || 'Could not start mining vein.', 'error')
@@ -497,8 +520,7 @@ export default function GameView({
 
       const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
       const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
-      console.log('Action limit input element:', limitInput, 'value:', limitInput?.value, 'currentLimit:', currentLimit)
-      const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smelt/start', {
         method: 'POST',
         body: JSON.stringify({ metalType, actionLimit: currentLimit }),
       })
@@ -506,7 +528,7 @@ export default function GameView({
       setLog([])
       setActionsCompleted(0)
       setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
       addLog(err.message || 'Could not start smelting.', 'error')
     }
@@ -522,21 +544,18 @@ export default function GameView({
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
 
-      const [metalType, ...partParts] = recipe.split('_')
-      const partType = partParts.join('_')
-
       const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
       const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
 
-      const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/smelt/start', {
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smith/start', {
         method: 'POST',
-        body: JSON.stringify({ metalType, actionLimit: currentLimit }),
+        body: JSON.stringify({ recipe, actionLimit: currentLimit }),
       })
       setCurrentAction('smithing')
       setLog([])
       setActionsCompleted(0)
       setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
       addLog(err.message || 'Could not start smithing.', 'error')
     }
@@ -554,7 +573,6 @@ export default function GameView({
   return (
     <div className="game-view panel">
       <div className="game-view-main">
-        {/* Main scene container — everything lives inside this */}
         <div className="game-scene">
 
           <LocationAtmosphere
@@ -562,14 +580,12 @@ export default function GameView({
             locationType={locationData?.location?.type || ''}
           />
 
-          {/* Idle state — show description */}
           {!currentAction && (
             <div className="scene-idle">
               <p className="scene-description">{locationDesc || 'You stand ready.'}</p>
             </div>
           )}
 
-          {/* Active action — centered */}
           {currentAction && !botCheckPending && (
             <div className="scene-action-overlay">
               {currentAction === 'traveling' && (
@@ -622,7 +638,6 @@ export default function GameView({
             </div>
           )}
 
-          {/* Bot check — centered */}
           {botCheckPending && (
             <div className="scene-action-overlay">
               <div className="bot-check">
@@ -677,7 +692,6 @@ export default function GameView({
             </div>
           )}
 
-          {/* Last result — bottom */}
           {lastResult && (
             <div className="scene-last-result">
               <p className="last-result-item">You gained {lastResult.quantity ?? 1} × {lastResult.itemName}</p>
@@ -689,14 +703,13 @@ export default function GameView({
             </div>
           )}
 
-          {/* Vein notification — top */}
           {veinNotification && (
             <div className="scene-vein-notification">
               <span>⛏ {veinNotification}</span>
               <button onClick={() => setVeinNotification(null)}>✕</button>
             </div>
           )}
-          {/* Action log — errors and info messages */}
+
           {log.length > 0 && (
             <div className="scene-log">
               {[...log].reverse().slice(0, 3).map(entry => (

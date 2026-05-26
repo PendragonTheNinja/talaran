@@ -302,3 +302,8 @@
   padding-top: 6px;
   font-style: italic;
 }
+
+.inventory-grid.trade-mode-active {
+  border: 2px solid var(--color-gold-bright);
+  box-shadow: 0 0 8px rgba(200, 146, 42, 0.3);
+}

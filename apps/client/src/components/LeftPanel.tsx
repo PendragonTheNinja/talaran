@@ -40,6 +40,8 @@ interface LeftPanelProps {
   onDropItem: (itemId: number, quantity: number) => void
   dropMode?: boolean
   dropAmount?: number
+  tradeMode?: boolean
+  tradeId?: number
 }
 
 const SLOTS = [
@@ -57,10 +59,11 @@ const SLOTS = [
   { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, dropAmount }: LeftPanelProps) {
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, dropAmount, tradeMode, tradeId }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   const [dropQuantity, setDropQuantity] = useState(1)
+  const [tradeAmount, setTradeAmount] = useState(1)
   const [showDropQuantity, setShowDropQuantity] = useState(false)
 
   const INVENTORY_SLOTS = Math.max(16, inventoryData.length)
@@ -114,54 +117,65 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
 
       {/* Inventory */}
       <div className="panel-title">Inventory</div>
-      <div className={`inventory-grid panel-inset ${dropMode ? 'drop-mode-active' : ''}`}>
-        {Array.from({ length: INVENTORY_SLOTS }).map((_, i) => {
-          const item = inventoryData[i]
-          const qualityColor = item ? getQualityColor(item.quality) : null
+      <div className={`inventory-grid panel-inset ${dropMode ? 'drop-mode-active' : ''} ${tradeMode ? 'trade-mode-active' : ''}`}>        {Array.from({ length: INVENTORY_SLOTS }).map((_, i) => {
+        const item = inventoryData[i]
+        const qualityColor = item ? getQualityColor(item.quality) : null
 
-          return (
-            <div
-              key={i}
-              className={`inventory-slot ${item ? 'occupied' : ''}`}
-              title=""
-              style={item && qualityColor ? { borderColor: qualityColor } : {}}
-              onClick={() => {
-                if (dropMode) {
-                  const qty = Math.min(dropAmount || 1, item.quantity)
-                  onDropItem(item.item_id, qty)
+        return (
+          <div
+            key={i}
+            className={`inventory-slot ${item ? 'occupied' : ''}`}
+            title=""
+            style={item && qualityColor ? { borderColor: qualityColor } : {}}
+            onClick={() => {
+              if (tradeMode && tradeId) {
+                const qty = Math.min(tradeAmount, item.quantity)
+                apiFetch('/api/trades/offer/item', {
+                  method: 'POST',
+                  body: JSON.stringify({ tradeId, itemId: item.item_id, quantity: qty }),
+                }).catch(err => console.error(err))
+                return
+              }
+              if (dropMode) {
+                if (item.quantity > 1) {
+                  setContextMenu({ x: 0, y: 0, item, mode: 'drop' })
+                  setShowDropQuantity(true)
                 } else {
-                  handleEquip(item)
+                  onDropItem(item.item_id, 1)
                 }
-              }}
-              onContextMenu={e => item && handleContextMenu(e, item)}
-              onMouseEnter={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
-              onMouseLeave={() => setTooltip(null)}
-              onMouseMove={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
-            >
-              {item && (
-                <>
-                  <img
-                    src={getItemIcon(item.name)}
-                    alt={item.name}
-                    className="inventory-item-icon"
-                    onLoad={e => {
-                      e.currentTarget.style.display = ''
-                      e.currentTarget.nextElementSibling?.setAttribute('style', 'display: none')
-                    }}
-                    onError={e => {
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.nextElementSibling?.removeAttribute('style')
-                    }}
-                  />
-                  <span className="inventory-item-text" style={{ display: 'none' }}>{item.name.split(' ')[0]}</span>
-                  {item.quantity > 1 && (
-                    <span className="inventory-item-qty">{item.quantity}</span>
-                  )}
-                </>
-              )}
-            </div>
-          )
-        })}
+              } else {
+                handleEquip(item)
+              }
+            }}
+            onContextMenu={e => item && handleContextMenu(e, item)}
+            onMouseEnter={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
+            onMouseLeave={() => setTooltip(null)}
+            onMouseMove={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
+          >
+            {item && (
+              <>
+                <img
+                  src={getItemIcon(item.name)}
+                  alt={item.name}
+                  className="inventory-item-icon"
+                  onLoad={e => {
+                    e.currentTarget.style.display = ''
+                    e.currentTarget.nextElementSibling?.setAttribute('style', 'display: none')
+                  }}
+                  onError={e => {
+                    e.currentTarget.style.display = 'none'
+                    e.currentTarget.nextElementSibling?.removeAttribute('style')
+                  }}
+                />
+                <span className="inventory-item-text" style={{ display: 'none' }}>{item.name.split(' ')[0]}</span>
+                {item.quantity > 1 && (
+                  <span className="inventory-item-qty">{item.quantity}</span>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })}
       </div>
 
       {error && <div className="equipment-error">{error}</div>}
@@ -279,11 +293,18 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                   />
                 )}
                 <button className="context-menu-item confirm" onClick={() => {
-                  onDropItem(contextMenu.item.item_id, dropQuantity)
+                  if (contextMenu?.mode === 'trade' && tradeId) {
+                    apiFetch('/api/trades/offer/item', {
+                      method: 'POST',
+                      body: JSON.stringify({ tradeId, itemId: contextMenu.item.item_id, quantity: dropQuantity }),
+                    }).catch(err => console.error(err))
+                  } else {
+                    onDropItem(contextMenu!.item.item_id, dropQuantity)
+                  }
                   setContextMenu(null)
                   setShowDropQuantity(false)
                 }}>
-                  Confirm Drop {contextMenu.item.stackable && contextMenu.item.quantity > 1 ? `(${dropQuantity})` : ''}
+                  {contextMenu?.mode === 'trade' ? `Add to Trade (${dropQuantity})` : `Confirm Drop ${contextMenu?.item.stackable && contextMenu?.item.quantity > 1 ? `(${dropQuantity})` : ''}`}
                 </button>
               </div>
             )}
@@ -316,6 +337,20 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
           {!tooltip.item.slot && (
             <p className="item-tooltip-hint">Right-click for options</p>
           )}
+        </div>
+      )}
+
+      {tradeMode && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0' }}>
+          <span className="muted-text" style={{ fontSize: '12px' }}>Trade amount:</span>
+          <input
+            type="number"
+            min={1}
+            value={tradeAmount}
+            onChange={e => setTradeAmount(Math.max(1, parseInt(e.target.value) || 1))}
+            className="context-menu-qty-input"
+            style={{ width: '50px', fontSize: '12px', padding: '2px 4px' }}
+          />
         </div>
       )}
 

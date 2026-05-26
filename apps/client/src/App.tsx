@@ -8,6 +8,7 @@ import WelcomeModal from './components/WelcomeModal'
 import { Routes, Route } from 'react-router-dom'
 import NewsPage from './components/NewsPage'
 import HighscoresPage from './components/HighscoresPage'
+import TradeWindow from './components/TradeWindow'
 
 interface Skill {
   id: number
@@ -87,6 +88,15 @@ function App() {
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
   const [serverAnnouncement, setServerAnnouncement] = useState<string | null>(null)
+  const [tradeRequest, setTradeRequest] = useState<{ tradeId: number; fromPlayer: { id: number; username: string } } | null>(null)
+  const [activeTrade, setActiveTrade] = useState<{
+    tradeId: number
+    otherPlayer: { id: number; username: string }
+    offers: any[]
+    gold: any[]
+    isPlayer1: boolean
+  } | null>(null)
+  const [tradeMode, setTradeMode] = useState(false)
 
   const loadPlayerData = useCallback(async () => {
     try {
@@ -190,6 +200,52 @@ function App() {
         setServerAnnouncement(`📨 ${data.inviterName} has invited you to join ${data.guildName} [${data.guildTag}]! Check the Guild panel.`)
         setTimeout(() => setServerAnnouncement(null), 15000)
       })
+      socket.on('trade_requested', (data: { tradeId: number; fromPlayer: { id: number; username: string } }) => {
+        setTradeRequest(data)
+      })
+
+      socket.on('trade_started', (data: any) => {
+        setTradeRequest(null)
+        setActiveTrade({
+          tradeId: data.tradeId,
+          otherPlayer: data.otherPlayer,
+          offers: data.offers,
+          gold: data.gold,
+          isPlayer1: data.isPlayer1,
+        })
+      })
+
+      socket.on('trade_offer_updated', (data: any) => {
+        window.dispatchEvent(new CustomEvent('trade_offer_updated', { detail: data }))
+      })
+
+      socket.on('trade_acceptance_updated', (data: any) => {
+        window.dispatchEvent(new CustomEvent('trade_acceptance_updated', { detail: data }))
+      })
+
+      socket.on('trade_completed', () => {
+        window.dispatchEvent(new CustomEvent('trade_completed'))
+        loadInventory()
+      })
+
+      socket.on('trade_cancelled', (data: { reason: string }) => {
+        window.dispatchEvent(new CustomEvent('trade_cancelled', { detail: data }))
+        setTimeout(() => setActiveTrade(null), 3000)
+      })
+
+      // Check for active trade on reconnect
+      try {
+        const tradeData = await apiFetch<any>('/api/trades/active')
+        if (tradeData.trade && tradeData.trade.status === 'active') {
+          setActiveTrade({
+            tradeId: tradeData.trade.id,
+            otherPlayer: tradeData.otherPlayer,
+            offers: tradeData.offers,
+            gold: tradeData.gold,
+            isPlayer1: tradeData.trade.player1_id === player.id,
+          })
+        }
+      } catch (err) { }
     }
   }, [loadPlayerData, loadLocationData, loadInventory, loadEquipment])
 
@@ -251,6 +307,11 @@ function App() {
               onInventoryUpdate={loadInventory}
               veinsData={veinsData}
               onLocationDataUpdate={loadLocationData}
+              tradeMode={tradeMode} activeTrade={activeTrade}
+              onNotify={(message) => {
+                setServerAnnouncement(message)
+                setTimeout(() => setServerAnnouncement(null), 5000)
+              }}
             />
             {showWelcome && player && (
               <WelcomeModal
@@ -279,6 +340,49 @@ function App() {
                 <span>📢 {serverAnnouncement}</span>
                 <button onClick={() => setServerAnnouncement(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '18px', cursor: 'pointer' }}>✕</button>
               </div>
+            )}
+            {tradeRequest && (
+              <div className="modal-overlay" onClick={() => setTradeRequest(null)}>
+                <div className="guild-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '340px' }}>
+                  <div className="guild-modal-header">
+                    <h2 className="gold-text">Trade Request</h2>
+                  </div>
+                  <div style={{ padding: 'var(--space-lg)' }}>
+                    <p style={{ fontSize: '15px', marginBottom: '16px' }}>
+                      <span className="gold-text">{tradeRequest.fromPlayer.username}</span> wants to trade with you.
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-gold" onClick={async () => {
+                        await apiFetch('/api/trades/respond', {
+                          method: 'POST',
+                          body: JSON.stringify({ tradeId: tradeRequest.tradeId, accept: true }),
+                        })
+                        setTradeRequest(null)
+                      }}>Accept</button>
+                      <button className="btn btn-red" onClick={async () => {
+                        await apiFetch('/api/trades/respond', {
+                          method: 'POST',
+                          body: JSON.stringify({ tradeId: tradeRequest.tradeId, accept: false }),
+                        })
+                        setTradeRequest(null)
+                      }}>Decline</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTrade && player && (
+              <TradeWindow
+                tradeId={activeTrade.tradeId}
+                myPlayerId={player.id}
+                otherPlayer={activeTrade.otherPlayer}
+                initialOffers={activeTrade.offers}
+                initialGold={activeTrade.gold}
+                isPlayer1={activeTrade.isPlayer1}
+                onClose={() => setActiveTrade(null)}
+                onInventoryClick={(enabled) => setTradeMode(enabled)}
+              />
             )}
           </>
         )

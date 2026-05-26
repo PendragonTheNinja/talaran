@@ -26,6 +26,7 @@ import { generalLimit, authLimit, chatLimit, forumLimit } from './middleware/rat
 import playerRoutes from './routes/player';
 import locationRoutes from './routes/location';
 import inventoryRoutes from './routes/inventory';
+import tradeRoutes from './routes/trades';
 
 dotenv.config();
 
@@ -98,6 +99,7 @@ app.use('/api/ground-items', groundItemsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', generalLimit);
+app.use('/api/trades', tradeRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {
@@ -132,6 +134,29 @@ io.on('connection', (socket) => {
       }
     } catch (err) {
       logger.error(`Guild room join error: ${err}`);
+    }
+  });
+
+  socket.on('disconnect', async () => {
+    if (!socket.data.playerId) return;
+    connectedPlayers.delete(socket.data.playerId);
+
+    // Cancel any active trades
+    try {
+      const trade = await db('trades')
+        .where(function () {
+          this.where({ player1_id: socket.data.playerId }).orWhere({ player2_id: socket.data.playerId })
+        })
+        .whereIn('status', ['pending', 'active'])
+        .first();
+
+      if (trade) {
+        await db('trades').where({ id: trade.id }).update({ status: 'cancelled' });
+        const otherId = trade.player1_id === socket.data.playerId ? trade.player2_id : trade.player1_id;
+        io.to(`player_${otherId}`).emit('trade_cancelled', { reason: 'The other player disconnected.' });
+      }
+    } catch (err) {
+      logger.error(`Trade disconnect cleanup error: ${err}`);
     }
   });
 

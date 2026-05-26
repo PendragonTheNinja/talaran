@@ -96,6 +96,9 @@ interface GameLayoutProps {
   onInventoryUpdate: () => void
   veinsData: any[]
   onLocationDataUpdate: () => void
+  tradeMode?: boolean
+  activeTrade?: { tradeId: number; otherPlayer: { id: number; username: string } } | null
+  onNotify?: (message: string) => void
 }
 
 export default function GameLayout({
@@ -110,6 +113,9 @@ export default function GameLayout({
   onInventoryUpdate,
   veinsData,
   onLocationDataUpdate,
+  tradeMode,
+  activeTrade,
+  onNotify,
 }: GameLayoutProps) {
   const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
 
@@ -356,6 +362,8 @@ export default function GameLayout({
           onDropItem={handleDropItem}
           dropMode={dropMode}
           dropAmount={dropAmount}
+          tradeMode={tradeMode}
+          tradeId={activeTrade?.tradeId}
         />
         <div className="game-center">
           <div className="game-scene-wrapper">
@@ -394,6 +402,18 @@ export default function GameLayout({
                 onLocationDataUpdate()
               }}
               onViewProfile={(id: number) => setProfilePlayerId(id)}
+              onRequestTrade={async (targetPlayerId) => {
+                try {
+                  await apiFetch('/api/trades/request', {
+                    method: 'POST',
+                    body: JSON.stringify({ targetPlayerId }),
+                  })
+                  onNotify?.('Trade request sent! Waiting for response...')
+                } catch (err: any) {
+                  onNotify?.(`Trade failed: ${err.message}`)
+                }
+              }}
+              currentPlayerId={player.id}
             />
           </div>
           <ChatPanel />

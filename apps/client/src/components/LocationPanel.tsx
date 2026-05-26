@@ -14,6 +14,7 @@ interface PlayerAtLocation {
   id: number
   username: string
   combat_level?: number
+  onRequestTrade?: (playerId: number) => void
 }
 
 interface LocationPanelProps {
@@ -28,9 +29,10 @@ interface LocationPanelProps {
   groundItemsKey?: number
   onLocationRefresh?: () => void
   onViewProfile?: (playerId: number) => void
+  currentPlayerId?: number
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh, onViewProfile }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -207,8 +209,23 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           <p className="location-panel-empty">No other players here.</p>
         ) : (
           playersHere.map(p => (
-            <div key={p.id} className="location-player" style={{ cursor: 'pointer' }} onClick={() => onViewProfile?.(p.id)}>
-              <span className="location-player-name gold-text">{p.username}</span>
+            <div key={p.id} className="location-player">
+              <span
+                className="location-player-name gold-text"
+                style={{ cursor: 'pointer' }}
+                onClick={() => onViewProfile?.(p.id)}
+              >
+                {p.username}
+              </span>
+              {locationData?.location?.name === 'Talador' && p.id !== currentPlayerId && (
+                <button
+                  className="btn"
+                  style={{ fontSize: '11px', padding: '2px 6px' }}
+                  onClick={() => onRequestTrade?.(p.id)}
+                >
+                  Trade
+                </button>
+              )}
             </div>
           ))
         )}

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../index';
+import { io } from '../index';
 
 const router = Router();
 
@@ -60,6 +61,20 @@ router.post('/start', requireAuth, async (req: AuthRequest, res: Response) => {
 
     // Cancel any existing action
     await db('player_actions').where({ player_id: playerId }).delete();
+
+    // Cancel any active trades
+    const activeTrade = await db('trades')
+      .where(function () {
+        this.where({ player1_id: playerId }).orWhere({ player2_id: playerId })
+      })
+      .whereIn('status', ['pending', 'active'])
+      .first();
+
+    if (activeTrade) {
+      await db('trades').where({ id: activeTrade.id }).update({ status: 'cancelled' });
+      const otherId = activeTrade.player1_id === playerId ? activeTrade.player2_id : activeTrade.player1_id;
+      io.to(`player_${otherId}`).emit('trade_cancelled', { reason: 'The other player left the area.' });
+    }
 
     // Start travel action
     const now = new Date();
