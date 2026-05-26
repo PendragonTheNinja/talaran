@@ -1,23 +1,21 @@
 import { io, Socket } from 'socket.io-client'
 
+const SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 let socket: Socket | null = null
 
 export function connectSocket(playerId: number): Socket {
   if (socket) socket.disconnect()
-
-  socket = io('http://localhost:3000', {
+  socket = io(SERVER_URL, {
     auth: { token: localStorage.getItem('talaran_token') }
   })
-
   socket.on('connect', () => {
     console.log('Socket connected')
     socket!.emit('join', playerId)
   })
-
   socket.on('disconnect', () => {
     console.log('Socket disconnected')
   })
-
   return socket
 }
 

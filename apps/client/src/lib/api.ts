@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 function getToken(): string | null {
   return localStorage.getItem('talaran_token')
@@ -7,7 +7,7 @@ function getToken(): string | null {
 export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('talaran_token')
 
-  const res = await fetch(`http://localhost:3000${url}`, {
+  const res = await fetch(`${BASE_URL}${url}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -17,7 +17,6 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
   })
 
   if (res.status === 401) {
-    // Token expired or invalid — clear storage and reload to login
     localStorage.removeItem('talaran_token')
     localStorage.removeItem('talaran_player')
     window.location.href = '/'
