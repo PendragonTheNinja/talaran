@@ -40,7 +40,7 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        fetch('${API_URL}/api/highscores/skills')
+        fetch(`${API_URL}/api/highscores/skills`)
             .then(r => r.json())
             .then(d => setSkills(d.skills || []))
             .catch(() => { })

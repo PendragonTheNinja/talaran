@@ -28,7 +28,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    fetch('${API_URL}/api/news/latest')
+    fetch(`${API_URL}/api/news/latest`)
       .then(r => r.json())
       .then(d => {
         console.log('News loaded:', d.posts)
@@ -90,8 +90,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     setLoading(true)
 
     const endpoint = mode === 'login'
-      ? '${API_URL}/api/auth/login'
-      : '${API_URL}/api/auth/register'
+      ? `${API_URL}/api/auth/login`
+      : `${API_URL}/api/auth/register`
 
     const body = mode === 'login'
       ? { username, password }
@@ -130,7 +130,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const [playerStats, setPlayerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 })
 
   useEffect(() => {
-    fetch('${API_URL}/api/player/stats')
+    fetch(`${API_URL}/api/player/stat`)
       .then(r => r.json())
       .then(d => setPlayerStats(d))
       .catch(() => { })

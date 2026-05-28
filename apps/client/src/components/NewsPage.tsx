@@ -19,7 +19,7 @@ export default function NewsPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('${API_URL}/api/news/latest')
+        fetch(`${API_URL}/api/news/latest`)
             .then(r => r.json())
             .then(d => {
                 setPosts(d.posts || [])
