@@ -72,7 +72,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   }, [locationData])
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
-  const miningNodes = nodes.filter((n: any) => n.skill === 'mining')
+  const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.name.toLowerCase().includes('rock'))
 
   const handlePickup = async (groundItemId: number) => {
     try {
