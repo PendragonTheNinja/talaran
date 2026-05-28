@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
-import LocationAtmosphere from './LocationAtmosphere'
 
 interface Node {
   id: number
@@ -574,11 +573,6 @@ export default function GameView({
     <div className="game-view panel">
       <div className="game-view-main">
         <div className="game-scene">
-
-          <LocationAtmosphere
-            locationName={locationName}
-            locationType={locationData?.location?.type || ''}
-          />
 
           {!currentAction && (
             <div className="scene-idle">

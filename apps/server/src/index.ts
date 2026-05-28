@@ -229,13 +229,11 @@ setInterval(async () => {
       const lastCheck = player.last_bot_check ? new Date(player.last_bot_check) : new Date(player.last_login || player.created_at);
 
       if (lastCheck < thirtyMinutesAgo) {
+        await db('players').where({ id: playerId }).update({ last_bot_check: now });
         io.to(`player_${playerId}`).emit('bot_check_required', {
           message: 'Please confirm you are still playing.',
         });
         logger.info(`Idle bot check triggered for player ${playerId}`);
       }
-    } catch (err) {
-      logger.error(`Idle bot check error for player ${playerId}: ${err}`);
     }
-  }
 }, 5 * 60 * 1000); // check every 5 minutes
