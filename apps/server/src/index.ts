@@ -235,5 +235,8 @@ setInterval(async () => {
         });
         logger.info(`Idle bot check triggered for player ${playerId}`);
       }
+    } catch (err) {
+      logger.error(`Idle bot check error for player ${playerId}: ${err}`);
     }
-}, 5 * 60 * 1000); // check every 5 minutes
+  }
+}, 5 * 60 * 1000);
