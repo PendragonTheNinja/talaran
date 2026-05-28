@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import './NewsPage.css'
 import { Link } from 'react-router-dom'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 interface NewsPost {
     id: number
     title: string
@@ -17,7 +19,7 @@ export default function NewsPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/news/latest')
+        fetch('${API_URL}/api/news/latest')
             .then(r => r.json())
             .then(d => {
                 setPosts(d.posts || [])

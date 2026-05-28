@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './HighscoresPage.css'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 interface Skill {
     id: number
     name: string
@@ -38,7 +40,7 @@ export default function HighscoresPage() {
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/highscores/skills')
+        fetch('${API_URL}/api/highscores/skills')
             .then(r => r.json())
             .then(d => setSkills(d.skills || []))
             .catch(() => { })
@@ -52,7 +54,7 @@ export default function HighscoresPage() {
         setLoading(true)
         try {
             const res = await fetch(
-                `http://localhost:3000/api/highscores?skill=${selectedSkill}&mode=${mode}&page=${page}&limit=${limit}`
+                `${API_URL}/api/highscores?skill=${selectedSkill}&mode=${mode}&page=${page}&limit=${limit}`
             )
             const data = await res.json()
             setPlayers(data.players || [])

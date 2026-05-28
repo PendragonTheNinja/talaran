@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import './AuthScreen.css'
 import { Link } from 'react-router-dom'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 interface AuthScreenProps {
   onLogin: (token: string, player: { id: number; username: string; email: string }) => void
 }
@@ -26,7 +28,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    fetch('http://localhost:3000/api/news/latest')
+    fetch('${API_URL}/api/news/latest')
       .then(r => r.json())
       .then(d => {
         console.log('News loaded:', d.posts)
@@ -88,8 +90,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     setLoading(true)
 
     const endpoint = mode === 'login'
-      ? 'http://localhost:3000/api/auth/login'
-      : 'http://localhost:3000/api/auth/register'
+      ? '${API_URL}/api/auth/login'
+      : '${API_URL}/api/auth/register'
 
     const body = mode === 'login'
       ? { username, password }
@@ -128,7 +130,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const [playerStats, setPlayerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 })
 
   useEffect(() => {
-    fetch('http://localhost:3000/api/player/stats')
+    fetch('${API_URL}/api/player/stats')
       .then(r => r.json())
       .then(d => setPlayerStats(d))
       .catch(() => { })
