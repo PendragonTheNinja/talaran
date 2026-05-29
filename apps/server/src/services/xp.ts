@@ -15,8 +15,8 @@ export function xpForLevel(level: number): number {
   let total = 0;
   for (let i = 1; i < level; i++) {
     const base = i <= 50
-      ? Math.floor(120 * Math.pow(1.09, i))
-      : Math.floor(120 * Math.pow(1.09, 50) * Math.pow(1.055, i - 50));
+      ? Math.floor(1700 * Math.pow(1.07, i))
+      : Math.floor(1700 * Math.pow(1.07, 50) * Math.pow(1.055, i - 50));
     total += base;
   }
   return Math.floor(total);
