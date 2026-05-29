@@ -351,10 +351,20 @@ async function discoverVein(
   try {
     const node = await db('resource_nodes').where({ id: nodeId }).first();
 
+    // Get ore subtypes allowed at this location
+    const oreNodes = await db('resource_nodes')
+      .where({ location_id: locationId, skill: 'mining' })
+      .whereNotNull('ore_subtype')
+      .select('ore_subtype');
+
+    if (oreNodes.length === 0) return null;
+
+    const allowedSubtypes = oreNodes.map((n: any) => n.ore_subtype);
+
     const eligibleOres = await db('items')
       .where({ type: 'ore' })
       .whereNull('quality')
-      .where('level_required', '<=', playerLevel + 5)
+      .whereIn('subtype', allowedSubtypes)
       .orderBy('level_required', 'asc');
 
     if (eligibleOres.length === 0) return null;
@@ -370,6 +380,8 @@ async function discoverVein(
     const quantity = Math.floor(Math.random() * (node.max_vein_quantity - node.min_vein_quantity + 1)) + node.min_vein_quantity;
     const now = new Date();
     const announceAt = new Date(now.getTime() + VEIN_ANNOUNCE_DELAY);
+
+    if (oreNodes.length === 0) return null;
 
     await db('ore_veins').insert({
       location_id: locationId,

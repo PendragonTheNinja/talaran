@@ -426,6 +426,7 @@ export default function GameLayout({
           allLocations={locationData?.allLocations || []}
           connections={locationData?.connections || []}
           onTravel={handleTravel}
+          locationData={locationData}
         />
       </div>
 

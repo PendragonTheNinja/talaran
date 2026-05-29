@@ -177,6 +177,7 @@ export async function seed(knex: Knex): Promise<void> {
       required_level: 1, base_timer: 28, min_timer: 16, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 20,
       vein_discovery_chance: 5, min_vein_quantity: 25, max_vein_quantity: 50,
+      ore_subtype: 'burgh',
     },
 
     // Origrund — Mining (level 1)
@@ -191,6 +192,7 @@ export async function seed(knex: Knex): Promise<void> {
       required_level: 1, base_timer: 28, min_timer: 16, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 20,
       vein_discovery_chance: 5, min_vein_quantity: 25, max_vein_quantity: 50,
+      ore_subtype: 'ambren',
     },
 
   ]);

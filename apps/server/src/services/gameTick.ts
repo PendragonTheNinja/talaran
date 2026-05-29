@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import db from '../db';
 import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
-import { levelFromXp, xpToNextLevel } from './xp';
+import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
 
@@ -202,7 +202,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const previousLevel = levelFromXp(previousXp);
       const leveledUp = currentLevel > previousLevel;
       const xpNeeded = xpToNextLevel(currentXp);
-
+      const xpAtLevel = xpForLevel(currentLevel)
       const updatedVein = await db('ore_veins').where({ id: action.action_data }).first();
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
@@ -213,7 +213,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         },
         nextCompletes: nextCompletion,
         timerSeconds: nextTimer,
-        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
       });
       return;
     }
@@ -240,13 +240,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
             const lastLevel = levelFromXp(lastXp);
             const lastXpNeeded = xpToNextLevel(lastXp);
+            const xpAtLevel = xpForLevel(lastLevel)
 
             io.to(`player_${action.player_id}`).emit('action_complete', {
               actionType: action.action_type,
               result,
               nextCompletes: null,
               timerSeconds: 0,
-              xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: lastXpNeeded, leveledUp: false },
+              xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: lastXpNeeded, xpAtLevel, leveledUp: false },
             });
 
             io.to(`player_${action.player_id}`).emit('action_failed', {
@@ -274,13 +275,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const previousLevel = levelFromXp(previousXp);
       const leveledUp = currentLevel > previousLevel;
       const xpNeeded = xpToNextLevel(currentXp);
+      const xpAtLevel = xpForLevel(currentLevel)
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
         actionType: action.action_type,
         result,
         nextCompletes: nextCompletion,
         timerSeconds,
-        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
       });
 
       // Check action limit
@@ -342,13 +344,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const previousLevel = levelFromXp(previousXp);
       const leveledUp = currentLevel > previousLevel;
       const xpNeeded = xpToNextLevel(currentXp);
+      const xpAtLevel = xpForLevel(currentLevel)
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
         actionType: action.action_type,
         result,
         nextCompletes: nextCompletion,
         timerSeconds: nextTimer,
-        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
       });
 
     } else if (!action.auto_restart) {
@@ -365,13 +368,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const previousLevel = levelFromXp(previousXp);
         const leveledUp = currentLevel > previousLevel;
         const xpNeeded = xpToNextLevel(currentXp);
+        const xpAtLevel = xpForLevel(currentLevel)
 
         io.to(`player_${action.player_id}`).emit('action_complete', {
           actionType: action.action_type,
           result,
           nextCompletes: null,
           timerSeconds: 0,
-          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp },
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
         });
       } else {
         io.to(`player_${action.player_id}`).emit('action_complete', {

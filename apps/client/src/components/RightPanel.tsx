@@ -19,6 +19,7 @@ interface RightPanelProps {
   allLocations: Location[]
   connections: any[]
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
+  locationData?: any
 }
 
 interface Skill {
@@ -38,12 +39,14 @@ interface PlayerData {
   currentAction: any
 }
 
-export default function RightPanel({ player, playerData, currentLocationId, locationName, allLocations, connections, onTravel }: RightPanelProps) {
+export default function RightPanel({ player, playerData, currentLocationId, locationName, allLocations, connections, onTravel, locationData }: RightPanelProps) {
   const skills = playerData?.skills || []
   const totalLevel = playerData?.totalLevel || 0
   const totalXp = playerData?.totalXp || 0
 
   const [skillTooltip, setSkillTooltip] = useState<{ x: number; y: number; skill: Skill } | null>(null)
+
+  const [showMap, setShowMap] = useState(false)
 
   return (
     <aside className="right-panel">
@@ -61,7 +64,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
           </div>
         </div>
         <div className="minimap-btns">
-          <button className="btn" style={{ flex: 1 }}>Island Map</button>
+          <button className="btn" style={{ flex: 1 }} onClick={() => setShowMap(true)}>Island Map</button>
           <button className="btn" style={{ flex: 1 }}>World Map</button>
         </div>
       </div>
@@ -129,6 +132,19 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
           <p className="skill-tooltip-level">Level {skillTooltip.skill.level}</p>
           <p className="skill-tooltip-xp">{skillTooltip.skill.xp.toLocaleString()} XP</p>
           <p className="skill-tooltip-next">{skillTooltip.skill.xpToNext.toLocaleString()} XP to next level</p>
+        </div>
+      )}
+
+      {showMap && (
+        <div className="map-overlay" onClick={() => setShowMap(false)}>
+          <div className="map-popup" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn map-close" onClick={() => setShowMap(false)}>✕</button>
+            <img
+              src={`/images/maps/${locationData?.location?.region?.replace(/ /g, '_')}.jpg`}
+              alt="Island Map"
+              className="map-image"
+            />
+          </div>
         </div>
       )}
     </aside>

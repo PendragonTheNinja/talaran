@@ -96,6 +96,7 @@ export default function GameView({
     totalXp: number
     level: number
     xpToNext: number
+    xpAtLevel: number
     skillName: string
     remainingQuantity?: number
     quantity?: number
@@ -202,6 +203,7 @@ export default function GameView({
             totalXp: data.xpInfo?.totalXp || 0,
             level: data.xpInfo?.level || 1,
             xpToNext: data.xpInfo?.xpToNext || 0,
+            xpAtLevel: data.xpInfo?.xpAtLevel || 0,
             skillName,
             remainingQuantity: data.result.remainingQuantity,
             quantity: (data.result as any).quantity,
@@ -688,9 +690,21 @@ export default function GameView({
 
           {lastResult && (
             <div className="scene-last-result">
-              <p className="last-result-item">You gained {lastResult.quantity ?? 1} × {lastResult.itemName}</p>
-              <p className="last-result-xp">+{lastResult.xpAwarded} {lastResult.skillName} XP (Total: {lastResult.totalXp.toLocaleString()})</p>
-              <p className="last-result-next">{lastResult.xpToNext.toLocaleString()} XP until level {lastResult.level + 1}</p>
+              <p className="last-result-item">
+                You gained {lastResult.quantity ?? 1} × {lastResult.itemName}!
+              </p>
+              <p className="last-result-xp">
+                +{lastResult.xpAwarded} {lastResult.skillName} experience, {lastResult.totalXp.toLocaleString()} total.
+              </p>
+              <p className="last-result-next">
+                {Math.ceil(lastResult.xpToNext / lastResult.xpAwarded).toLocaleString()} actions ({lastResult.xpToNext.toLocaleString()} xp) to level {lastResult.level + 1} ({
+                  (() => {
+                    const xpIntoLevel = lastResult.totalXp - lastResult.xpAtLevel
+                    const xpNeededForLevel = xpIntoLevel + lastResult.xpToNext
+                    return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
+                  })()
+                }%)
+              </p>
               {lastResult.remainingQuantity !== undefined && (
                 <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
               )}

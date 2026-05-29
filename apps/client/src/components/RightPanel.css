@@ -224,3 +224,39 @@
   padding-top: 6px;
   margin-top: 4px;
 }
+
+.map-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-popup {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.map-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border: 2px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+}
+
+.map-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  z-index: 1;
+  background: var(--color-bg-dark);
+  border: 1px solid var(--color-border-gold);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+}

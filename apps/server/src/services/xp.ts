@@ -14,7 +14,6 @@ export function xpForLevel(level: number): number {
   if (level <= 1) return 0;
   let total = 0;
   for (let i = 1; i < level; i++) {
-    // Blended curve: grows faster early, slows after level 50
     const base = i <= 50
       ? Math.floor(120 * Math.pow(1.09, i))
       : Math.floor(120 * Math.pow(1.09, 50) * Math.pow(1.055, i - 50));
@@ -43,7 +42,6 @@ export function xpProgressInLevel(xp: number): number {
   return Math.floor(((xp - xpAtCurrentLevel) / (xpAtNextLevel - xpAtCurrentLevel)) * 100);
 }
 
-// For debugging and admin tools
 export function xpTableSummary(): { level: number; totalXp: number }[] {
   const summary = [];
   for (const level of [1, 5, 10, 12, 25, 50, 75, 100, 110, 120]) {
