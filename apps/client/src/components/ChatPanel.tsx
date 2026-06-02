@@ -9,9 +9,14 @@ interface ChatMessage {
   playerName: string
   guildTag: string | null
   message: string
-  timestamp: string
+  timestamp: string      // display format HH:MM
+  rawTimestamp: number   // unix ms for sorting
   isWhisper?: boolean
   whisperTo?: string
+}
+
+interface ChatPanelProps {
+  onOpenForum?: (threadId: number) => void
 }
 
 const CHANNELS = [
@@ -20,6 +25,7 @@ const CHANNELS = [
   { key: 'guild', label: 'Guild' },
   { key: 'trade', label: 'Trade' },
   { key: 'help', label: 'Help' },
+  { key: 'whisper', label: 'Whisper' },
 ]
 
 const CHANNEL_COLORS: Record<string, string> = {
@@ -30,22 +36,94 @@ const CHANNEL_COLORS: Record<string, string> = {
   help: '#ECFF00',
   whisper: '#08f8d0',
   server: '#ff4444',
+  forum: '#4a9eff',
 }
 
-export default function ChatPanel() {
+const CHANNEL_SHORT: Record<string, string> = {
+  world: 'W',
+  region: 'R',
+  guild: 'G',
+  trade: 'T',
+  help: 'H',
+  whisper: 'w',
+  server: 'S',
+}
+
+function formatTime(date: Date): string {
+  return date.toTimeString().slice(0, 5)
+}
+
+export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
   const [activeChannel, setActiveChannel] = useState('world')
   const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
+  const [historyLoaded, setHistoryLoaded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [mutedChannels, setMutedChannels] = useState<string[]>([])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  // Only scroll to bottom for new live messages, not history
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' })
   }
 
+  // Scroll to bottom once history is loaded
   useEffect(() => {
-    scrollToBottom()
-  }, [allMessages])
+    if (historyLoaded) {
+      scrollToBottom(false)
+    }
+  }, [historyLoaded])
+
+  // Scroll to bottom on new live messages only (after history loaded)
+  const isLiveMessage = useRef(false)
+  useEffect(() => {
+    if (historyLoaded && isLiveMessage.current) {
+      scrollToBottom(true)
+      isLiveMessage.current = false
+    }
+  }, [allMessages, historyLoaded])
+
+  // Add message helper — deduplicates by id, keeps sorted by rawTimestamp
+  const addMessages = (newMsgs: ChatMessage[], isLive = false) => {
+    if (isLive) isLiveMessage.current = true
+    setAllMessages(prev => {
+      const existingIds = new Set(prev.map(m => m.id))
+      const unique = newMsgs.filter(m => !existingIds.has(m.id))
+      if (unique.length === 0) return prev
+      const combined = [...prev, ...unique]
+      combined.sort((a, b) => a.rawTimestamp - b.rawTimestamp)
+      return combined.slice(-500)
+    })
+  }
+
+  // Load settings
+  useEffect(() => {
+    apiFetch<{ mutedChannels: string[] }>('/api/settings')
+      .then(data => setMutedChannels(data.mutedChannels || []))
+      .catch(() => { })
+  }, [])
+
+  // Forum notification listener
+  useEffect(() => {
+    const handleForumNotification = (e: any) => {
+      const data = e.detail
+      const now = Date.now()
+      const forumMessage: ChatMessage = {
+        id: now,
+        channel: 'world',
+        playerName: '📋',
+        guildTag: null,
+        message: `__FORUM__${data.threadId}__${data.authorName} posted "${data.title}" in ${data.categoryName}`,
+        timestamp: formatTime(new Date(data.createdAt)),
+        rawTimestamp: new Date(data.createdAt).getTime(),
+        isWhisper: false,
+      }
+      addMessages([forumMessage], true)
+    }
+
+    window.addEventListener('forum_notification', handleForumNotification)
+    return () => window.removeEventListener('forum_notification', handleForumNotification)
+  }, [])
 
   // Load history for all channels on mount
   useEffect(() => {
@@ -60,16 +138,25 @@ export default function ChatPanel() {
             playerName: m.player_name,
             guildTag: m.guild_tag,
             message: m.message,
-            timestamp: new Date(m.sent_at).toTimeString().slice(0, 5),
+            timestamp: formatTime(new Date(m.sent_at)),
+            rawTimestamp: new Date(m.sent_at).getTime(),
+            isWhisper: m.channel === 'whisper',
           }))
           all.push(...formatted)
         } catch (err) {
           console.error(`Failed to load ${key} history:`, err)
         }
       }
-      // Sort all messages by timestamp
-      all.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
-      setAllMessages(all)
+      all.sort((a, b) => a.rawTimestamp - b.rawTimestamp)
+      // Deduplicate by id
+      const seen = new Set<number>()
+      const unique = all.filter(m => {
+        if (seen.has(m.id)) return false
+        seen.add(m.id)
+        return true
+      })
+      setAllMessages(unique.slice(-500))
+      setHistoryLoaded(true)
     }
     loadAll()
   }, [])
@@ -81,8 +168,17 @@ export default function ChatPanel() {
       if (!socket) return
       clearInterval(interval)
 
-      const handleMessage = (data: ChatMessage) => {
-        setAllMessages(prev => [...prev.slice(-499), data])
+      const handleMessage = (data: any) => {
+        const msg: ChatMessage = {
+          id: data.id || Date.now(),
+          channel: data.channel,
+          playerName: data.playerName || data.player_name,
+          guildTag: data.guildTag || data.guild_tag || null,
+          message: data.message,
+          timestamp: data.timestamp || formatTime(new Date()),
+          rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
+        }
+        addMessages([msg], true)
       }
 
       socket.on('chat_world', handleMessage)
@@ -98,10 +194,11 @@ export default function ChatPanel() {
           playerName: data.from,
           guildTag: data.guildTag,
           message: data.message,
-          timestamp: data.timestamp,
+          timestamp: data.timestamp || formatTime(new Date()),
+          rawTimestamp: Date.now(),
           isWhisper: true,
         }
-        setAllMessages(prev => [...prev.slice(-499), msg])
+        addMessages([msg], true)
         setInput(`${data.from}@`)
         inputRef.current?.focus()
       })
@@ -113,35 +210,38 @@ export default function ChatPanel() {
           playerName: 'You',
           guildTag: null,
           message: `→ ${data.to}: ${data.message}`,
-          timestamp: data.timestamp,
+          timestamp: data.timestamp || formatTime(new Date()),
+          rawTimestamp: Date.now(),
           isWhisper: true,
           whisperTo: data.to,
         }
-        setAllMessages(prev => [...prev.slice(-499), msg])
+        addMessages([msg], true)
       })
 
       socket.on('chat_muted', (data: { message: string }) => {
-        const msg = {
+        const msg: ChatMessage = {
           id: Date.now(),
           channel: 'server',
           playerName: '[SERVER]',
           guildTag: null,
           message: data.message,
-          timestamp: new Date().toTimeString().slice(0, 5),
+          timestamp: formatTime(new Date()),
+          rawTimestamp: Date.now(),
         }
-        setAllMessages(prev => [...prev.slice(-499), msg])
+        addMessages([msg], true)
       })
 
       socket.on('chat_warning', (data: { message: string }) => {
-        const msg = {
+        const msg: ChatMessage = {
           id: Date.now(),
           channel: 'server',
           playerName: '[SERVER]',
           guildTag: null,
           message: data.message,
-          timestamp: new Date().toTimeString().slice(0, 5),
+          timestamp: formatTime(new Date()),
+          rawTimestamp: Date.now(),
         }
-        setAllMessages(prev => [...prev.slice(-499), msg])
+        addMessages([msg], true)
       })
 
       return () => {
@@ -171,16 +271,16 @@ export default function ChatPanel() {
       })
       setInput('')
     } catch (err: any) {
-      // Show mute warning in chat
-      const errorMsg = {
+      const errorMsg: ChatMessage = {
         id: Date.now(),
         channel: 'server',
         playerName: '[SERVER]',
         guildTag: null,
         message: err.message || 'Could not send message.',
-        timestamp: new Date().toTimeString().slice(0, 5),
+        timestamp: formatTime(new Date()),
+        rawTimestamp: Date.now(),
       }
-      setAllMessages(prev => [...prev.slice(-499), errorMsg])
+      addMessages([errorMsg], true)
     }
   }
 
@@ -194,24 +294,7 @@ export default function ChatPanel() {
     return found ? found.label : channel
   }
 
-  const CHANNEL_SHORT: Record<string, string> = {
-    world: 'W',
-    region: 'R',
-    guild: 'G',
-    trade: 'T',
-    help: 'H',
-    whisper: 'w',
-    server: 'S',
-  }
-
-  const [mutedChannels, setMutedChannels] = useState<string[]>([])
   const visibleMessages = allMessages.filter(msg => !mutedChannels.includes(msg.channel))
-
-  useEffect(() => {
-    apiFetch<{ mutedChannels: string[] }>('/api/settings')
-      .then(data => setMutedChannels(data.mutedChannels || []))
-      .catch(() => { })
-  }, [])
 
   return (
     <div className="chat-panel panel">
@@ -234,28 +317,56 @@ export default function ChatPanel() {
         {visibleMessages.length === 0 ? (
           <p className="chat-empty muted-text">Welcome to Talaran, adventurer. The world awaits.</p>
         ) : (
-          visibleMessages.map((msg, i) => (
-            <div key={`${msg.id}-${i}`} className="chat-message">
-              <span className="chat-timestamp muted-text">{msg.timestamp}</span>
-              {' '}
-              <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                [{CHANNEL_SHORT[msg.channel] || msg.channel}]
-              </span>
-              {' '}
-              <span
-                className="chat-player gold-text"
-                onClick={() => handlePlayerClick(msg.playerName)}
-                style={{ cursor: 'pointer' }}
-              >
-                {msg.playerName}
-                {msg.guildTag && <span className="chat-guild-tag">[{msg.guildTag}]</span>}
-              </span>
-              <span className="chat-colon muted-text">: </span>
-              <span className="chat-text" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                {msg.message}
-              </span>
-            </div>
-          ))
+          visibleMessages.map((msg, i) => {
+            const isForumNotification = msg.message.startsWith('__FORUM__')
+
+            if (isForumNotification) {
+              const parts = msg.message.split('__')
+              const threadId = parseInt(parts[2])
+              const displayText = parts[3]
+
+              return (
+                <div key={`${msg.id}-${i}`} className="chat-message">
+                  <span className="chat-timestamp muted-text">{msg.timestamp}</span>
+                  {' '}
+                  <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS['forum'] }}>
+                    [F]
+                  </span>
+                  {' '}
+                  <span
+                    className="chat-text chat-forum-link"
+                    style={{ color: CHANNEL_COLORS['forum'], cursor: 'pointer' }}
+                    onClick={() => onOpenForum?.(threadId)}
+                  >
+                    {displayText}
+                  </span>
+                </div>
+              )
+            }
+
+            return (
+              <div key={`${msg.id}-${i}`} className="chat-message">
+                <span className="chat-timestamp muted-text">{msg.timestamp}</span>
+                {' '}
+                <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS[msg.channel] }}>
+                  [{CHANNEL_SHORT[msg.channel] || msg.channel}]
+                </span>
+                {' '}
+                <span
+                  className="chat-player gold-text"
+                  onClick={() => handlePlayerClick(msg.playerName)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {msg.playerName}
+                  {msg.guildTag && <span className="chat-guild-tag">[{msg.guildTag}]</span>}
+                </span>
+                <span className="chat-colon muted-text">: </span>
+                <span className="chat-text" style={{ color: CHANNEL_COLORS[msg.channel] }}>
+                  {msg.message}
+                </span>
+              </div>
+            )
+          })
         )}
         <div ref={messagesEndRef} />
       </div>

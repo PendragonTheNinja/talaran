@@ -3,15 +3,15 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { io } from '../index';
 import { logger } from '../lib/logger';
+import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
-const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help'];
-const MAX_MESSAGE_LENGTH = 500;
+const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help', 'whisper']; const MAX_MESSAGE_LENGTH = 500;
 const HISTORY_DAYS = 2; // today + yesterday
 
 // Get chat history for a channel
-router.get('/history/:channel', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const channel = Array.isArray(req.params.channel) ? req.params.channel[0] : req.params.channel;
 
@@ -38,8 +38,15 @@ router.get('/history/:channel', requireAuth, async (req: AuthRequest, res: Respo
     }
 
     if (channel === 'guild') {
-      // Will add guild filter once guilds are built
-      query = query.where('guild_id', null); // placeholder
+      if (!player.guild_id) {
+        res.json({ messages: [] })
+        return
+      }
+      query = query.where('guild_id', player.guild_id);
+    }
+
+    if (channel === 'whisper') {
+      query = query.where('player_id', playerId);
     }
 
     const messages = await query;
@@ -51,7 +58,7 @@ router.get('/history/:channel', requireAuth, async (req: AuthRequest, res: Respo
 });
 
 // Send a chat message
-router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { channel, message } = req.body;
 
@@ -114,6 +121,29 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
         timestamp,
         guildTag: null, // will add later
       };
+
+      await db('chat_messages').insert({
+        player_id: playerId,
+        channel: 'whisper',
+        region: null,
+        guild_id: null,
+        message: `→ ${targetName}: ${whisperMessage}`,
+        player_name: player.username,
+        guild_tag: player.guild_tag || null,
+        sent_at: now,
+      });
+
+      // Also save received whisper for the target
+      await db('chat_messages').insert({
+        player_id: targetPlayer.id,
+        channel: 'whisper',
+        region: null,
+        guild_id: null,
+        message: whisperMessage,
+        player_name: player.username,
+        guild_tag: player.guild_tag || null,
+        sent_at: now,
+      });
 
       // Send to target
       io.to(`player_${targetPlayer.id}`).emit('whisper', whisperData);

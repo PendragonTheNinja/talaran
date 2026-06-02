@@ -116,3 +116,7 @@
   font-size: 16px;
   padding: 2px var(--space-md);
 }
+
+.chat-forum-link:hover {
+  text-decoration: underline;
+}

@@ -22,7 +22,7 @@ import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
 import adminRoutes from './routes/admin';
 import settingsRoutes from './routes/settings';
-import { generalLimit, authLimit, chatLimit, forumLimit } from './middleware/rateLimit';
+import { generalLimit, authLimit, chatLimit, chatReadLimit, forumLimit } from './middleware/rateLimit';
 import playerRoutes from './routes/player';
 import locationRoutes from './routes/location';
 import inventoryRoutes from './routes/inventory';
@@ -82,7 +82,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authLimit, authRoutes);
-app.use('/api/chat', chatLimit, chatRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/forum', forumLimit, forumRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/player', playerRoutes);

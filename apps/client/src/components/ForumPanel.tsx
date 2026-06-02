@@ -69,12 +69,15 @@ interface RecentThread {
 
 type ForumView = 'home' | 'category' | 'thread' | 'new_thread'
 
-export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile }: {
+export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile, openThreadId, onThreadOpened }: {
     onClose: () => void
     playerUsername: string
     isAdmin: boolean
     isMod: boolean
     closing?: boolean
+    onViewProfile?: (playerId: number) => void
+    openThreadId?: number | null
+    onThreadOpened?: () => void
 }) {
     console.log('Forum props - isAdmin:', isAdmin, 'isMod:', isMod)
     const [view, setView] = useState<ForumView>('home')
@@ -104,8 +107,17 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const [showReply, setShowReply] = useState(false)
 
     useEffect(() => {
+        if (openThreadId) return
         loadHome()
     }, [])
+
+    useEffect(() => {
+        if (openThreadId) {
+            console.log('Opening thread from notification:', openThreadId)
+            loadThread(openThreadId)
+            onThreadOpened?.()
+        }
+    }, [openThreadId])
 
     const loadHome = async () => {
         try {

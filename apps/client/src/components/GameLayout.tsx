@@ -251,6 +251,7 @@ export default function GameLayout({
   const [unreadMessages, setUnreadMessages] = useState(0)
 
   const [showForum, setShowForum] = useState(false)
+  const [forumOpenThreadId, setForumOpenThreadId] = useState<number | null>(null)
 
   const [showNews, setShowNews] = useState(false)
 
@@ -424,7 +425,10 @@ export default function GameLayout({
               smithingStatusKey={smithingStatusKey}
             />
           </div>
-          <ChatPanel />
+          <ChatPanel onOpenForum={(threadId) => {
+            setShowForum(true)
+            setForumOpenThreadId(threadId)
+          }} />
         </div>
         <RightPanel
           player={player}
@@ -507,6 +511,8 @@ export default function GameLayout({
           isMod={playerData?.player?.is_mod || false}
           closing={forumClosing}
           onViewProfile={(id) => setProfilePlayerId(id)}
+          openThreadId={forumOpenThreadId}
+          onThreadOpened={() => setForumOpenThreadId(null)}
         />
       )}
 

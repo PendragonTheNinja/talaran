@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { io } from '../index';
 
 const router = Router();
 
@@ -310,6 +311,19 @@ router.post('/threads', requireAuth, async (req: AuthRequest, res: Response) => 
         }
 
         logger.info(`Player ${playerId} created thread ${thread.id} in category ${categoryId}`);
+        // Emit forum notification to world chat
+        {
+            const forumPlayer = await db('players').where({ id: playerId }).first();
+            const forumCategory = await db('forum_categories').where({ id: categoryId }).first();
+
+            io.emit('forum_thread_created', {
+                threadId: thread.id,
+                title: thread.title,
+                authorName: forumPlayer.username,
+                categoryName: forumCategory.name,
+                createdAt: now,
+            });
+        }
         res.json({ success: true, threadId: thread.id });
     } catch (err) {
         logger.error(`Create thread error: ${err}`);

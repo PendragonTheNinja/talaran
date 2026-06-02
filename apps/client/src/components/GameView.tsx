@@ -653,6 +653,28 @@ export default function GameView({
               {currentAction === 'kiln_collect' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop</button>
               )}
+              {lastResult && (
+                <div className="scene-last-result">
+                  <p className="last-result-item">
+                    You gained {lastResult.quantity ?? 1} × {lastResult.itemName}!
+                  </p>
+                  <p className="last-result-xp">
+                    +{lastResult.xpAwarded} {lastResult.skillName} experience, {lastResult.totalXp.toLocaleString()} total.
+                  </p>
+                  <p className="last-result-next">
+                    {Math.ceil(lastResult.xpToNext / lastResult.xpAwarded).toLocaleString()} actions ({lastResult.xpToNext.toLocaleString()} xp) to level {lastResult.level + 1} ({
+                      (() => {
+                        const xpIntoLevel = lastResult.totalXp - lastResult.xpAtLevel
+                        const xpNeededForLevel = xpIntoLevel + lastResult.xpToNext
+                        return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
+                      })()
+                    }%)
+                  </p>
+                  {lastResult.remainingQuantity !== undefined && (
+                    <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -706,29 +728,6 @@ export default function GameView({
                 <span className="scene-actions-remaining muted-text">
                   {actionLimit - actionsCompleted} actions remaining
                 </span>
-              )}
-            </div>
-          )}
-
-          {lastResult && (
-            <div className="scene-last-result">
-              <p className="last-result-item">
-                You gained {lastResult.quantity ?? 1} × {lastResult.itemName}!
-              </p>
-              <p className="last-result-xp">
-                +{lastResult.xpAwarded} {lastResult.skillName} experience, {lastResult.totalXp.toLocaleString()} total.
-              </p>
-              <p className="last-result-next">
-                {Math.ceil(lastResult.xpToNext / lastResult.xpAwarded).toLocaleString()} actions ({lastResult.xpToNext.toLocaleString()} xp) to level {lastResult.level + 1} ({
-                  (() => {
-                    const xpIntoLevel = lastResult.totalXp - lastResult.xpAtLevel
-                    const xpNeededForLevel = xpIntoLevel + lastResult.xpToNext
-                    return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
-                  })()
-                }%)
-              </p>
-              {lastResult.remainingQuantity !== undefined && (
-                <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
               )}
             </div>
           )}

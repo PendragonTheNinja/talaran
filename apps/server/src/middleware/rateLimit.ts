@@ -18,7 +18,7 @@ export const authLimit = rateLimit({
     legacyHeaders: false,
 });
 
-// Chat limit — 30 messages per minute
+// Chat send limit — 30 messages per minute
 export const chatLimit = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
@@ -27,10 +27,19 @@ export const chatLimit = rateLimit({
     legacyHeaders: false,
 });
 
+// Chat history read limit — generous, just for history fetching
+export const chatReadLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    message: { error: 'Too many requests.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Forum limit — 10 posts per minute
 export const forumLimit = rateLimit({
     windowMs: 60 * 1000,
-    max: 10,
+    max: 120,
     message: { error: 'You are posting too quickly.' },
     standardHeaders: true,
     legacyHeaders: false,
