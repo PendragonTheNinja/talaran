@@ -22,7 +22,7 @@
   padding: 5px var(--space-sm);
   color: var(--color-text-muted);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.1s;
 }
@@ -39,7 +39,7 @@
 .chat-sending-to {
   margin-left: auto;
   padding-right: var(--space-sm);
-  font-size: 12px;
+  font-size: 14px;
   font-style: italic;
 }
 
@@ -85,7 +85,7 @@
 }
 
 .chat-text {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .chat-input-row {
@@ -104,7 +104,7 @@
   padding: 4px var(--space-sm);
   color: var(--color-text-base);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .chat-input:focus {

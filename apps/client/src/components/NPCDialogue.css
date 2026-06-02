@@ -1,0 +1,124 @@
+.npc-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.npc-dialogue {
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-lg);
+    width: 500px;
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+}
+
+.npc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border-gold);
+    flex-shrink: 0;
+}
+
+.npc-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.npc-avatar {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.npc-name {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.npc-title {
+    font-size: 13px;
+    margin: 2px 0 0;
+}
+
+.npc-body {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.npc-text-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.npc-text {
+    font-size: 15px;
+    color: var(--color-text-base);
+    line-height: 1.65;
+    margin: 0;
+}
+
+.npc-quest-progress {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.npc-objective {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.npc-objective-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.npc-progress-bar {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.npc-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.npc-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.npc-option-btn {
+    text-align: left;
+    justify-content: flex-start;
+}

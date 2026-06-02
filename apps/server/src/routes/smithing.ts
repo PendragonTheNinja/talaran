@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
   getWorkstation, setupWorkstation,
   loadKiln, collectKiln, getKilnStatus,
-  smeltIngots, smithPart,
+  smeltIngots, smithPart, getSmithingCost,
   canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
 } from '../services/smithing';
 import { levelFromXp } from '../services/xp';
@@ -29,9 +29,9 @@ router.get('/status', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
     const maxBatches = playerLevel >= 40 ? 5
       : playerLevel >= 30 ? 4
-      : playerLevel >= 20 ? 3
-      : playerLevel >= 10 ? 2
-      : 1;
+        : playerLevel >= 20 ? 3
+          : playerLevel >= 10 ? 2
+            : 1;
     const maxLogs = maxBatches * 20;
 
     res.json({ workstation, kilnStatus, maxLogs });
@@ -128,59 +128,62 @@ router.post('/kiln/collect/start', requireAuth, async (req: AuthRequest, res: Re
 router.post('/smelt/start', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { metalType, actionLimit } = req.body;
-  
   try {
     const player = await db('players').where({ id: playerId }).first();
     const locationId = player.current_location_id;
-
     const canSmith = await canSmithHere(playerId, locationId);
     if (!canSmith.allowed) {
       res.status(403).json({ error: canSmith.error });
       return;
     }
 
-    // Check ingredients before starting
-const recipe = SMELT_RECIPES[metalType];
-if (!recipe) {
-  res.status(400).json({ error: 'Unknown metal type.' });
-  return;
-}
-
-for (const ingredient of recipe.ingredients) {
-  const item = await db('items').where({ name: ingredient.name }).first();
-  if (!item) {
-    res.status(400).json({ error: `Required item not found: ${ingredient.name}` });
-    return;
-  }
-  const inv = await db('player_inventory')
-    .where({ player_id: playerId, item_id: item.id })
-    .first();
-  if (!inv || inv.quantity < ingredient.quantity) {
-    res.status(400).json({ error: `You need ${ingredient.quantity}x ${ingredient.name} to smelt ${metalType} ingots.` });
-    return;
-  }
-}
+    const recipe = SMELT_RECIPES[metalType];
+    if (!recipe) {
+      res.status(400).json({ error: 'Unknown metal type.' });
+      return;
+    }
+    for (const ingredient of recipe.ingredients) {
+      const item = await db('items').where({ name: ingredient.name }).first();
+      if (!item) {
+        res.status(400).json({ error: `Required item not found: ${ingredient.name}` });
+        return;
+      }
+      const inv = await db('player_inventory')
+        .where({ player_id: playerId, item_id: item.id })
+        .first();
+      if (!inv || inv.quantity < ingredient.quantity) {
+        res.status(400).json({ error: `You need ${ingredient.quantity}x ${ingredient.name} to smelt ${metalType} ingots.` });
+        return;
+      }
+    }
 
     const existing = await db('player_actions').where({ player_id: playerId }).first();
+    if (existing) {
+      res.status(409).json({ error: 'You are already performing an action.' });
+      return;
+    }
 
-const timerSeconds = 10;
-const now = new Date();
-const completesAt = new Date(now.getTime() + timerSeconds * 1000);
+    // 2x timer if using blacksmith
+    const baseTimer = 45;
+    const timerSeconds = canSmith.usingBlacksmith ? baseTimer * 2 : baseTimer;
+    const now = new Date();
+    const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 
-await db('player_actions').insert({
-  player_id: playerId,
-  action_type: 'smelting',
-  resource_node_id: null,
-  action_data: metalType,
-  location_id: locationId,
-  started_at: now,
-  completes_at: completesAt,
-  auto_restart: true,
-  last_bot_check: now,
-  bot_check_pending: false,
-  action_limit: actionLimit || null,
-  actions_completed: 0,
-});
+    await db('player_actions').insert({
+      player_id: playerId,
+      action_type: 'smelting',
+      resource_node_id: null,
+      action_data: metalType,
+      location_id: locationId,
+      started_at: now,
+      completes_at: completesAt,
+      auto_restart: true,
+      last_bot_check: now,
+      bot_check_pending: false,
+      action_limit: actionLimit || null,
+      actions_completed: 0,
+      using_blacksmith: canSmith.usingBlacksmith || false,
+    });
 
     res.json({ message: `Smelting ${metalType} ingots...`, timerSeconds, completesAt });
   } catch (err) {
@@ -192,11 +195,13 @@ await db('player_actions').insert({
 router.post('/smith/start', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { partType, metalType } = req.body;
+  console.log('Smith start received:', { partType, metalType })
   try {
     const player = await db('players').where({ id: playerId }).first();
     const locationId = player.current_location_id;
 
     const canSmith = await canSmithHere(playerId, locationId);
+    console.log('canSmith:', JSON.stringify(canSmith))
     if (!canSmith.allowed) {
       res.status(403).json({ error: canSmith.error });
       return;
@@ -230,7 +235,9 @@ router.post('/smith/start', requireAuth, async (req: AuthRequest, res: Response)
       }
     }
 
-    const timerSeconds = 20;
+    const smithCost = getSmithingCost(`${metalType}_${partType}`)
+    const baseTimer = smithCost.timer
+    const timerSeconds = canSmith.usingBlacksmith ? baseTimer * 2 : baseTimer
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 
@@ -245,6 +252,7 @@ router.post('/smith/start', requireAuth, async (req: AuthRequest, res: Response)
       auto_restart: true,
       last_bot_check: now,
       bot_check_pending: false,
+      using_blacksmith: canSmith.usingBlacksmith || false,
     });
 
     res.json({ message: `Smithing ${metalType} ${partType}...`, timerSeconds, completesAt });

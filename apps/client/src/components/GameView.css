@@ -403,3 +403,52 @@
   font-family: var(--font-heading);
   font-size: 16px;
 }
+
+.scene-external-message {
+  position: absolute;
+  top: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 14px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.scene-external-success {
+  background: rgba(30, 80, 40, 0.9);
+  border: 1px solid #6ab87e;
+  color: #6ab87e;
+}
+
+.scene-external-error {
+  background: rgba(80, 20, 20, 0.9);
+  border: 1px solid var(--color-red-glow);
+  color: var(--color-red-glow);
+}
+
+.scene-external-info {
+  background: rgba(20, 40, 80, 0.9);
+  border: 1px solid var(--color-gold-bright);
+  color: var(--color-gold-bright);
+}
+
+.scene-external-message button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: 14px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.scene-external-message button:hover {
+  opacity: 1;
+}

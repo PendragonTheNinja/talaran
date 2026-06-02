@@ -118,25 +118,9 @@
   right: 0;
   font-size: 18px;
   font-family: var(--font-heading);
-  color: white;
+  color: var(--color-gold-bright);
   text-shadow: 1px 1px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black;
   line-height: 1;
-}
-
-.skill-combat .skill-level {
-  color: var(--color-red-glow);
-}
-
-.skill-gathering .skill-level {
-  color: var(--color-xp);
-}
-
-.skill-crafting .skill-level {
-  color: #e67e22;
-}
-
-.skill-utility .skill-level {
-  color: var(--color-gold-bright);
 }
 
 .skill-icon {

@@ -151,6 +151,7 @@ export default function GameLayout({
 
   const [showKilnModal, setShowKilnModal] = useState(false)
   const [showSmithingMenu, setShowSmithingMenu] = useState(false)
+  const [smithingStatusKey, setSmithingStatusKey] = useState(0)
 
   const [externalMessage, setExternalMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
 
@@ -191,10 +192,15 @@ export default function GameLayout({
   const handleSmithingSetup = async () => {
     try {
       await apiFetch('/api/smithing/workstation/setup', { method: 'POST' })
-      setExternalMessage({ text: 'Workstation set up! You can now smelt and smith at Emberra.', type: 'success' })
+      setExternalMessage({ text: 'Workstation set up! Timers are now at full speed.', type: 'success' })
       onInventoryUpdate()
+      setSmithingStatusKey(k => k + 1)
     } catch (err: any) {
-      setExternalMessage({ text: err.message || 'Could not set up workstation.', type: 'error' })
+      console.log('Workstation setup error:', err.message)
+      setExternalMessage({
+        text: `${err.message || 'Could not set up workstation.'} Required: Ambren Anvil, Ambren Hammer, Ambren Tongs, Lanai Bucket.`,
+        type: 'error'
+      })
     }
   }
 
@@ -380,6 +386,7 @@ export default function GameLayout({
               onExternalMessageHandled={() => setExternalMessage(null)}
               actionLimit={actionLimit}
               onActionLimitChange={setActionLimit}
+              onInventoryUpdate={onInventoryUpdate}
             />
             <LocationPanel
               locationData={locationData}
@@ -414,6 +421,7 @@ export default function GameLayout({
                 }
               }}
               currentPlayerId={player.id}
+              smithingStatusKey={smithingStatusKey}
             />
           </div>
           <ChatPanel />

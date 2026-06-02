@@ -27,6 +27,8 @@ import playerRoutes from './routes/player';
 import locationRoutes from './routes/location';
 import inventoryRoutes from './routes/inventory';
 import tradeRoutes from './routes/trades';
+import questRoutes from './routes/quests';
+import npcRoutes from './routes/npcs';
 
 dotenv.config();
 
@@ -100,6 +102,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', generalLimit);
 app.use('/api/trades', tradeRoutes);
+app.use('/api/quests', questRoutes);
+app.use('/api/npcs', npcRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

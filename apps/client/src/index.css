@@ -57,79 +57,83 @@
 
 :root {
   /* Core palette */
-  --color-bg-deepest:    #0d0a07;
-  --color-bg-deep:       #13100c;
-  --color-bg-dark:       #1a1510;
-  --color-bg-mid:        #231c14;
-  --color-bg-panel:      #2a2118;
-  --color-bg-raised:     #332818;
-  --color-bg-hover:      #3d3020;
+  --color-bg-deepest: #0d0a07;
+  --color-bg-deep: #13100c;
+  --color-bg-dark: #1a1510;
+  --color-bg-mid: #231c14;
+  --color-bg-panel: #2a2118;
+  --color-bg-raised: #332818;
+  --color-bg-hover: #3d3020;
 
   /* Gold tones */
-  --color-gold-dim:      #7a6030;
-  --color-gold:          #c8922a;
-  --color-gold-bright:   #e8b84b;
-  --color-gold-shine:    #f5d97a;
+  --color-gold-dim: #7a6030;
+  --color-gold: #c8922a;
+  --color-gold-bright: #e8b84b;
+  --color-gold-shine: #f5d97a;
 
   /* Red accents */
-  --color-red-dark:      #5c1a1a;
-  --color-red:           #9b2c2c;
-  --color-red-bright:    #c0392b;
-  --color-red-glow:      #e74c3c;
+  --color-red-dark: #5c1a1a;
+  --color-red: #9b2c2c;
+  --color-red-bright: #c0392b;
+  --color-red-glow: #e74c3c;
 
   /* Text */
-  --color-text-dim:      #6b5a3e;
-  --color-text-muted:    #9a8060;
-  --color-text-base:     #c8a96e;
-  --color-text-bright:   #e8d5a3;
-  --color-text-white:    #f5ead0;
+  --color-text-dim: #6b5a3e;
+  --color-text-muted: #9a8060;
+  --color-text-base: #c8a96e;
+  --color-text-bright: #e8d5a3;
+  --color-text-white: #f5ead0;
 
   /* Borders */
-  --color-border-dark:   #2e2418;
-  --color-border-mid:    #4a3820;
-  --color-border-gold:   #6b5030;
+  --color-border-dark: #2e2418;
+  --color-border-mid: #4a3820;
+  --color-border-gold: #6b5030;
   --color-border-bright: #9a7840;
 
   /* Status colors */
-  --color-health:        #c0392b;
-  --color-mana:          #6c3483;
-  --color-xp:            #27ae60;
+  --color-health: #c0392b;
+  --color-mana: #6c3483;
+  --color-xp: #27ae60;
 
   /* Fonts */
-  --font-heading:        'Dumbledor', serif;
-  --font-body:           'EB Garamond', Georgia, serif;
+  --font-heading: 'Dumbledor', serif;
+  --font-body: 'EB Garamond', Georgia, serif;
 
   /* Spacing */
-  --space-xs:   4px;
-  --space-sm:   8px;
-  --space-md:   12px;
-  --space-lg:   16px;
-  --space-xl:   24px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
 
   /* Borders */
-  --radius-sm:  3px;
-  --radius-md:  5px;
-  --radius-lg:  8px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
 
   /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.5);
-  --shadow-md:  0 2px 8px rgba(0,0,0,0.7);
-  --shadow-lg:  0 4px 16px rgba(0,0,0,0.9);
-  --shadow-gold: 0 0 8px rgba(200,146,42,0.3);
-  --shadow-red:  0 0 8px rgba(192,57,43,0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.9);
+  --shadow-gold: 0 0 8px rgba(200, 146, 42, 0.3);
+  --shadow-red: 0 0 8px rgba(192, 57, 43, 0.4);
 }
 
 /* ============================================
    RESET & BASE
    ============================================ */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -169,7 +173,7 @@ body {
   text-transform: uppercase;
   padding: var(--space-xs) var(--space-sm);
   border-bottom: 1px solid var(--color-border-gold);
-  text-shadow: 0 0 8px rgba(200,146,42,0.4);
+  text-shadow: 0 0 8px rgba(200, 146, 42, 0.4);
 }
 
 .gold-text {
@@ -179,17 +183,16 @@ body {
 
 .muted-text {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 16px;
+  font-family: EBGaramond;
 }
 
 .divider {
   height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--color-border-gold),
-    transparent
-  );
+  background: linear-gradient(to right,
+      transparent,
+      var(--color-border-gold),
+      transparent);
   margin: var(--space-sm) 0;
 }
 
@@ -295,11 +298,20 @@ body {
   transition: width 0.3s ease;
 }
 
-.stat-bar-fill.health { background: linear-gradient(90deg, #7b1a1a, var(--color-health)); }
-.stat-bar-fill.mana   { background: linear-gradient(90deg, #3d1a5c, var(--color-mana)); }
-.stat-bar-fill.xp     { background: linear-gradient(90deg, #1a5c2a, var(--color-xp)); }
+.stat-bar-fill.health {
+  background: linear-gradient(90deg, #7b1a1a, var(--color-health));
+}
 
-html, body {
+.stat-bar-fill.mana {
+  background: linear-gradient(90deg, #3d1a5c, var(--color-mana));
+}
+
+.stat-bar-fill.xp {
+  background: linear-gradient(90deg, #1a5c2a, var(--color-xp));
+}
+
+html,
+body {
   overflow-y: auto !important;
   height: auto !important;
 }

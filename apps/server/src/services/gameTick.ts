@@ -259,8 +259,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       }
 
       const timerSeconds = action.action_type === 'smelting'
-        ? 60
-        : getSmithingCost(action.action_data?.split('_').slice(1).join('_') || '').timer;
+        ? (action.using_blacksmith ? 90 : 45)
+        : (action.using_blacksmith
+          ? getSmithingCost(action.action_data || '').timer * 2
+          : getSmithingCost(action.action_data || '').timer);
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });

@@ -59,7 +59,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 3px var(--space-sm);
+  padding: 0px var(--space-sm);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.1s;
@@ -70,7 +70,7 @@
 }
 
 .location-player-name {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .location-player-level {
@@ -117,13 +117,12 @@
 .submenu-items {
   display: flex;
   flex-direction: column;
-  padding-left: var(--space-md);
   border-left: 1px solid var(--color-border-dark);
   margin-left: var(--space-sm);
 }
 
 .location-action-btn.sub {
-  font-size: 14px;
+  font-size: 15px;
   padding: 4px var(--space-sm);
   color: var(--color-text-muted);
 }

@@ -23,7 +23,7 @@ const CHANNELS = [
 ]
 
 const CHANNEL_COLORS: Record<string, string> = {
-  world: '#877A6C',
+  world: '#ffb96f',
   region: '#a8a8a8',
   guild: '#F74B07',
   trade: '#ae00ff',

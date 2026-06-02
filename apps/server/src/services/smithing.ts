@@ -2,6 +2,7 @@ import db from '../db';
 import { levelFromXp, xpToNextLevel } from './xp';
 import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
+import { updateQuestObjectiveProgress } from '../routes/quests';
 
 const KILN_LOGS_PER_BATCH = 20;
 const KILN_CHARC_PER_BATCH = 60;
@@ -30,7 +31,7 @@ export async function setupWorkstation(playerId: number, locationId: number): Pr
     if (existing) return { success: false, error: 'You already have a workstation here.' };
 
     // Check player has the required items in inventory
-    const required = ['Ambren Anvil', 'Ambren Hammer', 'Ambren Tongs', 'Lanai Bucket'];
+    const required = ['Ambren Anvil', 'Ambren Hammer', 'Ambren Tongs'];
     for (const itemName of required) {
       const item = await db('items').where({ name: itemName }).first();
       if (!item) continue;
@@ -64,7 +65,6 @@ export async function setupWorkstation(playerId: number, locationId: number): Pr
       has_anvil: true,
       has_hammer: true,
       has_tongs: true,
-      has_bucket: true,
       is_active: true,
     });
 
@@ -229,12 +229,28 @@ export async function getKilnStatus(playerId: number, locationId: number): Promi
 
 // ── Smelting ──────────────────────────────────────────────────────
 
-export async function canSmithHere(playerId: number, locationId: number): Promise<{ allowed: boolean; error?: string }> {
+export async function canSmithHere(
+  playerId: number,
+  locationId: number
+): Promise<{ allowed: boolean; error?: string; usingBlacksmith?: boolean }> {
   const workstation = await getWorkstation(playerId, locationId);
-  if (!workstation || !workstation.is_active) {
-    return { allowed: false, error: 'You need an active smithing workstation here. Set one up first.' };
+  if (workstation?.is_active) {
+    return { allowed: true, usingBlacksmith: false };
   }
-  return { allowed: true };
+
+  // Check if player has started or completed The Blacksmith's Bargain
+  const quest = await db('quests').where({ name: "The Blacksmith's Bargain" }).first();
+  if (quest) {
+    const playerQuest = await db('player_quests')
+      .where({ player_id: playerId, quest_id: quest.id })
+      .whereIn('status', ['active', 'completed'])
+      .first();
+    if (playerQuest) {
+      return { allowed: true, usingBlacksmith: true };
+    }
+  }
+
+  return { allowed: false, error: 'Speak to Gareth the blacksmith to gain access to the forge.' };
 }
 
 export async function smeltIngots(
@@ -302,6 +318,10 @@ export async function smeltIngots(
         quantity: recipe.outputQuantity,
       });
     }
+
+    // Track quest progress
+    const { updateQuestObjectiveProgress } = await import('../routes/quests');
+    await updateQuestObjectiveProgress(playerId, 'smelt', 'Ambren Ingot', 1);
 
     // Award XP
     await db('player_skills')
@@ -479,7 +499,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     tier: 1,
     durability: 0,
     requiredLevel: 1,
-    xp: 60,
+    xp: 100,  // 2 ingots × 50
   },
   'ambren_hatchet': {
     ingredients: [
@@ -492,7 +512,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     tier: 1,
     durability: 0,
     requiredLevel: 1,
-    xp: 60,
+    xp: 100,  // 2 ingots × 50
   },
   'ambren_hammer': {
     ingredients: [
@@ -504,7 +524,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     tier: 1,
     durability: 0,
     requiredLevel: 1,
-    xp: 50,
+    xp: 100,  // 2 ingots × 50
   },
   'ambren_tongs': {
     ingredients: [{ name: 'Ambren Ingot', quantity: 1 }],
@@ -513,7 +533,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     tier: 1,
     durability: 0,
     requiredLevel: 1,
-    xp: 30,
+    xp: 50,  // 1 ingot × 50
   },
   'ambren_anvil': {
     ingredients: [{ name: 'Ambren Ingot', quantity: 5 }],
@@ -522,21 +542,19 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     tier: 1,
     durability: 0,
     requiredLevel: 1,
-    xp: 100,
+    xp: 250,  // 5 ingots × 50
   },
 };
 
 export function getSmithingCost(recipeName: string): { timer: number; xp: number } {
   const recipe = SMITH_RECIPES[recipeName]
-  if (!recipe) return { timer: 60, xp: 50 }
-
+  if (!recipe) return { timer: 45, xp: 50 }
   const ingotsUsed = recipe.ingredients
     .filter(i => i.name.toLowerCase().includes('ingot'))
     .reduce((sum, i) => sum + i.quantity, 0)
-
   const count = Math.max(1, ingotsUsed)
   return {
-    timer: count * 60,
+    timer: count * 45,
     xp: count * 50,
   }
 }

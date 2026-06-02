@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
+import NPCDialogue from './NPCDialogue'
 
 interface GroundItem {
   id: number
@@ -30,9 +31,10 @@ interface LocationPanelProps {
   onLocationRefresh?: () => void
   onViewProfile?: (playerId: number) => void
   currentPlayerId?: number
+  smithingStatusKey?: number
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId, smithingStatusKey }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -45,6 +47,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   const [dropMode, setDropMode] = useState(false)
   const [dropAmount, setDropAmount] = useState(1)
+
+  const [questStatus, setQuestStatus] = useState<'not_started' | 'active' | 'completed'>('not_started')
+  const [showBlacksmith, setShowBlacksmith] = useState(false)
+
+  const [activeNpcId, setActiveNpcId] = useState<number | null>(null)
+  const [npcs, setNpcs] = useState<any[]>([])
 
   const loadGroundItems = async () => {
     try {
@@ -66,10 +74,19 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     if (isEmberra) {
       apiFetch<any>('/api/smithing/status').then(data => {
         setSmithingStatus(data)
-        if (data.maxLogs && onKilnMaxLogs) onKilnMaxLogs(data.maxLogs)
-      }).catch(() => { })
+      })
+      apiFetch<any>('/api/quests').then(data => {
+        const blacksmithQuest = data.quests?.find((q: any) => q.name === "The Blacksmith's Bargain")
+        if (blacksmithQuest) setQuestStatus(blacksmithQuest.status)
+      })
     }
-  }, [locationData])
+
+    if (location?.id) {
+      apiFetch<{ npcs: any[] }>(`/api/npcs/location/${location.id}`).then(data => {
+        setNpcs(data.npcs || [])
+      })
+    }
+  }, [locationData, smithingStatusKey])
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
   const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.name.toLowerCase().includes('rock'))
@@ -135,11 +152,22 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             >
               {forgeOpen ? '▼' : '▶'} Forge
             </button>
-
             {forgeOpen && (
               <div className="submenu-items">
+
+                {/* NPCs in forge submenu */}
+                {npcs.filter(npc => npc.submenu === 'forge').map(npc => (
+                  <button
+                    key={npc.id}
+                    className="location-action-btn sub npc"
+                    onClick={() => setActiveNpcId(npc.id)}
+                  >
+                    {npc.avatar} Speak with {npc.name}
+                  </button>
+                ))}
+
                 {/* Workstation setup */}
-                {smithingStatus && !smithingStatus.workstation && (
+                {smithingStatus && !smithingStatus.workstation && questStatus === 'completed' && (
                   <button
                     className="location-action-btn sub"
                     onClick={() => onStartAction('smithing_setup', 0)}
@@ -149,43 +177,45 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                 )}
 
                 {/* Kiln */}
-                {smithingStatus?.kilnStatus ? (
-                  smithingStatus.kilnStatus.isReady ? (
-                    <button
-                      className="location-action-btn sub gold"
-                      onClick={() => onStartAction('kiln_collect', 0)}
-                    >
-                      Collect Charc ({smithingStatus.kilnStatus.charcYield})
-                    </button>
+                {(questStatus === 'active' || questStatus === 'completed') && (
+                  smithingStatus?.kilnStatus ? (
+                    smithingStatus.kilnStatus.isReady ? (
+                      <button
+                        className="location-action-btn sub gold"
+                        onClick={() => onStartAction('kiln_collect', 0)}
+                      >
+                        Collect Charc ({smithingStatus.kilnStatus.charcYield})
+                      </button>
+                    ) : (
+                      <div className="location-action-info">
+                        Kiln burning... {smithingStatus.kilnStatus.minutesRemaining}m
+                      </div>
+                    )
                   ) : (
-                    <div className="location-action-info">
-                      Kiln burning... {smithingStatus.kilnStatus.minutesRemaining}m
-                    </div>
+                    <button
+                      className="location-action-btn sub"
+                      onClick={() => onStartAction('kiln_load', 0)}
+                    >
+                      Load Kiln
+                    </button>
                   )
-                ) : (
-                  <button
-                    className="location-action-btn sub"
-                    onClick={() => onStartAction('kiln_load', 0)}
-                  >
-                    Load Kiln
-                  </button>
                 )}
 
-                {/* Smelt */}
-                {smithingStatus?.workstation?.is_active && (
+                {/* Smelt — available once quest started */}
+                {(questStatus === 'active' || questStatus === 'completed' || smithingStatus?.workstation?.is_active) && (
                   <button
                     className={`location-action-btn sub ${currentAction === 'smelting' ? 'active' : ''}`}
-                    onClick={() => {
-                      console.log('Smelt button clicked')
-                      onStartAction('smelting', 'ambren')
-                    }}
+                    onClick={() => onStartAction('smelting', 'ambren')}
                   >
                     Smelt Ambren Ingots
+                    {!smithingStatus?.workstation?.is_active && (
+                      <span className="muted-text" style={{ fontSize: '11px', marginLeft: '4px' }}>(slow)</span>
+                    )}
                   </button>
                 )}
 
-                {/* Smith items */}
-                {smithingStatus?.workstation?.is_active && (
+                {/* Smith — available once quest complete */}
+                {(questStatus === 'completed' || smithingStatus?.workstation?.is_active) && (
                   <button
                     className={`location-action-btn sub ${currentAction === 'smithing' ? 'active' : ''}`}
                     onClick={() => onStartAction('smithing_menu', 0)}
@@ -294,6 +324,20 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </div>
         )}
       </div>
+      {activeNpcId && (
+        <NPCDialogue
+          npcId={activeNpcId}
+          onClose={() => setActiveNpcId(null)}
+          onInteraction={() => {
+            // Refresh quest status and smithing status
+            apiFetch<any>('/api/smithing/status').then(data => setSmithingStatus(data))
+            apiFetch<any>('/api/quests').then(data => {
+              const blacksmithQuest = data.quests?.find((q: any) => q.name === "The Blacksmith's Bargain")
+              if (blacksmithQuest) setQuestStatus(blacksmithQuest.status)
+            })
+          }}
+        />
+      )}
 
     </aside>
   )

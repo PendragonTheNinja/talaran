@@ -57,6 +57,7 @@ interface GameViewProps {
   onExternalMessageHandled: () => void
   actionLimit: number | null
   onActionLimitChange: (limit: number | null) => void
+  onInventoryUpdate: () => void
 }
 
 interface LogEntry {
@@ -78,6 +79,7 @@ export default function GameView({
   onExternalMessageHandled,
   actionLimit,
   onActionLimitChange,
+  onInventoryUpdate,
 }: GameViewProps) {
 
   const [currentAction, setCurrentAction] = useState<string | null>(null)
@@ -214,6 +216,7 @@ export default function GameView({
           }
         }
         onPlayerDataUpdate()
+        onInventoryUpdate()
         setActionsCompleted(prev => prev + 1)
         if (data.timerSeconds) {
           setTimerSeconds(data.timerSeconds)
@@ -398,6 +401,12 @@ export default function GameView({
     onExternalActionHandled()
   }, [externalAction])
 
+  useEffect(() => {
+    if (!externalMessage) return
+    const timer = setTimeout(() => onExternalMessageHandled(), 5000)
+    return () => clearTimeout(timer)
+  }, [externalMessage])
+
   // ── Actions ───────────────────────────────────────────────────────
   const startAction = async (node: Node) => {
     try {
@@ -518,12 +527,14 @@ export default function GameView({
       setActionsCompleted(0)
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
-
       const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
       const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
       const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smelt/start', {
         method: 'POST',
-        body: JSON.stringify({ metalType, actionLimit: currentLimit }),
+        body: JSON.stringify({
+          metalType,
+          actionLimit: currentLimit,
+        }),
       })
       setCurrentAction('smelting')
       setLog([])
@@ -536,8 +547,13 @@ export default function GameView({
   }
 
   const startSmithing = async (recipe: string) => {
+    console.log('startSmithing called with:', recipe)
+    console.log('currentAction:', currentAction)
     try {
-      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      if (currentAction) {
+        console.log('stopping current action first...')
+        await apiFetch('/api/actions/stop', { method: 'POST' })
+      }
       setLastResult(null)
       setCurrentAction(null)
       setTimerSeconds(0)
@@ -548,10 +564,16 @@ export default function GameView({
       const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
       const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
 
+      console.log('About to call smith/start')
       const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smith/start', {
         method: 'POST',
-        body: JSON.stringify({ recipe, actionLimit: currentLimit }),
+        body: JSON.stringify({
+          metalType: recipe.split('_')[0],
+          partType: recipe.split('_').slice(1).join('_'),
+          actionLimit: currentLimit,
+        }),
       })
+      console.log('smith/start response:', res)
       setCurrentAction('smithing')
       setLog([])
       setActionsCompleted(0)
@@ -715,6 +737,13 @@ export default function GameView({
             <div className="scene-vein-notification">
               <span>⛏ {veinNotification}</span>
               <button onClick={() => setVeinNotification(null)}>✕</button>
+            </div>
+          )}
+
+          {externalMessage && (
+            <div className={`scene-external-message scene-external-${externalMessage.type}`}>
+              <span>{externalMessage.text}</span>
+              <button onClick={onExternalMessageHandled}>✕</button>
             </div>
           )}
 
