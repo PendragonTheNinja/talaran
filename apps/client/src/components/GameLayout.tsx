@@ -198,7 +198,7 @@ export default function GameLayout({
     } catch (err: any) {
       console.log('Workstation setup error:', err.message)
       setExternalMessage({
-        text: `${err.message || 'Could not set up workstation.'} Required: Ambren Anvil, Ambren Hammer, Ambren Tongs, Lanai Bucket.`,
+        text: `${err.message || 'Could not set up workstation.'} Required: Ambren Anvil, Ambren Hammer, Ambren Tongs.`,
         type: 'error'
       })
     }

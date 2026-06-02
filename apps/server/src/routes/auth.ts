@@ -69,6 +69,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const hatchet = await db('items').where({ name: 'Ambren Hatchet' }).first();
     const pickaxe = await db('items').where({ name: 'Ambren Pickaxe' }).first();
     const pony = await db('items').where({ name: "Novice's Pony" }).first();
+    const rods = await db('items').where({ name: "Lanai Tool Rod" }).first();
 
     if (hatchet) {
       await db('player_inventory').insert({
@@ -90,6 +91,14 @@ router.post('/register', async (req: Request, res: Response) => {
         player_id: player.id,
         item_id: pony.id,
         quantity: 1,
+      });
+    }
+
+    if (rods) {
+      await db('player_inventory').insert({
+        player_id: player.id,
+        item_id: rods.id,
+        quantity: 10,
       });
     }
 
