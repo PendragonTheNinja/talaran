@@ -24,7 +24,7 @@ export async function seed(knex: Knex): Promise<void> {
         {
             quest_id: quest.id,
             order: 1,
-            description: 'Smelt 6 Ambren Ingots at Gareth\'s forge',
+            description: 'Smelt 6 Ambren Ingot batches at Gareth\'s forge',
             type: 'smelt',
             target_item: 'Ambren Ingot',
             required_amount: 6,
