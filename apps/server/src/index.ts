@@ -49,6 +49,10 @@ export const connectedPlayers = new Set<number>();
 const app = express();
 app.use(express.json());
 app.set('trust proxy', 1);
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store')
+  next()
+})
 
 import cors from 'express';
 

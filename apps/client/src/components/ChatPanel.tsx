@@ -142,6 +142,7 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
             rawTimestamp: new Date(m.sent_at).getTime(),
             isWhisper: m.channel === 'whisper',
           }))
+          console.log('History loaded for', key, ':', formatted.length, 'messages')
           all.push(...formatted)
         } catch (err) {
           console.error(`Failed to load ${key} history:`, err)
