@@ -358,7 +358,14 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
                   onClick={() => handlePlayerClick(msg.playerName)}
                   style={{ cursor: 'pointer' }}
                 >
-                  {msg.playerName}
+                  {msg.playerName.split('_').map((part, i, arr) => (
+                    <span key={i}>
+                      {part}
+                      {i < arr.length - 1 && (
+                        <span style={{ fontFamily: 'Tahoma, sans-serif' }}>_</span>
+                      )}
+                    </span>
+                  ))}
                   {msg.guildTag && <span className="chat-guild-tag">[{msg.guildTag}]</span>}
                 </span>
                 <span className="chat-colon muted-text">: </span>

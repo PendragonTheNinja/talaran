@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './NewsPage.css'
 import { Link } from 'react-router-dom'
+import MarkdownRenderer from './MarkdownRenderer'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -93,11 +94,7 @@ export default function NewsPage() {
                                     )}
                                 </header>
                                 <div className="news-page-article-body">
-                                    {selected.body.split('\n').map((line, i) => (
-                                        line.trim() === ''
-                                            ? <div key={i} className="news-page-spacer" />
-                                            : <p key={i}>{line}</p>
-                                    ))}
+                                    <MarkdownRenderer content={selected.body} />
                                 </div>
                             </article>
                         )}

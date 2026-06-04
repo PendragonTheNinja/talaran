@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './NewsPanel.css'
+import MarkdownToolbar from './MarkdownToolbar'
+import MarkdownRenderer from './MarkdownRenderer'
+import { useMarkdownEditor } from '../lib/useMarkdownEditor'
 
 interface NewsPost {
     id: number
@@ -26,6 +29,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
     const [newBody, setNewBody] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
+    const { textareaRef: bodyTextareaRef, insertMarkdown: insertBodyMarkdown } = useMarkdownEditor(newBody, setNewBody)
 
     useEffect(() => {
         loadNews()
@@ -160,13 +164,15 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                     </div>
                     <div className="guild-form-group">
                         <label className="muted-text">Body</label>
+                        <MarkdownToolbar onInsert={insertBodyMarkdown} />
                         <textarea
+                            ref={bodyTextareaRef}
                             className="chat-input"
                             value={newBody}
                             onChange={e => setNewBody(e.target.value)}
                             placeholder="Write your update..."
                             rows={12}
-                            style={{ width: '100%', resize: 'vertical' }}
+                            style={{ width: '100%', resize: 'vertical', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                         />
                     </div>
                     <div className="guild-actions">

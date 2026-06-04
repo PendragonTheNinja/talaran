@@ -474,3 +474,36 @@
 .forum-panel.closing {
     animation: slide-out-up 0.3s ease forwards;
 }
+
+.forum-post-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.forum-edit-textarea {
+    width: 100%;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    color: var(--color-text-base);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 120px;
+    box-sizing: border-box;
+}
+
+.forum-edit-textarea:focus {
+    outline: none;
+    border-color: var(--color-border-gold);
+}
+
+.forum-post-edited {
+    font-size: 11px;
+    font-style: italic;
+    margin-top: 6px;
+    text-align: right;
+}

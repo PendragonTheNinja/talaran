@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './ForumPanel.css'
 import ConfirmModal from './ConfirmModal'
+import MarkdownRenderer from './MarkdownRenderer'
+import MarkdownToolbar from './MarkdownToolbar'
+import { useMarkdownEditor } from '../lib/useMarkdownEditor'
 
 interface ForumCategory {
     id: number
@@ -48,6 +51,7 @@ interface ForumPost {
     downvotes: number
     myVote?: number
     created_at: string
+    edited_at: string | null
 }
 
 interface Poll {
@@ -105,6 +109,13 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     // Reply
     const [replyContent, setReplyContent] = useState('')
     const [showReply, setShowReply] = useState(false)
+
+    // Edit and Markdown
+    const [editingPostId, setEditingPostId] = useState<number | null>(null)
+    const [editContent, setEditContent] = useState('')
+    const { textareaRef: editTextareaRef, insertMarkdown: insertEditMarkdown } = useMarkdownEditor(editContent, setEditContent)
+    const { textareaRef: replyTextareaRef, insertMarkdown: insertReplyMarkdown } = useMarkdownEditor(replyContent, setReplyContent)
+    const { textareaRef: newThreadTextareaRef, insertMarkdown: insertNewThreadMarkdown } = useMarkdownEditor(newContent, setNewContent)
 
     useEffect(() => {
         if (openThreadId) return
@@ -267,17 +278,26 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
         }
     }
 
+    const handleEditPost = async (postId: number) => {
+        try {
+            await apiFetch(`/api/forum/posts/${postId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ content: editContent }),
+            })
+            setPosts(prev => prev.map(p => p.id === postId
+                ? { ...p, content: editContent, edited_at: new Date().toISOString() }
+                : p
+            ))
+            setEditingPostId(null)
+            setEditContent('')
+        } catch (err: any) {
+            setError(err.message)
+        }
+    }
+
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr)
         return date.toLocaleDateString() + ' ' + date.toTimeString().slice(0, 5)
-    }
-
-    const applyBBCode = (text: string) => {
-        return text
-            .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
-            .replace(/\[i\](.*?)\[\/i\]/g, '<em>$1</em>')
-            .replace(/\[url=(.*?)\](.*?)\[\/url\]/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>')
-            .replace(/\n/g, '<br/>')
     }
 
     const canPost = (cat: any) => {
@@ -321,7 +341,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                 <div className="forum-header-actions">
                     {view !== 'home' && (
                         <button className="btn" onClick={() => {
-                            if (view === 'thread') loadCategory(currentCategory)
+                            if (view === 'thread') {
+                                if (currentCategory) loadCategory(currentCategory)
+                                else loadHome()
+                            }
                             else if (view === 'category') loadHome()
                             else if (view === 'new_thread') setView(currentCategory ? 'category' : 'home')
                         }}>← Back</button>
@@ -462,6 +485,12 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             )}
                         </div>
 
+                        {!currentThread.is_locked && !showReply && (
+                            <div style={{ marginBottom: '8px' }}>
+                                <button className="btn btn-gold" onClick={() => setShowReply(true)}>Reply</button>
+                            </div>
+                        )}
+
                         {/* Poll */}
                         {poll && (
                             <div className="forum-poll">
@@ -527,17 +556,53 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                     </div>
                                     <div className="forum-post-content">
                                         <div className="forum-post-timestamp muted-text">{formatDate(post.created_at)}</div>
-                                        <div
-                                            className="forum-post-body"
-                                            dangerouslySetInnerHTML={{ __html: applyBBCode(post.content) }}
-                                        />
+                                        {editingPostId === post.id ? (
+                                            <div className="forum-post-edit">
+                                                <MarkdownToolbar onInsert={insertEditMarkdown} />
+                                                <textarea
+                                                    ref={editTextareaRef}
+                                                    className="forum-edit-textarea"
+                                                    value={editContent}
+                                                    onChange={e => setEditContent(e.target.value)}
+                                                    rows={8}
+                                                />
+                                                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                                    <button className="btn btn-gold" style={{ fontSize: '13px' }} onClick={() => handleEditPost(post.id)}>
+                                                        Save
+                                                    </button>
+                                                    <button className="btn" style={{ fontSize: '13px' }} onClick={() => { setEditingPostId(null); setEditContent('') }}>
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <MarkdownRenderer content={post.content} className="forum-post-body" />
+                                        )}
+                                        {post.edited_at && (
+                                            <p className="forum-post-edited muted-text">
+                                                Last edited {formatDate(post.edited_at)}
+                                            </p>
+                                        )}
                                         {post.forum_signature && (
                                             <div className="forum-post-signature muted-text">
                                                 <div className="forum-signature-divider" />
                                                 {post.forum_signature}
                                             </div>
                                         )}
+
                                         <div className="forum-post-actions">
+                                            {(post.author_name === playerUsername || isAdmin || isMod) && (
+                                                <button
+                                                    className="btn"
+                                                    style={{ fontSize: '12px' }}
+                                                    onClick={() => {
+                                                        setEditingPostId(post.id)
+                                                        setEditContent(post.content)
+                                                    }}
+                                                >
+                                                    Edit
+                                                </button>
+                                            )}
                                             {currentThread.has_voting && (
                                                 <div className="forum-vote-buttons">
                                                     <button
@@ -579,13 +644,15 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                 ) : (
                                     <div className="forum-reply-form">
                                         <p className="gold-text" style={{ fontSize: '14px' }}>Your Reply</p>
-                                        <p className="muted-text" style={{ fontSize: '12px' }}>Formatting: [b]bold[/b] [i]italic[/i] [url=link]text[/url]</p>
+                                        <MarkdownToolbar onInsert={insertReplyMarkdown} />
                                         <textarea
+                                            ref={replyTextareaRef}
                                             className="chat-input forum-reply-textarea"
                                             value={replyContent}
                                             onChange={e => setReplyContent(e.target.value)}
                                             placeholder="Write your reply..."
                                             rows={6}
+                                            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                                         />
                                         <div className="guild-actions">
                                             <button className="btn btn-gold" onClick={handleReply}>Post Reply</button>
@@ -633,14 +700,15 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
 
                         <div className="guild-form-group">
                             <label className="muted-text">Content</label>
-                            <p className="muted-text" style={{ fontSize: '14px' }}>Formatting: [b]bold[/b] [i]italic[/i] [url=link]text[/url]</p>
+                            <MarkdownToolbar onInsert={insertNewThreadMarkdown} />
                             <textarea
+                                ref={newThreadTextareaRef}
                                 className="chat-input"
                                 value={newContent}
                                 onChange={e => setNewContent(e.target.value)}
                                 placeholder="Write your post..."
                                 rows={8}
-                                style={{ width: '100%', resize: 'vertical', fontSize: '16px', }}
+                                style={{ width: '100%', resize: 'vertical', fontSize: '16px', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                             />
                         </div>
 

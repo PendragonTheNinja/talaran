@@ -316,6 +316,18 @@ router.post('/threads', requireAuth, async (req: AuthRequest, res: Response) => 
             const forumPlayer = await db('players').where({ id: playerId }).first();
             const forumCategory = await db('forum_categories').where({ id: categoryId }).first();
 
+            // Save to chat_messages for persistence
+            await db('chat_messages').insert({
+                player_id: playerId,
+                channel: 'world',
+                region: null,
+                guild_id: null,
+                message: `__FORUM__${thread.id}__${forumPlayer.username} posted "${thread.title}" in ${forumCategory.name}`,
+                player_name: '📋',
+                guild_tag: null,
+                sent_at: now,
+            });
+
             io.emit('forum_thread_created', {
                 threadId: thread.id,
                 title: thread.title,
@@ -575,6 +587,45 @@ router.post('/threads/:id/lock', requireAuth, async (req: AuthRequest, res: Resp
         });
         res.json({ success: true, locked: nowLocked });
     } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Edit a post
+router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const postId = parseInt(req.params.postId as string);
+    const { content } = req.body;
+
+    if (!content || content.trim().length === 0) {
+        res.status(400).json({ error: 'Content cannot be empty.' });
+        return;
+    }
+
+    try {
+        const post = await db('forum_posts').where({ id: postId, is_deleted: false }).first();
+        if (!post) {
+            res.status(404).json({ error: 'Post not found.' });
+            return;
+        }
+
+        const player = await db('players').where({ id: playerId }).first();
+        const canEdit = post.author_id === playerId || player.is_admin || player.is_mod;
+
+        if (!canEdit) {
+            res.status(403).json({ error: 'You cannot edit this post.' });
+            return;
+        }
+
+        await db('forum_posts').where({ id: postId }).update({
+            content: content.trim(),
+            edited_at: new Date(),
+        });
+
+        logger.info(`Player ${playerId} edited post ${postId}`);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Edit post error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });
