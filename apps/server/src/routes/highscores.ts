@@ -2,19 +2,9 @@ import { Router, Response, Request } from 'express';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { getWeekStart } from '../services/weeklySnapshot';
+import { levelFromXp } from '../services/xp';
 
 const router = Router();
-
-function levelFromXp(xp: number): number {
-    let level = 1;
-    let xpNeeded = 100;
-    while (xp >= xpNeeded && level < 120) {
-        xp -= xpNeeded;
-        level++;
-        xpNeeded = Math.floor(xpNeeded * 1.15);
-    }
-    return level;
-}
 
 // Get all skills for the selector
 router.get('/skills', async (req: Request, res: Response) => {

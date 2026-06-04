@@ -101,14 +101,31 @@ router.post('/vein/start', requireAuth, async (req: AuthRequest, res: Response) 
     const vein = await db('ore_veins').where({ id: veinId }).first();
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
 
-    // Use same timer as rock but slightly faster for veins
     const miningSkill = await db('skills').where({ name: 'Mining' }).first();
     const playerSkill = await db('player_skills')
       .where({ player_id: playerId, skill_id: miningSkill.id })
       .first();
-
     const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
-    const timerSeconds = Math.max(3, Math.round(8 * (1 - Math.min(0.5, (playerLevel - 1) * 0.005))));
+
+    const oreNode = await db('resource_nodes')
+      .where({ location_id: player.current_location_id, skill: 'mining' })
+      .whereNotNull('ore_subtype')
+      .first();
+
+    const baseTimer = oreNode?.base_timer || 28;
+    const minTimer = oreNode?.min_timer || 16;
+    // Get player's tool tier
+    const playerTool = await db('player_inventory')
+      .join('items', 'player_inventory.item_id', 'items.id')
+      .where({ 'player_inventory.player_id': playerId, 'items.type': 'tool', 'items.subtype': 'pickaxe' })
+      .select('items.tier')
+      .first();
+
+    const playerToolTier = playerTool?.tier || 1;
+    const requiredLevel = oreNode?.required_level || 1;
+    const requiredToolTier = oreNode?.required_tool_tier || 1;
+
+    const timerSeconds = calculateMiningTimer(baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier);
 
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);

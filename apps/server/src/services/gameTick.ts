@@ -5,6 +5,7 @@ import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
+import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
 
 const TICK_INTERVAL = 2000;
 const BOT_CHECK_INTERVAL = 30 * 60 * 1000;
@@ -186,9 +187,24 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         .first();
       const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
       const oreItem = await db('items').where({ id: vein.ore_item_id }).first()
-      const veinBaseTimer = 20 + (Math.floor((oreItem?.level_required || 1) / 13) * 6)
-      const veinMinTimer = 12 + (Math.floor((oreItem?.level_required || 1) / 13) * 4)
-      const nextTimer = Math.max(veinMinTimer, Math.round(veinBaseTimer * (1 - Math.min(0.5, (playerLevel - 1) * 0.005))))
+      const oreNode = await db('resource_nodes')
+        .where({ location_id: action.location_id, skill: 'mining' })
+        .whereNotNull('ore_subtype')
+        .first();
+
+      const baseTimer = oreNode?.base_timer || 28;
+      const minTimer = oreNode?.min_timer || 16;
+      const requiredLevel = oreNode?.required_level || 1;
+      const requiredToolTier = oreNode?.required_tool_tier || 1;
+
+      const playerTool = await db('player_inventory')
+        .join('items', 'player_inventory.item_id', 'items.id')
+        .where({ 'player_inventory.player_id': action.player_id, 'items.type': 'tool', 'items.subtype': 'pickaxe' })
+        .select('items.tier')
+        .first();
+      const playerToolTier = playerTool?.tier || 1;
+
+      const nextTimer = calculateMiningTimer(baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier);
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
       await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
