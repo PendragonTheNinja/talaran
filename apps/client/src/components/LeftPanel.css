@@ -61,7 +61,27 @@
 
 @media (max-width: 1024px) {
   .left-panel {
-    width: 150px;
+    width: 200px;
+    min-width: 200px;
+  }
+
+  .inventory-slot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .equipment-slot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .inventory-grid {
+    grid-template-columns: repeat(4, 44px);
+    min-height: 226px;
+  }
+
+  .equipment-grid {
+    grid-template-columns: repeat(3, 44px);
   }
 }
 
@@ -77,8 +97,9 @@
   gap: 3px;
   padding: 4px;
   justify-content: center;
-  max-height: 280px;
-  overflow-y: auto;
+  max-height: none;
+  min-height: 275px;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 
@@ -306,4 +327,31 @@
 .inventory-grid.trade-mode-active {
   border: 2px solid var(--color-gold-bright);
   box-shadow: 0 0 8px rgba(200, 146, 42, 0.3);
+}
+
+/* 1440px breakpoint */
+@media (max-width: 1440px) {
+  .left-panel {
+    width: 250px;
+    min-width: 250px;
+  }
+
+  .inventory-slot {
+    width: 52px;
+    height: 52px;
+  }
+
+  .equipment-slot {
+    width: 52px;
+    height: 52px;
+  }
+
+  .inventory-grid {
+    grid-template-columns: repeat(4, 52px);
+    min-height: 226px;
+  }
+
+  .equipment-grid {
+    grid-template-columns: repeat(3, 52px);
+  }
 }

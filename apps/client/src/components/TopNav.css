@@ -25,18 +25,47 @@
 
 .top-nav-links {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-xs);
+  overflow: hidden;
 }
 
 .top-nav-btn {
   font-size: 16px;
   padding: 4px var(--space-sm);
+  white-space: nowrap;
 }
 
-@media (max-width: 700px) {
-  .top-nav-links {
-    display: none;
+@media (max-width: 1440px) {
+  .top-nav-title {
+    font-size: 26px;
+  }
+
+  .top-nav-btn {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .top-nav-title {
+    font-size: 22px;
+  }
+
+  .top-nav-btn {
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .top-nav-title {
+    font-size: 18px;
+  }
+
+  .top-nav-btn {
+    font-size: 10px;
+    padding: 3px 5px;
   }
 }
 

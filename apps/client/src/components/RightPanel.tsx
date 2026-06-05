@@ -47,26 +47,42 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
   const [skillTooltip, setSkillTooltip] = useState<{ x: number; y: number; skill: Skill } | null>(null)
 
   const [showMap, setShowMap] = useState(false)
+  const [mapCollapsed, setMapCollapsed] = useState(false)
 
   return (
     <aside className="right-panel">
       <div className="minimap panel">
-        <div className="panel-title">Taiar Island</div>
-        <div className="minimap-frame">
-          <div className="minimap-canvas panel-inset">
-            <MiniMap
-              currentLocationId={currentLocationId}
-              locationName={locationName}
-              locations={allLocations}
-              connections={connections}
-              onTravel={onTravel}
-            />
-          </div>
+        <div className="minimap-header">
+          <div className="panel-title">Taiar Island</div>
+          <button
+            className="minimap-collapse-btn"
+            onClick={() => setMapCollapsed(c => !c)}
+          >
+            {mapCollapsed ? '▼' : '▲'}
+          </button>
         </div>
-        <div className="minimap-btns">
-          <button className="btn" style={{ flex: 1 }} onClick={() => setShowMap(true)}>Island Map</button>
-          <button className="btn" style={{ flex: 1 }}>World Map</button>
-        </div>
+        {!mapCollapsed && (
+          <>
+            <div className="minimap-frame">
+              <div className="minimap-canvas panel-inset">
+                <MiniMap
+                  currentLocationId={currentLocationId}
+                  locationName={locationName}
+                  locations={allLocations}
+                  connections={connections}
+                  onTravel={onTravel}
+                />
+              </div>
+            </div>
+            <div className="minimap-btns">
+              <button className="btn" style={{ flex: 1 }} onClick={() => setShowMap(true)}>Island Map</button>
+              <button className="btn" style={{ flex: 1 }}>World Map</button>
+            </div>
+          </>
+        )}
+        {mapCollapsed && (
+          <div className="minimap-collapsed-name muted-text">{locationName}</div>
+        )}
       </div>
 
       <div className="player-stats panel">
