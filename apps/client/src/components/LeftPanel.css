@@ -6,6 +6,7 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-sm);
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -39,15 +40,15 @@
 .combat-stats {
   padding: 0;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.stat-row {
+.stat-bars {
   display: flex;
-  justify-content: space-between;
-  padding: 3px var(--space-sm);
-  font-size: 13px;
-  color: var(--color-text-base);
-  border-bottom: 1px solid var(--color-border-dark);
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-xs);
+  flex-shrink: 0;
 }
 
 .stat-row:last-child {

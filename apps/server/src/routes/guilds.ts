@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { connectedPlayers } from '../index';
 import { sendSystemMessage } from './messages';
+import { levelFromXp } from '../services/xp';
 
 const router = Router();
 
@@ -66,6 +67,8 @@ router.get('/list', requireAuth, async (req: AuthRequest, res: Response) => {
                 'guilds.tag',
                 'guilds.description',
                 'guilds.open_applications',
+                'guilds.recruitment_message',
+                'guilds.min_level_requirement',
                 'founder.username as founder_name',
                 'leader.username as leader_name',
             );
@@ -430,6 +433,18 @@ router.post('/apply', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        // Check minimum level requirement
+        if (guild.min_level_requirement > 1) {
+            const playerSkills = await db('player_skills').where({ player_id: playerId });
+            const totalLevel = playerSkills.reduce((sum: number, s: any) => {
+                return sum + levelFromXp(parseInt(s.xp));
+            }, 0);
+            if (totalLevel < guild.min_level_requirement) {
+                res.status(400).json({ error: `This guild requires a total level of ${guild.min_level_requirement}. Your total level is ${totalLevel}.` });
+                return;
+            }
+        }
+
         await db('guild_applications').insert({
             guild_id: guildId,
             player_id: playerId,
@@ -513,6 +528,102 @@ router.post('/applications/:id/respond', requireAuth, async (req: AuthRequest, r
 
         res.json({ success: true });
     } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update guild settings (leader only)
+router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { name, tag, description, open_applications, recruitment_message, min_level_requirement } = req.body;
+
+    try {
+        const player = await db('players').where({ id: playerId }).first();
+        if (!player.guild_id) {
+            res.status(400).json({ error: 'You are not in a guild.' });
+            return;
+        }
+
+        const guild = await db('guilds').where({ id: player.guild_id }).first();
+        if (guild.leader_id !== playerId) {
+            res.status(403).json({ error: 'Only the guild leader can change settings.' });
+            return;
+        }
+
+        const updates: any = {};
+
+        if (description !== undefined) updates.description = description.trim();
+        if (open_applications !== undefined) updates.open_applications = open_applications;
+        if (recruitment_message !== undefined) updates.recruitment_message = recruitment_message?.trim() || null;
+        if (min_level_requirement !== undefined) updates.min_level_requirement = Math.max(1, parseInt(min_level_requirement));
+
+        // Handle name change
+        if (name !== undefined && name.trim() !== guild.name) {
+            const existing = await db('guilds').where({ name: name.trim() }).whereNot({ id: guild.id }).first();
+            if (existing) {
+                res.status(400).json({ error: 'That guild name is already taken.' });
+                return;
+            }
+            updates.name = name.trim();
+        }
+
+        // Handle tag change with cooldown
+        if (tag !== undefined && tag.trim().toUpperCase() !== guild.tag) {
+            const TAG_COOLDOWN_DAYS = 30;
+            if (guild.tag_last_changed) {
+                const daysSince = (Date.now() - new Date(guild.tag_last_changed).getTime()) / (1000 * 60 * 60 * 24);
+                if (daysSince < TAG_COOLDOWN_DAYS) {
+                    const daysLeft = Math.ceil(TAG_COOLDOWN_DAYS - daysSince);
+                    res.status(400).json({ error: `You can change your guild tag again in ${daysLeft} days.` });
+                    return;
+                }
+            }
+            const newTag = tag.trim().toUpperCase();
+            if (newTag.length < 2 || newTag.length > 5) {
+                res.status(400).json({ error: 'Guild tag must be 2-5 characters.' });
+                return;
+            }
+            const existingTag = await db('guilds').where({ tag: newTag }).whereNot({ id: guild.id }).first();
+            if (existingTag) {
+                res.status(400).json({ error: 'That guild tag is already taken.' });
+                return;
+            }
+            updates.tag = newTag;
+            updates.tag_last_changed = new Date();
+
+            // Update all members' guild_tag in players table
+            await db('players').where({ guild_id: guild.id }).update({ guild_tag: newTag });
+        }
+
+        updates.updated_at = new Date();
+        await db('guilds').where({ id: guild.id }).update(updates);
+
+        logger.info(`Guild ${guild.id} settings updated by player ${playerId}`);
+        res.json({ success: true, message: 'Guild settings updated.' });
+    } catch (err) {
+        logger.error(`Guild settings error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/disband', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const player = await db('players').where({ id: playerId }).first();
+        if (!player.guild_id) {
+            res.status(400).json({ error: 'You are not in a guild.' });
+            return;
+        }
+        const guild = await db('guilds').where({ id: player.guild_id }).first();
+        if (guild.leader_id !== playerId) {
+            res.status(403).json({ error: 'Only the guild leader can disband the guild.' });
+            return;
+        }
+        await db('guilds').where({ id: guild.id }).delete();
+        logger.info(`Guild ${guild.id} disbanded by player ${playerId}`);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Disband guild error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

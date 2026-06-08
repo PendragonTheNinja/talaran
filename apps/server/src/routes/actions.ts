@@ -92,33 +92,40 @@ router.post('/stop', requireAuth, async (req: AuthRequest, res: Response) => {
 // Respond to bot check
 router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
-
+  const { answer } = req.body;
   try {
     const action = await db('player_actions')
       .where({ player_id: playerId, bot_check_pending: true })
       .first();
-
     if (!action) {
-      res.status(404).json({ error: 'No pending bot check found' });
+      res.status(404).json({ error: 'No pending bot check found.' });
+      return;
+    }
+
+    // Validate answer server-side
+    if (action.bot_check_answer !== null && parseInt(answer) !== action.bot_check_answer) {
+      res.status(400).json({ error: 'Incorrect answer. Try again.' });
       return;
     }
 
     const now = new Date();
-    const timerSeconds = 30; // restart with a fresh short timer
+    // Use the action's original timer, not a hardcoded 30s
+    const originalDuration = new Date(action.completes_at).getTime() - new Date(action.started_at).getTime();
+    const timerSeconds = action.last_timer_seconds || 30;
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 
     await db('player_actions')
       .where({ player_id: playerId })
       .update({
         bot_check_pending: false,
+        bot_check_answer: null,
         last_bot_check: now,
         completes_at: completesAt,
+        started_at: now,
       });
 
-    // Also update player's last_bot_check for idle tracking
     await db('players').where({ id: playerId }).update({ last_bot_check: now });
-
-    res.json({ message: 'Bot check passed. Action resumed.' });
+    res.json({ success: true, timerSeconds, completesAt });
   } catch (err) {
     logger.error(`Bot check error: ${err}`);
     res.status(500).json({ error: 'Server error' });
@@ -127,8 +134,19 @@ router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) =
 
 router.post('/bot-check/idle', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
+  const { answer } = req.body;
   try {
-    await db('players').where({ id: playerId }).update({ last_bot_check: new Date() });
+    const player = await db('players').where({ id: playerId }).first();
+
+    if (player.bot_check_answer !== null && parseInt(answer) !== player.bot_check_answer) {
+      res.status(400).json({ error: 'Incorrect answer. Try again.' });
+      return;
+    }
+
+    await db('players').where({ id: playerId }).update({
+      last_bot_check: new Date(),
+      bot_check_answer: null,
+    });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

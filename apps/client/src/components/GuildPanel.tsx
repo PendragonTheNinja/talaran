@@ -20,9 +20,12 @@ interface Guild {
     description: string | null
     founderName: string
     leaderName: string
+    leader_id: number
     open_applications: boolean
+    recruitment_message: string | null
+    min_level_requirement: number
+    tag_last_changed: string | null
 }
-
 interface GuildListItem {
     id: number
     name: string
@@ -32,6 +35,8 @@ interface GuildListItem {
     leader_name: string
     memberCount: number
     open_applications: boolean
+    recruitment_message: string | null
+    min_level_requirement: number
 }
 
 interface Application {
@@ -50,7 +55,13 @@ interface GuildPanelProps {
 
 export default function GuildPanel({ onClose, closing, playerUsername, onViewProfile }: GuildPanelProps) {
     const [view, setView] = useState<'loading' | 'no_guild' | 'my_guild' | 'create' | 'browse'>('loading')
-    const [tab, setTab] = useState<'overview' | 'members' | 'applications'>('overview')
+    const [tab, setTab] = useState<'overview' | 'members' | 'applications' | 'settings'>('overview')
+    const [settingsName, setSettingsName] = useState('')
+    const [settingsTag, setSettingsTag] = useState('')
+    const [settingsDesc, setSettingsDesc] = useState('')
+    const [settingsOpen, setSettingsOpen] = useState(true)
+    const [settingsRecruitMsg, setSettingsRecruitMsg] = useState('')
+    const [settingsMinLevel, setSettingsMinLevel] = useState(1)
     const [guild, setGuild] = useState<Guild | null>(null)
     const [members, setMembers] = useState<GuildMember[]>([])
     const [myRole, setMyRole] = useState<string | null>(null)
@@ -78,6 +89,13 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
             const data = await apiFetch<{ guild: Guild | null; members: GuildMember[]; myRole: string }>('/api/guilds/my')
             if (data.guild) {
                 setGuild(data.guild)
+                setGuild(data.guild)
+                setSettingsName(data.guild.name)
+                setSettingsTag(data.guild.tag)
+                setSettingsDesc(data.guild.description || '')
+                setSettingsOpen(data.guild.open_applications)
+                setSettingsRecruitMsg(data.guild.recruitment_message || '')
+                setSettingsMinLevel(data.guild.min_level_requirement || 1)
                 setMembers(data.members)
                 setMyRole(data.myRole)
                 setView('my_guild')
@@ -254,6 +272,26 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
         }
     }
 
+    const handleSaveSettings = async () => {
+        try {
+            await apiFetch('/api/guilds/settings', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    name: settingsName,
+                    tag: settingsTag,
+                    description: settingsDesc,
+                    open_applications: settingsOpen,
+                    recruitment_message: settingsRecruitMsg,
+                    min_level_requirement: settingsMinLevel,
+                }),
+            })
+            setSuccess('Guild settings saved!')
+            loadGuildData()
+        } catch (err: any) {
+            setError(err.message)
+        }
+    }
+
     return (
         <>
             <div className={`guild-panel ${closing ? 'closing' : ''}`}>
@@ -274,10 +312,15 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         <button className={`guild-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
                             Members ({members.length})
                         </button>
-                        {isLeader && (
-                            <button className={`guild-tab ${tab === 'applications' ? 'active' : ''}`} onClick={() => setTab('applications')}>
-                                Applications {applications.length > 0 && <span className="guild-tab-badge">{applications.length}</span>}
-                            </button>
+                        {['founder', 'leader'].includes(myRole || '') && (
+                            <>
+                                <button className={`guild-tab ${tab === 'applications' ? 'active' : ''}`} onClick={() => setTab('applications')}>
+                                    Applications {applications.length > 0 && <span className="guild-tab-badge">{applications.length}</span>}
+                                </button>
+                                <button className={`guild-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
+                                    Settings
+                                </button>
+                            </>
                         )}
                     </div>
                 )}
@@ -376,9 +419,20 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                                     <span className="muted-text" style={{ fontSize: '12px' }}>{g.memberCount} members</span>
                                                 </div>
                                                 {g.description && <p className="guild-list-desc">{g.description}</p>}
+                                                {g.recruitment_message && (
+                                                    <p style={{ fontSize: '13px', fontStyle: 'italic', margin: '4px 0' }}>"{g.recruitment_message}"</p>
+                                                )}
                                                 <p className="muted-text" style={{ fontSize: '12px' }}>Leader: {g.leader_name}</p>
+                                                {g.min_level_requirement > 1 && (
+                                                    <p className="muted-text" style={{ fontSize: '12px' }}>
+                                                        Min Total Level: <span className="gold-text">{g.min_level_requirement}</span>
+                                                    </p>
+                                                )}
                                                 {g.open_applications && (
                                                     <button className="btn" style={{ fontSize: '12px', marginTop: '6px' }} onClick={() => setApplyingTo(g)}>Apply</button>
+                                                )}
+                                                {!g.open_applications && (
+                                                    <p className="muted-text" style={{ fontSize: '12px', marginTop: '4px', fontStyle: 'italic' }}>Not accepting applications</p>
                                                 )}
                                             </div>
                                         ))
@@ -493,6 +547,116 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     </div>
                                 ))
                             )}
+                        </div>
+                    )}
+
+                    {/* Settings tab */}
+                    {view === 'my_guild' && tab === 'settings' && guild && (
+                        <div className="guild-settings">
+                            <div className="guild-form-group">
+                                <label className="muted-text">Guild Name</label>
+                                <input
+                                    className="chat-input"
+                                    type="text"
+                                    value={settingsName}
+                                    onChange={e => setSettingsName(e.target.value)}
+                                    maxLength={100}
+                                />
+                            </div>
+
+                            <div className="guild-form-group">
+                                <label className="muted-text">
+                                    Guild Tag
+                                    {guild.tag_last_changed && (
+                                        <span style={{ fontSize: '11px', marginLeft: '8px' }}>
+                                            (last changed {new Date(guild.tag_last_changed).toLocaleDateString()}, 30 day cooldown)
+                                        </span>
+                                    )}
+                                </label>
+                                <input
+                                    className="chat-input"
+                                    type="text"
+                                    value={settingsTag}
+                                    onChange={e => setSettingsTag(e.target.value.toUpperCase())}
+                                    maxLength={5}
+                                    style={{ textTransform: 'uppercase' }}
+                                />
+                            </div>
+
+                            <div className="guild-form-group">
+                                <label className="muted-text">Description</label>
+                                <textarea
+                                    className="chat-input"
+                                    value={settingsDesc}
+                                    onChange={e => setSettingsDesc(e.target.value)}
+                                    rows={3}
+                                    maxLength={500}
+                                />
+                            </div>
+
+                            <div className="guild-form-group">
+                                <label className="muted-text">Recruitment Message</label>
+                                <textarea
+                                    className="chat-input"
+                                    value={settingsRecruitMsg}
+                                    onChange={e => setSettingsRecruitMsg(e.target.value)}
+                                    rows={3}
+                                    maxLength={500}
+                                    placeholder="Shown to players browsing guild list..."
+                                />
+                            </div>
+
+                            <div className="guild-form-group">
+                                <label className="muted-text">Minimum Level Requirement</label>
+                                <input
+                                    className="chat-input"
+                                    type="number"
+                                    min={1}
+                                    max={100}
+                                    value={settingsMinLevel}
+                                    onChange={e => setSettingsMinLevel(parseInt(e.target.value))}
+                                    style={{ width: '80px' }}
+                                />
+                            </div>
+
+                            <div className="guild-form-group">
+                                <label className="muted-text">
+                                    <input
+                                        type="checkbox"
+                                        checked={settingsOpen}
+                                        onChange={e => setSettingsOpen(e.target.checked)}
+                                        style={{ marginRight: '8px' }}
+                                    />
+                                    Open Applications
+                                </label>
+                            </div>
+
+                            <div className="guild-actions">
+                                <button className="btn btn-gold" onClick={handleSaveSettings}>Save Settings</button>
+                            </div>
+
+                            <div className="divider" style={{ margin: '16px 0' }} />
+
+                            <div className="guild-form-group">
+                                <p className="muted-text" style={{ fontSize: '13px' }}>Danger Zone</p>
+                                <button
+                                    className="btn"
+                                    style={{ color: 'var(--color-red-glow)', borderColor: 'var(--color-red-glow)', fontSize: '13px' }}
+                                    onClick={() => setConfirmDialog({
+                                        message: 'Are you sure you want to disband the guild? This cannot be undone.',
+                                        onConfirm: async () => {
+                                            try {
+                                                await apiFetch('/api/guilds/disband', { method: 'POST' })
+                                                loadGuildData()
+                                            } catch (err: any) {
+                                                setError(err.message)
+                                            }
+                                        }
+                                    })}
+                                >
+                                    Disband Guild
+                                </button>
+                            </div>
                         </div>
                     )}
 

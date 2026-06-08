@@ -66,7 +66,7 @@ export async function canMineHere(
   const equippedPickaxeId = equipment?.mainhand_item_id;
 
   if (!equippedPickaxeId) {
-    return { allowed: false, reason: 'You need a pickaxe equipped to mine' };
+    return { allowed: false, reason: 'You need a pickaxe equipped to mine here.' };
   }
 
   const equippedPickaxe = await db('items')
@@ -74,7 +74,7 @@ export async function canMineHere(
     .first();
 
   if (!equippedPickaxe) {
-    return { allowed: false, reason: 'You need a pickaxe equipped to mine' };
+    return { allowed: false, reason: 'You need a pickaxe equipped to mine here.' };
   }
 
   const tierDifference = node.required_tool_tier - equippedPickaxe.tier;
@@ -93,17 +93,25 @@ export async function canMineVein(
   if (!vein) return { allowed: false, reason: 'Vein not found' };
   if (vein.is_depleted) return { allowed: false, reason: 'This vein has been depleted' };
 
+  // Check player has a pickaxe equipped in mainhand
+  const equipment = await db('player_equipment').where({ player_id: playerId }).first();
+  if (!equipment?.mainhand_item_id) {
+    return { allowed: false, reason: 'You need a pickaxe equipped to mine ore veins.' };
+  }
+  const equippedTool = await db('items').where({ id: equipment.mainhand_item_id }).first();
+  if (!equippedTool || equippedTool.subtype !== 'pickaxe') {
+    return { allowed: false, reason: 'You need a pickaxe equipped to mine ore veins.' };
+  }
+
   const ore = await db('items').where({ id: vein.ore_item_id }).first();
   const miningSkill = await db('skills').where({ name: 'Mining' }).first();
   const playerSkill = await db('player_skills')
     .where({ player_id: playerId, skill_id: miningSkill.id })
     .first();
   const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
-
   if (playerLevel < ore.level_required) {
     return { allowed: false, reason: `You need Mining level ${ore.level_required} to mine this ore` };
   }
-
   return { allowed: true };
 }
 

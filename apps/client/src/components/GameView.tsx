@@ -241,13 +241,9 @@ export default function GameView({
         if (timerRef.current) clearInterval(timerRef.current)
       })
 
-      socket.on('bot_check_required', () => {
-        const a = Math.floor(Math.random() * 20) + 1
-        const b = Math.floor(Math.random() * 20) + 1
-        setBotCheckQuestion({ a, b })
+      socket.on('bot_check_required', (data: { a: number; b: number }) => {
+        setBotCheckQuestion({ a: data.a, b: data.b })
         setBotCheckPending(true)
-        addLog('Bot check required! Please answer the question to continue.', 'error')
-        if (timerRef.current) clearInterval(timerRef.current)
       })
 
       socket.on('vein_discovered', (data: { oreName: string; quantity: number; privateWindow: number }) => {
@@ -446,28 +442,31 @@ export default function GameView({
   }
 
   const handleBotCheck = async () => {
-    const correct = botCheckQuestion.a + botCheckQuestion.b
-    if (parseInt(botCheckAnswer) !== correct) {
-      addLog('Incorrect answer. Try again.', 'error')
-      setBotCheckAnswer('')
-      return
-    }
     try {
       if (currentAction) {
-        await apiFetch('/api/actions/bot-check', { method: 'POST' })
+        const res = await apiFetch<{ timerSeconds: number; completesAt: string }>(
+          '/api/actions/bot-check',
+          {
+            method: 'POST',
+            body: JSON.stringify({ answer: parseInt(botCheckAnswer) })
+          }
+        )
         setBotCheckPending(false)
         setBotCheckAnswer('')
         addLog('Bot check passed. Continuing...', 'info')
-        // No completesAt here, just a short resume timer
-        startCountdown(30)
+        startCountdown(res.timerSeconds, res.completesAt)
       } else {
-        await apiFetch('/api/actions/bot-check/idle', { method: 'POST' })
+        await apiFetch('/api/actions/bot-check/idle', {
+          method: 'POST',
+          body: JSON.stringify({ answer: parseInt(botCheckAnswer) })
+        })
         setBotCheckPending(false)
         setBotCheckAnswer('')
         addLog('Bot check passed.', 'info')
       }
     } catch (err: any) {
-      addLog(err.message || 'Bot check failed.', 'error')
+      addLog(err.message || 'Incorrect answer. Try again.', 'error')
+      setBotCheckAnswer('')
     }
   }
 

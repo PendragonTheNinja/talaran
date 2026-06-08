@@ -50,10 +50,13 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     const botCheckDue = timeSinceCheck >= BOT_CHECK_INTERVAL;
 
     if (botCheckDue) {
-      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true });
-      io.to(`player_${action.player_id}`).emit('bot_check_required', {
-        message: 'Please confirm you are still playing.',
+      const a = Math.floor(Math.random() * 10) + 1;
+      const b = Math.floor(Math.random() * 10) + 1;
+      await db('player_actions').where({ id: action.id }).update({
+        bot_check_pending: true,
+        bot_check_answer: a + b,
       });
+      io.to(`player_${action.player_id}`).emit('bot_check_required', { a, b });
       logger.info(`Bot check triggered for player ${action.player_id}`);
       return;
     }
@@ -131,6 +134,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         // Find the rock node at this location and auto-restart
         const rockNode = await db('resource_nodes')
           .where({ location_id: action.location_id, skill: 'mining' })
+          .whereNull('ore_subtype')
           .first();
 
         if (rockNode) {
@@ -161,6 +165,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             resource_node_id: rockNode.id,
             action_data: null,
             completes_at: nextCompletion,
+            last_timer_seconds: nextTimer,
           });
 
           io.to(`player_${action.player_id}`).emit('vein_depleted', {
@@ -193,7 +198,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         .first();
 
       const baseTimer = oreNode?.base_timer || 28;
-      const minTimer = oreNode?.min_timer || 16;
+      const minTimer = oreNode?.min_timer || 25;
       const requiredLevel = oreNode?.required_level || 1;
       const requiredToolTier = oreNode?.required_tool_tier || 1;
 
@@ -202,13 +207,22 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         .where({ 'player_inventory.player_id': action.player_id, 'items.type': 'tool', 'items.subtype': 'pickaxe' })
         .select('items.tier')
         .first();
+      if (!playerTool) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: 'You no longer have a pickaxe. Mining stopped.',
+        });
+        return;
+      }
       const playerToolTier = playerTool?.tier || 1;
 
       const nextTimer = calculateMiningTimer(baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier);
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
-      await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
-
+      await db('player_actions').where({ id: action.id }).update({
+        completes_at: nextCompletion,
+        last_timer_seconds: nextTimer,
+      });
       const updatedSkill = await db('player_skills')
         .where({ player_id: action.player_id, skill_id: miningSkill.id })
         .first();
@@ -281,7 +295,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           : getSmithingCost(action.action_data || '').timer);
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
-      await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
+      await db('player_actions').where({ id: action.id }).update({
+        completes_at: nextCompletion,
+        last_timer_seconds: timerSeconds,
+      });
 
       const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
       const updatedSkill = await db('player_skills')
@@ -316,6 +333,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
         await db('player_actions').where({ id: action.id }).update({
           actions_completed: actionsCompleted,
+          last_timer_seconds: timerSeconds,
         });
       }
       return;
@@ -351,8 +369,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       );
 
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
-      await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion });
-
+      await db('player_actions').where({ id: action.id }).update({
+        completes_at: nextCompletion,
+        last_timer_seconds: nextTimer,
+      });
       const updatedSkill = await db('player_skills')
         .where({ player_id: action.player_id, skill_id: relevantSkill.id })
         .first();

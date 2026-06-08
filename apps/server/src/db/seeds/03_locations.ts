@@ -168,13 +168,13 @@ export async function seed(knex: Knex): Promise<void> {
     // Grundagr — Mining (level 1)
     {
       location_id: grundagr.id, skill: 'mining', name: 'Granite Rock',
-      required_level: 1, base_timer: 20, min_timer: 12, required_tool_tier: 1,
+      required_level: 1, base_timer: 20, min_timer: 20, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 6,
-      vein_discovery_chance: 20, min_vein_quantity: 50, max_vein_quantity: 100,
+      vein_discovery_chance: 10, min_vein_quantity: 40, max_vein_quantity: 80,
     },
     {
       location_id: grundagr.id, skill: 'mining', name: 'Burgh Ore Node',
-      required_level: 1, base_timer: 28, min_timer: 16, required_tool_tier: 1,
+      required_level: 1, base_timer: 28, min_timer: 25, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 20,
       vein_discovery_chance: 5, min_vein_quantity: 25, max_vein_quantity: 50,
       ore_subtype: 'burgh',
@@ -183,13 +183,13 @@ export async function seed(knex: Knex): Promise<void> {
     // Origrund — Mining (level 1)
     {
       location_id: origrund.id, skill: 'mining', name: 'Granite Rock',
-      required_level: 1, base_timer: 20, min_timer: 12, required_tool_tier: 1,
+      required_level: 1, base_timer: 20, min_timer: 20, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 6,
-      vein_discovery_chance: 20, min_vein_quantity: 50, max_vein_quantity: 100,
+      vein_discovery_chance: 10, min_vein_quantity: 40, max_vein_quantity: 80,
     },
     {
       location_id: origrund.id, skill: 'mining', name: 'Ambren Ore Node',
-      required_level: 1, base_timer: 28, min_timer: 16, required_tool_tier: 1,
+      required_level: 1, base_timer: 28, min_timer: 25, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 20,
       vein_discovery_chance: 5, min_vein_quantity: 25, max_vein_quantity: 50,
       ore_subtype: 'ambren',

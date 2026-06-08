@@ -333,6 +333,18 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                     )}
                     {view === 'new_thread' && (
                         <>
+                            {currentCategory && (
+                                <>
+                                    <span className="muted-text"> › </span>
+                                    <span
+                                        className="forum-breadcrumb-item gold-text"
+                                        onClick={() => loadCategory(currentCategory)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        {currentCategory.name}
+                                    </span>
+                                </>
+                            )}
                             <span className="muted-text"> › </span>
                             <span className="forum-breadcrumb-item muted-text">New Thread</span>
                         </>
@@ -674,9 +686,14 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             <div className="guild-form-group">
                                 <label className="muted-text">Category</label>
                                 <select
-                                    className="chat-input"
+                                    className="forum-select"
                                     value={newCategoryId || ''}
-                                    onChange={e => setNewCategoryId(parseInt(e.target.value))}
+                                    onChange={e => {
+                                        const id = parseInt(e.target.value)
+                                        setNewCategoryId(id)
+                                        const cat = categories.find(c => c.id === id)
+                                        if (cat) setCurrentCategory(cat)
+                                    }}
                                 >
                                     <option value="">Select a category...</option>
                                     {categories.filter(c => canPost(c)).map(cat => (
