@@ -202,19 +202,19 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const requiredLevel = oreNode?.required_level || 1;
       const requiredToolTier = oreNode?.required_tool_tier || 1;
 
-      const playerTool = await db('player_inventory')
-        .join('items', 'player_inventory.item_id', 'items.id')
-        .where({ 'player_inventory.player_id': action.player_id, 'items.type': 'tool', 'items.subtype': 'pickaxe' })
-        .select('items.tier')
-        .first();
+      const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
+      const playerTool = equipment?.mainhand_item_id
+        ? await db('items').where({ id: equipment.mainhand_item_id, subtype: 'pickaxe' }).first()
+        : null;
+
       if (!playerTool) {
         await db('player_actions').where({ id: action.id }).delete();
         io.to(`player_${action.player_id}`).emit('action_failed', {
-          error: 'You no longer have a pickaxe. Mining stopped.',
+          error: 'You no longer have a pickaxe equipped. Mining stopped.',
         });
         return;
       }
-      const playerToolTier = playerTool?.tier || 1;
+      const playerToolTier = playerTool.tier || 1;
 
       const nextTimer = calculateMiningTimer(baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier);
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
