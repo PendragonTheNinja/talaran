@@ -105,6 +105,18 @@ export async function seed(knex: Knex): Promise<void> {
     // ── Tool Rods ───────────────────────────────────────────────────────
     { name: 'Lanai Tool Rod', type: 'material', subtype: 'tool_rod', tier: 1, quality: null, slot: null, level_required: 1, description: 'A smooth rod of Lanai wood. Used as a handle for tools.', stackable: true },
 
+    // ── Planks (sawn from logs via Carpentry) ───────────────────────────
+    { name: 'Lanai Planks', type: 'plank', subtype: 'lanai', tier: 1, quality: null, slot: null, level_required: 1, description: 'Planks of Lanai wood, sawn smooth and ready for the workbench.', stackable: true },
+    { name: 'Hatch Planks', type: 'plank', subtype: 'hatch', tier: 2, quality: null, slot: null, level_required: 1, description: 'Sturdy Hatch planks, sawn and squared.', stackable: true },
+    { name: 'Bearn Planks', type: 'plank', subtype: 'bearn', tier: 3, quality: null, slot: null, level_required: 1, description: 'Heavy Bearn planks with a tight, even grain.', stackable: true },
+    { name: 'Mirrith Planks', type: 'plank', subtype: 'mirrith', tier: 4, quality: null, slot: null, level_required: 1, description: 'Pale Mirrith planks, prized for fine work.', stackable: true },
+    { name: 'Craxial Planks', type: 'plank', subtype: 'craxial', tier: 5, quality: null, slot: null, level_required: 1, description: 'Dense Craxial planks. Remarkably heavy, and remarkably strong.', stackable: true },
+
+    // ── Carpentry workstation tools ─────────────────────────────────────
+    { name: 'Lanai Sawhorse', type: 'tool', subtype: 'sawhorse', tier: 1, quality: null, slot: null, level_required: 1, description: "A sturdy sawhorse of Lanai wood — the surface of a carpenter's workstation.", stackable: false },
+    { name: 'Ambren Saw', type: 'tool', subtype: 'saw', tier: 1, quality: null, slot: null, level_required: 1, description: 'A saw with an Ambren blade and a Lanai handle. Part of a Carpentry workstation.', stackable: false },
+    { name: 'Ambren Plane', type: 'tool', subtype: 'plane', tier: 1, quality: null, slot: null, level_required: 1, description: 'A plane with an Ambren blade and a Lanai handle. Part of a Carpentry workstation.', stackable: false },
+
     // ── Mounts ───────────────────────────────────────────────────────
     { name: "Novice's Pony", type: 'mount', subtype: 'pony', tier: 0, quality: 'starter', slot: 'mount', level_required: 1, travel_speed_modifier: 0.333, description: 'A gentle pony given to new arrivals in Talaran. A humble but reliable companion for your first journeys.', stackable: false },
   ]);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDate, formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './ForumPanel.css'
 import ConfirmModal from './ConfirmModal'
@@ -295,10 +296,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
         }
     }
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr)
-        return date.toLocaleDateString() + ' ' + date.toTimeString().slice(0, 5)
-    }
+    const formatDate = (dateStr: string) => formatGameDateTime(new Date(dateStr))
 
     const canPost = (cat: any) => {
         if (!cat) return true
@@ -563,8 +561,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                         {post.is_mod && !post.is_admin && <span className="forum-post-badge mod">Mod</span>}
                                         <span className="muted-text" style={{ fontSize: '14px' }}>Posts: {post.forum_post_count}</span>
                                         <span className="muted-text" style={{ fontSize: '14px' }}>
-                                            Joined: {new Date(post.player_joined).toLocaleDateString()}
-                                        </span>
+                                            Joined: {formatGameDate(new Date(post.player_joined))}                                        </span>
                                     </div>
                                     <div className="forum-post-content">
                                         <div className="forum-post-timestamp muted-text">{formatDate(post.created_at)}</div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './MessagesPanel.css'
 import ConfirmModal from './ConfirmModal'
@@ -147,10 +148,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
         })
     }
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr)
-        return date.toLocaleDateString() + ' ' + date.toTimeString().slice(0, 5)
-    }
+    const formatDate = (dateStr: string) => formatGameDateTime(new Date(dateStr))
 
     return (
         <div className={`messages-panel ${closing ? 'closing' : ''}`}>

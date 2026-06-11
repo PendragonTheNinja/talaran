@@ -3,10 +3,11 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../index';
 import { io } from '../index';
+import { botCheckGate } from '../services/botCheck';
 
 const router = Router();
 
-router.post('/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { toLocationId } = req.body;
 

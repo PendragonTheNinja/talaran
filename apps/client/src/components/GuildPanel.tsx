@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDate } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './GuildPanel.css'
 import ConfirmModal from './ConfirmModal'
@@ -569,7 +570,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     Guild Tag
                                     {guild.tag_last_changed && (
                                         <span style={{ fontSize: '11px', marginLeft: '8px' }}>
-                                            (last changed {new Date(guild.tag_last_changed).toLocaleDateString()}, 30 day cooldown)
+                                            (last changed {formatGameDate(new Date(guild.tag_last_changed))}, 30 day cooldown)
                                         </span>
                                     )}
                                 </label>

@@ -4,11 +4,12 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { canChopHere, calculateTimer } from '../services/woodcutting';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../index';
+import { botCheckGate } from '../services/botCheck';
 
 const router = Router();
 
 // Start a woodcutting action
-router.post('/woodcutting/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/woodcutting/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { nodeId } = req.body;
 
@@ -89,66 +90,57 @@ router.post('/stop', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Respond to bot check
+// Respond to bot check (unified — handles both active and idle players)
 router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) => {
-  const playerId = req.player!.playerId;
-  const { answer } = req.body;
-  try {
-    const action = await db('player_actions')
-      .where({ player_id: playerId, bot_check_pending: true })
-      .first();
-    if (!action) {
-      res.status(404).json({ error: 'No pending bot check found.' });
-      return;
-    }
-
-    // Validate answer server-side
-    if (action.bot_check_answer !== null && parseInt(answer) !== action.bot_check_answer) {
-      res.status(400).json({ error: 'Incorrect answer. Try again.' });
-      return;
-    }
-
-    const now = new Date();
-    // Use the action's original timer, not a hardcoded 30s
-    const originalDuration = new Date(action.completes_at).getTime() - new Date(action.started_at).getTime();
-    const timerSeconds = action.last_timer_seconds || 30;
-    const completesAt = new Date(now.getTime() + timerSeconds * 1000);
-
-    await db('player_actions')
-      .where({ player_id: playerId })
-      .update({
-        bot_check_pending: false,
-        bot_check_answer: null,
-        last_bot_check: now,
-        completes_at: completesAt,
-        started_at: now,
-      });
-
-    await db('players').where({ id: playerId }).update({ last_bot_check: now });
-    res.json({ success: true, timerSeconds, completesAt });
-  } catch (err) {
-    logger.error(`Bot check error: ${err}`);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-router.post('/bot-check/idle', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { answer } = req.body;
   try {
     const player = await db('players').where({ id: playerId }).first();
 
-    if (player.bot_check_answer !== null && parseInt(answer) !== player.bot_check_answer) {
+    // bot_check_answer non-null = a check is outstanding
+    if (!player || player.bot_check_answer === null) {
+      res.status(404).json({ error: 'No pending bot check found.' });
+      return;
+    }
+
+    if (parseInt(answer) !== player.bot_check_answer) {
       res.status(400).json({ error: 'Incorrect answer. Try again.' });
       return;
     }
 
+    const now = new Date();
+    // Passed: clear the question and advance the 30-minute clock.
     await db('players').where({ id: playerId }).update({
-      last_bot_check: new Date(),
       bot_check_answer: null,
+      last_bot_check: now,
     });
+
+    // If an auto-gather action was frozen waiting on this, resume it.
+    const frozen = await db('player_actions')
+      .where({ player_id: playerId, bot_check_pending: true })
+      .first();
+
+    if (frozen) {
+      const timerSeconds = frozen.last_timer_seconds || 30;
+      const completesAt = new Date(now.getTime() + timerSeconds * 1000);
+      await db('player_actions').where({ id: frozen.id }).update({
+        bot_check_pending: false,
+        started_at: now,
+        completes_at: completesAt,
+      });
+      res.json({
+        success: true,
+        timerSeconds,
+        completesAt,
+        actionType: frozen.action_type,
+        nodeId: frozen.action_type === 'mining_vein' ? frozen.action_data : frozen.resource_node_id,
+      });
+      return;
+    }
+
     res.json({ success: true });
   } catch (err) {
+    logger.error(`Bot check error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
 });

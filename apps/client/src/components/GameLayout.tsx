@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
@@ -10,9 +10,11 @@ import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
+import CarpentryMenu from './CarpentryMenu'
 import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
+import QuestsPanel from './QuestsPanel'
 import NewsPanel from './NewsPanel'
 import HighscoresPanel from './HighscoresPanel'
 import AdminPanel from './AdminPanel'
@@ -149,9 +151,19 @@ export default function GameLayout({
 
   const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number } | null>(null)
 
+  // Remembers an action blocked by a bot check, so it auto-runs once the check passes.
+  const pendingActionRef = useRef<(() => void) | null>(null)
+  const rememberPendingAction = (fn: () => void) => { pendingActionRef.current = fn }
+  const runPendingAction = () => {
+    const fn = pendingActionRef.current
+    pendingActionRef.current = null
+    if (fn) fn()
+  }
   const [showKilnModal, setShowKilnModal] = useState(false)
   const [showSmithingMenu, setShowSmithingMenu] = useState(false)
   const [smithingStatusKey, setSmithingStatusKey] = useState(0)
+
+  const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
 
   const [externalMessage, setExternalMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
 
@@ -173,6 +185,7 @@ export default function GameLayout({
       })
       setTravelStatus({ message: `Traveling to ${toLocationName}...`, seconds: res.travelTime })
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => handleTravel(toLocationId, toLocationName, _travelTime)); return }
       setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
     }
   }
@@ -185,6 +198,7 @@ export default function GameLayout({
       setExternalMessage({ text: 'Collecting Charc...', type: 'info' })
       setGameViewAction({ type: 'kiln_collecting', id: res.timerSeconds })
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => handleKilnCollect()); return }
       setExternalMessage({ text: err.message || 'Could not collect Charc.', type: 'error' })
     }
   }
@@ -204,6 +218,20 @@ export default function GameLayout({
     }
   }
 
+  const handleCarpentrySetup = async () => {
+    try {
+      await apiFetch('/api/carpentry/workstation/setup', { method: 'POST' })
+      setExternalMessage({ text: 'Carpentry workstation set up! Timers are now at full speed.', type: 'success' })
+      onInventoryUpdate()
+      setSmithingStatusKey(k => k + 1)
+    } catch (err: any) {
+      setExternalMessage({
+        text: `${err.message || 'Could not set up workstation.'} Required: Lanai Sawhorse, Ambren Saw, Ambren Plane.`,
+        type: 'error'
+      })
+    }
+  }
+
   const handleLocationAction = useCallback((type: string, id: number | string) => {
     if (type === 'travel') {
       const conn = locationData?.connections.find((c: any) => c.to_location_id === id)
@@ -217,6 +245,10 @@ export default function GameLayout({
       handleSmithingSetup()
     } else if (type === 'smithing_menu') {
       setShowSmithingMenu(true)
+    } else if (type === 'carpentry_setup') {
+      handleCarpentrySetup()
+    } else if (type === 'carpentry_menu') {
+      setShowCarpentryMenu(true)
     } else {
       setGameViewAction({ type, id })
     }
@@ -310,6 +342,9 @@ export default function GameLayout({
   const [showHighscores, setShowHighscores] = useState(false)
   const [highscoresClosing, setHighscoresClosing] = useState(false)
 
+  const [showQuests, setShowQuests] = useState(false)
+  const [questsClosing, setQuestsClosing] = useState(false)
+
   const handleDropItem = async (itemId: number, quantity: number) => {
     try {
       await apiFetch('/api/ground-items/drop', {
@@ -345,6 +380,10 @@ export default function GameLayout({
         onHighscoresClick={() => {
           if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
           else { closeAllPanels(); setShowHighscores(true) }
+        }}
+        onQuestsClick={() => {
+          if (showQuests) closePanel(setQuestsClosing, setShowQuests)
+          else { closeAllPanels(); setShowQuests(true) }
         }}
         isAdmin={playerData?.player?.is_admin || false}
         isMod={playerData?.player?.is_mod || false}
@@ -388,6 +427,8 @@ export default function GameLayout({
               actionLimit={actionLimit}
               onActionLimitChange={setActionLimit}
               onInventoryUpdate={onInventoryUpdate}
+              rememberPendingAction={rememberPendingAction}
+              runPendingAction={runPendingAction}
             />
             <LocationPanel
               locationData={locationData}
@@ -478,6 +519,21 @@ export default function GameLayout({
         />
       )}
 
+      {showCarpentryMenu && (
+        <CarpentryMenu
+          onClose={() => setShowCarpentryMenu(false)}
+          onStartSawing={(sawKey) => {
+            setShowCarpentryMenu(false)
+            setGameViewAction({ type: 'sawing', id: sawKey })
+          }}
+          onStartWoodworking={(recipeKey) => {
+            setShowCarpentryMenu(false)
+            setGameViewAction({ type: 'woodworking', id: recipeKey })
+          }}
+          playerCarpentryLevel={playerData?.skills?.find((s: any) => s.name === 'Carpentry')?.level || 1}
+        />
+      )}
+
       {showGuildModal && (
         <GuildPanel
           onClose={() => closePanel(setGuildClosing, setShowGuildModal)}
@@ -520,6 +576,13 @@ export default function GameLayout({
         <HighscoresPanel
           onClose={() => closePanel(setHighscoresClosing, setShowHighscores)}
           closing={highscoresClosing}
+        />
+      )}
+
+      {showQuests && (
+        <QuestsPanel
+          onClose={() => closePanel(setQuestsClosing, setShowQuests)}
+          closing={questsClosing}
         />
       )}
 

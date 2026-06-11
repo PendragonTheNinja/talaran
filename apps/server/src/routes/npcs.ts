@@ -204,14 +204,14 @@ async function resolveStage(playerId: number, npcId: number): Promise<string> {
             .where({ player_id: playerId })
             .whereIn('objective_id', objectives.map(o => o.id));
 
-        const smeltObj = objectives.find(o => o.type === 'smelt');
         const talkObj = objectives.find(o => o.type === 'talk');
+        const nonTalkObjs = objectives.filter(o => o.type !== 'talk');
 
-        const smeltComplete = playerObjectives.find(po =>
-            po.objective_id === smeltObj?.id
-        )?.is_complete;
+        const allNonTalkComplete = nonTalkObjs.length > 0 && nonTalkObjs.every(o =>
+            playerObjectives.find(po => po.objective_id === o.id)?.is_complete
+        );
 
-        if (smeltComplete && talkObj) return 'ready';
+        if (allNonTalkComplete && talkObj) return 'ready';
         return 'progress';
     }
 

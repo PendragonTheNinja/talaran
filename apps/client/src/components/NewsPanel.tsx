@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDateLong } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './NewsPanel.css'
 import MarkdownToolbar from './MarkdownToolbar'
@@ -73,11 +74,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
         }
     }
 
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric'
-        })
-    }
+    const formatDate = (dateStr: string) => formatGameDateLong(new Date(dateStr))
 
     return (
         <div className={`news-panel ${closing ? 'closing' : ''}`}>
@@ -137,9 +134,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                                     </div>
                                 </div>
                                 <div className="news-post-body">
-                                    {selected.body.split('\n').map((line, i) => (
-                                        <p key={i}>{line}</p>
-                                    ))}
+                                    <MarkdownRenderer content={selected.body} />
                                 </div>
                             </>
                         ) : (

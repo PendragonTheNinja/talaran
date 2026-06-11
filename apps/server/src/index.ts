@@ -10,6 +10,7 @@ import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import miningRoutes from './routes/mining';
 import smithingRoutes from './routes/smithing';
+import carpentryRoutes from './routes/carpentry';
 import hintsRoutes from './routes/hints';
 import chatRoutes from './routes/chat';
 import db from './db';
@@ -29,6 +30,7 @@ import inventoryRoutes from './routes/inventory';
 import tradeRoutes from './routes/trades';
 import questRoutes from './routes/quests';
 import npcRoutes from './routes/npcs';
+import { issueBotCheck } from './services/botCheck';
 
 dotenv.config();
 
@@ -97,6 +99,7 @@ app.use('/api/travel', travelRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/mining', miningRoutes);
 app.use('/api/smithing', smithingRoutes);
+app.use('/api/carpentry', carpentryRoutes);
 app.use('/api/hints', hintsRoutes);
 app.use('/api/guilds', guildRoutes);
 app.use('/api/messages', messagesRoutes);
@@ -120,15 +123,11 @@ io.on('connection', (socket) => {
     connectedPlayers.add(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
 
-    // Re-send bot check if one is pending
+    // Re-send bot check if one is still outstanding for this player.
     try {
-      const pendingBotCheck = await db('player_actions')
-        .where({ player_id: playerId, bot_check_pending: true })
-        .first();
-      if (pendingBotCheck) {
-        socket.emit('bot_check_required', {
-          message: 'Please confirm you are still playing.',
-        });
+      const player = await db('players').where({ id: playerId }).first();
+      if (player && player.bot_check_answer !== null) {
+        await issueBotCheck(playerId);
         logger.info(`Re-sent bot check to reconnecting player ${playerId}`);
       }
     } catch (err) {
@@ -220,35 +219,3 @@ setTimeout(function scheduleSnapshot() {
   takeWeeklySnapshot();
   setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
 }, msUntilMonday());
-
-// Bot check for idle players — runs every 5 minutes
-setInterval(async () => {
-  const now = new Date();
-  const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-
-  for (const playerId of connectedPlayers) {
-    try {
-      const player = await db('players').where({ id: playerId }).first();
-
-      // Skip if they have an active action (gameTick handles those)
-      const activeAction = await db('player_actions').where({ player_id: playerId }).first();
-      if (activeAction) continue;
-
-      // Check last bot check time
-      const lastCheck = player.last_bot_check ? new Date(player.last_bot_check) : new Date(player.last_login || player.created_at);
-
-      if (lastCheck < thirtyMinutesAgo) {
-        const a = Math.floor(Math.random() * 10) + 1;
-        const b = Math.floor(Math.random() * 10) + 1;
-        await db('players').where({ id: playerId }).update({
-          last_bot_check: now,
-          bot_check_answer: a + b,
-        });
-        io.to(`player_${playerId}`).emit('bot_check_required', { a, b });
-        logger.info(`Idle bot check triggered for player ${playerId}`);
-      }
-    } catch (err) {
-      logger.error(`Idle bot check error for player ${playerId}: ${err}`);
-    }
-  }
-}, 5 * 60 * 1000);

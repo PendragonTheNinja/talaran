@@ -15,6 +15,8 @@ export interface SmithingResult {
   quantity?: number;
   xpAwarded?: number;
   error?: string;
+  ingredientsRemaining?: { name: string; quantity: number }[];
+  outputTotal?: number;
 }
 
 // ── Workstation ───────────────────────────────────────────────────
@@ -74,6 +76,23 @@ export async function setupWorkstation(playerId: number, locationId: number): Pr
     logger.error(`Setup workstation error: ${err}`);
     return { success: false, error: 'Server error' };
   }
+}
+
+async function ingredientsRemaining(playerId: number, ingredients: { name: string; quantity: number }[]) {
+  const out: { name: string; quantity: number }[] = [];
+  for (const ing of ingredients) {
+    const item = await db('items').where({ name: ing.name }).first();
+    const inv = item ? await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first() : null;
+    out.push({ name: ing.name, quantity: inv ? inv.quantity : 0 });
+  }
+  return out;
+}
+
+async function itemTotal(playerId: number, name: string): Promise<number> {
+  const item = await db('items').where({ name }).first();
+  if (!item) return 0;
+  const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
+  return inv ? inv.quantity : 0;
 }
 
 // ── Kiln ──────────────────────────────────────────────────────────
@@ -250,7 +269,7 @@ export async function canSmithHere(
     }
   }
 
-  return { allowed: false, error: 'Speak to Gareth the blacksmith to gain access to the forge.' };
+  return { allowed: false, error: 'Speak to Geoffrey the blacksmith to gain access to the forge.' };
 }
 
 export async function smeltIngots(
@@ -339,6 +358,8 @@ export async function smeltIngots(
       itemName: recipe.output,
       quantity: recipe.outputQuantity,
       xpAwarded: recipe.xp,
+      ingredientsRemaining: await ingredientsRemaining(playerId, recipe.ingredients),
+      outputTotal: await itemTotal(playerId, recipe.output),
     };
   } catch (err) {
     logger.error(`Smelt error: ${err}`);
@@ -433,6 +454,8 @@ export async function smithPart(
       itemName: recipe.output,
       quantity: 1,
       xpAwarded: recipe.xp,
+      ingredientsRemaining: await ingredientsRemaining(playerId, recipe.ingredients),
+      outputTotal: await itemTotal(playerId, recipe.output),
     };
   } catch (err) {
     logger.error(`Smith error: ${err}`);
@@ -461,6 +484,7 @@ interface SmeltRecipe {
   outputQuantity: number;
   requiredLevel: number;
   xp: number;
+  timer: number;
 }
 
 interface SmithRecipe {
@@ -471,6 +495,7 @@ interface SmithRecipe {
   durability: number;
   requiredLevel: number;
   xp: number;
+  timer: number;
 }
 
 export const SMELT_RECIPES: Record<string, SmeltRecipe> = {
@@ -484,6 +509,7 @@ export const SMELT_RECIPES: Record<string, SmeltRecipe> = {
     outputQuantity: 2,
     requiredLevel: 1,
     xp: 30,
+    timer: 45,
   },
 };
 
@@ -500,6 +526,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     durability: 0,
     requiredLevel: 1,
     xp: 100,  // 2 ingots × 50
+    timer: 90,
   },
   'ambren_hatchet': {
     ingredients: [
@@ -513,6 +540,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     durability: 0,
     requiredLevel: 1,
     xp: 100,  // 2 ingots × 50
+    timer: 90,
   },
   'ambren_hammer': {
     ingredients: [
@@ -525,6 +553,33 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     durability: 0,
     requiredLevel: 1,
     xp: 100,  // 2 ingots × 50
+    timer: 90,
+  },
+  'ambren_saw': {
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Tool Rod', quantity: 1 },
+    ],
+    output: 'Ambren Saw',
+    toolType: 'workstation',
+    tier: 1,
+    durability: 0,
+    requiredLevel: 1,
+    xp: 100,
+    timer: 90,
+  },
+  'ambren_plane': {
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Tool Rod', quantity: 1 },
+    ],
+    output: 'Ambren Plane',
+    toolType: 'workstation',
+    tier: 1,
+    durability: 0,
+    requiredLevel: 1,
+    xp: 100,
+    timer: 90,
   },
   'ambren_tongs': {
     ingredients: [{ name: 'Ambren Ingot', quantity: 1 }],
@@ -534,6 +589,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     durability: 0,
     requiredLevel: 1,
     xp: 50,  // 1 ingot × 50
+    timer: 45,
   },
   'ambren_anvil': {
     ingredients: [{ name: 'Ambren Ingot', quantity: 5 }],
@@ -543,18 +599,12 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
     durability: 0,
     requiredLevel: 1,
     xp: 250,  // 5 ingots × 50
+    timer: 225,
   },
 };
 
 export function getSmithingCost(recipeName: string): { timer: number; xp: number } {
   const recipe = SMITH_RECIPES[recipeName]
   if (!recipe) return { timer: 45, xp: 50 }
-  const ingotsUsed = recipe.ingredients
-    .filter(i => i.name.toLowerCase().includes('ingot'))
-    .reduce((sum, i) => sum + i.quantity, 0)
-  const count = Math.max(1, ingotsUsed)
-  return {
-    timer: count * 45,
-    xp: count * 50,
-  }
+  return { timer: recipe.timer, xp: recipe.xp }
 }

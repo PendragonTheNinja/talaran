@@ -58,6 +58,8 @@ interface GameViewProps {
   actionLimit: number | null
   onActionLimitChange: (limit: number | null) => void
   onInventoryUpdate: () => void
+  rememberPendingAction: (fn: () => void) => void
+  runPendingAction: () => void
 }
 
 interface LogEntry {
@@ -65,6 +67,9 @@ interface LogEntry {
   message: string
   type: 'success' | 'info' | 'error' | 'level'
 }
+
+const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking']
+const PROCESSING_LOCATIONS = ['Emberra', 'Verdale']
 
 export default function GameView({
   locationData,
@@ -80,6 +85,8 @@ export default function GameView({
   actionLimit,
   onActionLimitChange,
   onInventoryUpdate,
+  rememberPendingAction,
+  runPendingAction,
 }: GameViewProps) {
 
   const [currentAction, setCurrentAction] = useState<string | null>(null)
@@ -102,6 +109,8 @@ export default function GameView({
     skillName: string
     remainingQuantity?: number
     quantity?: number
+    ingredientsRemaining?: { name: string; quantity: number }[]
+    outputTotal?: number
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
@@ -197,7 +206,8 @@ export default function GameView({
           const skillName =
             currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
               currentActionRef.current === 'smelting' || currentActionRef.current === 'smithing' || currentActionRef.current === 'kiln_collect' ? 'Smithing' :
-                'Woodcutting'
+                currentActionRef.current === 'sawing' || currentActionRef.current === 'woodworking' ? 'Carpentry' :
+                  'Woodcutting'
 
           setLastResult({
             itemName: data.result.itemName,
@@ -209,6 +219,8 @@ export default function GameView({
             skillName,
             remainingQuantity: data.result.remainingQuantity,
             quantity: (data.result as any).quantity,
+            ingredientsRemaining: (data.result as any).ingredientsRemaining,
+            outputTotal: (data.result as any).outputTotal,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -233,8 +245,8 @@ export default function GameView({
         if (timerRef.current) clearInterval(timerRef.current)
       })
 
-      socket.on('action_failed', (data: { error: string }) => {
-        addLog(data.error || 'Action stopped.', 'error')
+      socket.on('action_failed', (data: { error: string; info?: boolean }) => {
+        addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
         setCurrentAction(null)
         setActiveNodeId(null)
         setTimerSeconds(0)
@@ -365,6 +377,18 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'sawing':
+        setCurrentAction('sawing')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
+      case 'woodworking':
+        setCurrentAction('woodworking')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'traveling':
         break
     }
@@ -390,6 +414,10 @@ export default function GameView({
       setCurrentAction('kiln_collect')
       setTimerMax(externalAction.id as number)
       startCountdown(externalAction.id as number)
+    } else if (externalAction.type === 'sawing') {
+      startSawing(externalAction.id as string)
+    } else if (externalAction.type === 'woodworking') {
+      startWoodworking(externalAction.id as string)
     } else if (externalAction.type === 'set_action_limit') {
       onActionLimitChange(externalAction.id === 0 ? null : externalAction.id as number)
     }
@@ -423,6 +451,7 @@ export default function GameView({
       setTimerMax(res.timerSeconds)
       startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startAction(node)); return }
       addLog(err.message || 'Could not start action.', 'error')
     }
   }
@@ -443,26 +472,25 @@ export default function GameView({
 
   const handleBotCheck = async () => {
     try {
-      if (currentAction) {
-        const res = await apiFetch<{ timerSeconds: number; completesAt: string }>(
-          '/api/actions/bot-check',
-          {
-            method: 'POST',
-            body: JSON.stringify({ answer: parseInt(botCheckAnswer) })
-          }
-        )
-        setBotCheckPending(false)
-        setBotCheckAnswer('')
-        addLog('Bot check passed. Continuing...', 'info')
-        startCountdown(res.timerSeconds, res.completesAt)
-      } else {
-        await apiFetch('/api/actions/bot-check/idle', {
+      const res = await apiFetch<{ timerSeconds?: number; completesAt?: string; actionType?: string; nodeId?: number }>(
+        '/api/actions/bot-check',
+        {
           method: 'POST',
           body: JSON.stringify({ answer: parseInt(botCheckAnswer) })
-        })
-        setBotCheckPending(false)
-        setBotCheckAnswer('')
+        }
+      )
+      setBotCheckPending(false)
+      setBotCheckAnswer('')
+      // A resumed auto-gather action comes back with a timer; an idle pass does not.
+      if (res.timerSeconds && res.completesAt) {
+        addLog('Bot check passed. Continuing...', 'info')
+        if (res.actionType) setCurrentAction(res.actionType)
+        if (res.nodeId != null) setActiveNodeId(res.nodeId)
+        setTimerMax(res.timerSeconds)
+        startCountdown(res.timerSeconds, res.completesAt)
+      } else {
         addLog('Bot check passed.', 'info')
+        runPendingAction()
       }
     } catch (err: any) {
       addLog(err.message || 'Incorrect answer. Try again.', 'error')
@@ -489,6 +517,7 @@ export default function GameView({
       setTimerMax(res.timerSeconds)
       startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startMiningRock(node)); return }
       addLog(err.message || 'Could not start mining.', 'error')
     }
   }
@@ -513,6 +542,7 @@ export default function GameView({
       startCountdown(res.timerSeconds, res.completesAt)
       addLog(`You begin mining the ${vein.ore_name} vein. (${vein.remaining_quantity} ore remaining)`, 'info')
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startMiningVein(vein)); return }
       addLog(err.message || 'Could not start mining vein.', 'error')
     }
   }
@@ -527,7 +557,7 @@ export default function GameView({
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
       const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
-      const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
+      const currentLimit = limitInput?.value && parseInt(limitInput.value) > 0 ? parseInt(limitInput.value) : null
       const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smelt/start', {
         method: 'POST',
         body: JSON.stringify({
@@ -541,6 +571,7 @@ export default function GameView({
       setTimerMax(res.timerSeconds)
       startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startSmelting(metalType)); return }
       addLog(err.message || 'Could not start smelting.', 'error')
     }
   }
@@ -561,9 +592,8 @@ export default function GameView({
       if (timerRef.current) clearInterval(timerRef.current)
 
       const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
-      const currentLimit = limitInput?.value ? parseInt(limitInput.value) : null
+      const currentLimit = limitInput?.value && parseInt(limitInput.value) > 0 ? parseInt(limitInput.value) : null
 
-      console.log('About to call smith/start')
       const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smith/start', {
         method: 'POST',
         body: JSON.stringify({
@@ -579,7 +609,68 @@ export default function GameView({
       setTimerMax(res.timerSeconds)
       startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startSmithing(recipe)); return }
       addLog(err.message || 'Could not start smithing.', 'error')
+    }
+  }
+
+  const startSawing = async (sawKey: string) => {
+    try {
+      if (currentAction) {
+        await apiFetch('/api/actions/stop', { method: 'POST' })
+      }
+      setLastResult(null)
+      setCurrentAction(null)
+      setTimerSeconds(0)
+      setActionsCompleted(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
+      const currentLimit = limitInput?.value && parseInt(limitInput.value) > 0 ? parseInt(limitInput.value) : null
+
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/carpentry/saw/start', {
+        method: 'POST',
+        body: JSON.stringify({ sawKey, actionLimit: currentLimit }),
+      })
+      setCurrentAction('sawing')
+      setLog([])
+      setActionsCompleted(0)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
+    } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startSawing(sawKey)); return }
+      addLog(err.message || 'Could not start sawing.', 'error')
+    }
+  }
+
+  const startWoodworking = async (recipeKey: string) => {
+    try {
+      if (currentAction) {
+        await apiFetch('/api/actions/stop', { method: 'POST' })
+      }
+      setLastResult(null)
+      setCurrentAction(null)
+      setTimerSeconds(0)
+      setActionsCompleted(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
+      const currentLimit = limitInput?.value && parseInt(limitInput.value) > 0 ? parseInt(limitInput.value) : null
+
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/carpentry/woodwork/start', {
+        method: 'POST',
+        body: JSON.stringify({ recipeKey, actionLimit: currentLimit }),
+      })
+      setCurrentAction('woodworking')
+      setLog([])
+      setActionsCompleted(0)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
+    } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startWoodworking(recipeKey)); return }
+      addLog(err.message || 'Could not start woodworking.', 'error')
     }
   }
 
@@ -626,6 +717,12 @@ export default function GameView({
               {currentAction === 'kiln_collect' && (
                 <p className="scene-action-text gold-text">Collecting Charc from the kiln...</p>
               )}
+              {currentAction === 'sawing' && (
+                <p className="scene-action-text gold-text">You are sawing planks.</p>
+              )}
+              {currentAction === 'woodworking' && (
+                <p className="scene-action-text gold-text">You are working at the sawhorse.</p>
+              )}
               <div className="scene-timer">
                 <div className="scene-timer-bar">
                   <div
@@ -652,6 +749,9 @@ export default function GameView({
               {currentAction === 'kiln_collect' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop</button>
               )}
+              {(currentAction === 'sawing' || currentAction === 'woodworking') && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Carpentry</button>
+              )}
               {lastResult && (
                 <div className="scene-last-result">
                   <p className="last-result-item">
@@ -669,6 +769,12 @@ export default function GameView({
                       })()
                     }%)
                   </p>
+                  {lastResult.ingredientsRemaining && lastResult.ingredientsRemaining.map((r: any, i: number) => (
+                    <p key={i} className="last-result-remaining">You have {r.quantity} {r.name}</p>
+                  ))}
+                  {lastResult.outputTotal !== undefined && (
+                    <p className="last-result-remaining">You have {lastResult.outputTotal} {lastResult.itemName}</p>
+                  )}
                   {lastResult.remainingQuantity !== undefined && (
                     <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
                   )}
@@ -699,7 +805,7 @@ export default function GameView({
             </div>
           )}
 
-          {(currentAction === 'smelting' || currentAction === 'smithing' || !currentAction) && locationData?.location?.name === 'Emberra' && (
+          {((currentAction && PROCESSING_ACTIONS.includes(currentAction)) || (!currentAction && PROCESSING_LOCATIONS.includes(locationData?.location?.name))) && (
             <div className="action-limit-bar">
               <div className="action-limit-controls">
                 <label className="muted-text" style={{ fontSize: '12px' }}>Action Limit:</label>
@@ -709,23 +815,23 @@ export default function GameView({
                   min="1"
                   placeholder="∞"
                   className="action-limit-field"
-                  disabled={currentAction === 'smelting' || currentAction === 'smithing'}
+                  disabled={!!currentAction}
                   onChange={e => {
-                    const val = e.target.value ? parseInt(e.target.value) : null
-                    if (onActionLimitChange) onActionLimitChange(val)
+                    const v = e.target.value ? parseInt(e.target.value) : null
+                    if (onActionLimitChange) onActionLimitChange(v && v > 0 ? v : null)
                   }}
                   style={{
                     width: '50px',
                     fontSize: '13px',
                     padding: '2px 6px',
-                    opacity: (currentAction === 'smelting' || currentAction === 'smithing') ? 0.5 : 1,
-                    cursor: (currentAction === 'smelting' || currentAction === 'smithing') ? 'not-allowed' : 'text',
+                    opacity: currentAction ? 0.5 : 1,
+                    cursor: currentAction ? 'not-allowed' : 'text',
                   }}
                 />
               </div>
-              {actionLimit && (
+              {actionLimit && actionLimit > 0 && (
                 <span className="scene-actions-remaining muted-text">
-                  {actionLimit - actionsCompleted} actions remaining
+                  {Math.max(0, actionLimit - actionsCompleted)} actions remaining
                 </span>
               )}
             </div>

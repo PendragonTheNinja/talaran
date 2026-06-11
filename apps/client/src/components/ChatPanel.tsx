@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
+import { formatGameTime } from '../lib/time'
 import './ChatPanel.css'
 
 interface ChatMessage {
@@ -50,7 +51,33 @@ const CHANNEL_SHORT: Record<string, string> = {
 }
 
 function formatTime(date: Date): string {
-  return date.toTimeString().slice(0, 5)
+  return formatGameTime(date)
+}
+
+// Renders chat text, turning [[FORUMLINK|id|label]] tokens into clickable forum links.
+function renderMessageText(text: string, onOpenForum?: (threadId: number) => void) {
+  const nodes: any[] = []
+  const regex = /\[\[FORUMLINK\|(\d+)\|(.*?)\]\]/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  let key = 0
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
+    const threadId = parseInt(match[1])
+    nodes.push(
+      <span
+        key={`fl-${key++}`}
+        className="chat-forum-link"
+        style={{ color: CHANNEL_COLORS.forum, cursor: 'pointer', textDecoration: 'underline' }}
+        onClick={() => onOpenForum?.(threadId)}
+      >
+        {match[2]}
+      </span>
+    )
+    lastIndex = regex.lastIndex
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+  return nodes
 }
 
 export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
@@ -176,7 +203,7 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
           playerName: data.playerName || data.player_name,
           guildTag: data.guildTag || data.guild_tag || null,
           message: data.message,
-          timestamp: data.timestamp || formatTime(new Date()),
+          timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
         }
         addMessages([msg], true)
@@ -195,8 +222,8 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
           playerName: data.from,
           guildTag: data.guildTag,
           message: data.message,
-          timestamp: data.timestamp || formatTime(new Date()),
-          rawTimestamp: Date.now(),
+          timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
+          rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
           isWhisper: true,
         }
         addMessages([msg], true)
@@ -211,8 +238,8 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
           playerName: 'You',
           guildTag: null,
           message: `→ ${data.to}: ${data.message}`,
-          timestamp: data.timestamp || formatTime(new Date()),
-          rawTimestamp: Date.now(),
+          timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
+          rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
           isWhisper: true,
           whisperTo: data.to,
         }
@@ -370,7 +397,7 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
                 </span>
                 <span className="chat-colon muted-text">: </span>
                 <span className="chat-text" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                  {msg.message}
+                  {renderMessageText(msg.message, onOpenForum)}
                 </span>
               </div>
             )

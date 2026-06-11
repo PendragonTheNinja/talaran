@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../index';
+import { botCheckGate } from '../services/botCheck';
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get('/veins', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Start mining rocks
-router.post('/rock/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/rock/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { nodeId } = req.body;
 
@@ -84,7 +85,7 @@ router.post('/rock/start', requireAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Start mining a vein
-router.post('/vein/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/vein/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { veinId } = req.body;
 

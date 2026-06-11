@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { formatGameDateLong } from '../lib/time'
 import './AuthScreen.css'
 import { Link } from 'react-router-dom'
 
@@ -120,9 +121,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     }
   }
 
-  const formatDate = (str: string) => new Date(str).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  })
+  const formatDate = (str: string) => formatGameDateLong(new Date(str))
 
   const latestNews = news[0]
   const olderNews = news.slice(1, 4)

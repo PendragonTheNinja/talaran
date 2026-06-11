@@ -1,0 +1,120 @@
+.quests-panel {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border-top: 1px solid var(--color-border-gold);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    animation: quests-slide-in 0.2s ease;
+    overflow: hidden;
+}
+
+@keyframes quests-slide-in {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes quests-slide-out {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
+}
+
+.quests-panel.closing {
+    animation: quests-slide-out 0.2s ease forwards;
+}
+
+.quests-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--color-border-gold);
+    flex-shrink: 0;
+}
+
+.quests-panel-body {
+    padding: var(--space-lg, 16px);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.quests-section-title {
+    margin: 4px 0 8px;
+}
+
+.quests-section-title:not(:first-of-type) {
+    margin-top: 20px;
+}
+
+.quests-empty {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.quest-card {
+    border: 1px solid var(--color-border-gold);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.quest-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.quest-name {
+    font-weight: 600;
+}
+
+.quest-skill {
+    font-size: 11px;
+}
+
+.quest-npc {
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.quest-desc {
+    font-size: 12px;
+    margin: 4px 0 8px;
+    opacity: 0.85;
+}
+
+.quest-objectives {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.quest-objective {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.quest-objective.complete {
+    opacity: 0.6;
+}
+
+.quest-objective-progress {
+    opacity: 0.7;
+}

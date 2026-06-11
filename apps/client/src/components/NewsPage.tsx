@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDateLong } from '../lib/time'
 import './NewsPage.css'
 import { Link } from 'react-router-dom'
 import MarkdownRenderer from './MarkdownRenderer'
@@ -30,10 +31,7 @@ export default function NewsPage() {
             .finally(() => setLoading(false))
     }, [])
 
-    const formatDate = (str: string) => new Date(str).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric'
-    })
-
+    const formatDate = (str: string) => formatGameDateLong(new Date(str))
     return (
         <div className="news-page">
             {/* Header */}

@@ -9,6 +9,7 @@ import {
 } from '../services/smithing';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../index';
+import { botCheckGate } from '../services/botCheck';
 
 const router = Router();
 
@@ -74,7 +75,7 @@ router.post('/kiln/load', requireAuth, async (req: AuthRequest, res: Response) =
 });
 
 // Collect kiln
-router.post('/kiln/collect/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/kiln/collect/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   try {
     const player = await db('players').where({ id: playerId }).first();
@@ -125,7 +126,7 @@ router.post('/kiln/collect/start', requireAuth, async (req: AuthRequest, res: Re
 });
 
 // Start smelting action
-router.post('/smelt/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/smelt/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { metalType, actionLimit } = req.body;
   try {
@@ -164,7 +165,7 @@ router.post('/smelt/start', requireAuth, async (req: AuthRequest, res: Response)
     }
 
     // 2x timer if using blacksmith
-    const baseTimer = 45;
+    const baseTimer = recipe.timer;
     const timerSeconds = canSmith.usingBlacksmith ? baseTimer * 2 : baseTimer;
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);
@@ -192,7 +193,7 @@ router.post('/smelt/start', requireAuth, async (req: AuthRequest, res: Response)
 });
 
 // Start smithing part action
-router.post('/smith/start', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/smith/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { partType, metalType } = req.body;
   console.log('Smith start received:', { partType, metalType })

@@ -10,6 +10,46 @@ const router = Router();
 const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help', 'whisper']; const MAX_MESSAGE_LENGTH = 500;
 const HISTORY_DAYS = 2; // today + yesterday
 
+// Turn "Forum > Category > Thread Title" breadcrumbs (typed or pasted) into inline
+// link tokens the client renders as clickable forum links. Accepts > or › separators.
+// The thread title runs from the 2nd separator up to wherever a real thread title matches,
+// so it works whether the breadcrumb is the whole message or embedded in a sentence.
+async function resolveForumBreadcrumbs(text: string): Promise<string> {
+  // Stop players forging link tokens by typing them literally.
+  text = text.replace(/\[\[FORUMLINK/gi, '[ [FORUMLINK');
+
+  const m = /Forum\s*[>›]\s*([^>›\n]+?)\s*[>›]\s*(.+)/i.exec(text);
+  if (!m) return text;
+
+  const categoryName = m[1].trim();
+  const remainder = m[2];                                  // text after the 2nd separator
+  const remainderStart = m.index + m[0].length - m[2].length;
+
+  const category = await db('forum_categories')
+    .whereRaw('LOWER(name) = ?', [categoryName.toLowerCase()])
+    .first();
+  if (!category) return text;
+
+  const threads = await db('forum_threads')
+    .where({ category_id: category.id, is_deleted: false })
+    .orderBy('last_post_at', 'desc');                       // most recent wins on a title tie
+
+  const lower = remainder.toLowerCase();
+  let best: any = null;
+  for (const t of threads) {
+    const title = (t.title || '').trim();
+    if (title && lower.startsWith(title.toLowerCase())) {
+      if (!best || title.length > best.title.trim().length) best = t;  // longest (most specific) title
+    }
+  }
+  if (!best) return text;
+
+  const titleEnd = remainderStart + best.title.trim().length;
+  const display = text.slice(m.index, titleEnd).replace(/\]\]/g, ']');  // the breadcrumb as typed
+  const token = `[[FORUMLINK|${best.id}|${display}]]`;
+  return text.slice(0, m.index) + token + text.slice(titleEnd);
+}
+
 // Get chat history for a channel
 router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
@@ -119,6 +159,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         to: targetName,
         message: whisperMessage,
         timestamp,
+        sentAt: now.toISOString(),
         guildTag: null, // will add later
       };
 
@@ -156,13 +197,14 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
 
     const now = new Date();
     const timestamp = now.toTimeString().slice(0, 5);
+    const processedMessage = await resolveForumBreadcrumbs(message.trim());
 
     const chatMessage = await db('chat_messages').insert({
       player_id: playerId,
       channel,
       region: channel === 'region' ? region : null,
       guild_id: player.guild_id || null,
-      message: message.trim(),
+      message: processedMessage,
       player_name: player.username,
       guild_tag: player.guild_tag || null,
       sent_at: now,
@@ -173,8 +215,9 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       channel,
       playerName: player.username,
       guildTag: player.guild_tag || null,
-      message: message.trim(),
+      message: processedMessage,
       timestamp,
+      sentAt: now.toISOString(),
       region: channel === 'region' ? region : null,
     };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDateLong } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import { getItemIcon, getSlotIcon } from '../lib/items'
 import './PlayerProfile.css'
@@ -56,8 +57,7 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
             .finally(() => setLoading(false))
     }, [playerId])
 
-    const formatDate = (str: string) => new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-
+    const formatDate = (str: string) => formatGameDateLong(new Date(str))
     return (
         <div className="profile-overlay" onClick={onClose}>
             <div className="profile-popup" onClick={e => e.stopPropagation()}>

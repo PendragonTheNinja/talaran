@@ -5,10 +5,11 @@ import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
+import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
+import { isBotCheckDue, issueBotCheck } from './botCheck';
 
 const TICK_INTERVAL = 2000;
-const BOT_CHECK_INTERVAL = 30 * 60 * 1000;
 
 export function startGameTick(io: Server): void {
   logger.info('Game tick started');
@@ -45,19 +46,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     let result: any;
 
     const now = new Date();
-    const lastBotCheck = action.last_bot_check ? new Date(action.last_bot_check) : new Date(action.started_at);
-    const timeSinceCheck = now.getTime() - lastBotCheck.getTime();
-    const botCheckDue = timeSinceCheck >= BOT_CHECK_INTERVAL;
-
-    if (botCheckDue) {
-      const a = Math.floor(Math.random() * 10) + 1;
-      const b = Math.floor(Math.random() * 10) + 1;
-      await db('player_actions').where({ id: action.id }).update({
-        bot_check_pending: true,
-        bot_check_answer: a + b,
-      });
-      io.to(`player_${action.player_id}`).emit('bot_check_required', { a, b });
-      logger.info(`Bot check triggered for player ${action.player_id}`);
+    const player = await db('players').where({ id: action.player_id }).first();
+    if (player && isBotCheckDue(player, now)) {
+      await issueBotCheck(action.player_id);
+      // Freeze this action so the tick stops reprocessing it until they answer.
+      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true });
       return;
     }
 
@@ -87,6 +80,12 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'kiln_collect':
         result = await collectKiln(action.player_id, action.location_id);
+        break;
+      case 'sawing':
+        result = await sawPlanks(action.player_id, action.location_id, action.action_data);
+        break;
+      case 'woodworking':
+        result = await woodwork(action.player_id, action.location_id, action.action_data);
         break;
       default:
         logger.warn(`Unknown action type: ${action.action_type}`);
@@ -281,18 +280,18 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             });
 
             io.to(`player_${action.player_id}`).emit('action_failed', {
-              error: `You need ${ingredient.quantity}x ${ingredient.name}.`,
+              error: `Out of ${ingredient.name}. Smithing stopped.`,
+              info: true,
             });
             return;
           }
         }
       }
 
-      const timerSeconds = action.action_type === 'smelting'
-        ? (action.using_blacksmith ? 90 : 45)
-        : (action.using_blacksmith
-          ? getSmithingCost(action.action_data || '').timer * 2
-          : getSmithingCost(action.action_data || '').timer);
+      const baseTimer = action.action_type === 'smelting'
+        ? (SMELT_RECIPES[action.action_data]?.timer ?? 45)
+        : getSmithingCost(action.action_data || '').timer;
+      const timerSeconds = action.using_blacksmith ? baseTimer * 2 : baseTimer;
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({
@@ -321,8 +320,84 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       });
 
       // Check action limit
+      if (action.action_limit && action.action_limit > 0) {
+        const actionsCompleted = (action.actions_completed || 0) + 1;
+        if (actionsCompleted >= action.action_limit) {
+          await db('player_actions').where({ id: action.id }).delete();
+          io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+            message: `Action limit of ${action.action_limit} reached.`,
+          });
+          return;
+        }
+        await db('player_actions').where({ id: action.id }).update({
+          actions_completed: actionsCompleted,
+          last_timer_seconds: timerSeconds,
+        });
+      }
+      return;
+    }
+
+    if (action.action_type === 'sawing' || action.action_type === 'woodworking') {
+      const recipe = action.action_type === 'sawing'
+        ? SAW_RECIPES[action.action_data]
+        : WOODWORK_RECIPES[action.action_data];
+
+      if (recipe) {
+        for (const ingredient of recipe.ingredients) {
+          const item = await db('items').where({ name: ingredient.name }).first();
+          const inv = item ? await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: item.id })
+            .first() : null;
+          if (!inv || inv.quantity < ingredient.quantity) {
+            await db('player_actions').where({ id: action.id }).delete();
+            const carpSkill = await db('skills').where({ name: 'Carpentry' }).first();
+            const lastSkill = await db('player_skills')
+              .where({ player_id: action.player_id, skill_id: carpSkill.id }).first();
+            const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
+            const lastLevel = levelFromXp(lastXp);
+            io.to(`player_${action.player_id}`).emit('action_complete', {
+              actionType: action.action_type,
+              result,
+              nextCompletes: null,
+              timerSeconds: 0,
+              xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
+            });
+            io.to(`player_${action.player_id}`).emit('action_failed', {
+              error: `Out of ${ingredient.name}. Carpentry stopped.`,
+              info: true,
+            });
+            return;
+          }
+        }
+      }
+
+      const baseTimer = recipe?.timer ?? 35;
+      const timerSeconds = action.using_blacksmith ? baseTimer * 2 : baseTimer;
+      const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
+
+      await db('player_actions').where({ id: action.id }).update({
+        completes_at: nextCompletion,
+        last_timer_seconds: timerSeconds,
+      });
+
+      const carpentrySkill = await db('skills').where({ name: 'Carpentry' }).first();
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: carpentrySkill.id }).first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+
+      io.to(`player_${action.player_id}`).emit('action_complete', {
+        actionType: action.action_type,
+        result,
+        nextCompletes: nextCompletion,
+        timerSeconds,
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
+      });
+
       if (action.action_limit !== null && action.action_limit !== undefined) {
-        console.log('Action limit check:', action.action_limit, 'completed:', action.actions_completed)
         const actionsCompleted = (action.actions_completed || 0) + 1;
         if (actionsCompleted >= action.action_limit) {
           await db('player_actions').where({ id: action.id }).delete();

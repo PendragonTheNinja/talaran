@@ -40,10 +40,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [forgeOpen, setForgeOpen] = useState(false)
   const [smithingStatus, setSmithingStatus] = useState<any>(null)
 
+  const [carpentryStatus, setCarpentryStatus] = useState<any>(null)
+  const [workshopOpen, setWorkshopOpen] = useState(false)
+
   const location = locationData?.location
   const nodes = locationData?.nodes || []
   const connections = locationData?.connections || []
+
   const isEmberra = location?.name === 'Emberra'
+  const isVerdale = location?.name === 'Verdale'
 
   const [dropMode, setDropMode] = useState(false)
   const [dropAmount, setDropAmount] = useState(1)
@@ -78,6 +83,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       apiFetch<any>('/api/quests').then(data => {
         const blacksmithQuest = data.quests?.find((q: any) => q.name === "The Blacksmith's Bargain")
         if (blacksmithQuest) setQuestStatus(blacksmithQuest.status)
+      })
+    }
+
+    if (isVerdale) {
+      apiFetch<any>('/api/carpentry/status').then(data => {
+        setCarpentryStatus(data)
       })
     }
 
@@ -221,6 +232,54 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     onClick={() => onStartAction('smithing_menu', 0)}
                   >
                     Smith Ambren Items →
+                  </button>
+                )}
+
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Carpentry — Verdale only */}
+        {isVerdale && (
+          <div className="location-submenu">
+            <button
+              className={`location-action-btn submenu-toggle ${workshopOpen ? 'open' : ''}`}
+              onClick={() => setWorkshopOpen(!workshopOpen)}
+            >
+              {workshopOpen ? '▼' : '▶'} Workshop
+            </button>
+            {workshopOpen && (
+              <div className="submenu-items">
+
+                {npcs.filter(npc => npc.submenu === 'workshop').map(npc => (
+                  <button
+                    key={npc.id}
+                    className="location-action-btn sub npc"
+                    onClick={() => setActiveNpcId(npc.id)}
+                  >
+                    {npc.avatar} Speak with {npc.name}
+                  </button>
+                ))}
+
+                {carpentryStatus?.questStatus === 'completed' && !carpentryStatus.workstation && (
+                  <button
+                    className="location-action-btn sub"
+                    onClick={() => onStartAction('carpentry_setup', 0)}
+                  >
+                    Set Up Workstation
+                  </button>
+                )}
+
+                {carpentryStatus?.canSaw && (
+                  <button
+                    className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'woodworking') ? 'active' : ''}`}
+                    onClick={() => onStartAction('carpentry_menu', 0)}
+                  >
+                    Carpentry Workshop →
+                    {!carpentryStatus?.workstation?.is_active && (
+                      <span className="muted-text" style={{ fontSize: '11px', marginLeft: '4px' }}>(slow)</span>
+                    )}
                   </button>
                 )}
 

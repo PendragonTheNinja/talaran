@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './AdminPanel.css'
 
@@ -247,7 +248,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
 
     const formatDate = (str: string | null) => {
         if (!str) return 'Never'
-        return new Date(str).toLocaleDateString() + ' ' + new Date(str).toTimeString().slice(0, 5)
+        return formatGameDateTime(new Date(str))
     }
 
     return (
