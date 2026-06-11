@@ -558,7 +558,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
   'ambren_saw': {
     ingredients: [
       { name: 'Ambren Ingot', quantity: 2 },
-      { name: 'Lanai Tool Rod', quantity: 1 },
+      { name: 'Lanai Planks', quantity: 1 },
     ],
     output: 'Ambren Saw',
     toolType: 'workstation',
@@ -571,7 +571,7 @@ export const SMITH_RECIPES: Record<string, SmithRecipe> = {
   'ambren_plane': {
     ingredients: [
       { name: 'Ambren Ingot', quantity: 2 },
-      { name: 'Lanai Tool Rod', quantity: 1 },
+      { name: 'Lanai Planks', quantity: 2 },
     ],
     output: 'Ambren Plane',
     toolType: 'workstation',

@@ -91,7 +91,7 @@ router.post('/stop', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Respond to bot check (unified — handles both active and idle players)
-router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) => {
+const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { answer } = req.body;
   try {
@@ -99,7 +99,8 @@ router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) =
 
     // bot_check_answer non-null = a check is outstanding
     if (!player || player.bot_check_answer === null) {
-      res.status(404).json({ error: 'No pending bot check found.' });
+      // No outstanding check (double-submit or already cleared) — treat as a no-op pass, never a 404.
+      res.json({ success: true });
       return;
     }
 
@@ -143,6 +144,10 @@ router.post('/bot-check', requireAuth, async (req: AuthRequest, res: Response) =
     logger.error(`Bot check error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
-});
+};
+
+router.post('/bot-check', requireAuth, handleBotCheckAnswer);
+// Back-compat alias so sessions open since before the deploy don't 404 on the removed idle route.
+router.post('/bot-check/idle', requireAuth, handleBotCheckAnswer);
 
 export default router;

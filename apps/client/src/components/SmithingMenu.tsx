@@ -75,6 +75,30 @@ const RECIPES: SmithRecipe[] = [
     requiredLevel: 1,
     canMake: true,
   },
+  {
+    key: 'ambren_saw',
+    name: 'Ambren Saw',
+    partType: 'saw',
+    metalType: 'ambren',
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Planks', quantity: 1 },
+    ],
+    requiredLevel: 1,
+    canMake: true,
+  },
+  {
+    key: 'ambren_plane',
+    name: 'Ambren Plane',
+    partType: 'plane',
+    metalType: 'ambren',
+    ingredients: [
+      { name: 'Ambren Ingot', quantity: 2 },
+      { name: 'Lanai Planks', quantity: 2 },
+    ],
+    requiredLevel: 1,
+    canMake: true,
+  },
 ]
 
 export default function SmithingMenu({ onClose, onStartSmithing, playerSmithingLevel }: SmithingMenuProps) {
@@ -84,12 +108,14 @@ export default function SmithingMenu({ onClose, onStartSmithing, playerSmithingL
     { key: 'mining', label: 'Mining' },
     { key: 'woodcutting', label: 'Woodcutting' },
     { key: 'smithing', label: 'Smithing' },
+    { key: 'carpentry', label: 'Carpentry' },
   ]
 
   const filteredRecipes = RECIPES.filter(r => {
     if (selectedCategory === 'mining') return r.partType === 'pickaxe'
     if (selectedCategory === 'woodcutting') return r.partType === 'hatchet'
     if (selectedCategory === 'smithing') return ['hammer', 'tongs', 'anvil'].includes(r.partType)
+    if (selectedCategory === 'carpentry') return ['saw', 'plane'].includes(r.partType)
     return true
   })
 
