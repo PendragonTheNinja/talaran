@@ -34,8 +34,7 @@ export async function seed(knex: Knex): Promise<void> {
   if (parseInt(inventoryCount?.count as string) === 0) {
     const hatchet = await knex('items').where({ name: 'Ambren Hatchet' }).first();
     const pickaxe = await knex('items').where({ name: 'Ambren Pickaxe' }).first();
-    const pony = await db('items').where({ name: "Novice's Pony" }).first();
-
+    const pony = await knex('items').where({ name: "Novice's Pony" }).first();
 
     if (hatchet) {
       await knex('player_inventory').insert({
@@ -52,8 +51,8 @@ export async function seed(knex: Knex): Promise<void> {
       });
     }
     if (pony) {
-      await db('player_inventory').insert({
-        player_id: pendragon.id,
+      await knex('player_inventory').insert({
+        player_id: player.id,
         item_id: pony.id,
         quantity: 1,
       }).onConflict(['player_id', 'item_id']).ignore();
