@@ -3,7 +3,7 @@ import type { Knex } from 'knex';
 export async function seed(knex: Knex): Promise<void> {
     // ── Geoffrey — Blacksmith of Emberra ──────────────────────
     const emberra = await knex('locations').where({ name: 'Emberra' }).first();
-    if (emberra && !(await knex('npcs').where({ name: 'Gareth' }).first())) {
+    if (emberra && !(await knex('npcs').where({ name: 'Geoffrey' }).first())) {
         const [geoffrey] = await knex('npcs').insert({
             name: 'Geoffrey',
             title: 'Blacksmith of Emberra',
@@ -72,7 +72,7 @@ export async function seed(knex: Knex): Promise<void> {
             },
         ]);
 
-        console.log('Seeded Gareth the Blacksmith');
+        console.log('Seeded Geoffrey the Blacksmith');
     }
 
     // ── Geossica — Carpenter of Verdale ────────────────────────

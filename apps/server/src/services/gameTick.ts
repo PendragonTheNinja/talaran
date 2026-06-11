@@ -397,7 +397,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
       });
 
-      if (action.action_limit !== null && action.action_limit !== undefined) {
+      if (action.action_limit && action.action_limit > 0) {
         const actionsCompleted = (action.actions_completed || 0) + 1;
         if (actionsCompleted >= action.action_limit) {
           await db('player_actions').where({ id: action.id }).delete();

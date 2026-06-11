@@ -195,14 +195,12 @@ router.post('/smelt/start', requireAuth, botCheckGate, async (req: AuthRequest, 
 // Start smithing part action
 router.post('/smith/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
-  const { partType, metalType } = req.body;
-  console.log('Smith start received:', { partType, metalType })
+  const { partType, metalType, actionLimit } = req.body;
   try {
     const player = await db('players').where({ id: playerId }).first();
     const locationId = player.current_location_id;
 
     const canSmith = await canSmithHere(playerId, locationId);
-    console.log('canSmith:', JSON.stringify(canSmith))
     if (!canSmith.allowed) {
       res.status(403).json({ error: canSmith.error });
       return;
@@ -253,6 +251,8 @@ router.post('/smith/start', requireAuth, botCheckGate, async (req: AuthRequest, 
       auto_restart: true,
       last_bot_check: now,
       bot_check_pending: false,
+      action_limit: actionLimit || null,
+      actions_completed: 0,
       using_blacksmith: canSmith.usingBlacksmith || false,
     });
 
