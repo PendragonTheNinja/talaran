@@ -238,6 +238,11 @@ export default function GameLayout({
       if (conn) handleTravel(id as number, conn.to_location_name, conn.base_travel_time)
     } else if (type === 'kiln_load') {
       setKilnError(null)
+      setKilnLogCount(20)
+      apiFetch<any>('/api/smithing/status').then(s => {
+        if (s.maxLogs) setKilnMaxLogs(s.maxLogs)
+        if (s.logCounts) setKilnLogCounts(s.logCounts)
+      }).catch(() => { })
       setShowKilnModal(true)
     } else if (type === 'kiln_collect') {
       handleKilnCollect()
@@ -256,6 +261,9 @@ export default function GameLayout({
 
   const [kilnLogCount, setKilnLogCount] = useState(20)
   const [kilnMaxLogs, setKilnMaxLogs] = useState(20)
+  const [kilnQuality, setKilnQuality] = useState<'poor' | 'fine' | 'excellent'>('poor')
+  const [kilnLogCounts, setKilnLogCounts] = useState<Record<string, number>>({ poor: 0, fine: 0, excellent: 0 })
+  const KILN_RATES: Record<string, number> = { poor: 60, fine: 80, excellent: 100 }
 
   const [kilnError, setKilnError] = useState<string | null>(null)
 
@@ -263,12 +271,13 @@ export default function GameLayout({
     try {
       const res = await apiFetch<any>('/api/smithing/kiln/load', {
         method: 'POST',
-        body: JSON.stringify({ logCount: kilnLogCount }),
+        body: JSON.stringify({ logCount: kilnLogCount, quality: kilnQuality }),
       })
       setShowKilnModal(false)
       setKilnLogCount(20)
       setExternalMessage({ text: `Kiln loaded with ${kilnLogCount} logs. Charc ready in 3 hours!`, type: 'success' })
       onInventoryUpdate()
+      setSmithingStatusKey(k => k + 1)
     } catch (err: any) {
       setKilnError(err.message || 'Could not load kiln.')
     }
@@ -487,11 +496,25 @@ export default function GameLayout({
         <div className="modal-overlay" onClick={() => setShowKilnModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <h3 className="gold-text">Load Kiln</h3>
-            <p className="muted-text">Add logs in multiples of 20. Each batch of 20 logs produces 60 Charc over 3 hours.</p>
+            <p className="muted-text">Logs burn in batches of 20 over 3 hours. Better logs yield more Charc.</p>
             <p className="muted-text">Max {kilnMaxLogs} logs at your Smithing level.</p>
-            <div className="modal-input-row">
+            <div className="kiln-quality-options">
+              {(['poor', 'fine', 'excellent'] as const).map(q => (
+                <button
+                  key={q}
+                  className={`kiln-quality-btn ${kilnQuality === q ? 'selected' : ''}`}
+                  onClick={() => setKilnQuality(q)}
+                  disabled={(kilnLogCounts[q] || 0) < 20}
+                >
+                  <span className="kiln-quality-name">{q.charAt(0).toUpperCase() + q.slice(1)}</span>
+                  <span className="kiln-quality-rate muted-text">{KILN_RATES[q] / 20} Charc/log</span>
+                  <span className="kiln-quality-have muted-text">You have {kilnLogCounts[q] || 0}</span>
+                </button>
+              ))}
+            </div>
+            <div className="modal-counter">
               <button className="btn" onClick={() => setKilnLogCount(Math.max(20, kilnLogCount - 20))}>−</button>
-              <span className="modal-count gold-text">{kilnLogCount} logs → {(kilnLogCount / 20) * 60} Charc</span>
+              <span className="modal-count gold-text">{kilnLogCount} logs → {(kilnLogCount / 20) * KILN_RATES[kilnQuality]} Charc</span>
               <button
                 className="btn"
                 onClick={() => setKilnLogCount(Math.min(kilnMaxLogs, kilnLogCount + 20))}

@@ -111,6 +111,7 @@ export default function GameView({
     quantity?: number
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
+    ended?: 'limit' | 'materials'
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
@@ -247,6 +248,7 @@ export default function GameView({
 
       socket.on('action_failed', (data: { error: string; info?: boolean }) => {
         addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
+        if (data.info) setLastResult(prev => prev ? { ...prev, ended: 'materials' } : prev)
         setCurrentAction(null)
         setActiveNodeId(null)
         setTimerSeconds(0)
@@ -287,6 +289,7 @@ export default function GameView({
 
       socket.on('action_limit_reached', (data: { message: string }) => {
         addLog(data.message, 'info')
+        setLastResult(prev => prev ? { ...prev, ended: 'limit' } : prev)
         setCurrentAction(null)
         setActiveNodeId(null)
         setTimerSeconds(0)
@@ -683,6 +686,31 @@ export default function GameView({
   const timerPercent = timerMax > 0 ? (timerSeconds / timerMax) * 100 : 0
 
   // ── Render ────────────────────────────────────────────────────────
+  const renderResultDetails = (r: any) => (
+    <>
+      <p className="last-result-item">You gained {r.quantity ?? 1} × {r.itemName}!</p>
+      <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+      <p className="last-result-next">
+        {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
+          (() => {
+            const xpIntoLevel = r.totalXp - r.xpAtLevel
+            const xpNeededForLevel = xpIntoLevel + r.xpToNext
+            return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
+          })()
+        }%)
+      </p>
+      {r.ingredientsRemaining && r.ingredientsRemaining.map((ing: any, i: number) => (
+        <p key={i} className="last-result-remaining">You have {ing.quantity} {ing.name}</p>
+      ))}
+      {r.outputTotal !== undefined && (
+        <p className="last-result-remaining">You have {r.outputTotal} {r.itemName}</p>
+      )}
+      {r.remainingQuantity !== undefined && (
+        <p className="last-result-remaining">{r.remainingQuantity} ore remaining in vein</p>
+      )}
+    </>
+  )
+
   return (
     <div className="game-view panel">
       <div className="game-view-main">
@@ -691,6 +719,14 @@ export default function GameView({
           {!currentAction && (
             <div className="scene-idle">
               <p className="scene-description">{locationDesc || 'You stand ready.'}</p>
+              {lastResult?.ended && (
+                <div className="scene-last-result action-ended-summary">
+                  <p className="last-result-ended-title gold-text">
+                    {lastResult.ended === 'limit' ? 'Action limit reached' : 'Out of materials'}
+                  </p>
+                  {renderResultDetails(lastResult)}
+                </div>
+              )}
             </div>
           )}
 
@@ -754,30 +790,7 @@ export default function GameView({
               )}
               {lastResult && (
                 <div className="scene-last-result">
-                  <p className="last-result-item">
-                    You gained {lastResult.quantity ?? 1} × {lastResult.itemName}!
-                  </p>
-                  <p className="last-result-xp">
-                    +{lastResult.xpAwarded} {lastResult.skillName} experience, {lastResult.totalXp.toLocaleString()} total.
-                  </p>
-                  <p className="last-result-next">
-                    {Math.ceil(lastResult.xpToNext / lastResult.xpAwarded).toLocaleString()} actions ({lastResult.xpToNext.toLocaleString()} xp) to level {lastResult.level + 1} ({
-                      (() => {
-                        const xpIntoLevel = lastResult.totalXp - lastResult.xpAtLevel
-                        const xpNeededForLevel = xpIntoLevel + lastResult.xpToNext
-                        return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
-                      })()
-                    }%)
-                  </p>
-                  {lastResult.ingredientsRemaining && lastResult.ingredientsRemaining.map((r: any, i: number) => (
-                    <p key={i} className="last-result-remaining">You have {r.quantity} {r.name}</p>
-                  ))}
-                  {lastResult.outputTotal !== undefined && (
-                    <p className="last-result-remaining">You have {lastResult.outputTotal} {lastResult.itemName}</p>
-                  )}
-                  {lastResult.remainingQuantity !== undefined && (
-                    <p className="last-result-remaining">{lastResult.remainingQuantity} ore remaining in vein</p>
-                  )}
+                  {renderResultDetails(lastResult)}
                 </div>
               )}
             </div>

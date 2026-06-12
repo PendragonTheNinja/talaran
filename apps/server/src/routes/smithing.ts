@@ -3,7 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
   getWorkstation, setupWorkstation,
-  loadKiln, collectKiln, getKilnStatus,
+  loadKiln, collectKiln, getKilnStatus, getLogCountsByQuality,
   smeltIngots, smithPart, getSmithingCost,
   canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
 } from '../services/smithing';
@@ -35,7 +35,8 @@ router.get('/status', requireAuth, async (req: AuthRequest, res: Response) => {
             : 1;
     const maxLogs = maxBatches * 20;
 
-    res.json({ workstation, kilnStatus, maxLogs });
+    const logCounts = await getLogCountsByQuality(playerId);
+    res.json({ workstation, kilnStatus, maxLogs, logCounts, kilnRates: { poor: 60, fine: 80, excellent: 100 } });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -60,10 +61,10 @@ router.post('/workstation/setup', requireAuth, async (req: AuthRequest, res: Res
 // Load kiln
 router.post('/kiln/load', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
-  const { logCount } = req.body;
+  const { logCount, quality } = req.body;
   try {
     const player = await db('players').where({ id: playerId }).first();
-    const result = await loadKiln(playerId, player.current_location_id, logCount);
+    const result = await loadKiln(playerId, player.current_location_id, logCount, quality);
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;

@@ -5,7 +5,7 @@ import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 
 const KILN_LOGS_PER_BATCH = 20;
-const KILN_CHARC_PER_BATCH = 60;
+const KILN_CHARC_PER_BATCH: Record<string, number> = { poor: 60, fine: 80, excellent: 100 };
 const KILN_DURATION_MS = 3 * 60 * 60 * 1000; // 3 hours
 const CHARC_XP_PER_BATCH = 50; // 10% of total smithing XP feel
 
@@ -97,8 +97,11 @@ async function itemTotal(playerId: number, name: string): Promise<number> {
 
 // ── Kiln ──────────────────────────────────────────────────────────
 
-export async function loadKiln(playerId: number, locationId: number, logCount: number): Promise<{ success: boolean; readyAt?: Date; error?: string; maxLogs?: number }> {
+export async function loadKiln(playerId: number, locationId: number, logCount: number, quality: string): Promise<{ success: boolean; readyAt?: Date; error?: string; maxLogs?: number }> {
   try {
+    if (!KILN_CHARC_PER_BATCH[quality]) {
+      return { success: false, error: 'Invalid log quality.' };
+    }
     // Get player smithing level
     const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
     const playerSkill = await db('player_skills')
@@ -130,26 +133,33 @@ export async function loadKiln(playerId: number, locationId: number, logCount: n
       return { success: false, error: 'Your kiln is already burning. Collect the Charc first.' };
     }
 
-    // Find any log in inventory
-    const logItem = await db('player_inventory')
+    // Gather all log stacks of the chosen quality (any wood type)
+    const logStacks = await db('player_inventory')
       .join('items', 'player_inventory.item_id', 'items.id')
-      .where({ 'player_inventory.player_id': playerId, 'items.type': 'log' })
-      .select('player_inventory.*', 'items.name as item_name')
-      .first();
+      .where({ 'player_inventory.player_id': playerId, 'items.type': 'log', 'items.quality': quality })
+      .select('player_inventory.*')
+      .orderBy('items.tier', 'asc');
 
-    if (!logItem || logItem.quantity < logCount) {
-      return { success: false, error: `You need ${logCount} logs to load the kiln.` };
+    const totalLogs = logStacks.reduce((sum, s) => sum + s.quantity, 0);
+    if (totalLogs < logCount) {
+      return { success: false, error: `You need ${logCount} ${quality} logs to load the kiln.` };
     }
 
-    // Remove logs from inventory
-    if (logItem.quantity <= logCount) {
-      await db('player_inventory').where({ id: logItem.id }).delete();
-    } else {
-      await db('player_inventory').where({ id: logItem.id }).decrement('quantity', logCount);
+    // Consume across stacks, lowest tier first
+    let toConsume = logCount;
+    for (const stack of logStacks) {
+      if (toConsume <= 0) break;
+      const take = Math.min(stack.quantity, toConsume);
+      if (take >= stack.quantity) {
+        await db('player_inventory').where({ id: stack.id }).delete();
+      } else {
+        await db('player_inventory').where({ id: stack.id }).decrement('quantity', take);
+      }
+      toConsume -= take;
     }
 
     const batches = logCount / KILN_LOGS_PER_BATCH;
-    const charcYield = batches * KILN_CHARC_PER_BATCH;
+    const charcYield = batches * KILN_CHARC_PER_BATCH[quality];
     const xpReward = batches * CHARC_XP_PER_BATCH;
     const now = new Date();
     const readyAt = new Date(now.getTime() + KILN_DURATION_MS);
@@ -244,6 +254,19 @@ export async function getKilnStatus(playerId: number, locationId: number): Promi
     isReady: ready,
     minutesRemaining,
   };
+}
+
+export async function getLogCountsByQuality(playerId: number): Promise<Record<string, number>> {
+  const rows = await db('player_inventory')
+    .join('items', 'player_inventory.item_id', 'items.id')
+    .where({ 'player_inventory.player_id': playerId, 'items.type': 'log' })
+    .whereNotNull('items.quality')
+    .select('items.quality')
+    .sum('player_inventory.quantity as total')
+    .groupBy('items.quality');
+  const counts: Record<string, number> = { poor: 0, fine: 0, excellent: 0 };
+  for (const r of rows) counts[r.quality] = parseInt(r.total);
+  return counts;
 }
 
 // ── Smelting ──────────────────────────────────────────────────────

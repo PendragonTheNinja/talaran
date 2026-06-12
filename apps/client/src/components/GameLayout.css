@@ -85,8 +85,9 @@
 
 .modal-count {
   font-family: var(--font-heading);
-  font-size: 16px;
+  font-size: 18px;
   min-width: 180px;
+  padding: 8px;
   text-align: center;
 }
 
@@ -94,4 +95,51 @@
   display: flex;
   gap: var(--space-sm);
   justify-content: center;
+}
+
+.kiln-quality-options {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin: var(--space-sm) 0;
+}
+
+.kiln-quality-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-md) var(--space-sm);
+  background: var(--color-bg-dark);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.kiln-quality-btn:hover:not(:disabled) {
+  background: var(--color-bg-raised);
+}
+
+.kiln-quality-btn.selected {
+  border-color: var(--color-gold);
+  background: var(--color-bg-raised);
+  box-shadow: 0 0 0 1px var(--color-gold) inset;
+}
+
+.kiln-quality-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kiln-quality-name {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  color: var(--color-gold);
+}
+
+.kiln-quality-rate,
+.kiln-quality-have {
+  font-size: 14px;
 }

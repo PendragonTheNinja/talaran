@@ -136,7 +136,7 @@
 }
 
 .location-action-info {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-text-dim);
   font-style: italic;
   padding: 4px var(--space-sm);
