@@ -85,9 +85,17 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
         can_send_messages: false,
         can_ban: false,
     })
+    const [locations, setLocations] = useState<{ id: number; name: string; region: string }[]>([])
+    const [teleRegion, setTeleRegion] = useState('')
+    const [teleLocationId, setTeleLocationId] = useState('')
 
     useEffect(() => {
         loadOnlinePlayers()
+        if (isAdmin) {
+            apiFetch<{ locations: { id: number; name: string; region: string }[] }>('/api/admin/locations')
+                .then(d => setLocations(d.locations))
+                .catch(() => { })
+        }
     }, [])
 
     const loadOnlinePlayers = async () => {
@@ -214,6 +222,21 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             await loadPlayer(selectedPlayer.id)
         } catch (err: any) {
             setError(err.message)
+        }
+    }
+
+    const handleTeleport = async () => {
+        if (!selectedPlayer || !teleLocationId) return
+        try {
+            const data = await apiFetch<{ message: string }>('/api/admin/teleport', {
+                method: 'POST',
+                body: JSON.stringify({ targetId: selectedPlayer.id, locationId: Number(teleLocationId) }),
+            })
+            setSuccess(data.message)
+            setError(null)
+            await loadPlayer(selectedPlayer.id) // refresh their shown location
+        } catch (err: any) {
+            setError(err.message || 'Could not teleport player.')
         }
     }
 
@@ -457,6 +480,39 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                             style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
                                         />
                                         <button className="btn btn-red" style={{ fontSize: '13px' }} onClick={handleBan}>Ban Player</button>
+                                    </div>
+                                )}
+
+                                {/* Teleport */}
+                                {isAdmin && (
+                                    <div className="admin-action-card">
+                                        <p className="admin-section-title">📍 Teleport Player</p>
+                                        <select
+                                            className="chat-input"
+                                            value={teleRegion}
+                                            onChange={e => { setTeleRegion(e.target.value); setTeleLocationId('') }}
+                                            style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                        >
+                                            <option value="">Select island…</option>
+                                            {[...new Set(locations.map(l => l.region))].map(r => (
+                                                <option key={r} value={r}>{r}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            className="chat-input"
+                                            value={teleLocationId}
+                                            onChange={e => setTeleLocationId(e.target.value)}
+                                            disabled={!teleRegion}
+                                            style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                        >
+                                            <option value="">Select location…</option>
+                                            {locations.filter(l => l.region === teleRegion).map(l => (
+                                                <option key={l.id} value={l.id}>{l.name}</option>
+                                            ))}
+                                        </select>
+                                        <button className="btn" style={{ fontSize: '13px' }} onClick={handleTeleport} disabled={!teleLocationId}>
+                                            Move Player
+                                        </button>
                                     </div>
                                 )}
 

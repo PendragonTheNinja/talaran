@@ -7,7 +7,7 @@
   border-bottom: 2px solid var(--color-border-gold);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
   flex-shrink: 0;
-  min-height: 40px;
+  min-height: 20px;
 }
 
 .top-nav-brand {
@@ -17,7 +17,7 @@
 
 .top-nav-title {
   font-family: var(--font-heading);
-  font-size: 32px;
+  font-size: 28px;
   color: var(--color-gold-bright);
   text-shadow: 0 0 12px rgba(200, 146, 42, 0.6);
   letter-spacing: 0.06em;
@@ -28,10 +28,13 @@
   flex-wrap: nowrap;
   gap: var(--space-xs);
   overflow: hidden;
+  flex: 1;
+  justify-content: center;
+  padding-right: 108px;
 }
 
 .top-nav-btn {
-  font-size: 16px;
+  font-size: 18px;
   padding: 4px var(--space-sm);
   white-space: nowrap;
 }
@@ -84,5 +87,14 @@
   align-items: center;
   justify-content: center;
   padding: 0 3px;
+  line-height: 1;
+}
+
+.top-nav-robot {
+  position: absolute;
+  right: var(--space-md);
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 18px;
   line-height: 1;
 }

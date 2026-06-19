@@ -173,6 +173,18 @@ router.post('/announce', requireAuth, async (req: AuthRequest, res: Response) =>
             timestamp,
             isAnnouncement: true,
         }
+        // Persist so it survives refreshes (loaded via /api/chat/history/server).
+        await db('chat_messages').insert({
+            player_id: playerId,
+            channel: 'server',
+            message: message.trim(),
+            player_name: '[SERVER]',
+            guild_tag: null,
+            region: null,
+            guild_id: null,
+            sent_at: now,
+        });
+
         io.emit('chat_world', announcementData);
         // Also emit as a banner
         io.emit('server_announcement', { message: message.trim() });
@@ -234,6 +246,59 @@ router.post('/warn', requireAuth, async (req: AuthRequest, res: Response) => {
         res.json({ success: true, strikeNumber });
     } catch (err) {
         logger.error(`Warn error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// List all locations (for admin teleport dropdowns)
+router.get('/locations', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const player = await db('players').where({ id: playerId }).first();
+        if (!player.is_admin && !player.is_mod) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        const locations = await db('locations')
+            .select('id', 'name', 'region')
+            .orderBy(['region', 'name']);
+        res.json({ locations });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Teleport a player to a location
+router.post('/teleport', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { targetId, locationId } = req.body;
+    try {
+        const staff = await db('players').where({ id: playerId }).first();
+        if (!staff.is_admin) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        const target = await db('players').where({ id: targetId }).first();
+        if (!target) {
+            res.status(404).json({ error: 'Player not found.' });
+            return;
+        }
+        const location = await db('locations').where({ id: locationId }).first();
+        if (!location) {
+            res.status(404).json({ error: 'Location not found.' });
+            return;
+        }
+
+        // Stop any in-progress action/travel, then move them.
+        await db('player_actions').where({ player_id: targetId }).delete();
+        await db('players').where({ id: targetId }).update({ current_location_id: locationId });
+
+        // Tell their client to reload into the new location.
+        io.to(`player_${targetId}`).emit('force_refresh');
+
+        logger.info(`${staff.username} teleported ${target.username} to ${location.name}`);
+        res.json({ success: true, message: `Moved ${target.username} to ${location.name}.` });
+    } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
 });

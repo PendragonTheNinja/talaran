@@ -2,10 +2,12 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  min-height: 640px;
   min-width: 800px;
-  width: 100vw;
+  width: 100%;
   background-color: var(--color-bg-deepest);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .game-body {
@@ -13,7 +15,8 @@
   flex: 1;
   gap: var(--space-sm);
   padding: var(--space-sm);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   min-height: 0;
 }
 
@@ -22,7 +25,7 @@
   flex-direction: column;
   flex: 1;
   gap: var(--space-sm);
-  min-width: 0;
+  min-width: 510px;
   overflow: hidden;
 }
 
@@ -51,7 +54,8 @@
   flex: 1;
   gap: var(--space-sm);
   min-height: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .modal-overlay {
@@ -102,6 +106,36 @@
   gap: var(--space-sm);
   justify-content: center;
   margin: var(--space-sm) 0;
+}
+
+.smelt-ingredient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: var(--space-sm) 0;
+}
+
+.smelt-ingredient-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  font-size: 14px;
+  padding: 2px 0;
+}
+
+.smelt-skip-link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: var(--space-xs);
+  opacity: 0.7;
+}
+
+.smelt-skip-link:hover {
+  opacity: 1;
 }
 
 .kiln-quality-btn {

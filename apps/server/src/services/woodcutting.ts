@@ -2,6 +2,7 @@ import db from '../db';
 import { levelFromXp } from './xp';
 import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
+import { rollSecondaryDrops, SecondaryDrop } from './drops';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -13,6 +14,7 @@ export interface WoodcuttingResult {
   itemName?: string;
   xpAwarded?: number;
   error?: string;
+  drops?: SecondaryDrop[];
 }
 
 export function calculateTimer(
@@ -204,8 +206,10 @@ export async function processWoodcuttingAction(
       logger.info(`Player ${playerId} discovered ${node.name} — awarded ${explorationXp} Exploration XP`);
     }
 
+    const drops = await rollSecondaryDrops(playerId, `woodcutting:${subtype}`);
+
     logger.info(`Player ${playerId} chopped ${logItem.name} from ${node.name}`);
-    return { success: true, itemName: logItem.name, xpAwarded: node.xp_reward };
+    return { success: true, itemName: logItem.name, xpAwarded: node.xp_reward, drops };
 
   } catch (err) {
     logger.error(`Woodcutting error for player ${playerId}: ${err}`);

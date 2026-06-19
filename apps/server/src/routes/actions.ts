@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { canChopHere, calculateTimer } from '../services/woodcutting';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../index';
-import { botCheckGate } from '../services/botCheck';
+import { botCheckGate, issueBotCheck } from '../services/botCheck';
 
 const router = Router();
 
@@ -149,5 +149,19 @@ const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
 router.post('/bot-check', requireAuth, handleBotCheckAnswer);
 // Back-compat alias so sessions open since before the deploy don't 404 on the removed idle route.
 router.post('/bot-check/idle', requireAuth, handleBotCheckAnswer);
+
+// Force a bot check on demand. Use case: a player about to step away wants to
+// pass a check now so their full 30-minute window starts fresh (handleBotCheckAnswer
+// advances last_bot_check on a correct answer).
+router.post('/bot-check/force', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  try {
+    await issueBotCheck(playerId);
+    res.json({ success: true });
+  } catch (err) {
+    logger.error(`Force bot check error: ${err}`);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 export default router;

@@ -21,9 +21,10 @@ interface TopNavProps {
   isMod?: boolean
   onAdminClick?: () => void
   onSettingsClick: () => void
+  onForceBotCheck: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, onQuestsClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, onQuestsClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onForceBotCheck }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -60,6 +61,13 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
         )}
         <button className="top-nav-btn btn btn-red" onClick={onLogout}>
           Log Out
+        </button>
+        <button
+          className="top-nav-btn btn top-nav-robot"
+          onClick={onForceBotCheck}
+          title="Reset your AFK timer: do a bot check now to start a fresh 30-minute window before stepping away."
+        >
+          🤖
         </button>
       </div>
     </nav>

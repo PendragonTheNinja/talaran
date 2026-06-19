@@ -3,8 +3,9 @@ import { levelFromXp } from './xp';
 import { logger } from '../lib/logger';
 import { io } from '../index';
 import { incrementStats } from './stats';
+import { rollSecondaryDrops } from './drops';
 
-const VEIN_ANNOUNCE_DELAY = 5 * 60 * 1000;
+const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
 const DENSE_ORE_GUARANTEED_LEVELS = 45;
 const MAX_TIER_DIFFERENCE = 3;
@@ -18,6 +19,7 @@ export interface MiningResult {
   veinFound?: boolean;
   veinOreName?: string;
   error?: string;
+  drops?: { name: string; quantity: number }[];
 }
 
 export function calculateMiningTimer(
@@ -152,13 +154,22 @@ export async function processMiningRock(
       .first();
     const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
 
-    const rockSubtype = node.name.toLowerCase().includes('granite') ? 'granite'
-      : node.name.toLowerCase().includes('limestone') ? 'limestone'
-        : node.name.toLowerCase().includes('sandstone') ? 'sandstone'
-          : node.name.toLowerCase().includes('marble') ? 'marble'
-            : 'basalt';
+    const nm = node.name.toLowerCase();
+    const rockSubtype: string | null = node.ore_subtype
+      || (nm.includes('granite') ? 'granite'
+        : nm.includes('limestone') ? 'limestone'
+          : nm.includes('sandstone') ? 'sandstone'
+            : nm.includes('marble') ? 'marble'
+              : nm.includes('basalt') ? 'basalt'
+                : null);
 
-    const rockItem = await db('items').where({ subtype: rockSubtype, type: 'rock' }).first();
+    if (!rockSubtype) {
+      logger.warn(`Rock node ${nodeId} ("${node.name}") has no resolvable rock type — awarding nothing.`);
+    }
+
+    const rockItem = rockSubtype
+      ? await db('items').where({ subtype: rockSubtype, type: 'rock' }).first()
+      : null;
 
     if (rockItem) {
       const existing = await db('player_inventory')
@@ -220,6 +231,8 @@ export async function processMiningRock(
       total_xp_earned: node.xp_reward,
     });
 
+    const drops = rockSubtype ? await rollSecondaryDrops(playerId, `mining:rock:${rockSubtype}`) : [];
+
     logger.info(`Player ${playerId} mined ${rockItem?.name || 'rock'} at node ${nodeId}`);
     return {
       success: true,
@@ -227,6 +240,7 @@ export async function processMiningRock(
       xpAwarded: node.xp_reward,
       veinFound,
       veinOreName,
+      drops,
     };
 
   } catch (err) {

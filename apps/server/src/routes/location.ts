@@ -101,25 +101,6 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
       return;
     }
 
-    const players = await db('players')
-      .where({ current_location_id: player.current_location_id })
-      .select('id', 'username');
-
-    res.json({ players });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response) => {
-  const playerId = req.player!.playerId;
-  try {
-    const player = await db('players').where({ id: playerId }).first();
-    if (!player?.current_location_id) {
-      res.json({ players: [] });
-      return;
-    }
-
     const onlineIds = [...connectedPlayers, playerId];
 
     const players = await db('players')

@@ -20,6 +20,7 @@ import HighscoresPanel from './HighscoresPanel'
 import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
 import PlayerProfile from './PlayerProfile'
+import { getSkipConfirm, setSkipConfirm } from '../lib/confirmPrefs';
 
 interface Skill {
   id: number
@@ -162,6 +163,10 @@ export default function GameLayout({
   const [showKilnModal, setShowKilnModal] = useState(false)
   const [showSmithingMenu, setShowSmithingMenu] = useState(false)
   const [smithingStatusKey, setSmithingStatusKey] = useState(0)
+  const [showSmeltModal, setShowSmeltModal] = useState(false)
+  const [smeltSkipConfirm, setSmeltSkipConfirm] = useState(false)
+  const [smeltRecipe, setSmeltRecipe] = useState<any>(null)
+  const [smeltMetalType, setSmeltMetalType] = useState<string>('ambren')
 
   const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
 
@@ -254,6 +259,18 @@ export default function GameLayout({
       handleCarpentrySetup()
     } else if (type === 'carpentry_menu') {
       setShowCarpentryMenu(true)
+    } else if (type === 'smelting') {
+      if (getSkipConfirm('smelt')) {
+        setGameViewAction({ type, id })
+      } else {
+        setSmeltMetalType(id as string)
+        setSmeltSkipConfirm(false)
+        setSmeltRecipe(null)
+        apiFetch<any>('/api/smithing/recipes')
+          .then(d => setSmeltRecipe((d.recipes?.smelt || []).find((s: any) => s.key === id) || null))
+          .catch(() => { })
+        setShowSmeltModal(true)
+      }
     } else {
       setGameViewAction({ type, id })
     }
@@ -281,6 +298,18 @@ export default function GameLayout({
     } catch (err: any) {
       setKilnError(err.message || 'Could not load kiln.')
     }
+  }
+
+  const handleForceBotCheck = async () => {
+    try {
+      await apiFetch('/api/actions/bot-check/force', { method: 'POST' })
+      // Server emits bot_check_required → GameView shows the challenge.
+    } catch (err) { /* ignore — nothing to reset if it fails */ }
+  }
+
+  const startSmelt = () => {
+    setShowSmeltModal(false)
+    setGameViewAction({ type: 'smelting', id: smeltMetalType })
   }
 
   const [actionLimit, setActionLimit] = useState<number | null>(null)
@@ -377,6 +406,7 @@ export default function GameLayout({
         onMessagesClick={() => {
           if (showMessages) closePanel(setMessagesClosing, setShowMessages)
           else { closeAllPanels(); setShowMessages(true) }
+
         }}
         onForumClick={() => {
           if (showForum) closePanel(setForumClosing, setShowForum, 400)
@@ -405,6 +435,7 @@ export default function GameLayout({
           if (showSettings) closePanel(setSettingsClosing, setShowSettings)
           else { closeAllPanels(); setShowSettings(true) }
         }}
+        onForceBotCheck={handleForceBotCheck}
       />
       <div className="game-body">
         <LeftPanel
@@ -528,6 +559,85 @@ export default function GameLayout({
               <button className="btn btn-gold" onClick={handleKilnLoad}>Load Kiln</button>
               <button className="btn" onClick={() => setShowKilnModal(false)}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+      {showSmeltModal && (
+        <div className="modal-overlay" onClick={() => setShowSmeltModal(false)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            {!smeltSkipConfirm ? (
+              <>
+                <h3 className="gold-text">Smelt {smeltRecipe?.name || 'Ingots'}</h3>
+                {smeltRecipe ? (
+                  <>
+                    <p className="muted-text">Makes {smeltRecipe.outputQuantity}× per batch. Each batch consumes:</p>
+                    <div className="smelt-ingredient-list">
+                      {smeltRecipe.ingredients.map((ing: any) => {
+                        const have = inventoryData.find(it => it.name === ing.name)?.quantity || 0
+                        const short = have < ing.quantity
+                        return (
+                          <div key={ing.name} className="smelt-ingredient-row">
+                            <span>{ing.name}</span>
+                            <span style={{ color: short ? 'var(--color-red-glow)' : 'var(--color-text-muted)' }}>
+                              {have} / {ing.quantity}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="modal-input-row">
+                      <span className="muted-text">Batches:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="modal-count"
+                        value={actionLimit ?? ''}
+                        placeholder="∞"
+                        onChange={e => {
+                          const v = e.target.value === '' ? null : Math.max(0, parseInt(e.target.value) || 0)
+                          setActionLimit(v === 0 ? null : v)
+                        }}
+                      />
+                      <span className="muted-text" style={{ fontSize: '11px' }}>(blank = until out)</span>
+                    </div>
+                    {(() => {
+                      const canMake = smeltRecipe.ingredients.every((ing: any) =>
+                        (inventoryData.find(it => it.name === ing.name)?.quantity || 0) >= ing.quantity)
+                      return (
+                        <div className="modal-actions">
+                          <button className="btn btn-gold" onClick={startSmelt} disabled={!canMake}>
+                            {canMake ? 'Smelt' : 'Not enough materials'}
+                          </button>
+                          <button className="btn" onClick={() => setShowSmeltModal(false)}>Cancel</button>
+                        </div>
+                      )
+                    })()}
+                    <button className="smelt-skip-link" onClick={() => setSmeltSkipConfirm(true)}>
+                      Don't show this again
+                    </button>
+                  </>
+                ) : (
+                  <p className="muted-text">Loading recipe…</p>
+                )}
+              </>
+            ) : (
+              <>
+                <h3 className="gold-text">Skip this confirmation?</h3>
+                <p className="muted-text" style={{ lineHeight: 1.5 }}>
+                  If you turn this off, clicking <strong>Smelt Ambren Ingots</strong> will start
+                  immediately without showing the recipe or your material counts. You'll be
+                  responsible for tracking what each batch consumes (including Burgh Ore and Charc).
+                  You can re-enable this anytime by clearing it in your browser, and we'll add a
+                  Settings toggle later.
+                </p>
+                <div className="modal-actions">
+                  <button className="btn btn-gold" onClick={() => { setSkipConfirm('smelt', true); startSmelt() }}>
+                    Yes, skip &amp; smelt
+                  </button>
+                  <button className="btn" onClick={() => setSmeltSkipConfirm(false)}>Back</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

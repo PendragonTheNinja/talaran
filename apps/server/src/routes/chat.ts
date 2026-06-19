@@ -7,7 +7,7 @@ import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
-const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help', 'whisper']; const MAX_MESSAGE_LENGTH = 500;
+const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help', 'whisper', 'server']; const MAX_MESSAGE_LENGTH = 500;
 const HISTORY_DAYS = 2; // today + yesterday
 
 // Turn "Forum > Category > Thread Title" breadcrumbs (typed or pasted) into inline

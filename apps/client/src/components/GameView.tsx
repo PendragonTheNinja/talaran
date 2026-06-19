@@ -112,6 +112,7 @@ export default function GameView({
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
     ended?: 'limit' | 'materials'
+    drops?: { name: string; quantity: number }[]
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
@@ -222,6 +223,7 @@ export default function GameView({
             quantity: (data.result as any).quantity,
             ingredientsRemaining: (data.result as any).ingredientsRemaining,
             outputTotal: (data.result as any).outputTotal,
+            drops: (data.result as any).drops,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -245,6 +247,8 @@ export default function GameView({
         onClearTravel()
         if (timerRef.current) clearInterval(timerRef.current)
       })
+
+      socket.on('force_refresh', () => window.location.reload())
 
       socket.on('action_failed', (data: { error: string; info?: boolean }) => {
         addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
@@ -311,6 +315,7 @@ export default function GameView({
         socket.off('vein_depleted')
         socket.off('action_switched')
         socket.off('action_limit_reached')
+        socket.off('force_refresh')
       }
     }
   }, [onPlayerDataUpdate, loadVeins])
@@ -708,6 +713,11 @@ export default function GameView({
       {r.remainingQuantity !== undefined && (
         <p className="last-result-remaining">{r.remainingQuantity} ore remaining in vein</p>
       )}
+      {r.drops && r.drops.map((d: any, i: number) => (
+        <p key={`drop-${i}`} className="last-result-drop gold-text">
+          You found {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}!
+        </p>
+      ))}
     </>
   )
 

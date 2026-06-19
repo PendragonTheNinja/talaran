@@ -5,9 +5,9 @@ export async function up(knex: Knex): Promise<void> {
     table.increments('id').primary();
     table.integer('player_id').unsigned().notNullable()
       .references('id').inTable('players').onDelete('CASCADE');
-    table.string('channel', 20).notNullable();
-    table.string('region', 100).nullable();
-    table.integer('guild_id').unsigned().nullable();
+    table.string('channel', 20).notNullable(); // world, region, guild, trade, help
+    table.string('region', 100).nullable(); // for region chat — island/landmass name
+    table.integer('guild_id').unsigned().nullable(); // for guild chat
     table.text('message').notNullable();
     table.string('player_name', 100).notNullable();
     table.string('guild_tag', 20).nullable();

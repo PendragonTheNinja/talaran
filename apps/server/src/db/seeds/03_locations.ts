@@ -171,6 +171,7 @@ export async function seed(knex: Knex): Promise<void> {
       required_level: 1, base_timer: 20, min_timer: 20, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 6,
       vein_discovery_chance: 10, min_vein_quantity: 40, max_vein_quantity: 80,
+      ore_subtype: 'granite',
     },
     {
       location_id: grundagr.id, skill: 'mining', name: 'Burgh Ore Node',
@@ -186,6 +187,7 @@ export async function seed(knex: Knex): Promise<void> {
       required_level: 1, base_timer: 20, min_timer: 20, required_tool_tier: 1,
       poor_chance: 0, fine_chance: 0, excellent_chance: 0, xp_reward: 6,
       vein_discovery_chance: 10, min_vein_quantity: 40, max_vein_quantity: 80,
+      ore_subtype: 'granite',
     },
     {
       location_id: origrund.id, skill: 'mining', name: 'Ambren Ore Node',

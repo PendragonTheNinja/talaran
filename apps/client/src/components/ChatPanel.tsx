@@ -26,8 +26,10 @@ const CHANNELS = [
   { key: 'guild', label: 'Guild' },
   { key: 'trade', label: 'Trade' },
   { key: 'help', label: 'Help' },
-  { key: 'whisper', label: 'Whisper' },
 ]
+
+// Channels we load/persist history for but that aren't selectable send-tabs.
+const HISTORY_CHANNELS = [...CHANNELS.map(c => c.key), 'whisper', 'server']
 
 const CHANNEL_COLORS: Record<string, string> = {
   world: '#ffb96f',
@@ -156,7 +158,7 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
   useEffect(() => {
     const loadAll = async () => {
       const all: ChatMessage[] = []
-      for (const { key } of CHANNELS) {
+      for (const key of HISTORY_CHANNELS) {
         try {
           const data = await apiFetch<{ messages: any[] }>(`/api/chat/history/${key}`)
           const formatted = data.messages.map(m => ({
