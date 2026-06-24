@@ -60,6 +60,7 @@ interface GameViewProps {
   onInventoryUpdate: () => void
   rememberPendingAction: (fn: () => void) => void
   runPendingAction: () => void
+  onShareToChat?: (text: string) => void
 }
 
 interface LogEntry {
@@ -87,6 +88,7 @@ export default function GameView({
   onInventoryUpdate,
   rememberPendingAction,
   runPendingAction,
+  onShareToChat,
 }: GameViewProps) {
 
   const [currentAction, setCurrentAction] = useState<string | null>(null)
@@ -903,6 +905,15 @@ export default function GameView({
             </div>
             <p className="levelup-skill">{levelUpSkill.name}</p>
             <p className="levelup-level">Level <span className="levelup-level-num">{levelUpSkill.level}</span></p>
+            <button
+              className="levelup-share"
+              onClick={() => {
+                onShareToChat?.(`I just reached ${levelUpSkill.name} level ${levelUpSkill.level}! 🎉`)
+                setLevelUpSkill(null)
+              }}
+            >
+              Share
+            </button>
           </div>
         </div>
       )}

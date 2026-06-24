@@ -565,3 +565,22 @@
     filter: brightness(1);
   }
 }
+
+.levelup-share {
+  margin-top: var(--space-md);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-bg-deepest);
+  background: linear-gradient(180deg, var(--color-gold-bright), var(--color-gold));
+  border: 1px solid var(--color-gold-shine);
+  border-radius: var(--radius-md);
+  padding: 5px 16px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+
+.levelup-share:hover {
+  filter: brightness(1.12);
+}

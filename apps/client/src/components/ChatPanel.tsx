@@ -18,6 +18,8 @@ interface ChatMessage {
 
 interface ChatPanelProps {
   onOpenForum?: (threadId: number) => void
+  draft?: string | null
+  onDraftConsumed?: () => void
 }
 
 const CHANNELS = [
@@ -82,7 +84,7 @@ function renderMessageText(text: string, onOpenForum?: (threadId: number) => voi
   return nodes
 }
 
-export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
+export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatPanelProps) {
   const [activeChannel, setActiveChannel] = useState('world')
   const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -190,6 +192,13 @@ export default function ChatPanel({ onOpenForum }: ChatPanelProps) {
     }
     loadAll()
   }, [])
+
+  useEffect(() => {
+    if (draft) {
+      setInput(draft)
+      onDraftConsumed?.()
+    }
+  }, [draft])
 
   // Socket listeners
   useEffect(() => {

@@ -330,6 +330,8 @@ export default function GameLayout({
 
   const [profilePlayerId, setProfilePlayerId] = useState<number | null>(null)
 
+  const [chatDraft, setChatDraft] = useState<string | null>(null)
+
   useEffect(() => {
     const loadCount = () => {
       apiFetch<{ count: number }>('/api/messages/unread/count')
@@ -461,6 +463,7 @@ export default function GameLayout({
               onInventoryUpdate={onInventoryUpdate}
               rememberPendingAction={rememberPendingAction}
               runPendingAction={runPendingAction}
+              onShareToChat={(text: string) => setChatDraft(text)}
             />
             <LocationPanel
               locationData={locationData}
@@ -498,10 +501,14 @@ export default function GameLayout({
               smithingStatusKey={smithingStatusKey}
             />
           </div>
-          <ChatPanel onOpenForum={(threadId) => {
-            setShowForum(true)
-            setForumOpenThreadId(threadId)
-          }} />
+          <ChatPanel
+            onOpenForum={(threadId) => {
+              setShowForum(true)
+              setForumOpenThreadId(threadId)
+            }}
+            draft={chatDraft}
+            onDraftConsumed={() => setChatDraft(null)}
+          />
         </div>
         <RightPanel
           player={player}
