@@ -14,7 +14,6 @@ import CarpentryMenu from './CarpentryMenu'
 import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
-import QuestsPanel from './QuestsPanel'
 import NewsPanel from './NewsPanel'
 import HighscoresPanel from './HighscoresPanel'
 import AdminPanel from './AdminPanel'
@@ -380,9 +379,6 @@ export default function GameLayout({
   const [showHighscores, setShowHighscores] = useState(false)
   const [highscoresClosing, setHighscoresClosing] = useState(false)
 
-  const [showQuests, setShowQuests] = useState(false)
-  const [questsClosing, setQuestsClosing] = useState(false)
-
   const handleDropItem = async (itemId: number, quantity: number) => {
     try {
       await apiFetch('/api/ground-items/drop', {
@@ -419,10 +415,6 @@ export default function GameLayout({
         onHighscoresClick={() => {
           if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
           else { closeAllPanels(); setShowHighscores(true) }
-        }}
-        onQuestsClick={() => {
-          if (showQuests) closePanel(setQuestsClosing, setShowQuests)
-          else { closeAllPanels(); setShowQuests(true) }
         }}
         isAdmin={playerData?.player?.is_admin || false}
         isMod={playerData?.player?.is_mod || false}
@@ -520,6 +512,9 @@ export default function GameLayout({
           connections={locationData?.connections || []}
           onTravel={handleTravel}
           locationData={locationData}
+          equipmentData={equipmentData}
+          onEquipmentUpdate={onEquipmentUpdate}
+          onInventoryUpdate={onInventoryUpdate}
         />
       </div>
 
@@ -709,13 +704,6 @@ export default function GameLayout({
         <HighscoresPanel
           onClose={() => closePanel(setHighscoresClosing, setShowHighscores)}
           closing={highscoresClosing}
-        />
-      )}
-
-      {showQuests && (
-        <QuestsPanel
-          onClose={() => closePanel(setQuestsClosing, setShowQuests)}
-          closing={questsClosing}
         />
       )}
 

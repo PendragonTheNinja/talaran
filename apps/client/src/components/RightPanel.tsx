@@ -3,6 +3,8 @@ import './RightPanel.css'
 import MiniMap from './MiniMap'
 import { useState } from 'react'
 import PlayerStats from './PlayerStats'
+import SkillsPanel from './SkillsPanel'
+import TabbedPanel from './TabbedPanel'
 
 interface Location {
   id: number
@@ -21,6 +23,9 @@ interface RightPanelProps {
   connections: any[]
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
   locationData?: any
+  equipmentData: any
+  onEquipmentUpdate: () => void
+  onInventoryUpdate: () => void
 }
 
 interface Skill {
@@ -40,17 +45,13 @@ interface PlayerData {
   currentAction: any
 }
 
-export default function RightPanel({ player, playerData, currentLocationId, locationName, allLocations, connections, onTravel, locationData }: RightPanelProps) {
+export default function RightPanel({ player, playerData, currentLocationId, locationName, allLocations, connections, onTravel, locationData, equipmentData, onEquipmentUpdate, onInventoryUpdate }: RightPanelProps) {
   const skills = playerData?.skills || []
   const totalLevel = playerData?.totalLevel || 0
   const totalXp = playerData?.totalXp || 0
 
-  const [skillTooltip, setSkillTooltip] = useState<{ x: number; y: number; skill: Skill } | null>(null)
-
   const [showMap, setShowMap] = useState(false)
   const [mapCollapsed, setMapCollapsed] = useState(false)
-
-  const [showStats, setShowStats] = useState(false)
 
   return (
     <aside className="right-panel">
@@ -88,74 +89,13 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
         )}
       </div>
 
-      <div className="player-stats panel">
-        <div className="panel-title">{player.username}</div>
-        <div className="stat-row">
-          <span>Gold</span>
-          <span className="gold-text">0</span>
-        </div>
-        <div className="stat-row">
-          <span>Total Level</span>
-          <span className="gold-text">{totalLevel}</span>
-        </div>
-        <div className="stat-row">
-          <span>Total XP</span>
-          <span className="gold-text">{totalXp.toLocaleString()}</span>
-        </div>
-        <div className="stat-row">
-          <span>Combat Level</span>
-          <span className="gold-text">1</span>
-        </div>
-        <button className="btn" style={{ width: '100%', marginTop: 'var(--space-sm)' }} onClick={() => setShowStats(true)}>
-          View Stats
-        </button>
-      </div>
-
-      <div className="skills-panel panel">
-        <div className="panel-title">Skills</div>
-        <div className="skills-grid">
-          {skills.length === 0 ? (
-            <p className="muted-text" style={{ padding: '8px', gridColumn: '1/-1' }}>
-              Loading skills...
-            </p>
-          ) : (
-            skills.map(skill => (
-              <div
-                key={skill.id}
-                className={`skill-item skill-${skill.type}`}
-                onMouseEnter={e => setSkillTooltip({ x: e.clientX, y: e.clientY, skill })}
-                onMouseLeave={() => setSkillTooltip(null)}
-                onMouseMove={e => setSkillTooltip({ x: e.clientX, y: e.clientY, skill })}
-              >
-                <div className="skill-icon-wrap">
-                  <img
-                    src={`/images/skills/${skill.name.replace(/ /g, '_')}Skill.png`}
-                    alt={skill.name}
-                    className="skill-icon"
-                    onError={e => { e.currentTarget.style.display = 'none' }}
-                  />
-                  <span className="skill-level">{skill.level}</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {skillTooltip && (
-        <div
-          className="skill-tooltip"
-          style={{
-            left: Math.min(skillTooltip.x + 12, window.innerWidth - 220),
-            top: Math.min(skillTooltip.y + 12, window.innerHeight - 150),
-          }}
-        >
-          <p className="skill-tooltip-name">{skillTooltip.skill.name}</p>
-          <p className="skill-tooltip-level">Level {skillTooltip.skill.level}</p>
-          <p className="skill-tooltip-xp">{skillTooltip.skill.xp.toLocaleString()} XP</p>
-          <p className="skill-tooltip-next">{skillTooltip.skill.xpToNext.toLocaleString()} XP to next level</p>
-        </div>
-      )}
+      <TabbedPanel
+        playerId={player.id}
+        skills={skills}
+        equipmentData={equipmentData}
+        onEquipmentUpdate={onEquipmentUpdate}
+        onInventoryUpdate={onInventoryUpdate}
+      />
 
       {showMap && (
         <div className="map-overlay" onClick={() => setShowMap(false)}>
@@ -166,15 +106,6 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
               alt="Island Map"
               className="map-image"
             />
-          </div>
-        </div>
-      )}
-
-      {showStats && (
-        <div className="map-overlay" onClick={() => setShowStats(false)}>
-          <div className="stats-popup" onClick={e => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setShowStats(false)}>✕</button>
-            <PlayerStats playerId={player.id} />
           </div>
         </div>
       )}

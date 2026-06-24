@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { levelFromXp, xpToNextLevel } from '../services/xp';
+import { levelFromXp, xpToNextLevel, xpProgressInLevel } from '../services/xp';
 import { Request } from 'express';
 import { connectedPlayers } from '../index';
 import { logger } from '../index';
@@ -62,6 +62,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         xp,
         level,
         xpToNext: xpToNextLevel(xp),
+        progress: xpProgressInLevel(xp),
       };
     });
 

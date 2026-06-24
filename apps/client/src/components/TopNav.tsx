@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Guild', 'Journal',
-  'Quests', 'Events', 'Manual', 'News', 'Highscores', 'Settings'
+  'Events', 'Manual', 'News', 'Highscores', 'Settings'
 ]
 
 interface TopNavProps {
@@ -15,7 +15,6 @@ interface TopNavProps {
   onForumClick: () => void
   onNewsClick: () => void
   onHighscoresClick: () => void
-  onQuestsClick: () => void
   unreadMessages: number
   isAdmin?: boolean
   isMod?: boolean
@@ -24,7 +23,7 @@ interface TopNavProps {
   onForceBotCheck: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, onQuestsClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onForceBotCheck }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onForceBotCheck }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -40,11 +39,10 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
               item === 'Guild' ? onGuildClick :
                 item === 'Messages' ? onMessagesClick :
                   item === 'Forum' ? onForumClick :
-                    item === 'Quests' ? onQuestsClick :
-                      item === 'News' ? onNewsClick :
-                        item === 'Highscores' ? onHighscoresClick :
-                          item === 'Settings' ? onSettingsClick :
-                            undefined
+                    item === 'News' ? onNewsClick :
+                      item === 'Highscores' ? onHighscoresClick :
+                        item === 'Settings' ? onSettingsClick :
+                          undefined
             }
             style={{ position: 'relative' }}
           >

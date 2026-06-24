@@ -258,6 +258,79 @@
   text-align: center;
   box-shadow: 0 0 30px rgba(200, 146, 42, 0.5), var(--shadow-lg);
   position: relative;
+  overflow: hidden;
+  animation: levelup-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes levelup-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 28px rgba(200, 146, 42, 0.45), var(--shadow-lg);
+  }
+
+  50% {
+    box-shadow: 0 0 46px rgba(232, 184, 75, 0.75), var(--shadow-lg);
+  }
+}
+
+.levelup-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 340px;
+  height: 340px;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(from 0deg, transparent 0 8deg, rgba(232, 184, 75, 0.10) 8deg 16deg);
+  animation: levelup-spin 9s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes levelup-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.levelup-inner>*:not(.levelup-rays) {
+  position: relative;
+  z-index: 1;
+}
+
+.levelup-icon-wrap {
+  width: 72px;
+  height: 72px;
+  margin: var(--space-sm) auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: levelup-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.levelup-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(232, 184, 75, 0.7));
+}
+
+@keyframes levelup-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.levelup-level-num {
+  color: var(--color-gold-shine);
+  font-size: 1.4em;
+  font-weight: 700;
 }
 
 .levelup-close {
@@ -450,4 +523,45 @@
 
 .scene-external-message button:hover {
   opacity: 1;
+}
+
+.last-result-drop {
+  color: var(--color-gold-shine);
+  font-weight: 600;
+  animation: drop-flash 0.6s ease;
+}
+
+.drop-name {
+  color: var(--color-gold-bright);
+}
+
+.drop-sparkle {
+  display: inline-block;
+  animation: drop-twinkle 1.4s ease-in-out infinite;
+}
+
+@keyframes drop-twinkle {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes drop-flash {
+  0% {
+    transform: scale(0.85);
+    filter: brightness(2);
+  }
+
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
 }

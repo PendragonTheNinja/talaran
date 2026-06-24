@@ -714,8 +714,8 @@ export default function GameView({
         <p className="last-result-remaining">{r.remainingQuantity} ore remaining in vein</p>
       )}
       {r.drops && r.drops.map((d: any, i: number) => (
-        <p key={`drop-${i}`} className="last-result-drop gold-text">
-          You found {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}!
+        <p key={`drop-${i}`} className="last-result-drop">
+          <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
         </p>
       ))}
     </>
@@ -891,9 +891,18 @@ export default function GameView({
         <div className="levelup-popup">
           <div className="levelup-inner">
             <button className="levelup-close" onClick={() => setLevelUpSkill(null)}>✕</button>
+            <div className="levelup-rays" />
             <p className="levelup-title">Level Up!</p>
+            <div className="levelup-icon-wrap">
+              <img
+                src={`/images/skills/${levelUpSkill.name.replace(/ /g, '_')}Skill.png`}
+                alt={levelUpSkill.name}
+                className="levelup-icon"
+                onError={e => { e.currentTarget.style.display = 'none' }}
+              />
+            </div>
             <p className="levelup-skill">{levelUpSkill.name}</p>
-            <p className="levelup-level">Level {levelUpSkill.level}</p>
+            <p className="levelup-level">Level <span className="levelup-level-num">{levelUpSkill.level}</span></p>
           </div>
         </div>
       )}
