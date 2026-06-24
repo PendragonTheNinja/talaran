@@ -2,6 +2,7 @@ import { Player } from '../types'
 import './RightPanel.css'
 import MiniMap from './MiniMap'
 import { useState } from 'react'
+import PlayerStats from './PlayerStats'
 
 interface Location {
   id: number
@@ -48,6 +49,8 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
 
   const [showMap, setShowMap] = useState(false)
   const [mapCollapsed, setMapCollapsed] = useState(false)
+
+  const [showStats, setShowStats] = useState(false)
 
   return (
     <aside className="right-panel">
@@ -103,6 +106,9 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
           <span>Combat Level</span>
           <span className="gold-text">1</span>
         </div>
+        <button className="btn" style={{ width: '100%', marginTop: 'var(--space-sm)' }} onClick={() => setShowStats(true)}>
+          View Stats
+        </button>
       </div>
 
       <div className="skills-panel panel">
@@ -160,6 +166,15 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
               alt="Island Map"
               className="map-image"
             />
+          </div>
+        </div>
+      )}
+
+      {showStats && (
+        <div className="map-overlay" onClick={() => setShowStats(false)}>
+          <div className="stats-popup" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowStats(false)}>✕</button>
+            <PlayerStats playerId={player.id} />
           </div>
         </div>
       )}

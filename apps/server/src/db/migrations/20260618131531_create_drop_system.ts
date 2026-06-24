@@ -17,11 +17,11 @@ export async function up(knex: Knex): Promise<void> {
         });
     }
 
-    // ── Example content: Bird's Nest off Lanai trees ────────────
+    // ── Example content: Bird Nest off Lanai trees ────────────
     let nest = await knex('items').where({ name: "Bird's Nest" }).first();
     if (!nest) {
         const [inserted] = await knex('items').insert({
-            name: "Bird's Nest",
+            name: "Bird Nest",
             type: 'collectible',
             subtype: null,
             quality: null,
@@ -51,5 +51,5 @@ export async function up(knex: Knex): Promise<void> {
 
 export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('drop_table_entries');
-    // Bird's Nest item is left in place intentionally (harmless).
+    // Bird Nest item is left in place intentionally (harmless).
 }

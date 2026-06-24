@@ -6,6 +6,7 @@ import { createLogger, format, transports } from 'winston';
 import authRoutes from './routes/auth';
 import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
+import { startPlaytimeTracking } from './services/playtime';
 import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import miningRoutes from './routes/mining';
@@ -189,6 +190,7 @@ io.on('connection', (socket) => {
 
 // Start the game tick
 startGameTick(io);
+startPlaytimeTracking();
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

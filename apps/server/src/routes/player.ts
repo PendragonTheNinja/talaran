@@ -108,6 +108,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
           'players.guild_role',
           'players.forum_post_count',
           'players.created_at',
+          'players.last_login',
+          'players.total_seconds_played',
         )
         .first();
 
