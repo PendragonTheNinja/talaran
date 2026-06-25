@@ -3,6 +3,9 @@ import { formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './MessagesPanel.css'
 import ConfirmModal from './ConfirmModal'
+import { useIsMobile } from '../lib/useIsMobile'
+import { useDockableWindow } from '../lib/useDockableWindow'
+import DockableWindow from './DockableWindow'
 
 interface MessageSummary {
     id: number
@@ -40,6 +43,9 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
     const [composeSubject, setComposeSubject] = useState('')
     const [composeBody, setComposeBody] = useState('')
     const [replyToId, setReplyToId] = useState<number | null>(null)
+
+    const isMobile = useIsMobile()
+    const dock = useDockableWindow('messages')
 
     useEffect(() => {
         loadInbox()
@@ -151,13 +157,28 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
     const formatDate = (dateStr: string) => formatGameDateTime(new Date(dateStr))
 
     return (
-        <div className={`messages-panel ${closing ? 'closing' : ''}`}>
-            <div className="messages-header">
+        <DockableWindow
+            dock={dock}
+            enabled={!isMobile}
+            onClose={onClose}
+            className={`messages-panel ${closing ? 'closing' : ''}`}
+            dragHandleClassName="messages-header"
+        >            <div className="messages-header">
                 <h3 className="gold-text">Messages</h3>
                 <div className="messages-header-actions">
                     <button className="btn" onClick={() => { setView('compose'); setReplyToId(null); setComposeTo(''); setComposeSubject(''); setComposeBody('') }}>
                         + Compose
                     </button>
+                    {!isMobile && (
+                        <>
+                            <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
+                                {dock.isPopped ? '⤡' : '⤢'}
+                            </button>
+                            {dock.isPopped && (
+                                <button className={`dock-btn ${dock.isPinned ? 'active' : ''}`} onClick={dock.togglePin} title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}>📌</button>
+                            )}
+                        </>
+                    )}
                     <button className="modal-close-btn" onClick={onClose}>✕</button>
                 </div>
             </div>
@@ -301,6 +322,6 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
                     onCancel={() => setConfirmDialog(null)}
                 />
             )}
-        </div>
+        </DockableWindow>
     )
 }

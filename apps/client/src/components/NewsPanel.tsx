@@ -5,6 +5,9 @@ import './NewsPanel.css'
 import MarkdownToolbar from './MarkdownToolbar'
 import MarkdownRenderer from './MarkdownRenderer'
 import { useMarkdownEditor } from '../lib/useMarkdownEditor'
+import { useIsMobile } from '../lib/useIsMobile'
+import { useDockableWindow } from '../lib/useDockableWindow'
+import DockableWindow from './DockableWindow'
 
 interface NewsPost {
     id: number
@@ -31,6 +34,9 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const { textareaRef: bodyTextareaRef, insertMarkdown: insertBodyMarkdown } = useMarkdownEditor(newBody, setNewBody)
+
+    const isMobile = useIsMobile()
+    const dock = useDockableWindow('news')
 
     useEffect(() => {
         loadNews()
@@ -77,7 +83,13 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
     const formatDate = (dateStr: string) => formatGameDateLong(new Date(dateStr))
 
     return (
-        <div className={`news-panel ${closing ? 'closing' : ''}`}>
+        <DockableWindow
+            dock={dock}
+            enabled={!isMobile}
+            onClose={onClose}
+            className={`news-panel ${closing ? 'closing' : ''}`}
+            dragHandleClassName="news-header"
+        >
             <div className="news-header">
                 <h3 className="gold-text">News & Updates</h3>
                 <div className="news-header-actions">
@@ -87,8 +99,17 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                     {view === 'create' && (
                         <button className="btn" onClick={() => setView('list')}>← Back</button>
                     )}
-                    <button className="modal-close-btn" onClick={onClose}>✕</button>
-                </div>
+                    {!isMobile && (
+                        <>
+                            <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
+                                {dock.isPopped ? '⤡' : '⤢'}
+                            </button>
+                            {dock.isPopped && (
+                                <button className={`dock-btn ${dock.isPinned ? 'active' : ''}`} onClick={dock.togglePin} title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}>📌</button>
+                            )}
+                        </>
+                    )}
+                    <button className="modal-close-btn" onClick={onClose}>✕</button>                </div>
             </div>
 
             {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
@@ -176,6 +197,6 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                     </div>
                 </div>
             )}
-        </div>
+        </DockableWindow>
     )
 }

@@ -16,19 +16,27 @@
     overflow: hidden;
 }
 
-/* Neutralize the panel's fixed full-screen positioning when floating */
-.dockable-popped-inner.forum-panel {
+/* Neutralize each panel's fixed full-screen positioning when floating, so
+   react-rnd controls size/position and height resizing works. */
+.dockable-popped-inner {
     position: relative !important;
     inset: auto !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
     animation: none !important;
 }
 
-/* the header reads as a drag handle when popped */
-.dockable-rnd .forum-header {
+/* every popped panel's header reads as a drag handle */
+.dockable-rnd .forum-header,
+.dockable-rnd .messages-header,
+.dockable-rnd .guild-panel-header,
+.dockable-rnd .news-header,
+.dockable-rnd .hs-panel-header,
+.dockable-rnd .settings-header {
     cursor: move;
 }
 

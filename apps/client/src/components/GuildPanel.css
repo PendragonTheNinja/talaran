@@ -218,3 +218,9 @@
     background: var(--color-border-dark);
     margin: var(--space-lg) 0;
 }
+
+.guild-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}

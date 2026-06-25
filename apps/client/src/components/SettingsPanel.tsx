@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './SettingsPanel.css'
+import { useIsMobile } from '../lib/useIsMobile'
+import { useDockableWindow } from '../lib/useDockableWindow'
+import DockableWindow from './DockableWindow'
 
 interface SettingsPanelProps {
     onClose: () => void
@@ -26,6 +29,9 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
         trade: false,
         help: false,
     })
+
+    const isMobile = useIsMobile()
+    const dock = useDockableWindow('settings')
 
     useEffect(() => {
         loadSettings()
@@ -116,10 +122,28 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
     ]
 
     return (
-        <div className={`settings-panel ${closing ? 'closing' : ''}`}>
+        <DockableWindow
+            dock={dock}
+            enabled={!isMobile}
+            onClose={onClose}
+            className={`settings-panel ${closing ? 'closing' : ''}`}
+            dragHandleClassName="settings-header"
+        >
             <div className="settings-header">
                 <h3 className="gold-text">Settings</h3>
-                <button className="modal-close-btn" onClick={onClose}>✕</button>
+                <div className="settings-header-actions">
+                    {!isMobile && (
+                        <>
+                            <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
+                                {dock.isPopped ? '⤡' : '⤢'}
+                            </button>
+                            {dock.isPopped && (
+                                <button className={`dock-btn ${dock.isPinned ? 'active' : ''}`} onClick={dock.togglePin} title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}>📌</button>
+                            )}
+                        </>
+                    )}
+                    <button className="modal-close-btn" onClick={onClose}>✕</button>
+                </div>
             </div>
 
             <div className="settings-tabs">
@@ -251,6 +275,6 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                     </div>
                 )}
             </div>
-        </div>
+        </DockableWindow>
     )
 }

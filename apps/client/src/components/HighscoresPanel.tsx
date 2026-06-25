@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import './HighscoresPanel.css'
+import { useIsMobile } from '../lib/useIsMobile'
+import { useDockableWindow } from '../lib/useDockableWindow'
+import DockableWindow from './DockableWindow'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -39,6 +42,9 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
     const [totalPages, setTotalPages] = useState(1)
     const [loading, setLoading] = useState(false)
 
+    const isMobile = useIsMobile()
+    const dock = useDockableWindow('highscores')
+
     useEffect(() => {
         fetch(`${API_URL}/api/highscores/skills`)
             .then(r => r.json())
@@ -71,10 +77,28 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
     const isTotal = selectedSkill === 'total'
 
     return (
-        <div className={`hs-panel ${closing ? 'closing' : ''}`}>
+        <DockableWindow
+            dock={dock}
+            enabled={!isMobile}
+            onClose={onClose}
+            className={`hs-panel ${closing ? 'closing' : ''}`}
+            dragHandleClassName="hs-panel-header"
+        >
             <div className="hs-panel-header">
                 <h3 className="gold-text">Highscores</h3>
-                <button className="modal-close-btn" onClick={onClose}>✕</button>
+                <div className="hs-header-actions">
+                    {!isMobile && (
+                        <>
+                            <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
+                                {dock.isPopped ? '⤡' : '⤢'}
+                            </button>
+                            {dock.isPopped && (
+                                <button className={`dock-btn ${dock.isPinned ? 'active' : ''}`} onClick={dock.togglePin} title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}>📌</button>
+                            )}
+                        </>
+                    )}
+                    <button className="modal-close-btn" onClick={onClose}>✕</button>
+                </div>
             </div>
 
             {/* Skill tabs */}
@@ -167,6 +191,6 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
                     <button className="btn" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»»</button>
                 </div>
             )}
-        </div>
+        </DockableWindow>
     )
 }

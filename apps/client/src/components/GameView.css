@@ -278,10 +278,13 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 340px;
-  height: 340px;
+  width: 150%;
+  aspect-ratio: 1;
   transform: translate(-50%, -50%);
   background: conic-gradient(from 0deg, transparent 0 8deg, rgba(232, 184, 75, 0.10) 8deg 16deg);
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, #000 60%, transparent 72%);
+  mask-image: radial-gradient(circle, #000 60%, transparent 72%);
   animation: levelup-spin 9s linear infinite;
   pointer-events: none;
   z-index: 0;

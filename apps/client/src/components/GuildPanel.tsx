@@ -3,6 +3,9 @@ import { formatGameDate } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './GuildPanel.css'
 import ConfirmModal from './ConfirmModal'
+import { useIsMobile } from '../lib/useIsMobile'
+import { useDockableWindow } from '../lib/useDockableWindow'
+import DockableWindow from './DockableWindow'
 
 interface GuildMember {
     id: number
@@ -80,6 +83,9 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
     const [applyingTo, setApplyingTo] = useState<GuildListItem | null>(null)
 
     const [invites, setInvites] = useState<any[]>([])
+
+    const isMobile = useIsMobile()
+    const dock = useDockableWindow('guild')
 
     useEffect(() => {
         loadGuildData()
@@ -295,12 +301,29 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
     return (
         <>
-            <div className={`guild-panel ${closing ? 'closing' : ''}`}>
-                <div className="guild-panel-header">
+            <DockableWindow
+                dock={dock}
+                enabled={!isMobile}
+                onClose={onClose}
+                className={`guild-panel ${closing ? 'closing' : ''}`}
+                dragHandleClassName="guild-panel-header"
+            >                <div className="guild-panel-header">
                     <h3 className="gold-text">
                         {view === 'my_guild' && guild ? `${guild.name} [${guild.tag}]` : 'Guild'}
                     </h3>
-                    <button className="modal-close-btn" onClick={onClose}>✕</button>
+                    <div className="guild-header-actions">
+                        {!isMobile && (
+                            <>
+                                <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
+                                    {dock.isPopped ? '⤡' : '⤢'}
+                                </button>
+                                {dock.isPopped && (
+                                    <button className={`dock-btn ${dock.isPinned ? 'active' : ''}`} onClick={dock.togglePin} title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}>📌</button>
+                                )}
+                            </>
+                        )}
+                        <button className="modal-close-btn" onClick={onClose}>✕</button>
+                    </div>
                 </div>
 
                 {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
@@ -662,7 +685,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                     )}
 
                 </div>
-            </div>
+            </DockableWindow>
 
             {confirmDialog && (
                 <ConfirmModal
