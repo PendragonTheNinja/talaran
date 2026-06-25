@@ -25,6 +25,8 @@ import MobileShell from './MobileShell'
 import EquipmentPanel from './EquipmentPanel'
 import SkillsPanel from './SkillsPanel'
 import MiniMap from './MiniMap'
+import PlayerStats from './PlayerStats'
+import QuestsView from './QuestsView'
 
 interface Skill {
   id: number
@@ -339,6 +341,8 @@ export default function GameLayout({
   const [profilePlayerId, setProfilePlayerId] = useState<number | null>(null)
 
   const [chatDraft, setChatDraft] = useState<string | null>(null)
+  const [showStatsModal, setShowStatsModal] = useState(false)
+  const [showQuestsModal, setShowQuestsModal] = useState(false)
 
   useEffect(() => {
     const loadCount = () => {
@@ -514,6 +518,8 @@ export default function GameLayout({
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
+    { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
+    { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
     ...(playerData?.player?.is_admin || playerData?.player?.is_mod
       ? [{ label: 'Admin', onClick: () => { closeAllPanels(); setShowAdmin(true) } }]
       : []),
@@ -732,6 +738,24 @@ export default function GameLayout({
           playerId={profilePlayerId}
           onClose={() => setProfilePlayerId(null)}
         />
+      )}
+
+      {showStatsModal && (
+        <div className="modal-overlay" onClick={() => setShowStatsModal(false)}>
+          <div className="stats-popup" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowStatsModal(false)}>✕</button>
+            <PlayerStats playerId={player.id} />
+          </div>
+        </div>
+      )}
+
+      {showQuestsModal && (
+        <div className="modal-overlay" onClick={() => setShowQuestsModal(false)}>
+          <div className="quests-popup" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowQuestsModal(false)}>✕</button>
+            <QuestsView />
+          </div>
+        </div>
       )}
     </>
   )
