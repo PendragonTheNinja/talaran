@@ -189,3 +189,31 @@
   color: var(--color-red-glow);
   background: rgba(180, 60, 60, 0.1);
 }
+
+/* Mobile 3-column layout: actions | players | ground, side by side */
+.location-panel--columns {
+  flex-direction: row;
+  gap: var(--space-sm);
+  align-items: stretch;
+}
+
+.location-panel--columns .location-panel-section {
+  flex: 1 1 0;
+  min-width: 0;
+  /* let columns shrink evenly */
+  overflow-y: auto;
+  /* each column scrolls on its own */
+  overflow-x: hidden;
+  border-right: 1px solid var(--color-border-dark);
+  padding-right: var(--space-sm);
+}
+
+.location-panel--columns .location-panel-section:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+/* keep section titles readable when narrow */
+.location-panel--columns .panel-title {
+  font-size: 11px;
+}

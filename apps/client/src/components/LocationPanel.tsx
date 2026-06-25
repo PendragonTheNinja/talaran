@@ -26,15 +26,15 @@ interface LocationPanelProps {
   onKilnMaxLogs?: (max: number) => void
   onActionLimitChange?: (limit: number | null) => void
   onInventoryUpdate?: () => void
-  onDropModeChange?: (active: boolean, amount?: number) => void
   groundItemsKey?: number
   onLocationRefresh?: () => void
   onViewProfile?: (playerId: number) => void
   currentPlayerId?: number
   smithingStatusKey?: number
+  layout?: 'stacked' | 'columns'
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onDropModeChange, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId, smithingStatusKey }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId, smithingStatusKey, layout = 'stacked' }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -49,9 +49,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   const isEmberra = location?.name === 'Emberra'
   const isVerdale = location?.name === 'Verdale'
-
-  const [dropMode, setDropMode] = useState(false)
-  const [dropAmount, setDropAmount] = useState(1)
 
   const [questStatus, setQuestStatus] = useState<'not_started' | 'active' | 'completed'>('not_started')
   const [showBlacksmith, setShowBlacksmith] = useState(false)
@@ -116,7 +113,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   }
 
   return (
-    <aside className="location-panel panel">
+    <aside className={`location-panel panel location-panel--${layout}`}>
 
       {/* Location actions */}
       <div className="location-panel-section">
@@ -324,35 +321,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
       {/* Ground items */}
       <div className="location-panel-section">
-        <div className="panel-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="panel-title">
           <span>On the Ground</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {dropMode && (
-              <input
-                type="number"
-                min={1}
-                value={dropAmount}
-                onChange={e => {
-                  const amt = Math.max(1, parseInt(e.target.value) || 1)
-                  setDropAmount(amt)
-                  if (dropMode) onDropModeChange?.(true, amt)
-                }}
-                style={{ width: '45px', fontSize: '12px', padding: '2px 4px' }}
-                className="context-menu-qty-input"
-              />
-            )}
-            <button
-              className={`drop-mode-btn ${dropMode ? 'active' : ''}`}
-              onClick={() => {
-                const next = !dropMode
-                setDropMode(next)
-                onDropModeChange?.(next, dropAmount)
-              }}
-              title={dropMode ? 'Drop Mode ON' : 'Toggle Drop Mode'}
-            >
-              {dropMode ? '🗑 ON' : '🗑 Drop'}
-            </button>
-          </div>
         </div>
         {groundItems.length === 0 ? (
           <p className="location-panel-empty">Nothing on the ground.</p>

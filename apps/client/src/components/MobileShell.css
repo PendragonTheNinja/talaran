@@ -1,0 +1,377 @@
+.mobile-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    /* respects mobile browser chrome */
+    background: var(--color-bg-deepest);
+    overflow: hidden;
+}
+
+.mobile-topbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-dark);
+    border-bottom: 2px solid var(--color-border-gold);
+    min-height: 48px;
+}
+
+.mobile-brand {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    font-size: 20px;
+    letter-spacing: 0.05em;
+}
+
+.mobile-menu-btn {
+    background: none;
+    border: none;
+    color: var(--color-gold-bright);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 10px;
+    line-height: 1;
+}
+
+.mobile-view {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: var(--space-md);
+}
+
+.mobile-view-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: var(--space-sm);
+    font-family: var(--font-heading);
+}
+
+.mobile-bottom-nav {
+    flex-shrink: 0;
+    display: flex;
+    background: var(--color-bg-dark);
+    border-top: 2px solid var(--color-border-gold);
+    padding-bottom: env(safe-area-inset-bottom);
+    /* iPhone home-bar safe area */
+}
+
+.mobile-nav-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    padding: 8px 2px;
+    cursor: pointer;
+    min-height: 52px;
+    /* finger-friendly */
+    overflow: hidden;
+}
+
+.mobile-nav-btn.active {
+    color: var(--color-gold-bright);
+}
+
+.mobile-nav-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.mobile-nav-label {
+    font-family: var(--font-heading);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-action-view {
+    flex-direction: column;
+    gap: var(--space-md);
+    height: 100%;
+}
+
+.mobile-action-scene {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-action-location {
+    flex-shrink: 0;
+    height: 38%;
+    min-height: 160px;
+    display: flex;
+}
+
+.mobile-action-location .location-panel {
+    flex: 1;
+    min-height: 0;
+}
+
+.mobile-shell .game-view.panel,
+.mobile-shell .game-view-main,
+.mobile-shell .game-scene,
+.mobile-shell .scene-idle,
+.mobile-shell .scene-last-result {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+.mobile-shell .scene-last-result {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100%;
+}
+
+/* Make sure nothing inside the views can push past the screen */
+.mobile-shell .mobile-view * {
+    max-width: 100%;
+}
+
+.mobile-action-scene,
+.mobile-action-location {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.mobile-items-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* let the desktop-fixed panels fill the phone width */
+.mobile-shell .left-panel,
+.mobile-shell .equipment-panel {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex-shrink: 1;
+}
+
+.mobile-shell .inventory-grid {
+    grid-template-columns: repeat(auto-fill, 56px) !important;
+    grid-auto-rows: 56px !important;
+    justify-content: center !important;
+    align-content: start !important;
+    gap: 0px !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 4px !important;
+}
+
+/* Touch-first: no persistent scrollbars; the OS shows a fading one on scroll */
+.mobile-shell ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.mobile-shell * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.mobile-skills-view {
+    padding-top: var(--space-xs);
+}
+
+.mobile-shell .skills-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
+    gap: 8px !important;
+}
+
+.mobile-chat-view {
+    height: 100%;
+    display: flex;
+}
+
+.mobile-shell .chat-panel {
+    height: 100% !important;
+    width: 100%;
+    flex: 1;
+    background: transparent;
+}
+
+/* channel tabs: let them scroll sideways if they don't fit, instead of squishing */
+.mobile-shell .chat-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+
+.mobile-shell .chat-tabs .chat-tab {
+    flex-shrink: 0;
+}
+
+/* finger-friendly input */
+.mobile-shell .chat-input {
+    font-size: 16px;
+    /* prevents iOS auto-zoom on focus */
+    padding: 10px 12px;
+}
+
+.mobile-shell .chat-input-row {
+    padding: var(--space-sm);
+}
+
+.mobile-map-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    height: 100%;
+}
+
+.mobile-map-canvas {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.mobile-map-canvas>* {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.mobile-map-fullbtn {
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.mobile-shell .minimap-location-img {
+    object-fit: contain !important;
+}
+
+.mobile-map-canvas {
+    aspect-ratio: 1 / 1;
+    flex: none;
+}
+
+.mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mobile-menu-drawer {
+    width: 75%;
+    max-width: 320px;
+    height: 100%;
+    background: var(--color-bg-dark);
+    border-left: 2px solid var(--color-border-gold);
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-sm);
+    animation: menu-slide-in 0.22s ease;
+    overflow-y: auto;
+}
+
+@keyframes menu-slide-in {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border-mid);
+    margin-bottom: var(--space-sm);
+}
+
+.mobile-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-border-dark);
+    color: var(--color-text-bright);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 14px var(--space-sm);
+    cursor: pointer;
+    text-align: left;
+}
+
+.mobile-menu-item:hover {
+    background: var(--color-bg-hover);
+}
+
+.mobile-menu-item.danger {
+    color: var(--color-red-glow);
+}
+
+.mobile-menu-badge {
+    background: var(--color-red);
+    color: var(--color-text-white);
+    font-size: 11px;
+    border-radius: 10px;
+    padding: 1px 7px;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* ---- Forum: mobile reflow ---- */
+.mobile-modals .forum-panel {
+    top: 0;
+}
+
+.mobile-modals .forum-home {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-lg) !important;
+}
+
+.mobile-modals .forum-post {
+    flex-direction: column !important;
+}
+
+.mobile-modals .forum-post-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.mobile-modals .forum-recent-title,
+.mobile-modals .forum-recent-row {
+    max-width: 100% !important;
+}
+
+.mobile-modals .forum-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}

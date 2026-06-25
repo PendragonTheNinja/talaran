@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, cloneElement } from 'react'
 import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
@@ -20,6 +20,11 @@ import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
 import PlayerProfile from './PlayerProfile'
 import { getSkipConfirm, setSkipConfirm } from '../lib/confirmPrefs';
+import { useIsMobile } from '../lib/useIsMobile'
+import MobileShell from './MobileShell'
+import EquipmentPanel from './EquipmentPanel'
+import SkillsPanel from './SkillsPanel'
+import MiniMap from './MiniMap'
 
 interface Skill {
   id: number
@@ -180,6 +185,9 @@ export default function GameLayout({
 
   const [showSettings, setShowSettings] = useState(false)
   const [settingsClosing, setSettingsClosing] = useState(false)
+
+  const skillsPanelEl = <SkillsPanel skills={playerData?.skills || []} />
+  const isMobile = useIsMobile()
 
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
@@ -394,137 +402,126 @@ export default function GameLayout({
     }
   }
 
-  return (
-    <div className="game-root">
-      <TopNav
-        player={player}
-        onLogout={onLogout}
-        unreadMessages={unreadMessages}
-        onGuildClick={() => { closeAllPanels(); setShowGuildModal(true) }}
-        onMessagesClick={() => {
-          if (showMessages) closePanel(setMessagesClosing, setShowMessages)
-          else { closeAllPanels(); setShowMessages(true) }
+  const gameViewEl = (
+    <GameView
+      locationData={locationData}
+      playerData={playerData}
+      onPlayerDataUpdate={onPlayerDataUpdate}
+      travelStatus={travelStatus}
+      onClearTravel={() => setTravelStatus(null)}
+      onTravel={handleTravel}
+      externalAction={gameViewAction}
+      onExternalActionHandled={() => setGameViewAction(null)}
+      externalMessage={externalMessage}
+      onExternalMessageHandled={() => setExternalMessage(null)}
+      actionLimit={actionLimit}
+      onActionLimitChange={setActionLimit}
+      onInventoryUpdate={onInventoryUpdate}
+      rememberPendingAction={rememberPendingAction}
+      runPendingAction={runPendingAction}
+      onShareToChat={(text: string) => setChatDraft(text)}
+    />
+  )
 
-        }}
-        onForumClick={() => {
-          if (showForum) closePanel(setForumClosing, setShowForum, 400)
-          else { closeAllPanels(); setShowForum(true) }
-        }}
-        onNewsClick={() => {
-          if (showNews) closePanel(setNewsClosing, setShowNews)
-          else { closeAllPanels(); setShowNews(true) }
-        }}
-        onHighscoresClick={() => {
-          if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
-          else { closeAllPanels(); setShowHighscores(true) }
-        }}
-        isAdmin={playerData?.player?.is_admin || false}
-        isMod={playerData?.player?.is_mod || false}
-        onAdminClick={() => {
-          if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
-          else { closeAllPanels(); setShowAdmin(true) }
-        }}
-        unreadMessages={unreadMessages}
-        onSettingsClick={() => {
-          if (showSettings) closePanel(setSettingsClosing, setShowSettings)
-          else { closeAllPanels(); setShowSettings(true) }
-        }}
-        onForceBotCheck={handleForceBotCheck}
-      />
-      <div className="game-body">
-        <LeftPanel
-          inventoryData={inventoryData}
-          equipmentData={equipmentData}
-          onEquipmentUpdate={onEquipmentUpdate}
-          onInventoryUpdate={onInventoryUpdate}
-          dropMode={dropMode}
-          onToggleDropMode={() => setDropMode(d => !d)}
-          onDropItem={handleDropItem}
-          dropMode={dropMode}
-          dropAmount={dropAmount}
-          tradeMode={tradeMode}
-          tradeId={activeTrade?.tradeId}
-        />
-        <div className="game-center">
-          <div className="game-scene-wrapper">
-            <GameView
-              locationData={locationData}
-              playerData={playerData}
-              onPlayerDataUpdate={onPlayerDataUpdate}
-              travelStatus={travelStatus}
-              onClearTravel={() => setTravelStatus(null)}
-              onTravel={handleTravel}
-              externalAction={gameViewAction}
-              onExternalActionHandled={() => setGameViewAction(null)}
-              externalMessage={externalMessage}
-              onExternalMessageHandled={() => setExternalMessage(null)}
-              actionLimit={actionLimit}
-              onActionLimitChange={setActionLimit}
-              onInventoryUpdate={onInventoryUpdate}
-              rememberPendingAction={rememberPendingAction}
-              runPendingAction={runPendingAction}
-              onShareToChat={(text: string) => setChatDraft(text)}
-            />
-            <LocationPanel
-              locationData={locationData}
-              currentAction={playerData?.currentAction?.action_type || null}
-              onStartAction={handleLocationAction}
-              veins={veinsData}
-              onKilnMaxLogs={(max) => setKilnMaxLogs(max)}
-              onActionLimitChange={(limit) => {
-                console.log('Action limit set to:', limit)
-                setActionLimit(limit)
-              }}
-              onInventoryUpdate={onInventoryUpdate}
-              onDropModeChange={(active, amount) => {
-                setDropMode(active)
-                if (amount !== undefined) setDropAmount(amount)
-              }}
-              groundItemsKey={groundItemsKey}
-              onLocationRefresh={() => {
-                onPlayerDataUpdate()
-                onLocationDataUpdate()
-              }}
-              onViewProfile={(id: number) => setProfilePlayerId(id)}
-              onRequestTrade={async (targetPlayerId) => {
-                try {
-                  await apiFetch('/api/trades/request', {
-                    method: 'POST',
-                    body: JSON.stringify({ targetPlayerId }),
-                  })
-                  onNotify?.('Trade request sent! Waiting for response...')
-                } catch (err: any) {
-                  onNotify?.(`Trade failed: ${err.message}`)
-                }
-              }}
-              currentPlayerId={player.id}
-              smithingStatusKey={smithingStatusKey}
-            />
-          </div>
-          <ChatPanel
-            onOpenForum={(threadId) => {
-              setShowForum(true)
-              setForumOpenThreadId(threadId)
-            }}
-            draft={chatDraft}
-            onDraftConsumed={() => setChatDraft(null)}
-          />
-        </div>
-        <RightPanel
-          player={player}
-          playerData={playerData}
-          currentLocationId={locationData?.location?.id || null}
-          locationName={locationData?.location?.name || ''}
-          allLocations={locationData?.allLocations || []}
-          connections={locationData?.connections || []}
-          onTravel={handleTravel}
-          locationData={locationData}
-          equipmentData={equipmentData}
-          onEquipmentUpdate={onEquipmentUpdate}
-          onInventoryUpdate={onInventoryUpdate}
-        />
-      </div>
+  const locationPanelEl = (
+    <LocationPanel
+      locationData={locationData}
+      currentAction={playerData?.currentAction?.action_type || null}
+      onStartAction={handleLocationAction}
+      veins={veinsData}
+      onKilnMaxLogs={(max) => setKilnMaxLogs(max)}
+      onActionLimitChange={(limit) => {
+        console.log('Action limit set to:', limit)
+        setActionLimit(limit)
+      }}
+      onInventoryUpdate={onInventoryUpdate}
+      onDropModeChange={(active, amount) => {
+        setDropMode(active)
+        if (amount !== undefined) setDropAmount(amount)
+      }}
+      groundItemsKey={groundItemsKey}
+      onLocationRefresh={() => {
+        onPlayerDataUpdate()
+        onLocationDataUpdate()
+      }}
+      onViewProfile={(id: number) => setProfilePlayerId(id)}
+      onRequestTrade={async (targetPlayerId) => {
+        try {
+          await apiFetch('/api/trades/request', {
+            method: 'POST',
+            body: JSON.stringify({ targetPlayerId }),
+          })
+          onNotify?.('Trade request sent! Waiting for response...')
+        } catch (err: any) {
+          onNotify?.(`Trade failed: ${err.message}`)
+        }
+      }}
+      currentPlayerId={player.id}
+      smithingStatusKey={smithingStatusKey}
+    />
+  )
 
+  const leftPanelEl = (
+    <LeftPanel
+      inventoryData={inventoryData}
+      equipmentData={equipmentData}
+      onEquipmentUpdate={onEquipmentUpdate}
+      onInventoryUpdate={onInventoryUpdate}
+      dropMode={dropMode}
+      onToggleDropMode={() => setDropMode(d => !d)}
+      onDropItem={handleDropItem}
+      dropAmount={dropAmount}
+      onDropAmountChange={(amt: number) => setDropAmount(amt)}
+      tradeMode={tradeMode}
+      tradeId={activeTrade?.tradeId}
+    />
+  )
+
+  const equipmentPanelEl = (
+    <EquipmentPanel
+      equipmentData={equipmentData}
+      onEquipmentUpdate={onEquipmentUpdate}
+      onInventoryUpdate={onInventoryUpdate}
+    />
+  )
+
+  const chatPanelEl = (
+    <ChatPanel
+      onOpenForum={(threadId) => {
+        setShowForum(true)
+        setForumOpenThreadId(threadId)
+      }}
+      draft={chatDraft}
+      onDraftConsumed={() => setChatDraft(null)}
+    />
+  )
+
+  const miniMapEl = (
+    <MiniMap
+      currentLocationId={locationData?.location?.id || null}
+      locationName={locationData?.location?.name || ''}
+      connections={locationData?.connections || []}
+      onTravel={handleTravel}
+    />
+  )
+
+  const mapRegion = locationData?.location?.region || ''
+
+  const mobileMenuItems = [
+    { label: 'Messages', onClick: () => { closeAllPanels(); setShowMessages(true) }, badge: unreadMessages },
+    { label: 'Forum', onClick: () => { closeAllPanels(); setShowForum(true) } },
+    { label: 'Guild', onClick: () => { closeAllPanels(); setShowGuildModal(true) } },
+    { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
+    { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
+    { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
+    ...(playerData?.player?.is_admin || playerData?.player?.is_mod
+      ? [{ label: 'Admin', onClick: () => { closeAllPanels(); setShowAdmin(true) } }]
+      : []),
+    { label: 'Log Out', onClick: onLogout, danger: true },
+  ]
+
+  const sharedModals = (
+    <>
       {showKilnModal && (
         <div className="modal-overlay" onClick={() => setShowKilnModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
@@ -546,8 +543,8 @@ export default function GameLayout({
               ))}
             </div>
             <div className="modal-counter">
-              <button className="btn" onClick={() => setKilnLogCount(Math.max(20, kilnLogCount - 20))}>−</button>
-              <span className="modal-count gold-text">{kilnLogCount} logs → {(kilnLogCount / 20) * KILN_RATES[kilnQuality]} Charc</span>
+              <button className="btn" onClick={() => setKilnLogCount(Math.max(20, kilnLogCount - 20))}>-</button>
+              <span className="modal-count gold-text">{kilnLogCount} logs ? {(kilnLogCount / 20) * KILN_RATES[kilnQuality]} Charc</span>
               <button
                 className="btn"
                 onClick={() => setKilnLogCount(Math.min(kilnMaxLogs, kilnLogCount + 20))}
@@ -594,7 +591,7 @@ export default function GameLayout({
                         min={0}
                         className="modal-count"
                         value={actionLimit ?? ''}
-                        placeholder="∞"
+                        placeholder="8"
                         onChange={e => {
                           const v = e.target.value === '' ? null : Math.max(0, parseInt(e.target.value) || 0)
                           setActionLimit(v === 0 ? null : v)
@@ -736,6 +733,88 @@ export default function GameLayout({
           onClose={() => setProfilePlayerId(null)}
         />
       )}
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <>
+        <MobileShell
+          menuItems={mobileMenuItems}
+          actionScene={gameViewEl}
+          locationPanel={cloneElement(locationPanelEl, { layout: 'columns' })}
+          inventoryPanel={leftPanelEl}
+          equipmentPanel={equipmentPanelEl}
+          skillsPanel={skillsPanelEl}
+          chatPanel={chatPanelEl}
+          miniMap={miniMapEl}
+          mapRegion={mapRegion}
+        />
+        <div className="mobile-modals">{sharedModals}</div>
+      </>
+    )
+  }
+
+  return (
+    <div className="game-root">
+      <TopNav
+        player={player}
+        onLogout={onLogout}
+        unreadMessages={unreadMessages}
+        onGuildClick={() => { closeAllPanels(); setShowGuildModal(true) }}
+        onMessagesClick={() => {
+          if (showMessages) closePanel(setMessagesClosing, setShowMessages)
+          else { closeAllPanels(); setShowMessages(true) }
+        }}
+        onForumClick={() => {
+          if (showForum) closePanel(setForumClosing, setShowForum, 400)
+          else { closeAllPanels(); setShowForum(true) }
+        }}
+        onNewsClick={() => {
+          if (showNews) closePanel(setNewsClosing, setShowNews)
+          else { closeAllPanels(); setShowNews(true) }
+        }}
+        onHighscoresClick={() => {
+          if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
+          else { closeAllPanels(); setShowHighscores(true) }
+        }}
+        isAdmin={playerData?.player?.is_admin || false}
+        isMod={playerData?.player?.is_mod || false}
+        onAdminClick={() => {
+          if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
+          else { closeAllPanels(); setShowAdmin(true) }
+        }}
+        onSettingsClick={() => {
+          if (showSettings) closePanel(setSettingsClosing, setShowSettings)
+          else { closeAllPanels(); setShowSettings(true) }
+        }}
+        onForceBotCheck={handleForceBotCheck}
+      />
+      <div className="game-body">
+        {leftPanelEl}
+        <div className="game-center">
+          <div className="game-scene-wrapper">
+            {gameViewEl}
+            {locationPanelEl}
+          </div>
+          {chatPanelEl}
+        </div>
+        <RightPanel
+          player={player}
+          playerData={playerData}
+          currentLocationId={locationData?.location?.id || null}
+          locationName={locationData?.location?.name || ''}
+          allLocations={locationData?.allLocations || []}
+          connections={locationData?.connections || []}
+          onTravel={handleTravel}
+          locationData={locationData}
+          equipmentData={equipmentData}
+          onEquipmentUpdate={onEquipmentUpdate}
+          onInventoryUpdate={onInventoryUpdate}
+        />
+      </div>
+
+      {sharedModals}
 
     </div>
   )
