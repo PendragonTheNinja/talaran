@@ -6,6 +6,9 @@ import ConfirmModal from './ConfirmModal'
 import MarkdownRenderer from './MarkdownRenderer'
 import MarkdownToolbar from './MarkdownToolbar'
 import { useMarkdownEditor } from '../lib/useMarkdownEditor'
+import { useIsMobile } from '../lib/useIsMobile'
+import { useDockableWindow } from '../lib/useDockableWindow'
+import DockableWindow from './DockableWindow'
 
 interface ForumCategory {
     id: number
@@ -117,6 +120,9 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const { textareaRef: editTextareaRef, insertMarkdown: insertEditMarkdown } = useMarkdownEditor(editContent, setEditContent)
     const { textareaRef: replyTextareaRef, insertMarkdown: insertReplyMarkdown } = useMarkdownEditor(replyContent, setReplyContent)
     const { textareaRef: newThreadTextareaRef, insertMarkdown: insertNewThreadMarkdown } = useMarkdownEditor(newContent, setNewContent)
+
+    const isMobile = useIsMobile()
+    const dock = useDockableWindow('forum')
 
     useEffect(() => {
         if (openThreadId) return
@@ -306,8 +312,13 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     }
 
     return (
-        <div className={`forum-panel ${closing ? 'closing' : ''}`}>
-            {/* Header */}
+        <DockableWindow
+            dock={dock}
+            enabled={!isMobile}
+            onClose={onClose}
+            className={`forum-panel ${closing ? 'closing' : ''}`}
+            dragHandleClassName="forum-header"
+        >            {/* Header */}
             <div className="forum-header">
                 <div className="forum-breadcrumb">
                     <span className="forum-breadcrumb-item gold-text" onClick={loadHome} style={{ cursor: 'pointer' }}>
@@ -364,6 +375,22 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             setNewCategoryId(currentCategory?.id || null)
                             setView('new_thread')
                         }}>+ New Thread</button>
+                    )}
+                    {!isMobile && (
+                        <>
+                            <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
+                                {dock.isPopped ? '⤡' : '⤢'}
+                            </button>
+                            {dock.isPopped && (
+                                <button
+                                    className={`dock-btn ${dock.isPinned ? 'active' : ''}`}
+                                    onClick={dock.togglePin}
+                                    title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}
+                                >
+                                    📌
+                                </button>
+                            )}
+                        </>
                     )}
                     <button className="modal-close-btn" onClick={onClose}>✕</button>
                 </div>
@@ -781,6 +808,6 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                     onCancel={() => setConfirmDialog(null)}
                 />
             )}
-        </div>
+        </DockableWindow>
     )
 }
