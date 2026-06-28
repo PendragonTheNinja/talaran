@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../index';
 import { io } from '../index';
 import { botCheckGate } from '../services/botCheck';
+import { computeTravelTime } from '../services/travel'
 
 const router = Router();
 
@@ -52,13 +53,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     const activeConnection = connection || reverseConnection;
     const baseTravelTime = activeConnection?.base_travel_time ?? 30;
 
-    // Check for equipped mount and apply speed modifier
-    const equipment = await db('player_equipment').where({ player_id: playerId }).first();
-    const mountItem = equipment?.mount_item_id
-      ? await db('items').where({ id: equipment.mount_item_id }).first()
-      : null;
-    const speedModifier = mountItem?.travel_speed_modifier ?? 1.0;
-    const travelTime = Math.round(baseTravelTime * speedModifier);
+    const { travelTime } = await computeTravelTime(playerId, baseTravelTime);
 
     // Cancel any existing action
     await db('player_actions').where({ player_id: playerId }).delete();
@@ -91,6 +86,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
       auto_restart: false,
       last_bot_check: now,
       bot_check_pending: false,
+      action_data: String(baseTravelTime),
     });
 
     const toLocation = await db('locations').where({ id: toLocationId }).first();

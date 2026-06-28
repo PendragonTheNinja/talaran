@@ -61,6 +61,7 @@ interface GameViewProps {
   rememberPendingAction: (fn: () => void) => void
   runPendingAction: () => void
   onShareToChat?: (text: string) => void
+  onLocationDataUpdate?: () => void
 }
 
 interface LogEntry {
@@ -89,6 +90,7 @@ export default function GameView({
   rememberPendingAction,
   runPendingAction,
   onShareToChat,
+  onLocationDataUpdate
 }: GameViewProps) {
 
   const [currentAction, setCurrentAction] = useState<string | null>(null)
@@ -242,12 +244,27 @@ export default function GameView({
         }
       })
 
-      socket.on('travel_complete', () => {
+      socket.on('travel_complete', (data: { result: any }) => {
+        if (data?.result) {
+          setLastResult({
+            itemName: null,
+            xpAwarded: data.result.xpAwarded || 0,
+            skillName: data.result.skillName,
+            totalXp: data.result.totalXp || 0,
+            level: data.result.level || 1,
+            xpToNext: data.result.xpToNext || 0,
+            xpAtLevel: data.result.xpAtLevel || 0,
+            message: `You arrive at ${data.result.destination}.`,
+            drops: data.result.drops || [],
+          } as any)
+        }
         setCurrentAction(null)
         setTimerSeconds(0)
         setTimerMax(0)
         onClearTravel()
         if (timerRef.current) clearInterval(timerRef.current)
+        onPlayerDataUpdate()
+        onLocationDataUpdate?.()
       })
 
       socket.on('force_refresh', () => window.location.reload())
@@ -737,6 +754,34 @@ export default function GameView({
                     {lastResult.ended === 'limit' ? 'Action limit reached' : 'Out of materials'}
                   </p>
                   {renderResultDetails(lastResult)}
+                </div>
+              )}
+              {lastResult && !lastResult.ended && (
+                <div className="scene-last-result">
+                  {lastResult.itemName === null ? (
+                    <>
+                      <p className="last-result-item">{(lastResult as any).message || 'You arrive.'}</p>
+                      <p className="last-result-xp">
+                        +{lastResult.xpAwarded} {lastResult.skillName} experience, {lastResult.totalXp.toLocaleString()} total.
+                      </p>
+                      <p className="last-result-next">
+                        {Math.ceil(lastResult.xpToNext / lastResult.xpAwarded).toLocaleString()} actions ({lastResult.xpToNext.toLocaleString()} xp) to level {lastResult.level + 1} ({
+                          (() => {
+                            const into = lastResult.totalXp - lastResult.xpAtLevel
+                            const need = into + lastResult.xpToNext
+                            return ((into / need) * 100).toFixed(2)
+                          })()
+                        }%)
+                      </p>
+                      {lastResult.drops && lastResult.drops.map((d: any, i: number) => (
+                        <p key={`found-${i}`} className="last-result-drop">
+                          <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span> along the way!
+                        </p>
+                      ))}
+                    </>
+                  ) : (
+                    renderResultDetails(lastResult)
+                  )}
                 </div>
               )}
             </div>

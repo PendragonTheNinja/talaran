@@ -75,6 +75,14 @@ export const WOODWORK_RECIPES: Record<string, WoodworkRecipe> = {
         xp: 39,
         timer: 35,
     },
+    'lanai_staff': {
+        ingredients: [{ name: 'Lanai Planks', quantity: 4 }],
+        output: 'Lanai Staff',
+        outputQuantity: 1,
+        requiredLevel: 5,
+        xp: 156,
+        timer: 140,
+    },
     'lanai_sawhorse': {
         ingredients: [{ name: 'Lanai Planks', quantity: 10 }],
         output: 'Lanai Sawhorse',

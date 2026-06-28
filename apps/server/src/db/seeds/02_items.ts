@@ -118,7 +118,18 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Ambren Plane', type: 'tool', subtype: 'plane', tier: 1, quality: null, slot: null, level_required: 1, description: 'A plane with an Ambren blade and a Lanai handle. Part of a Carpentry workstation.', stackable: false },
 
     // ── Mounts ───────────────────────────────────────────────────────
-    { name: "Novice's Pony", type: 'mount', subtype: 'pony', tier: 0, quality: 'starter', slot: 'mount', level_required: 1, travel_speed_modifier: 0.333, description: 'A gentle pony given to new arrivals in Talaran. A humble but reliable companion for your first journeys.', stackable: false },
+    { name: "Novice's Pony", type: 'mount', subtype: 'pony', tier: 0, quality: 'starter', slot: 'mount', level_required: 1, travel_speed_modifier: 0.50, description: 'A gentle pony given to new arrivals in Talaran. A humble but reliable companion for your first journeys.', stackable: false },
+
+    // Agility Items
+    { name: 'Lanai Staff', type: 'tool', subtype: 'staff', tier: 1, quality: null, slot: 'mainhand', level_required: 1, travel_speed_modifier: 1.0, agility_reduction: 0.03, description: 'A simple walking staff carved from Lanai wood. Eases the burden of long roads on foot.', stackable: false },
+
+    // Travel Items
+    { name: 'Daisy', type: 'material', subtype: 'flower', tier: 1, quality: null, slot: null, level_required: 1, description: 'A simple white daisy, common along the roadsides of Taiar Island.', stackable: true },
+    { name: 'Taiaria', type: 'material', subtype: 'flower', tier: 2, quality: null, slot: null, level_required: 1, description: 'A delicate bloom named for the island itself, found tucked in shaded grass.', stackable: true },
+    { name: "Tal's Hope", type: 'material', subtype: 'flower', tier: 3, quality: null, slot: null, level_required: 1, description: 'A rare flower said to bloom where fortune lingers. Finding one is a small blessing.', stackable: true },
+    { name: 'Tarnished Coin', type: 'curio', subtype: 'curio', tier: 1, quality: null, slot: null, level_required: 1, description: 'An old coin worn smooth by time. Someone, long ago, dropped it on this road.', stackable: true },
+    { name: 'Chipped Arrowhead', type: 'curio', subtype: 'curio', tier: 2, quality: null, slot: null, level_required: 1, description: 'A flint arrowhead, chipped from use or age. A relic of some forgotten hunt.', stackable: true },
+    { name: 'Four-Leaf Clover', type: 'curio', subtype: 'curio', tier: 5, quality: null, slot: null, level_required: 1, description: 'An impossibly rare four-leaf clover. They say no two finders are ever unlucky again.', stackable: true },
   ]);
 }
 

@@ -424,6 +424,7 @@ export default function GameLayout({
       rememberPendingAction={rememberPendingAction}
       runPendingAction={runPendingAction}
       onShareToChat={(text: string) => setChatDraft(text)}
+      onLocationDataUpdate={onLocationDataUpdate}
     />
   )
 

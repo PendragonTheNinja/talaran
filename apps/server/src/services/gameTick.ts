@@ -8,6 +8,8 @@ import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getS
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
+import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
+import { rollTravelEvents } from './travelEvents'
 
 const TICK_INTERVAL = 2000;
 
@@ -97,23 +99,100 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     if (action.action_type === 'traveling') {
       await db('player_actions').where({ id: action.id }).delete();
 
-      const travelTime = action.completes_at
-        ? (new Date(action.completes_at).getTime() - new Date(action.started_at).getTime()) / 1000
-        : 120;
-      const agilityXp = Math.round(travelTime / 10);
+      // XP is based on the BASE travel time (stashed in action_data at start),
+      // so getting faster never reduces XP per trip.
+      const baseTime = action.action_data ? parseInt(action.action_data) : 120;
 
       const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
       const hasMountEquipped = equipment?.mount_item_id !== null && equipment?.mount_item_id !== undefined;
       const skillName = hasMountEquipped ? 'Equitation' : 'Agility';
-      const travelSkill = await db('skills').where({ name: skillName }).first();
+      const rate = hasMountEquipped ? EQUITATION_XP_RATE : AGILITY_XP_RATE;
+      const travelXp = Math.round(baseTime * rate);
 
+      const travelSkill = await db('skills').where({ name: skillName }).first();
       if (travelSkill) {
         await db('player_skills')
           .where({ player_id: action.player_id, skill_id: travelSkill.id })
-          .increment('xp', agilityXp);
+          .increment('xp', travelXp);
       }
 
-      io.to(`player_${action.player_id}`).emit('travel_complete', { result });
+      // Build a result for the arrival screen (mirrors action_complete shape)
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: travelSkill?.id })
+        .first();
+      const destination = await db('locations').where({ id: action.location_id }).first();
+
+      const totalXpNow = updatedSkill ? parseInt(updatedSkill.xp) : travelXp;
+      const lvl = levelFromXp(totalXpNow);
+
+      // ── Travel find-events ────────────────────────────────────────
+      // Region of the destination drives the eligible event pool.
+      const destRegion = destination?.region || 'Taiar Island'
+      const agiLevelForLuck = skillName === 'Agility' ? lvl : 1  // mounted: no foraging luck for now
+      const rolledEvents = skillName === 'Agility'
+        ? rollTravelEvents(baseTime, destRegion, agiLevelForLuck)
+        : []  // Equitation finds come later; Sailing will use this too
+
+      // Add any found items to inventory (mirrors the gathering inventory-add pattern)
+      for (const ev of rolledEvents) {
+        const foundItem = await db('items').where({ name: ev.itemName }).first()
+        if (!foundItem) continue
+        const existing = await db('player_inventory')
+          .where({ player_id: action.player_id, item_id: foundItem.id })
+          .first()
+        if (existing) {
+          await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: foundItem.id })
+            .increment('quantity', ev.quantity)
+        } else {
+          await db('player_inventory').insert({
+            player_id: action.player_id,
+            item_id: foundItem.id,
+            quantity: ev.quantity,
+          })
+        }
+      }
+
+      // Write a persistent travel-log entry ONLY if something happened, then prune to 50
+      if (rolledEvents.length > 0) {
+        const fromLoc = await db('locations').where({ id: player?.current_location_id }).first()
+        await db('travel_log').insert({
+          player_id: action.player_id,
+          from_location: fromLoc?.name || 'Unknown',
+          to_location: destination?.name || 'Unknown',
+          skill_name: skillName,
+          events: JSON.stringify(rolledEvents),
+        })
+
+        // Keep only the newest 50 entries for this player
+        const toDelete = await db('travel_log')
+          .where({ player_id: action.player_id })
+          .orderBy('created_at', 'desc')
+          .offset(50)
+          .select('id')
+        if (toDelete.length > 0) {
+          await db('travel_log').whereIn('id', toDelete.map(r => r.id)).delete()
+        }
+      }
+
+      io.to(`player_${action.player_id}`).emit('travel_complete', {
+        result: {
+          itemName: null,
+          xpAwarded: travelXp,
+          skillName,
+          totalXp: totalXpNow,
+          level: lvl,
+          xpToNext: xpToNextLevel(totalXpNow),
+          xpAtLevel: xpForLevel(lvl),
+          destination: destination?.name || 'your destination',
+          drops: rolledEvents.map(e => ({ name: e.itemName, quantity: e.quantity })),
+          events: rolledEvents,  // ← full event log for this walk (message + item)
+        },
+        xpInfo: travelSkill ? {
+          skillName,
+          leveledUp: false,
+        } : undefined,
+      });
       return;
     }
 
