@@ -4,8 +4,8 @@ import { levelFromXp } from './xp'
 export const TRAVEL_FLOOR = 0.10            // never below 10% of base
 export const AGILITY_PER_LEVEL = 0.01       // -1% of base per Agility level
 export const EQUITATION_PER_LEVEL = 0.005   // -0.5% of base per Equitation level
-export const AGILITY_XP_RATE = 0.6
-export const EQUITATION_XP_RATE = 0.35
+export const AGILITY_XP_RATE = 0.7
+export const EQUITATION_XP_RATE = 0.45
 
 async function skillLevel(playerId: number, skillName: string): Promise<number> {
     const skill = await db('skills').where({ name: skillName }).first()
