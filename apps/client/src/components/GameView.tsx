@@ -269,6 +269,7 @@ export default function GameView({
         onClearTravel()
         if (timerRef.current) clearInterval(timerRef.current)
         onPlayerDataUpdate()
+        onInventoryUpdate()
         onLocationDataUpdate?.()
 
         // Travel log: refresh history; auto-open if this walk had events and the setting is on
