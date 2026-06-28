@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
+import TravelLog from './TravelLog'
 
 interface Node {
   id: number
@@ -120,6 +121,10 @@ export default function GameView({
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
+
+  const [travelLogOpen, setTravelLogOpen] = useState(false)
+  const [travelLogKey, setTravelLogKey] = useState(0)
+  const [showTravelLogSetting, setShowTravelLogSetting] = useState(true)
 
   // ── Refs ──────────────────────────────────────────────────────────
   const logIdRef = useRef(0)
@@ -265,6 +270,15 @@ export default function GameView({
         if (timerRef.current) clearInterval(timerRef.current)
         onPlayerDataUpdate()
         onLocationDataUpdate?.()
+
+        // Travel log: refresh history; auto-open if this walk had events and the setting is on
+        const hadEvents = data?.result?.events && data.result.events.length > 0
+        setTravelLogKey(k => k + 1)
+        if (hadEvents) {
+          apiFetch<{ showTravelLog?: boolean }>('/api/settings')
+            .then(d => { if (d.showTravelLog ?? true) setTravelLogOpen(true) })
+            .catch(() => { })
+        }
       })
 
       socket.on('force_refresh', () => window.location.reload())
@@ -457,6 +471,12 @@ export default function GameView({
     const timer = setTimeout(() => onExternalMessageHandled(), 5000)
     return () => clearTimeout(timer)
   }, [externalMessage])
+
+  useEffect(() => {
+    apiFetch<{ showTravelLog?: boolean }>('/api/settings')
+      .then(d => setShowTravelLogSetting(d.showTravelLog ?? true))
+      .catch(() => { })
+  }, [])
 
   // ── Actions ───────────────────────────────────────────────────────
   const startAction = async (node: Node) => {
@@ -930,6 +950,13 @@ export default function GameView({
               ))}
             </div>
           )}
+
+          <TravelLog
+            open={travelLogOpen}
+            onOpen={() => setTravelLogOpen(true)}
+            onClose={() => setTravelLogOpen(false)}
+            refreshKey={travelLogKey}
+          />
 
         </div>
       </div>

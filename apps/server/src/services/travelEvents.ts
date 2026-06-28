@@ -16,7 +16,7 @@ export const TRAVEL_EVENTS: TravelEvent[] = [
         region: 'Taiar Island',
         itemName: 'Daisy',
         quantity: 1,
-        rarity: 3,
+        rarity: 10,
         messages: [
             'A scatter of daisies grew along the verge. You stooped to pick one as you passed.',
             'A single daisy nodded in the breeze at the roadside. You plucked it without breaking stride.',
@@ -41,7 +41,7 @@ export const TRAVEL_EVENTS: TravelEvent[] = [
         region: 'Taiar Island',
         itemName: "Tal's Hope",
         quantity: 1,
-        rarity: 500,
+        rarity: 300,
         messages: [
             "You almost walked past it... a rare Tal's Hope, blooming alone at the roadside. A fortunate find.",
             "A flash of unusual colour stopped you. A Tal's Hope, growing where little else dared. You gathered it gently.",
@@ -64,7 +64,7 @@ export const TRAVEL_EVENTS: TravelEvent[] = [
         region: 'Taiar Island',
         itemName: 'Chipped Arrowhead',
         quantity: 1,
-        rarity: 300,
+        rarity: 500,
         messages: [
             'Among the fallen leaves lay a chipped flint arrowhead, the remnant of some long-forgotten hunt.',
             'You spotted a chipped arrowhead wedged between two roots. It appears someone missed their mark here, long ago.',

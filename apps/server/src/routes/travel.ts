@@ -105,4 +105,27 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
   }
 });
 
+// Get this player's recent travel log (newest first)
+router.get('/log', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  try {
+    const entries = await db('travel_log')
+      .where({ player_id: playerId })
+      .orderBy('created_at', 'desc')
+      .limit(50);
+    res.json({
+      log: entries.map(e => ({
+        id: e.id,
+        from: e.from_location,
+        to: e.to_location,
+        skill: e.skill_name,
+        events: JSON.parse(e.events),
+        timestamp: e.created_at,
+      })),
+    });
+  } catch (err) {
+    res.json({ log: [] });
+  }
+});
+
 export default router;

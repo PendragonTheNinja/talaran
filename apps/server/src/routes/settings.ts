@@ -13,9 +13,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         const settings = await db('player_settings').where({ player_id: playerId }).first();
         res.json({
             mutedChannels: settings?.muted_channels ? JSON.parse(settings.muted_channels) : [],
+            showTravelLog: settings?.show_travel_log ?? true,
         });
     } catch (err) {
-        res.json({ mutedChannels: [] });
+        res.json({ mutedChannels: [], showTravelLog: true });
     }
 });
 
@@ -72,6 +73,21 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
             .insert({ player_id: playerId, muted_channels: JSON.stringify(mutedChannels) })
             .onConflict(['player_id'])
             .merge();
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update travel log preference
+router.post('/travel-log', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { showTravelLog } = req.body;
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, show_travel_log: !!showTravelLog })
+            .onConflict(['player_id'])
+            .merge(['show_travel_log']);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });

@@ -69,3 +69,50 @@
     text-shadow: 0 1px 3px #000, 0 0 3px #000;
     z-index: 2;
 }
+
+.skills-panel {
+    position: relative;
+}
+
+/* anchor for the tooltip */
+
+.skill-tooltip {
+    position: fixed;
+    z-index: 1000;
+    width: 240px;
+    background: var(--color-bg-deepest);
+    border: 1px solid var(--color-border-gold);
+    border-radius: 6px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+}
+
+.skill-tooltip-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.skill-tooltip-name {
+    font-weight: 600;
+    color: var(--color-gold);
+}
+
+.skill-tooltip-level {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.skill-tooltip-desc {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--color-text);
+    margin: 0 0 4px;
+}
+
+.skill-tooltip-progress {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}

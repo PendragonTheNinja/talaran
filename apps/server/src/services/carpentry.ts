@@ -215,6 +215,7 @@ async function itemTotal(playerId: number, name: string): Promise<number> {
 
 async function awardItem(playerId: number, name: string, qty: number) {
     const item = await db('items').where({ name }).first();
+    if (!item) throw new Error(`awardItem: no item named "${name}"`);
     const existing = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
     if (existing) {
         await db('player_inventory').where({ player_id: playerId, item_id: item.id }).increment('quantity', qty);

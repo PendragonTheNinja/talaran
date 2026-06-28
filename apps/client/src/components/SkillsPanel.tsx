@@ -6,10 +6,10 @@ interface Skill {
     id: number
     name: string
     type: string
-    xp: number
     level: number
-    xpToNext: number
+    xp: number
     progress: number
+    description: string
 }
 
 interface SkillsPanelProps {
@@ -22,6 +22,8 @@ const RING_P = 2 * (RW - 2 * RR) + 2 * (RH - 2 * RR) + 2 * Math.PI * RR
 
 export default function SkillsPanel({ skills }: SkillsPanelProps) {
     const [showModal, setShowModal] = useState(false)
+    const [hoveredSkill, setHoveredSkill] = useState<Skill | null>(null)
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
 
     return (
         <div className="skills-panel">
@@ -33,8 +35,10 @@ export default function SkillsPanel({ skills }: SkillsPanelProps) {
                         <button
                             key={skill.id}
                             className="skill-tile"
-                            title={`${skill.name} — Level ${skill.level} (${skill.progress}%)`}
                             onClick={() => setShowModal(true)}
+                            onMouseEnter={() => setHoveredSkill(skill)}
+                            onMouseMove={e => setTooltipPos({ x: e.clientX, y: e.clientY })}
+                            onMouseLeave={() => setHoveredSkill(null)}
                         >
                             <img
                                 src={`/images/skills/${skill.name.replace(/ /g, '_')}Skill.png`}
@@ -60,6 +64,27 @@ export default function SkillsPanel({ skills }: SkillsPanelProps) {
             </div>
 
             {showModal && <SkillsModal skills={skills} onClose={() => setShowModal(false)} />}
+
+            {hoveredSkill && (() => {
+                const TW = 240, TH = 120, PAD = 14
+                const flipX = tooltipPos.x + PAD + TW > window.innerWidth
+                const flipY = tooltipPos.y + PAD + TH > window.innerHeight
+                const left = flipX ? tooltipPos.x - TW - PAD : tooltipPos.x + PAD
+                const top = flipY ? tooltipPos.y - TH - PAD : tooltipPos.y + PAD
+                return (
+                    <div
+                        className="skill-tooltip"
+                        style={{ left: Math.max(4, left), top: Math.max(4, top) }}
+                    >
+                        <div className="skill-tooltip-head">
+                            <span className="skill-tooltip-name">{hoveredSkill.name}</span>
+                            <span className="skill-tooltip-level">Level {hoveredSkill.level}</span>
+                        </div>
+                        <p className="skill-tooltip-desc">{hoveredSkill.description}</p>
+                        <div className="skill-tooltip-progress">{hoveredSkill.progress}% to next level</div>
+                    </div>
+                )
+            })()}
         </div>
     )
 }

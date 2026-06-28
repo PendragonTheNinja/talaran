@@ -50,7 +50,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         'skills.type',
         'player_skills.xp'
       )
-      .orderBy('skills.name');
+      .orderBy('skills.display_order');
 
     const skillsWithLevels = skills.map((skill: any) => {
       const xp = parseInt(skill.xp) || 0;

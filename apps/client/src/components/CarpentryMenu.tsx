@@ -25,6 +25,7 @@ const QUALITIES = [
 const WOODWORK = [
     { key: 'lanai_tool_rod', name: 'Lanai Tool Rod', ingredients: [{ name: 'Lanai Planks', quantity: 1 }], level: 1 },
     { key: 'lanai_sawhorse', name: 'Lanai Sawhorse', ingredients: [{ name: 'Lanai Planks', quantity: 10 }], level: 1 },
+    { key: 'lanai_staff', name: 'Lanai Staff', ingredients: [{ name: 'Lanai Planks', quantity: 4 }], level: 5 },
 ]
 
 export default function CarpentryMenu({ onClose, onStartSawing, onStartWoodworking, playerCarpentryLevel }: CarpentryMenuProps) {

@@ -21,6 +21,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
     const [confirmPassword, setConfirmPassword] = useState('')
     const [newEmail, setNewEmail] = useState('')
     const [emailPassword, setEmailPassword] = useState('')
+    const [showTravelLog, setShowTravelLog] = useState(true)
 
     // Chat settings
     const [mutedChannels, setMutedChannels] = useState<Record<string, boolean>>({
@@ -39,7 +40,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
 
     const loadSettings = async () => {
         try {
-            const data = await apiFetch<{ mutedChannels: string[] }>('/api/settings')
+            const data = await apiFetch<{ mutedChannels: string[]; showTravelLog?: boolean }>('/api/settings')
             const muted: Record<string, boolean> = {
                 world: false,
                 region: false,
@@ -48,6 +49,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
             }
             data.mutedChannels?.forEach(ch => { muted[ch] = true })
             setMutedChannels(muted)
+            setShowTravelLog(data.showTravelLog ?? true)
         } catch (err) { }
     }
 
@@ -112,6 +114,19 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
         } catch (err) {
             // Revert on error
             setMutedChannels(mutedChannels)
+        }
+    }
+
+    const handleTravelLogToggle = async () => {
+        const next = !showTravelLog
+        setShowTravelLog(next)
+        try {
+            await apiFetch('/api/settings/travel-log', {
+                method: 'POST',
+                body: JSON.stringify({ showTravelLog: next }),
+            })
+        } catch (err) {
+            setShowTravelLog(!next) // revert on failure
         }
     }
 
@@ -269,9 +284,20 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                 {tab === 'game' && (
                     <div className="settings-section">
                         <h4 className="settings-section-title">Game Options</h4>
-                        <p className="muted-text" style={{ fontSize: '14px', fontStyle: 'italic' }}>
-                            More game options will be available in a future update.
-                        </p>
+                        <div className="settings-toggle-row">
+                            <div className="settings-toggle-info">
+                                <span className="settings-toggle-label">Travel Log</span>
+                                <span className="muted-text" style={{ fontSize: '13px' }}>
+                                    Show your journey log automatically when you arrive somewhere.
+                                </span>
+                            </div>
+                            <button
+                                className={`settings-toggle-btn ${showTravelLog ? 'active' : 'muted'}`}
+                                onClick={handleTravelLogToggle}
+                            >
+                                {showTravelLog ? 'On' : 'Off'}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
