@@ -160,7 +160,7 @@ export async function seed(knex: Knex): Promise<void> {
 
     // Eld Grove — Deep Lanai Tree (level 13)
     {
-      location_id: eldGrove.id, skill: 'woodcutting', name: 'Deep Lanai Tree',
+      location_id: eldGrove.id, skill: 'woodcutting', name: 'Old Growth Lanai Tree',
       required_level: 13, base_timer: 60, min_timer: 32, required_tool_tier: 1,
       poor_chance: 55, fine_chance: 35, excellent_chance: 10, xp_reward: 65,
     },

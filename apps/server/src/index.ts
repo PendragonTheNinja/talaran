@@ -32,6 +32,7 @@ import tradeRoutes from './routes/trades';
 import questRoutes from './routes/quests';
 import npcRoutes from './routes/npcs';
 import { issueBotCheck } from './services/botCheck';
+import huntingRoutes from './routes/hunting';
 
 dotenv.config();
 
@@ -113,6 +114,7 @@ app.use('/api', generalLimit);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/npcs', npcRoutes);
+app.use('/api/hunting', huntingRoutes);
 
 // Socket.io — put each player in their own room for targeted messages
 io.on('connection', (socket) => {

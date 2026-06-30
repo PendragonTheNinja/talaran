@@ -89,6 +89,10 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     const [teleRegion, setTeleRegion] = useState('')
     const [teleLocationId, setTeleLocationId] = useState('')
 
+    const [allItems, setAllItems] = useState<{ id: number; name: string; type: string }[]>([])
+    const [giveItemId, setGiveItemId] = useState('')
+    const [giveQty, setGiveQty] = useState('1')
+
     useEffect(() => {
         loadOnlinePlayers()
         if (isAdmin) {
@@ -96,6 +100,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                 .then(d => setLocations(d.locations))
                 .catch(() => { })
         }
+    }, [])
+
+    useEffect(() => {
+        apiFetch<{ items: { id: number; name: string; type: string }[] }>('/api/admin/items')
+            .then(d => setAllItems(d.items || []))
+            .catch(() => { })
     }, [])
 
     const loadOnlinePlayers = async () => {
@@ -237,6 +247,25 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             await loadPlayer(selectedPlayer.id) // refresh their shown location
         } catch (err: any) {
             setError(err.message || 'Could not teleport player.')
+        }
+    }
+
+    const handleGiveItem = async () => {
+        if (!selectedPlayer || !giveItemId) return
+        setError(null); setSuccess(null)
+        try {
+            const data = await apiFetch<{ message: string }>('/api/admin/give-item', {
+                method: 'POST',
+                body: JSON.stringify({
+                    targetId: selectedPlayer.id,
+                    itemId: parseInt(giveItemId),
+                    quantity: parseInt(giveQty) || 1,
+                }),
+            })
+            setSuccess(data.message)
+            setGiveQty('1')
+        } catch (err: any) {
+            setError(err.message || 'Could not give item.')
         }
     }
 
@@ -483,6 +512,30 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                     </div>
                                 )}
 
+                                {/* Message */}
+                                <div className="admin-action-card">
+                                    <p className="admin-section-title">✉ Send Message</p>
+                                    <input
+                                        className="chat-input"
+                                        type="text"
+                                        value={msgSubject}
+                                        onChange={e => setMsgSubject(e.target.value)}
+                                        placeholder="Subject..."
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    />
+                                    <textarea
+                                        className="chat-input"
+                                        value={msgBody}
+                                        onChange={e => setMsgBody(e.target.value)}
+                                        placeholder="Message body..."
+                                        rows={3}
+                                        style={{ width: '100%', resize: 'none', fontSize: '14px' }}
+                                    />
+                                    <button className="btn" style={{ marginTop: '6px', fontSize: '13px' }} onClick={handleMessage}>Send</button>
+                                </div>
+
+
+
                                 {/* Teleport */}
                                 {isAdmin && (
                                     <div className="admin-action-card">
@@ -516,27 +569,46 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                     </div>
                                 )}
 
-                                {/* Message */}
-                                <div className="admin-action-card">
-                                    <p className="admin-section-title">✉ Send Message</p>
-                                    <input
-                                        className="chat-input"
-                                        type="text"
-                                        value={msgSubject}
-                                        onChange={e => setMsgSubject(e.target.value)}
-                                        placeholder="Subject..."
-                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
-                                    />
-                                    <textarea
-                                        className="chat-input"
-                                        value={msgBody}
-                                        onChange={e => setMsgBody(e.target.value)}
-                                        placeholder="Message body..."
-                                        rows={3}
-                                        style={{ width: '100%', resize: 'none', fontSize: '14px' }}
-                                    />
-                                    <button className="btn" style={{ marginTop: '6px', fontSize: '13px' }} onClick={handleMessage}>Send</button>
-                                </div>
+                                {/* Add items to inventory */}
+                                {isAdmin && (
+                                    <div className="admin-action-card">
+                                        <p className="admin-section-title">🎁 Give Item</p>
+                                        <select
+                                            className="chat-input"
+                                            value={giveItemId}
+                                            onChange={e => setGiveItemId(e.target.value)}
+                                            style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                        >
+                                            <option value="">Select an item…</option>
+                                            {Object.entries(
+                                                allItems.reduce((groups: Record<string, typeof allItems>, item) => {
+                                                    const letter = item.name[0].toUpperCase()
+                                                        ; (groups[letter] ||= []).push(item)
+                                                    return groups
+                                                }, {})
+                                            ).map(([letter, items]) => (
+                                                <optgroup key={letter} label={letter}>
+                                                    {items.map(item => (
+                                                        <option key={item.id} value={item.id}>{item.name}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                        </select>
+                                        <input
+                                            className="chat-input"
+                                            type="number"
+                                            min="1"
+                                            value={giveQty}
+                                            onChange={e => setGiveQty(e.target.value)}
+                                            placeholder="Quantity"
+                                            style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                        />
+                                        <button className="btn" style={{ fontSize: '13px' }} onClick={handleGiveItem} disabled={!giveItemId}>
+                                            Add Item
+                                        </button>
+                                    </div>
+                                )}
+
 
                                 {/* Mod permissions */}
                                 {isAdmin && (
@@ -585,6 +657,6 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

@@ -303,6 +303,60 @@ router.post('/teleport', requireAuth, async (req: AuthRequest, res: Response) =>
     }
 });
 
+// List all items (for the admin add-item tool)
+router.get('/items', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const staff = await db('players').where({ id: playerId }).first();
+        if (!staff.is_admin) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        const items = await db('items').select('id', 'name', 'type').orderBy('name');
+        res.json({ items });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Add an item to a player's inventory
+router.post('/give-item', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { targetId, itemId, quantity } = req.body;
+    try {
+        const staff = await db('players').where({ id: playerId }).first();
+        if (!staff.is_admin) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        const qty = parseInt(quantity);
+        if (!qty || qty < 1) {
+            res.status(400).json({ error: 'Quantity must be at least 1.' });
+            return;
+        }
+        const target = await db('players').where({ id: targetId }).first();
+        if (!target) { res.status(404).json({ error: 'Player not found.' }); return; }
+        const item = await db('items').where({ id: itemId }).first();
+        if (!item) { res.status(404).json({ error: 'Item not found.' }); return; }
+
+        const existing = await db('player_inventory')
+            .where({ player_id: targetId, item_id: itemId }).first();
+        if (existing) {
+            await db('player_inventory')
+                .where({ player_id: targetId, item_id: itemId })
+                .increment('quantity', qty);
+        } else {
+            await db('player_inventory')
+                .insert({ player_id: targetId, item_id: itemId, quantity: qty });
+        }
+
+        logger.info(`${staff.username} gave ${qty}x ${item.name} to ${target.username}`);
+        res.json({ success: true, message: `Gave ${qty}× ${item.name} to ${target.username}.` });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 function formatDuration(minutes: number): string {
     if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'}`
     const hours = Math.floor(minutes / 60)

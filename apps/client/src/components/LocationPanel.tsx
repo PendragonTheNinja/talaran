@@ -98,6 +98,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
   const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.name.toLowerCase().includes('rock'))
+  const huntableAnimals = locationData?.huntableAnimals || []
 
   const handlePickup = async (groundItemId: number) => {
     try {
@@ -150,6 +151,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             ⛏ {vein.ore_name} Vein ({vein.remaining_quantity})
           </button>
         ))}
+
+        {huntableAnimals.length > 0 && (
+          <button
+            className={`location-action-btn`}
+            onClick={() => onStartAction('hunting_menu', 0)}
+          >
+            Hunting Grounds →
+          </button>
+        )}
 
         {/* Smithing — Emberra only */}
         {isEmberra && (

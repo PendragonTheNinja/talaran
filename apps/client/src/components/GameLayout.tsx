@@ -27,6 +27,7 @@ import SkillsPanel from './SkillsPanel'
 import MiniMap from './MiniMap'
 import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
+import HuntingMenu from './HuntingMenu'
 
 interface Skill {
   id: number
@@ -191,6 +192,8 @@ export default function GameLayout({
   const skillsPanelEl = <SkillsPanel skills={playerData?.skills || []} />
   const isMobile = useIsMobile()
 
+  const [showHuntingMenu, setShowHuntingMenu] = useState(false)
+
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
       const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
@@ -280,6 +283,8 @@ export default function GameLayout({
           .catch(() => { })
         setShowSmeltModal(true)
       }
+    } else if (type === 'hunting_menu') {
+      setShowHuntingMenu(true)
     } else {
       setGameViewAction({ type, id })
     }
@@ -670,6 +675,17 @@ export default function GameLayout({
             setGameViewAction({ type: 'woodworking', id: recipeKey })
           }}
           playerCarpentryLevel={playerData?.skills?.find((s: any) => s.name === 'Carpentry')?.level || 1}
+        />
+      )}
+
+      {showHuntingMenu && (
+        <HuntingMenu
+          onClose={() => setShowHuntingMenu(false)}
+          onStartHunt={(animalId) => {
+            setShowHuntingMenu(false)
+            setGameViewAction({ type: 'hunting', id: animalId })
+          }}
+          playerHuntingLevel={playerData?.skills?.find((s: any) => s.name === 'Hunting')?.level || 1}
         />
       )}
 

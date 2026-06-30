@@ -129,7 +129,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const [playerStats, setPlayerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 })
 
   useEffect(() => {
-    fetch(`${API_URL}/api/player/stat`)
+    fetch(`${API_URL}/api/player/stats`)
       .then(r => r.json())
       .then(d => setPlayerStats(d))
       .catch(() => { })

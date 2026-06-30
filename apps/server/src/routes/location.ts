@@ -27,6 +27,10 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .where({ location_id: player.current_location_id, is_active: true })
       .select('*');
 
+    const huntableAnimals = await db('huntable_animals')
+      .where({ location_id: player.current_location_id, is_active: true })
+      .orderBy('required_level');
+
     // Direct connections FROM current location
     const directConnections = await db('location_connections')
       .where({ from_location_id: player.current_location_id })
@@ -85,6 +89,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       connections,
       allLocations,
       allConnections,
+      huntableAnimals,
     });
 
   } catch (err) {

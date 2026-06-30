@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 export interface SecondaryDrop {
     name: string;
     quantity: number;
+    notable: boolean;
 }
 
 async function awardItemById(playerId: number, itemId: number, qty: number): Promise<void> {
@@ -42,8 +43,14 @@ export async function rollSecondaryDrops(playerId: number, sourceKey: string): P
                 ? entry.min_qty + Math.floor(Math.random() * (entry.max_qty - entry.min_qty + 1))
                 : entry.min_qty;
 
+            // "notable" = not guaranteed (sub-100% / one-in-N) → gets a sparkle on the client.
+            const notable =
+                entry.chance_percent !== null && entry.chance_percent !== undefined
+                    ? Number(entry.chance_percent) < 100
+                    : entry.chance_one_in > 1;
+
             await awardItemById(playerId, entry.item_id, qty);
-            drops.push({ name: entry.item_name, quantity: qty });
+            drops.push({ name: entry.item_name, quantity: qty, notable });
             logger.info(`Player ${playerId} found ${qty}x ${entry.item_name} from ${sourceKey}`);
         }
 

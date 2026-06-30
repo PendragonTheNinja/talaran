@@ -213,6 +213,43 @@ export default function GameView({
       clearInterval(interval)
 
       socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
+        // Hunting: its own result shape (no single itemName; success/miss + drops)
+        if ((data.result as any)?.skillName === 'Hunting') {
+          const r = data.result as any
+          setLastResult({
+            itemName: null,
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: data.xpInfo?.totalXp || 0,
+            level: data.xpInfo?.level || 1,
+            xpToNext: data.xpInfo?.xpToNext || 0,
+            xpAtLevel: data.xpInfo?.xpAtLevel || 0,
+            skillName: 'Hunting',
+            huntSuccess: r.huntSuccess,
+            animalName: r.animalName,
+            arrowRecovered: r.arrowRecovered,
+            drops: r.drops || [],
+            ended: r.ended,
+          } as any)
+
+          if (data.xpInfo?.leveledUp) {
+            setLevelUpSkill({ name: 'Hunting', level: data.xpInfo.level })
+          }
+          onPlayerDataUpdate()
+          onInventoryUpdate()
+          setActionsCompleted(prev => prev + 1)
+          if (r.ended) {
+            setCurrentAction(null)
+            setActiveNodeId(null)
+            setTimerSeconds(0)
+            if (timerRef.current) clearInterval(timerRef.current)
+          } else if (data.timerSeconds) {
+            setTimerSeconds(data.timerSeconds)
+            setTimerMax(data.timerSeconds)
+            startCountdown(data.timerSeconds, data.nextCompletes)
+          }
+          return
+        }
+
         if (data.result?.itemName) {
           const skillName =
             currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
@@ -462,6 +499,8 @@ export default function GameView({
       startWoodworking(externalAction.id as string)
     } else if (externalAction.type === 'set_action_limit') {
       onActionLimitChange(externalAction.id === 0 ? null : externalAction.id as number)
+    } else if (externalAction.type === 'hunting') {
+      startHunt(externalAction.id as number)
     }
 
     onExternalActionHandled()
@@ -722,6 +761,30 @@ export default function GameView({
     }
   }
 
+  const startHunt = async (animalId: number) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/hunting/start', {
+        method: 'POST',
+        body: JSON.stringify({ animalId }),
+      })
+      setCurrentAction('hunting')
+      setActiveNodeId(animalId)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
+    } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startHunt(animalId)); return }
+      addLog(err.message || 'Could not start hunting.', 'error')
+    }
+  }
+
   // ── Derived values ────────────────────────────────────────────────
   const woodcuttingNodes = locationData?.nodes.filter(n => n.skill === 'woodcutting') || []
   const miningNodes = locationData?.nodes.filter(n => n.skill === 'mining') || []
@@ -729,37 +792,95 @@ export default function GameView({
   const locationDesc = locationData?.location?.description || ''
   const connections = locationData?.connections || []
   const timerPercent = timerMax > 0 ? (timerSeconds / timerMax) * 100 : 0
+  // Hunting phase narration — splits the single hunt timer into track → stalk → strike thirds
+  const huntPhaseText = (() => {
+    if (currentAction !== 'hunting' || timerMax <= 0) return 'You begin the hunt...'
+    const animal = (locationData as any)?.huntableAnimals?.find((a: any) => a.id === activeNodeId)
+    const name = animal?.name || 'your quarry'
+    const progress = (timerMax - timerSeconds) / timerMax  // 0 → 1 as the hunt proceeds
+    if (progress < 1 / 3) return `You pick up a ${name}'s trail...`
+    if (progress < 2 / 3) return `You stalk the ${name}, keeping downwind...`
+    return `You draw your bow on the ${name}...`
+  })()
 
   // ── Render ────────────────────────────────────────────────────────
-  const renderResultDetails = (r: any) => (
-    <>
-      <p className="last-result-item">You gained {r.quantity ?? 1} × {r.itemName}!</p>
-      <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
-      <p className="last-result-next">
-        {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
-          (() => {
-            const xpIntoLevel = r.totalXp - r.xpAtLevel
-            const xpNeededForLevel = xpIntoLevel + r.xpToNext
-            return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
-          })()
-        }%)
-      </p>
-      {r.ingredientsRemaining && r.ingredientsRemaining.map((ing: any, i: number) => (
-        <p key={i} className="last-result-remaining">You have {ing.quantity} {ing.name}</p>
-      ))}
-      {r.outputTotal !== undefined && (
-        <p className="last-result-remaining">You have {r.outputTotal} {r.itemName}</p>
-      )}
-      {r.remainingQuantity !== undefined && (
-        <p className="last-result-remaining">{r.remainingQuantity} ore remaining in vein</p>
-      )}
-      {r.drops && r.drops.map((d: any, i: number) => (
-        <p key={`drop-${i}`} className="last-result-drop">
-          <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
+  const renderResultDetails = (r: any) => {
+    // Hunting: success/miss layout (no single itemName)
+    if (r.skillName === 'Hunting') {
+      return (
+        <>
+          <p className="last-result-item">
+            {r.huntSuccess
+              ? `You felled the ${r.animalName}!`
+              : `The ${r.animalName} got away, but you learned from the attempt.`}
+          </p>
+          <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+          <p className="last-result-next">
+            {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
+              (() => {
+                const xpIntoLevel = r.totalXp - r.xpAtLevel
+                const xpNeededForLevel = xpIntoLevel + r.xpToNext
+                return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
+              })()
+            }%)
+          </p>
+          {r.drops && r.drops.map((d: any, i: number) => (
+            d.notable ? (
+              <p key={`hd-${i}`} className="last-result-drop">
+                <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
+              </p>
+            ) : (
+              <p key={`hd-${i}`} className="last-result-remaining">
+                You gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
+              </p>
+            )
+          ))}
+          <p className="last-result-remaining muted-text">
+            {r.arrowRecovered ? 'You recovered your arrow.' : 'Your arrow was lost.'}
+          </p>
+          {r.ended === 'materials' && (
+            <p className="last-result-ended-title gold-text">You've run out of arrows.</p>
+          )}
+        </>
+      )
+    }
+
+    return (
+      <>
+        <p className="last-result-item">You gained {r.quantity ?? 1} × {r.itemName}!</p>
+        <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+        <p className="last-result-next">
+          {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
+            (() => {
+              const xpIntoLevel = r.totalXp - r.xpAtLevel
+              const xpNeededForLevel = xpIntoLevel + r.xpToNext
+              return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
+            })()
+          }%)
         </p>
-      ))}
-    </>
-  )
+        {r.ingredientsRemaining && r.ingredientsRemaining.map((ing: any, i: number) => (
+          <p key={i} className="last-result-remaining">You have {ing.quantity} {ing.name}</p>
+        ))}
+        {r.outputTotal !== undefined && (
+          <p className="last-result-remaining">You have {r.outputTotal} {r.itemName}</p>
+        )}
+        {r.remainingQuantity !== undefined && (
+          <p className="last-result-remaining">{r.remainingQuantity} ore remaining in vein</p>
+        )}
+        {r.drops && r.drops.map((d: any, i: number) => (
+          d.notable ? (
+            <p key={`drop-${i}`} className="last-result-drop">
+              <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
+            </p>
+          ) : (
+            <p key={`drop-${i}`} className="last-result-remaining">
+              You also gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
+            </p>
+          )
+        ))}
+      </>
+    )
+  }
 
   return (
     <div className="game-view panel">
@@ -837,6 +958,9 @@ export default function GameView({
               {currentAction === 'woodworking' && (
                 <p className="scene-action-text gold-text">You are working at the sawhorse.</p>
               )}
+              {currentAction === 'hunting' && (
+                <p className="scene-action-text gold-text">{huntPhaseText}</p>
+              )}
               <div className="scene-timer">
                 <div className="scene-timer-bar">
                   <div
@@ -865,6 +989,9 @@ export default function GameView({
               )}
               {(currentAction === 'sawing' || currentAction === 'woodworking') && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Carpentry</button>
+              )}
+              {currentAction === 'hunting' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Hunting</button>
               )}
               {lastResult && (
                 <div className="scene-last-result">

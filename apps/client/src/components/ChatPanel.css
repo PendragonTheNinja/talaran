@@ -120,3 +120,14 @@
 .chat-forum-link:hover {
   text-decoration: underline;
 }
+
+.chat-input option,
+.chat-input optgroup {
+  background: var(--color-bg-deep);
+  color: var(--color-text-base);
+}
+
+.chat-input optgroup {
+  color: var(--color-gold-bright);
+  font-weight: 600;
+}

@@ -43,6 +43,17 @@ async function processTravelAction(playerId: number, locationId: number): Promis
   }
 }
 
+async function processHunt(playerId: number, animalId: number): Promise<any> {
+  try {
+    const { resolveHunt } = await import('./hunting');
+    const outcome = await resolveHunt(playerId, animalId);
+    return { success: true, hunt: outcome };
+  } catch (err) {
+    logger.error(`Hunt completion error: ${err}`);
+    return { success: false };
+  }
+}
+
 async function processCompletedAction(io: Server, action: any): Promise<void> {
   try {
     let result: any;
@@ -88,6 +99,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'woodworking':
         result = await woodwork(action.player_id, action.location_id, action.action_data);
+        break;
+      case 'hunting':
+        result = await processHunt(action.player_id, action.action_data);
         break;
       default:
         logger.warn(`Unknown action type: ${action.action_type}`);
@@ -193,6 +207,119 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           leveledUp: false,
         } : undefined,
       });
+      return;
+    }
+
+    // Handle hunting (bespoke: missed hunts still award XP + continue; arrows consume/recover)
+    if (action.action_type === 'hunting') {
+      const hunt = result.hunt;
+      const animalId = action.action_data ? parseInt(action.action_data) : null;
+      const animal = animalId ? await db('huntable_animals').where({ id: animalId }).first() : null;
+
+      if (!animal || !hunt) {
+        await db('player_actions').where({ id: action.id }).delete();
+        return;
+      }
+
+      const huntingSkill = await db('skills').where({ name: 'Hunting' }).first();
+
+      // ── Award XP (full on success, reduced on miss) ──
+      if (huntingSkill) {
+        await db('player_skills')
+          .where({ player_id: action.player_id, skill_id: huntingSkill.id })
+          .increment('xp', hunt.xp);
+      }
+
+      // ── Consume one arrow; recover it on the roll ──
+      const arrowItem = await db('items').where({ name: 'Ambren Arrow' }).first();
+      let outOfArrows = false;
+      if (arrowItem) {
+        const arrowRow = await db('player_inventory')
+          .where({ player_id: action.player_id, item_id: arrowItem.id }).first();
+        const netChange = hunt.arrowRecovered ? 0 : -1;
+        const newQty = (arrowRow?.quantity || 0) + netChange;
+        if (newQty <= 0) {
+          if (arrowRow) await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: arrowItem.id }).delete();
+          outOfArrows = true;
+        } else {
+          await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: arrowItem.id }).update({ quantity: newQty });
+        }
+      }
+
+      // ── Add drops (on success) ──
+      const addedDrops: { name: string; quantity: number; notable: boolean }[] = [];
+      for (const d of hunt.drops) {
+        const item = await db('items').where({ name: d.itemName }).first();
+        if (!item) continue;
+        const existing = await db('player_inventory')
+          .where({ player_id: action.player_id, item_id: item.id }).first();
+        if (existing) {
+          await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: item.id }).increment('quantity', d.quantity);
+        } else {
+          await db('player_inventory')
+            .insert({ player_id: action.player_id, item_id: item.id, quantity: d.quantity });
+        }
+        addedDrops.push({ name: d.itemName, quantity: d.quantity, notable: (d as any).notable });
+      }
+
+      // ── XP info for the result screen ──
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: huntingSkill?.id }).first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - hunt.xp;
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+      const xpNeeded = xpToNextLevel(currentXp);
+      const xpAtLevel = xpForLevel(currentLevel);
+
+      // ── Auto-restart unless out of arrows ──
+      if (!outOfArrows) {
+        const playerLevel = currentLevel;
+        const { calculateHuntTimer } = await import('./hunting');
+        const nextTimer = calculateHuntTimer(animal.base_timer, animal.min_timer, playerLevel, animal.required_level);
+        const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+
+        await db('player_actions').where({ id: action.id }).update({
+          completes_at: nextCompletion,
+          last_timer_seconds: nextTimer,
+        });
+
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result: {
+            itemName: null,
+            huntSuccess: hunt.success,
+            animalName: hunt.animalName,
+            arrowRecovered: hunt.arrowRecovered,
+            xpAwarded: hunt.xp,
+            skillName: 'Hunting',
+            drops: addedDrops,
+          },
+          nextCompletes: nextCompletion,
+          timerSeconds: nextTimer,
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
+        });
+      } else {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result: {
+            itemName: null,
+            huntSuccess: hunt.success,
+            animalName: hunt.animalName,
+            arrowRecovered: hunt.arrowRecovered,
+            xpAwarded: hunt.xp,
+            skillName: 'Hunting',
+            drops: addedDrops,
+            ended: 'materials',
+          },
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
+        });
+      }
       return;
     }
 

@@ -9,7 +9,7 @@ const router = Router();
 // Get all skills for the selector
 router.get('/skills', async (req: Request, res: Response) => {
     try {
-        const skills = await db('skills').orderBy('name', 'asc').select('id', 'name');
+        const skills = await db('skills').where('is_implemented', true).orderBy('name', 'asc').select('id', 'name');
         res.json({ skills });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });

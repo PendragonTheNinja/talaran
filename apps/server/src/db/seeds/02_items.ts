@@ -130,6 +130,22 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Tarnished Coin', type: 'curio', subtype: 'curio', tier: 1, quality: null, slot: null, level_required: 1, description: 'An old coin worn smooth by time. Someone, long ago, dropped it on this road.', stackable: true },
     { name: 'Chipped Arrowhead', type: 'curio', subtype: 'curio', tier: 2, quality: null, slot: null, level_required: 1, description: 'A flint arrowhead, chipped from use or age. A relic of some forgotten hunt.', stackable: true },
     { name: 'Four-Leaf Clover', type: 'curio', subtype: 'curio', tier: 5, quality: null, slot: null, level_required: 1, description: 'An impossibly rare four-leaf clover. They say no two finders are ever unlucky again.', stackable: true },
+
+    // ── Hunting: tools & ammo ──
+    { name: 'Lanai Hunting Bow', type: 'tool', subtype: 'bow', tier: 1, quality: null, slot: 'mainhand', level_required: 1, description: 'A bow of supple Lanai wood, strung for the hunt. Draws a steady arrow on forest game.', stackable: false },
+    { name: 'Arrow Shaft', type: 'material', subtype: 'arrow_shaft', tier: 1, quality: null, slot: null, level_required: 1, description: 'A straight, trimmed shaft of wood, ready to be tipped and fletched into an arrow.', stackable: true },
+    { name: 'Ambren Arrow', type: 'ammo', subtype: 'arrow', tier: 1, quality: null, slot: null, level_required: 1, description: 'A broadhead hunting arrow. Often recovered from a clean kill.', stackable: true },
+    // ── Hunting: animal products ──
+    { name: 'Venison', type: 'food', subtype: 'raw_meat', tier: 1, quality: null, slot: null, level_required: 1, description: 'Raw venison from a felled deer. Best cooked before eating.', stackable: true },
+    { name: 'Boar Meat', type: 'food', subtype: 'raw_meat', tier: 2, quality: null, slot: null, level_required: 1, description: 'Coarse, rich meat from a wild boar. Hearty fare once cooked.', stackable: true },
+    { name: 'Sloth Meat', type: 'food', subtype: 'raw_meat', tier: 3, quality: null, slot: null, level_required: 1, description: 'A great quantity of dense meat from a ground sloth. A feast in the making.', stackable: true },
+    { name: 'Deer Hide', type: 'material', subtype: 'hide', tier: 1, quality: null, slot: null, level_required: 1, description: 'The hide of a deer. Tans into a small amount of leather.', stackable: true },
+    { name: 'Boar Hide', type: 'material', subtype: 'hide', tier: 2, quality: null, slot: null, level_required: 1, description: 'Tough, bristled boar hide. Yields a sturdy leather.', stackable: true },
+    { name: 'Thick Hide', type: 'material', subtype: 'hide', tier: 3, quality: null, slot: null, level_required: 1, description: 'The heavy hide of a ground sloth. Difficult to work, but yields good leather.', stackable: true },
+    { name: 'Bones', type: 'material', subtype: 'bones', tier: 1, quality: null, slot: null, level_required: 1, description: 'A set of animal bones. They must be good for something.', stackable: true },
+    { name: 'Antler', type: 'material', subtype: 'trophy', tier: 1, quality: null, slot: null, level_required: 1, description: 'A branching deer antler. Prized by craftsmen and collectors alike.', stackable: true },
+    { name: 'Boar Tusk', type: 'material', subtype: 'trophy', tier: 1, quality: null, slot: null, level_required: 1, description: 'A curved, ivory-white tusk from a wild boar.', stackable: true },
+    { name: 'Sloth Claw', type: 'material', subtype: 'trophy', tier: 1, quality: null, slot: null, level_required: 1, description: 'An enormous curved claw from a ground sloth. Heavier than it looks.', stackable: true },
   ]);
 }
 

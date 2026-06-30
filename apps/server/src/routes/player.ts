@@ -50,6 +50,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         'skills.type',
         'player_skills.xp'
       )
+      .where('skills.is_implemented', true)
       .orderBy('skills.display_order');
 
     const skillsWithLevels = skills.map((skill: any) => {
@@ -122,6 +123,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       const skills = await db('player_skills')
         .where({ player_id: targetId })
         .join('skills', 'player_skills.skill_id', 'skills.id')
+        .where('skills.is_implemented', true)
         .select('skills.name', 'skills.type', 'player_skills.xp');
 
       const equipment = await db('player_equipment')
