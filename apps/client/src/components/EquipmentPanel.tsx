@@ -24,18 +24,18 @@ interface EquipmentPanelProps {
 }
 
 const SLOTS = [
-    { key: 'neck', label: 'Neck' },
-    { key: 'head', label: 'Head' },
-    { key: 'back', label: 'Back' },
-    { key: 'mainhand', label: 'Main Hand' },
-    { key: 'chest', label: 'Chest' },
-    { key: 'offhand', label: 'Off Hand' },
-    { key: 'finger', label: 'Finger' },
-    { key: 'legs', label: 'Legs' },
-    { key: 'hands', label: 'Hands' },
-    { key: 'mount', label: 'Mount' },
-    { key: 'feet', label: 'Feet' },
-    { key: 'trophy', label: 'Trophy' },
+    { key: 'neck', label: 'Neck', x: 25, y: 16 },
+    { key: 'head', label: 'Head', x: 50, y: 16 },
+    { key: 'back', label: 'Back', x: 75, y: 16 },
+    { key: 'mainhand', label: 'Main Hand', x: 25, y: 38 },
+    { key: 'chest', label: 'Chest', x: 50, y: 38 },
+    { key: 'offhand', label: 'Off Hand', x: 75, y: 38 },
+    { key: 'finger', label: 'Finger', x: 25, y: 60 },
+    { key: 'legs', label: 'Legs', x: 50, y: 60 },
+    { key: 'hands', label: 'Hands', x: 75, y: 60 },
+    { key: 'mount', label: 'Mount', x: 25, y: 82 },
+    { key: 'feet', label: 'Feet', x: 50, y: 82 },
+    { key: 'trophy', label: 'Trophy', x: 75, y: 82 },
 ]
 
 export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate }: EquipmentPanelProps) {
@@ -82,33 +82,26 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
             <div className="divider" />
 
-            <div className="equipment-grid">
-                {SLOTS.map(({ key, label }) => {
+            <div className="paper-doll">
+                {SLOTS.map(({ key, label, x, y }) => {
                     const equipped = equipmentData?.[key as keyof EquipmentData]
-                    const slotIcon = getSlotIcon(key)
 
                     return (
                         <div
                             key={key}
-                            className={`equipment-slot panel-inset ${equipped ? 'occupied' : ''}`}
+                            className={`paper-doll-slot ${equipped ? 'occupied' : 'empty'}`}
+                            style={{ left: `${x}%`, top: `${y}%` }}
                             title={equipped ? `${equipped.name}\nClick to unequip` : label}
                             onClick={() => equipped && handleUnequip(key)}
                         >
                             {equipped ? (
-                                <>
-                                    <img
-                                        src={getItemIcon(equipped.name)}
-                                        alt={equipped.name}
-                                        className="equipment-item-icon"
-                                        onError={e => {
-                                            e.currentTarget.style.display = 'none'
-                                            e.currentTarget.nextElementSibling?.removeAttribute('style')
-                                        }}
-                                    />
-                                    <span className="equipment-item-text" style={{ display: 'none' }}>{equipped.name.split(' ')[0]}</span>
-                                </>
+                                <img
+                                    src={getItemIcon(equipped.name)}
+                                    alt={equipped.name}
+                                    className="paper-doll-item-icon"
+                                />
                             ) : (
-                                <img src={slotIcon} alt={label} className="equipment-slot-icon" />
+                                <span className="paper-doll-slot-label">{label}</span>
                             )}
                         </div>
                     )
