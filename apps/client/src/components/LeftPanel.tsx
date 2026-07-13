@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { getItemIcon, getQualityColor } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './LeftPanel.css'
-import EquipmentPanel from './EquipmentPanel'
 
 interface InventoryItem {
   id: number
@@ -171,15 +170,6 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
       </div>
 
       {error && <div className="equipment-error">{error}</div>}
-
-      <div className="divider" />
-
-      {/* Paper-doll (equipment) — lives under the inventory */}
-      <EquipmentPanel
-        equipmentData={equipmentData}
-        onEquipmentUpdate={onEquipmentUpdate}
-        onInventoryUpdate={onInventoryUpdate}
-      />
 
       <div className="divider" />
 

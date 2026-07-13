@@ -45,6 +45,7 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
                 {view === 'inventory' && (
                     <div className="mobile-items-view">
                         {inventoryPanel}
+                        {equipmentPanel}
                     </div>
                 )}
 

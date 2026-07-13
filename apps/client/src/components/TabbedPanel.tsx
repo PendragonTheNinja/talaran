@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import EquipmentPanel from './EquipmentPanel'
 import SkillsPanel from './SkillsPanel'
 import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import './TabbedPanel.css'
 
-type TabKey = 'skills' | 'stats' | 'quests'
+type TabKey = 'equipment' | 'skills' | 'stats' | 'quests'
 
 interface EquipmentData {
     head: any | null; neck: any | null; back: any | null; chest: any | null
@@ -25,6 +26,7 @@ interface TabbedPanelProps {
 }
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
+    { key: 'equipment', label: 'Equip', icon: '🛡️' },
     { key: 'skills', label: 'Skills', icon: '📜' },
     { key: 'stats', label: 'Stats', icon: '📊' },
     { key: 'quests', label: 'Quests', icon: '❗' },
@@ -38,7 +40,7 @@ export default function TabbedPanel({ playerId, skills, equipmentData, onEquipme
         const onKey = (e: KeyboardEvent) => {
             const tag = (e.target as HTMLElement)?.tagName
             if (tag === 'INPUT' || tag === 'TEXTAREA') return
-            const map: Record<string, TabKey> = { F1: 'skills', F2: 'stats', F3: 'quests' }
+            const map: Record<string, TabKey> = { F1: 'equipment', F2: 'skills', F3: 'stats', F4: 'quests' }
             if (map[e.key]) {
                 e.preventDefault()
                 setActive(map[e.key])
@@ -63,6 +65,13 @@ export default function TabbedPanel({ playerId, skills, equipmentData, onEquipme
                 ))}
             </div>
             <div className="tab-content">
+                {active === 'equipment' && (
+                    <EquipmentPanel
+                        equipmentData={equipmentData}
+                        onEquipmentUpdate={onEquipmentUpdate}
+                        onInventoryUpdate={onInventoryUpdate}
+                    />
+                )}
                 {active === 'skills' && <SkillsPanel skills={skills} />}
                 {active === 'stats' && <PlayerStats playerId={playerId} />}
                 {active === 'quests' && <QuestsView />}
