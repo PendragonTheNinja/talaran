@@ -116,7 +116,7 @@ export default function GameView({
     quantity?: number
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
-    ended?: 'limit' | 'materials'
+    ended?: 'limit' | 'materials' | 'unavailable'
     drops?: { name: string; quantity: number }[]
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
@@ -464,6 +464,19 @@ export default function GameView({
 
       case 'woodworking':
         setCurrentAction('woodworking')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
+      case 'hunting':
+        setCurrentAction('hunting')
+        setActiveNodeId(Number(action.action_data))
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
+      case 'crafting':
+        setCurrentAction('crafting')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break

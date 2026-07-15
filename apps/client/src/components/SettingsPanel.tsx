@@ -288,7 +288,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                             <div className="settings-toggle-info">
                                 <span className="settings-toggle-label">Travel Log</span>
                                 <span className="muted-text" style={{ fontSize: '13px' }}>
-                                    Show your journey log automatically when you arrive somewhere.
+                                    Show your journey log automatically when you find an item while traveling.
                                 </span>
                             </div>
                             <button

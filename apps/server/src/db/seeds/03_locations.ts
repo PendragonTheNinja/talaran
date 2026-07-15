@@ -155,14 +155,14 @@ export async function seed(knex: Knex): Promise<void> {
     {
       location_id: lanaivale.id, skill: 'woodcutting', name: 'Lanai Tree',
       required_level: 1, base_timer: 45, min_timer: 25, required_tool_tier: 1,
-      poor_chance: 65, fine_chance: 30, excellent_chance: 5, xp_reward: 25,
+      poor_chance: 65, fine_chance: 30, excellent_chance: 5, xp_reward: 28,
     },
 
     // Eld Grove — Deep Lanai Tree (level 13)
     {
       location_id: eldGrove.id, skill: 'woodcutting', name: 'Old Growth Lanai Tree',
       required_level: 13, base_timer: 60, min_timer: 32, required_tool_tier: 1,
-      poor_chance: 55, fine_chance: 35, excellent_chance: 10, xp_reward: 65,
+      poor_chance: 55, fine_chance: 35, excellent_chance: 10, xp_reward: 49,
     },
 
     // Grundagr — Mining (level 1)

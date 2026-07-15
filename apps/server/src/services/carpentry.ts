@@ -80,7 +80,7 @@ export const WOODWORK_RECIPES: Record<string, WoodworkRecipe> = {
         output: 'Lanai Staff',
         outputQuantity: 1,
         requiredLevel: 5,
-        xp: 156,
+        xp: 169,
         timer: 140,
     },
     'lanai_sawhorse': {

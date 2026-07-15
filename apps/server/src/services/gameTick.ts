@@ -12,6 +12,7 @@ import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
 import { rollTravelEvents } from './travelEvents'
 
 const TICK_INTERVAL = 2000;
+let lastTrapSweep = 0;
 
 export function startGameTick(io: Server): void {
   logger.info('Game tick started');
@@ -19,6 +20,16 @@ export function startGameTick(io: Server): void {
   setInterval(async () => {
     try {
       await checkVeinAnnouncements();
+
+      // Trap sweep — trapping runs on minutes, not seconds, so throttle to every 30s
+      if (Date.now() - lastTrapSweep > 30000) {
+        lastTrapSweep = Date.now();
+        const { processTrapTicks } = await import('./trapping');
+        const trapEvents = await processTrapTicks(new Date());
+        for (const e of trapEvents.sprung) {
+          io.to(`player_${e.playerId}`).emit('trap_sprung', { trapId: e.trapId });
+        }
+      }
       const completedActions = await db('player_actions')
         .where('completes_at', '<=', new Date())
         .where('bot_check_pending', false);
@@ -103,6 +114,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'hunting':
         result = await processHunt(action.player_id, action.action_data);
         break;
+      case 'crafting': {
+        const { resolveCraft } = await import('./crafting');
+        result = await resolveCraft(action.player_id, parseInt(action.action_data));
+        break;
+      }
       default:
         logger.warn(`Unknown action type: ${action.action_type}`);
         await db('player_actions').where({ id: action.id }).delete();
@@ -276,8 +292,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const xpNeeded = xpToNextLevel(currentXp);
       const xpAtLevel = xpForLevel(currentLevel);
 
-      // ── Auto-restart unless out of arrows ──
-      if (!outOfArrows) {
+      // ── Auto-restart unless out of arrows or the animal was disabled ──
+      if (!outOfArrows && animal.is_active) {
         const playerLevel = currentLevel;
         const { calculateHuntTimer } = await import('./hunting');
         const nextTimer = calculateHuntTimer(animal.base_timer, animal.min_timer, playerLevel, animal.required_level);
@@ -315,7 +331,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             xpAwarded: hunt.xp,
             skillName: 'Hunting',
             drops: addedDrops,
-            ended: 'materials',
+            ended: outOfArrows ? 'materials' : 'unavailable',
           },
           xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
         });
@@ -526,6 +542,83 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       });
 
       // Check action limit
+      if (action.action_limit && action.action_limit > 0) {
+        const actionsCompleted = (action.actions_completed || 0) + 1;
+        if (actionsCompleted >= action.action_limit) {
+          await db('player_actions').where({ id: action.id }).delete();
+          io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+            message: `Action limit of ${action.action_limit} reached.`,
+          });
+          return;
+        }
+        await db('player_actions').where({ id: action.id }).update({
+          actions_completed: actionsCompleted,
+          last_timer_seconds: timerSeconds,
+        });
+      }
+      return;
+    }
+
+    // Handle crafting (generic recipes table; mirrors the sawing/woodworking pattern)
+    if (action.action_type === 'crafting') {
+      const recipe = await db('recipes').where({ id: parseInt(action.action_data) }).first();
+      const skillName = recipe?.skill || result.skillName || 'Crafting';
+
+      if (recipe) {
+        const inputs: { itemName: string; qty: number }[] = JSON.parse(recipe.inputs);
+        for (const input of inputs) {
+          const item = await db('items').where({ name: input.itemName }).first();
+          const inv = item ? await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: item.id })
+            .first() : null;
+          if (!inv || inv.quantity < input.qty) {
+            await db('player_actions').where({ id: action.id }).delete();
+            const craftSkill = await db('skills').where({ name: skillName }).first();
+            const lastSkill = craftSkill ? await db('player_skills')
+              .where({ player_id: action.player_id, skill_id: craftSkill.id }).first() : null;
+            const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
+            const lastLevel = levelFromXp(lastXp);
+            io.to(`player_${action.player_id}`).emit('action_complete', {
+              actionType: action.action_type,
+              result,
+              nextCompletes: null,
+              timerSeconds: 0,
+              xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
+            });
+            io.to(`player_${action.player_id}`).emit('action_failed', {
+              error: `Out of ${input.itemName}. Crafting stopped.`,
+              info: true,
+            });
+            return;
+          }
+        }
+      }
+
+      const timerSeconds = recipe?.timer_seconds ?? 30;
+      const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
+
+      await db('player_actions').where({ id: action.id }).update({
+        completes_at: nextCompletion,
+        last_timer_seconds: timerSeconds,
+      });
+
+      const craftingSkill = await db('skills').where({ name: skillName }).first();
+      const updatedSkill = craftingSkill ? await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: craftingSkill.id }).first() : null;
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+
+      io.to(`player_${action.player_id}`).emit('action_complete', {
+        actionType: action.action_type,
+        result,
+        nextCompletes: nextCompletion,
+        timerSeconds,
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
+      });
+
       if (action.action_limit && action.action_limit > 0) {
         const actionsCompleted = (action.actions_completed || 0) + 1;
         if (actionsCompleted >= action.action_limit) {

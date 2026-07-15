@@ -12,7 +12,7 @@ const RECOVERY_PER_2_LEVELS = 0.01    // +1% recovery per 2 levels over req
 const RECOVERY_CAP = 0.95
 const RECOVERY_FAILURE = 0.30         // flat 30% recovery on a failed hunt
 
-interface DropEntry { itemName: string; min: number; max: number; chance: number }
+interface DropEntry { itemName: string; min: number; max: number; chance: number; notable?: boolean }
 
 async function huntingLevel(playerId: number): Promise<number> {
     const skill = await db('skills').where({ name: 'Hunting' }).first()
@@ -82,7 +82,7 @@ export function rollDrops(dropTableJson: string): { itemName: string; quantity: 
     for (const d of table) {
         if (Math.random() * 100 < d.chance) {
             const qty = d.min + Math.floor(Math.random() * (d.max - d.min + 1))
-            if (qty > 0) drops.push({ itemName: d.itemName, quantity: qty, notable: d.chance < 100 })
+            if (qty > 0) drops.push({ itemName: d.itemName, quantity: qty, notable: d.notable === true })
         }
     }
     return drops

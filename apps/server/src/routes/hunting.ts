@@ -18,7 +18,8 @@ router.get('/animals', requireAuth, async (req: AuthRequest, res: Response) => {
             .orderBy('required_level')
         res.json({ animals })
     } catch (err) {
-        res.json({ animals: [] })
+        logger.error('Hunt animals error: ' + err)
+        res.status(500).json({ error: 'Server error' })
     }
 })
 
@@ -57,6 +58,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             started_at: now,
             completes_at: completesAt,
             auto_restart: true,
+            last_timer_seconds: timerSeconds,
             last_bot_check: now,
             bot_check_pending: false,
         })

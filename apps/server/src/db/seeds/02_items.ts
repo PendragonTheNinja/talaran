@@ -93,7 +93,7 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Ambren Anvil', type: 'tool', subtype: 'anvil', tier: 1, quality: null, slot: null, level_required: 1, description: 'A sturdy Ambren anvil. Required for smithing tier 1 items.', stackable: false },
 
     // ── Fuel ─────────────────────────────────────────────────────────
-    { name: 'Charc', type: 'fuel', subtype: 'charc', tier: 1, quality: null, slot: null, level_required: 1, description: 'Charcoal produced from burning wood in a kiln. Used as fuel for smelting.', stackable: true },
+    { name: 'Charc', type: 'fuel', subtype: 'charc', tier: 1, quality: null, slot: null, level_required: 1, description: 'Fuel produced from burning wood in a kiln. Used for smelting.', stackable: true },
     { name: 'Koric', type: 'fuel', subtype: 'koric', tier: 2, quality: null, slot: null, level_required: 50, description: 'Processed coal coke. Required for smelting higher tier metals.', stackable: true },
 
     // ── Ingots ───────────────────────────────────────────────────────
