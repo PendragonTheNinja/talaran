@@ -2,7 +2,7 @@ import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { botCheckGate } from '../services/botCheck'
-import { getActiveRecipes, canStartCraft } from '../services/crafting'
+import { getActiveRecipes, canStartCraft, craftTimerFor } from '../services/crafting'
 import { logger } from '../index';
 
 const router = Router()
@@ -37,7 +37,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         const recipe = check.recipe
 
         const player = await db('players').where({ id: playerId }).first()
-        const timerSeconds = recipe.timer_seconds
+        const timerSeconds = await craftTimerFor(playerId, recipe)
         const now = new Date()
         const completesAt = new Date(now.getTime() + timerSeconds * 1000)
 
@@ -57,7 +57,13 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         })
 
         logger.info(`Player ${playerId} started crafting ${recipe.name} (recipe ${recipe.id})`)
-        res.json({ message: 'Crafting started', timerSeconds, completesAt })
+        res.json({
+            message: 'Crafting started',
+            timerSeconds,
+            completesAt,
+            recipeName: recipe.name,
+            skill: recipe.skill,
+        })
     } catch (err: any) {
         // Raced double-start: the unique constraint on player_actions.player_id catches it
         if (err && err.code === '23505') {

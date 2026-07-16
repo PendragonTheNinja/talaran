@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import RecipeList from './RecipeList'
 import './SmithingMenu.css'
 
 interface CarpentryMenuProps {
     onClose: () => void
     onStartSawing: (sawKey: string) => void
-    onStartWoodworking: (recipeKey: string) => void
+    onStartCraft: (recipeId: number) => void
     playerCarpentryLevel: number
+    stationActive?: boolean
 }
 
 const WOODS = [
@@ -22,13 +24,7 @@ const QUALITIES = [
     { key: 'excellent', label: 'Excellent', yield: 3 },
 ]
 
-const WOODWORK = [
-    { key: 'lanai_tool_rod', name: 'Lanai Tool Rod', ingredients: [{ name: 'Lanai Planks', quantity: 1 }], level: 1 },
-    { key: 'lanai_sawhorse', name: 'Lanai Sawhorse', ingredients: [{ name: 'Lanai Planks', quantity: 10 }], level: 1 },
-    { key: 'lanai_staff', name: 'Lanai Staff', ingredients: [{ name: 'Lanai Planks', quantity: 4 }], level: 5 },
-]
-
-export default function CarpentryMenu({ onClose, onStartSawing, onStartWoodworking, playerCarpentryLevel }: CarpentryMenuProps) {
+export default function CarpentryMenu({ onClose, onStartSawing, onStartCraft, playerCarpentryLevel, stationActive = true }: CarpentryMenuProps) {
     const [tab, setTab] = useState<'saw' | 'woodwork'>('saw')
 
     return (
@@ -74,28 +70,14 @@ export default function CarpentryMenu({ onClose, onStartSawing, onStartWoodworki
                 )}
 
                 {tab === 'woodwork' && (
-                    <div className="smithing-recipe-grid">
-                        {WOODWORK.map(r => {
-                            const locked = playerCarpentryLevel < r.level
-                            return (
-                                <div key={r.key} className={`smithing-recipe-card ${locked ? 'locked' : ''}`}
-                                    onClick={() => { if (!locked) { onStartWoodworking(r.key); onClose() } }}>
-                                    <div className="smithing-recipe-image">
-                                        <img src={`/images/items/${r.name.replace(/ /g, '_')}.png`} alt={r.name}
-                                            onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                                        <span className="smithing-recipe-name">{r.name}</span>
-                                    </div>
-                                    <div className="smithing-recipe-ingredients">
-                                        {r.ingredients.map((ing, i) => (
-                                            <span key={i} className="smithing-ingredient">{ing.quantity}× {ing.name}</span>
-                                        ))}
-                                    </div>
-                                    {locked && <div className="smithing-locked-label">Level {r.level}</div>}
-                                </div>
-                            )
-                        })}
-                    </div>
+                    <RecipeList
+                        skill="Carpentry"
+                        playerLevel={playerCarpentryLevel}
+                        stationActive={stationActive}
+                        onStartCraft={(recipeId) => { onStartCraft(recipeId); onClose() }}
+                    />
                 )}
+
             </div>
         </div>
     )

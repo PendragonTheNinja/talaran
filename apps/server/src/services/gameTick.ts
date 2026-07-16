@@ -237,6 +237,15 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         return;
       }
 
+      // Bow was unequipped mid-loop: stop the hunt cleanly (no arrow was spent)
+      if (hunt.noBow) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: 'Your hunt ended — you no longer have a bow equipped.',
+        });
+        return;
+      }
+
       const huntingSkill = await db('skills').where({ name: 'Hunting' }).first();
 
       // ── Award XP (full on success, reduced on miss) ──
@@ -594,7 +603,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
-      const timerSeconds = recipe?.timer_seconds ?? 30;
+      const { craftTimerFor } = await import('./crafting');
+      const timerSeconds = recipe ? await craftTimerFor(action.player_id, recipe) : 30;
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({

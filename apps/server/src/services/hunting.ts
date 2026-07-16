@@ -97,6 +97,7 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     xp: number
     drops: { itemName: string; quantity: number }[]
     arrowRecovered: boolean
+    noBow?: boolean
     animalName: string
 }> {
     const animal = await db('huntable_animals').where({ id: animalId }).first()
@@ -104,12 +105,16 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
 
     const level = await huntingLevel(playerId)
 
-    // Bow tier (for catch chance)
+    // Bow must still be equipped — re-validated every cycle, subtype-checked like canHunt.
+    // No bow means no shot was fired: no arrow spent, and the tick stops the loop.
     const equipment = await db('player_equipment').where({ player_id: playerId }).first()
     const bow = equipment?.mainhand_item_id
-        ? await db('items').where({ id: equipment.mainhand_item_id }).first()
+        ? await db('items').where({ id: equipment.mainhand_item_id, subtype: 'bow' }).first()
         : null
-    const bowTier = bow?.tier ?? 1
+    if (!bow) {
+        return { success: false, xp: 0, drops: [], arrowRecovered: true, noBow: true, animalName: animal.name }
+    }
+    const bowTier = bow.tier ?? 1
 
     const catchChance = calculateCatchChance(animal.base_catch_chance, level, animal.required_level, bowTier)
     const success = Math.random() * 100 < catchChance

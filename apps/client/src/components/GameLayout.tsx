@@ -11,6 +11,7 @@ import { getSocket } from '../lib/socket'
 import './GameLayout.css'
 import SmithingMenu from './SmithingMenu'
 import CarpentryMenu from './CarpentryMenu'
+import CraftingMenu from './CraftingMenu'
 import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
@@ -176,6 +177,14 @@ export default function GameLayout({
   const [smeltMetalType, setSmeltMetalType] = useState<string>('ambren')
 
   const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
+  const [showCraftingMenu, setShowCraftingMenu] = useState(false)
+  const [carpentryStationActive, setCarpentryStationActive] = useState(false)
+  const [smithingStationActive, setSmithingStationActive] = useState(false)
+  const [showTanningModal, setShowTanningModal] = useState(false)
+  const [tanningStatus, setTanningStatus] = useState<any>(null)
+  const [tanningRecipeId, setTanningRecipeId] = useState<number | null>(null)
+  const [tanningHideCount, setTanningHideCount] = useState(1)
+  const [tanningError, setTanningError] = useState<string | null>(null)
 
   const [externalMessage, setExternalMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
 
@@ -249,6 +258,54 @@ export default function GameLayout({
     }
   }
 
+  const handleTanningSetup = async () => {
+    try {
+      await apiFetch('/api/tanning/setup', { method: 'POST' })
+      setExternalMessage({ text: 'Your tanning rack is ready.', type: 'success' })
+      onInventoryUpdate()
+      setSmithingStatusKey(k => k + 1)
+    } catch (err: any) {
+      setExternalMessage({
+        text: `${err.message || 'Could not set up the rack.'} Required: Lanai Tanning Rack.`,
+        type: 'error'
+      })
+    }
+  }
+
+  const handleTanningCollect = async (jobId: number) => {
+    try {
+      const res = await apiFetch<any>('/api/tanning/collect', {
+        method: 'POST',
+        body: JSON.stringify({ jobId }),
+      })
+      setExternalMessage({
+        text: `Collected ${res.quantity}x ${res.itemName} (+${res.xpAwarded} Crafting XP).`,
+        type: 'success'
+      })
+      onInventoryUpdate()
+      setSmithingStatusKey(k => k + 1)
+    } catch (err: any) {
+      setExternalMessage({ text: err.message || 'Could not collect from the rack.', type: 'error' })
+    }
+  }
+
+  const handleTanningLoad = async () => {
+    if (!tanningRecipeId) return
+    setTanningError(null)
+    try {
+      await apiFetch('/api/tanning/load', {
+        method: 'POST',
+        body: JSON.stringify({ recipeId: tanningRecipeId, hideCount: tanningHideCount }),
+      })
+      setShowTanningModal(false)
+      setExternalMessage({ text: 'Your hides are soaking.', type: 'success' })
+      onInventoryUpdate()
+      setSmithingStatusKey(k => k + 1)
+    } catch (err: any) {
+      setTanningError(err.message || 'Could not load the rack.')
+    }
+  }
+
   const handleLocationAction = useCallback((type: string, id: number | string) => {
     if (type === 'travel') {
       const conn = locationData?.connections.find((c: any) => c.to_location_id === id)
@@ -266,10 +323,16 @@ export default function GameLayout({
     } else if (type === 'smithing_setup') {
       handleSmithingSetup()
     } else if (type === 'smithing_menu') {
+      apiFetch<any>('/api/smithing/status')
+        .then(st => setSmithingStationActive(!!st?.workstation?.is_active))
+        .catch(() => setSmithingStationActive(false))
       setShowSmithingMenu(true)
     } else if (type === 'carpentry_setup') {
       handleCarpentrySetup()
     } else if (type === 'carpentry_menu') {
+      apiFetch<any>('/api/carpentry/status')
+        .then(st => setCarpentryStationActive(!!st?.workstation?.is_active))
+        .catch(() => setCarpentryStationActive(false))
       setShowCarpentryMenu(true)
     } else if (type === 'smelting') {
       if (getSkipConfirm('smelt')) {
@@ -285,6 +348,21 @@ export default function GameLayout({
       }
     } else if (type === 'hunting_menu') {
       setShowHuntingMenu(true)
+    } else if (type === 'tanning_setup') {
+      handleTanningSetup()
+    } else if (type === 'tanning_collect') {
+      handleTanningCollect(Number(id))
+    } else if (type === 'tanning_load') {
+      setTanningError(null)
+      setTanningHideCount(1)
+      apiFetch<any>('/api/tanning/status').then(st => {
+        setTanningStatus(st)
+        const first = (st.recipes || []).find((r: any) => !r.locked)
+        setTanningRecipeId(first ? first.id : null)
+      }).catch(() => { })
+      setShowTanningModal(true)
+    } else if (type === 'crafting_menu') {
+      setShowCraftingMenu(true)
     } else {
       setGameViewAction({ type, id })
     }
@@ -655,11 +733,12 @@ export default function GameLayout({
       {showSmithingMenu && (
         <SmithingMenu
           onClose={() => setShowSmithingMenu(false)}
-          onStartSmithing={(recipe) => {
+          onStartCraft={(recipeId) => {
             setShowSmithingMenu(false)
-            setGameViewAction({ type: 'smithing', id: recipe })
+            setGameViewAction({ type: 'crafting', id: recipeId })
           }}
           playerSmithingLevel={playerData?.skills?.find((s: any) => s.name === 'Smithing')?.level || 1}
+          stationActive={smithingStationActive}
         />
       )}
 
@@ -670,12 +749,105 @@ export default function GameLayout({
             setShowCarpentryMenu(false)
             setGameViewAction({ type: 'sawing', id: sawKey })
           }}
-          onStartWoodworking={(recipeKey) => {
+          onStartCraft={(recipeId) => {
             setShowCarpentryMenu(false)
-            setGameViewAction({ type: 'woodworking', id: recipeKey })
+            setGameViewAction({ type: 'crafting', id: recipeId })
           }}
           playerCarpentryLevel={playerData?.skills?.find((s: any) => s.name === 'Carpentry')?.level || 1}
+          stationActive={carpentryStationActive}
         />
+      )}
+
+      {showCraftingMenu && (
+        <CraftingMenu
+          onClose={() => setShowCraftingMenu(false)}
+          onStartCraft={(recipeId) => {
+            setShowCraftingMenu(false)
+            setGameViewAction({ type: 'crafting', id: recipeId })
+          }}
+          skill="Crafting"
+          title="Crafting Bench"
+          playerLevel={playerData?.skills?.find((s: any) => s.name === 'Crafting')?.level || 1}
+        />
+      )}
+
+      {showTanningModal && (
+        <div className="modal-overlay" onClick={() => setShowTanningModal(false)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <h3 className="gold-text">Fill a Vat</h3>
+            <p className="muted-text">
+              Hides soak in bark tannins for 6 hours. A vat holds up to {tanningStatus?.hidesPerVat ?? 10} hides
+              of one kind — fewer is allowed, just a waste of a good soak.
+            </p>
+            <p className="muted-text">
+              Vats in use: {tanningStatus?.vatsInUse ?? 0}/{tanningStatus?.maxVats ?? 1} (more at higher Crafting)
+            </p>
+
+            <div className="kiln-quality-options">
+              {(tanningStatus?.recipes || []).map((r: any) => (
+                <button
+                  key={r.id}
+                  className={`kiln-quality-btn ${tanningRecipeId === r.id ? 'selected' : ''}`}
+                  onClick={() => setTanningRecipeId(r.id)}
+                  disabled={r.locked}
+                >
+                  <span className="kiln-quality-name">{r.name.replace('Tan ', '')}</span>
+                  <span className="kiln-quality-rate muted-text">{r.yieldPerHide} {r.outputItemName}/hide</span>
+                  {r.locked ? (
+                    <span className="kiln-quality-have muted-text">Level {r.requiredLevel}</span>
+                  ) : (
+                    <span className="kiln-quality-have muted-text">
+                      {r.inputs.map((i: any) => `${i.have} ${i.itemName}`).join(' · ')}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {(() => {
+              const r = (tanningStatus?.recipes || []).find((x: any) => x.id === tanningRecipeId)
+              if (!r) return null
+              const cap = Math.min(
+                tanningStatus?.hidesPerVat ?? 10,
+                ...r.inputs.map((i: any) => Math.floor(i.have / i.perHide))
+              )
+              return (
+                <>
+                  <div className="modal-counter">
+                    <button className="btn" onClick={() => setTanningHideCount(Math.max(1, tanningHideCount - 1))}>-</button>
+                    <span className="modal-count gold-text">
+                      {tanningHideCount} hide{tanningHideCount > 1 ? 's' : ''} → {tanningHideCount * r.yieldPerHide} {r.outputItemName}
+                    </span>
+                    <button
+                      className="btn"
+                      onClick={() => setTanningHideCount(Math.min(tanningStatus?.hidesPerVat ?? 10, tanningHideCount + 1))}
+                      disabled={tanningHideCount >= (tanningStatus?.hidesPerVat ?? 10)}
+                    >+</button>
+                    <button
+                      className="btn"
+                      onClick={() => setTanningHideCount(Math.max(1, cap))}
+                      disabled={cap < 1}
+                    >Max</button>
+                  </div>
+                  <p className="muted-text" style={{ fontSize: '13px' }}>
+                    Needs {r.inputs.map((i: any) => `${i.perHide * tanningHideCount}× ${i.itemName}`).join(', ')}
+                  </p>
+                </>
+              )
+            })()}
+
+            {tanningError && (
+              <p style={{ color: 'var(--color-red-glow)', fontSize: '13px' }}>{tanningError}</p>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn btn-gold" onClick={handleTanningLoad} disabled={!tanningRecipeId}>
+                Start Soaking
+              </button>
+              <button className="btn" onClick={() => setShowTanningModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showHuntingMenu && (

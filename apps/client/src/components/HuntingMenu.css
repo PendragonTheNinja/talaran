@@ -105,3 +105,130 @@
     text-align: center;
     padding: var(--space-lg);
 }
+/* ── Trapline (Trapping tab) ─────────────────────────────── */
+.trapline-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+.trap-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid var(--color-border-mid);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+}
+
+.trap-card.sprung {
+    border-color: var(--color-gold);
+    animation: trap-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes trap-pulse {
+    0%, 100% { box-shadow: 0 0 0 rgba(200, 146, 42, 0); }
+    50% { box-shadow: 0 0 8px rgba(200, 146, 42, 0.35); }
+}
+
+.trap-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.trap-card-name {
+    font-size: 14px;
+}
+
+.trap-card-state {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.trap-card.sprung .trap-card-state {
+    color: var(--color-gold);
+}
+
+.trap-btn {
+    border: 1px solid var(--color-border-mid);
+    background: transparent;
+    color: var(--color-text-base);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.trap-btn:hover:not(:disabled) {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.trap-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.trap-btn-check {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.trapline-place {
+    margin-top: 12px;
+    border-top: 1px solid var(--color-border-mid);
+    padding-top: 10px;
+}
+
+.trapline-place-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.trapline-error {
+    color: #d05a40;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.trapline-reveal {
+    text-align: center;
+    padding: 12px 6px;
+}
+
+.trapline-reveal-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.trapline-reveal-scavenged {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-bottom: 8px;
+}
+
+.trapline-reveal-drop,
+.trapline-reveal-xp {
+    font-size: 13px;
+    margin: 4px 0;
+}
+
+.trapline-reveal-broke {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: 8px;
+}
+
+.trapline-reveal .trap-btn {
+    margin-top: 12px;
+}

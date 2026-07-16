@@ -34,6 +34,7 @@ import npcRoutes from './routes/npcs';
 import { issueBotCheck } from './services/botCheck';
 import huntingRoutes from './routes/hunting';
 import craftingRoutes from './routes/crafting';
+import tanningRoutes from './routes/tanning';
 import trappingRoutes from './routes/trapping';
 
 dotenv.config();
@@ -118,6 +119,7 @@ app.use('/api/quests', questRoutes);
 app.use('/api/npcs', npcRoutes);
 app.use('/api/hunting', huntingRoutes);
 app.use('/api/crafting', craftingRoutes);
+app.use('/api/tanning', tanningRoutes);
 app.use('/api/trapping', trappingRoutes);
 
 // Socket.io — put each player in their own room for targeted messages

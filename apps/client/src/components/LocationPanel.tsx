@@ -43,12 +43,17 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [carpentryStatus, setCarpentryStatus] = useState<any>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
 
+  const [tanningStatus, setTanningStatus] = useState<any>(null)
+  const [craftworksOpen, setCraftworksOpen] = useState(false)
+  const [trapsCaught, setTrapsCaught] = useState(0)
+
   const location = locationData?.location
   const nodes = locationData?.nodes || []
   const connections = locationData?.connections || []
 
   const isEmberra = location?.name === 'Emberra'
   const isVerdale = location?.name === 'Verdale'
+  const isCaliwen = location?.name === 'Caliwen'
 
   const [questStatus, setQuestStatus] = useState<'not_started' | 'active' | 'completed'>('not_started')
   const [showBlacksmith, setShowBlacksmith] = useState(false)
@@ -88,6 +93,17 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         setCarpentryStatus(data)
       })
     }
+
+    if (isCaliwen) {
+      apiFetch<any>('/api/tanning/status').then(data => {
+        setTanningStatus(data)
+      }).catch(() => setTanningStatus(null))
+    }
+
+    // Sprung traps at this location — surfaces on the Hunting Grounds button
+    apiFetch<any>('/api/trapping/traps')
+      .then(data => setTrapsCaught((data.traps || []).filter((t: any) => t.sprung).length))
+      .catch(() => setTrapsCaught(0))
 
     if (location?.id) {
       apiFetch<{ npcs: any[] }>(`/api/npcs/location/${location.id}`).then(data => {
@@ -158,7 +174,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('hunting_menu', 0)}
           >
             Hunting Grounds →
-          </button>
+          {trapsCaught > 0 && (
+              <span className="gold-text"> ({trapsCaught} caught!)</span>
+            )}
+            </button>
         )}
 
         {/* Smithing — Emberra only */}
@@ -235,7 +254,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                 {/* Smith — available once quest complete */}
                 {(questStatus === 'completed' || smithingStatus?.workstation?.is_active) && (
                   <button
-                    className={`location-action-btn sub ${currentAction === 'smithing' ? 'active' : ''}`}
+                    className={`location-action-btn sub ${(currentAction === 'smithing' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('smithing_menu', 0)}
                   >
                     Smith Ambren Items →
@@ -280,7 +299,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
                 {carpentryStatus?.canSaw && (
                   <button
-                    className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'woodworking') ? 'active' : ''}`}
+                    className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'woodworking' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('carpentry_menu', 0)}
                   >
                     Carpentry Workshop →
@@ -289,6 +308,84 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     )}
                   </button>
                 )}
+
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Crafting — Caliwen only */}
+        {isCaliwen && (
+          <div className="location-submenu">
+            <button
+              className={`location-action-btn submenu-toggle ${craftworksOpen ? 'open' : ''}`}
+              onClick={() => setCraftworksOpen(!craftworksOpen)}
+            >
+              {craftworksOpen ? '▼' : '▶'} Craftworks
+            </button>
+            {craftworksOpen && (
+              <div className="submenu-items">
+
+                {npcs.filter(npc => npc.submenu === 'craftworks').map(npc => (
+                  <button
+                    key={npc.id}
+                    className="location-action-btn sub npc"
+                    onClick={() => setActiveNpcId(npc.id)}
+                  >
+                    {npc.avatar} Speak with {npc.name}
+                  </button>
+                ))}
+
+                {/* Tanning rack */}
+                {!tanningStatus?.hasRack ? (
+                  tanningStatus?.rackInInventory > 0 ? (
+                    <button
+                      className="location-action-btn sub"
+                      onClick={() => onStartAction('tanning_setup', 0)}
+                    >
+                      Set Up Tanning Rack
+                    </button>
+                  ) : (
+                    <div className="location-action-info">
+                      No tanning rack here. Build one in Verdale.
+                    </div>
+                  )
+                ) : (
+                  <>
+                    {(tanningStatus?.vats || []).map((vat: any) => (
+                      vat.isReady ? (
+                        <button
+                          key={vat.id}
+                          className="location-action-btn sub gold"
+                          onClick={() => onStartAction('tanning_collect', vat.id)}
+                        >
+                          Collect {vat.yield}× {vat.outputItemName}
+                        </button>
+                      ) : (
+                        <div key={vat.id} className="location-action-info">
+                          {vat.hideCount} hide{vat.hideCount > 1 ? 's' : ''} soaking... {vat.minutesRemaining}m
+                        </div>
+                      )
+                    ))}
+
+                    {tanningStatus && tanningStatus.vatsInUse < tanningStatus.maxVats && (
+                      <button
+                        className="location-action-btn sub"
+                        onClick={() => onStartAction('tanning_load', 0)}
+                      >
+                        Fill a Vat ({tanningStatus.vatsInUse}/{tanningStatus.maxVats})
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* Bench */}
+                <button
+                  className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
+                  onClick={() => onStartAction('crafting_menu', 0)}
+                >
+                  Crafting Bench →
+                </button>
 
               </div>
             )}
