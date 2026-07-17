@@ -114,9 +114,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'hunting':
         result = await processHunt(action.player_id, action.action_data);
         break;
-      case 'crafting': {
-        const { resolveCraft } = await import('./crafting');
-        result = await resolveCraft(action.player_id, parseInt(action.action_data));
+      case 'recipe': {
+        const { resolveRecipe } = await import('./recipes');
+        result = await resolveRecipe(action.player_id, parseInt(action.action_data));
         break;
       }
       default:
@@ -271,6 +271,12 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           await db('player_inventory')
             .where({ player_id: action.player_id, item_id: arrowItem.id }).update({ quantity: newQty });
         }
+      }
+
+      // Quest progress — 'hunt' objectives count successful catches
+      if (hunt.success) {
+        const { updateQuestObjectiveProgress } = await import('../routes/quests');
+        await updateQuestObjectiveProgress(action.player_id, 'hunt', animal.name, 1);
       }
 
       // ── Add drops (on success) ──
@@ -568,8 +574,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       return;
     }
 
-    // Handle crafting (generic recipes table; mirrors the sawing/woodworking pattern)
-    if (action.action_type === 'crafting') {
+    // Handle recipe crafts (generic recipes table; mirrors the sawing/woodworking pattern)
+    if (action.action_type === 'recipe') {
       const recipe = await db('recipes').where({ id: parseInt(action.action_data) }).first();
       const skillName = recipe?.skill || result.skillName || 'Crafting';
 
@@ -595,7 +601,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
               xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
             });
             io.to(`player_${action.player_id}`).emit('action_failed', {
-              error: `Out of ${input.itemName}. Crafting stopped.`,
+              error: `Out of ${input.itemName}. ${skillName} stopped.`,
               info: true,
             });
             return;
@@ -603,8 +609,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
-      const { craftTimerFor } = await import('./crafting');
-      const timerSeconds = recipe ? await craftTimerFor(action.player_id, recipe) : 30;
+      const { recipeTimerFor } = await import('./recipes');
+      const timerSeconds = recipe ? await recipeTimerFor(action.player_id, recipe) : 30;
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({
@@ -612,9 +618,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         last_timer_seconds: timerSeconds,
       });
 
-      const craftingSkill = await db('skills').where({ name: skillName }).first();
-      const updatedSkill = craftingSkill ? await db('player_skills')
-        .where({ player_id: action.player_id, skill_id: craftingSkill.id }).first() : null;
+      const recipeSkill = await db('skills').where({ name: skillName }).first();
+      const updatedSkill = recipeSkill ? await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: recipeSkill.id }).first() : null;
       const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
       const previousXp = currentXp - (result.xpAwarded || 0);
       const currentLevel = levelFromXp(currentXp);

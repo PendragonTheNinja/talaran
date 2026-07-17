@@ -133,7 +133,7 @@ export async function seed(knex: Knex): Promise<void> {
 
     // ── Hunting: tools & ammo ──
     { name: 'Lanai Hunting Bow', type: 'tool', subtype: 'bow', tier: 1, quality: null, slot: 'mainhand', level_required: 1, description: 'A bow of supple Lanai wood, strung for the hunt. Draws a steady arrow on forest game.', stackable: false },
-    { name: 'Arrow Shaft', type: 'material', subtype: 'arrow_shaft', tier: 1, quality: null, slot: null, level_required: 1, description: 'A straight, trimmed shaft of wood, ready to be tipped and fletched into an arrow.', stackable: true },
+    { name: 'Lanai Arrow Shafts', type: 'material', subtype: 'shaft', tier: 1, quality: null, slot: null, level_required: 1, description: 'Straight lengths of split Lanai, planed round and waiting for a head.', stackable: true },
     { name: 'Ambren Arrow', type: 'ammo', subtype: 'arrow', tier: 1, quality: null, slot: null, level_required: 1, description: 'A broadhead hunting arrow. Often recovered from a clean kill.', stackable: true },
     // ── Hunting: animal products ──
     { name: 'Venison', type: 'food', subtype: 'raw_meat', tier: 1, quality: null, slot: null, level_required: 1, description: 'Raw venison from a felled deer. Best cooked before eating.', stackable: true },

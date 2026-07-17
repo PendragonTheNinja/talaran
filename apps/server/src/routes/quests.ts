@@ -86,6 +86,45 @@ router.post('/:id/start', requireAuth, async (req: AuthRequest, res: Response) =
     }
 });
 
+/**
+ * Grant a quest's item list. Used for both start_items (on accept) and
+ * reward_items (on completion). Missing items are logged loudly, never silent —
+ * a typo'd reward should be visible, not a quest that gives nothing.
+ */
+export async function grantQuestItems(
+    playerId: number,
+    itemsJson: string | null
+): Promise<{ itemName: string; quantity: number }[]> {
+    if (!itemsJson) return [];
+    let items: { itemName: string; qty: number }[];
+    try {
+        items = JSON.parse(itemsJson);
+    } catch {
+        logger.error(`grantQuestItems: bad JSON for player ${playerId}`);
+        return [];
+    }
+
+    const granted: { itemName: string; quantity: number }[] = [];
+    for (const entry of items) {
+        const item = await db('items').where({ name: entry.itemName }).first();
+        if (!item) {
+            logger.error(`grantQuestItems: item "${entry.itemName}" not found`);
+            continue;
+        }
+        const existing = await db('player_inventory')
+            .where({ player_id: playerId, item_id: item.id }).first();
+        if (existing) {
+            await db('player_inventory').where({ id: existing.id }).increment('quantity', entry.qty);
+        } else {
+            await db('player_inventory').insert({
+                player_id: playerId, item_id: item.id, quantity: entry.qty,
+            });
+        }
+        granted.push({ itemName: entry.itemName, quantity: entry.qty });
+    }
+    return granted;
+}
+
 export async function checkQuestCompletion(playerId: number, questId: number): Promise<boolean> {
     const objectives = await db('quest_objectives').where({ quest_id: questId });
     const playerObjectives = await db('player_quest_objectives')
@@ -101,6 +140,40 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
         await db('player_quests')
             .where({ player_id: playerId, quest_id: questId })
             .update({ status: 'completed', completed_at: new Date() });
+
+        // Rewards
+        const quest = await db('quests').where({ id: questId }).first();
+        if (quest) {
+            const granted = await grantQuestItems(playerId, quest.reward_items);
+
+            if (quest.reward_xp && quest.skill) {
+                const skill = await db('skills').where({ name: quest.skill }).first();
+                if (skill) {
+                    const ps = await db('player_skills')
+                        .where({ player_id: playerId, skill_id: skill.id }).first();
+                    if (ps) {
+                        await db('player_skills')
+                            .where({ player_id: playerId, skill_id: skill.id })
+                            .increment('xp', quest.reward_xp);
+                    } else {
+                        await db('player_skills').insert({
+                            player_id: playerId, skill_id: skill.id, xp: quest.reward_xp,
+                        });
+                    }
+                }
+            }
+
+            if (granted.length > 0 || quest.reward_xp) {
+                const { io } = await import('../index');
+                io.to(`player_${playerId}`).emit('quest_rewards', {
+                    questName: quest.name,
+                    items: granted,
+                    xp: quest.reward_xp || 0,
+                    skill: quest.skill,
+                });
+            }
+        }
+
         logger.info(`Player ${playerId} completed quest ${questId}`);
     }
 

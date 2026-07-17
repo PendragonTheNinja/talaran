@@ -42,6 +42,8 @@ interface HuntingMenuProps {
     onClose: () => void
     onStartHunt: (animalId: number) => void
     playerHuntingLevel: number
+    /** Fires when traps change, so the location sidebar's "caught!" count refreshes */
+    onTrapsChanged?: () => void
 }
 
 function timeSince(iso: string): string {
@@ -51,7 +53,7 @@ function timeSince(iso: string): string {
     return `${hrs}h ${mins % 60}m ago`
 }
 
-export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel }: HuntingMenuProps) {
+export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, onTrapsChanged }: HuntingMenuProps) {
     const [tab, setTab] = useState<'hunting' | 'trapping'>('hunting')
     const [animals, setAnimals] = useState<HuntableAnimal[]>([])
     const [trapline, setTrapline] = useState<TraplineData | null>(null)
@@ -67,7 +69,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel }
 
     const loadTrapline = () => {
         apiFetch<TraplineData>('/api/trapping/traps')
-            .then(data => setTrapline(data))
+            .then(data => { setTrapline(data); onTrapsChanged?.() })
             .catch(() => setTrapline(null))
     }
 

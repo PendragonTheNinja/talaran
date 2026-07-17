@@ -114,8 +114,12 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 });
             }
 
+            // Items handed over on accept (Geonsen's bow, etc.)
+            const { grantQuestItems } = await import('./quests');
+            const granted = await grantQuestItems(playerId, quest.start_items);
+
             logger.info(`Player ${playerId} started quest "${questName}" via NPC ${npcId}`);
-            res.json({ success: true, action: 'next_stage' });
+            res.json({ success: true, action: 'next_stage', grantedItems: granted });
             return;
         }
 

@@ -57,6 +57,7 @@ interface GameViewProps {
   externalMessage: { text: string; type: 'success' | 'info' | 'error' } | null
   onExternalMessageHandled: () => void
   actionLimit: number | null
+  onTrapsChanged?: () => void
   onActionLimitChange: (limit: number | null) => void
   onInventoryUpdate: () => void
   rememberPendingAction: (fn: () => void) => void
@@ -86,6 +87,7 @@ export default function GameView({
   externalMessage,
   onExternalMessageHandled,
   actionLimit,
+  onTrapsChanged,
   onActionLimitChange,
   onInventoryUpdate,
   rememberPendingAction,
@@ -251,11 +253,14 @@ export default function GameView({
         }
 
         if (data.result?.itemName) {
+          // Recipe crafts carry their own skill — the executor is skill-agnostic, so
+          // the action type can't imply it. Legacy actions still infer from the type.
           const skillName =
-            currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
+            (data.result as any).skillName ||
+            (currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
               currentActionRef.current === 'smelting' || currentActionRef.current === 'smithing' || currentActionRef.current === 'kiln_collect' ? 'Smithing' :
                 currentActionRef.current === 'sawing' || currentActionRef.current === 'woodworking' ? 'Carpentry' :
-                  'Woodcutting'
+                  'Woodcutting')
 
           setLastResult({
             itemName: data.result.itemName,
@@ -362,8 +367,16 @@ export default function GameView({
         addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
       })
 
+      socket.on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; skill: string }) => {
+        for (const item of data.items) {
+          addLog(`You received ${item.quantity}× ${item.itemName}.`, 'success', true)
+        }
+        if (data.xp > 0) addLog(`+${data.xp} ${data.skill} experience.`, 'success', true)
+      })
+
       socket.on('trap_sprung', () => {
         addLog('Something has sprung one of your traps!')
+        onTrapsChanged?.()
       })
 
       socket.on('action_limit_reached', (data: { message: string }) => {
@@ -386,6 +399,7 @@ export default function GameView({
         socket.off('bot_check_required')
         socket.off('action_failed')
         socket.off('trap_sprung')
+        socket.off('quest_rewards')
         socket.off('vein_discovered')
         socket.off('vein_announced')
         socket.off('vein_depleted')
@@ -480,8 +494,8 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
-      case 'crafting':
-        setCurrentAction('crafting')
+      case 'recipe':
+        setCurrentAction('recipe')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break
@@ -519,8 +533,8 @@ export default function GameView({
       onActionLimitChange(externalAction.id === 0 ? null : externalAction.id as number)
     } else if (externalAction.type === 'hunting') {
       startHunt(externalAction.id as number)
-    } else if (externalAction.type === 'crafting') {
-      startCraft(externalAction.id as number)
+    } else if (externalAction.type === 'recipe') {
+      startRecipe(externalAction.id as number)
     }
 
     onExternalActionHandled()
@@ -783,16 +797,16 @@ export default function GameView({
 
   // Label for the scene text — crafting is generic, so the server tells us what
   // we're actually making rather than hard-coding a string per action type.
-  const [craftLabel, setCraftLabel] = useState<{ name: string; skill: string; flavorText: string | null } | null>(null)
+  const [recipeLabel, setRecipeLabel] = useState<{ name: string; skill: string; flavorText: string | null } | null>(null)
 
   // Per-skill fallbacks, matching the scene text these actions had before crafting went generic
-  const CRAFT_FLAVOR_BY_SKILL: Record<string, string> = {
+  const RECIPE_FLAVOR_BY_SKILL: Record<string, string> = {
     Smithing: 'You are working the forge.',
     Carpentry: 'You are working at the sawhorse.',
     Crafting: 'You are working the leather.',
   }
 
-  const startCraft = async (recipeId: number) => {
+  const startRecipe = async (recipeId: number) => {
     try {
       if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
       setLastResult(null)
@@ -802,17 +816,17 @@ export default function GameView({
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
 
-      const res = await apiFetch<{ timerSeconds: number; completesAt: string; recipeName: string; skill: string; flavorText: string | null }>('/api/crafting/start', {
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string; recipeName: string; skill: string; flavorText: string | null }>('/api/recipes/start', {
         method: 'POST',
         body: JSON.stringify({ recipeId, actionLimit }),
       })
-      setCraftLabel({ name: res.recipeName, skill: res.skill, flavorText: res.flavorText })
-      setCurrentAction('crafting')
+      setRecipeLabel({ name: res.recipeName, skill: res.skill, flavorText: res.flavorText })
+      setCurrentAction('recipe')
       setTimerMax(res.timerSeconds)
       startCountdown(res.timerSeconds, res.completesAt)
     } catch (err: any) {
-      if (err.status === 423) { rememberPendingAction(() => startCraft(recipeId)); return }
-      addLog(err.message || 'Could not start crafting.', 'error')
+      if (err.status === 423) { rememberPendingAction(() => startRecipe(recipeId)); return }
+      addLog(err.message || 'Could not start that.', 'error')
     }
   }
 
@@ -1016,10 +1030,10 @@ export default function GameView({
               {currentAction === 'hunting' && (
                 <p className="scene-action-text gold-text">{huntPhaseText}</p>
               )}
-              {currentAction === 'crafting' && (
+              {currentAction === 'recipe' && (
                 <p className="scene-action-text gold-text">
-                  {craftLabel?.flavorText
-                    || (craftLabel && CRAFT_FLAVOR_BY_SKILL[craftLabel.skill])
+                  {recipeLabel?.flavorText
+                    || (recipeLabel && RECIPE_FLAVOR_BY_SKILL[recipeLabel.skill])
                     || 'You are working at the bench.'}
                 </p>
               )}
@@ -1055,9 +1069,9 @@ export default function GameView({
               {currentAction === 'hunting' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Hunting</button>
               )}
-              {currentAction === 'crafting' && (
+              {currentAction === 'recipe' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>
-                  Stop {craftLabel ? craftLabel.skill : 'Crafting'}
+                  Stop {recipeLabel ? recipeLabel.skill : 'Crafting'}
                 </button>
               )}
               {lastResult && (

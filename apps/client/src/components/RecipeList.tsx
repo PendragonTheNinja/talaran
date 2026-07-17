@@ -19,7 +19,7 @@ interface RecipeListProps {
     /** Which skill gates and pays XP for these recipes (Carpentry, Crafting, Smithing...) */
     skill: string
     playerLevel: number
-    onStartCraft: (recipeId: number) => void
+    onStartRecipe: (recipeId: number) => void
     /** False when the player has no active workstation here — station recipes take 2x as long. */
     stationActive?: boolean
 }
@@ -28,13 +28,13 @@ interface RecipeListProps {
 // (recipes.for_skill) rather than who makes it — a carpenter builds gear for
 // four different skills, and this is what makes that legible. Mirrors the
 // category tabs SmithingMenu already uses.
-export default function RecipeList({ skill, playerLevel, onStartCraft, stationActive = true }: RecipeListProps) {
+export default function RecipeList({ skill, playerLevel, onStartRecipe, stationActive = true }: RecipeListProps) {
     const [recipes, setRecipes] = useState<TableRecipe[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState<string | null>(null)
 
     useEffect(() => {
-        apiFetch<{ recipes: TableRecipe[] }>('/api/crafting/recipes')
+        apiFetch<{ recipes: TableRecipe[] }>('/api/recipes')
             .then(data => setRecipes((data.recipes || []).filter(r => r.skill === skill)))
             .catch(() => setRecipes([]))
             .finally(() => setLoading(false))
@@ -83,7 +83,7 @@ export default function RecipeList({ skill, playerLevel, onStartCraft, stationAc
                         <div
                             key={r.id}
                             className={`smithing-recipe-card ${locked ? 'locked' : ''}`}
-                            onClick={() => { if (!locked) onStartCraft(r.id) }}
+                            onClick={() => { if (!locked) onStartRecipe(r.id) }}
                         >
                             <div className="smithing-recipe-image">
                                 <img

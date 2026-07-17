@@ -2,18 +2,18 @@ import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { botCheckGate } from '../services/botCheck'
-import { getActiveRecipes, canStartCraft, craftTimerFor } from '../services/crafting'
+import { getActiveRecipes, canStartRecipe, recipeTimerFor } from '../services/recipes'
 import { logger } from '../index';
 
 const router = Router()
 
 // List all active recipes (client filters/groups by skill)
-router.get('/recipes', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const recipes = await getActiveRecipes()
         res.json({ recipes })
     } catch (err) {
-        logger.error('Crafting recipes error: ' + err)
+        logger.error('Recipe list error: ' + err)
         res.status(500).json({ error: 'Server error' })
     }
 })
@@ -29,7 +29,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             return
         }
 
-        const check = await canStartCraft(playerId, recipeId)
+        const check = await canStartRecipe(playerId, recipeId)
         if (!check.allowed) {
             res.status(400).json({ error: check.reason })
             return
@@ -37,13 +37,13 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         const recipe = check.recipe
 
         const player = await db('players').where({ id: playerId }).first()
-        const timerSeconds = await craftTimerFor(playerId, recipe)
+        const timerSeconds = await recipeTimerFor(playerId, recipe)
         const now = new Date()
         const completesAt = new Date(now.getTime() + timerSeconds * 1000)
 
         await db('player_actions').insert({
             player_id: playerId,
-            action_type: 'crafting',
+            action_type: 'recipe',
             resource_node_id: null,
             action_data: String(recipe.id),     // which recipe we're running
             location_id: player.current_location_id,
@@ -56,9 +56,9 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             bot_check_pending: false,
         })
 
-        logger.info(`Player ${playerId} started crafting ${recipe.name} (recipe ${recipe.id})`)
+        logger.info(`Player ${playerId} started recipe ${recipe.name} (${recipe.id})`)
         res.json({
-            message: 'Crafting started',
+            message: 'Started',
             timerSeconds,
             completesAt,
             recipeName: recipe.name,
@@ -71,7 +71,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             res.status(409).json({ error: 'You are already performing an action' })
             return
         }
-        logger.error('Crafting start error: ' + err)
+        logger.error('Recipe start error: ' + err)
         res.status(500).json({ error: 'Server error' })
     }
 })

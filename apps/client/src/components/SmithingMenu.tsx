@@ -3,7 +3,7 @@ import './SmithingMenu.css'
 
 interface SmithingMenuProps {
   onClose: () => void
-  onStartCraft: (recipeId: number) => void
+  onStartRecipe: (recipeId: number) => void
   playerSmithingLevel: number
   stationActive?: boolean
 }
@@ -12,7 +12,7 @@ interface SmithingMenuProps {
 // through the shared RecipeList, which builds its tabs from recipes.for_skill —
 // the same Mining/Woodcutting/Smithing/Carpentry grouping this menu always had,
 // now data-driven, and Fletch Arrows joins it under Hunting for free.
-export default function SmithingMenu({ onClose, onStartCraft, playerSmithingLevel, stationActive = true }: SmithingMenuProps) {
+export default function SmithingMenu({ onClose, onStartRecipe, playerSmithingLevel, stationActive = true }: SmithingMenuProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
@@ -25,7 +25,7 @@ export default function SmithingMenu({ onClose, onStartCraft, playerSmithingLeve
           skill="Smithing"
           playerLevel={playerSmithingLevel}
           stationActive={stationActive}
-          onStartCraft={(recipeId) => { onStartCraft(recipeId); onClose() }}
+          onStartRecipe={(recipeId) => { onStartRecipe(recipeId); onClose() }}
         />
       </div>
     </div>

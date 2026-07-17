@@ -5,7 +5,7 @@ import './SmithingMenu.css'
 interface CarpentryMenuProps {
     onClose: () => void
     onStartSawing: (sawKey: string) => void
-    onStartCraft: (recipeId: number) => void
+    onStartRecipe: (recipeId: number) => void
     playerCarpentryLevel: number
     stationActive?: boolean
 }
@@ -24,7 +24,7 @@ const QUALITIES = [
     { key: 'excellent', label: 'Excellent', yield: 3 },
 ]
 
-export default function CarpentryMenu({ onClose, onStartSawing, onStartCraft, playerCarpentryLevel, stationActive = true }: CarpentryMenuProps) {
+export default function CarpentryMenu({ onClose, onStartSawing, onStartRecipe, playerCarpentryLevel, stationActive = true }: CarpentryMenuProps) {
     const [tab, setTab] = useState<'saw' | 'woodwork'>('saw')
 
     return (
@@ -74,7 +74,7 @@ export default function CarpentryMenu({ onClose, onStartSawing, onStartCraft, pl
                         skill="Carpentry"
                         playerLevel={playerCarpentryLevel}
                         stationActive={stationActive}
-                        onStartCraft={(recipeId) => { onStartCraft(recipeId); onClose() }}
+                        onStartRecipe={(recipeId) => { onStartRecipe(recipeId); onClose() }}
                     />
                 )}
 

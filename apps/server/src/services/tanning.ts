@@ -8,10 +8,12 @@ import { incrementStats } from './stats'
 // No tick sweep — the job simply becomes ready and waits.
 // The rack is a workstation (type 'tanning'), built by Carpentry and set up at
 // a location, exactly like the smithing anvil/sawhorse pattern.
-// Recipes with mode='passive' + station='Tanning Rack' are soak jobs; their
+// Recipes with mode='passive' + station='tanning' are soak jobs; their
 // timer_seconds is the soak duration, xp is per hide, output_qty is per hide.
 
-const RACK_ITEM = 'Lanai Tanning Rack'
+// A tannery is a rack (scraping, stretching) plus a barrel (the bark-liquor
+// soak). Both are consumed on setup — same shape as smithing's anvil/hammer/tongs.
+const STATION_ITEMS = ['Lanai Tanning Rack', 'Lanai Tanning Barrel']
 const WORKSTATION_TYPE = 'tanning'
 export const HIDES_PER_VAT = 10
 
@@ -50,35 +52,38 @@ export async function getRack(playerId: number, locationId: number): Promise<any
 export async function setupRack(playerId: number, locationId: number): Promise<{ success: boolean; error?: string }> {
     try {
         const existing = await getRack(playerId, locationId)
-        if (existing) return { success: false, error: 'You already have a tanning rack here.' }
-
-        const item = await db('items').where({ name: RACK_ITEM }).first()
-        if (!item) return { success: false, error: 'That station does not exist.' }
+        if (existing) return { success: false, error: 'You already have a tannery here.' }
 
         await db.transaction(async (trx) => {
-            const inv = await trx('player_inventory')
-                .where({ player_id: playerId, item_id: item.id }).forUpdate().first()
-            if (!inv || inv.quantity < 1) throw new Error('NO_RACK')
+            for (const itemName of STATION_ITEMS) {
+                const item = await trx('items').where({ name: itemName }).first()
+                if (!item) throw new Error(`MISSING:${itemName}`)
+                const inv = await trx('player_inventory')
+                    .where({ player_id: playerId, item_id: item.id }).forUpdate().first()
+                if (!inv || inv.quantity < 1) throw new Error(`MISSING:${itemName}`)
 
-            if (inv.quantity <= 1) {
-                await trx('player_inventory').where({ id: inv.id }).delete()
-            } else {
-                await trx('player_inventory').where({ id: inv.id }).update({ quantity: inv.quantity - 1 })
+                if (inv.quantity <= 1) {
+                    await trx('player_inventory').where({ id: inv.id }).delete()
+                } else {
+                    await trx('player_inventory').where({ id: inv.id }).update({ quantity: inv.quantity - 1 })
+                }
             }
 
             await trx('workstations').insert({
                 player_id: playerId,
                 location_id: locationId,
                 type: WORKSTATION_TYPE,
-                tier: item.tier ?? 1,
+                tier: 1,
                 is_active: true,
             })
         })
 
-        logger.info(`Player ${playerId} set up a tanning rack at location ${locationId}`)
+        logger.info(`Player ${playerId} set up a tannery at location ${locationId}`)
         return { success: true }
     } catch (err: any) {
-        if (err.message === 'NO_RACK') return { success: false, error: `You need a ${RACK_ITEM} to set one up.` }
+        if (err.message?.startsWith('MISSING:')) {
+            return { success: false, error: `You need a ${err.message.slice(8)} to set up a tannery.` }
+        }
         logger.error('setupRack error: ' + err)
         return { success: false, error: 'Server error' }
     }
@@ -251,10 +256,15 @@ export async function getRackStatus(playerId: number, locationId: number) {
     const level = await craftingLevel(playerId)
     const maxVats = maxVatsForLevel(level)
 
-    const rackItem = await db('items').where({ name: RACK_ITEM }).first()
-    const rackInv = rackItem
-        ? await db('player_inventory').where({ player_id: playerId, item_id: rackItem.id }).first()
-        : null
+    const stationItems: { itemName: string; have: number }[] = []
+    for (const itemName of STATION_ITEMS) {
+        const item = await db('items').where({ name: itemName }).first()
+        const inv = item
+            ? await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first()
+            : null
+        stationItems.push({ itemName, have: inv ? inv.quantity : 0 })
+    }
+    const canSetup = stationItems.every(i => i.have >= 1)
 
     const activeJobs = await db('tanning_jobs')
         .where({ player_id: playerId, location_id: locationId, is_collected: false })
@@ -304,7 +314,8 @@ export async function getRackStatus(playerId: number, locationId: number) {
 
     return {
         hasRack: !!rack,
-        rackInInventory: rackInv ? rackInv.quantity : 0,
+        stationItems,
+        canSetup,
         craftingLevel: level,
         hidesPerVat: HIDES_PER_VAT,
         maxVats,

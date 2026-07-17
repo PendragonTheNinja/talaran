@@ -266,7 +266,7 @@ export default function GameLayout({
       setSmithingStatusKey(k => k + 1)
     } catch (err: any) {
       setExternalMessage({
-        text: `${err.message || 'Could not set up the rack.'} Required: Lanai Tanning Rack.`,
+        text: err.message || 'Could not set up the tannery.',
         type: 'error'
       })
     }
@@ -502,6 +502,7 @@ export default function GameLayout({
       externalMessage={externalMessage}
       onExternalMessageHandled={() => setExternalMessage(null)}
       actionLimit={actionLimit}
+      onTrapsChanged={() => setSmithingStatusKey(k => k + 1)}
       onActionLimitChange={setActionLimit}
       onInventoryUpdate={onInventoryUpdate}
       rememberPendingAction={rememberPendingAction}
@@ -733,9 +734,9 @@ export default function GameLayout({
       {showSmithingMenu && (
         <SmithingMenu
           onClose={() => setShowSmithingMenu(false)}
-          onStartCraft={(recipeId) => {
+          onStartRecipe={(recipeId) => {
             setShowSmithingMenu(false)
-            setGameViewAction({ type: 'crafting', id: recipeId })
+            setGameViewAction({ type: 'recipe', id: recipeId })
           }}
           playerSmithingLevel={playerData?.skills?.find((s: any) => s.name === 'Smithing')?.level || 1}
           stationActive={smithingStationActive}
@@ -749,9 +750,9 @@ export default function GameLayout({
             setShowCarpentryMenu(false)
             setGameViewAction({ type: 'sawing', id: sawKey })
           }}
-          onStartCraft={(recipeId) => {
+          onStartRecipe={(recipeId) => {
             setShowCarpentryMenu(false)
-            setGameViewAction({ type: 'crafting', id: recipeId })
+            setGameViewAction({ type: 'recipe', id: recipeId })
           }}
           playerCarpentryLevel={playerData?.skills?.find((s: any) => s.name === 'Carpentry')?.level || 1}
           stationActive={carpentryStationActive}
@@ -761,9 +762,9 @@ export default function GameLayout({
       {showCraftingMenu && (
         <CraftingMenu
           onClose={() => setShowCraftingMenu(false)}
-          onStartCraft={(recipeId) => {
+          onStartRecipe={(recipeId) => {
             setShowCraftingMenu(false)
-            setGameViewAction({ type: 'crafting', id: recipeId })
+            setGameViewAction({ type: 'recipe', id: recipeId })
           }}
           skill="Crafting"
           title="Crafting Bench"
@@ -858,6 +859,7 @@ export default function GameLayout({
             setGameViewAction({ type: 'hunting', id: animalId })
           }}
           playerHuntingLevel={playerData?.skills?.find((s: any) => s.name === 'Hunting')?.level || 1}
+          onTrapsChanged={() => setSmithingStatusKey(k => k + 1)}
         />
       )}
 

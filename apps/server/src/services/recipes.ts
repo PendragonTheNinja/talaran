@@ -9,7 +9,7 @@ import { updateQuestObjectiveProgress } from '../routes/quests'
 // First tenants: Fletch Arrows (Smithing), Tie Snare (Crafting).
 // Inputs are consumed at completion (house pattern, matches woodworking).
 
-export interface CraftResult {
+export interface RecipeResult {
     success: boolean
     error?: string
     itemName?: string
@@ -49,7 +49,7 @@ export async function stationMultiplier(playerId: number, recipe: any): Promise<
 }
 
 /** Effective timer for a recipe, station penalty included. */
-export async function craftTimerFor(playerId: number, recipe: any): Promise<number> {
+export async function recipeTimerFor(playerId: number, recipe: any): Promise<number> {
     const mult = await stationMultiplier(playerId, recipe)
     return recipe.timer_seconds * mult
 }
@@ -97,7 +97,7 @@ export async function getActiveRecipes() {
     }))
 }
 
-export async function canStartCraft(playerId: number, recipeId: number): Promise<{ allowed: boolean; reason?: string; recipe?: any }> {
+export async function canStartRecipe(playerId: number, recipeId: number): Promise<{ allowed: boolean; reason?: string; recipe?: any }> {
     const recipe = await db('recipes').where({ id: recipeId, is_active: true }).first()
     if (!recipe) return { allowed: false, reason: 'Unknown recipe.' }
     if (recipe.mode === 'passive') {
@@ -116,7 +116,7 @@ export async function canStartCraft(playerId: number, recipeId: number): Promise
 }
 
 /** Resolve one completed craft: consume inputs, award output + XP. Called by the tick. */
-export async function resolveCraft(playerId: number, recipeId: number): Promise<CraftResult> {
+export async function resolveRecipe(playerId: number, recipeId: number): Promise<RecipeResult> {
     try {
         const recipe = await db('recipes').where({ id: recipeId, is_active: true }).first()
         if (!recipe) return { success: false, error: 'Unknown recipe.' }
@@ -188,7 +188,7 @@ export async function resolveCraft(playerId: number, recipeId: number): Promise<
             outputTotal: totalRow ? totalRow.quantity : recipe.output_qty,
         }
     } catch (err) {
-        logger.error(`resolveCraft error: ${err}`)
+        logger.error(`resolveRecipe error: ${err}`)
         return { success: false, error: 'Server error' }
     }
 }

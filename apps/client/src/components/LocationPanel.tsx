@@ -148,6 +148,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         ))}
 
+        {npcs.filter(npc => !npc.submenu).map(npc => (
+          <button
+            key={npc.id}
+            className="location-action-btn npc"
+            onClick={() => setActiveNpcId(npc.id)}
+          >
+            {npc.avatar} Speak with {npc.name}
+          </button>
+        ))}
+
         {miningNodes.map((node: any) => (
           <button
             key={node.id}
@@ -174,10 +184,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('hunting_menu', 0)}
           >
             Hunting Grounds →
-          {trapsCaught > 0 && (
+            {trapsCaught > 0 && (
               <span className="gold-text"> ({trapsCaught} caught!)</span>
             )}
-            </button>
+          </button>
         )}
 
         {/* Smithing — Emberra only */}
@@ -338,16 +348,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
                 {/* Tanning rack */}
                 {!tanningStatus?.hasRack ? (
-                  tanningStatus?.rackInInventory > 0 ? (
+                  tanningStatus?.canSetup ? (
                     <button
                       className="location-action-btn sub"
                       onClick={() => onStartAction('tanning_setup', 0)}
                     >
-                      Set Up Tanning Rack
+                      Set Up Tannery
                     </button>
                   ) : (
                     <div className="location-action-info">
-                      No tanning rack here. Build one in Verdale.
+                      No tannery here. Build a rack and a barrel in Verdale.
                     </div>
                   )
                 ) : (

@@ -13,7 +13,7 @@ const SLOT_THRESHOLDS: { level: number; slots: number }[] = [
     { level: 37, slots: 4 },
     { level: 25, slots: 3 },
     { level: 12, slots: 2 },
-    { level: 5, slots: 1 },
+    { level: 1, slots: 1 },
 ]
 
 export function trapSlotsForLevel(level: number): number {

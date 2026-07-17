@@ -3,7 +3,7 @@ import './SmithingMenu.css'
 
 interface CraftingMenuProps {
     onClose: () => void
-    onStartCraft: (recipeId: number) => void
+    onStartRecipe: (recipeId: number) => void
     skill: string
     title: string
     playerLevel: number
@@ -12,7 +12,7 @@ interface CraftingMenuProps {
 
 // Station bench menu. All recipe rendering lives in RecipeList so Caliwen's
 // bench, Verdale's woodworking tab and Emberra's fletching share one UI.
-export default function CraftingMenu({ onClose, onStartCraft, skill, title, playerLevel, stationActive = true }: CraftingMenuProps) {
+export default function CraftingMenu({ onClose, onStartRecipe, skill, title, playerLevel, stationActive = true }: CraftingMenuProps) {
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
@@ -25,7 +25,7 @@ export default function CraftingMenu({ onClose, onStartCraft, skill, title, play
                     skill={skill}
                     playerLevel={playerLevel}
                     stationActive={stationActive}
-                    onStartCraft={(recipeId) => { onStartCraft(recipeId); onClose() }}
+                    onStartRecipe={(recipeId) => { onStartRecipe(recipeId); onClose() }}
                 />
             </div>
         </div>
