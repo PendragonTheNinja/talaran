@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
+import AdminContentBrowser from './AdminContentBrowser'
+import AdminBalanceCalculator from './AdminBalanceCalculator'
 import './AdminPanel.css'
 
 interface PlayerInfo {
@@ -56,6 +58,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
+    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance'>('players')
     const [view, setView] = useState<'online' | 'search' | 'player'>('online')
     const [onlinePlayers, setOnlinePlayers] = useState<PlayerInfo[]>([])
     const [searchQuery, setSearchQuery] = useState('')
@@ -306,13 +309,39 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     return (
         <div className={`admin-panel ${closing ? 'closing' : ''}`}>
             <div className="admin-header">
-                <h3 className="gold-text">Admin Panel</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <h3 className="gold-text">Admin Panel</h3>
+                    {isAdmin && (
+                        <div className="admin-tabs">
+                            <button
+                                className={`admin-tab ${mainTab === 'players' ? 'active' : ''}`}
+                                onClick={() => setMainTab('players')}
+                            >
+                                Players
+                            </button>
+                            <button
+                                className={`admin-tab ${mainTab === 'content' ? 'active' : ''}`}
+                                onClick={() => setMainTab('content')}
+                            >
+                                Content
+                            </button>
+                            <button
+                                className={`admin-tab ${mainTab === 'balance' ? 'active' : ''}`}
+                                onClick={() => setMainTab('balance')}
+                            >
+                                Balance
+                            </button>
+                        </div>
+                    )}
+                </div>
                 <button className="modal-close-btn" onClick={onClose}>✕</button>
             </div>
 
             {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
+            {mainTab === 'content' ? <AdminContentBrowser /> :
+            mainTab === 'balance' ? <AdminBalanceCalculator /> : (
             <div className="admin-body">
                 {/* Sidebar */}
                 <div className="admin-sidebar">
@@ -657,6 +686,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                     )}
                 </div>
             </div>
+            )}
         </div >
     )
 }

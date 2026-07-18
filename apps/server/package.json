@@ -6,7 +6,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "npx knex --knexfile knexfile.ts seed:run",
-    "migrate": "npx knex --knexfile knexfile.ts migrate:latest"
+    "migrate": "npx knex --knexfile knexfile.ts migrate:latest",
+    "content:export": "ts-node src/scripts/exportContent.ts",
+    "content:import": "ts-node src/scripts/importContent.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -155,3 +155,338 @@
     display: flex;
     flex-direction: column;
 }
+/* --- Content browser (Layer 1) --- */
+
+.admin-tabs {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.admin-tab {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    padding: 4px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    background: none;
+    transition: color 0.1s, border-color 0.1s;
+}
+
+.admin-tab:hover {
+    color: var(--color-text-bright);
+}
+
+.admin-tab.active {
+    color: var(--color-gold-bright);
+    border-color: var(--color-border-gold);
+    background: var(--color-bg-deep);
+}
+
+.admin-player-row.selected {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-gold);
+}
+
+.admin-content-table-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+}
+
+.admin-content-scroll {
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.admin-content-table {
+    border-collapse: collapse;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.admin-content-table th {
+    position: sticky;
+    top: 0;
+    background: var(--color-bg-deep);
+    color: var(--color-gold-bright);
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--color-border-gold);
+}
+
+.admin-content-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--color-border-dark);
+    max-width: 340px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-content-table tbody tr:hover {
+    background: var(--color-bg-hover);
+}
+
+/* --- Balance calculator (Layer 1b) --- */
+
+.admin-balance-form {
+    display: grid;
+    grid-template-columns: 140px 1fr 170px;
+    gap: var(--space-md);
+}
+
+.admin-balance-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-balance-field > span {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+}
+
+.admin-balance-field .chat-input {
+    font-size: 15px;
+    width: 100%;
+}
+
+/* --- Content editing (Layer 2) --- */
+
+.admin-col-editable {
+    color: var(--color-gold);
+}
+
+.admin-cell-editable {
+    cursor: pointer;
+    outline: 1px dashed transparent;
+    outline-offset: -3px;
+    transition: outline-color 0.1s;
+}
+
+.admin-cell-editable:hover {
+    outline-color: var(--color-border-gold);
+}
+
+.admin-cell-editing {
+    padding: 0 4px;
+}
+
+.admin-cell-input {
+    width: 90px;
+    font-size: 14px;
+    background: var(--color-bg-deep);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+}
+
+@keyframes admin-cell-saved {
+    0% { background: var(--color-bg-hover); box-shadow: inset 0 0 0 1px var(--color-border-gold); }
+    100% { background: transparent; box-shadow: none; }
+}
+
+.admin-cell-flash {
+    animation: admin-cell-saved 1.2s ease-out;
+}
+
+/* --- Overlay editor (Layer 2.5: text / JSON / array columns) --- */
+
+.admin-overlay-editor {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.admin-overlay-textarea {
+    width: 100%;
+    resize: vertical;
+    font-family: monospace;
+    font-size: 14px;
+    background: var(--color-bg-deepest);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+}
+
+/* --- Row creation form (Layer 3) --- */
+
+.admin-create-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-sm) var(--space-md);
+}
+
+/* --- Sortable column headers --- */
+
+.admin-th-sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.admin-th-sortable:hover {
+    color: var(--color-text-bright);
+}
+
+/* --- Filter box + duplicate button --- */
+
+.admin-filter-input {
+    margin-left: auto;
+    width: 180px;
+    font-size: 13px;
+    background: var(--color-bg-deep);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+}
+
+.admin-filter-input:focus {
+    border-color: var(--color-border-gold);
+    outline: none;
+}
+
+.admin-cell-duplicate {
+    cursor: pointer;
+    color: var(--color-text-muted);
+    text-align: center;
+    user-select: none;
+}
+
+.admin-cell-duplicate:hover {
+    color: var(--color-gold-bright);
+}
+
+/* --- Item usage view + orphan report --- */
+
+.usage-view {
+    max-width: 900px;
+    overflow-y: auto;
+}
+
+.usage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-md);
+}
+
+.usage-item-name {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    letter-spacing: 0.04em;
+    margin: 0;
+}
+
+.usage-section {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-left: 3px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.usage-section.usage-source {
+    border-left-color: #6f9455;   /* moss — how you get it */
+}
+
+.usage-section.usage-use {
+    border-left-color: var(--color-gold);   /* gold — what it feeds */
+}
+
+.usage-section.usage-warning-section {
+    border-left-color: #b5542e;   /* ember — needs attention */
+}
+
+.usage-section-title {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-bright);
+    margin: 0 0 8px 0;
+}
+
+.usage-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.usage-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    background: var(--color-bg-deepest);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 14px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-text-bright);
+    transition: border-color 0.1s, background 0.1s;
+}
+
+.usage-chip:hover {
+    border-color: var(--color-border-gold);
+    background: var(--color-bg-hover);
+}
+
+.usage-chip-name {
+    font-weight: 600;
+}
+
+.usage-chip-detail {
+    color: var(--color-gold-bright);
+    font-size: 12px;
+}
+
+.usage-chip-table {
+    color: var(--color-text-muted);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.usage-warning {
+    background: rgba(181, 84, 46, 0.12);
+    border: 1px solid #b5542e;
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--color-text-bright);
+    margin-bottom: var(--space-md);
+}
+
+.admin-cell-usage-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.1s;
+}
+
+.admin-cell-usage-link:hover {
+    text-decoration-color: var(--color-gold-bright);
+    color: var(--color-gold-bright);
+}
+
+/* --- Validation report --- */
+
+.usage-section.usage-balance {
+    border-left-color: #5b7f9e;   /* steel — balance drift, judgment calls */
+}

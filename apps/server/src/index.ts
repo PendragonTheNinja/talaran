@@ -23,6 +23,7 @@ import { takeWeeklySnapshot, getWeekStart } from './services/weeklySnapshot';
 import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
 import adminRoutes from './routes/admin';
+import adminContentRoutes from './routes/adminContent';
 import settingsRoutes from './routes/settings';
 import { generalLimit, authLimit, chatLimit, chatReadLimit, forumLimit } from './middleware/rateLimit';
 import playerRoutes from './routes/player';
@@ -65,7 +66,7 @@ import cors from 'express';
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
@@ -111,6 +112,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/highscores', highscoresRoutes);
 app.use('/api/ground-items', groundItemsRoutes);
+app.use('/api/admin/content', adminContentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', generalLimit);
