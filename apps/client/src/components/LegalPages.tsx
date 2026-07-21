@@ -33,7 +33,7 @@ export function TermsPage() {
             <p>
                 Talaran ("the Game") is a browser game operated by Nathan Wheatley, doing business as
                 Talaran ("we", "us"). By creating an account or playing, you agree to these terms.
-                Questions: .
+                Questions: support@talaran.net.
             </p>
 
             <h2>1. Your account</h2>
@@ -54,8 +54,9 @@ export function TermsPage() {
 
             <h2>3. Talers (virtual currency)</h2>
             <p>
-                Talers are a virtual currency purchasable with real money and spendable only on
-                cosmetic and expressive items within the Game. Talers and everything bought with
+                Talaran is a game owned and operated by us. Talers are an in-game virtual currency
+                purchasable with real money and spendable only on cosmetic and expressive items
+                within the Game. Talers and everything bought with
                 them: (a) have no real-world monetary value; (b) are not transferable between
                 accounts or redeemable for cash; (c) are non-refundable once spent, except as
                 described in our <Link to="/refunds">Refund Policy</Link> or required by law; and

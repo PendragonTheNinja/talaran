@@ -612,7 +612,7 @@ export default function GameLayout({
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
-    { label: '\u2665 Support Us', onClick: () => { closeAllPanels(); setShowSupport(true) } },
+    { label: 'Store', onClick: () => { closeAllPanels(); setShowSupport(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
     { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
     ...(playerData?.player?.is_admin || playerData?.player?.is_mod

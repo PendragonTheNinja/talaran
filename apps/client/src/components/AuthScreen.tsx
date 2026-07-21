@@ -318,7 +318,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
         <span>·</span>
         <Link to="/highscores" className="auth-footer-link">Highscores</Link>
         <span>·</span>
-        <Link to="/support-us" className="auth-footer-link">♥ Support Us</Link>
+        <Link to="/store" className="auth-footer-link">Store</Link>
         <span>·</span>
         <Link to="/terms" className="auth-footer-link">Terms</Link>
         <span>·</span>

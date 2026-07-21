@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Guild', 'Journal',
-  'Events', 'Highscores', 'Manual', 'News', 'Support', 'Settings'
+  'Events', 'Highscores', 'Manual', 'News', 'Store', 'Settings'
 ]
 
 interface TopNavProps {
@@ -43,13 +43,13 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
                     item === 'News' ? onNewsClick :
                       item === 'Highscores' ? onHighscoresClick :
                         item === 'Settings' ? onSettingsClick :
-                          item === 'Support' ? onSupportClick :
+                          item === 'Store' ? onSupportClick :
                             undefined
             }
             style={{ position: 'relative' }}
             title={item === 'Settings' ? 'Settings' : undefined}
           >
-            {item === 'Settings' ? '⚙️' : item === 'Support' ? '♥ Support' : item}
+            {item === 'Settings' ? '⚙️' : item}
             {item === 'Messages' && unreadMessages > 0 && (
               <span className="nav-unread-badge">{unreadMessages}</span>
             )}

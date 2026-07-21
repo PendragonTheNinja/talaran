@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import './SupportUsPage.css'
 
-// Public /support-us page: explains Talers to logged-out visitors — and to
-// Paddle's domain reviewers, who need to see the product without an account.
-// Tier and price displays here are informational copies of the live config
-// (config/talerTiers.ts and services/store.ts); update together.
+// Public /store page: explains the cosmetic store to logged-out visitors and
+// to payment/domain reviewers. Talaran is a game its operator owns and runs;
+// Talers are its in-game currency, spent only on cosmetic items.
+// Tier displays here mirror the live config (config/talerTiers.ts,
+// services/store.ts) — update together.
 
 const TIERS = [
     { usd: 5, talers: 500, bonus: null },
@@ -19,21 +20,21 @@ export default function SupportUsPage() {
         <div className="supportus-page">
             <div className="supportus-content">
                 <Link to="/" className="legal-home gold-text">← Talaran</Link>
-                <h1>Support Talaran</h1>
+                <h1>Talaran Store</h1>
                 <p className="supportus-lede">
-                    Talaran is a free browser MMORPG built and run by one person, for the love of it.
-                    If the world has earned a place in your day, you can support its servers and its
-                    growth — and get to look good doing it.
+                    Talaran is a browser MMORPG that I build and operate myself. The store is where
+                    you can buy cosmetic upgrades for the game — interface themes and custom color
+                    palettes — using <span className="gold-text">Talers</span>, Talaran's in-game
+                    currency.
                 </p>
 
-                <h2>Talers</h2>
+                <h2>Talers — the in-game currency</h2>
                 <p>
-                    Supporting the game buys <span className="gold-text">Talers</span>, Talaran's
-                    cosmetic currency. Talers are spent entirely on looks and self-expression:
-                    interface themes, custom color palettes, and supporter flair.{' '}
-                    <strong>Never power.</strong> No experience boosts, no exclusive gear, no
-                    shortcuts — everyone plays the same game; supporters just get more ways to make
-                    it theirs.
+                    Talers are Talaran's virtual currency, purchased with real money and spent inside
+                    the game on cosmetic items: interface themes, custom color palettes, and visual
+                    flair. <strong>Cosmetic only — never power.</strong> No experience boosts, no
+                    exclusive gear, no shortcuts. Everyone plays the same game; Talers just buy more
+                    ways to make it look like yours.
                 </p>
 
                 <div className="supportus-tiers">
@@ -50,22 +51,27 @@ export default function SupportUsPage() {
                 <h2>What Talers buy</h2>
                 <p>
                     Premium interface themes — <em>Moonveil</em>, <em>Mosswood</em>, and{' '}
-                    <em>Forgeheart</em> — individually or as a discounted set. And for those who want
-                    to go further, the <strong>Custom Palettes</strong> perk: paint your own Talaran
-                    with a full palette studio, preview every change live across the whole game, and
-                    share your creations with fellow customizers. Two themes are free for everyone,
-                    always.
+                    <em>Forgeheart</em> — individually or as a discounted set. And the{' '}
+                    <strong>Custom Palettes</strong> studio: build your own theme from scratch,
+                    preview every change live across the whole game, and share your creations with
+                    other players. Two interface themes are free for everyone, always.
                 </p>
 
                 <h2>How it works</h2>
                 <p>
-                    Purchases happen inside the game — create a free account, open the{' '}
-                    <strong>♥ Support</strong> page, and pick a tier. Payments are securely processed
-                    by <strong>Paddle</strong>, our merchant of record, and accept major cards,
-                    PayPal, Apple Pay, and Google Pay; Paddle will appear on your statement. Talers
-                    have no real-world value, are non-transferable, and are non-refundable once
-                    spent — the full details live in our <Link to="/terms">Terms</Link> and{' '}
-                    <Link to="/refunds">Refund Policy</Link>.
+                    Everything is bought inside the game — create a free account, open the{' '}
+                    <strong>Store</strong>, and choose a Taler pack. Payments are securely processed by{' '}
+                    <strong>Paddle</strong>, our merchant of record, and accept major cards, PayPal,
+                    Apple Pay, and Google Pay; Paddle will appear on your statement. Talers and the
+                    items they unlock are cosmetic in-game content with no real-world value, are
+                    non-transferable, and are non-refundable once spent — the full details live in our{' '}
+                    <Link to="/terms">Terms</Link> and <Link to="/refunds">Refund Policy</Link>.
+                </p>
+
+                <p className="supportus-warmth">
+                    Talaran is a one-person project, so every purchase also helps keep the servers lit
+                    and the world growing. Thank you for that — but make no mistake, you're buying
+                    something real: the game, dressed the way you like it.
                 </p>
 
                 <p className="supportus-cta">

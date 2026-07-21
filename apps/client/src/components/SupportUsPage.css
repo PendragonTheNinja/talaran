@@ -111,3 +111,11 @@
     border-top: 1px solid var(--color-border-dark);
     font-size: 13px;
 }
+
+.supportus-warmth {
+    font-style: italic;
+    color: var(--color-text-muted);
+    border-left: 2px solid var(--color-border-gold);
+    padding-left: var(--space-md);
+    margin-top: var(--space-lg);
+}

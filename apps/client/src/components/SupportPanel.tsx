@@ -95,7 +95,7 @@ export default function SupportPanel({ playerId, onClose, closing }: SupportPane
             dragHandleClassName="support-header"
         >
             <div className="support-header">
-                <h3 className="gold-text">Support Talaran</h3>
+                <h3 className="gold-text">Talaran Store</h3>
                 <div className="settings-header-actions">
                     {!isMobile && (
                         <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
@@ -107,10 +107,10 @@ export default function SupportPanel({ playerId, onClose, closing }: SupportPane
             </div>
             <div className="support-panel">
                 <p className="support-pitch">
-                    Talaran is built by one person, for the love of it. Supporting the game buys
-                    <span className="gold-text"> Talers</span> — a currency spent purely on looks and flair:
-                    themes, palettes, and badges. Never power, never progression. Every Taler keeps the
-                    servers lit and the world growing.
+                    <span className="gold-text">Talers</span> are Talaran's in-game currency, spent
+                    on cosmetic upgrades — interface themes and custom palettes. Cosmetic only: never
+                    power, never progression. And since Talaran is a one-person project, every purchase
+                    also helps keep the servers lit and the world growing.
                 </p>
 
                 <div className="support-balance">

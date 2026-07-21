@@ -20,3 +20,4 @@ Thumbs.db
 
 # pnpm
 .pnpm-store/*:Zone.Identifier
+*:Zone.Identifier

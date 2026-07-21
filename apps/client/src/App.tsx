@@ -302,7 +302,7 @@ function App() {
   return (
     <Routes>
       <Route path="/news" element={<NewsPage />} />
-      <Route path="/support-us" element={<SupportUsPage />} />
+      <Route path="/store" element={<SupportUsPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/refunds" element={<RefundPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
