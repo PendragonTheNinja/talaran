@@ -189,7 +189,7 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
                 })
             }
 
-            result = { success: true, species: target.name, xpAwarded: target.xp, drops, broke, scavenged }
+            result = { success: true, species: target.name, flavorText: target.flavor_text ?? null, xpAwarded: target.xp, drops, broke, scavenged }
         })
 
         return result

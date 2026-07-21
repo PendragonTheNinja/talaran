@@ -116,26 +116,21 @@ const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
       last_bot_check: now,
     });
 
-    // If an auto-gather action was frozen waiting on this, resume it.
+    // If an action was frozen waiting on this check, un-freeze it and let the
+    // next game tick finish it exactly where it left off. The freeze always
+    // happens at completion (completes_at has already elapsed), so the tick will
+    // award a one-shot craft, or complete the current gather cycle and queue the
+    // next — emitting action_complete either way, which the client already
+    // handles. Previously this restarted the timer from last_timer_seconds,
+    // which for a long one-shot craft (e.g. building a tanning rack) is the whole
+    // build duration, resetting the player to the very start of the timer.
     const frozen = await db('player_actions')
       .where({ player_id: playerId, bot_check_pending: true })
       .first();
 
     if (frozen) {
-      const timerSeconds = frozen.last_timer_seconds || 30;
-      const completesAt = new Date(now.getTime() + timerSeconds * 1000);
-      await db('player_actions').where({ id: frozen.id }).update({
-        bot_check_pending: false,
-        started_at: now,
-        completes_at: completesAt,
-      });
-      res.json({
-        success: true,
-        timerSeconds,
-        completesAt,
-        actionType: frozen.action_type,
-        nodeId: frozen.action_type === 'mining_vein' ? frozen.action_data : frozen.resource_node_id,
-      });
+      await db('player_actions').where({ id: frozen.id }).update({ bot_check_pending: false });
+      res.json({ success: true, resumed: true });
       return;
     }
 

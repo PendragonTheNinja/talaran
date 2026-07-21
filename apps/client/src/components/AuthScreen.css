@@ -521,3 +521,32 @@
 .auth-footer-link:hover {
   color: #c8922a;
 }
+/* Forgot-password affordances */
+.auth-forgot-link {
+    background: none;
+    border: none;
+    color: var(--color-gold);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: left;
+    font-family: var(--font-body);
+}
+
+.auth-forgot-link:hover {
+    text-decoration: underline;
+}
+
+.auth-forgot-hint {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: var(--space-sm);
+}
+
+.auth-info {
+    color: var(--color-xp);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: var(--space-sm);
+}

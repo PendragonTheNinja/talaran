@@ -36,6 +36,7 @@
     padding: var(--space-md) var(--space-xl);
     border-bottom: 1px solid var(--color-border-gold);
     flex-shrink: 0;
+    font-size: 20px;
 }
 
 .hs-panel-skill-tabs {
@@ -53,7 +54,7 @@
     border-radius: 2px;
     padding: 5px 12px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 18px;
     color: var(--color-text-muted);
     cursor: pointer;
     transition: all 0.2s;
@@ -132,7 +133,7 @@
 
 .hs-panel-th {
     font-family: var(--font-heading);
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: 0.1em;
     color: var(--color-text-muted);
     padding: 10px 12px;
@@ -152,7 +153,7 @@
 
 .hs-panel-td {
     padding: 12px 12px;
-    font-size: 15px;
+    font-size: 14px;
     color: var(--color-text-base);
     vertical-align: middle;
 }

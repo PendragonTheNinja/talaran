@@ -9,6 +9,7 @@ import { Routes, Route } from 'react-router-dom'
 import NewsPage from './components/NewsPage'
 import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
 import SupportUsPage from './components/SupportUsPage'
+import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
 import TradeWindow from './components/TradeWindow'
 
@@ -303,6 +304,7 @@ function App() {
     <Routes>
       <Route path="/news" element={<NewsPage />} />
       <Route path="/store" element={<SupportUsPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/refunds" element={<RefundPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />

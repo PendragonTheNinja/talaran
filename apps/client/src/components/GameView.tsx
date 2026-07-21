@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
 import TravelLog from './TravelLog'
+import BotCheckFab from './BotCheckFab'
 
 interface Node {
   id: number
@@ -64,6 +65,7 @@ interface GameViewProps {
   runPendingAction: () => void
   onShareToChat?: (text: string) => void
   onLocationDataUpdate?: () => void
+  onForceBotCheck?: () => void
 }
 
 interface LogEntry {
@@ -93,7 +95,8 @@ export default function GameView({
   rememberPendingAction,
   runPendingAction,
   onShareToChat,
-  onLocationDataUpdate
+  onLocationDataUpdate,
+  onForceBotCheck
 }: GameViewProps) {
 
   const [currentAction, setCurrentAction] = useState<string | null>(null)
@@ -593,7 +596,7 @@ export default function GameView({
 
   const handleBotCheck = async () => {
     try {
-      const res = await apiFetch<{ timerSeconds?: number; completesAt?: string; actionType?: string; nodeId?: number }>(
+      const res = await apiFetch<{ resumed?: boolean; timerSeconds?: number; completesAt?: string; actionType?: string; nodeId?: number }>(
         '/api/actions/bot-check',
         {
           method: 'POST',
@@ -602,8 +605,12 @@ export default function GameView({
       )
       setBotCheckPending(false)
       setBotCheckAnswer('')
-      // A resumed auto-gather action comes back with a timer; an idle pass does not.
-      if (res.timerSeconds && res.completesAt) {
+      if (res.resumed) {
+        // The action was frozen at completion; the game tick will finish it and
+        // emit action_complete, resuming exactly where the player left off.
+        addLog('Bot check passed. Picking up where you left off...', 'info')
+      } else if (res.timerSeconds && res.completesAt) {
+        // Legacy resume path, kept for safety.
         addLog('Bot check passed. Continuing...', 'info')
         if (res.actionType) setCurrentAction(res.actionType)
         if (res.nodeId != null) setActiveNodeId(res.nodeId)
@@ -1166,6 +1173,8 @@ export default function GameView({
             onClose={() => setTravelLogOpen(false)}
             refreshKey={travelLogKey}
           />
+
+          {onForceBotCheck && <BotCheckFab onClick={onForceBotCheck} />}
 
         </div>
       </div>

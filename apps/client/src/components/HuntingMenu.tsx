@@ -32,6 +32,7 @@ interface TraplineData {
 
 interface CollectResult {
     species?: string
+    flavorText?: string | null
     xpAwarded?: number
     drops?: { itemName: string; quantity: number; notable: boolean }[]
     broke?: boolean
@@ -115,7 +116,18 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
         if (reveal) {
             return (
                 <div className="trapline-reveal">
+                    {reveal.species && (
+                        <img
+                            className="trapline-reveal-img"
+                            src={`/images/bestiary/${reveal.species.replace(/ /g, '_')}.png`}
+                            alt={reveal.species}
+                            onError={e => { e.currentTarget.style.display = 'none' }}
+                        />
+                    )}
                     <p className="trapline-reveal-title gold-text">Your snare caught a {reveal.species}!</p>
+                    {reveal.flavorText && (
+                        <p className="trapline-reveal-flavor">{reveal.flavorText}</p>
+                    )}
                     {reveal.scavenged && (
                         <p className="trapline-reveal-scavenged">Scavengers got here first — the meat is gone.</p>
                     )}

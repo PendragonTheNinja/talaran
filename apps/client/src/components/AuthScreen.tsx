@@ -16,7 +16,7 @@ interface NewsPost {
   published_at: string
 }
 
-type AuthMode = 'login' | 'register'
+type AuthMode = 'login' | 'register' | 'forgot'
 
 export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('login')
@@ -24,6 +24,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
   const [news, setNews] = useState<NewsPost[]>([])
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -88,7 +89,25 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
 
   const handleSubmit = async () => {
     setError('')
+    setInfo('')
     setLoading(true)
+
+    if (mode === 'forgot') {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        })
+        const data = await res.json()
+        setInfo(data.message || 'If an account exists for that email, a reset link is on its way.')
+      } catch {
+        setError('Could not connect to the server. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
 
     const endpoint = mode === 'login'
       ? `${API_URL}/api/auth/login`
@@ -199,35 +218,45 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
         <div className="auth-form-wrap">
           <div className="auth-form-inner">
             <div className="auth-form-title">
-              {mode === 'login' ? 'Enter the Realm' : 'Begin Your Journey'}
+              {mode === 'login' ? 'Enter the Realm' : mode === 'register' ? 'Begin Your Journey' : 'Reset Password'}
             </div>
 
-            <div className="auth-tabs">
-              <button
-                className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
-                onClick={() => { setMode('login'); setError('') }}
-              >Login</button>
-              <button
-                className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
-                onClick={() => { setMode('register'); setError('') }}
-              >Register</button>
-            </div>
+            {mode !== 'forgot' && (
+              <div className="auth-tabs">
+                <button
+                  className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
+                  onClick={() => { setMode('login'); setError(''); setInfo('') }}
+                >Login</button>
+                <button
+                  className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
+                  onClick={() => { setMode('register'); setError(''); setInfo('') }}
+                >Register</button>
+              </div>
+            )}
 
             <div className="auth-fields">
-              <div className="auth-field">
-                <label className="auth-label">Username</label>
-                <input
-                  className="auth-input"
-                  type="text"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  placeholder="Your character name"
-                  autoFocus
-                />
-              </div>
+              {mode === 'forgot' && (
+                <p className="auth-forgot-hint">
+                  Enter the email on your account and we'll send a link to reset your password.
+                </p>
+              )}
 
-              {mode === 'register' && (
+              {mode !== 'forgot' && (
+                <div className="auth-field">
+                  <label className="auth-label">Username</label>
+                  <input
+                    className="auth-input"
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                    placeholder="Your character name"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {(mode === 'register' || mode === 'forgot') && (
                 <div className="auth-field">
                   <label className="auth-label">Email</label>
                   <input
@@ -241,28 +270,43 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                 </div>
               )}
 
-              <div className="auth-field">
-                <label className="auth-label">Password</label>
-                <input
-                  className="auth-input"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  placeholder="••••••••"
-                />
-              </div>
+              {mode !== 'forgot' && (
+                <div className="auth-field">
+                  <label className="auth-label">Password</label>
+                  <input
+                    className="auth-input"
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                    placeholder="••••••••"
+                  />
+                </div>
+              )}
+
+              {mode === 'login' && (
+                <button className="auth-forgot-link" onClick={() => { setMode('forgot'); setError(''); setInfo('') }}>
+                  Forgot password?
+                </button>
+              )}
             </div>
 
             {error && <div className="auth-error">{error}</div>}
+            {info && <div className="auth-info">{info}</div>}
 
             <button
               className="auth-submit"
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? 'Please wait...' : mode === 'login' ? 'Enter Talaran' : 'Create Character'}
+              {loading ? 'Please wait...' : mode === 'login' ? 'Enter Talaran' : mode === 'register' ? 'Create Character' : 'Send reset link'}
             </button>
+
+            {mode === 'forgot' && (
+              <button className="auth-forgot-link" onClick={() => { setMode('login'); setError(''); setInfo('') }}>
+                ← Back to login
+              </button>
+            )}
 
             {mode === 'register' && (
               <p className="auth-disclaimer">

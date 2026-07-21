@@ -159,7 +159,7 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
                                         )}
                                     </td>
                                     <td className="hs-panel-td">
-                                        <span className="gold-text" style={{ fontSize: '15px' }}>{player.username}</span>
+                                        <span className="gold-text" style={{ fontSize: '18px' }}>{player.username}</span>
                                         {player.guildTag && <span className="muted-text" style={{ fontSize: '12px' }}> [{player.guildTag}]</span>}
                                     </td>
                                     <td className="hs-panel-td" style={{ color: 'var(--color-gold-bright)', fontSize: '16px' }}>

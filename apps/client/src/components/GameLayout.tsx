@@ -518,6 +518,7 @@ export default function GameLayout({
       runPendingAction={runPendingAction}
       onShareToChat={(text: string) => setChatDraft(text)}
       onLocationDataUpdate={onLocationDataUpdate}
+      onForceBotCheck={handleForceBotCheck}
     />
   )
 
@@ -1024,7 +1025,6 @@ export default function GameLayout({
           if (showSupport) setShowSupport(false)
           else { closeAllPanels(); setShowSupport(true) }
         }}
-        onForceBotCheck={handleForceBotCheck}
       />
       <div className="game-body">
         {leftPanelEl}
@@ -1051,7 +1051,6 @@ export default function GameLayout({
       </div>
 
       {sharedModals}
-
     </div>
   )
 }
