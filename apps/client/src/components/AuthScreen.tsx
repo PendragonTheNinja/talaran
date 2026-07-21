@@ -317,6 +317,14 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
         <Link to="/news" className="auth-footer-link">News</Link>
         <span>·</span>
         <Link to="/highscores" className="auth-footer-link">Highscores</Link>
+        <span>·</span>
+        <Link to="/support-us" className="auth-footer-link">♥ Support Us</Link>
+        <span>·</span>
+        <Link to="/terms" className="auth-footer-link">Terms</Link>
+        <span>·</span>
+        <Link to="/refunds" className="auth-footer-link">Refunds</Link>
+        <span>·</span>
+        <Link to="/privacy" className="auth-footer-link">Privacy</Link>
       </div>
     </div>
   )

@@ -146,3 +146,105 @@
     align-items: center;
     gap: 6px;
 }
+/* --- Theme picker --- */
+
+.settings-theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+}
+
+.settings-theme-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-body);
+    color: var(--color-text-base);
+    transition: border-color 0.12s, background 0.12s;
+}
+
+.settings-theme-card:hover {
+    border-color: var(--color-border-gold);
+}
+
+.settings-theme-card.active {
+    border-color: var(--color-gold);
+    box-shadow: var(--shadow-gold);
+}
+
+.settings-theme-swatches {
+    display: flex;
+    gap: 4px;
+}
+
+.settings-theme-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid rgba(128, 100, 50, 0.45);
+}
+
+.settings-theme-name {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    color: var(--color-text-bright);
+}
+
+.settings-theme-active {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+}
+
+/* --- Premium theme store --- */
+
+.settings-theme-balance {
+    float: right;
+    font-size: 12px;
+    font-family: var(--font-body);
+    letter-spacing: normal;
+}
+
+.settings-previewing {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+.settings-theme-card.locked {
+    cursor: default;
+    opacity: 0.92;
+}
+
+.settings-theme-price {
+    font-size: 12px;
+}
+
+.settings-theme-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.settings-theme-actions .btn {
+    font-size: 11px;
+    padding: 3px 10px;
+}
+
+.settings-theme-bundle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-md);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}

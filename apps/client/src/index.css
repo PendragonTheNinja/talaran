@@ -111,12 +111,75 @@
   --radius-md: 5px;
   --radius-lg: 8px;
 
+  /* Ink-wash overlay for surfaces layered over the scene (chat, dialogs) */
+  --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-overlay-soft: rgba(0, 0, 0, 0.3);
+
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.9);
   --shadow-gold: 0 0 8px rgba(200, 146, 42, 0.3);
   --shadow-red: 0 0 8px rgba(192, 57, 43, 0.4);
+}
+
+/* ============================================
+   THEME: SCRIPTORIUM — daylight and parchment
+   Iron-gall ink on cream pages, leafed in gold.
+   Same tokens, different hour of the day.
+   (:root above is the Tavern theme, the original look.)
+   ============================================ */
+
+:root[data-theme='scriptorium'] {
+  /* Core palette — elevation goes lighter, like pages on a desk */
+  --color-bg-deepest: #d2c29a;
+  --color-bg-deep: #e0d3b2;
+  --color-bg-dark: #e6dabc;
+  --color-bg-mid: #ebe1c6;
+  --color-bg-panel: #f1e8d2;
+  --color-bg-raised: #f6efdd;
+  --color-bg-hover: #e4d3a8;
+
+  /* Gold tones — gold leaf: deeper and inked for contrast on light */
+  --color-gold-dim: #ab8f55;
+  --color-gold: #926c17;
+  --color-gold-bright: #7c5a0e;
+  --color-gold-shine: #a87f1e;
+
+  /* Red accents — rubrication reds */
+  --color-red-dark: #9c3a32;
+  --color-red: #8f2a24;
+  --color-red-bright: #a83226;
+  --color-red-glow: #c0392b;
+
+  /* Text — iron-gall ink; "brighter" means stronger ink on parchment */
+  --color-text-dim: #8a795c;
+  --color-text-muted: #6f5d40;
+  --color-text-base: #3d2f1c;
+  --color-text-bright: #2a1f10;
+  --color-text-white: #1c1408;
+
+  /* Borders */
+  --color-border-dark: #b8a678;
+  --color-border-mid: #94804a;
+  --color-border-gold: #8a6a28;
+  --color-border-bright: #6f5310;
+
+  /* Status colors — kept vivid enough to read as bars on parchment */
+  --color-health: #a02c22;
+  --color-mana: #7448b0;
+  --color-xp: #1f8b4c;
+
+  /* Ink wash instead of black glass over parchment */
+  --color-overlay: rgba(61, 47, 28, 0.14);
+  --color-overlay-soft: rgba(61, 47, 28, 0.08);
+
+  /* Shadows — daylight is soft; ink-brown, never black */
+  --shadow-sm: 0 1px 3px rgba(61, 47, 28, 0.18);
+  --shadow-md: 0 2px 8px rgba(61, 47, 28, 0.22);
+  --shadow-lg: 0 4px 16px rgba(61, 47, 28, 0.3);
+  --shadow-gold: 0 0 8px rgba(146, 108, 23, 0.28);
+  --shadow-red: 0 0 8px rgba(160, 44, 34, 0.3);
 }
 
 /* ============================================
@@ -314,4 +377,150 @@ html,
 body {
   overflow-y: auto !important;
   height: auto !important;
+}
+/* ============================================
+   PREMIUM THEMES (Support Us, Phase C)
+   Ownership enforced server-side; CSS is just presentation.
+   ============================================ */
+
+/* MOONVEIL — cold slate and silver, Talaran under a winter moon */
+:root[data-theme='moonveil'] {
+  --color-bg-deepest: #0a0c12;
+  --color-bg-deep: #0f1219;
+  --color-bg-dark: #141824;
+  --color-bg-mid: #1a1f2e;
+  --color-bg-panel: #1f2536;
+  --color-bg-raised: #262d42;
+  --color-bg-hover: #2e3752;
+
+  --color-gold-dim: #6b7a94;
+  --color-gold: #8fa3c4;
+  --color-gold-bright: #b8c9e4;
+  --color-gold-shine: #dbe6f8;
+
+  --color-red-dark: #5d3a6e;
+  --color-red: #7a4a92;
+  --color-red-bright: #9a62b8;
+  --color-red-glow: #b47ad4;
+
+  --color-text-dim: #56607a;
+  --color-text-muted: #7482a0;
+  --color-text-base: #aeb9d2;
+  --color-text-bright: #d6dff2;
+  --color-text-white: #f0f4fc;
+
+  --color-border-dark: #232a3d;
+  --color-border-mid: #39435f;
+  --color-border-gold: #5d6d94;
+  --color-border-bright: #8fa3c4;
+
+  --color-health: #c04858;
+  --color-mana: #7a6ad8;
+  --color-xp: #4aa8a0;
+
+  --shadow-sm: 0 1px 3px rgba(2, 4, 10, 0.6);
+  --shadow-md: 0 2px 8px rgba(2, 4, 10, 0.75);
+  --shadow-lg: 0 4px 16px rgba(2, 4, 10, 0.9);
+  --shadow-gold: 0 0 8px rgba(143, 163, 196, 0.35);
+  --shadow-red: 0 0 8px rgba(154, 98, 184, 0.4);
+}
+
+/* MOSSWOOD — deep forest greens and lantern amber beneath the canopy */
+:root[data-theme='mosswood'] {
+  --color-bg-deepest: #0a0e08;
+  --color-bg-deep: #0f140c;
+  --color-bg-dark: #141c10;
+  --color-bg-mid: #1a2415;
+  --color-bg-panel: #202c1a;
+  --color-bg-raised: #273521;
+  --color-bg-hover: #2f4027;
+
+  --color-gold-dim: #8a8a48;
+  --color-gold: #b0a133;
+  --color-gold-bright: #d4c04a;
+  --color-gold-shine: #ecdc74;
+
+  --color-red-dark: #6e3a20;
+  --color-red: #8a4a26;
+  --color-red-bright: #a85c2e;
+  --color-red-glow: #c47038;
+
+  --color-text-dim: #5e6b52;
+  --color-text-muted: #7c8a6e;
+  --color-text-base: #b2c0a2;
+  --color-text-bright: #d8e4c8;
+  --color-text-white: #f0f8e6;
+
+  --color-border-dark: #24301c;
+  --color-border-mid: #3d5230;
+  --color-border-gold: #6b7a3c;
+  --color-border-bright: #9aa852;
+
+  --color-health: #b8443a;
+  --color-mana: #5a7ab8;
+  --color-xp: #6ab04c;
+
+  --shadow-sm: 0 1px 3px rgba(2, 6, 0, 0.6);
+  --shadow-md: 0 2px 8px rgba(2, 6, 0, 0.75);
+  --shadow-lg: 0 4px 16px rgba(2, 6, 0, 0.9);
+  --shadow-gold: 0 0 8px rgba(176, 161, 51, 0.3);
+  --shadow-red: 0 0 8px rgba(168, 92, 46, 0.4);
+}
+
+/* FORGEHEART — coal-black iron and living ember; the smithy after dark */
+:root[data-theme='forgeheart'] {
+  --color-bg-deepest: #0b0a0a;
+  --color-bg-deep: #100e0e;
+  --color-bg-dark: #161313;
+  --color-bg-mid: #1d1918;
+  --color-bg-panel: #241e1d;
+  --color-bg-raised: #2c2422;
+  --color-bg-hover: #3a2a25;
+
+  --color-gold-dim: #96503a;
+  --color-gold: #cf5530;
+  --color-gold-bright: #ef6a3a;
+  --color-gold-shine: #ff8a54;
+
+  --color-red-dark: #6e1710;
+  --color-red: #8e1e12;
+  --color-red-bright: #b02616;
+  --color-red-glow: #d63018;
+
+  --color-text-dim: #6e6660;
+  --color-text-muted: #8e847c;
+  --color-text-base: #c8bcb4;
+  --color-text-bright: #e6dcd4;
+  --color-text-white: #f8f2ec;
+
+  --color-border-dark: #2a2220;
+  --color-border-mid: #4a3630;
+  --color-border-gold: #8a4432;
+  --color-border-bright: #cf5530;
+
+  --color-health: #d04030;
+  --color-mana: #6a58c0;
+  --color-xp: #58a048;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.65);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.92);
+  --shadow-gold: 0 0 10px rgba(207, 85, 48, 0.45);
+  --shadow-red: 0 0 10px rgba(214, 48, 24, 0.5);
+}
+
+
+/* Scriptorium structural touches: light themes need borders where dark
+   themes used elevation. The equipment slot art is dark by design, so on
+   parchment it gets framed as a deliberate leather squire's board. */
+:root[data-theme='scriptorium'] .equipment-grid {
+  background: #2b2317;
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme='scriptorium'] .top-nav {
+  border-bottom: 1px solid var(--color-border-gold);
 }

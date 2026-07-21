@@ -7,6 +7,8 @@ import { apiFetch } from './lib/api'
 import WelcomeModal from './components/WelcomeModal'
 import { Routes, Route } from 'react-router-dom'
 import NewsPage from './components/NewsPage'
+import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
+import SupportUsPage from './components/SupportUsPage'
 import HighscoresPage from './components/HighscoresPage'
 import TradeWindow from './components/TradeWindow'
 
@@ -300,6 +302,10 @@ function App() {
   return (
     <Routes>
       <Route path="/news" element={<NewsPage />} />
+      <Route path="/support-us" element={<SupportUsPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/refunds" element={<RefundPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/highscores" element={<HighscoresPage />} />
       <Route path="*" element={
         !player ? (

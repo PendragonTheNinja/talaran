@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-overlay);
 }
 
 .chat-tabs {
@@ -98,7 +98,7 @@
 
 .chat-input {
   flex: 1;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-overlay-soft);
   border: 1px solid var(--color-border-dark);
   border-radius: var(--radius-sm);
   padding: 4px var(--space-sm);

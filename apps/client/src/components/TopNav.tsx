@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Guild', 'Journal',
-  'Events', 'Highscores', 'Manual', 'News', 'Settings'
+  'Events', 'Highscores', 'Manual', 'News', 'Support', 'Settings'
 ]
 
 interface TopNavProps {
@@ -20,10 +20,11 @@ interface TopNavProps {
   isMod?: boolean
   onAdminClick?: () => void
   onSettingsClick: () => void
+  onSupportClick: () => void
   onForceBotCheck: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onForceBotCheck }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick, onForceBotCheck }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -42,12 +43,13 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
                     item === 'News' ? onNewsClick :
                       item === 'Highscores' ? onHighscoresClick :
                         item === 'Settings' ? onSettingsClick :
-                          undefined
+                          item === 'Support' ? onSupportClick :
+                            undefined
             }
             style={{ position: 'relative' }}
             title={item === 'Settings' ? 'Settings' : undefined}
           >
-            {item === 'Settings' ? '⚙️' : item}
+            {item === 'Settings' ? '⚙️' : item === 'Support' ? '♥ Support' : item}
             {item === 'Messages' && unreadMessages > 0 && (
               <span className="nav-unread-badge">{unreadMessages}</span>
             )}

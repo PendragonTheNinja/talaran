@@ -24,6 +24,10 @@ import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
 import adminRoutes from './routes/admin';
 import adminContentRoutes from './routes/adminContent';
+import talersRoutes from './routes/talers';
+import paddleWebhookRoutes from './routes/paddleWebhook';
+import storeRoutes from './routes/store';
+import paletteRoutes from './routes/palettes';
 import settingsRoutes from './routes/settings';
 import { generalLimit, authLimit, chatLimit, chatReadLimit, forumLimit } from './middleware/rateLimit';
 import playerRoutes from './routes/player';
@@ -55,7 +59,13 @@ export const logger = createLogger({
 export const connectedPlayers = new Set<number>();
 
 const app = express();
-app.use(express.json());
+// Capture the raw body alongside parsed JSON — Paddle webhook signatures are
+// HMAC'd over the exact bytes received, so verification needs the raw payload.
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    (req as any).rawBody = buf;
+  },
+}));
 app.set('trust proxy', 1);
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
@@ -113,6 +123,10 @@ app.use('/api/news', newsRoutes);
 app.use('/api/highscores', highscoresRoutes);
 app.use('/api/ground-items', groundItemsRoutes);
 app.use('/api/admin/content', adminContentRoutes);
+app.use('/api/talers', talersRoutes);
+app.use('/api/paddle', paddleWebhookRoutes);
+app.use('/api/store', storeRoutes);
+app.use('/api/palettes', paletteRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', generalLimit);

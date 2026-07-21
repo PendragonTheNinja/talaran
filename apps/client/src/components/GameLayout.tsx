@@ -29,6 +29,8 @@ import MiniMap from './MiniMap'
 import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import HuntingMenu from './HuntingMenu'
+import { syncThemeFromServer } from '../lib/theme'
+import SupportPanel from './SupportPanel'
 
 interface Skill {
   id: number
@@ -130,6 +132,11 @@ export default function GameLayout({
 }: GameLayoutProps) {
   const [travelStatus, setTravelStatus] = useState<{ message: string; seconds: number } | null>(null)
 
+  // Apply the player's saved theme once logged in (server preference wins)
+  useEffect(() => {
+    syncThemeFromServer()
+  }, [])
+
   // Restore travel status on refresh
   useEffect(() => {
     if (!playerData?.currentAction) return
@@ -196,6 +203,7 @@ export default function GameLayout({
   const [adminClosing, setAdminClosing] = useState(false)
 
   const [showSettings, setShowSettings] = useState(false)
+  const [showSupport, setShowSupport] = useState(false)
   const [settingsClosing, setSettingsClosing] = useState(false)
 
   const skillsPanelEl = <SkillsPanel skills={playerData?.skills || []} />
@@ -471,6 +479,7 @@ export default function GameLayout({
     if (showGuildModal) closePanel(setGuildClosing, setShowGuildModal)
     if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
     if (showSettings) closePanel(setSettingsClosing, setShowSettings)
+    if (showSupport) setShowSupport(false)
   }
 
   const [showHighscores, setShowHighscores] = useState(false)
@@ -603,6 +612,7 @@ export default function GameLayout({
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
+    { label: '\u2665 Support Us', onClick: () => { closeAllPanels(); setShowSupport(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
     { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
     ...(playerData?.player?.is_admin || playerData?.player?.is_mod
@@ -924,6 +934,13 @@ export default function GameLayout({
         />
       )}
 
+      {showSupport && (
+        <SupportPanel
+          playerId={player.id}
+          onClose={() => setShowSupport(false)}
+        />
+      )}
+
       {profilePlayerId && (
         <PlayerProfile
           playerId={profilePlayerId}
@@ -1002,6 +1019,10 @@ export default function GameLayout({
         onSettingsClick={() => {
           if (showSettings) closePanel(setSettingsClosing, setShowSettings)
           else { closeAllPanels(); setShowSettings(true) }
+        }}
+        onSupportClick={() => {
+          if (showSupport) setShowSupport(false)
+          else { closeAllPanels(); setShowSupport(true) }
         }}
         onForceBotCheck={handleForceBotCheck}
       />

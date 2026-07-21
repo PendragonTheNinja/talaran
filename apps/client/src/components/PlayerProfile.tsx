@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { formatGameDateLong } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import { getItemIcon, getSlotIcon } from '../lib/items'
+import PaletteGallery from './PaletteGallery'
+import { apiFetch as apiFetchPalettes } from '../lib/api'
 import './PlayerProfile.css'
 
 interface ProfileSkill {
@@ -46,6 +48,12 @@ const SLOTS = [
 ]
 
 export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps) {
+    const [hasPalettePerk, setHasPalettePerk] = useState(false)
+    useEffect(() => {
+        apiFetchPalettes<{ hasPerk: boolean }>('/api/palettes')
+            .then(d => setHasPalettePerk(d.hasPerk))
+            .catch(() => { /* leave false */ })
+    }, [])
     const [profile, setProfile] = useState<ProfileData | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'skills' | 'equipment'>('equipment')
@@ -156,6 +164,12 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                 })}
                             </div>
                         )}
+
+                        <PaletteGallery
+                            playerId={playerId}
+                            hasPerk={hasPalettePerk}
+                            compact
+                        />
                     </>
                 )}
             </div>
