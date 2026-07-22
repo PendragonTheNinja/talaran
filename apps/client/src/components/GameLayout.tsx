@@ -29,6 +29,7 @@ import MiniMap from './MiniMap'
 import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import HuntingMenu from './HuntingMenu'
+import ForagingMenu from './ForagingMenu'
 import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
 
@@ -210,6 +211,7 @@ export default function GameLayout({
   const isMobile = useIsMobile()
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
+  const [showForagingMenu, setShowForagingMenu] = useState(false)
 
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
@@ -356,6 +358,8 @@ export default function GameLayout({
       }
     } else if (type === 'hunting_menu') {
       setShowHuntingMenu(true)
+    } else if (type === 'foraging_menu') {
+      setShowForagingMenu(true)
     } else if (type === 'tanning_setup') {
       handleTanningSetup()
     } else if (type === 'tanning_collect') {
@@ -871,6 +875,17 @@ export default function GameLayout({
           }}
           playerHuntingLevel={playerData?.skills?.find((s: any) => s.name === 'Hunting')?.level || 1}
           onTrapsChanged={() => setSmithingStatusKey(k => k + 1)}
+        />
+      )}
+
+      {showForagingMenu && (
+        <ForagingMenu
+          onClose={() => setShowForagingMenu(false)}
+          onStartForage={(habitatId) => {
+            setShowForagingMenu(false)
+            setGameViewAction({ type: 'foraging', id: habitatId })
+          }}
+          playerForagingLevel={playerData?.skills?.find((s: any) => s.name === 'Foraging')?.level || 1}
         />
       )}
 

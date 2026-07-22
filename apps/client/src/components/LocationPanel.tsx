@@ -115,6 +115,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
   const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.name.toLowerCase().includes('rock'))
   const huntableAnimals = locationData?.huntableAnimals || []
+  const foragingHabitats = locationData?.foragingHabitats || []
 
   const handlePickup = async (groundItemId: number) => {
     try {
@@ -187,6 +188,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {trapsCaught > 0 && (
               <span className="gold-text"> ({trapsCaught} caught!)</span>
             )}
+          </button>
+        )}
+
+        {foragingHabitats.length > 0 && (
+          <button
+            className={`location-action-btn ${currentAction === 'foraging' ? 'active' : ''}`}
+            onClick={() => onStartAction('foraging_menu', 0)}
+          >
+            Forage the Forest →
           </button>
         )}
 

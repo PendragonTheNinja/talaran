@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import db from '../db';
 import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
+import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
@@ -113,6 +114,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'hunting':
         result = await processHunt(action.player_id, action.action_data);
+        break;
+      case 'foraging':
+        result = await processForagingAction(action.player_id, action.action_data);
         break;
       case 'recipe': {
         const { resolveRecipe } = await import('./recipes');
@@ -364,6 +368,70 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     }
 
     // Handle vein mining (no resource_node_id)
+    if (action.action_type === 'foraging') {
+      const forage = result;
+      if (!forage || !forage.success) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: forage?.error || 'Your foraging ended.',
+        });
+        return;
+      }
+
+      const habitatId = action.action_data ? parseInt(action.action_data) : null;
+      const habitat = habitatId ? await db('foraging_habitats').where({ id: habitatId }).first() : null;
+
+      const foragingSkill = await db('skills').where({ name: 'Foraging' }).first();
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: foragingSkill?.id }).first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (forage.xp || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+      const xpNeeded = xpToNextLevel(currentXp);
+      const xpAtLevel = xpForLevel(currentLevel);
+
+      const resultPayload = {
+        itemName: forage.itemName,
+        quantity: forage.quantity,
+        xpAwarded: forage.xp,
+        skillName: 'Foraging',
+        notable: forage.notable,
+        firstDiscovery: forage.firstDiscovery,
+        drops: [],
+      };
+
+      if (habitat && habitat.is_active) {
+        const knifeTier = await bestToolTier(action.player_id, 'foraging_knife');
+        const nextTimer = calculateForageTimer(
+          habitat.base_timer, habitat.min_timer, currentLevel, habitat.required_level, knifeTier
+        );
+        const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+
+        await db('player_actions').where({ id: action.id }).update({
+          completes_at: nextCompletion,
+          last_timer_seconds: nextTimer,
+        });
+
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result: resultPayload,
+          nextCompletes: nextCompletion,
+          timerSeconds: nextTimer,
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
+        });
+      } else {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result: resultPayload,
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
+        });
+      }
+      return;
+    }
+
     if (action.action_type === 'mining_vein') {
       const vein = await db('ore_veins').where({ id: action.action_data }).first();
       if (!vein || vein.is_depleted) {

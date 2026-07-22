@@ -1,0 +1,150 @@
+.foraging-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: var(--space-md);
+}
+
+.foraging-modal {
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.foraging-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.foraging-header h2 {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    margin: 0;
+}
+
+.foraging-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.foraging-tools {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+    font-size: 13px;
+}
+
+.foraging-tools .tool-on { color: var(--color-xp); }
+.foraging-tools .tool-off { color: var(--color-text-dim); }
+
+.foraging-habitat-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.foraging-habitat-card {
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
+    background: var(--color-bg-deep);
+}
+
+.foraging-habitat-card.locked {
+    opacity: 0.55;
+}
+
+.foraging-habitat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.foraging-habitat-name {
+    font-family: var(--font-heading);
+    color: var(--color-text-bright);
+    font-size: 16px;
+    margin-right: var(--space-sm);
+}
+
+.foraging-habitat-progress {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.foraging-habitat-desc {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin: 6px 0 10px;
+}
+
+.foraging-go {
+    background: var(--color-gold);
+    color: var(--color-bg-deepest);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 16px;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.foraging-lock {
+    font-size: 12px;
+    color: var(--color-text-dim);
+    white-space: nowrap;
+}
+
+.foraging-item-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.foraging-chip {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-bg-dark);
+}
+
+.foraging-chip.found { color: var(--color-text-bright); border-color: var(--color-border-mid); }
+.foraging-chip.unknown { color: var(--color-text-dim); font-style: italic; }
+.foraging-chip.notable.found { border-color: var(--color-border-gold); color: var(--color-gold-bright); }
+.foraging-chip.inline { display: inline; padding: 1px 6px; }
+
+.chip-spark { color: var(--color-gold-bright); }
+.chip-glove { opacity: 0.8; }
+
+.foraging-empty, .foraging-error, .foraging-hint {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 13px;
+    padding: var(--space-sm);
+}
+
+.foraging-error { color: var(--color-red-glow); }
+.foraging-hint { margin-top: var(--space-md); font-size: 12px; }

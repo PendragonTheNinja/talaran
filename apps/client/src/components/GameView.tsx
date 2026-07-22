@@ -123,6 +123,8 @@ export default function GameView({
     outputTotal?: number
     ended?: 'limit' | 'materials' | 'unavailable'
     drops?: { name: string; quantity: number }[]
+    notable?: boolean
+    firstDiscovery?: boolean
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
@@ -278,6 +280,8 @@ export default function GameView({
             ingredientsRemaining: (data.result as any).ingredientsRemaining,
             outputTotal: (data.result as any).outputTotal,
             drops: (data.result as any).drops,
+            notable: (data.result as any).notable,
+            firstDiscovery: (data.result as any).firstDiscovery,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -497,6 +501,13 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'foraging':
+        setCurrentAction('foraging')
+        setActiveNodeId(Number(action.action_data))
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'recipe':
         setCurrentAction('recipe')
         setTimerMax(secondsLeft || 5)
@@ -536,6 +547,8 @@ export default function GameView({
       onActionLimitChange(externalAction.id === 0 ? null : externalAction.id as number)
     } else if (externalAction.type === 'hunting') {
       startHunt(externalAction.id as number)
+    } else if (externalAction.type === 'foraging') {
+      startForage(externalAction.id as number)
     } else if (externalAction.type === 'recipe') {
       startRecipe(externalAction.id as number)
     }
@@ -861,6 +874,30 @@ export default function GameView({
     }
   }
 
+  const startForage = async (habitatId: number) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/foraging/start', {
+        method: 'POST',
+        body: JSON.stringify({ habitatId }),
+      })
+      setCurrentAction('foraging')
+      setActiveNodeId(habitatId)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
+    } catch (err: any) {
+      if (err.status === 423) { rememberPendingAction(() => startForage(habitatId)); return }
+      addLog(err.message || 'Could not start foraging.', 'error')
+    }
+  }
+
   // ── Derived values ────────────────────────────────────────────────
   const woodcuttingNodes = locationData?.nodes.filter(n => n.skill === 'woodcutting') || []
   const miningNodes = locationData?.nodes.filter(n => n.skill === 'mining') || []
@@ -923,7 +960,13 @@ export default function GameView({
 
     return (
       <>
-        <p className="last-result-item">You gained {r.quantity ?? 1} × {r.itemName}!</p>
+        <p className="last-result-item">
+          {r.notable && <span className="drop-sparkle">✦ </span>}
+          You gained {r.quantity ?? 1} × {r.itemName}!
+        </p>
+        {r.firstDiscovery && (
+          <p className="last-result-drop"><span className="drop-sparkle">✦</span> New discovery — you've found {r.itemName} here!</p>
+        )}
         <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
         <p className="last-result-next">
           {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
@@ -1037,6 +1080,11 @@ export default function GameView({
               {currentAction === 'hunting' && (
                 <p className="scene-action-text gold-text">{huntPhaseText}</p>
               )}
+              {currentAction === 'foraging' && (
+                <p className="scene-action-text gold-text">
+                  {(locationData as any)?.foragingHabitats?.find((h: any) => h.id === activeNodeId)?.scene_text || 'You gather among the wild growth.'}
+                </p>
+              )}
               {currentAction === 'recipe' && (
                 <p className="scene-action-text gold-text">
                   {recipeLabel?.flavorText
@@ -1075,6 +1123,9 @@ export default function GameView({
               )}
               {currentAction === 'hunting' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Hunting</button>
+              )}
+              {currentAction === 'foraging' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Foraging</button>
               )}
               {currentAction === 'recipe' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>
