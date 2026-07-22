@@ -25,6 +25,8 @@ interface PlayerRow {
 }
 
 type Mode = 'alltime' | 'weekly'
+type SortKey = 'level' | 'xp' | 'weeklyXp' | 'weeklyLevels'
+type SortDir = 'asc' | 'desc'
 
 interface HighscoresPanelProps {
     onClose: () => void
@@ -40,6 +42,8 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
     const [page, setPage] = useState(1)
     const [limit, setLimit] = useState(50)
     const [totalPages, setTotalPages] = useState(1)
+    const [sortKey, setSortKey] = useState<SortKey>('level')
+    const [sortDir, setSortDir] = useState<SortDir>('desc')
     const [loading, setLoading] = useState(false)
 
     const isMobile = useIsMobile()
@@ -54,13 +58,13 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
 
     useEffect(() => {
         loadHighscores()
-    }, [selectedSkill, mode, page, limit])
+    }, [selectedSkill, mode, page, limit, sortKey, sortDir])
 
     const loadHighscores = async () => {
         setLoading(true)
         try {
             const res = await fetch(
-                `${API_URL}/api/highscores?skill=${selectedSkill}&mode=${mode}&page=${page}&limit=${limit}`
+                `${API_URL}/api/highscores?skill=${selectedSkill}&mode=${mode}&page=${page}&limit=${limit}&sortBy=${sortKey}&sortDir=${sortDir}`
             )
             const data = await res.json()
             setPlayers(data.players || [])
@@ -75,6 +79,23 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
 
     const formatXp = (xp: number) => xp.toLocaleString()
     const isTotal = selectedSkill === 'total'
+
+    const handleSort = (key: SortKey) => {
+        setPage(1)
+        if (sortKey === key) {
+            setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortKey(key)
+            setSortDir('desc')
+        }
+    }
+
+    const SortTh = ({ label, sKey }: { label: string; sKey: SortKey }) => (
+        <th className="hs-panel-th sortable" onClick={() => handleSort(sKey)}>
+            {label}
+            {sortKey === sKey && <span className="hs-panel-sort-ind">{sortDir === 'asc' ? ' ↑' : ' ↓'}</span>}
+        </th>
+    )
 
     return (
         <DockableWindow
@@ -119,8 +140,8 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
             {/* Mode + limit */}
             <div className="hs-panel-controls">
                 <div className="hs-mode-toggle">
-                    <button className={`hs-mode-btn ${mode === 'alltime' ? 'active' : ''}`} onClick={() => { setMode('alltime'); setPage(1) }}>All Time</button>
-                    <button className={`hs-mode-btn ${mode === 'weekly' ? 'active' : ''}`} onClick={() => { setMode('weekly'); setPage(1) }}>This Week</button>
+                    <button className={`hs-mode-btn ${mode === 'alltime' ? 'active' : ''}`} onClick={() => { setMode('alltime'); setPage(1); setSortKey('level'); setSortDir('desc') }}>All Time</button>
+                    <button className={`hs-mode-btn ${mode === 'weekly' ? 'active' : ''}`} onClick={() => { setMode('weekly'); setPage(1); setSortKey('weeklyXp'); setSortDir('desc') }}>This Week</button>
                 </div>
                 <select className="hs-limit-select" value={limit} onChange={e => { setLimit(parseInt(e.target.value)); setPage(1) }}>
                     <option value={50}>50</option>
@@ -142,10 +163,14 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
                             <tr>
                                 <th className="hs-panel-th">Rank</th>
                                 <th className="hs-panel-th">Player</th>
-                                <th className="hs-panel-th">{isTotal ? 'Total Level' : 'Level'}</th>
-                                <th className="hs-panel-th">{isTotal ? 'Total XP' : 'XP'}</th>
-                                <th className="hs-panel-th">+XP Week</th>
-                                <th className="hs-panel-th">+Lvls</th>
+                                <SortTh label={isTotal ? 'Total Level' : 'Level'} sKey="level" />
+                                <SortTh label={isTotal ? 'Total XP' : 'XP'} sKey="xp" />
+                                {mode === 'weekly' && (
+                                    <>
+                                        <SortTh label="+XP Week" sKey="weeklyXp" />
+                                        <SortTh label="+Lvls" sKey="weeklyLevels" />
+                                    </>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -168,12 +193,16 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
                                     <td className="hs-panel-td muted-text">
                                         {formatXp(player.xp ?? player.totalXp ?? 0)}
                                     </td>
-                                    <td className="hs-panel-td" style={{ color: '#6ab87e', fontSize: '15px' }}>
-                                        {player.weeklyXp > 0 ? `+${formatXp(player.weeklyXp)}` : '—'}
-                                    </td>
-                                    <td className="hs-panel-td" style={{ color: '#7eb8e8', fontSize: '15px' }}>
-                                        {player.weeklyLevels > 0 ? `+${player.weeklyLevels}` : '—'}
-                                    </td>
+                                    {mode === 'weekly' && (
+                                        <>
+                                            <td className="hs-panel-td" style={{ color: '#6ab87e', fontSize: '15px' }}>
+                                                {player.weeklyXp > 0 ? `+${formatXp(player.weeklyXp)}` : '—'}
+                                            </td>
+                                            <td className="hs-panel-td" style={{ color: '#7eb8e8', fontSize: '15px' }}>
+                                                {player.weeklyLevels > 0 ? `+${player.weeklyLevels}` : '—'}
+                                            </td>
+                                        </>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>

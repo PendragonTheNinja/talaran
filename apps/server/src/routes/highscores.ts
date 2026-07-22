@@ -16,170 +16,148 @@ router.get('/skills', async (req: Request, res: Response) => {
     }
 });
 
-// Get highscores
+type SortBy = 'level' | 'xp' | 'weeklyXp' | 'weeklyLevels';
+
+interface Computed {
+    id: number;
+    username: string;
+    guildTag: string | null;
+    level: number;
+    xp: number;
+    weeklyXp: number;
+    weeklyLevels: number;
+}
+
+function sortRows(rows: Computed[], sortBy: SortBy, dir: 1 | -1): Computed[] {
+    const key = (r: Computed): number => {
+        switch (sortBy) {
+            case 'xp': return r.xp;
+            case 'weeklyXp': return r.weeklyXp;
+            case 'weeklyLevels': return r.weeklyLevels;
+            case 'level':
+            default: return r.level;
+        }
+    };
+    return rows.sort((a, b) => {
+        const d = (key(a) - key(b)) * dir;
+        if (d !== 0) return d;
+        if (b.level !== a.level) return b.level - a.level;
+        if (b.xp !== a.xp) return b.xp - a.xp;
+        return a.username.localeCompare(b.username);
+    });
+}
+
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const skillId = req.query.skill as string; // 'total' or skill id
-        const mode = req.query.mode as string || 'alltime'; // 'alltime' or 'weekly'
+        const skillId = req.query.skill as string;                 // 'total' or skill id
+        const mode = (req.query.mode as string) || 'alltime';      // 'alltime' or 'weekly'
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 50;
         const offset = (page - 1) * limit;
-        const sortBy = req.query.sortBy as string || 'xp'; // 'xp', 'level', 'weekly_xp', 'weekly_levels'
+
+        // Default ordering: Total Level all-time, weekly XP in the weekly view.
+        const requestedSort = req.query.sortBy as SortBy | undefined;
+        const sortBy: SortBy = requestedSort ?? (mode === 'weekly' ? 'weeklyXp' : 'level');
+        const dir: 1 | -1 = (req.query.sortDir as string) === 'asc' ? 1 : -1;
+
+        const weekStart = mode === 'weekly' ? getWeekStart(new Date()) : null;
 
         if (skillId === 'total') {
-            // Total level leaderboard
-            const players = await db('player_skills')
+            const rows = await db('player_skills')
                 .join('players', 'player_skills.player_id', 'players.id')
-                .groupBy('players.id', 'players.username', 'players.guild_tag')
                 .select(
                     'players.id',
                     'players.username',
                     'players.guild_tag',
-                    db.raw('SUM(player_skills.xp) as total_xp'),
-                    db.raw('COUNT(player_skills.skill_id) as skill_count'),
-                )
-                .orderBy('total_xp', 'desc')
-                .limit(limit)
-                .offset(offset);
-
-            const totalCount = await db('players').count('id as count').first();
-
-            // Calculate total levels
-            const playersWithLevels = await Promise.all(players.map(async (p, i) => {
-                const skills = await db('player_skills')
-                    .where({ player_id: p.id })
-                    .select('xp');
-                const totalLevel = skills.reduce((sum, s) => sum + levelFromXp(parseInt(s.xp)), 0);
-
-                let weeklyXp = 0;
-                let weeklyLevels = 0;
-
-                if (mode === 'weekly') {
-                    const weekStart = getWeekStart(new Date());
-                    const snapshots = await db('skill_snapshots')
-                        .where({ player_id: p.id, snapshot_date: weekStart })
-                        .select('skill_id', 'xp_at_snapshot');
-
-                    const currentSkills = await db('player_skills')
-                        .where({ player_id: p.id })
-                        .select('skill_id', 'xp');
-
-                    for (const current of currentSkills) {
-                        const snap = snapshots.find(s => s.skill_id === current.skill_id);
-                        const snapXp = snap ? parseInt(snap.xp_at_snapshot) : 0;
-                        const currentXp = parseInt(current.xp);
-                        const gained = Math.max(0, currentXp - snapXp);
-                        weeklyXp += gained;
-                        if (gained > 0) {
-                            const levelBefore = levelFromXp(snapXp);
-                            const levelAfter = levelFromXp(currentXp);
-                            weeklyLevels += Math.max(0, levelAfter - levelBefore);
-                        }
-                    }
-                }
-
-                return {
-                    rank: offset + i + 1,
-                    id: p.id,
-                    username: p.username,
-                    guildTag: p.guild_tag,
-                    totalLevel,
-                    totalXp: parseInt(p.total_xp as string),
-                    weeklyXp,
-                    weeklyLevels,
-                };
-            }));
-
-            res.json({
-                players: playersWithLevels,
-                totalCount: parseInt(totalCount?.count as string) || 0,
-                page,
-                totalPages: Math.ceil((parseInt(totalCount?.count as string) || 0) / limit),
-            });
-
-        } else {
-            // Single skill leaderboard
-            let query = db('player_skills')
-                .join('players', 'player_skills.player_id', 'players.id')
-                .join('skills', 'player_skills.skill_id', 'skills.id')
-                .where('player_skills.skill_id', skillId)
-                .where('player_skills.xp', '>', 0)
-                .select(
-                    'players.id',
-                    'players.username',
-                    'players.guild_tag',
-                    'player_skills.xp',
                     'player_skills.skill_id',
+                    'player_skills.xp',
                 );
 
-            if (mode === 'weekly') {
-                const weekStart = getWeekStart(new Date());
-                const snapshots = await db('skill_snapshots')
-                    .where({ skill_id: skillId, snapshot_date: weekStart })
-                    .select('player_id', 'xp_at_snapshot');
-
-                const snapshotMap = new Map(snapshots.map(s => [s.player_id, parseInt(s.xp_at_snapshot)]));
-
-                const allPlayers = await query;
-                const withWeekly = allPlayers.map(p => {
-                    const snapXp = snapshotMap.get(p.id) || 0;
-                    const currentXp = parseInt(p.xp);
-                    const weeklyXp = Math.max(0, currentXp - snapXp);
-                    const levelBefore = levelFromXp(snapXp);
-                    const levelAfter = levelFromXp(currentXp);
-                    const weeklyLevels = Math.max(0, levelAfter - levelBefore);
-                    return {
-                        ...p,
-                        level: levelFromXp(currentXp),
-                        weeklyXp,
-                        weeklyLevels,
-                    };
-                }).filter(p => p.weeklyXp > 0)
-                    .sort((a, b) => b.weeklyXp - a.weeklyXp);
-
-                const paginated = withWeekly.slice(offset, offset + limit);
-                const ranked = paginated.map((p, i) => ({
-                    rank: offset + i + 1,
-                    id: p.id,
-                    username: p.username,
-                    guildTag: p.guild_tag,
-                    level: p.level,
-                    xp: parseInt(p.xp),
-                    weeklyXp: p.weeklyXp,
-                    weeklyLevels: p.weeklyLevels,
-                }));
-
-                res.json({
-                    players: ranked,
-                    totalCount: withWeekly.length,
-                    page,
-                    totalPages: Math.ceil(withWeekly.length / limit),
-                });
-
-            } else {
-                const allPlayers = await query.orderBy('player_skills.xp', 'desc');
-                const totalCount = allPlayers.length;
-                const paginated = allPlayers.slice(offset, offset + limit);
-
-                const ranked = paginated.map((p, i) => ({
-                    rank: offset + i + 1,
-                    id: p.id,
-                    username: p.username,
-                    guildTag: p.guild_tag,
-                    level: levelFromXp(parseInt(p.xp)),
-                    xp: parseInt(p.xp),
-                    weeklyXp: 0,
-                    weeklyLevels: 0,
-                }));
-
-                res.json({
-                    players: ranked,
-                    totalCount,
-                    page,
-                    totalPages: Math.ceil(totalCount / limit),
-                });
+            const byPlayer = new Map<number, Computed & { skills: { skill_id: number; xp: number }[] }>();
+            for (const r of rows) {
+                const xp = parseInt(r.xp);
+                let p = byPlayer.get(r.id);
+                if (!p) {
+                    p = { id: r.id, username: r.username, guildTag: r.guild_tag, level: 0, xp: 0, weeklyXp: 0, weeklyLevels: 0, skills: [] };
+                    byPlayer.set(r.id, p);
+                }
+                p.xp += xp;
+                p.level += levelFromXp(xp);
+                p.skills.push({ skill_id: r.skill_id, xp });
             }
+
+            if (weekStart) {
+                const snaps = await db('skill_snapshots')
+                    .where({ snapshot_date: weekStart })
+                    .select('player_id', 'skill_id', 'xp_at_snapshot');
+                const snapMap = new Map<string, number>();
+                for (const s of snaps) snapMap.set(`${s.player_id}:${s.skill_id}`, parseInt(s.xp_at_snapshot));
+                for (const p of byPlayer.values()) {
+                    for (const sk of p.skills) {
+                        const snapXp = snapMap.get(`${p.id}:${sk.skill_id}`) || 0;
+                        const gained = Math.max(0, sk.xp - snapXp);
+                        p.weeklyXp += gained;
+                        if (gained > 0) p.weeklyLevels += Math.max(0, levelFromXp(sk.xp) - levelFromXp(snapXp));
+                    }
+                }
+            }
+
+            const all = sortRows([...byPlayer.values()], sortBy, dir);
+            const totalCount = all.length;
+            const players = all.slice(offset, offset + limit).map((p, i) => ({
+                rank: offset + i + 1,
+                id: p.id,
+                username: p.username,
+                guildTag: p.guildTag,
+                totalLevel: p.level,
+                totalXp: p.xp,
+                weeklyXp: p.weeklyXp,
+                weeklyLevels: p.weeklyLevels,
+            }));
+
+            res.json({ players, totalCount, page, totalPages: Math.ceil(totalCount / limit) });
+            return;
         }
+
+        // Single-skill board
+        const skillRows = await db('player_skills')
+            .join('players', 'player_skills.player_id', 'players.id')
+            .where('player_skills.skill_id', skillId)
+            .where('player_skills.xp', '>', 0)
+            .select('players.id', 'players.username', 'players.guild_tag', 'player_skills.xp');
+
+        let snapMap = new Map<number, number>();
+        if (weekStart) {
+            const snaps = await db('skill_snapshots')
+                .where({ skill_id: skillId, snapshot_date: weekStart })
+                .select('player_id', 'xp_at_snapshot');
+            snapMap = new Map(snaps.map(s => [s.player_id, parseInt(s.xp_at_snapshot)]));
+        }
+
+        let computed: Computed[] = skillRows.map(p => {
+            const xp = parseInt(p.xp);
+            const snapXp = snapMap.get(p.id) || 0;
+            const weeklyXp = Math.max(0, xp - snapXp);
+            const weeklyLevels = Math.max(0, levelFromXp(xp) - levelFromXp(snapXp));
+            return { id: p.id, username: p.username, guildTag: p.guild_tag, level: levelFromXp(xp), xp, weeklyXp, weeklyLevels };
+        });
+
+        if (weekStart) computed = computed.filter(p => p.weeklyXp > 0);
+
+        const all = sortRows(computed, sortBy, dir);
+        const totalCount = all.length;
+        const players = all.slice(offset, offset + limit).map((p, i) => ({
+            rank: offset + i + 1,
+            id: p.id,
+            username: p.username,
+            guildTag: p.guildTag,
+            level: p.level,
+            xp: p.xp,
+            weeklyXp: p.weeklyXp,
+            weeklyLevels: p.weeklyLevels,
+        }));
+
+        res.json({ players, totalCount, page, totalPages: Math.ceil(totalCount / limit) });
     } catch (err) {
         logger.error(`Highscores error: ${err}`);
         res.status(500).json({ error: 'Server error' });

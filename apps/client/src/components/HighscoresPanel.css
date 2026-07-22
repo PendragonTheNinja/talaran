@@ -181,3 +181,17 @@
     align-items: center;
     gap: 6px;
 }
+
+.hs-panel-th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.hs-panel-th.sortable:hover {
+    color: var(--color-gold-bright);
+}
+
+.hs-panel-sort-ind {
+    color: var(--color-gold-bright);
+    font-size: 11px;
+}

@@ -35,8 +35,8 @@ export default function HighscoresPage() {
     const [page, setPage] = useState(1)
     const [limit, setLimit] = useState(50)
     const [totalPages, setTotalPages] = useState(1)
-    const [sortKey, setSortKey] = useState<SortKey>('rank')
-    const [sortDir, setSortDir] = useState<SortDir>('asc')
+    const [sortKey, setSortKey] = useState<SortKey>('level')
+    const [sortDir, setSortDir] = useState<SortDir>('desc')
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
@@ -48,13 +48,13 @@ export default function HighscoresPage() {
 
     useEffect(() => {
         loadHighscores()
-    }, [selectedSkill, mode, page, limit])
+    }, [selectedSkill, mode, page, limit, sortKey, sortDir])
 
     const loadHighscores = async () => {
         setLoading(true)
         try {
             const res = await fetch(
-                `${API_URL}/api/highscores?skill=${selectedSkill}&mode=${mode}&page=${page}&limit=${limit}`
+                `${API_URL}/api/highscores?skill=${selectedSkill}&mode=${mode}&page=${page}&limit=${limit}&sortBy=${sortKey}&sortDir=${sortDir}`
             )
             const data = await res.json()
             setPlayers(data.players || [])
@@ -68,6 +68,7 @@ export default function HighscoresPage() {
     }
 
     const handleSort = (key: SortKey) => {
+        setPage(1)
         if (sortKey === key) {
             setSortDir(d => d === 'asc' ? 'desc' : 'asc')
         } else {
@@ -76,18 +77,8 @@ export default function HighscoresPage() {
         }
     }
 
-    const sortedPlayers = [...players].sort((a, b) => {
-        let aVal: number, bVal: number
-        switch (sortKey) {
-            case 'rank': aVal = a.rank; bVal = b.rank; break
-            case 'level': aVal = a.level ?? a.totalLevel ?? 0; bVal = b.level ?? b.totalLevel ?? 0; break
-            case 'xp': aVal = a.xp ?? a.totalXp ?? 0; bVal = b.xp ?? b.totalXp ?? 0; break
-            case 'weeklyXp': aVal = a.weeklyXp; bVal = b.weeklyXp; break
-            case 'weeklyLevels': aVal = a.weeklyLevels; bVal = b.weeklyLevels; break
-            default: aVal = a.rank; bVal = b.rank
-        }
-        return sortDir === 'asc' ? aVal - bVal : bVal - aVal
-    })
+    // Server returns rows already sorted + ranked across the whole board.
+    const sortedPlayers = players
 
     const SortHeader = ({ label, sKey }: { label: string; sKey: SortKey }) => (
         <th className="hs-th sortable" onClick={() => handleSort(sKey)}>
@@ -148,13 +139,13 @@ export default function HighscoresPage() {
                     <div className="hs-mode-toggle">
                         <button
                             className={`hs-mode-btn ${mode === 'alltime' ? 'active' : ''}`}
-                            onClick={() => { setMode('alltime'); setPage(1) }}
+                            onClick={() => { setMode('alltime'); setPage(1); setSortKey('level'); setSortDir('desc') }}
                         >
                             All Time
                         </button>
                         <button
                             className={`hs-mode-btn ${mode === 'weekly' ? 'active' : ''}`}
-                            onClick={() => { setMode('weekly'); setPage(1) }}
+                            onClick={() => { setMode('weekly'); setPage(1); setSortKey('weeklyXp'); setSortDir('desc') }}
                         >
                             This Week
                         </button>
@@ -182,7 +173,7 @@ export default function HighscoresPage() {
                     <table className="hs-table">
                         <thead>
                             <tr>
-                                <SortHeader label="Rank" sKey="rank" />
+                                <th className="hs-th">Rank</th>
                                 <th className="hs-th">Player</th>
                                 <SortHeader label={isTotal ? 'Total Level' : 'Level'} sKey="level" />
                                 <SortHeader label={isTotal ? 'Total XP' : 'XP'} sKey="xp" />
