@@ -30,6 +30,7 @@ import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import HuntingMenu from './HuntingMenu'
 import ForagingMenu from './ForagingMenu'
+import FarmPanel from './FarmPanel'
 import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
 
@@ -166,7 +167,7 @@ export default function GameLayout({
     }
   }, [playerData])
 
-  const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number } | null>(null)
+  const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number; text?: string } | null>(null)
 
   // Remembers an action blocked by a bot check, so it auto-runs once the check passes.
   const pendingActionRef = useRef<(() => void) | null>(null)
@@ -212,6 +213,7 @@ export default function GameLayout({
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
   const [showForagingMenu, setShowForagingMenu] = useState(false)
+  const [showFarmPanel, setShowFarmPanel] = useState(false)
 
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
@@ -360,6 +362,8 @@ export default function GameLayout({
       setShowHuntingMenu(true)
     } else if (type === 'foraging_menu') {
       setShowForagingMenu(true)
+    } else if (type === 'farm_panel') {
+      setShowFarmPanel(true)
     } else if (type === 'tanning_setup') {
       handleTanningSetup()
     } else if (type === 'tanning_collect') {
@@ -886,6 +890,20 @@ export default function GameLayout({
             setGameViewAction({ type: 'foraging', id: habitatId })
           }}
           playerForagingLevel={playerData?.skills?.find((s: any) => s.name === 'Foraging')?.level || 1}
+        />
+      )}
+
+      {showFarmPanel && (
+        <FarmPanel
+          onClose={() => setShowFarmPanel(false)}
+          onActionStarted={(secs, kind) => {
+            setShowFarmPanel(false)
+            setGameViewAction({ type: 'farming', id: secs, text: kind })
+          }}
+          onStartRecipe={(recipeId) => {
+            setShowFarmPanel(false)
+            setGameViewAction({ type: 'recipe', id: recipeId })
+          }}
         />
       )}
 

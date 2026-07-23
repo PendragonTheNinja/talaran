@@ -94,6 +94,10 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
 
     const [allItems, setAllItems] = useState<{ id: number; name: string; type: string }[]>([])
     const [giveItemId, setGiveItemId] = useState('')
+    const [allSkills, setAllSkills] = useState<{ id: number; name: string; is_implemented: boolean }[]>([])
+    const [grantSkillId, setGrantSkillId] = useState('')
+    const [grantMode, setGrantMode] = useState<'setLevel' | 'add'>('setLevel')
+    const [grantAmount, setGrantAmount] = useState('10')
     const [giveQty, setGiveQty] = useState('1')
 
     useEffect(() => {
@@ -250,6 +254,31 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             await loadPlayer(selectedPlayer.id) // refresh their shown location
         } catch (err: any) {
             setError(err.message || 'Could not teleport player.')
+        }
+    }
+
+    useEffect(() => {
+        apiFetch<{ skills: { id: number; name: string; is_implemented: boolean }[] }>('/api/admin/skills')
+            .then(d => setAllSkills(d.skills || []))
+            .catch(() => setAllSkills([]))
+    }, [])
+
+    const handleGrantXp = async () => {
+        if (!selectedPlayer || !grantSkillId) return
+        setError(null); setSuccess(null)
+        try {
+            const data = await apiFetch<{ message: string }>('/api/admin/grant-xp', {
+                method: 'POST',
+                body: JSON.stringify({
+                    targetId: selectedPlayer.id,
+                    skillId: parseInt(grantSkillId),
+                    amount: parseInt(grantAmount) || 0,
+                    mode: grantMode,
+                }),
+            })
+            setSuccess(data.message)
+        } catch (err: any) {
+            setError(err.message || 'Could not grant experience.')
         }
     }
 
@@ -636,6 +665,46 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                             Add Item
                                         </button>
                                     </div>
+                                )}
+
+                                {/* Grant experience — testing aid */}
+                                {isAdmin && (
+                                <div className="admin-action-card">
+                                    <p className="admin-section-title">📈 Grant Experience</p>
+                                    <select
+                                        className="chat-input"
+                                        value={grantSkillId}
+                                        onChange={e => setGrantSkillId(e.target.value)}
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    >
+                                        <option value="">Select a skill…</option>
+                                        {allSkills.map(sk => (
+                                            <option key={sk.id} value={sk.id}>
+                                                {sk.name}{sk.is_implemented ? '' : ' (not implemented)'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        className="chat-input"
+                                        value={grantMode}
+                                        onChange={e => setGrantMode(e.target.value as 'setLevel' | 'add')}
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    >
+                                        <option value="setLevel">Set to level</option>
+                                        <option value="add">Add XP</option>
+                                    </select>
+                                    <input
+                                        className="chat-input"
+                                        type="number"
+                                        value={grantAmount}
+                                        onChange={e => setGrantAmount(e.target.value)}
+                                        placeholder={grantMode === 'setLevel' ? 'Level (1-99)' : 'XP to add'}
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    />
+                                    <button className="btn" style={{ fontSize: '13px' }} onClick={handleGrantXp} disabled={!grantSkillId}>
+                                        {grantMode === 'setLevel' ? 'Set Level' : 'Add XP'}
+                                    </button>
+                                </div>
                                 )}
 
 

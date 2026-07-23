@@ -58,16 +58,22 @@ export function calculateForageTimer(
     return Math.max(1, Math.round(t));
 }
 
-// Best owned tier of a foraging tool subtype (0 = none owned).
+// Foraging tools must be EQUIPPED, the same as the woodcutting hatchet — each in
+// its own slot, so knife, gloves, and basket can all be worn together.
+const TOOL_SLOT_COLUMN: Record<string, string> = {
+    foraging_knife: 'mainhand_item_id',
+    foraging_gloves: 'hands_item_id',
+    foraging_basket: 'offhand_item_id',
+};
+
 export async function bestToolTier(playerId: number, subtype: string): Promise<number> {
-    const row = await db('player_inventory')
-        .join('items', 'player_inventory.item_id', 'items.id')
-        .where('player_inventory.player_id', playerId)
-        .where('items.subtype', subtype)
-        .where('player_inventory.quantity', '>', 0)
-        .max('items.tier as tier')
-        .first();
-    return row?.tier ? Number(row.tier) : 0;
+    const column = TOOL_SLOT_COLUMN[subtype];
+    if (!column) return 0;
+    const equipment = await db('player_equipment').where({ player_id: playerId }).first();
+    const itemId = equipment?.[column];
+    if (!itemId) return 0;
+    const item = await db('items').where({ id: itemId, subtype }).first();
+    return item?.tier ? Number(item.tier) : 0;
 }
 
 async function playerLevelFor(playerId: number, skillName: string): Promise<number> {

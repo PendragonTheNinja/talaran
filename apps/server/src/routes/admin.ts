@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { io } from '../index';
 import { logger } from '../lib/logger';
+import { xpForLevel, levelFromXp } from '../services/xp';
 import { sendSystemMessage } from './messages';
 import { connectedPlayers } from '../index';
 
@@ -352,6 +353,68 @@ router.post('/give-item', requireAuth, async (req: AuthRequest, res: Response) =
 
         logger.info(`${staff.username} gave ${qty}x ${item.name} to ${target.username}`);
         res.json({ success: true, message: `Gave ${qty}× ${item.name} to ${target.username}.` });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Skills list, for the grant-XP picker
+router.get('/skills', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const staff = await db('players').where({ id: playerId }).first();
+        if (!staff.is_admin) { res.status(403).json({ error: 'No permission.' }); return; }
+        const skills = await db('skills').select('id', 'name', 'is_implemented').orderBy('display_order');
+        res.json({ skills });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Grant XP to a player, or set a skill straight to a level (testing aid).
+//   mode 'add'      → adds `amount` XP (may be negative, floored at 0)
+//   mode 'setLevel' → sets the skill's XP to exactly the start of level `amount`
+router.post('/grant-xp', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { targetId, skillId, amount, mode } = req.body;
+    try {
+        const staff = await db('players').where({ id: playerId }).first();
+        if (!staff.is_admin) { res.status(403).json({ error: 'No permission.' }); return; }
+
+        const value = parseInt(amount);
+        if (Number.isNaN(value)) { res.status(400).json({ error: 'Amount must be a number.' }); return; }
+
+        const target = await db('players').where({ id: targetId }).first();
+        if (!target) { res.status(404).json({ error: 'Player not found.' }); return; }
+        const skill = await db('skills').where({ id: skillId }).first();
+        if (!skill) { res.status(404).json({ error: 'Skill not found.' }); return; }
+
+        const existing = await db('player_skills')
+            .where({ player_id: targetId, skill_id: skillId }).first();
+        const currentXp = existing ? parseInt(existing.xp.toString()) : 0;
+
+        let newXp: number;
+        if (mode === 'setLevel') {
+            if (value < 1 || value > 99) { res.status(400).json({ error: 'Level must be between 1 and 99.' }); return; }
+            newXp = xpForLevel(value);
+        } else {
+            newXp = Math.max(0, currentXp + value);
+        }
+
+        if (existing) {
+            await db('player_skills')
+                .where({ player_id: targetId, skill_id: skillId })
+                .update({ xp: newXp });
+        } else {
+            await db('player_skills').insert({ player_id: targetId, skill_id: skillId, xp: newXp });
+        }
+
+        const newLevel = levelFromXp(newXp);
+        logger.info(`${staff.username} set ${target.username}'s ${skill.name} to ${newXp} xp (level ${newLevel})`);
+        res.json({
+            success: true,
+            message: `${target.username}'s ${skill.name} is now level ${newLevel} (${newXp.toLocaleString()} xp).`,
+        });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }

@@ -53,7 +53,7 @@ interface GameViewProps {
   travelStatus: { message: string; seconds: number } | null
   onClearTravel: () => void
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
-  externalAction: { type: string; id: number } | null
+  externalAction: { type: string; id: number; text?: string } | null
   onExternalActionHandled: () => void
   externalMessage: { text: string; type: 'success' | 'info' | 'error' } | null
   onExternalMessageHandled: () => void
@@ -76,6 +76,15 @@ interface LogEntry {
 
 const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking']
 const PROCESSING_LOCATIONS = ['Emberra', 'Verdale']
+
+const FARM_SCENE_TEXT: Record<string, string> = {
+  establish: 'You raise your farmstead — post and beam, stone and nail.',
+  build_plot: 'You set posts and rails, fencing in a new field.',
+  till: 'You break the soil, turning it over ready for seed.',
+  sow: 'You work down the rows, pressing seed into the earth.',
+  harvest: 'You lift the crop from the earth, filling your baskets.',
+  manure: 'You barrow muck onto the field and turn it into the soil.',
+}
 
 export default function GameView({
   locationData,
@@ -109,6 +118,7 @@ export default function GameView({
   const [botCheckQuestion, setBotCheckQuestion] = useState({ a: 0, b: 0 })
   const [veins, setVeins] = useState<any[]>([])
   const [veinNotification, setVeinNotification] = useState<string | null>(null)
+  const [farmKind, setFarmKind] = useState<string>('till')
   const [lastResult, setLastResult] = useState<{
     itemName: string
     xpAwarded: number
@@ -125,6 +135,7 @@ export default function GameView({
     drops?: { name: string; quantity: number }[]
     notable?: boolean
     firstDiscovery?: boolean
+    message?: string
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
@@ -257,6 +268,34 @@ export default function GameView({
           return
         }
 
+        // Farm work: one-shot jobs, and most of them produce no item at all
+        // (raising a farmstead, fencing, tilling, sowing) — so they can't go
+        // through the itemName gate below.
+        if (String((data as any).actionType || '').startsWith('farm_')) {
+          const r = data.result as any
+          const skillName = r.skillName || 'Farming'
+          setLastResult({
+            itemName: r.itemName ?? null,
+            quantity: r.quantity,
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: data.xpInfo?.totalXp || 0,
+            level: data.xpInfo?.level || 1,
+            xpToNext: data.xpInfo?.xpToNext || 0,
+            xpAtLevel: (data.xpInfo as any)?.xpAtLevel || 0,
+            skillName,
+            message: r.message,
+            drops: [],
+          })
+          if (data.xpInfo?.leveledUp) {
+            setLevelUpSkill({ name: skillName, level: data.xpInfo.level })
+          }
+          setCurrentAction(null)
+          setActiveNodeId(null)
+          setTimerSeconds(0)
+          if (timerRef.current) clearInterval(timerRef.current)
+          return
+        }
+
         if (data.result?.itemName) {
           // Recipe crafts carry their own skill — the executor is skill-agnostic, so
           // the action type can't imply it. Legacy actions still infer from the type.
@@ -282,6 +321,7 @@ export default function GameView({
             drops: (data.result as any).drops,
             notable: (data.result as any).notable,
             firstDiscovery: (data.result as any).firstDiscovery,
+            message: (data.result as any).message,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -501,6 +541,17 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'farm_establish':
+      case 'farm_build_plot':
+      case 'farm_till':
+      case 'farm_sow':
+      case 'farm_harvest':
+        setCurrentAction('farming')
+        setFarmKind(action.action_type.replace('farm_', ''))
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'foraging':
         setCurrentAction('foraging')
         setActiveNodeId(Number(action.action_data))
@@ -535,6 +586,19 @@ export default function GameView({
       startSmelting(externalAction.id as string)
     } else if (externalAction.type === 'smithing') {
       startSmithing(externalAction.id as string)
+    } else if (externalAction.type === 'farming') {
+      // Same start-of-action cleanup every other skill does: clear the previous
+      // result card and any stale timer before the new job begins.
+      setLastResult(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      setCurrentAction('farming')
+      setFarmKind(externalAction.text || 'till')
+      setTimerMax(externalAction.id as number)
+      startCountdown(externalAction.id as number)
     } else if (externalAction.type === 'kiln_collecting') {
       setCurrentAction('kiln_collect')
       setTimerMax(externalAction.id as number)
@@ -958,6 +1022,18 @@ export default function GameView({
       )
     }
 
+    if (r.message) {
+      return (
+        <>
+          <p className="last-result-item">{r.message}</p>
+          {r.itemName && (
+            <p className="last-result-drop">You gathered {r.quantity ?? 1} × {r.itemName}.</p>
+          )}
+          <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+        </>
+      )
+    }
+
     return (
       <>
         <p className="last-result-item">
@@ -1080,6 +1156,9 @@ export default function GameView({
               {currentAction === 'hunting' && (
                 <p className="scene-action-text gold-text">{huntPhaseText}</p>
               )}
+              {currentAction === 'farming' && (
+                <p className="scene-action-text gold-text">{FARM_SCENE_TEXT[farmKind] || FARM_SCENE_TEXT.till}</p>
+              )}
               {currentAction === 'foraging' && (
                 <p className="scene-action-text gold-text">
                   {(locationData as any)?.foragingHabitats?.find((h: any) => h.id === activeNodeId)?.scene_text || 'You gather among the wild growth.'}
@@ -1126,6 +1205,9 @@ export default function GameView({
               )}
               {currentAction === 'foraging' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Foraging</button>
+              )}
+              {currentAction === 'farming' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Working</button>
               )}
               {currentAction === 'recipe' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>

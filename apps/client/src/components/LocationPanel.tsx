@@ -54,6 +54,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const isEmberra = location?.name === 'Emberra'
   const isVerdale = location?.name === 'Verdale'
   const isCaliwen = location?.name === 'Caliwen'
+  const isNovita = location?.name === 'Novita'
 
   const [questStatus, setQuestStatus] = useState<'not_started' | 'active' | 'completed'>('not_started')
   const [showBlacksmith, setShowBlacksmith] = useState(false)
@@ -197,6 +198,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('foraging_menu', 0)}
           >
             Forage the Forest →
+          </button>
+        )}
+
+        {isNovita && (
+          <button
+            className="location-action-btn"
+            onClick={() => onStartAction('farm_panel', 0)}
+          >
+            Your Homestead →
           </button>
         )}
 

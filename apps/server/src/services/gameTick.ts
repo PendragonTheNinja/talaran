@@ -3,6 +3,7 @@ import db from '../db';
 import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
+import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure } from './farming';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
@@ -58,7 +59,17 @@ async function processTravelAction(playerId: number, locationId: number): Promis
 async function processHunt(playerId: number, animalId: number): Promise<any> {
   try {
     const { resolveHunt } = await import('./hunting');
+    const { incrementStats } = await import('./stats');
     const outcome = await resolveHunt(playerId, animalId);
+
+    // Hunting previously tracked no stats at all, unlike every other gather skill.
+    const stats: Record<string, number> = {
+      total_actions_completed: 1,
+      total_xp_earned: outcome.xp || 0,
+    };
+    if (outcome.success) stats.total_animals_hunted = 1;
+    await incrementStats(playerId, stats);
+
     return { success: true, hunt: outcome };
   } catch (err) {
     logger.error(`Hunt completion error: ${err}`);
@@ -118,6 +129,56 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'foraging':
         result = await processForagingAction(action.player_id, action.action_data);
         break;
+      case 'farm_establish':
+      case 'farm_build_plot':
+      case 'farm_till':
+      case 'farm_sow':
+      case 'farm_manure':
+      case 'farm_harvest': {
+        // One-shot farm work: clear the action, resolve it, report.
+        await db('player_actions').where({ id: action.id }).delete();
+
+        let farmResult;
+        if (action.action_type === 'farm_establish') farmResult = await resolveEstablish(action.player_id);
+        else if (action.action_type === 'farm_build_plot') farmResult = await resolveBuildPlot(action.player_id);
+        else if (action.action_type === 'farm_till') farmResult = await resolveTill(action.player_id, action.action_data);
+        else if (action.action_type === 'farm_sow') farmResult = await resolveSow(action.player_id, action.action_data);
+        else if (action.action_type === 'farm_manure') farmResult = await resolveManure(action.player_id, action.action_data);
+        else farmResult = await resolveHarvest(action.player_id, action.action_data);
+
+        if (!farmResult.success) {
+          io.to(`player_${action.player_id}`).emit('action_failed', { error: farmResult.error || 'The work came to nothing.' });
+          return;
+        }
+
+        const farmSkill = await db('skills').where({ name: farmResult.skillName || 'Farming' }).first();
+        const farmPs = farmSkill
+          ? await db('player_skills').where({ player_id: action.player_id, skill_id: farmSkill.id }).first()
+          : null;
+        const farmXpTotal = farmPs ? parseInt(farmPs.xp.toString()) : 0;
+        const farmLevel = levelFromXp(farmXpTotal);
+        const farmPrevLevel = levelFromXp(Math.max(0, farmXpTotal - (farmResult.xp || 0)));
+
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          result: {
+            itemName: farmResult.itemName,
+            quantity: farmResult.quantity,
+            xpAwarded: farmResult.xp,
+            skillName: farmResult.skillName,
+            message: farmResult.message,
+            drops: [],
+          },
+          xpInfo: {
+            totalXp: farmXpTotal,
+            level: farmLevel,
+            xpToNext: xpToNextLevel(farmXpTotal),
+            leveledUp: farmLevel > farmPrevLevel,
+            xpAtLevel: xpForLevel(farmLevel),
+          },
+        });
+        return;
+      }
       case 'recipe': {
         const { resolveRecipe } = await import('./recipes');
         result = await resolveRecipe(action.player_id, parseInt(action.action_data));

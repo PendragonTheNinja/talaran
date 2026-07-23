@@ -1,0 +1,54 @@
+.farm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 500; padding: var(--space-md); }
+.farm-modal { width: 100%; max-width: 680px; max-height: 86vh; overflow-y: auto; background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%); border: 1px solid var(--color-border-gold); border-radius: var(--radius-md); padding: var(--space-lg); box-shadow: var(--shadow-lg); }
+.farm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+.farm-header h2 { font-family: var(--font-heading); color: var(--color-gold-bright); margin: 0; }
+.farm-close { background: none; border: none; color: var(--color-text-muted); font-size: 20px; cursor: pointer; }
+.farm-empty, .farm-error, .farm-note { text-align: center; color: var(--color-text-muted); font-size: 13px; padding: var(--space-sm); }
+.farm-error { color: var(--color-red-glow); }
+
+.farm-build-lead { color: var(--color-text-muted); font-style: italic; font-size: 14px; margin-bottom: var(--space-md); }
+.farm-cost { display: flex; flex-direction: column; gap: 4px; margin-bottom: var(--space-sm); }
+.farm-cost-row { display: flex; justify-content: space-between; padding: 6px 12px; border-radius: var(--radius-sm); background: var(--color-bg-deep); border: 1px solid var(--color-border-dark); font-size: 14px; }
+.farm-cost-row.ok { color: var(--color-text-bright); }
+.farm-cost-row.short { color: var(--color-red-glow); border-color: var(--color-red-glow); }
+.farm-build-grants { text-align: center; font-size: 13px; color: var(--color-text-muted); margin: var(--space-sm) 0; }
+
+.farm-status { display: flex; gap: var(--space-md); padding: var(--space-sm) var(--space-md); background: var(--color-bg-deep); border-radius: var(--radius-sm); margin-bottom: var(--space-md); font-size: 13px; }
+.farm-status .tool-on { color: var(--color-xp); }
+.farm-status .tool-off { color: var(--color-text-dim); }
+
+.farm-plots { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-md); }
+.farm-plot { border: 1px solid var(--color-border-mid); border-radius: var(--radius-sm); padding: var(--space-md); background: var(--color-bg-deep); min-height: 96px; }
+.farm-plot.state-ready { border-color: var(--color-border-gold); }
+.farm-plot.state-growing { border-color: var(--color-border-dark); }
+.farm-plot-head { font-family: var(--font-heading); font-size: 13px; color: var(--color-text-muted); margin-bottom: 6px; }
+.farm-plot-desc { font-size: 13px; color: var(--color-text-bright); margin: 4px 0 8px; }
+.farm-grow { font-size: 13px; color: var(--color-xp); }
+
+.farm-sow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.farm-sow select { flex: 1; min-width: 90px; background: var(--color-bg-dark); color: var(--color-text-bright); border: 1px solid var(--color-border-mid); border-radius: var(--radius-sm); padding: 5px; font-size: 13px; }
+.farm-sow input { width: 52px; background: var(--color-bg-dark); color: var(--color-text-bright); border: 1px solid var(--color-border-mid); border-radius: var(--radius-sm); padding: 5px; font-size: 13px; }
+
+.farm-btn { background: var(--color-bg-raised); color: var(--color-text-bright); border: 1px solid var(--color-border-mid); border-radius: var(--radius-sm); padding: 6px 14px; font-family: var(--font-heading); font-size: 13px; cursor: pointer; }
+.farm-btn.primary { background: var(--color-gold); color: var(--color-bg-deepest); border: none; }
+.farm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.farm-crops { border-top: 1px solid var(--color-border-dark); padding-top: var(--space-sm); }
+.farm-crops-title { font-family: var(--font-heading); color: var(--color-text-muted); font-size: 13px; margin-bottom: 6px; }
+.farm-crop-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: var(--color-text-bright); }
+.farm-crop-row.locked { color: var(--color-text-dim); }
+.farm-crop-meta { color: var(--color-text-muted); }
+
+.farm-newplot { border: 1px dashed var(--color-border-mid); border-radius: var(--radius-sm); padding: var(--space-md); margin-bottom: var(--space-md); background: var(--color-bg-deep); }
+.farm-newplot-title { font-family: var(--font-heading); font-size: 13px; color: var(--color-text-muted); margin-bottom: 8px; }
+
+.farm-soil { float: right; font-size: 11px; font-family: var(--font-body); }
+.farm-soil.soil-rich { color: var(--color-xp); }
+.farm-soil.soil-normal { color: var(--color-text-dim); }
+.farm-soil.soil-depleted { color: var(--color-red-glow); }
+.farm-resting { font-size: 12px; color: var(--color-text-dim); font-style: italic; margin: 4px 0; }
+.farm-manure-btn { margin-bottom: 6px; font-size: 12px; padding: 4px 10px; }
+
+.farm-tabs { display: flex; gap: 6px; margin-bottom: var(--space-md); }
+.farm-tab { flex: 1; background: var(--color-bg-deep); color: var(--color-text-muted); border: 1px solid var(--color-border-dark); border-radius: var(--radius-sm); padding: 6px 10px; font-family: var(--font-heading); font-size: 13px; cursor: pointer; }
+.farm-tab.active { color: var(--color-gold-bright); border-color: var(--color-border-gold); }
