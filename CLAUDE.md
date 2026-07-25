@@ -1,8 +1,14 @@
 # CLAUDE.md — Talaran Project Constitution
 
-*The first thing a new session reads. Last updated 2026-07-16.*
+*The first thing a new session reads. Last updated 2026-07-24.*
 
 Talaran is a live browser-based medieval skilling MMORPG in alpha (~30+ players) by Nathan (`PendragonTheNinja`). Live at talaran.net · repo `PendragonTheNinja/talaran`, branch `main` · React/TS/Vite client + Node/Express/TS server + PostgreSQL/Knex + Socket.io · PM2 on Hetzner behind Cloudflare · monorepo: `apps/client`, `apps/server`. **Production lives at `/var/www/talaran`** (`ssh talaran` from Nathan's WSL; his working repo is `~/talaran`).
+
+## 0. Before you build anything
+
+**Read this whole file, then read the nearest existing implementation in full** — not the slice that looks relevant, the whole file. Before a new skill: a finished skill's service, route, tick block, *and* client panel. Before new UI: the component that already does the closest thing. Before writing any new file, name the existing feature it mirrors; if that can't be answered with a filename, the codebase hasn't been read yet.
+
+Every repeat failure this past patch was a convention that already existed here and went unread, not a hard call gotten wrong: a two-column storage list built without opening the inventory grid; thirteen recipes shipped with no `flavor_text` (a column that exists for exactly that); an action with no cancel button (checklist item 7); hard-coded client scene text (§2 forbids it by name); a migration edited after it had run (§3 freezes it). Reading first is the single highest-leverage habit.
 
 ## 1. Working rules (non-negotiable)
 
@@ -39,11 +45,37 @@ Talaran is a live browser-based medieval skilling MMORPG in alpha (~30+ players)
 5. Resolve path must delete-or-restart on **every** exit branch, and re-validate preconditions each cycle (equipped items, `is_active` flags).
 6. Socket listeners registered **and** added to the `socket.off` cleanup.
 7. Scene text + cancel button driven by server data, not a hard-coded action-type chain.
+8. **Clear `lastResult` on start.** Every `startX` in `GameView.tsx` does `setLastResult(null)` + timer/travel cleanup, or the previous result card hangs under the new timer. Mirror `startForage`, not the shortest nearby branch (`kiln_collecting` is three lines and misses this).
+9. **The result card has THREE render branches** (hunting / message-carrying / generic) and a change to one reaches none of the others. Anything XP-only (till, build, tend) also falls through the generic branch's `itemName` gate and renders nothing — send a `message` and give it a branch. Check all three every time.
+10. **New recipes set `flavor_text`.** The per-skill fallback in `RECIPE_FLAVOR_BY_SKILL` is a net, not the plan, and needs an entry for any new recipe-owning skill.
+
+## 2b. Client patterns (match these, don't invent)
+
+- **Items are always an icon grid**, never a text list: `getItemIcon(name)` from `lib/items`, rendered as `inventory-slot` tiles, name fallback on image error, quantity badge. Inventory, ground items, and property storage all do this.
+- **Persistent modes follow drop mode** (`dropMode`/`tradeMode` in `LeftPanel.tsx`): a toggle that changes what tapping an inventory item does. Full-screen panels cover the inventory, so any "tap your items to do X" feature must be a mode that outlives the panel, and the panel overlay must pass clicks through (`pointer-events`) while it's active. Give the grid a visible active state; `drop-mode-active` is referenced but never styled, so don't copy that gap.
+- **Feature panels are one modal with tabs**, not several location buttons. The farm panel carries Storage / Fields / Processing; new sub-systems become tabs.
+- **Admin main-column cards are `admin-action-card`** with an emoji-led `admin-section-title`. `admin-section` is the plain sidebar style and renders an unboxed control that looks broken. Gate admin-only tools on `isAdmin` in the UI too, not just the route.
+- **Reuse `RecipeList`** for any skill's recipes; never write a second one. Its category tabs wrap (crossover `for_skill` means a bench advertises every skill it serves, so the list grows).
+
+## 2c. Property & homestead model
+
+- A **property** (`player_properties`) is a container a player owns at a location — farmstead at Novita, house at Talador later. It holds sub-systems (plots, storage, later pens/stables). **Not a workstation** (those are single-purpose benches keyed by `type`).
+- **Storage is per-property**, keyed by the location the player stands in, so a new property type gets storage with no new code. One slot = one unique item stack of any size; topping up an existing stack never needs a free slot.
+- **Sub-system capacity lives on the property row** (`plot_slots`, `storage_slots`) so a tier upgrade is a number change, not a schema change.
+- **Skill gates belong to the skill that owns the sub-system.** Farming level caps plot count; Carpentry level caps house tier. Never gate one skill's capacity behind another skill's level — materials trade between players, levels don't.
+
+## 2d. Writing style for player-facing text
+
+Applies to everything a player reads: item/habitat descriptions, NPC dialogue, quest text, flavor text, scene text, result messages, button labels, errors.
+
+- **Em dashes sparingly.** Badly overused by default. Reach for a full stop, comma, colon, or semicolon first; keep one only where the break genuinely earns it. A patch shipped with 27 player-facing lines carrying an em dash and needed a cleanup pass.
+- **Text is content, so it lives in the DB.** A wording change ships as a migration, not a code edit. Exception: UI chrome (button labels, status lines) lives in the component.
+- Keep the voice: plain, concrete, a little folkloric. NPCs talk like working people, not narrators.
 
 ## 3. Migrations — hard-won rules
 
 - **`migrate:make`, paste contents, THEN run.** Running `npm run migrate` before saving the file **burns the filename** — knex records it as complete and the real contents *never execute*. This happened (`tannery_all_timber`) and cost an hour of confusion.
-- **An already-run migration is frozen.** Knex tracks by filename, not contents. Editing does nothing. If it's the latest: `migrate:down` → edit → `migrate`. If it's buried: **write a new forward-fix migration** (see `merge_tanners_scraps_into_leather_strips`, `tannery_timber_only`).
+- **An already-run migration is frozen.** Knex tracks by filename, not contents. Editing does nothing. If it's the latest: `migrate:down` → edit → `migrate`. If it's buried: **write a new forward-fix migration** (see `merge_tanners_scraps_into_leather_strips`, `tannery_timber_only`). **Once a migration is delivered to Nathan, treat it as applied unless he says otherwise — ask before editing it.** Editing `20260721040000` after delivery silently lost a `scene_text` column *and* a gloves-recipe deletion, each needing its own repair migration.
 - **`migrate:down` reverts one migration; `migrate:rollback` reverts the whole batch.** Use `down`.
 - **Honest `down()` functions are load-bearing** — they're what makes the edit-and-re-run loop possible at all.
 - **Knex orders by FILENAME.** A migration saved without its timestamp prefix sorts *after* everything (`s` > `2`) and runs last. `seed_trapping_content.ts` lost its prefix via a browser download and would have reset tanning to broken **as the final act of the production deploy**. Never save a downloaded migration without matching the generated filename.
@@ -92,13 +124,14 @@ On the box (`ssh talaran`): `cd /var/www/talaran` → `git pull` → `cd apps/se
 
 ## 7. Docs index & open threads
 
-Specs: `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md`. Sims are regenerable — ask Claude to re-derive constants when knobs change.
+Specs: `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/IDEAS.md` (parking lot; the event-chat "firsts" feed lives here). Sims are regenerable — ask Claude to re-derive constants when knobs change.
 
 **Next patch, in rough priority:**
-- **Foraging** — the front door to the wild economy (plant fiber → cordage → snares; wild flax → linen → bowstrings). Unblocks bow crafting and, eventually, tool breakage.
+- **Husbandry** — closes several loops left open by the farming patch: manure (soil restore has no source without it), Husbandry leather (foraging gloves are recipe-less until then, so the Bramble Thicket's glove-gated rows stay dark), and the grain/straw sinks. Also the geese/cattle/live-capture-box work below.
 - **Legacy deletion**: `WOODWORK_RECIPES`, `SMITH_RECIPES`, their routes, and gameTick's `woodworking`/`smithing` branches. Kept one deploy so in-flight actions could resolve; delete now.
 - **Onboarding discovery**: the bow moved to Geonsen's quest and nothing signals he exists. Nathan wants quests discovered by finding the giver, *not* listed in the panel — so this needs a hint, an NPC pointer at Talador, or the bow staying at spawn with Geonsen giving only snares.
-- Tutorial NPC per skill (Geoffrey/forge, Geossica/workshop, Geonsen/hunt — the Geo- pattern).
+- Tutorial NPC per skill, the Geo- pattern (Geoffrey/forge, Geossica/workshop, Geonsen/hunt, Georgic/field — all shipped; keep the convention for new skills).
+- **Farming follow-ups (deferred, agreed):** manure source (needs Husbandry) · passive retting pool (needs a farmstead structure) · farmstead/house tiers + Talador house (need Serph nails + the currency/economy plan) · the event-chat "firsts" feed (`item_firsts.announced` is ready).
 - Crafting content: gems + finery (deferred — jewelry had no purpose yet). Sinks for Squonk Tears / Rabbit's Foot / Prized Plume.
 - Tooltip unification (skill-hover style wins, one shared component).
 - Audit continuation: `gameTick` + economy services, trade atomicity, ground-item dupe, the ~29 client type errors → `docs/audit.md`.

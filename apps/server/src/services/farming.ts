@@ -20,9 +20,12 @@ const NOVITA = 'Novita';
 const PLOT_CAPACITY = 10;                 // seeds per plot
 const PLOT_MAX = 20;                      // hard ceiling (end-game)
 const CARPENTRY_REQ = 1;
-// Building is joinery. Tools are held, not consumed, matching how a Carpentry
-// workstation checks for its sawhorse, saw, and plane.
-const BUILD_TOOLS = ['Lanai Mallet', 'Ambren Saw'];
+// Building is joinery. Tools are held, not consumed. The mallet is the tool in
+// your hands, so it must be EQUIPPED (mainhand) like the hoe on tilling; the saw
+// is bench kit and only needs to be carried.
+const BUILD_MALLET = { subtype: 'mallet', itemName: 'Lanai Mallet' };
+const BUILD_HELD = ['Ambren Saw'];
+const BUILD_TOOLS = [BUILD_MALLET.itemName, ...BUILD_HELD];
 
 const ESTABLISH_COST = [
     { itemName: 'Lanai Planks', qty: 500 },
@@ -160,10 +163,25 @@ async function giveItem(playerId: number, itemName: string, qty: number) {
     else await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
 }
 
-async function missingBuildTool(playerId: number): Promise<string | null> {
-    for (const name of BUILD_TOOLS) {
-        if ((await inventoryQty(playerId, name)) < 1) return name;
+// Returns the first unmet build-tool requirement, or null when fully kitted.
+// `itemName` keeps the old API shape; `message` carries the equipped-vs-held
+// distinction so the error tells the player what to actually do.
+async function missingBuildTool(
+    playerId: number,
+): Promise<{ itemName: string; message: string } | null> {
+    if (!(await equippedTool(playerId, BUILD_MALLET.subtype))) {
+        return {
+            itemName: BUILD_MALLET.itemName,
+            message: `You need a ${BUILD_MALLET.itemName} equipped to build.`,
+        };
     }
+
+    for (const name of BUILD_HELD) {
+        if ((await inventoryQty(playerId, name)) < 1) {
+            return { itemName: name, message: `You need a ${name} to build.` };
+        }
+    }
+
     return null;
 }
 
@@ -259,7 +277,7 @@ export async function getFarmState(playerId: number) {
                 plotCapacity: PLOT_CAPACITY,
                 seconds: ESTABLISH_SECONDS,
                 tools: BUILD_TOOLS,
-                missingTool: await missingBuildTool(playerId),
+                missingTool: (await missingBuildTool(playerId))?.itemName ?? null,
             },
             crops: cropList,
         };
@@ -271,7 +289,7 @@ export async function getFarmState(playerId: number) {
     const now = Date.now();
     const manureHeld = await inventoryQty(playerId, 'Manure');
     const bucketHeld = await inventoryQty(playerId, 'Lanai Bucket');
-    const missingBuild = await missingBuildTool(playerId);
+    const missingBuild = (await missingBuildTool(playerId))?.itemName ?? null;
     const plotView = plots.map(p => {
         const crop = crops.find(c => c.id === p.crop_id) || null;
         const readyAt = p.ready_at ? new Date(p.ready_at).getTime() : null;
@@ -335,7 +353,7 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
     if (carp < CARPENTRY_REQ) return { ok: false, error: `Requires Carpentry level ${CARPENTRY_REQ}.` };
 
     const missingTool = await missingBuildTool(playerId);
-    if (missingTool) return { ok: false, error: `You need a ${missingTool} to build.` };
+    if (missingTool) return { ok: false, error: missingTool.message };
 
     const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
     if (!matCheck.ok) {
@@ -355,7 +373,7 @@ export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; e
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const missingTool = await missingBuildTool(playerId);
-    if (missingTool) return { ok: false, error: `You need a ${missingTool} to build.` };
+    if (missingTool) return { ok: false, error: missingTool.message };
 
     const plots = await db('farm_plots').where({ property_id: property.id });
     const farmingLvl = await skillLevel(playerId, 'Farming');
@@ -465,6 +483,10 @@ export async function resolveTend(playerId: number): Promise<FarmActionResult> {
         const { property } = await playerProperty(playerId);
         if (!property) return { success: false, error: 'You have no farmstead here.' };
 
+        if ((await inventoryQty(playerId, 'Lanai Bucket')) < 1) {
+            return { success: false, error: 'You need a bucket to carry water.' };
+        }
+
         const plots = await tendablePlots(property.id);
         if (plots.length === 0) return { success: false, error: 'Nothing needed tending.' };
 
@@ -541,6 +563,9 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         if (!novita) return { success: false, error: 'Novita not found.' };
         if (property) return { success: false, error: 'You already have a farmstead here.' };
 
+        const missingTool = await missingBuildTool(playerId);
+        if (missingTool) return { success: false, error: missingTool.message };
+
         const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
         if (!matCheck.ok) return { success: false, error: 'You no longer have the materials.' };
         await consumeMaterials(playerId, ESTABLISH_COST);
@@ -574,7 +599,15 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
         const { property } = await playerProperty(playerId);
         if (!property) return { success: false, error: 'You have no farmstead here.' };
 
+        const missingTool = await missingBuildTool(playerId);
+        if (missingTool) return { success: false, error: missingTool.message };
+
         const plots = await db('farm_plots').where({ property_id: property.id });
+        const farmingLvl = await skillLevel(playerId, 'Farming');
+        if (plots.length >= plotCapForLevel(farmingLvl)) {
+            return { success: false, error: 'You cannot work another field yet.' };
+        }
+
         const cost = plotCost(plots.length + 1);
         const matCheck = await hasMaterials(playerId, cost);
         if (!matCheck.ok) return { success: false, error: 'You no longer have the materials.' };
@@ -603,6 +636,9 @@ export async function resolveTill(playerId: number, plotIdRaw: string | null): P
         const plotId = plotIdRaw ? parseInt(plotIdRaw) : 0;
         const plot = await ownedPlot(playerId, plotId);
         if (!plot || plot.state !== 'empty') return { success: false, error: 'That plot could not be tilled.' };
+        if (!(await equippedTool(playerId, 'hoe'))) {
+            return { success: false, error: 'You need a hoe equipped to till the soil.' };
+        }
 
         await db('farm_plots').where({ id: plotId }).update({ state: 'tilled' });
 
