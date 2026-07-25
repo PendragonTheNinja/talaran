@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
+import PropertyStorage from './PropertyStorage'
 import './FarmPanel.css'
 
 interface CropDef {
@@ -12,7 +13,7 @@ interface Plot {
     id: number; slotIndex: number; state: string; soilState: string
     crop: { id: number; name: string; isPerennial: boolean } | null
     seedCount: number; readyAt: string | null; secondsRemaining: number | null
-    yieldModifier?: number; restingSecondsToNextStep?: number | null
+    yieldModifier?: number; restingSecondsToNextStep?: number | null; tended?: boolean
 }
 interface FarmState {
     hasFarmstead: boolean; atNovita: boolean; farmingLevel: number; hasHoe: boolean
@@ -36,6 +37,7 @@ interface FarmState {
     } | null
     timers?: { till: number; sowPerSeed: number; harvestPerSeed: number; buildPlot: number; manure: number }
     manure?: { held: number; cost: number }
+    tend?: { hasBucket: boolean; plots: number; secondsPerPlot: number; speedup: number }
 }
 
 function fmtDuration(s: number): string {
@@ -52,15 +54,20 @@ interface FarmPanelProps {
     onClose: () => void
     onActionStarted: (timerSeconds: number, kind: string) => void
     onStartRecipe: (recipeId: number) => void
+    storeMode: boolean
+    onToggleStoreMode: () => void
+    storeAmount: number
+    onStoreAmountChange: (n: number) => void
+    storeRefresh?: number
 }
 
-export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: FarmPanelProps) {
+export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, storeRefresh }: FarmPanelProps) {
     const [data, setData] = useState<FarmState | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [busy, setBusy] = useState(false)
     const [sow, setSow] = useState<Record<number, { cropId: number; count: number }>>({})
-    const [tab, setTab] = useState<'fields' | 'processing'>('fields')
+    const [tab, setTab] = useState<'storage' | 'fields' | 'processing'>('storage')
 
     const load = useCallback(() => {
         return apiFetch<FarmState>('/api/farming/state')
@@ -87,7 +94,10 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
     const unlockedCrops = data?.crops.filter(c => c.unlocked) ?? []
 
     return (
-        <div className="farm-overlay" onClick={onClose}>
+        <div
+            className={`farm-overlay ${storeMode ? 'store-open' : ''}`}
+            onClick={() => { if (!storeMode) onClose() }}
+        >
             <div className="farm-modal" onClick={e => e.stopPropagation()}>
                 <div className="farm-header">
                     <h2>Homestead</h2>
@@ -96,6 +106,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
 
                 {!loading && data?.hasFarmstead && (
                     <div className="farm-tabs">
+                        <button className={`farm-tab ${tab === 'storage' ? 'active' : ''}`} onClick={() => setTab('storage')}>Storage</button>
                         <button className={`farm-tab ${tab === 'fields' ? 'active' : ''}`} onClick={() => setTab('fields')}>Fields</button>
                         <button className={`farm-tab ${tab === 'processing' ? 'active' : ''}`} onClick={() => setTab('processing')}>Processing</button>
                     </div>
@@ -108,7 +119,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
                 {!loading && data && !data.hasFarmstead && data.build && (
                     <div className="farm-build">
                         <p className="farm-build-lead">
-                            You have no farmstead here. Raising one is the work of a season — timber, dressed stone, and iron.
+                            You have no farmstead here. Raising one is the work of a season: timber, dressed stone, and iron.
                         </p>
                         <div className="farm-cost">
                             {data.build.cost.map(c => {
@@ -143,6 +154,25 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
                             <span>Fields {data.plots?.length ?? 0} / {data.plotCap ?? 1}</span>
                         </div>
 
+                        {data.tend && data.tend.plots > 0 && (
+                            <div className="farm-tend-bar">
+                                <span>
+                                    {data.tend.plots} field{data.tend.plots === 1 ? '' : 's'} can be tended
+                                    {' '}(−{Math.round(data.tend.speedup * 100)}% of time left each)
+                                </span>
+                                <button
+                                    className="farm-btn primary"
+                                    disabled={busy || !data.tend.hasBucket}
+                                    title={data.tend.hasBucket ? undefined : 'You need a bucket to carry water'}
+                                    onClick={() => act('/api/farming/tend')}
+                                >
+                                    {data.tend.hasBucket
+                                        ? `Tend Fields (${fmtDuration(data.tend.plots * data.tend.secondsPerPlot)})`
+                                        : 'Tend Fields (need a bucket)'}
+                                </button>
+                            </div>
+                        )}
+
                         <div className="farm-plots">
                             {data.plots?.map(p => (
                                 <div key={p.id} className={`farm-plot state-${p.state}`}>
@@ -156,7 +186,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
                                         </span>
                                     </div>
                                     {p.restingSecondsToNextStep != null && (
-                                        <p className="farm-resting">Resting — recovers in {fmtDuration(p.restingSecondsToNextStep)}</p>
+                                        <p className="farm-resting">Resting, recovers in {fmtDuration(p.restingSecondsToNextStep)}</p>
                                     )}
                                     {p.soilState !== 'rich' && (data.manure?.held ?? 0) >= (data.manure?.cost ?? 5) && (
                                         <button className="farm-btn farm-manure-btn" disabled={busy}
@@ -197,7 +227,10 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
                                     {p.state === 'growing' && (
                                         <>
                                             <p className="farm-plot-desc">{p.crop?.name} · {p.seedCount} sown</p>
-                                            <p className="farm-grow">Growing — {fmtDuration(p.secondsRemaining ?? 0)}</p>
+                                            <p className="farm-grow">
+                                                Growing, {fmtDuration(p.secondsRemaining ?? 0)}
+                                                {p.tended && <span className="farm-tended"> · tended</span>}
+                                            </p>
                                         </>
                                     )}
 
@@ -250,6 +283,16 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe }: F
                         </div>
                     </>
                 )}
+                {!loading && data && data.hasFarmstead && tab === 'storage' && (
+                    <PropertyStorage
+                        storeMode={storeMode}
+                        onToggleStoreMode={onToggleStoreMode}
+                        storeAmount={storeAmount}
+                        onStoreAmountChange={onStoreAmountChange}
+                        refreshKey={storeRefresh}
+                    />
+                )}
+
                 {!loading && data && data.hasFarmstead && tab === 'processing' && (
                     <RecipeList
                         skill="Farming"

@@ -10,6 +10,7 @@ import {
     startSow,
     startHarvest,
     startManure,
+    startTend,
 } from '../services/farming';
 
 const router = Router();
@@ -60,6 +61,12 @@ router.post('/manure', requireAuth, botCheckGate, async (req: AuthRequest, res: 
     const r = await startManure(req.player!.playerId, req.body.plotId);
     if (!r.ok) { res.status(400).json({ error: r.error }); return; }
     res.json({ message: 'Spreading manure', timerSeconds: r.timerSeconds });
+});
+
+router.post('/tend', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    const r = await startTend(req.player!.playerId);
+    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    res.json({ message: 'Tending', timerSeconds: r.timerSeconds });
 });
 
 export default router;

@@ -42,6 +42,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   const [carpentryStatus, setCarpentryStatus] = useState<any>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
+  const [farmsteadOpen, setFarmsteadOpen] = useState(false)
 
   const [tanningStatus, setTanningStatus] = useState<any>(null)
   const [craftworksOpen, setCraftworksOpen] = useState(false)
@@ -202,12 +203,36 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         )}
 
         {isNovita && (
-          <button
-            className="location-action-btn"
-            onClick={() => onStartAction('farm_panel', 0)}
-          >
-            Your Homestead →
-          </button>
+          <div className="location-submenu">
+            <button
+              className={`location-action-btn submenu-toggle ${farmsteadOpen ? 'open' : ''}`}
+              onClick={() => setFarmsteadOpen(!farmsteadOpen)}
+            >
+              {farmsteadOpen ? '▼' : '▶'} Farmstead
+            </button>
+            {farmsteadOpen && (
+              <div className="submenu-items">
+
+                {npcs.filter(npc => npc.submenu === 'farmstead').map(npc => (
+                  <button
+                    key={npc.id}
+                    className="location-action-btn sub npc"
+                    onClick={() => setActiveNpcId(npc.id)}
+                  >
+                    {npc.avatar} Speak with {npc.name}
+                  </button>
+                ))}
+
+                <button
+                  className={`location-action-btn sub ${currentAction === 'farming' ? 'active' : ''}`}
+                  onClick={() => onStartAction('farm_panel', 0)}
+                >
+                  Your Homestead →
+                </button>
+
+              </div>
+            )}
+          </div>
         )}
 
         {/* Smithing — Emberra only */}

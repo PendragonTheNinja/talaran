@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
+import { flyItemToPack } from '../lib/itemFly'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
 import TravelLog from './TravelLog'
@@ -78,12 +79,13 @@ const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking']
 const PROCESSING_LOCATIONS = ['Emberra', 'Verdale']
 
 const FARM_SCENE_TEXT: Record<string, string> = {
-  establish: 'You raise your farmstead — post and beam, stone and nail.',
+  establish: 'You raise your farmstead, post and beam, stone and nail.',
   build_plot: 'You set posts and rails, fencing in a new field.',
   till: 'You break the soil, turning it over ready for seed.',
   sow: 'You work down the rows, pressing seed into the earth.',
   harvest: 'You lift the crop from the earth, filling your baskets.',
   manure: 'You barrow muck onto the field and turn it into the soil.',
+  tend: 'You carry water down the rows, pulling weeds as you go.',
 }
 
 export default function GameView({
@@ -132,9 +134,10 @@ export default function GameView({
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
     ended?: 'limit' | 'materials' | 'unavailable'
-    drops?: { name: string; quantity: number }[]
+    drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[]
     notable?: boolean
     firstDiscovery?: boolean
+    firstEver?: boolean
     message?: string
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
@@ -174,6 +177,33 @@ export default function GameView({
       }, 5000)
     }
   }
+
+  // Every skill reports through lastResult, so hooking it here covers gathering,
+  // crafting, farming and anything added later without touching each one.
+  useEffect(() => {
+    const r = lastResult
+    if (!r?.itemName && !(r?.drops || []).length) return
+    // The card renders in a few places (desktop and mobile layouts), so find
+    // whichever one is actually on screen rather than holding a ref to one.
+    const card = document.querySelector<HTMLElement>('.scene-last-result')
+    if (r.itemName) {
+      flyItemToPack({
+        itemName: r.itemName,
+        fromEl: card,
+        firstTime: !!r.firstEver || !!r.firstDiscovery,
+      })
+    }
+
+    // Secondary drops follow, spaced out so they read as a series rather than
+    // a pile landing at once.
+    const timers: number[] = []
+    ;(r.drops || []).forEach((d, i) => {
+      timers.push(window.setTimeout(() => {
+        flyItemToPack({ itemName: d.name, fromEl: card, firstTime: !!d.firstEver })
+      }, 260 * (r.itemName ? i + 1 : i)))
+    })
+    return () => timers.forEach(clearTimeout)
+  }, [lastResult])
 
   const startCountdown = (seconds: number, completesAt?: string) => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -235,6 +265,7 @@ export default function GameView({
         if ((data.result as any)?.skillName === 'Hunting') {
           const r = data.result as any
           setLastResult({
+            firstEver: (data as any).firstEver,
             itemName: null,
             xpAwarded: r.xpAwarded || 0,
             totalXp: data.xpInfo?.totalXp || 0,
@@ -275,6 +306,7 @@ export default function GameView({
           const r = data.result as any
           const skillName = r.skillName || 'Farming'
           setLastResult({
+            firstEver: (data as any).firstEver,
             itemName: r.itemName ?? null,
             quantity: r.quantity,
             xpAwarded: r.xpAwarded || 0,
@@ -307,6 +339,7 @@ export default function GameView({
                   'Woodcutting')
 
           setLastResult({
+            firstEver: (data as any).firstEver,
             itemName: data.result.itemName,
             xpAwarded: data.result.xpAwarded || 0,
             totalXp: data.xpInfo?.totalXp || 0,
@@ -341,6 +374,7 @@ export default function GameView({
       socket.on('travel_complete', (data: { result: any }) => {
         if (data?.result) {
           setLastResult({
+            firstEver: (data as any).firstEver,
             itemName: null,
             xpAwarded: data.result.xpAwarded || 0,
             skillName: data.result.skillName,
@@ -888,6 +922,7 @@ export default function GameView({
     Smithing: 'You are working the forge.',
     Carpentry: 'You are working at the sawhorse.',
     Crafting: 'You are working the leather.',
+    Farming: 'You are working the crop.',
   }
 
   const startRecipe = async (recipeId: number) => {
@@ -1037,12 +1072,10 @@ export default function GameView({
     return (
       <>
         <p className="last-result-item">
-          {r.notable && <span className="drop-sparkle">✦ </span>}
+          {(r.notable || r.firstDiscovery) && <span className="drop-sparkle">✦ </span>}
+          {r.firstDiscovery && <span className="discovery-tag">New discovery! </span>}
           You gained {r.quantity ?? 1} × {r.itemName}!
         </p>
-        {r.firstDiscovery && (
-          <p className="last-result-drop"><span className="drop-sparkle">✦</span> New discovery — you've found {r.itemName} here!</p>
-        )}
         <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
         <p className="last-result-next">
           {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({

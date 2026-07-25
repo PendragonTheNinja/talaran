@@ -52,3 +52,20 @@
 .farm-tabs { display: flex; gap: 6px; margin-bottom: var(--space-md); }
 .farm-tab { flex: 1; background: var(--color-bg-deep); color: var(--color-text-muted); border: 1px solid var(--color-border-dark); border-radius: var(--radius-sm); padding: 6px 10px; font-family: var(--font-heading); font-size: 13px; cursor: pointer; }
 .farm-tab.active { color: var(--color-gold-bright); border-color: var(--color-border-gold); }
+
+.farm-tend-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); background: var(--color-bg-deep); border: 1px dashed var(--color-border-gold); border-radius: var(--radius-sm); font-size: 13px; color: var(--color-text-muted); }
+.farm-tended { color: var(--color-xp); }
+
+/* Deposit mode needs the inventory reachable, but the panel is a full-screen
+   overlay that both covers it and closes on outside-click. While the mode is on:
+   drop the dimming, let clicks through to the game underneath, and slide the panel
+   right so the left-hand inventory is clear. The modal itself stays interactive. */
+.farm-overlay.store-open {
+  background: transparent;
+  pointer-events: none;
+}
+.farm-overlay.store-open .farm-modal {
+  pointer-events: auto;
+  box-shadow: 0 0 0 1px var(--color-border-gold), var(--shadow-lg);
+  max-height: 78vh;
+}

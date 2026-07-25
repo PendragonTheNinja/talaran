@@ -379,3 +379,25 @@
 .equipment-panel {
   flex-shrink: 0;
 }
+/* Store mode — tapping an inventory item deposits it into the property store.
+   A persistent mode needs an obvious cue, since clicks silently move items. */
+.inventory-grid.store-mode-active {
+  outline: 1px solid var(--color-border-gold);
+  outline-offset: 2px;
+}
+.inventory-grid.store-mode-active .inventory-slot.occupied {
+  cursor: pointer;
+}
+.inventory-grid.store-mode-active .inventory-slot.occupied:hover {
+  border-color: var(--color-gold-bright);
+}
+
+/* The pack slot acknowledges an item landing in it. */
+.inventory-slot.slot-landed {
+  animation: slotLanded 460ms cubic-bezier(.22, .61, .36, 1);
+}
+@keyframes slotLanded {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.10); border-color: var(--color-gold-bright); }
+  100% { transform: scale(1); }
+}

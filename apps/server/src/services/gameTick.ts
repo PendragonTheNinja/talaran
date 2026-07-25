@@ -3,7 +3,8 @@ import db from '../db';
 import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
-import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure } from './farming';
+import { recordItemFirstByName } from './inventory';
+import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend } from './farming';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
@@ -133,6 +134,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'farm_build_plot':
       case 'farm_till':
       case 'farm_sow':
+      case 'farm_tend':
       case 'farm_manure':
       case 'farm_harvest': {
         // One-shot farm work: clear the action, resolve it, report.
@@ -143,6 +145,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         else if (action.action_type === 'farm_build_plot') farmResult = await resolveBuildPlot(action.player_id);
         else if (action.action_type === 'farm_till') farmResult = await resolveTill(action.player_id, action.action_data);
         else if (action.action_type === 'farm_sow') farmResult = await resolveSow(action.player_id, action.action_data);
+        else if (action.action_type === 'farm_tend') farmResult = await resolveTend(action.player_id);
         else if (action.action_type === 'farm_manure') farmResult = await resolveManure(action.player_id, action.action_data);
         else farmResult = await resolveHarvest(action.player_id, action.action_data);
 
@@ -150,6 +153,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           io.to(`player_${action.player_id}`).emit('action_failed', { error: farmResult.error || 'The work came to nothing.' });
           return;
         }
+
+        const farmFirst = farmResult.itemName
+          ? (await recordItemFirstByName(action.player_id, farmResult.itemName, action.action_type)).firstEver
+          : false;
 
         const farmSkill = await db('skills').where({ name: farmResult.skillName || 'Farming' }).first();
         const farmPs = farmSkill
@@ -161,6 +168,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
         io.to(`player_${action.player_id}`).emit('action_complete', {
           actionType: action.action_type,
+          firstEver: farmFirst,
           result: {
             itemName: farmResult.itemName,
             quantity: farmResult.quantity,
@@ -188,6 +196,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         logger.warn(`Unknown action type: ${action.action_type}`);
         await db('player_actions').where({ id: action.id }).delete();
         return;
+    }
+
+    // One place to answer "has this player ever earned this before". Feeds the
+    // pickup flourish now, and a future Exploration award and firsts feed later.
+    let firstEver = false;
+    const earnedName = (result as any)?.itemName;
+    if (earnedName) {
+      firstEver = (await recordItemFirstByName(action.player_id, earnedName, action.action_type)).firstEver;
     }
 
     // Handle travel
@@ -385,6 +401,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
 
         io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
           actionType: action.action_type,
           result: {
             itemName: null,
@@ -402,6 +419,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       } else {
         await db('player_actions').where({ id: action.id }).delete();
         io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
           actionType: action.action_type,
           result: {
             itemName: null,
@@ -476,6 +494,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
 
         io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
           actionType: action.action_type,
           result: resultPayload,
           nextCompletes: nextCompletion,
@@ -485,6 +504,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       } else {
         await db('player_actions').where({ id: action.id }).delete();
         io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
           actionType: action.action_type,
           result: resultPayload,
           xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
@@ -601,6 +621,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const updatedVein = await db('ore_veins').where({ id: action.action_data }).first();
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
         actionType: action.action_type,
         result: {
           ...result,
@@ -638,6 +659,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             const xpAtLevel = xpForLevel(lastLevel)
 
             io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
               actionType: action.action_type,
               result,
               nextCompletes: null,
@@ -678,6 +700,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const xpAtLevel = xpForLevel(currentLevel)
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
         actionType: action.action_type,
         result,
         nextCompletes: nextCompletion,
@@ -723,6 +746,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
             const lastLevel = levelFromXp(lastXp);
             io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
               actionType: action.action_type,
               result,
               nextCompletes: null,
@@ -757,6 +781,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const leveledUp = currentLevel > previousLevel;
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
         actionType: action.action_type,
         result,
         nextCompletes: nextCompletion,
@@ -800,6 +825,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
             const lastLevel = levelFromXp(lastXp);
             io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
               actionType: action.action_type,
               result,
               nextCompletes: null,
@@ -834,6 +860,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const leveledUp = currentLevel > previousLevel;
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
         actionType: action.action_type,
         result,
         nextCompletes: nextCompletion,
@@ -904,6 +931,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const xpAtLevel = xpForLevel(currentLevel)
 
       io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
         actionType: action.action_type,
         result,
         nextCompletes: nextCompletion,
@@ -928,6 +956,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const xpAtLevel = xpForLevel(currentLevel)
 
         io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
           actionType: action.action_type,
           result,
           nextCompletes: null,
@@ -936,6 +965,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
       } else {
         io.to(`player_${action.player_id}`).emit('action_complete', {
+          firstEver,
           actionType: action.action_type,
           result,
           nextCompletes: null,

@@ -2,6 +2,7 @@ import db from '../db';
 import { logger } from '../index';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
+import { updateQuestObjectiveProgress } from '../routes/quests';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -19,6 +20,10 @@ const NOVITA = 'Novita';
 const PLOT_CAPACITY = 10;                 // seeds per plot
 const PLOT_MAX = 20;                      // hard ceiling (end-game)
 const CARPENTRY_REQ = 1;
+// Building is joinery. Tools are held, not consumed, matching how a Carpentry
+// workstation checks for its sawhorse, saw, and plane.
+const BUILD_TOOLS = ['Lanai Mallet', 'Ambren Saw'];
+
 const ESTABLISH_COST = [
     { itemName: 'Lanai Planks', qty: 500 },
     { itemName: 'Granite Block', qty: 500 },
@@ -41,6 +46,8 @@ const SOIL_ORDER = ['depleted', 'normal', 'rich'];
 const SOIL_YIELD: Record<string, number> = { depleted: 0.6, normal: 1.0, rich: 1.25 };
 const FALLOW_SECONDS = 18 * 3600;   // one step of recovery per 18h at rest
 const MANURE_SECONDS = 60;
+const TEND_SECONDS_PER_PLOT = 15;
+const TEND_SPEEDUP = 0.10;          // trims 10% off each plot's REMAINING grow time
 const MANURE_COST = 5;
 
 function shiftSoil(state: string, dir: number): string {
@@ -153,6 +160,13 @@ async function giveItem(playerId: number, itemName: string, qty: number) {
     else await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
 }
 
+async function missingBuildTool(playerId: number): Promise<string | null> {
+    for (const name of BUILD_TOOLS) {
+        if ((await inventoryQty(playerId, name)) < 1) return name;
+    }
+    return null;
+}
+
 // Tools must be EQUIPPED (mainhand), same as the woodcutting hatchet.
 async function equippedTool(playerId: number, subtype: string) {
     const equipment = await db('player_equipment').where({ player_id: playerId }).first();
@@ -244,6 +258,8 @@ export async function getFarmState(playerId: number) {
                 plotsGranted: 1,
                 plotCapacity: PLOT_CAPACITY,
                 seconds: ESTABLISH_SECONDS,
+                tools: BUILD_TOOLS,
+                missingTool: await missingBuildTool(playerId),
             },
             crops: cropList,
         };
@@ -254,6 +270,8 @@ export async function getFarmState(playerId: number) {
     const plots = await db('farm_plots').where({ property_id: property.id }).orderBy('slot_index', 'asc');
     const now = Date.now();
     const manureHeld = await inventoryQty(playerId, 'Manure');
+    const bucketHeld = await inventoryQty(playerId, 'Lanai Bucket');
+    const missingBuild = await missingBuildTool(playerId);
     const plotView = plots.map(p => {
         const crop = crops.find(c => c.id === p.crop_id) || null;
         const readyAt = p.ready_at ? new Date(p.ready_at).getTime() : null;
@@ -266,6 +284,7 @@ export async function getFarmState(playerId: number) {
             seedCount: p.seed_count,
             readyAt: p.ready_at,
             secondsRemaining: readyAt ? Math.max(0, Math.round((readyAt - now) / 1000)) : null,
+            tended: !!p.tended,
             yieldModifier: SOIL_YIELD[p.soil_state] ?? 1,
             restingSecondsToNextStep: (!p.crop_id && p.rested_since && p.soil_state !== 'rich')
                 ? Math.max(0, Math.round(FALLOW_SECONDS - (now - new Date(p.rested_since).getTime()) / 1000))
@@ -291,8 +310,14 @@ export async function getFarmState(playerId: number) {
         plotMax: PLOT_MAX,
         timers: { till: TILL_SECONDS, sowPerSeed: SOW_SECONDS_PER_SEED, harvestPerSeed: HARVEST_SECONDS_PER_SEED, buildPlot: BUILD_PLOT_SECONDS, manure: MANURE_SECONDS },
         manure: { held: manureHeld, cost: MANURE_COST },
+        tend: {
+            hasBucket: bucketHeld > 0,
+            plots: plots.filter(p => p.state === 'growing' && !p.tended && p.ready_at).length,
+            secondsPerPlot: TEND_SECONDS_PER_PLOT,
+            speedup: TEND_SPEEDUP,
+        },
         nextPlot: nextCost
-            ? { number: nextPlotNumber, cost: nextCost, canAfford: nextCheck.ok, missing: nextCheck.missing, seconds: BUILD_PLOT_SECONDS }
+            ? { number: nextPlotNumber, cost: nextCost, canAfford: nextCheck.ok, missing: nextCheck.missing, seconds: BUILD_PLOT_SECONDS, missingTool: missingBuild }
             : null,
     };
 }
@@ -308,6 +333,9 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
 
     const carp = await skillLevel(playerId, 'Carpentry');
     if (carp < CARPENTRY_REQ) return { ok: false, error: `Requires Carpentry level ${CARPENTRY_REQ}.` };
+
+    const missingTool = await missingBuildTool(playerId);
+    if (missingTool) return { ok: false, error: `You need a ${missingTool} to build.` };
 
     const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
     if (!matCheck.ok) {
@@ -325,6 +353,9 @@ export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; e
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be at your farmstead to enclose a field.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const missingTool = await missingBuildTool(playerId);
+    if (missingTool) return { ok: false, error: `You need a ${missingTool} to build.` };
 
     const plots = await db('farm_plots').where({ property_id: property.id });
     const farmingLvl = await skillLevel(playerId, 'Farming');
@@ -402,6 +433,69 @@ export async function startHarvest(playerId: number, plotId: number): Promise<{ 
     return { ok: true, timerSeconds: seconds };
 }
 
+// Tending is the SPEED lever — soil handles yield, this handles time. One action
+// covers every growing plot that hasn't been tended this cycle; each gets 10% cut
+// from its REMAINING grow time, so tending early is worth far more than tending
+// late. A bucket must be carried (not worn — you'd otherwise be swapping the hoe
+// out every time).
+async function tendablePlots(propertyId: number) {
+    return db('farm_plots')
+        .where({ property_id: propertyId, state: 'growing', tended: false })
+        .whereNotNull('ready_at');
+}
+
+export async function startTend(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const { novita, property } = await playerProperty(playerId);
+    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+    if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be at your farmstead to tend it.' };
+    if ((await inventoryQty(playerId, 'Lanai Bucket')) < 1) return { ok: false, error: 'You need a bucket to carry water.' };
+
+    const plots = await tendablePlots(property.id);
+    if (plots.length === 0) return { ok: false, error: 'Nothing here needs tending.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const seconds = plots.length * TEND_SECONDS_PER_PLOT;
+    await startAction(playerId, 'farm_tend', seconds, null, novita.id);
+    return { ok: true, timerSeconds: seconds };
+}
+
+export async function resolveTend(playerId: number): Promise<FarmActionResult> {
+    try {
+        const { property } = await playerProperty(playerId);
+        if (!property) return { success: false, error: 'You have no farmstead here.' };
+
+        const plots = await tendablePlots(property.id);
+        if (plots.length === 0) return { success: false, error: 'Nothing needed tending.' };
+
+        const now = Date.now();
+        let tended = 0;
+        for (const p of plots) {
+            const remaining = new Date(p.ready_at).getTime() - now;
+            if (remaining <= 0) continue;                       // already ripe; nothing to hurry
+            await db('farm_plots').where({ id: p.id }).update({
+                ready_at: new Date(now + remaining * (1 - TEND_SPEEDUP)),
+                tended: true,
+            });
+            tended++;
+        }
+        if (tended === 0) return { success: false, error: 'Nothing needed tending.' };
+
+        const lvl = await skillLevel(playerId, 'Farming');
+        const xp = activeXpForSeconds(lvl, plots.length * TEND_SECONDS_PER_PLOT);
+        await awardXp(playerId, 'Farming', xp);
+        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+
+        return {
+            success: true, xp, skillName: 'Farming',
+            message: `You water and weed ${tended} field${tended === 1 ? '' : 's'}. They will come on the sooner for it.`,
+        };
+    } catch (err) {
+        logger.error(`resolveTend error: ${err}`);
+        return { success: false, error: 'Server error' };
+    }
+}
+
 export async function startManure(playerId: number, plotId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     const plot = await ownedPlot(playerId, plotId);
     if (!plot) return { ok: false, error: 'That is not your plot.' };
@@ -465,6 +559,8 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
 
+        await updateQuestObjectiveProgress(playerId, 'build', 'Farmstead', 1);
+
         logger.info(`Player ${playerId} raised a farmstead at Novita (${propertyId})`);
         return { success: true, xp, skillName: 'Carpentry', message: 'Your farmstead stands at last. The first field is yours to work.' };
     } catch (err) {
@@ -515,6 +611,8 @@ export async function resolveTill(playerId: number, plotIdRaw: string | null): P
         await awardXp(playerId, 'Farming', xp);
         await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
 
+        await updateQuestObjectiveProgress(playerId, 'till', 'Field', 1);
+
         return { success: true, xp, skillName: 'Farming', message: 'The soil is broken and ready for seed.' };
     } catch (err) {
         logger.error(`resolveTill error: ${err}`);
@@ -541,13 +639,15 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
         await db('farm_plots').where({ id: plot.id }).update({
             state: 'growing', crop_id: crop.id, seed_count: count,
             planted_at: now, ready_at: new Date(now.getTime() + crop.grow_seconds * 1000),
-            rested_since: null,
+            rested_since: null, tended: false,
         });
 
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, count * SOW_SECONDS_PER_SEED);
         await awardXp(playerId, 'Farming', xp);
         await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+
+        await updateQuestObjectiveProgress(playerId, 'sow', crop.name, count);
 
         return { success: true, xp, skillName: 'Farming', message: `${count} ${crop.name} sown. Now it needs only time.` };
     } catch (err) {
@@ -585,7 +685,7 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
             await db('farm_plots').where({ id: plotId }).update({
                 state: 'growing', planted_at: new Date(),
                 ready_at: new Date(Date.now() + crop.regrow_seconds * 1000),
-                soil_state: soilAfter,
+                soil_state: soilAfter, tended: false,
             });
         } else {
             await db('farm_plots').where({ id: plotId }).update({
@@ -593,6 +693,8 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
                 soil_state: soilAfter, rested_since: new Date(),
             });
         }
+
+        await updateQuestObjectiveProgress(playerId, 'harvest', crop.produce_item_name, 1);
 
         return {
             success: true, xp, skillName: 'Farming',

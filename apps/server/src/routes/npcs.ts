@@ -114,6 +114,9 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 });
             }
 
+            const { backfillQuestObjectives } = await import('./quests');
+            await backfillQuestObjectives(playerId, quest.id);
+
             // Items handed over on accept (Geonsen's bow, etc.)
             const { grantQuestItems } = await import('./quests');
             const granted = await grantQuestItems(playerId, quest.start_items);

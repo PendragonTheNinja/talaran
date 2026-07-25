@@ -1,10 +1,13 @@
 import db from '../db';
 import { logger } from '../lib/logger';
+import { recordItemFirst } from './inventory';
 
 export interface SecondaryDrop {
     name: string;
     quantity: number;
     notable: boolean;
+    /** first time this player has ever earned it */
+    firstEver?: boolean;
 }
 
 async function awardItemById(playerId: number, itemId: number, qty: number): Promise<void> {
@@ -50,7 +53,8 @@ export async function rollSecondaryDrops(playerId: number, sourceKey: string): P
                     : entry.chance_one_in > 1;
 
             await awardItemById(playerId, entry.item_id, qty);
-            drops.push({ name: entry.item_name, quantity: qty, notable });
+            const { firstEver } = await recordItemFirst(playerId, entry.item_id, sourceKey);
+            drops.push({ name: entry.item_name, quantity: qty, notable, firstEver });
             logger.info(`Player ${playerId} found ${qty}x ${entry.item_name} from ${sourceKey}`);
         }
 

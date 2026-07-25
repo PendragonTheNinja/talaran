@@ -41,13 +41,16 @@ interface LeftPanelProps {
   onDropItem: (itemId: number, quantity: number) => void
   dropMode?: boolean
   dropAmount?: number
+  storeMode?: boolean
+  storeAmount?: number
+  onStoreItem?: (itemId: number, quantity: number) => void
   tradeMode?: boolean
   tradeId?: number
   onToggleDropMode?: () => void
   onDropAmountChange?: (amount: number) => void
 }
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId }: LeftPanelProps) {
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   const [dropQuantity, setDropQuantity] = useState(1)
@@ -90,7 +93,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     <aside className="left-panel panel">
 
       {/* Inventory */}
-      <div className={`inventory-grid panel-inset ${dropMode ? 'drop-mode-active' : ''} ${tradeMode ? 'trade-mode-active' : ''}`}>        {Array.from({ length: INVENTORY_SLOTS }).map((_, i) => {
+      <div className={`inventory-grid panel-inset ${dropMode ? 'drop-mode-active' : ''} ${tradeMode ? 'trade-mode-active' : ''} ${storeMode ? 'store-mode-active' : ''}`}>        {Array.from({ length: INVENTORY_SLOTS }).map((_, i) => {
         const item = inventoryData[i]
         const qualityColor = item ? getQualityColor(item.quality) : null
 
@@ -98,6 +101,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
           <div
             key={i}
             className={`inventory-slot ${item ? 'occupied' : ''}`}
+            data-item-name={item ? item.name : undefined}
             title=""
             style={item && qualityColor ? { borderColor: qualityColor } : {}}
             onClick={() => {
@@ -107,6 +111,11 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                   method: 'POST',
                   body: JSON.stringify({ tradeId, itemId: item.item_id, quantity: qty }),
                 }).catch(err => console.error(err))
+                return
+              }
+              if (storeMode && onStoreItem) {
+                const qty = Math.min(storeAmount || 1, item.quantity)
+                onStoreItem(item.item_id, qty)
                 return
               }
               if (dropMode) {

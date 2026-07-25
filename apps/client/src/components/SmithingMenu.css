@@ -33,7 +33,12 @@
 
 .smithing-categories {
   display: flex;
+  /* Crossover recipes mean this list keeps growing (a Smithing bench now serves
+     Farming, Foraging, Carpentry and more), so the tabs wrap onto further rows
+     rather than scrolling sideways out of view. */
+  flex-wrap: wrap;
   gap: var(--space-xs);
+  row-gap: var(--space-xs);
   border-bottom: 1px solid var(--color-border-dark);
   padding-bottom: var(--space-sm);
 }

@@ -77,6 +77,7 @@ router.post('/:id/start', requireAuth, async (req: AuthRequest, res: Response) =
                 is_complete: false,
             });
         }
+        await backfillQuestObjectives(playerId, questId);
 
         logger.info(`Player ${playerId} started quest ${questId}`);
         res.json({ success: true, message: 'Quest started!' });
@@ -120,6 +121,8 @@ export async function grantQuestItems(
                 player_id: playerId, item_id: item.id, quantity: entry.qty,
             });
         }
+        const { recordItemFirst } = await import('../services/inventory');
+        await recordItemFirst(playerId, item.id, 'quest');
         granted.push({ itemName: entry.itemName, quantity: entry.qty });
     }
     return granted;
@@ -178,6 +181,37 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
     }
 
     return allComplete;
+}
+
+
+// Some objectives describe a STATE the world may already be in — you might have
+// raised a farmstead or broken a field long before anyone offered you a quest about
+// it. Those steps would then be impossible to finish (an annual plot stays tilled,
+// so "till a field" can deadlock until a level-up grants a new one). On accept,
+// mark any objective the player has already satisfied.
+export async function backfillQuestObjectives(playerId: number, questId: number): Promise<void> {
+    const objectives = await db('quest_objectives').where({ quest_id: questId });
+
+    for (const obj of objectives) {
+        let satisfied = false;
+
+        if (obj.type === 'build' && obj.target_item === 'Farmstead') {
+            satisfied = !!(await db('player_properties')
+                .where({ player_id: playerId, type: 'farmstead' }).first());
+        } else if (obj.type === 'till' && obj.target_item === 'Field') {
+            satisfied = !!(await db('farm_plots')
+                .join('player_properties', 'farm_plots.property_id', 'player_properties.id')
+                .where('player_properties.player_id', playerId)
+                .whereIn('farm_plots.state', ['tilled', 'growing'])
+                .first());
+        }
+
+        if (satisfied) {
+            await db('player_quest_objectives')
+                .where({ player_id: playerId, objective_id: obj.id })
+                .update({ current_amount: obj.required_amount, is_complete: true });
+        }
+    }
 }
 
 export async function updateQuestObjectiveProgress(

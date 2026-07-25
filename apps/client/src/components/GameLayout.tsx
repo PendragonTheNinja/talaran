@@ -199,6 +199,23 @@ export default function GameLayout({
 
   const [dropMode, setDropMode] = useState(false)
   const [dropAmount, setDropAmount] = useState(1)
+  const [storeMode, setStoreMode] = useState(false)
+  const [storeAmount, setStoreAmount] = useState(1)
+  const [storeRefresh, setStoreRefresh] = useState(0)
+
+  // Deposit into the property store the player is standing at (mirrors drop mode).
+  const handleStoreItem = async (itemId: number, quantity: number) => {
+    try {
+      await apiFetch('/api/property/storage/deposit', {
+        method: 'POST',
+        body: JSON.stringify({ itemId, quantity }),
+      })
+      onInventoryUpdate()
+      setStoreRefresh(k => k + 1)
+    } catch (err) {
+      console.error(err)
+    }
+  }
   const [groundItemsKey, setGroundItemsKey] = useState(0)
 
   const [showAdmin, setShowAdmin] = useState(false)
@@ -577,6 +594,9 @@ export default function GameLayout({
       dropMode={dropMode}
       onToggleDropMode={() => setDropMode(d => !d)}
       onDropItem={handleDropItem}
+      storeMode={storeMode}
+      storeAmount={storeAmount}
+      onStoreItem={handleStoreItem}
       dropAmount={dropAmount}
       onDropAmountChange={(amt: number) => setDropAmount(amt)}
       tradeMode={tradeMode}
@@ -904,6 +924,11 @@ export default function GameLayout({
             setShowFarmPanel(false)
             setGameViewAction({ type: 'recipe', id: recipeId })
           }}
+          storeMode={storeMode}
+          onToggleStoreMode={() => setStoreMode(v => !v)}
+          storeAmount={storeAmount}
+          onStoreAmountChange={setStoreAmount}
+          storeRefresh={storeRefresh}
         />
       )}
 
