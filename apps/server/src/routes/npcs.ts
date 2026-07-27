@@ -83,8 +83,7 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
 
         // Handle start_quest action
         if (action.startsWith('start_quest:')) {
-            const questName = action.replace('start_quest:', '');
-            const quest = await db('quests').where({ name: questName }).first();
+            const quest = await resolveActionQuest(action.replace('start_quest:', ''), npcId);
             if (!quest) {
                 res.status(404).json({ error: 'Quest not found.' });
                 return;
@@ -121,15 +120,14 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
             const { grantQuestItems } = await import('./quests');
             const granted = await grantQuestItems(playerId, quest.start_items);
 
-            logger.info(`Player ${playerId} started quest "${questName}" via NPC ${npcId}`);
+            logger.info(`Player ${playerId} started quest "${quest.name}" via NPC ${npcId}`);
             res.json({ success: true, action: 'next_stage', grantedItems: granted });
             return;
         }
 
         // Handle complete_talk_objective action
         if (action.startsWith('complete_talk_objective:')) {
-            const questName = action.replace('complete_talk_objective:', '');
-            const quest = await db('quests').where({ name: questName }).first();
+            const quest = await resolveActionQuest(action.replace('complete_talk_objective:', ''), npcId);
             if (!quest) {
                 res.status(404).json({ error: 'Quest not found.' });
                 return;
@@ -173,7 +171,7 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 }
             }
 
-            logger.info(`Player ${playerId} completed talk objective for "${questName}"`);
+            logger.info(`Player ${playerId} completed talk objective for "${quest.name}"`);
             res.json({ success: true, action: 'next_stage' });
             return;
         }
@@ -184,6 +182,34 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+/**
+ * Resolves the quest referenced by a dialogue action payload.
+ *
+ * Dialogue actions are "start_quest:<payload>" / "complete_talk_objective:<payload>",
+ * stored in npc_dialogues.options. The payload is a quest ID. It used to be the
+ * quest NAME, which meant renaming a quest silently broke its NPC — the button
+ * asked for a title that no longer existed and the route 404'd. IDs are stable
+ * across renames, so names are now display-only.
+ *
+ * The name lookup is kept as a fallback so any dialogue row that still holds a
+ * name degrades to the old behaviour rather than breaking, and warns so it can
+ * be found and migrated.
+ */
+async function resolveActionQuest(payload: string, npcId: number) {
+    const trimmed = payload.trim();
+
+    if (/^\d+$/.test(trimmed)) {
+        return await db('quests').where({ id: parseInt(trimmed, 10) }).first();
+    }
+
+    const byName = await db('quests').where({ name: trimmed }).first();
+    logger.warn(
+        `NPC ${npcId} dialogue references quest by name ("${trimmed}") instead of ID`
+        + `${byName ? '' : ' and it did not resolve'}. Migrate this dialogue row.`,
+    );
+    return byName;
+}
 
 async function resolveStage(playerId: number, npcId: number): Promise<string> {
     // Find quests linked to this NPC

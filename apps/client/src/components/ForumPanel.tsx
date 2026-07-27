@@ -15,6 +15,8 @@ interface ForumCategory {
     name: string
     description: string
     staff_only: boolean
+    /** Set when this board belongs to a guild. The server only ever sends boards the player may see, so its presence alone marks it private. */
+    guild_id?: number | null
     admin_post_only: boolean
     has_voting: boolean
     threadCount: number
@@ -409,10 +411,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             {categories.map(cat => (
                                 <div key={cat.id} className="forum-category-row" onClick={() => loadCategory(cat)}>
                                     <div className="forum-category-icon">
-                                        {cat.admin_post_only ? '📢' : cat.has_voting ? '💡' : cat.staff_only ? '🔒' : '💬'}
+                                        {cat.guild_id ? '⚔' : cat.admin_post_only ? '📢' : cat.has_voting ? '💡' : cat.staff_only ? '🔒' : '💬'}
                                     </div>
                                     <div className="forum-category-info">
-                                        <span className="forum-category-name gold-text">{cat.name}</span>
+                                        <span className="forum-category-name gold-text">{cat.name}{cat.guild_id ? <span className="forum-guild-badge">Guild only</span> : null}</span>
                                         <span className="forum-category-desc muted-text">{cat.description}</span>
                                     </div>
                                     <div className="forum-category-stats muted-text">

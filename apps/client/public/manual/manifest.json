@@ -1,0 +1,127 @@
+{
+  "sections": [
+    {
+      "key": "getting-started",
+      "title": "Getting Started",
+      "blurb": "Where I explain Talaran to you, at slightly greater length than strictly necessary.",
+      "pages": [
+        {
+          "slug": "your-first-hour",
+          "title": "Your First Hour",
+          "blurb": "What to do the moment you set foot on Taiar Island."
+        },
+        {
+          "slug": "how-actions-work",
+          "title": "How Actions Work",
+          "blurb": "Timers, patience, and why nothing here happens the instant you ask."
+        },
+        {
+          "slug": "reading-the-screen",
+          "title": "Reading the Screen",
+          "blurb": "Where everything lives, and the three keys worth memorising."
+        },
+        {
+          "slug": "where-to-go-next",
+          "title": "Where to Go Next",
+          "blurb": "Choosing a trade, made smaller than you are making it."
+        }
+      ]
+    },
+    {
+      "key": "skills",
+      "title": "Skills",
+      "blurb": "One page to a trade, all built to the same shape so you need learn it only once.",
+      "pages": [
+        {
+          "slug": "mining",
+          "title": "Mining",
+          "blurb": "Rock, ore, and the veins that hide beneath both."
+        },
+        {
+          "slug": "woodcutting",
+          "title": "Woodcutting",
+          "blurb": "Mining's twin, with one difference worth the whole page."
+        },
+        {
+          "slug": "foraging",
+          "title": "Foraging",
+          "blurb": "The trade that will not tell you what you are about to get."
+        },
+        {
+          "slug": "hunting",
+          "title": "Hunting",
+          "blurb": "The chase, and the traps you leave working while you are elsewhere."
+        },
+        {
+          "slug": "farming",
+          "title": "Farming",
+          "blurb": "A farmstead, and the strange discipline of leaving."
+        },
+        {
+          "slug": "carpentry",
+          "title": "Carpentry",
+          "blurb": "The hinge Talaran turns on. Learn this one properly."
+        },
+        {
+          "slug": "smithing",
+          "title": "Smithing",
+          "blurb": "Everyone eventually needs a nail."
+        },
+        {
+          "slug": "crafting",
+          "title": "Crafting",
+          "blurb": "The trade that catches everything the other trades drop."
+        }
+      ]
+    },
+    {
+      "key": "systems",
+      "title": "Systems",
+      "blurb": "The parts of the world that are not obvious at a glance.",
+      "pages": [
+        {
+          "slug": "the-trades",
+          "title": "How the Trades Fit Together",
+          "blurb": "No trade here is self-sufficient. Not one."
+        },
+        {
+          "slug": "travel-and-mounts",
+          "title": "Travel & Mounts",
+          "blurb": "A hundred kilometres of Taiar, and how to make it cheaper."
+        },
+        {
+          "slug": "quests-and-npcs",
+          "title": "Quests & People",
+          "blurb": "There is no notice-board. There are only people standing still."
+        },
+        {
+          "slug": "guilds",
+          "title": "Guilds",
+          "blurb": "Four people is faster than five trades."
+        },
+        {
+          "slug": "the-homestead",
+          "title": "The Homestead",
+          "blurb": "Ground with your name on it, and fifty slots of consequences."
+        }
+      ]
+    },
+    {
+      "key": "reference",
+      "title": "Reference",
+      "blurb": "My appendices. Copied faithfully; argue with Talaran, not with me.",
+      "pages": [
+        {
+          "slug": "xp-curve",
+          "title": "The Cost of a Level",
+          "blurb": "One ladder, shared by every trade in Talaran."
+        },
+        {
+          "slug": "quests",
+          "title": "Every Quest",
+          "blurb": "The whole catalogue, and who is holding each one."
+        }
+      ]
+    }
+  ]
+}

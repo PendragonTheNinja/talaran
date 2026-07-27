@@ -21,9 +21,10 @@ interface TopNavProps {
   onAdminClick?: () => void
   onSettingsClick: () => void
   onSupportClick: () => void
+  onManualClick: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick, onManualClick }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -43,6 +44,7 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
                       item === 'Highscores' ? onHighscoresClick :
                         item === 'Settings' ? onSettingsClick :
                           item === 'Store' ? onSupportClick :
+                            item === 'Manual' ? onManualClick :
                             undefined
             }
             style={{ position: 'relative' }}

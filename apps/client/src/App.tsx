@@ -7,6 +7,7 @@ import { apiFetch } from './lib/api'
 import WelcomeModal from './components/WelcomeModal'
 import { Routes, Route } from 'react-router-dom'
 import NewsPage from './components/NewsPage'
+import ManualPage from './components/ManualPage'
 import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
 import SupportUsPage from './components/SupportUsPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
@@ -303,6 +304,8 @@ function App() {
   return (
     <Routes>
       <Route path="/news" element={<NewsPage />} />
+      <Route path="/manual" element={<ManualPage />} />
+      <Route path="/manual/:section/:slug" element={<ManualPage />} />
       <Route path="/store" element={<SupportUsPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/terms" element={<TermsPage />} />

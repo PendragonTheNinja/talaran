@@ -59,9 +59,11 @@ interface FarmPanelProps {
     storeAmount: number
     onStoreAmountChange: (n: number) => void
     storeRefresh?: number
+    /** Opens the manual at the Farming page. Optional so the panel still works standalone. */
+    onHelp?: () => void
 }
 
-export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, storeRefresh }: FarmPanelProps) {
+export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, storeRefresh, onHelp }: FarmPanelProps) {
     const [data, setData] = useState<FarmState | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
@@ -101,7 +103,14 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
             <div className="farm-modal" onClick={e => e.stopPropagation()}>
                 <div className="farm-header">
                     <h2>Homestead</h2>
-                    <button className="farm-close" onClick={onClose}>✕</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {onHelp && (
+                            <button className="manual-help-btn" onClick={onHelp} title="Read about Farming">
+                                ?
+                            </button>
+                        )}
+                        <button className="farm-close" onClick={onClose}>✕</button>
+                    </div>
                 </div>
 
                 {!loading && data?.hasFarmstead && (
@@ -119,7 +128,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                 {!loading && data && !data.hasFarmstead && data.build && (
                     <div className="farm-build">
                         <p className="farm-build-lead">
-                            You have no farmstead here. Raising one is the work of a season: timber, dressed stone, and iron.
+                            You have no farmstead here. Raising one is the work of a season: timber, dressed stone, and ambren.<br></br>Come back with those, a mallet, and a saw.
                         </p>
                         <div className="farm-cost">
                             {data.build.cost.map(c => {

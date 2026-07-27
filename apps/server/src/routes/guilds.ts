@@ -139,6 +139,17 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
             guild_role: 'founder',
         });
 
+        // A starter board, so a new guild's forum is never an empty screen.
+        await db('guild_forum_categories').insert({
+            guild_id: guild.id,
+            name: 'General',
+            description: 'Anything and everything.',
+            sort_order: 0,
+            min_role_view: 1,
+            min_role_post: 1,
+            created_by: playerId,
+        });
+
         logger.info(`Player ${playerId} created guild ${guild.name} [${guild.tag}]`);
         res.json({ success: true, guild });
     } catch (err) {

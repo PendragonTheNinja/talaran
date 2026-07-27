@@ -16,6 +16,7 @@ import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
 import NewsPanel from './NewsPanel'
+import ManualPanel from './ManualPanel'
 import HighscoresPanel from './HighscoresPanel'
 import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
@@ -450,8 +451,20 @@ export default function GameLayout({
 
   const [showNews, setShowNews] = useState(false)
 
+  const [showManual, setShowManual] = useState(false)
+  // Which page the manual should open at. Null means the contents.
+  const [manualTarget, setManualTarget] = useState<{ section: string; slug: string } | null>(null)
+
+  /** Open the manual at a specific page, from a contextual help affordance. */
+  const openManualAt = (section: string, slug: string) => {
+    closeAllPanels()
+    setManualTarget({ section, slug })
+    setShowManual(true)
+  }
+
   const [messagesClosing, setMessagesClosing] = useState(false)
   const [newsClosing, setNewsClosing] = useState(false)
+  const [manualClosing, setManualClosing] = useState(false)
   const [forumClosing, setForumClosing] = useState(false)
 
   const [profilePlayerId, setProfilePlayerId] = useState<number | null>(null)
@@ -499,6 +512,7 @@ export default function GameLayout({
   const closeAllPanels = () => {
     if (showMessages) closePanel(setMessagesClosing, setShowMessages)
     if (showNews) closePanel(setNewsClosing, setShowNews)
+    if (showManual) closePanel(setManualClosing, setShowManual)
     if (showForum) closePanel(setForumClosing, setShowForum, 400)
     if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
     if (showGuildModal) closePanel(setGuildClosing, setShowGuildModal)
@@ -916,6 +930,7 @@ export default function GameLayout({
       {showFarmPanel && (
         <FarmPanel
           onClose={() => setShowFarmPanel(false)}
+          onHelp={() => { setShowFarmPanel(false); openManualAt('skills', 'farming') }}
           onActionStarted={(secs, kind) => {
             setShowFarmPanel(false)
             setGameViewAction({ type: 'farming', id: secs, text: kind })
@@ -954,6 +969,15 @@ export default function GameLayout({
           onClose={() => closePanel(setNewsClosing, setShowNews)}
           isAdmin={playerData?.player?.is_admin || false}
           closing={newsClosing}
+        />
+      )}
+
+      {showManual && (
+        <ManualPanel
+          onClose={() => closePanel(setManualClosing, setShowManual)}
+          closing={manualClosing}
+          initialSection={manualTarget?.section}
+          initialSlug={manualTarget?.slug}
         />
       )}
 
@@ -1064,6 +1088,10 @@ export default function GameLayout({
         onNewsClick={() => {
           if (showNews) closePanel(setNewsClosing, setShowNews)
           else { closeAllPanels(); setShowNews(true) }
+        }}
+        onManualClick={() => {
+          if (showManual) closePanel(setManualClosing, setShowManual)
+          else { closeAllPanels(); setManualTarget(null); setShowManual(true) }
         }}
         onHighscoresClick={() => {
           if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)

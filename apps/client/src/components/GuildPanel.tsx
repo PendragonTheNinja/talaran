@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import GuildForum from './GuildForum'
 import { formatGameDate } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './GuildPanel.css'
@@ -59,7 +60,7 @@ interface GuildPanelProps {
 
 export default function GuildPanel({ onClose, closing, playerUsername, onViewProfile }: GuildPanelProps) {
     const [view, setView] = useState<'loading' | 'no_guild' | 'my_guild' | 'create' | 'browse'>('loading')
-    const [tab, setTab] = useState<'overview' | 'members' | 'applications' | 'settings'>('overview')
+    const [tab, setTab] = useState<'overview' | 'members' | 'forum' | 'applications' | 'settings'>('overview')
     const [settingsName, setSettingsName] = useState('')
     const [settingsTag, setSettingsTag] = useState('')
     const [settingsDesc, setSettingsDesc] = useState('')
@@ -336,6 +337,9 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         <button className={`guild-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
                             Members ({members.length})
                         </button>
+                        <button className={`guild-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
+                            Forum
+                        </button>
                         {['founder', 'leader'].includes(myRole || '') && (
                             <>
                                 <button className={`guild-tab ${tab === 'applications' ? 'active' : ''}`} onClick={() => setTab('applications')}>
@@ -520,6 +524,9 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                     )}
 
                     {/* My guild — Members tab */}
+                    {/* The guild's own forum: its own boards, its own permissions. */}
+                    {view === 'my_guild' && tab === 'forum' && <GuildForum />}
+
                     {view === 'my_guild' && tab === 'members' && (
                         <div className="guild-members">
                             {members.sort((a, b) => {

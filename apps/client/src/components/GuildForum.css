@@ -1,0 +1,238 @@
+/* The guild's own forum, inside the guild page. Reuses the guild panel's
+   existing type and colour tokens so it reads as part of that page rather than
+   as the public forum embedded in it. */
+
+/* Rendered as its own tab in GuildPanel, so it is the whole view here and needs
+   no divider above it. */
+.guild-forum {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+}
+
+.guild-forum-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    flex-wrap: wrap;
+}
+
+.guild-forum-head .guild-section-title {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.guild-forum-back {
+    font-size: 12px;
+    padding: 3px 10px;
+}
+
+/* ── Board list ───────────────────────────────────────────────────────────── */
+
+.guild-forum-board {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    background: var(--color-bg-panel, #2a2118);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.guild-forum-board:hover { border-color: var(--color-border-gold, #6b5030); }
+
+.guild-forum-board-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.guild-forum-board-name { font-size: 14px; }
+
+.guild-forum-lock { margin-left: 6px; font-size: 11px; }
+
+.guild-forum-board-desc { font-size: 12px; }
+
+.guild-forum-board-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 11px;
+    text-align: right;
+    flex: 0 0 auto;
+}
+
+.guild-forum-board-last {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Threads ──────────────────────────────────────────────────────────────── */
+
+.guild-forum-thread {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    padding: 6px 0;
+}
+
+.guild-forum-thread-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+}
+
+.guild-forum-thread-title {
+    color: var(--color-text-bright, #e8d5a3);
+    font-size: 14px;
+}
+
+.guild-forum-thread-main:hover .guild-forum-thread-title {
+    color: var(--color-gold-bright, #e8b84b);
+}
+
+.guild-forum-thread-meta { font-size: 11px; }
+
+.guild-forum-thread-actions {
+    display: flex;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.guild-forum-thread-actions .btn { font-size: 11px; padding: 2px 8px; }
+
+/* ── Posts ────────────────────────────────────────────────────────────────── */
+
+.guild-forum-post {
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+}
+
+.guild-forum-post-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.guild-forum-role {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.guild-forum-post-delete {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--color-text-dim, #6b5a3e);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.guild-forum-post-delete:hover { color: var(--color-gold-bright, #e8b84b); }
+
+/* ── Composing ────────────────────────────────────────────────────────────── */
+
+.guild-forum-input,
+.guild-forum-textarea,
+.guild-forum-reply textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-bright, #e8d5a3);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 13px;
+    padding: var(--space-sm, 8px);
+}
+
+.guild-forum-textarea,
+.guild-forum-reply textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.guild-forum-input:focus,
+.guild-forum-textarea:focus,
+.guild-forum-reply textarea:focus {
+    outline: none;
+    border-color: var(--color-border-bright, #9a7840);
+}
+
+.guild-forum-reply {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+    align-items: flex-start;
+}
+
+/* ── Managing boards ──────────────────────────────────────────────────────── */
+
+.guild-forum-manage-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    padding: 6px 0;
+}
+
+.guild-forum-manage-row > span:first-child { flex: 1; min-width: 120px; }
+
+.guild-forum-manage-row label,
+.guild-forum-manage-perms label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.guild-forum-manage-row select,
+.guild-forum-manage-perms select {
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-bright, #e8d5a3);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 12px;
+    padding: 2px 6px;
+}
+
+.guild-forum-manage-new {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+    align-items: flex-start;
+    margin-top: var(--space-lg, 16px);
+    padding-top: var(--space-md, 12px);
+    border-top: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.guild-forum-manage-perms {
+    display: flex;
+    gap: var(--space-lg, 16px);
+    flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+    .guild-forum-board { flex-direction: column; align-items: flex-start; }
+    .guild-forum-board-stats { align-items: flex-start; text-align: left; }
+    .guild-forum-board-last { max-width: none; }
+}

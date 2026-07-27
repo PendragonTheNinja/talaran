@@ -1,0 +1,1068 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+/* ── Public page chrome — mirrors NewsPage so the two read as siblings ────── */
+
+.manual-page-shell {
+    min-height: 100vh;
+    background: #080608;
+    display: flex;
+    flex-direction: column;
+    color: #e8d8b0;
+}
+
+.manual-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 8vw;
+    border-bottom: 1px solid rgba(200, 146, 42, 0.15);
+    position: sticky;
+    top: 0;
+    background: rgba(8, 6, 8, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+}
+
+.manual-page-back {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #c8922a;
+    transition: opacity 0.2s;
+}
+
+.manual-page-back:hover { opacity: 0.7; }
+
+.manual-page-wordmark {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.manual-page-nav {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.manual-page-nav-link {
+    color: #9a8060;
+    text-decoration: none;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+}
+
+.manual-page-nav-link:hover,
+.manual-page-nav-link.active { color: #e8b84b; }
+
+.manual-page-hero {
+    text-align: center;
+    padding: 56px 8vw 32px;
+}
+
+.manual-page-eyebrow {
+    color: var(--color-gold-dim, #7a6030);
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+}
+
+.manual-page-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(30px, 5vw, 46px);
+    font-weight: 700;
+    color: #e8b84b;
+    margin: 0 0 10px;
+    letter-spacing: 0.04em;
+}
+
+.manual-page-subtitle {
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-style: italic;
+    color: #9a8060;
+    font-size: 16px;
+    margin: 0;
+}
+
+/* ── Shared browser layout ────────────────────────────────────────────────── */
+
+.manual {
+    display: flex;
+    gap: var(--space-xl, 24px);
+    align-items: flex-start;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Variant classes are double-dashed so they cannot collide with the component
+   shells (.manual-page-shell, .manual-panel) that wrap this element. */
+.manual--page {
+    padding: 8px 5vw 80px;
+    flex: 1;
+}
+
+/* ── Navigation ───────────────────────────────────────────────────────────── */
+
+.manual-nav {
+    flex: 0 0 240px;
+    position: sticky;
+    top: 92px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-right: var(--space-sm, 8px);
+}
+
+.manual-search { margin-bottom: var(--space-lg, 16px); }
+
+.manual-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-bright, #e8d5a3);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 14px;
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+}
+
+.manual-search-input:focus {
+    outline: none;
+    border-color: var(--color-border-bright, #9a7840);
+}
+
+.manual-search-input::placeholder { color: var(--color-text-dim, #6b5a3e); }
+
+.manual-nav-label {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: var(--space-lg, 16px) 0 var(--space-xs, 4px);
+}
+
+.manual-nav-section + .manual-nav-section { margin-top: var(--space-xs, 4px); }
+
+.manual-nav-home,
+.manual-nav-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-left: 2px solid transparent;
+    color: var(--color-text-muted, #9a8060);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 14px;
+    padding: 5px var(--space-md, 12px);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.manual-nav-home:hover,
+.manual-nav-link:hover {
+    color: var(--color-text-bright, #e8d5a3);
+    background: var(--color-bg-hover, #3d3020);
+}
+
+.manual-nav-home.active,
+.manual-nav-link.active {
+    color: var(--color-gold-bright, #e8b84b);
+    border-left-color: var(--color-gold, #c8922a);
+}
+
+.manual-nav-home {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 12px;
+    margin-bottom: var(--space-sm, 8px);
+}
+
+.manual-nav-pending,
+.manual-nav-empty {
+    color: var(--color-text-dim, #6b5a3e);
+    font-size: 13px;
+    font-style: italic;
+    padding: 4px var(--space-md, 12px);
+    margin: 0;
+}
+
+.manual-nav-toggle { display: none; }
+
+/* Search results */
+
+.manual-search-hit {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--color-bg-panel, #2a2118);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    margin-bottom: var(--space-sm, 8px);
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.manual-search-hit:hover { border-color: var(--color-border-gold, #6b5030); }
+
+.manual-search-hit-title {
+    display: block;
+    color: var(--color-gold-bright, #e8b84b);
+    font-size: 14px;
+}
+
+.manual-search-hit-section {
+    display: block;
+    color: var(--color-text-dim, #6b5a3e);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 2px 0 4px;
+}
+
+.manual-search-hit-excerpt {
+    display: block;
+    color: var(--color-text-muted, #9a8060);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ── Content column ───────────────────────────────────────────────────────── */
+
+.manual-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.manual-article {
+    max-width: 74ch;
+    margin: 0 auto;
+}
+
+.manual-breadcrumb {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: 0 0 var(--space-xs, 4px);
+}
+
+.manual-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(24px, 3.5vw, 34px);
+    color: var(--color-gold-bright, #e8b84b);
+    margin: 0 0 var(--space-xl, 24px);
+    padding-bottom: var(--space-md, 12px);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.manual-content .markdown-content {
+    font-family: 'Crimson Pro', var(--font-body, Georgia), serif;
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--color-text-base, #c8a96e);
+}
+
+.manual-content .markdown-content h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    color: var(--color-text-bright, #e8d5a3);
+    margin: var(--space-xl, 24px) 0 var(--space-sm, 8px);
+}
+
+.manual-content .markdown-content h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: var(--color-gold, #c8922a);
+    margin: var(--space-lg, 16px) 0 var(--space-xs, 4px);
+}
+
+.manual-content .markdown-content blockquote {
+    border-left: 2px solid var(--color-border-gold, #6b5030);
+    padding-left: var(--space-lg, 16px);
+    margin: var(--space-lg, 16px) 0;
+    color: var(--color-text-muted, #9a8060);
+    font-style: italic;
+}
+
+.manual-content .markdown-content a { color: var(--color-gold-bright, #e8b84b); }
+
+.manual-signature {
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-style: italic;
+    color: var(--color-text-dim, #6b5a3e);
+    text-align: right;
+    margin-top: var(--space-xl, 24px);
+    padding-top: var(--space-md, 12px);
+    border-top: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.manual-message {
+    color: var(--color-text-muted, #9a8060);
+    font-style: italic;
+    padding: var(--space-xl, 24px) 0;
+}
+
+/* ── Illumination ─────────────────────────────────────────────────────────── */
+/* The signature. This manual is a hand-copied codex, so it opens like one: an
+   illuminated capital on the first paragraph, once per page and nowhere else.
+   MarkdownRenderer appends its className, so the DOM is .markdown-content.manual-prose. */
+
+.manual-dropcap::first-letter {
+    float: left;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 58px;
+    line-height: 0.82;
+    margin: 6px 10px 0 0;
+    padding: 6px 10px 4px;
+    color: var(--color-gold-bright, #e8b84b);
+    border: 1px solid var(--color-border-gold, #6b5030);
+    border-radius: var(--radius-sm, 3px);
+}
+
+/* A fleuron marks each new section — the eyebrow already uses this glyph, so it
+   reads as the manual's own mark rather than ornament for its own sake. */
+.manual-content .markdown-content h2::before {
+    content: '✦';
+    color: var(--color-gold-dim, #7a6030);
+    font-size: 0.6em;
+    margin-right: 0.6em;
+    vertical-align: 0.15em;
+}
+
+/* Ruled gutter down the reading column, as a copyist would leave. */
+.manual-article {
+    position: relative;
+    padding-left: var(--space-xl, 24px);
+}
+
+.manual-article::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg,
+            var(--color-border-gold, #6b5030),
+            transparent 85%);
+}
+
+/* Footnotes: the <hr> before them becomes a short centred rule. */
+.manual-content .markdown-content hr {
+    border: none;
+    height: 1px;
+    width: 40%;
+    margin: var(--space-xl, 24px) auto var(--space-md, 12px) 0;
+    background: linear-gradient(90deg, var(--color-border-gold, #6b5030), transparent);
+}
+
+.manual-content .markdown-content hr ~ p {
+    font-size: 14px;
+    color: var(--color-text-dim, #6b5a3e);
+    line-height: 1.6;
+}
+
+.manual-content .markdown-content blockquote::before {
+    content: '\201C';
+    font-family: 'Cinzel', serif;
+    font-size: 34px;
+    color: var(--color-border-gold, #6b5030);
+    line-height: 0;
+    vertical-align: -0.35em;
+    margin-right: 6px;
+}
+
+/* Active nav entry carries the same mark as the section headings. */
+.manual-nav-link.active::before {
+    content: '✦';
+    font-size: 0.7em;
+    margin-right: 0.5em;
+    color: var(--color-gold, #c8922a);
+}
+
+.manual-nav-label {
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    padding-bottom: 3px;
+}
+
+/* Data blocks are the Geographer's copied ledgers — give them a ledger's edge. */
+.manual-data {
+    border-left: 2px solid var(--color-border-gold, #6b5030);
+}
+
+/* Neutral tint rather than a themed one, so row striping reads correctly on all
+   five palettes without hardcoding any of them. */
+.manual-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+/* ── Overview / contents ──────────────────────────────────────────────────── */
+
+.manual-overview { max-width: 76ch; }
+
+.manual-overview-intro {
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--color-text-muted, #9a8060);
+    margin: 0 0 var(--space-xl, 24px);
+    padding-bottom: var(--space-lg, 16px);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.manual-overview-section { margin-bottom: var(--space-xl, 24px); }
+
+.manual-overview-heading {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    color: var(--color-gold-bright, #e8b84b);
+    margin: 0 0 var(--space-xs, 4px);
+}
+
+.manual-overview-blurb {
+    color: var(--color-text-muted, #9a8060);
+    font-size: 14px;
+    margin: 0 0 var(--space-md, 12px);
+}
+
+.manual-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-md, 12px);
+}
+
+.manual-card {
+    text-align: left;
+    background: var(--color-bg-panel, #2a2118);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-md, 5px);
+    padding: var(--space-md, 12px) var(--space-lg, 16px);
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.manual-card:hover {
+    border-color: var(--color-border-bright, #9a7840);
+    transform: translateY(-1px);
+}
+
+.manual-card-title {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    color: var(--color-gold-bright, #e8b84b);
+    margin-bottom: 4px;
+}
+
+.manual-card-blurb {
+    display: block;
+    color: var(--color-text-muted, #9a8060);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ── Live data blocks ─────────────────────────────────────────────────────── */
+
+.manual-data {
+    margin: var(--space-lg, 16px) 0;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-md, 5px);
+    padding: var(--space-md, 12px);
+}
+
+.manual-data-title {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: 0 0 var(--space-sm, 8px);
+}
+
+.manual-data-scroll { overflow-x: auto; }
+
+.manual-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 14px;
+}
+
+.manual-table th {
+    text-align: left;
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-gold, #c8922a);
+    border-bottom: 1px solid var(--color-border-mid, #4a3820);
+    padding: 0 var(--space-md, 12px) 6px 0;
+    white-space: nowrap;
+}
+
+.manual-table td {
+    color: var(--color-text-base, #c8a96e);
+    padding: 6px var(--space-md, 12px) 6px 0;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    vertical-align: top;
+}
+
+.manual-table tr:last-child td { border-bottom: none; }
+.manual-table .align-right { text-align: right; }
+
+.manual-data-note {
+    color: var(--color-text-dim, #6b5a3e);
+    font-size: 12px;
+    font-style: italic;
+    margin: var(--space-sm, 8px) 0 0;
+}
+
+.manual-data-empty p {
+    color: var(--color-text-dim, #6b5a3e);
+    font-style: italic;
+    margin: 0;
+    font-size: 14px;
+}
+
+.manual-data-skeleton {
+    height: 12px;
+    background: linear-gradient(90deg,
+            var(--color-bg-mid, #231c14) 25%,
+            var(--color-bg-raised, #332818) 50%,
+            var(--color-bg-mid, #231c14) 75%);
+    background-size: 200% 100%;
+    animation: manual-shimmer 1.4s ease-in-out infinite;
+    border-radius: 2px;
+    margin-bottom: 8px;
+}
+
+.manual-data-skeleton:nth-child(2) { width: 85%; }
+.manual-data-skeleton:nth-child(3) { width: 60%; margin-bottom: 0; }
+
+@keyframes manual-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ── Collapsible appendices ───────────────────────────────────────────────── */
+
+.manual-details {
+    margin: var(--space-lg, 16px) 0;
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-md, 5px);
+    overflow: hidden;
+}
+
+.manual-details-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    width: 100%;
+    text-align: left;
+    background: var(--color-bg-mid, #231c14);
+    border: none;
+    color: var(--color-gold, #c8922a);
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.manual-details-toggle:hover { background: var(--color-bg-hover, #3d3020); }
+
+.manual-details-chevron { font-size: 11px; }
+
+.manual-details-body { padding: var(--space-md, 12px); }
+.manual-details-body .manual-data { margin-top: 0; }
+
+/* ── Panel variant ────────────────────────────────────────────────────────── */
+/* Fullscreen below the top nav, matching ForumPanel. Keyframes are defined
+   locally rather than borrowed from MessagesPanel.css / HighscoresPanel.css,
+   which only happen to be global because those files are imported elsewhere. */
+
+.manual-panel {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border-top: 1px solid var(--color-border-gold);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    animation: manual-slide-in 0.4s ease;
+}
+
+@keyframes manual-slide-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes manual-slide-out {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+}
+
+.manual-panel.closing {
+    animation: manual-slide-out 0.3s ease forwards;
+}
+
+.manual-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md, 12px) var(--space-xl, 24px);
+    border-bottom: 1px solid var(--color-border-gold, #6b5030);
+    flex-shrink: 0;
+}
+
+.manual-panel-header h3 {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+}
+
+.manual-panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+}
+
+/* Fullscreen means the panel gets the same sidebar layout as the page. */
+.manual-panel .manual {
+    flex: 1;
+    min-height: 0;
+    padding: var(--space-xl, 24px);
+    gap: var(--space-xl, 24px);
+    overflow: hidden;
+}
+
+/* The panel is fullscreen, so without this the column hugs the left edge. */
+.manual-panel .manual--panel {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.manual-panel .manual-nav {
+    position: static;
+    max-height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.manual-panel .manual-body {
+    overflow-y: auto;
+    max-height: 100%;
+    padding-right: var(--space-md, 12px);
+}
+
+/* ── Mobile ───────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .manual--page { padding: 8px 5vw 60px; }
+
+    .manual-page-nav { gap: 14px; }
+
+    .manual {
+        flex-direction: column;
+        gap: var(--space-lg, 16px);
+    }
+
+    .manual-nav {
+        position: static;
+        flex: 1 1 auto;
+        width: 100%;
+        max-height: none;
+    }
+
+    .manual-article { max-width: none; }
+
+    .manual-content .markdown-content { font-size: 16px; }
+
+    .manual-dropcap::first-letter {
+        font-size: 44px;
+        margin: 4px 8px 0 0;
+    }
+
+    /* Vertical space is scarce here, so the panel's nav slides over instead. */
+    .manual-panel .manual { position: relative; padding: var(--space-lg, 16px); }
+
+    .manual-panel .manual-nav-toggle {
+        display: block;
+        position: absolute;
+        top: var(--space-sm, 8px);
+        right: var(--space-lg, 16px);
+        z-index: 3;
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+
+    .manual-panel .manual-nav {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 220px;
+        z-index: 2;
+        background: var(--color-bg-deep, #13100c);
+        border-right: 1px solid var(--color-border-mid, #4a3820);
+        padding: var(--space-lg, 16px);
+        transform: translateX(-105%);
+        transition: transform 0.2s ease;
+    }
+
+    .manual-panel .manual-nav.open { transform: translateX(0); }
+}
+
+/* Quality floor: honour a reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+    .manual-panel,
+    .manual-panel.closing { animation: none; }
+
+    .manual-panel .manual-nav { transition: none; }
+
+    .manual-data-skeleton { animation: none; }
+
+    .manual-card:hover { transform: none; }
+}
+
+/* ── Admin editor ─────────────────────────────────────────────────────────── */
+/* Lives here rather than in an admin stylesheet because it reuses the manual's
+   nav and article styles for its list and preview. */
+
+.admin-manual {
+    display: flex;
+    gap: var(--space-lg, 16px);
+    padding: var(--space-lg, 16px);
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+.admin-manual-list {
+    flex: 0 0 220px;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border-dark, #2e2418);
+    padding-right: var(--space-sm, 8px);
+}
+
+.admin-manual-new { width: 100%; margin-bottom: var(--space-md, 12px); }
+
+.admin-manual-flag {
+    color: var(--color-gold-bright, #e8b84b);
+    margin-left: 6px;
+    font-size: 11px;
+}
+
+.admin-manual-editor {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+    overflow-y: auto;
+}
+
+.admin-manual-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-sm, 8px);
+}
+
+.admin-manual-wide { grid-column: 1 / -1; }
+
+.admin-manual-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.admin-manual-fields span {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+}
+
+.admin-manual-fields input,
+.admin-manual-fields select {
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-bright, #e8d5a3);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 13px;
+    padding: 5px 8px;
+}
+
+.admin-manual-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    flex-wrap: wrap;
+}
+
+.admin-manual-status {
+    color: var(--color-text-dim, #6b5a3e);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.admin-manual-textarea {
+    flex: 1;
+    min-height: 320px;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-base, #c8a96e);
+    font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: var(--space-md, 12px);
+    resize: vertical;
+}
+
+.admin-manual-textarea:focus {
+    outline: none;
+    border-color: var(--color-border-bright, #9a7840);
+}
+
+.admin-manual-preview {
+    flex: 1;
+    min-height: 320px;
+    overflow-y: auto;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    padding: var(--space-lg, 16px);
+    display: block;
+}
+
+.admin-manual-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    padding-top: var(--space-sm, 8px);
+}
+
+.admin-manual-publish {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-muted, #9a8060);
+    font-size: 13px;
+}
+
+/* ── Skill tabs ───────────────────────────────────────────────────────────── */
+/* One skill, several faces. Trapping under Hunting, the crafting disciplines
+   under Crafting. These are deliberately NOT separate contents entries. */
+
+.manual-tabs { margin: var(--space-lg, 16px) 0; }
+
+.manual-tabs-bar {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--color-border-gold, #6b5030);
+    margin-bottom: var(--space-lg, 16px);
+    flex-wrap: wrap;
+}
+
+.manual-tab {
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: var(--radius-sm, 3px) var(--radius-sm, 3px) 0 0;
+    color: var(--color-text-muted, #9a8060);
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    padding: 6px var(--space-lg, 16px);
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.manual-tab:hover { color: var(--color-text-bright, #e8d5a3); }
+
+.manual-tab.active {
+    color: var(--color-gold-bright, #e8b84b);
+    background: var(--color-bg-deep, #13100c);
+    border-color: var(--color-border-gold, #6b5030);
+    border-bottom: 1px solid var(--color-bg-deep, #13100c);
+}
+
+/* The illuminated capital belongs to the page opening, not to every tab. */
+.manual-tab-body .manual-dropcap::first-letter {
+    float: none;
+    font-family: inherit;
+    font-weight: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    margin: 0;
+    padding: 0;
+    color: inherit;
+    border: none;
+}
+
+/* ── Item art in tables ───────────────────────────────────────────────────── */
+/* Syrnia's pattern: the picture sits with the name, not in a column of its own,
+   so the table stays narrow and scannable. */
+
+.manual-table-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    flex: 0 0 auto;
+}
+
+.manual-table td.has-icon {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+}
+
+.manual-data-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+}
+
+/* ── Back, and on this page ───────────────────────────────────────────────── */
+
+/* Sticky, because the moment you want Back is halfway down a long page. The
+   offset differs by surface: the public page has its own sticky header to clear,
+   while the panel's scroll container starts at the top of the body. */
+.manual-article-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    margin-bottom: var(--space-xs, 4px);
+    position: sticky;
+    z-index: 5;
+    padding: var(--space-sm, 8px) 0;
+    /* Opaque, or the article text scrolls through it. */
+    background: var(--color-bg-dark, #1a1510);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.manual--page .manual-article-head {
+    top: 73px;
+    background: #080608;
+}
+
+.manual--panel .manual-article-head {
+    top: 0;
+    background: var(--color-bg-dark, #1a1510);
+}
+
+.manual-article-head .manual-breadcrumb { margin: 0; }
+
+.manual-back {
+    background: none;
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-gold, #c8922a);
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 2px 10px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.manual-back:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-color: var(--color-border-bright, #9a7840);
+}
+
+/* Headings are matched by text because the sanitiser strips id attributes. */
+.manual-onpage {
+    border-left: 2px solid var(--color-border-dark, #2e2418);
+    padding-left: var(--space-md, 12px);
+    margin-bottom: var(--space-xl, 24px);
+}
+
+.manual-onpage-label {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: 0 0 var(--space-xs, 4px);
+}
+
+.manual-onpage-link {
+    display: block;
+    background: none;
+    border: none;
+    padding: 2px 0;
+    color: var(--color-text-muted, #9a8060);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.manual-onpage-link:hover { color: var(--color-gold-bright, #e8b84b); }
+
+.admin-manual-warnings {
+    border: 1px solid var(--color-border-gold, #6b5030);
+    border-left: 3px solid var(--color-gold, #c8922a);
+    border-radius: var(--radius-sm, 3px);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    background: var(--color-bg-deep, #13100c);
+}
+
+.admin-manual-warnings p {
+    margin: 2px 0;
+    font-size: 13px;
+    color: var(--color-text-base, #c8a96e);
+}
+
+.admin-manual-dirty {
+    color: var(--color-gold, #c8922a);
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* ── Contextual help affordance ───────────────────────────────────────────── */
+/* Dropped on any panel that has a manual page behind it. */
+
+.manual-help-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: none;
+    border: 1px solid var(--color-border-gold, #6b5030);
+    color: var(--color-gold, #c8922a);
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.manual-help-btn:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-color: var(--color-border-bright, #9a7840);
+}

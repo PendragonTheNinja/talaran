@@ -3,6 +3,7 @@ import { formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import AdminContentBrowser from './AdminContentBrowser'
 import AdminBalanceCalculator from './AdminBalanceCalculator'
+import AdminManualEditor from './AdminManualEditor'
 import './AdminPanel.css'
 
 interface PlayerInfo {
@@ -58,7 +59,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
-    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance'>('players')
+    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual'>('players')
     const [view, setView] = useState<'online' | 'search' | 'player'>('online')
     const [onlinePlayers, setOnlinePlayers] = useState<PlayerInfo[]>([])
     const [searchQuery, setSearchQuery] = useState('')
@@ -360,6 +361,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                             >
                                 Balance
                             </button>
+                            <button
+                                className={`admin-tab ${mainTab === 'manual' ? 'active' : ''}`}
+                                onClick={() => setMainTab('manual')}
+                            >
+                                Manual
+                            </button>
                         </div>
                     )}
                 </div>
@@ -370,7 +377,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             {mainTab === 'content' ? <AdminContentBrowser /> :
-            mainTab === 'balance' ? <AdminBalanceCalculator /> : (
+            mainTab === 'balance' ? <AdminBalanceCalculator /> :
+            mainTab === 'manual' ? <AdminManualEditor /> : (
             <div className="admin-body">
                 {/* Sidebar */}
                 <div className="admin-sidebar">

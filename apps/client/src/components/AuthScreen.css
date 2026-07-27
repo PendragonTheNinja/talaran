@@ -220,10 +220,10 @@
 
 .auth-label {
   font-family: 'Cinzel', serif;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #6a5030;
+  color: #665b4d;
 }
 
 .auth-input {
@@ -241,7 +241,7 @@
 }
 
 .auth-input::placeholder {
-  color: #3a2a18;
+  color: #756451;
 }
 
 .auth-input:focus {
@@ -521,32 +521,33 @@
 .auth-footer-link:hover {
   color: #c8922a;
 }
+
 /* Forgot-password affordances */
 .auth-forgot-link {
-    background: none;
-    border: none;
-    color: var(--color-gold);
-    font-size: 13px;
-    cursor: pointer;
-    padding: 4px 0;
-    text-align: left;
-    font-family: var(--font-body);
+  background: none;
+  border: none;
+  color: var(--color-gold);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+  font-family: var(--font-body);
 }
 
 .auth-forgot-link:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .auth-forgot-hint {
-    color: var(--color-text-muted);
-    font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: var(--space-sm);
 }
 
 .auth-info {
-    color: var(--color-xp);
-    font-size: 14px;
-    line-height: 1.5;
-    margin-top: var(--space-sm);
+  color: var(--color-xp);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: var(--space-sm);
 }

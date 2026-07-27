@@ -103,7 +103,7 @@ export async function up(knex: Knex): Promise<void> {
             text_lines: [
                 "First you'll want land of your own. A farmstead—timber, dressed stone, and a great many nails. It's a long haul and I'll not pretend otherwise. Half the folk who mean to farm never get past it.",
                 "I'll not carry that for you. But here, a hoe, a bucket, and enough carrot seed to fill your first field. When the farmstead stands, the rest of it is easy.",
-                "Raise it. Break a field. Sow it. Then leave it be, and come back when it's ready. That's the whole of it.",
+                "Raise it. Break a field. Sow it. Then leave it be, and come back when it's ready. That's the whole of it. Just be sure to bring a mallet and a saw.",
             ],
             options: JSON.stringify([
                 { label: 'Accept Quest', next_stage: 'progress', action: "start_quest:Georgic's Lesson" },

@@ -6,19 +6,104 @@ import { io } from '../index';
 
 const router = Router();
 
+// ── Category visibility ─────────────────────────────────────────────────────
+//
+// A forum_category may be restricted two ways: staff_only, and guild_id for a
+// private guild board. Both are enforced here rather than per endpoint, because
+// thirteen handlers touch forum data and a single missed check would expose a
+// guild's private threads to everyone.
+//
+// Every handler either filters by visibleCategoryIds() or guards a single
+// category with canSeeCategory() / categoryOfThread() / categoryOfPost().
+
+/** Category ids this player is allowed to read, staff and guild rules applied. */
+async function visibleCategoryIds(playerId: number): Promise<number[]> {
+    const player = await db('players').where({ id: playerId }).first();
+    const isStaff = !!(player?.is_admin || player?.is_mod);
+
+    let q = db('forum_categories').select('id');
+
+    if (!isStaff) q = q.where({ staff_only: false });
+
+    // Staff do NOT get to read guild halls. Moderation powers are not an excuse
+    // to sit in on a private board; a staff member sees only their own guild's.
+    q = q.where((b) => {
+        b.whereNull('guild_id');
+        if (player?.guild_id) b.orWhere('guild_id', player.guild_id);
+    });
+
+    const rows = await q;
+    return rows.map((r) => r.id);
+}
+
+async function canSeeCategory(playerId: number, categoryId: number): Promise<boolean> {
+    if (!Number.isFinite(categoryId)) return false;
+    const allowed = await visibleCategoryIds(playerId);
+    return allowed.includes(Number(categoryId));
+}
+
+/** The category a thread belongs to, or null if the thread does not exist. */
+async function categoryOfThread(threadId: number): Promise<number | null> {
+    const t = await db('forum_threads').where({ id: threadId }).select('category_id').first();
+    return t ? Number(t.category_id) : null;
+}
+
+/** The category a post belongs to, via its thread. */
+async function categoryOfPost(postId: number): Promise<number | null> {
+    const row = await db('forum_posts')
+        .join('forum_threads', 'forum_posts.thread_id', 'forum_threads.id')
+        .where('forum_posts.id', postId)
+        .select('forum_threads.category_id')
+        .first();
+    return row ? Number(row.category_id) : null;
+}
+
+async function guardPoll(playerId: number, pollId: number, res: Response): Promise<boolean> {
+    const row = await db('forum_polls')
+        .join('forum_threads', 'forum_polls.thread_id', 'forum_threads.id')
+        .where('forum_polls.id', pollId)
+        .select('forum_threads.category_id')
+        .first();
+
+    if (!row || !await canSeeCategory(playerId, Number(row.category_id))) {
+        res.status(404).json({ error: 'Poll not found.' });
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Guard for any endpoint acting on a thread. Returns false and answers the
+ * request when the player may not see it. Deliberately 404 rather than 403: a
+ * private board should not confirm that it exists.
+ */
+async function guardThread(playerId: number, threadId: number, res: Response): Promise<boolean> {
+    const categoryId = await categoryOfThread(threadId);
+    if (categoryId === null || !await canSeeCategory(playerId, categoryId)) {
+        res.status(404).json({ error: 'Thread not found.' });
+        return false;
+    }
+    return true;
+}
+
+async function guardPost(playerId: number, postId: number, res: Response): Promise<boolean> {
+    const categoryId = await categoryOfPost(postId);
+    if (categoryId === null || !await canSeeCategory(playerId, categoryId)) {
+        res.status(404).json({ error: 'Post not found.' });
+        return false;
+    }
+    return true;
+}
+
 // Get all categories (filtered by staff status)
 router.get('/categories', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
-        const player = await db('players').where({ id: playerId }).first();
-        const isStaff = player.is_admin || player.is_mod;
+        const visible = await visibleCategoryIds(playerId);
 
-        let query = db('forum_categories').orderBy('sort_order', 'asc');
-        if (!isStaff) {
-            query = query.where({ staff_only: false });
-        }
-
-        const categories = await query;
+        const categories = await db('forum_categories')
+            .whereIn('id', visible)
+            .orderBy('sort_order', 'asc');
 
         // Get thread/post counts for each category
         const categoriesWithStats = await Promise.all(categories.map(async cat => {
@@ -50,17 +135,14 @@ router.get('/categories', requireAuth, async (req: AuthRequest, res: Response) =
 router.get('/recent', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
-        const player = await db('players').where({ id: playerId }).first();
-        const isStaff = player.is_admin || player.is_mod;
+        const visible = await visibleCategoryIds(playerId);
 
         const recentThreads = await db('forum_threads')
             .join('forum_categories', 'forum_threads.category_id', 'forum_categories.id')
             .join('players as last_poster', 'forum_threads.last_post_by', 'last_poster.id')
             .join('players as author', 'forum_threads.author_id', 'author.id')
             .where('forum_threads.is_deleted', false)
-            .modify(query => {
-                if (!isStaff) query.where('forum_categories.staff_only', false);
-            })
+            .whereIn('forum_threads.category_id', visible)
             .orderBy('forum_threads.last_post_at', 'desc')
             .limit(20)
             .select(
@@ -97,8 +179,9 @@ router.get('/categories/:id/threads', requireAuth, async (req: AuthRequest, res:
             return;
         }
 
-        if (category.staff_only && !isStaff) {
-            res.status(403).json({ error: 'Access denied.' });
+        // Covers staff_only and private guild halls in one place.
+        if (!await canSeeCategory(playerId, categoryId)) {
+            res.status(404).json({ error: 'Category not found.' });
             return;
         }
 
@@ -142,6 +225,8 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
     const offset = (page - 1) * limit;
 
     try {
+        if (!await guardThread(playerId, threadId, res)) return;
+
         const player = await db('players').where({ id: playerId }).first();
         const isStaff = player.is_admin || player.is_mod;
 
@@ -234,6 +319,11 @@ router.post('/threads', requireAuth, async (req: AuthRequest, res: Response) => 
     const { categoryId, title, content, pollQuestion, pollOptions } = req.body;
 
     try {
+        if (!await canSeeCategory(playerId, parseInt(String(categoryId)))) {
+            res.status(404).json({ error: 'Category not found.' });
+            return;
+        }
+
         const player = await db('players').where({ id: playerId }).first();
         const isStaff = player.is_admin || player.is_mod;
         if (player.is_forum_banned) {
@@ -350,6 +440,8 @@ router.post('/threads/:id/reply', requireAuth, async (req: AuthRequest, res: Res
     const { content } = req.body;
 
     try {
+        if (!await guardThread(playerId, threadId, res)) return;
+
         const thread = await db('forum_threads').where({ id: threadId, is_deleted: false }).first();
         if (!thread) {
             res.status(404).json({ error: 'Thread not found.' });
@@ -409,6 +501,8 @@ router.post('/posts/:id/vote', requireAuth, async (req: AuthRequest, res: Respon
     const { vote } = req.body; // 1 or -1
 
     try {
+        if (!await guardPost(playerId, postId, res)) return;
+
         if (vote !== 1 && vote !== -1) {
             res.status(400).json({ error: 'Invalid vote.' });
             return;
@@ -456,6 +550,8 @@ router.post('/polls/:id/vote', requireAuth, async (req: AuthRequest, res: Respon
     const { optionId } = req.body;
 
     try {
+        if (!await guardPoll(playerId, pollId, res)) return;
+
         const poll = await db('forum_polls').where({ id: pollId, is_closed: false }).first();
         if (!poll) {
             res.status(404).json({ error: 'Poll not found or closed.' });
@@ -491,6 +587,8 @@ router.delete('/posts/:id', requireAuth, async (req: AuthRequest, res: Response)
     const postId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
 
     try {
+        if (!await guardPost(playerId, postId, res)) return;
+
         const player = await db('players').where({ id: playerId }).first();
         const post = await db('forum_posts').where({ id: postId }).first();
 
@@ -525,6 +623,8 @@ router.delete('/threads/:id', requireAuth, async (req: AuthRequest, res: Respons
     const threadId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
 
     try {
+        if (!await guardThread(playerId, threadId, res)) return;
+
         const player = await db('players').where({ id: playerId }).first();
         const thread = await db('forum_threads').where({ id: threadId }).first();
 
@@ -557,6 +657,10 @@ router.post('/threads/:id/pin', requireAuth, async (req: AuthRequest, res: Respo
             return;
         }
 
+        // Staff moderation powers stop at the door of a guild hall they are not
+        // a member of; guardThread enforces that, not the is_admin check above.
+        if (!await guardThread(playerId, threadId, res)) return;
+
         const thread = await db('forum_threads').where({ id: threadId }).first();
         await db('forum_threads').where({ id: threadId }).update({ is_pinned: !thread.is_pinned });
         res.json({ success: true, pinned: !thread.is_pinned });
@@ -577,6 +681,8 @@ router.post('/threads/:id/lock', requireAuth, async (req: AuthRequest, res: Resp
             res.status(403).json({ error: 'No permission.' });
             return;
         }
+
+        if (!await guardThread(playerId, threadId, res)) return;
 
         const thread = await db('forum_threads').where({ id: threadId }).first();
         const nowLocked = !thread.is_locked;
@@ -603,6 +709,8 @@ router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response
     }
 
     try {
+        if (!await guardPost(playerId, postId, res)) return;
+
         const post = await db('forum_posts').where({ id: postId, is_deleted: false }).first();
         if (!post) {
             res.status(404).json({ error: 'Post not found.' });

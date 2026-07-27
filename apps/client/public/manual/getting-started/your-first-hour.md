@@ -1,0 +1,47 @@
+You have arrived on Taiar Island with a pony, a walking staff, and no earthly idea what to do with either. Take heart. This is precisely the correct amount of equipment and very nearly the correct amount of idea.
+
+I arrived the same way, some years ago, and spent my first hour standing on the shore composing a five-year plan. I have since learned that Talaran does not read plans. It does, however, reward the curious with almost embarrassing generosity, so let us get you moving.
+
+## Take the pony seriously
+
+I am aware of how that sounds.
+
+Taiar runs a hundred kilometres from end to end, and you will spend more of your life crossing it than you will ever spend arriving anywhere. Your pony cuts a journey to a third of what your own two legs will charge you. That is not a convenience. That is a third of your life handed back.
+
+Ride the pony. It is not a decoration, it is not a pet, and it is certainly not, as I once treated mine, a sort of large anxious wheelbarrow.
+
+Travel is real work that takes real time. You will not blink and be elsewhere. Set out, then go and do something useful while the road happens to you.
+
+## Pick up a trade, not a plan
+
+New arrivals love to decide which trade they shall *master* before laying a finger on any of them. I did this. I produced a document. I was very pleased with it.
+
+Here is the trouble. The trades of Talaran lean on one another so thoroughly that the question dissolves the moment you begin. The woodcutter feeds the carpenter. The carpenter builds the farm. The hunter clothes the crafter. Ask "which trade should I choose" and the world answers "yes."
+
+If you want a recommendation rather than a philosophy, and at this stage you should, begin with **Woodcutting** and **Mining**. Nearly everything downstream is made of timber or metal, they teach you the rhythm of gathering, and neither demands a tool you do not already have.
+
+## Learn to read a tool requirement
+
+Now sit up, because this is the one that humbles nearly everybody, and I would like you to be humbled by something more interesting later.
+
+Some tools must be **equipped**, which is to say actually held, in your hands. A pickaxe. A hoe. Others need only be **carried** in your pack. A saw. A bucket.
+
+Owning a tool is not holding a tool.
+
+So if the world tells you that you lack a tool while that very tool sits in your pack, you have not found a fault. You have found this distinction.
+
+Every skill page in this manual states plainly which of its tools must be held and which merely hauled about.
+
+## Talk to everyone
+
+The people who teach the trades do not advertise. There is no board in the square with work pinned to it. There are only people, standing about in towns, looking thoroughly unremarkable, waiting to be asked.
+
+They will not chase you. They will not wave. They will simply stand there, indefinitely, knowing something you don't.
+
+On Taiar, Geonsen at Eld Grove will teach you to hunt, and Georgic at Novita will teach you to farm. There are others, and there will be others still on islands neither of us has seen yet. Speak to anyone standing still, and mind that some of them are more patient than they look.
+
+## Where to go from here
+
+Read [How Actions Work](/manual/getting-started/how-actions-work) next. It is the shortest page here and it will spare you more confusion than anything else I have written.
+
+Then pick a trade and read its page. They are all built to the same shape, so the second will take you half as long as the first, and the fifth will take you no time at all.
