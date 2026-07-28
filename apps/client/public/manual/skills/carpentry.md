@@ -16,29 +16,21 @@ The catch is that public benches are slow. Everything takes twice as long there 
 
 You need three things, all carried:
 
-- A **Lanai Sawhorse**
-- An **Ambren Saw**
-- An **Ambren Plane**
+- A **Sawhorse**
+- A **Saw**
+- A **Plane**
 
 All three are **consumed** when you set up. They become the bench. Like the smith's anvil, the bench then belongs to the place you built it and does not travel with you.
-
-Build it where the timber is, or where the buyers are, and be honest with yourself about which of those you actually spend more time walking to.
 
 ## The two halves of the trade
 
 Carpentry divides cleanly, and it is worth knowing which half you are doing.
 
-**Sawing** turns logs into parts. Planks, panels, shafts. It is repetitive, it is fast, and it is the foundation of everything after.
+**Sawing** turns logs into planks. It is repetitive, it is fast, and it is the foundation of everything after.
 
 **Woodworking** turns parts into things. Tools, furnishings, workstations for other trades, the fittings a farm needs.
 
 Most players discover they enjoy one half considerably more than the other. Both pay.
-
-## Tools and gear
-
-Nothing need be held. Carpentry is bench work, and the bench does the holding. What matters is having the workstation, or access to a public one.
-
-This makes Carpentry unusually portable in one sense and unusually rooted in another. You carry nothing, but you must be *somewhere specific*.
 
 ## Connections
 

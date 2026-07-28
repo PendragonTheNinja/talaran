@@ -1,0 +1,39 @@
+Talaran manual overrides
+Exported 2026-07-28
+
+These are pages edited in game. Each one is a row in manual_pages that
+currently OVERRIDES the markdown file of the same name, so what players
+see is not what is in git.
+
+To put them back into the repo:
+
+  1. Unzip this at the ROOT of the talaran repo. The paths inside are
+     already correct, so files land where they belong.
+  2. git add apps/client/public/manual && git commit && git push
+  3. Deploy the client.
+  4. ONLY THEN, in Admin > Manual, open each page below and press
+     "Revert to shipped".
+
+Step 4 last, and only after deploying. Reverting deletes the override,
+so doing it earlier means players see the old file until the deploy lands.
+
+Until you revert, the database still wins. A later edit to the .md file
+in the repo would be silently invisible.
+
+Pages in this export:
+  - apps/client/public/manual/getting-started/how-actions-work.md
+  - apps/client/public/manual/getting-started/reading-the-screen.md
+  - apps/client/public/manual/getting-started/where-to-go-next.md
+  - apps/client/public/manual/getting-started/woodcutting.md
+  - apps/client/public/manual/getting-started/your-first-hour.md
+  - apps/client/public/manual/skills/carpentry.md
+  - apps/client/public/manual/skills/crafting.md
+  - apps/client/public/manual/skills/farming.md
+  - apps/client/public/manual/skills/foraging.md
+  - apps/client/public/manual/skills/hunting.md
+  - apps/client/public/manual/skills/mining.md
+  - apps/client/public/manual/skills/smithing.md
+  - apps/client/public/manual/skills/woodcutting.md
+  - apps/client/public/manual/systems/quests-and-npcs.md
+  - apps/client/public/manual/systems/the-trades.md
+  - apps/client/public/manual/systems/travel-and-mounts.md

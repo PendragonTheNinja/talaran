@@ -10,7 +10,7 @@ Find a **habitat**, which is what we call a patch worth searching: a hedgerow, a
 
 Each habitat holds its own private list of what might be found there, and each search draws one thing from that list at weighted random. Common finds arrive constantly. Rare ones arrive when they feel like it.
 
-Here is my favourite touch: **you do not see what a habitat holds until you have found it.** The list fills in as you go, one discovery at a time, and until then the unfound entries sit there as question marks, being insufferable.
+Here is my favorite touch: **you do not see what a habitat holds until you have found it.** The list fills in as you go, one discovery at a time, and until then the unfound entries sit there as question marks, being intolerable.
 
 I have a complete list for two habitats on Taiar. I mention this at parties.
 
@@ -19,7 +19,7 @@ I have a complete list for two habitats on Taiar. I mention this at parties.
 Foraging is the most gear-friendly trade in Talaran, and the reason is a small piece of design cleverness I would like to draw your attention to.
 
 - **Foraging knife, equipped in your hands.** Shortens the search, five percent per grade, to a ceiling of half.
-- **Foraging gloves, worn on your hands.** Not speed. *Access.* Certain finds are prickly, thorned, or otherwise unfriendly, and without gloves those rows simply never come up. You will never know what you are missing, which is the cruellest kind of missing.
+- **Foraging gloves, worn on your hands.** Not speed. *Access.* Certain finds are prickly, thorned, or otherwise unfriendly, and without gloves those rows simply never come up. You will never know what you are missing, which is the cruelest kind of missing.
 - **Foraging basket, carried in your off hand.** One extra of whatever you found. Small, dull, and it never stops working.
 
 Notice that these occupy three different places on your person. Knife in hand, gloves on hands, basket in the other hand. **All three can be worn at once**, and all three should be. This is not a choice between tools. It is a set, and a forager missing one of the three is leaving a third of the trade on the ground.

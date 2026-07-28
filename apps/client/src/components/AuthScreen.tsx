@@ -201,6 +201,16 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
             </div>
             <div className="auth-stat-divider" />
 
+            {/* Above the fold and beside Discord, which is already where the
+                "go and learn more" links live. Prominent without adding a new
+                element to the hero composition. */}
+            <Link to="/manual" className="auth-manual-link">
+              <span className="auth-manual-mark">✦</span>
+              Manual
+            </Link>
+
+            <div className="auth-stat-divider" />
+
             <a href="https://discord.gg/ceHFe8nEAB"
               target="_blank"
               rel="noopener noreferrer"

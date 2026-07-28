@@ -2,25 +2,17 @@ Every trade in Talaran wants something from the smith, and the smith wants only 
 
 ## Where and how to start
 
-Smithing begins with a **workstation**, and this catches people out, because the other gathering trades let you simply arrive somewhere and begin.
+Smithing begins with a **workstation**.
 
 You need three things, and you must be carrying all of them:
 
-- An **Ambren Anvil**
-- An **Ambren Hammer**
-- **Ambren Tongs**
+- An **Anvil**
+- A **Hammer**
+- **Tongs**
 
 Take them to a location and set up. The three are **consumed** in the setting up. They become the workstation; you do not get them back, and you do not carry them about afterwards.
 
 This is not theft, whatever it feels like the first time. It is the difference between a tool and a *place*.
-
-## A workstation is a place, and places have addresses
-
-Your workstation exists at the location where you built it. It does not follow you. Walk to another town and your anvil stays exactly where you left it, being an anvil.
-
-Think carefully, therefore, about where you set up. The correct answer is almost always "wherever the ore comes out of the ground," because ore is heavy and roads are long, and the smith who builds beside the mine has already won an argument the smith who builds somewhere scenic will be losing for months.
-
-I built mine somewhere scenic. It was a very fine view, and I looked at it for months while carrying ore across the island.
 
 ## What smithing actually does
 

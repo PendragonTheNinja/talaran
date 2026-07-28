@@ -34,6 +34,6 @@ Two conveniences worth knowing.
 
 Quests hand over goods and experience, and the tutorial ones hand over the tool you will need for the trade they teach, which is the world being quietly thoughtful and worth noticing.
 
-But the real reward of a tutorial quest is that somebody walks you through the correct order of a trade before you invent a worse order yourself. I did not have this. I invented a great many worse orders. Several of them are still spoken about.
+But the real reward of a tutorial quest is that somebody walks you through the correct order of a trade before you invent a worse order yourself. I did not have this. I invented a great many worse orders. Several of them are still spoken about in hushed voices at taverns. 
 
 Go and talk to someone.

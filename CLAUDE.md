@@ -1,6 +1,6 @@
 # CLAUDE.md — Talaran Project Constitution
 
-*The first thing a new session reads. Last updated 2026-07-24.*
+*The first thing a new session reads. Last updated 2026-07-26.*
 
 Talaran is a live browser-based medieval skilling MMORPG in alpha (~30+ players) by Nathan (`PendragonTheNinja`). Live at talaran.net · repo `PendragonTheNinja/talaran`, branch `main` · React/TS/Vite client + Node/Express/TS server + PostgreSQL/Knex + Socket.io · PM2 on Hetzner behind Cloudflare · monorepo: `apps/client`, `apps/server`. **Production lives at `/var/www/talaran`** (`ssh talaran` from Nathan's WSL; his working repo is `~/talaran`).
 
@@ -64,6 +64,16 @@ Every repeat failure this past patch was a convention that already existed here 
 - **Sub-system capacity lives on the property row** (`plot_slots`, `storage_slots`) so a tier upgrade is a number change, not a schema change.
 - **Skill gates belong to the skill that owns the sub-system.** Farming level caps plot count; Carpentry level caps house tier. Never gate one skill's capacity behind another skill's level — materials trade between players, levels don't.
 
+## 2c-2. The Manual (`docs/manual-spec.md` is the authority)
+
+Prose is markdown in `apps/client/public/manual/<section>/<slug>.md`, versioned with the code it documents; `manifest.json` drives the nav, so adding a page is a content operation. **Numbers are never hand-written**: `{{data:<query>[:<param>]}}` resolves against the registry in `apps/server/src/routes/manual.ts`, which reads the same tables the game executes against. Content can only name a registered query, never a table.
+
+Also available: `{{tabs}}` / `{{tab:Label}}` / `{{/tabs}}` for one skill with several faces (Trapping under Hunting, Tanning under Crafting — these are *not* separate contents entries), and `{{details:Label}}` / `{{/details}}` for appendices.
+
+`manual_pages` rows **override** the files; deleting a row restores the committed version. Once a page is edited in game the file in git no longer matches what players see — the admin editor flags those ✎ and has an export-for-commit button. Use it.
+
+Two rules the prose must keep: **Talaran is the world, Taiar Island is one island** (attribute island-specific facts explicitly, or they become lies when the second island ships), and any registry query touching `locations` must emit an island column that appears only once content spans more than one.
+
 ## 2d. Writing style for player-facing text
 
 Applies to everything a player reads: item/habitat descriptions, NPC dialogue, quest text, flavor text, scene text, result messages, button labels, errors.
@@ -103,15 +113,20 @@ Therefore: **tool breakage cannot ship until every tool has a craft path that do
 
 ## 5. Known landmines
 
-- **The client type-check is a lie.** `apps/client/tsconfig.json` has `"files": []` + project references, so `npx tsc --noEmit` compiles **zero files** and always exits 0. The real command is **`npx tsc --noEmit -p tsconfig.app.json`**. Vite doesn't type-check on build, which is why **~29 pre-existing client type errors** have accumulated (missing `is_admin`, two conflicting `Skill` types, `onRequestTrade`, `onDropModeChange`). Measure against that baseline; don't chase zero.
+- **The client type-check is a lie.** `apps/client/tsconfig.json` has `"files": []` + project references, so `npx tsc --noEmit` compiles **zero files** and always exits 0. The real command is **`npx tsc --noEmit -p tsconfig.app.json`**. Vite doesn't type-check on build, which is why **30 pre-existing client type errors** (measured 2026-07-26 at a68b680) have accumulated (missing `is_admin`, two conflicting `Skill` types, `onRequestTrade`, `onDropModeChange`). Measure against that baseline; don't chase zero.
 - **pg returns `numeric`/`decimal` as strings.** Use `integer` columns (trap weights are relative ints: 640/355/5) or parse explicitly.
 - **CSS tokens have no bare names**: `--color-border-mid/-dark/-gold`, `--color-text-base/-muted/-bright`, `--color-gold`. There is no `--color-border`, `--color-text`, or `--color-error`. Buttons are `btn btn-gold`, not `btn primary`. Check `apps/client/src/index.css` before styling.
 - **`:Zone.Identifier` files** breed whenever a browser download is dragged into the repo via Explorer. Gitignored now; if they reappear, something bypassed it. One attached itself to a migration filename and nearly broke the deploy.
+- **`lib/markdown.ts` strips more than you expect.** `ALLOWED_TAGS` has no `table`, `details`, or `summary`, and `ALLOWED_ATTR` is only `href/target/rel`, so heading `id`s vanish and markdown tables disappear silently. `addLinkTargets()` also forces every anchor to `target="_blank"`. Anything structural in rendered markdown has to be a React component, not markup.
 - **Prod-only data hazard**: `huntable_animals` lived only in prod until canonicalized. When touching a system, verify its data exists in the repo.
 - **Travel start deletes any existing action unconditionally** (`routes/travel.ts`) — the universal escape hatch. Remember when reasoning about stuck states.
 - **NPCs only render inside submenus** unless `submenu` is null (top-level render added for Geonsen).
 - **The smithing quest gate is now UI-only.** `canSmith` refused server-side; the generic executor only applies ×2. The button is still gated.
 - Rate-limit ordering bug in `index.ts`: `generalLimit` registered after most mounts; chat limiters defined but unwired. Known, unfixed.
+- **Two guild components exist; only one renders.** `GameLayout.tsx` mounts **`GuildPanel`**. `GuildModal.tsx` is dead code and is referenced nowhere. A whole feature was once built into `GuildModal` and appeared to do nothing. Grep `GameLayout.tsx` for what actually renders before editing any panel.
+- **`players` has a `guild_id` column.** So in any `guild_forum_*` query that joins `players`, a bare `.where({ guild_id })` is ambiguous and Postgres refuses it. Table-qualify every filter key in joined queries. The denormalised `guild_id` on guild forum tables is both the safety measure and the footgun.
+- **Express 5 removed the `:param?` optional route syntax.** `router.get('/data/:query/:param?')` is a boot-time parse error, not an optional segment. Register two routes against one handler instead; that also survives a downgrade, unlike v8's `{/:param}` brace form.
+- **A completed migration's file must stay on disk.** knex refuses to run with "migration directory is corrupt" if a row in `knex_migrations` has no matching file. `20260726020000_guild_forum_categories.ts` is an abandoned approach whose effect is reverted by `20260726030000` — it is kept deliberately. Do not tidy it away.
 - Client style: 4-space + no semicolons in `apps/client` and server *services*; `gameTick.ts`/index-adjacent use 2-space + semicolons. Match the file you're in.
 
 ## 6. Deploy ritual
@@ -124,7 +139,11 @@ On the box (`ssh talaran`): `cd /var/www/talaran` → `git pull` → `cd apps/se
 
 ## 7. Docs index & open threads
 
-Specs: `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/IDEAS.md` (parking lot; the event-chat "firsts" feed lives here). Sims are regenerable — ask Claude to re-derive constants when knobs change.
+Specs: `docs/manual-spec.md` (the manual's authority — content model, directives, IA, voice) · `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/IDEAS.md` (parking lot; the event-chat "firsts" feed lives here). Sims are regenerable — ask Claude to re-derive constants when knobs change.
+
+**Shipped 2026-07-26 (a68b680):** the Manual (19 pages, public `/manual` + in-game panel, live data blocks, admin override editor) and per-guild forums (`guild_forum_*`, own boards and per-board rank permissions, Forum tab in `GuildPanel`).
+
+**Manual pages still unwritten:** Husbandry (blocked on the skill), Fishing, Cooking, Combat, plus Trading, Item Firsts, Themes & Palettes, and a Bestiary. The Skills sidebar will want grouping before those land. `/manual` is also not yet linked from the homepage.
 
 **Next patch, in rough priority:**
 - **Husbandry** — closes several loops left open by the farming patch: manure (soil restore has no source without it), Husbandry leather (foraging gloves are recipe-less until then, so the Bramble Thicket's glove-gated rows stay dark), and the grain/straw sinks. Also the geese/cattle/live-capture-box work below.

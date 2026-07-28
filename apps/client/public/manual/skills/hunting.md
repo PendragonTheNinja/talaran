@@ -1,4 +1,4 @@
-Hunting is the only trade in Talaran that will let you fail.
+Hunting is one of only few trades in Talaran that will let you fail.
 
 Consider what that means. Strike a rock and you get stone. Fell a tree and you get timber. The outcome may be modest but it arrives, dependably, every time, like a clerk. Hunting alone permits you to do everything correctly and come home with nothing but a story.
 
@@ -23,8 +23,6 @@ Your starting **Lanai Hunting Bow** covers the first requirement from your very 
 
 ## The three-part hunt
 
-Hunting is not one action. It is a sequence, and each part can end it.
-
 1. **Track**, to find where the animal has been.
 2. **Stalk**, to close the distance without announcing yourself.
 3. **Strike**, to commit, and to discover whether you were as clever as you felt.
@@ -48,12 +46,6 @@ This is the mechanic that separates hunters who prosper from hunters who go brok
 **On a failed hunt you recover thirty percent.** Flat. No skill improves it.
 
 So a miss costs you the time *and* the better part of your ammunition. This is the real price of hunting above your station. Not the failure itself, which is only a story, but the arrows scattered across a forest floor to no purpose.
-
-## Trophies
-
-Roughly one hunt in three hundred yields a trophy.
-
-I have two. I am insufferable about both. I will not be defending this.
 
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb:
@@ -86,12 +78,6 @@ A trap moves through three states, and knowing them is most of the craft.
 That third state is the one to care about. A neglected trap is not emptied entirely, but the **perishable** parts of the catch are gone, taken by whatever arrived while you were elsewhere. The meat goes. The durable things generally remain.
 
 So trapping does not punish absence, which is the whole point of it. Trapping punishes *forgetting*, which is a different sin and a fairer one.
-
-## You do not know what you caught until you collect it
-
-A sprung trap will not tell you what is in it. You may go and look. It will decline to elaborate. The species is revealed at the moment you collect, and not one second before.
-
-I am aware this is a small thing. I would nevertheless defend it to anybody, because it means every walk back to a trapline carries a question, and a trade that ends in a question is a better trade than one that ends in a receipt.
 
 ## How many traps you may run
 
@@ -127,4 +113,4 @@ Hunting is the most thoroughly braided trade in Talaran, and the braiding is the
 - **Crafting** takes your hides, tans them, and turns them into leather goods. A hunter who sells raw skins leaves most of the animal's value with the buyer.
 - **Cooking** takes the meat, which is the least glamorous and most consistently profitable end of the whole business.
 
-A hunter standing alone earns a living. A hunter who also tans, crafts, and cooks earns four livings from the same deer, and I would like you to think about that the next time you consider a trade in isolation.
+A hunter standing alone earns a living. A hunter who also tans, crafts, and cooks earns four livings from the same deer, and I would like you to think about that the next time you consider a trade in isolation. Or at least find a good guild.

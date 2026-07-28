@@ -10,7 +10,7 @@ Take one arrow. A single arrow, of the sort a hunter loses in the brush without 
 
 The head is metal, so a smith made it. The smith needed ore, so a miner dug it. The shaft is wood, so a carpenter cut it to size. The carpenter needed a log, so a woodcutter felled it. The carpenter also needed a bench, which is itself carpentry, built from timber that somebody else cut.
 
-Five trades. One arrow. And the hunter, who fires it, is the only one of the five who is not making something.
+Five trades. One arrow. And the hunter, who looses it, is the only one of the five who is not making something.
 
 Now consider that the hunter's kill becomes hides for the crafter, meat for the cook, and young animals for the herder, and that the herder's cattle become better leather than the wild ever produced, and that the leather comes back around to make gear for the people who started the whole business.
 

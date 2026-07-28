@@ -65,11 +65,15 @@ export function clearManualCache(): void {
 // ── helpers ─────────────────────────────────────────────────────────────────
 function fmtSeconds(s: number): string {
     if (s < 60) return `${s}s`;
+
     const m = Math.floor(s / 60);
     const rem = s % 60;
     if (m < 60) return rem ? `${m}m ${rem}s` : `${m}m`;
+
     const h = Math.floor(m / 60);
-    return `${h}h ${m % 60}m`;
+    const mins = m % 60;
+    // "4h", not "4h 0m".
+    return mins ? `${h}h ${mins}m` : `${h}h`;
 }
 
 function fmtNumber(n: number): string {
@@ -115,7 +119,51 @@ const registry: Record<string, QueryHandler> = {
                 'station',
             );
 
+        // Farming's real progression is neither a node nor a recipe: what you can
+        // sow at what level lives in its own table, so without this the Farming
+        // page showed only the grain and flax processing recipes.
+        const crops = skill.toLowerCase() === 'farming'
+            ? await db('crops').where({ is_active: true }).select(
+                'name',
+                'produce_item_name',
+                'plant_level',
+                'grow_seconds',
+                'yield_per_seed',
+                'xp_per_seed',
+                'soil_effect',
+                'is_perennial',
+                'regrow_seconds',
+                'region',
+                'grows_anywhere',
+            )
+            : [];
+
         const rows = [
+            ...crops.map((c) => {
+                const notes = [
+                    `Sow · ${fmtSeconds(c.grow_seconds)} to grow`,
+                    `${c.yield_per_seed} per seed`,
+                    `${c.xp_per_seed} XP`,
+                ];
+                if (c.soil_effect === 'restore') notes.push('restores soil');
+                else if (c.soil_effect === 'neutral') notes.push('leaves soil be');
+                if (c.is_perennial) {
+                    notes.push(c.regrow_seconds
+                        ? `regrows in ${fmtSeconds(c.regrow_seconds)}`
+                        : 'perennial');
+                }
+
+                return {
+                    level: c.plant_level,
+                    unlock: c.name,
+                    // grows_anywhere crops ignore the island lock, so they belong
+                    // to no island in particular.
+                    island: c.grows_anywhere ? '' : (c.region || ''),
+                    where: 'Your fields',
+                    iconName: c.produce_item_name,
+                    details: notes.join(' · '),
+                };
+            }),
             ...nodes.map((n) => ({
                 level: n.required_level,
                 unlock: n.name,

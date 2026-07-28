@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import ManualRenderer from './ManualRenderer'
 import { loadManifest, loadShippedPage, type ManualManifest } from '../lib/manual'
+import { createZip } from '../lib/zip'
 import './Manual.css'
 
 // Live manual editing (docs/manual-spec.md §2).
@@ -199,12 +200,18 @@ export default function AdminManualEditor() {
     }
 
     /**
-     * Downloads every override as markdown so it can be committed back into the
-     * repo, keeping the files and the live pages from drifting apart.
+     * Downloads every override as a zip laid out in the repo's own directory
+     * structure, so applying it is `unzip` at the repo root rather than copying
+     * blocks out of a bundle by hand.
+     *
+     * This is the step that stops the files in git drifting from what players
+     * see. The included how-to spells out the ordering that matters: commit and
+     * deploy BEFORE reverting the overrides, or players briefly get the old text.
      */
     const exportAll = async () => {
         setBusy(true)
         setError(null)
+
         try {
             const d = await apiFetch<{ files: { path: string; content: string }[] }>(
                 '/api/admin/manual/export',
@@ -215,18 +222,52 @@ export default function AdminManualEditor() {
                 return
             }
 
-            const bundle = d.files
-                .map(f => `${'='.repeat(70)}\n${f.path}\n${'='.repeat(70)}\n\n${f.content}`)
-                .join('\n\n\n')
+            const stamp = new Date().toISOString().slice(0, 10)
 
-            const url = URL.createObjectURL(new Blob([bundle], { type: 'text/markdown' }))
+            const howTo = [
+                'Talaran manual overrides',
+                `Exported ${stamp}`,
+                '',
+                'These are pages edited in game. Each one is a row in manual_pages that',
+                'currently OVERRIDES the markdown file of the same name, so what players',
+                'see is not what is in git.',
+                '',
+                'To put them back into the repo:',
+                '',
+                '  1. Unzip this at the ROOT of the talaran repo. The paths inside are',
+                '     already correct, so files land where they belong.',
+                '  2. git add apps/client/public/manual && git commit && git push',
+                '  3. Deploy the client.',
+                '  4. ONLY THEN, in Admin > Manual, open each page below and press',
+                '     "Revert to shipped".',
+                '',
+                'Step 4 last, and only after deploying. Reverting deletes the override,',
+                'so doing it earlier means players see the old file until the deploy lands.',
+                '',
+                'Until you revert, the database still wins. A later edit to the .md file',
+                'in the repo would be silently invisible.',
+                '',
+                'Pages in this export:',
+                ...d.files.map(f => `  - ${f.path}`),
+                '',
+            ].join('\n')
+
+            const blob = createZip([
+                ...d.files.map(f => ({ path: f.path, content: f.content })),
+                { path: 'HOW-TO-APPLY.txt', content: howTo },
+            ])
+
+            const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = 'manual-overrides.md'
+            a.download = `talaran-manual-overrides-${stamp}.zip`
             a.click()
             URL.revokeObjectURL(url)
 
-            setMessage(`Exported ${d.files.length} page${d.files.length === 1 ? '' : 's'}.`)
+            setMessage(
+                `Exported ${d.files.length} page${d.files.length === 1 ? '' : 's'}. `
+                + 'Unzip at the repo root, commit, deploy, then revert.',
+            )
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Could not export.')
         } finally {

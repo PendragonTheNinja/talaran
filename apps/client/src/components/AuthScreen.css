@@ -551,3 +551,37 @@
   line-height: 1.5;
   margin-top: var(--space-sm);
 }
+/* Manual link in the hero stats row. Matches .auth-discord's shape and weight so
+   it reads as a sibling affordance rather than a new kind of element, but takes
+   the gold from the wordmark instead of Discord's blurple. */
+.auth-manual-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #c8922a;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.auth-manual-link:hover {
+  opacity: 1;
+  color: #e8b84b;
+}
+
+.auth-manual-mark {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* The row wraps on narrow screens rather than pushing Discord off the edge. */
+@media (max-width: 620px) {
+  .auth-stats {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+}

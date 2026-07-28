@@ -1,6 +1,6 @@
 Let us begin with a confession: I was a dreadful farmer.
 
-Oh, I *understood* farming. I understood it the way a man falling off a cliff understands gravity, which is to say thoroughly and far too late to be useful. I had come from the forests, where patience means swinging until the tree gives up, and from the forges, where patience means waiting for metal to stop being angry. Soil, I assumed, would be a third variety of the same virtue.
+Oh, I *understood* farming. I understood it the way a man falling off a cliff understands gravity, which is to say thoroughly and far too late to be useful. I had come from the forests, where patience means swinging until the tree gives up, and from the forges, where patience means waiting for metal to stop being so angry. Soil, I assumed, would be a third variety of the same virtue.
 
 Soil does not care what you assume. Soil has one lesson and it delivers it to everyone identically: *you cannot hurry this, and you should go away.*
 
@@ -10,7 +10,7 @@ Farming begins with property, which surprises people who expected it to begin wi
 
 You do not sow a field on common ground. You raise a **farmstead** first, and the fields come after. On Taiar, that means **Novita**, and it means speaking to **Georgic**, who teaches the whole sequence in the proper order. That is considerably more than I had, and he does it without once mentioning that you might have asked sooner.
 
-Raising the farmstead is a serious piece of joinery: five hundred planks, five hundred blocks of granite, a thousand nails, and the better part of ten minutes' honest work. Note that it pays **Carpentry** experience rather than Farming, and pays it generously. I have always thought that a fair acknowledgement of what it costs a man.
+Raising the farmstead is a serious piece of joinery: five hundred planks, five hundred blocks of granite, a thousand nails, and the better part of ten minutes' honest work. Note that it pays **Carpentry** experience rather than Farming, and pays it generously. I have always thought that a fair acknowledgement of what it costs a man. Just don't forget a mallet and saw.
 
 ## The work, in order
 
@@ -27,11 +27,9 @@ Between step four and step five you should be somewhere else entirely. That is n
 ## Tools and gear
 
 - **Hoe, must be equipped.** In your hands, to till. Owning one accomplishes nothing.
-- **Lanai Mallet, must be equipped.** In your hands, to raise a farmstead or fence a field.
-- **Ambren Saw, carried.** It need only be in your pack when you build.
-- **Lanai Bucket, carried.** It need only be in your pack when you tend.
-
-The rule beneath the rules is a sensible one: if the tool is the thing doing the work, it must be in your hands. If it is bench kit standing by, carrying it is enough.
+- **Mallet, must be equipped.** In your hands, to raise a farmstead or fence a field.
+- **Saw, carried.** It need only be in your pack when you build.
+- **Bucket, carried.** It need only be in your pack when you tend.
 
 ## Soil, and the great argument about it
 

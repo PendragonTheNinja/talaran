@@ -1,4 +1,4 @@
-Nothing in Talaran happens the instant you ask for it, and I am going to spend a page explaining why, because once you understand it you will stop fighting the world and start living in it.
+Nothing in Talaran happens the instant you ask for it, and I am going to spend a page explaining why, because once you understand it, you will stop fighting the world and start living in it.
 
 ## Everything worth doing takes time
 
@@ -12,7 +12,7 @@ This is not an inconvenience bolted onto the world. It is the shape of the world
 
 Here is the distinction that matters more than every other distinction combined.
 
-**Active work** is what occupies you right now: mining, tilling, fishing, hauling. One at a time, your full attention, and it pays you for the seconds it takes.
+**Active work** is what occupies you right now: mining, tilling, fishing. One at a time, your full attention, and it pays you for the seconds it takes.
 
 **Passive work** does not care whether you exist. A crop grows. A hide soaks in the vat. A snare sits in the brush with infinite patience and no opinions. You set it going, you leave, and the world keeps its side of the arrangement in real hours, whether you are in Talaran or asleep in your own bed.
 

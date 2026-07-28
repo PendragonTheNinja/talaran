@@ -18,7 +18,7 @@ Your **inventory** and the paper doll of what you are wearing sit down the left.
 
 The **middle** is wherever you are and whatever you may do there. Work appears when you arrive somewhere it can be done, and not before. If a trade seems to be missing, the usual answer is that you are standing in the wrong place, a diagnosis I have delivered to myself more often than I care to record.
 
-**Chat** runs along the bottom, in tabs, because Talaran is talkative and not all of it is talking to you:
+**Chat** runs along the bottom, in different types, because Talaran is talkative and not all of it is talking to you:
 
 - **World** reaches everyone, everywhere, across every island. Loud, occasionally useful.
 - **Region** reaches the island you are standing on. Better odds of relevance.
@@ -35,5 +35,3 @@ The row across the top opens the larger rooms: your messages, the forum, your gu
 ## And that is the frame
 
 Good. The fiction resumes on the next page, and I intend to keep it up for the remainder of the manual.
-
-If you take one thing from this page, take the paper doll. It answers more questions than anything else on the screen, and it answers them instantly.

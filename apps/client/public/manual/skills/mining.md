@@ -14,7 +14,7 @@ Every outcrop states plainly what level it expects of you and what grade of pick
 
 Strike an outcrop and you get **stone**, plus experience. Unglamorous, reliable, and the backbone of every builder's supply in Talaran.
 
-But each strike also carries a chance at something better. You find a **vein**, a genuine seam of ore, copper or iron or whatever the ground there has been hoarding. Working a vein hands you the metal itself rather than more gravel.
+But each strike also carries a chance at something better. You find a **vein**, a genuine seam of ore, ambren or burgh or whatever the ground there has been hoarding. Working a vein hands you the metal itself rather than more gravel.
 
 Now attend closely, because this next part has cost me personally, and I would rather it cost you nothing.
 
@@ -22,17 +22,15 @@ Now attend closely, because this next part has cost me personally, and I would r
 
 So when you find one, *work it*. Do not go and put your affairs in order. Do not nip back to town. Do not, as I once did, carefully return a borrowed axe first.
 
-I have lost more good iron to tidiness than to any rival I ever had.
+I have lost more good ambren to tidiness than to any rival I ever had.
 
 ## Dense ore
 
 Once you are well past what an ore demands, fifteen levels clear of it, you will begin occasionally pulling **dense** ore instead of the ordinary sort. The chance climbs steadily from there, and once you stand forty-five levels above the requirement it stops being a chance at all. Every piece comes out dense.
 
-This is the quiet argument for going back to ore you have decided is beneath you. A master working humble copper is not wasting his afternoon. He is being paid twice for the same swing, and smiling about it.
+This is the quiet argument for going back to ore you have decided is beneath you. A master working humble ambren is not wasting his afternoon. He is being paid twice for the same swing, and smiling about it.
 
 ## Tools and gear
-
-- **Pickaxe, must be equipped.** Carrying one in your pack will not do; it must be in your hands.
 
 Grade matters in both directions, and the arithmetic is worth committing to memory.
 
@@ -40,12 +38,6 @@ Grade matters in both directions, and the arithmetic is worth committing to memo
 - A pickaxe **below** grade punishes you badly. Each grade short adds roughly forty percent to the time.
 
 Read those two figures again and note that they are not symmetrical. The lesson is therefore not "always carry the finest pickaxe." The lesson is **never work an outcrop with a pickaxe beneath it.** The penalty for arriving under-equipped dwarfs the reward for arriving over-equipped, which is true of a great many things besides mining.
-
-## Quality
-
-Stone emerges poor, fine, or excellent, in proportions the outcrop decides for itself. Your skill does not shift those proportions by a hair.
-
-Some rock is simply better rock. You will learn which outcrops are worth the walk, and you will feel absurdly proprietary about them.
 
 ## Connections
 

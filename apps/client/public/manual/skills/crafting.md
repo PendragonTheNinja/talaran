@@ -48,7 +48,7 @@ Put it where the hides are. Hides come from hunting, hunting happens in forests,
 
 ## How a soak works
 
-Load a vat with hides. Walk away. Come back to leather.
+Load a vat with hides. Walk away. Come back to buckskin.
 
 That is the whole of it. A vat takes **ten hides** at a time, the soak runs on a fixed schedule, and it does not require you to be present, awake, or in the world at all. When it finishes it simply waits. Nothing spoils for being collected late.
 
