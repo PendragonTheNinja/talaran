@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { setItemAnimationEnabled } from '../lib/itemFly'
 import { apiFetch } from '../lib/api'
 import './SettingsPanel.css'
 import { useIsMobile } from '../lib/useIsMobile'
@@ -25,6 +26,8 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
     const [newEmail, setNewEmail] = useState('')
     const [emailPassword, setEmailPassword] = useState('')
     const [showTravelLog, setShowTravelLog] = useState(true)
+    const [showItemAnimation, setShowItemAnimation] = useState(true)
+    const [hideTallyWhenBuilt, setHideTallyWhenBuilt] = useState(false)
     const [activeTheme, setActiveTheme] = useState<string>(() => {
         try { return localStorage.getItem('talaran-theme') ?? currentTheme() } catch { return currentTheme() }
     })
@@ -104,7 +107,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
 
     const loadSettings = async () => {
         try {
-            const data = await apiFetch<{ mutedChannels: string[]; showTravelLog?: boolean }>('/api/settings')
+            const data = await apiFetch<{ mutedChannels: string[]; showTravelLog?: boolean; showItemAnimation?: boolean; hideTallyWhenBuilt?: boolean }>('/api/settings')
             const muted: Record<string, boolean> = {
                 world: false,
                 region: false,
@@ -114,6 +117,8 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
             data.mutedChannels?.forEach(ch => { muted[ch] = true })
             setMutedChannels(muted)
             setShowTravelLog(data.showTravelLog ?? true)
+            setShowItemAnimation(data.showItemAnimation ?? true)
+            setHideTallyWhenBuilt(data.hideTallyWhenBuilt ?? false)
         } catch (err) { }
     }
 
@@ -178,6 +183,35 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
         } catch (err) {
             // Revert on error
             setMutedChannels(mutedChannels)
+        }
+    }
+
+    const handleTallyLinkToggle = async () => {
+        const next = !hideTallyWhenBuilt
+        setHideTallyWhenBuilt(next)
+        try {
+            await apiFetch('/api/settings/tally-link', {
+                method: 'POST',
+                body: JSON.stringify({ hideTallyWhenBuilt: next }),
+            })
+        } catch (err) {
+            setHideTallyWhenBuilt(!next) // revert on failure
+        }
+    }
+
+    const handleItemAnimationToggle = async () => {
+        const next = !showItemAnimation
+        setShowItemAnimation(next)
+        // Apply immediately so the next find reflects the choice without a reload.
+        setItemAnimationEnabled(next)
+        try {
+            await apiFetch('/api/settings/item-animation', {
+                method: 'POST',
+                body: JSON.stringify({ showItemAnimation: next }),
+            })
+        } catch (err) {
+            setShowItemAnimation(!next) // revert on failure
+            setItemAnimationEnabled(!next)
         }
     }
 
@@ -445,6 +479,37 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                                 onClick={handleTravelLogToggle}
                             >
                                 {showTravelLog ? 'On' : 'Off'}
+                            </button>
+                        </div>
+
+                        <div className="settings-toggle-row">
+                            <div className="settings-toggle-info">
+                                <span className="settings-toggle-label">Item Animation</span>
+                                <span className="muted-text" style={{ fontSize: '13px' }}>
+                                    Fly found items into your pack. Turn this off for a quieter screen.
+                                </span>
+                            </div>
+                            <button
+                                className={`settings-toggle-btn ${showItemAnimation ? 'active' : 'muted'}`}
+                                onClick={handleItemAnimationToggle}
+                            >
+                                {showItemAnimation ? 'On' : 'Off'}
+                            </button>
+                        </div>
+
+                        <div className="settings-toggle-row">
+                            <div className="settings-toggle-info">
+                                <span className="settings-toggle-label">Hide Tally Board Link</span>
+                                <span className="muted-text" style={{ fontSize: '13px' }}>
+                                    Once a board is built, hide its link everywhere on that island
+                                    except where the board itself stands.
+                                </span>
+                            </div>
+                            <button
+                                className={`settings-toggle-btn ${hideTallyWhenBuilt ? 'active' : 'muted'}`}
+                                onClick={handleTallyLinkToggle}
+                            >
+                                {hideTallyWhenBuilt ? 'On' : 'Off'}
                             </button>
                         </div>
                     </div>

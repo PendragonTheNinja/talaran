@@ -10,16 +10,37 @@ import { getItemIcon } from './items'
 
 const FLYER_SIZE = 76
 
+// Player preference, mirrored here from settings so the gate lives beside the
+// reduced-motion check rather than being repeated at every call site. Any future
+// caller of flyItemToPack inherits it for free.
+let animationEnabled = true
+
+export function setItemAnimationEnabled(enabled: boolean): void {
+    animationEnabled = enabled
+}
+
 function prefersReducedMotion(): boolean {
     return typeof window !== 'undefined'
         && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 }
 
 function findPackSlot(itemName: string): HTMLElement | null {
+    const grid = document.querySelector<HTMLElement>('.inventory-grid')
     const exact = document.querySelector<HTMLElement>(`[data-item-name="${CSS.escape(itemName)}"]`)
-    if (exact) return exact
-    // Not in the pack yet (or off-screen): aim at the grid itself.
-    return document.querySelector<HTMLElement>('.inventory-grid')
+
+    if (!exact) return grid
+    if (!grid) return exact
+
+    // .inventory-grid is a fixed four-row box with overflow-y: auto, so a stack
+    // sitting in row seven has a real bounding rect BELOW the visible grid,
+    // outside the panel. Aiming at it sent the flyer off to the bottom-left of
+    // the screen. Foraging hit this hardest because it fills a pack with many
+    // distinct stacks quickly, pushing the newest find out of view.
+    const slot = exact.getBoundingClientRect()
+    const box = grid.getBoundingClientRect()
+    const withinView = slot.bottom > box.top && slot.top < box.bottom
+
+    return withinView ? exact : grid
 }
 
 export function flyItemToPack(opts: {
@@ -28,7 +49,7 @@ export function flyItemToPack(opts: {
     firstTime?: boolean
 }): void {
     const { itemName, fromEl, firstTime } = opts
-    if (!fromEl || prefersReducedMotion()) return
+    if (!fromEl || !animationEnabled || prefersReducedMotion()) return
 
     const target = findPackSlot(itemName)
     if (!target) return

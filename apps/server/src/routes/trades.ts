@@ -275,87 +275,160 @@ router.post('/offer/gold', requireAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Accept trade
+/**
+ * Thrown to abort an in-flight exchange. Rolls the transaction back, so a trade
+ * that fails partway moves nothing at all.
+ */
+class TradeAbort extends Error {
+    constructor(message: string, readonly cancelTrade = true) {
+        super(message);
+    }
+}
+
 router.post('/accept', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId } = req.body;
 
     try {
-        const trade = await db('trades').where({ id: tradeId, status: 'active' }).first();
-        if (!trade) {
-            res.status(404).json({ error: 'Trade not found.' });
-            return;
-        }
+        // Everything the response and the socket emits need, collected inside the
+        // transaction and used after it commits. Emitting from inside would
+        // announce a trade that a later rollback undoes.
+        let player1Id = 0;
+        let player2Id = 0;
+        let p1Accepted = false;
+        let p2Accepted = false;
+        let completed = false;
 
-        const isPlayer1 = trade.player1_id === playerId;
-        await db('trades').where({ id: tradeId }).update(
-            isPlayer1 ? { player1_accepted: true } : { player2_accepted: true }
-        );
+        await db.transaction(async (trx) => {
+            // forUpdate serialises concurrent accepts on the same trade: without
+            // it both sides can pass validation simultaneously.
+            const trade = await trx('trades')
+                .where({ id: tradeId, status: 'active' })
+                .forUpdate()
+                .first();
 
-        const updatedTrade = await db('trades').where({ id: tradeId }).first();
+            if (!trade) throw new TradeAbort('Trade not found.', false);
 
-        // Notify both players of acceptance state
-        io.to(`player_${trade.player1_id}`).emit('trade_acceptance_updated', {
-            player1Accepted: updatedTrade.player1_accepted,
-            player2Accepted: updatedTrade.player2_accepted,
-        });
-        io.to(`player_${trade.player2_id}`).emit('trade_acceptance_updated', {
-            player1Accepted: updatedTrade.player1_accepted,
-            player2Accepted: updatedTrade.player2_accepted,
-        });
+            if (trade.player1_id !== playerId && trade.player2_id !== playerId) {
+                throw new TradeAbort('That is not your trade.', false);
+            }
 
-        // Both accepted — complete the trade
-        logger.info(`Trade ${tradeId} acceptance state: p1=${updatedTrade.player1_accepted} p2=${updatedTrade.player2_accepted}`)
-        if (updatedTrade.player1_accepted && updatedTrade.player2_accepted) {
-            const offers = await db('trade_offers').where({ trade_id: tradeId });
-            const gold = await db('trade_gold').where({ trade_id: tradeId });
+            player1Id = trade.player1_id;
+            player2Id = trade.player2_id;
 
-            // Transfer items
-            // Transfer items
+            const isPlayer1 = trade.player1_id === playerId;
+            await trx('trades').where({ id: tradeId }).update(
+                isPlayer1 ? { player1_accepted: true } : { player2_accepted: true },
+            );
+
+            const updated = await trx('trades').where({ id: tradeId }).first();
+            p1Accepted = updated.player1_accepted;
+            p2Accepted = updated.player2_accepted;
+
+            if (!updated.player1_accepted || !updated.player2_accepted) return;
+
+            // ── Both accepted: perform the exchange ─────────────────────────
+            const offers = await trx('trade_offers').where({ trade_id: tradeId });
+            const gold = await trx('trade_gold').where({ trade_id: tradeId });
+
+            // Gold cannot be transferred: players have no currency balance. The
+            // offer field writes to trade_gold and nothing ever moved it, so a
+            // player could trade items away expecting gold and receive nothing.
+            // Refuse rather than complete a trade we cannot honour.
+            const goldOffered = gold.reduce((sum, g) => sum + Number(g.gold_amount || 0), 0);
+            if (goldOffered > 0) {
+                throw new TradeAbort(
+                    'Gold cannot be traded yet. Set both gold offers to zero and try again.',
+                );
+            }
+
+            // Validate EVERY offer before moving anything. The old code moved
+            // items as it went, so a failure on the third offer left the first
+            // two already transferred and then "cancelled" the trade.
+            const moves: { from: number; to: number; itemId: number; qty: number; rowId: number; have: number }[] = [];
+
             for (const offer of offers) {
-                const givingPlayer = offer.player_id;
-                const receivingPlayer = givingPlayer === trade.player1_id ? trade.player2_id : trade.player1_id;
+                const from = offer.player_id;
+                const to = from === trade.player1_id ? trade.player2_id : trade.player1_id;
 
-                // Remove from giver
-                const invItem = await db('player_inventory').where({ player_id: givingPlayer, item_id: offer.item_id }).first();
+                const invItem = await trx('player_inventory')
+                    .where({ player_id: from, item_id: offer.item_id })
+                    .forUpdate()
+                    .first();
 
                 if (!invItem) {
-                    // Item no longer in inventory — cancel trade
-                    await cancelTrade(tradeId, 'A traded item is no longer in your inventory.');
-                    res.status(400).json({ error: 'Trade failed: item no longer available.' });
-                    return;
+                    throw new TradeAbort('A traded item is no longer in that player\'s inventory.');
                 }
 
-                if (invItem.quantity < offer.quantity) {
-                    await cancelTrade(tradeId, 'Insufficient quantity of a traded item.');
-                    res.status(400).json({ error: 'Trade failed: insufficient item quantity.' });
-                    return;
+                if (Number(invItem.quantity) < Number(offer.quantity)) {
+                    throw new TradeAbort('Insufficient quantity of a traded item.');
                 }
 
-                if (invItem.quantity <= offer.quantity) {
-                    await db('player_inventory').where({ player_id: givingPlayer, item_id: offer.item_id }).delete();
+                moves.push({
+                    from,
+                    to,
+                    itemId: offer.item_id,
+                    qty: Number(offer.quantity),
+                    rowId: invItem.id,
+                    have: Number(invItem.quantity),
+                });
+            }
+
+            // Only now does anything actually move.
+            for (const move of moves) {
+                if (move.have === move.qty) {
+                    await trx('player_inventory').where({ id: move.rowId }).delete();
                 } else {
-                    await db('player_inventory').where({ player_id: givingPlayer, item_id: offer.item_id }).decrement('quantity', offer.quantity);
+                    await trx('player_inventory').where({ id: move.rowId }).decrement('quantity', move.qty);
                 }
 
-                // Add to receiver
-                const existing = await db('player_inventory').where({ player_id: receivingPlayer, item_id: offer.item_id }).first();
+                const existing = await trx('player_inventory')
+                    .where({ player_id: move.to, item_id: move.itemId })
+                    .forUpdate()
+                    .first();
+
                 if (existing) {
-                    await db('player_inventory').where({ player_id: receivingPlayer, item_id: offer.item_id }).increment('quantity', offer.quantity);
+                    await trx('player_inventory').where({ id: existing.id }).increment('quantity', move.qty);
                 } else {
-                    await db('player_inventory').insert({ player_id: receivingPlayer, item_id: offer.item_id, quantity: offer.quantity });
+                    await trx('player_inventory').insert({
+                        player_id: move.to,
+                        item_id: move.itemId,
+                        quantity: move.qty,
+                    });
                 }
             }
 
-            await db('trades').where({ id: tradeId }).update({ status: 'completed' });
+            await trx('trades').where({ id: tradeId }).update({ status: 'completed' });
+            completed = true;
+        });
 
-            io.to(`player_${trade.player1_id}`).emit('trade_completed', {});
-            io.to(`player_${trade.player2_id}`).emit('trade_completed', {});
+        // ── Committed. Safe to tell anyone. ─────────────────────────────────
+        io.to(`player_${player1Id}`).emit('trade_acceptance_updated', {
+            player1Accepted: p1Accepted,
+            player2Accepted: p2Accepted,
+        });
+        io.to(`player_${player2Id}`).emit('trade_acceptance_updated', {
+            player1Accepted: p1Accepted,
+            player2Accepted: p2Accepted,
+        });
 
-            logger.info(`Trade ${tradeId} completed between ${trade.player1_id} and ${trade.player2_id}`);
+        if (completed) {
+            io.to(`player_${player1Id}`).emit('trade_completed', {});
+            io.to(`player_${player2Id}`).emit('trade_completed', {});
+            logger.info(`Trade ${tradeId} completed between ${player1Id} and ${player2Id}`);
         }
 
         res.json({ success: true });
     } catch (err) {
+        if (err instanceof TradeAbort) {
+            // The transaction rolled back, so nothing moved. Cancelling here is
+            // safe and happens outside any open transaction.
+            if (err.cancelTrade) await cancelTrade(tradeId, err.message);
+            logger.info(`Trade ${tradeId} aborted: ${err.message}`);
+            res.status(400).json({ error: err.message });
+            return;
+        }
+
         logger.error(`Trade accept error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }

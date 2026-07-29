@@ -160,6 +160,17 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
 
       <div className="auth-vignette" />
 
+      {/* Navigation, above the fold. Legal links stay in the footer where they
+          belong; these are the ones people actually want. */}
+      <nav className="auth-topnav">
+        <Link to="/manual" className="auth-topnav-link">
+          <span className="auth-topnav-mark">✦</span> Manual
+        </Link>
+        <Link to="/news" className="auth-topnav-link">News</Link>
+        <Link to="/highscores" className="auth-topnav-link">Highscores</Link>
+        <Link to="/store" className="auth-topnav-link">Store</Link>
+      </nav>
+
       {/* Hero */}
       <div className="auth-hero">
         <div className="auth-hero-left">
@@ -199,16 +210,6 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
               <span className="auth-stat-number" style={{ color: '#6ab87e' }}>{playerStats.onlinePlayers}</span>
               <span className="auth-stat-label">Online Now</span>
             </div>
-            <div className="auth-stat-divider" />
-
-            {/* Above the fold and beside Discord, which is already where the
-                "go and learn more" links live. Prominent without adding a new
-                element to the hero composition. */}
-            <Link to="/manual" className="auth-manual-link">
-              <span className="auth-manual-mark">✦</span>
-              Manual
-            </Link>
-
             <div className="auth-stat-divider" />
 
             <a href="https://discord.gg/ceHFe8nEAB"
@@ -367,12 +368,6 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
       {/* Footer */}
       <div className="auth-footer">
         <span>© 2026 Talaran · Alpha</span>
-        <span>·</span>
-        <Link to="/news" className="auth-footer-link">News</Link>
-        <span>·</span>
-        <Link to="/highscores" className="auth-footer-link">Highscores</Link>
-        <span>·</span>
-        <Link to="/store" className="auth-footer-link">Store</Link>
         <span>·</span>
         <Link to="/terms" className="auth-footer-link">Terms</Link>
         <span>·</span>

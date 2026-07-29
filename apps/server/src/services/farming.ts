@@ -16,7 +16,11 @@ import { updateQuestObjectiveProgress } from '../routes/quests';
 // that on top of the crop's passive yield (xp_per_seed), which is tuned so a plot
 // produces 0.12x the active reference over its grow cycle.
 
-const NOVITA = 'Novita';
+// The only town where a farmstead may be raised (see startEstablish). Exported
+// so the manual's training-path can name the town rather than guessing, and so
+// a second farming town later means changing one line.
+export const FARMSTEAD_TOWN = 'Novita';
+const NOVITA = FARMSTEAD_TOWN;
 const PLOT_CAPACITY = 10;                 // seeds per plot
 const PLOT_MAX = 20;                      // hard ceiling (end-game)
 const CARPENTRY_REQ = 1;

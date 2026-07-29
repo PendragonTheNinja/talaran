@@ -551,37 +551,59 @@
   line-height: 1.5;
   margin-top: var(--space-sm);
 }
-/* Manual link in the hero stats row. Matches .auth-discord's shape and weight so
-   it reads as a sibling affordance rather than a new kind of element, but takes
-   the gold from the wordmark instead of Discord's blurple. */
-.auth-manual-link {
+
+/* Navigation bar, above the fold.
+   Nav only, no wordmark: the hero carries a large one immediately below, and a
+   second small one 60px above it would be redundant. Sits over the starfield
+   rather than on a bar of its own, so it does not read as a second chrome layer
+   on what is meant to feel like a title screen. */
+.auth-topnav {
+  position: relative;
+  z-index: 3;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 6px;
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #c8922a;
-  text-decoration: none;
-  opacity: 0.75;
-  transition: opacity 0.2s, color 0.2s;
+  gap: 28px;
+  padding: 18px 10vw 0;
 }
 
-.auth-manual-link:hover {
-  opacity: 1;
+.auth-topnav-link {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #9a8060;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.auth-topnav-link:hover {
   color: #e8b84b;
 }
 
-.auth-manual-mark {
-  font-size: 13px;
-  line-height: 1;
+.auth-topnav-mark {
+  color: #c8922a;
+  font-size: 12px;
+  margin-right: 2px;
 }
 
-/* The row wraps on narrow screens rather than pushing Discord off the edge. */
 @media (max-width: 620px) {
+
+  /* The stats row wraps rather than pushing Discord off the edge. */
   .auth-stats {
     flex-wrap: wrap;
     row-gap: 10px;
+  }
+
+  /* Nav centres and tightens rather than crowding the right edge. */
+  .auth-topnav {
+    justify-content: center;
+    gap: 18px;
+    padding: 14px 5vw 0;
+  }
+
+  .auth-topnav-link {
+    font-size: 10px;
+    letter-spacing: 0.12em;
   }
 }

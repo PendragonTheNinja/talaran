@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { xpForLevel } from '../services/xp';
-import { plotCost, plotCapForLevel } from '../services/farming';
+import { plotCost, plotCapForLevel, FARMSTEAD_TOWN } from '../services/farming';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
 //
@@ -78,6 +78,36 @@ function fmtSeconds(s: number): string {
 
 function fmtNumber(n: number): string {
     return n.toLocaleString('en-US');
+}
+
+// ── Where recipe work happens ───────────────────────────────────────────────
+//
+// Recipe work is town-locked. The gate lives in the client: LocationPanel opens a
+// craft submenu only in that craft's town, so nowhere else offers the work.
+//
+//   Emberra  → Forge       → Smithing
+//   Verdale  → Workshop    → Carpentry
+//   Caliwen  → Craftworks  → Crafting (tanning included)
+//   Novita   → Farmstead   → Farming
+//
+// Those four cover every row in `recipes`; no recipe is gated by any other skill.
+// `recipes.station` is NOT the gate — it governs the public-bench timer penalty
+// (the legacy `usingBlacksmith ? timer * 2 : timer`), which is why a station can
+// be null on work that is still town-locked.
+//
+// Note that setupWorkstation() itself does not check location, so the server
+// would accept a workstation raised anywhere. Unreachable through the UI, but it
+// means the town lock is enforced by content rather than by code.
+const RECIPE_TOWNS: Record<string, string> = {
+    smithing: 'Emberra',
+    carpentry: 'Verdale',
+    crafting: 'Caliwen',
+    farming: FARMSTEAD_TOWN,
+};
+
+/** The town a skill's recipe work belongs to, or null if the skill has none. */
+function recipeTown(skill: string): string | null {
+    return RECIPE_TOWNS[skill.toLowerCase()] ?? null;
 }
 
 // ── registry ────────────────────────────────────────────────────────────────
@@ -159,7 +189,7 @@ const registry: Record<string, QueryHandler> = {
                     // grows_anywhere crops ignore the island lock, so they belong
                     // to no island in particular.
                     island: c.grows_anywhere ? '' : (c.region || ''),
-                    where: 'Your fields',
+                    where: FARMSTEAD_TOWN,
                     iconName: c.produce_item_name,
                     details: notes.join(' · '),
                 };
@@ -178,7 +208,9 @@ const registry: Record<string, QueryHandler> = {
                 level: r.required_level,
                 unlock: r.name,
                 island: '',
-                where: r.station || 'No station',
+                // Falls back to the station only while a skill's town is unfilled,
+                // so an unmapped skill degrades to old behaviour rather than lying.
+                where: recipeTown(skill) || 'Unknown',
                 iconName: r.output_item_name,
                 details:
                     `Make ${r.output_qty > 1 ? `${r.output_qty}× ` : ''}${r.output_item_name}`

@@ -144,6 +144,12 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        const claimed = await db('ground_items').where({ id: groundItemId }).delete();
+        if (claimed === 0) {
+            res.status(404).json({ error: 'It is already gone.' });
+            return;
+        }
+
         // Add to inventory
         const existing = await db('player_inventory')
             .where({ player_id: playerId, item_id: groundItem.item_id })

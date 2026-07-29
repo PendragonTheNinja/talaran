@@ -1,0 +1,183 @@
+/* Tally board. Modal shape and tokens follow FarmPanel so it reads as another
+   thing you built rather than a new kind of interface. */
+
+.tally-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 900;
+    padding: var(--space-lg, 16px);
+}
+
+.tally-modal {
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-lg, 8px);
+    padding: var(--space-xl, 24px);
+    width: 620px;
+    max-width: 92vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+}
+
+.tally-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tally-header h2 {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+}
+
+.tally-close {
+    background: none;
+    border: none;
+    color: var(--color-text-dim, #6b5a3e);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.tally-close:hover { color: var(--color-gold-bright, #e8b84b); }
+
+.tally-summary {
+    font-family: var(--font-body, Georgia, serif);
+    color: var(--color-text-base, #c8a96e);
+    margin: 0 0 var(--space-sm, 8px);
+    padding-bottom: var(--space-sm, 8px);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.tally-subhead {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: var(--space-lg, 16px) 0 2px;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────────────── */
+
+.tally-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.tally-row:last-of-type { border-bottom: none; }
+
+.tally-mark {
+    flex: 0 0 18px;
+    text-align: center;
+    color: var(--color-gold-dim, #7a6030);
+    font-size: 13px;
+}
+
+.tally-row.ready .tally-mark { color: var(--color-gold-bright, #e8b84b); }
+
+.tally-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.tally-what {
+    color: var(--color-text-bright, #e8d5a3);
+    font-size: 14px;
+}
+
+.tally-detail { font-size: 12px; }
+
+.tally-where {
+    flex: 0 0 auto;
+    font-size: 12px;
+    text-align: right;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tally-when {
+    flex: 0 0 68px;
+    text-align: right;
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #9a8060);
+}
+
+.tally-when.ready { color: var(--color-gold-bright, #e8b84b); }
+.tally-when.idle { color: var(--color-text-dim, #6b5a3e); }
+
+.tally-row.idle .tally-what { color: var(--color-text-muted, #9a8060); }
+
+/* ── Raising, relocating, footnote ────────────────────────────────────────── */
+
+.tally-raise {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md, 12px);
+    align-items: flex-start;
+}
+
+.tally-cost {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md, 12px);
+    align-items: baseline;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    color: var(--color-text-base, #c8a96e);
+    font-size: 13px;
+}
+
+.tally-cost-label {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+}
+
+.tally-short { color: #b5533f; }
+
+.tally-elsewhere {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+}
+
+.tally-elsewhere p { margin: 0; }
+
+.tally-relocate-note { font-size: 12px; margin: 0; }
+
+.tally-footnote {
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.5;
+    margin: var(--space-lg, 16px) 0 0;
+    padding-top: var(--space-sm, 8px);
+    border-top: 1px solid var(--color-border-dark, #2e2418);
+}
+
+@media (max-width: 620px) {
+    .tally-row { flex-wrap: wrap; }
+    .tally-where { max-width: none; text-align: left; }
+    .tally-when { flex-basis: auto; }
+}

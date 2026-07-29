@@ -24,12 +24,20 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         res.json({
             mutedChannels: settings?.muted_channels ? JSON.parse(settings.muted_channels) : [],
             showTravelLog: settings?.show_travel_log ?? true,
+            showItemAnimation: settings?.show_item_animation ?? true,
+            hideTallyWhenBuilt: settings?.hide_tally_when_built ?? false,
             theme,
             paletteTokens,
             paletteName,
         });
     } catch (err) {
-        res.json({ mutedChannels: [], showTravelLog: true, theme: 'tavern' });
+        res.json({
+            mutedChannels: [],
+            showTravelLog: true,
+            showItemAnimation: true,
+            hideTallyWhenBuilt: false,
+            theme: 'tavern',
+        });
     }
 });
 
@@ -103,6 +111,42 @@ router.post('/travel-log', requireAuth, async (req: AuthRequest, res: Response) 
             .merge(['show_travel_log']);
         res.json({ success: true });
     } catch (err) {
+        logger.error(`Update travel log setting error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update item animation preference
+router.post('/item-animation', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { showItemAnimation } = req.body;
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, show_item_animation: !!showItemAnimation })
+            .onConflict(['player_id'])
+            .merge(['show_item_animation']);
+        res.json({ success: true });
+    } catch (err) {
+        // Logged, because a silent 500 here is undiagnosable from the client: the
+        // GET falls back to `?? true` when the column is missing, so the toggle
+        // renders fine and only the write fails.
+        logger.error(`Update item animation setting error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update tally board link preference
+router.post('/tally-link', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { hideTallyWhenBuilt } = req.body;
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, hide_tally_when_built: !!hideTallyWhenBuilt })
+            .onConflict(['player_id'])
+            .merge(['hide_tally_when_built']);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Update tally link setting error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

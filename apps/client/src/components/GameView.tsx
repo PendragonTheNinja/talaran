@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
-import { flyItemToPack } from '../lib/itemFly'
+import { flyItemToPack, setItemAnimationEnabled } from '../lib/itemFly'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
 import TravelLog from './TravelLog'
@@ -661,8 +661,11 @@ export default function GameView({
   }, [externalMessage])
 
   useEffect(() => {
-    apiFetch<{ showTravelLog?: boolean }>('/api/settings')
-      .then(d => setShowTravelLogSetting(d.showTravelLog ?? true))
+    apiFetch<{ showTravelLog?: boolean; showItemAnimation?: boolean }>('/api/settings')
+      .then(d => {
+        setShowTravelLogSetting(d.showTravelLog ?? true)
+        setItemAnimationEnabled(d.showItemAnimation ?? true)
+      })
       .catch(() => { })
   }, [])
 

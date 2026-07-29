@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
 import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
@@ -38,6 +39,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
+  // Self-contained: the panel fetches its own state, so no props to thread.
+  const [tallyOpen, setTallyOpen] = useState(false)
   const [smithingStatus, setSmithingStatus] = useState<any>(null)
 
   const [carpentryStatus, setCarpentryStatus] = useState<any>(null)
@@ -132,6 +135,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     }
   }
 
+  const [showTallyLink, setShowTallyLink] = useState(true)
+
+  useEffect(() => {
+    apiFetch<{ show: boolean }>('/api/tally/link')
+      .then(d => setShowTallyLink(d.show))
+      .catch(() => setShowTallyLink(true))   // fail open
+  }, [location?.id])
+
   return (
     <aside className={`location-panel panel location-panel--${layout}`}>
 
@@ -199,6 +210,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('foraging_menu', 0)}
           >
             Forage the Forest →
+          </button>
+        )}
+
+        {/* Tally board. Top level and unconditional: it reports work from
+            everywhere, so it must be reachable everywhere, and it doubles as
+            the prompt to raise one. */}
+        {showTallyLink && (
+          <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
+            Tally Board →
           </button>
         )}
 
@@ -529,6 +549,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           }}
         />
       )}
+
+      {tallyOpen && <TallyBoardPanel onClose={() => setTallyOpen(false)} />}
 
     </aside>
   )

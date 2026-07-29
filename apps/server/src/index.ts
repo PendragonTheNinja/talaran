@@ -15,6 +15,7 @@ import carpentryRoutes from './routes/carpentry';
 import hintsRoutes from './routes/hints';
 import chatRoutes from './routes/chat';
 import db from './db';
+import { verifyToken } from './config/jwt';
 import guildRoutes from './routes/guilds';
 import guildForumRoutes from './routes/guildForum';
 import messagesRoutes from './routes/messages';
@@ -22,6 +23,7 @@ import forumRoutes from './routes/forum';
 import newsRoutes from './routes/news';
 import manualRoutes from './routes/manual';
 import { takeWeeklySnapshot, getWeekStart } from './services/weeklySnapshot';
+import { pruneChatHistory } from './services/chatRetention';
 import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
 import adminRoutes from './routes/admin';
@@ -44,6 +46,7 @@ import huntingRoutes from './routes/hunting';
 import foragingRoutes from './routes/foraging';
 import farmingRoutes from './routes/farming';
 import propertyRoutes from './routes/property';
+import tallyRoutes from './routes/tally';
 import recipeRoutes from './routes/recipes';
 import tanningRoutes from './routes/tanning';
 import trappingRoutes from './routes/trapping';
@@ -80,8 +83,19 @@ app.use('/api', (req, res, next) => {
 
 import cors from 'express';
 
+// Audit finding 5: this reflected whatever origin asked, making every website
+// an allowed origin. Mirrors the allow-list the socket server already uses.
+const ALLOWED_ORIGINS = [
+  'https://talaran.net',
+  'https://www.talaran.net',
+  'http://localhost:5173',
+];
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
@@ -110,8 +124,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', game: 'Talaran' });
 });
 
+// Audit finding 2: Express only applies middleware to routes registered AFTER
+// it. This sat below ~30 mounts, leaving them all unthrottled.
+app.use('/api', generalLimit);
+
 app.use('/api/auth', authLimit, authRoutes);
-app.use('/api/chat', chatRoutes);
+// chatLimit and chatReadLimit existed but were never applied.
+app.use('/api/chat', chatLimit, chatRoutes);
 app.use('/api/forum', forumLimit, forumRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/player', playerRoutes);
@@ -140,7 +159,6 @@ app.use('/api/store', storeRoutes);
 app.use('/api/palettes', paletteRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
-app.use('/api', generalLimit);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/npcs', npcRoutes);
@@ -148,17 +166,45 @@ app.use('/api/hunting', huntingRoutes);
 app.use('/api/foraging', foragingRoutes);
 app.use('/api/farming', farmingRoutes);
 app.use('/api/property', propertyRoutes);
+app.use('/api/tally', tallyRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/tanning', tanningRoutes);
 app.use('/api/trapping', trappingRoutes);
 
-// Socket.io — put each player in their own room for targeted messages
+// Socket.io.
+//
+// Identity is established ONCE here, from the JWT in the handshake, and never
+// from anything the client says afterwards. Previously `join` took a player id
+// straight from the client, so any browser console could join any player's room
+// and receive their private messages, trade offers, quest rewards, vein
+// discoveries, and their guild's chat.
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token || typeof token !== 'string') {
+    return next(new Error('unauthorized'));
+  }
+
+  try {
+    const payload = verifyToken(token);
+    if (!payload?.playerId) return next(new Error('unauthorized'));
+    socket.data.playerId = payload.playerId;   // authoritative
+    next();
+  } catch {
+    next(new Error('unauthorized'));
+  }
+});
+
+// Put each player in their own room for targeted messages
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id}`);
 
-  socket.on('join', async (playerId: number) => {
+  // The client still emits 'join', but its argument is ignored: the id comes
+  // from the verified handshake. No client change is needed.
+  socket.on('join', async () => {
+    const playerId: number = socket.data.playerId;
+    if (!playerId) return;
+
     socket.join(`player_${playerId}`);
-    socket.data.playerId = playerId;
     connectedPlayers.add(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
 
@@ -259,3 +305,10 @@ setTimeout(function scheduleSnapshot() {
   takeWeeklySnapshot();
   setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
 }, msUntilMonday());
+
+// Audit finding 7: chat_messages was never pruned. Daily, and once shortly
+// after boot so the first large backlog clears without waiting a day.
+setTimeout(function scheduleChatPrune() {
+  pruneChatHistory();
+  setTimeout(scheduleChatPrune, 24 * 60 * 60 * 1000);
+}, 60 * 1000);
