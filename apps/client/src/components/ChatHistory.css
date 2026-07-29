@@ -1,0 +1,124 @@
+/* Chat history. Message lines come from ChatMessageLine and inherit ChatPanel.css,
+   so only the frame is styled here. */
+
+.chat-history-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 900;
+    padding: var(--space-lg, 16px);
+}
+
+.chat-history-modal {
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-lg, 8px);
+    width: 760px;
+    max-width: 94vw;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-history-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md, 12px);
+    padding: var(--space-lg, 16px) var(--space-xl, 24px);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    flex-shrink: 0;
+}
+
+.chat-history-header h2 {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+}
+
+.chat-history-window {
+    font-size: 12px;
+    flex: 1;
+}
+
+.chat-history-close {
+    background: none;
+    border: none;
+    color: var(--color-text-dim, #6b5a3e);
+    font-size: 16px;
+    cursor: pointer;
+    align-self: center;
+}
+
+.chat-history-close:hover { color: var(--color-gold-bright, #e8b84b); }
+
+.chat-history-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 var(--space-xl, 24px);
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.chat-history-tab {
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: var(--radius-sm, 3px) var(--radius-sm, 3px) 0 0;
+    color: var(--color-text-muted, #9a8060);
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    padding: 5px var(--space-md, 12px);
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.chat-history-tab:hover { color: var(--color-text-bright, #e8d5a3); }
+
+.chat-history-tab.active {
+    color: var(--color-gold-bright, #e8b84b);
+    background: var(--color-bg-deep, #13100c);
+    border-color: var(--color-border-gold, #6b5030);
+    border-bottom: 1px solid var(--color-bg-deep, #13100c);
+}
+
+.chat-history-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-md, 12px) var(--space-xl, 24px) var(--space-xl, 24px);
+    background: var(--color-bg-deep, #13100c);
+}
+
+/* Day separator: two days of chat should not read as one stream. */
+.chat-history-day {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: var(--space-lg, 16px) 0 var(--space-sm, 8px);
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.chat-history-day:first-child { margin-top: 0; }
+
+.chat-history-more {
+    display: block;
+    margin: 0 auto var(--space-md, 12px);
+    font-size: 12px;
+}
+
+@media (max-width: 700px) {
+    .chat-history-modal { height: 88vh; }
+    .chat-history-header,
+    .chat-history-tabs,
+    .chat-history-body { padding-left: var(--space-lg, 16px); padding-right: var(--space-lg, 16px); }
+}

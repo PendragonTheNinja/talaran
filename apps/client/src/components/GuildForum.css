@@ -114,38 +114,23 @@
 .guild-forum-thread-actions .btn { font-size: 11px; padding: 2px 8px; }
 
 /* ── Posts ────────────────────────────────────────────────────────────────── */
+/* Posts reuse ForumPanel.css (.forum-post, .forum-post-sidebar, .forum-post-
+   avatar, .forum-post-badge) so they are identical to the main forum by
+   construction. Only the delete affordance is specific to here. */
 
-.guild-forum-post {
-    background: var(--color-bg-deep, #13100c);
-    border: 1px solid var(--color-border-dark, #2e2418);
-    border-radius: var(--radius-sm, 3px);
-    padding: var(--space-sm, 8px) var(--space-md, 12px);
-}
-
-.guild-forum-post-head {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm, 8px);
-    margin-bottom: 4px;
-    font-size: 12px;
-}
-
-.guild-forum-role {
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.guild-forum-post-delete {
-    margin-left: auto;
+.forum-post-timestamp .guild-forum-post-delete {
+    float: right;
     background: none;
     border: none;
     color: var(--color-text-dim, #6b5a3e);
     cursor: pointer;
     font-size: 12px;
+    padding: 0 0 0 8px;
 }
 
-.guild-forum-post-delete:hover { color: var(--color-gold-bright, #e8b84b); }
+.forum-post-timestamp .guild-forum-post-delete:hover {
+    color: var(--color-gold-bright, #e8b84b);
+}
 
 /* ── Composing ────────────────────────────────────────────────────────────── */
 
@@ -235,4 +220,75 @@
     .guild-forum-board { flex-direction: column; align-items: flex-start; }
     .guild-forum-board-stats { align-items: flex-start; text-align: left; }
     .guild-forum-board-last { max-width: none; }
+}
+
+/* ── Post sidebar, scaled for a panel ─────────────────────────────────────── */
+/* ForumPanel.css sizes this for the full-width forum: a 200px sidebar carrying a
+   128px avatar. Inside the guild panel that swallowed most of the width and left
+   the actual post squeezed into a column. Same layout, smaller. */
+
+.guild-forum .forum-post-sidebar {
+    width: 116px;
+    min-width: 116px;
+    padding: var(--space-sm, 8px);
+    gap: 2px;
+}
+
+.guild-forum .forum-post-avatar {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 2px;
+}
+
+.guild-forum .forum-post-avatar-placeholder { font-size: 22px; }
+
+.guild-forum .forum-post-author { font-size: 13px; }
+
+.guild-forum .forum-post-meta {
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.guild-forum .forum-post-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+}
+
+.guild-forum .forum-post {
+    gap: var(--space-md, 12px);
+}
+
+.guild-forum .forum-post-content {
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    min-width: 0;
+}
+
+.guild-forum .forum-post-timestamp {
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+/* Below this the column layout stops being worth its width: stack the author
+   details into a row above the post instead. */
+@media (max-width: 560px) {
+    .guild-forum .forum-post { flex-direction: column; gap: 0; }
+
+    .guild-forum .forum-post-sidebar {
+        width: 100%;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        gap: var(--space-sm, 8px);
+        flex-wrap: wrap;
+    }
+
+    .guild-forum .forum-post-avatar {
+        width: 36px;
+        height: 36px;
+        margin-bottom: 0;
+        flex: 0 0 auto;
+    }
+
+    .guild-forum .forum-post-avatar-placeholder { font-size: 16px; }
 }

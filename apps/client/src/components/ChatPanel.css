@@ -36,13 +36,6 @@
   color: var(--color-gold);
 }
 
-.chat-sending-to {
-  margin-left: auto;
-  padding-right: var(--space-sm);
-  font-size: 14px;
-  font-style: italic;
-}
-
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -130,4 +123,32 @@
 .chat-input optgroup {
   color: var(--color-gold-bright);
   font-weight: 600;
+}
+/* Opens the full two-day history. Quiet by design: it sits at the end of the tab
+   row rather than competing with the channel tabs. */
+.chat-history-btn {
+    background: none;
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-muted, #9a8060);
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    margin-left: auto;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.chat-history-btn:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-color: var(--color-border-bright, #9a7840);
+}
+
+/* The channel tag must never wrap mid-bracket. A four-character tag once broke
+   as "[P" / "M]" across two lines in the narrow chat column. */
+.chat-timestamp,
+.chat-channel-tag {
+    white-space: nowrap;
 }

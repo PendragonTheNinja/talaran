@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import MarkdownRenderer from './MarkdownRenderer'
+import { formatGameDateTime, formatGameDate } from '../lib/time'
+// The main forum's stylesheet, so a guild post looks like a forum post
+// rather than merely similar to one.
+import './ForumPanel.css'
 import './GuildForum.css'
 
 // The guild's own forum, shown inside the guild page.
@@ -33,6 +37,7 @@ interface Thread {
     title: string
     author_id: number
     author_name: string
+    author_avatar: string | null
     is_pinned: boolean
     is_locked: boolean
     reply_count: number
@@ -45,6 +50,11 @@ interface Post {
     author_id: number
     author_name: string
     author_role: string | null
+    avatar_url: string | null
+    is_admin: boolean
+    is_mod: boolean
+    player_joined: string
+    guild_post_count: number
     content: string
     created_at: string
     edited_at: string | null
@@ -176,6 +186,9 @@ function Boards({
                         {cat.lastThread && (
                             <span className="guild-forum-board-last">
                                 {cat.lastThread.title} — {cat.lastThread.last_post_username}
+                                {cat.lastThread.last_post_at
+                                    ? ` · ${formatGameDateTime(new Date(cat.lastThread.last_post_at))}`
+                                    : ''}
                             </span>
                         )}
                     </div>
@@ -243,6 +256,10 @@ function Threads({
                         </span>
                         <span className="muted-text guild-forum-thread-meta">
                             {t.author_name} · {t.reply_count} {t.reply_count === 1 ? 'reply' : 'replies'}
+                            {t.last_post_at && (
+                                <> · last {formatGameDateTime(new Date(t.last_post_at))}
+                                    {t.last_post_username ? ` by ${t.last_post_username}` : ''}</>
+                            )}
                         </span>
                     </div>
 
@@ -322,29 +339,62 @@ function ThreadView({ threadId, onBack }: { threadId: number; onBack: () => void
 
             {error && <p className="guild-error">{error}</p>}
 
-            {data.posts.map(post => (
-                <div key={post.id} className="guild-forum-post">
-                    <div className="guild-forum-post-head">
-                        <span className="gold-text">{post.author_name}</span>
-                        {post.author_role && (
-                            <span className="guild-forum-role muted-text">{post.author_role}</span>
-                        )}
-                        {post.edited_at && <span className="muted-text">edited</span>}
+            <div className="forum-posts-list">
+                {data.posts.map(post => (
+                    <div key={post.id} className="forum-post">
+                        <div className="forum-post-sidebar">
+                            <div className="forum-post-avatar">
+                                {post.avatar_url ? (
+                                    <img src={post.avatar_url} alt={post.author_name} />
+                                ) : (
+                                    <div className="forum-post-avatar-placeholder">
+                                        {post.author_name.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
 
-                        {(post.author_id === data.myPlayerId || data.canManage) && (
-                            <button
-                                className="guild-forum-post-delete"
-                                onClick={() => removePost(post.id)}
-                                title="Delete post"
-                            >
-                                ✕
-                            </button>
-                        )}
+                            <span className="forum-post-author gold-text">{post.author_name}</span>
+
+                            {post.author_role && post.author_role !== 'member' && (
+                                <span className="forum-post-badge mod">
+                                    {post.author_role.charAt(0).toUpperCase() + post.author_role.slice(1)}
+                                </span>
+                            )}
+                            {post.is_admin && <span className="forum-post-badge admin">Admin</span>}
+                            {post.is_mod && !post.is_admin && <span className="forum-post-badge mod">Mod</span>}
+
+                            {/* Posts in THIS guild's forum, not the global count.
+                                Sized by CSS, not inline, so the narrow guild panel
+                                can scale the whole sidebar down. */}
+                            <span className="muted-text forum-post-meta">
+                                Guild posts: {post.guild_post_count}
+                            </span>
+                            <span className="muted-text forum-post-meta">
+                                Joined: {formatGameDate(new Date(post.player_joined))}
+                            </span>
+                        </div>
+
+                        <div className="forum-post-content">
+                            <div className="forum-post-timestamp muted-text">
+                                {formatGameDateTime(new Date(post.created_at))}
+                                {post.edited_at && <span> · edited</span>}
+
+                                {(post.author_id === data.myPlayerId || data.canManage) && (
+                                    <button
+                                        className="guild-forum-post-delete"
+                                        onClick={() => removePost(post.id)}
+                                        title="Delete post"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+
+                            <MarkdownRenderer content={post.content} />
+                        </div>
                     </div>
-
-                    <MarkdownRenderer content={post.content} />
-                </div>
-            ))}
+                ))}
+            </div>
 
             {data.thread.is_locked ? (
                 <p className="muted-text">This thread is locked.</p>

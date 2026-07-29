@@ -3,18 +3,8 @@ import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import { formatGameTime } from '../lib/time'
 import './ChatPanel.css'
-
-interface ChatMessage {
-  id: number
-  channel: string
-  playerName: string
-  guildTag: string | null
-  message: string
-  timestamp: string      // display format HH:MM
-  rawTimestamp: number   // unix ms for sorting
-  isWhisper?: boolean
-  whisperTo?: string
-}
+import ChatMessageLine, { CHANNEL_COLORS, CHANNEL_SHORT, renderMessageText, type ChatMessage } from './ChatMessageLine'
+import ChatHistoryPanel from './ChatHistoryPanel'
 
 interface ChatPanelProps {
   onOpenForum?: (threadId: number) => void
@@ -33,61 +23,18 @@ const CHANNELS = [
 // Channels we load/persist history for but that aren't selectable send-tabs.
 const HISTORY_CHANNELS = [...CHANNELS.map(c => c.key), 'whisper', 'server']
 
-const CHANNEL_COLORS: Record<string, string> = {
-  world: '#ffb96f',
-  region: '#a8a8a8',
-  guild: '#F74B07',
-  trade: '#ae00ff',
-  help: '#ECFF00',
-  whisper: '#08f8d0',
-  server: '#ff4444',
-  forum: '#4a9eff',
-}
-
-const CHANNEL_SHORT: Record<string, string> = {
-  world: 'W',
-  region: 'R',
-  guild: 'G',
-  trade: 'T',
-  help: 'H',
-  whisper: 'w',
-  server: 'S',
-}
-
 function formatTime(date: Date): string {
   return formatGameTime(date)
 }
 
 // Renders chat text, turning [[FORUMLINK|id|label]] tokens into clickable forum links.
-function renderMessageText(text: string, onOpenForum?: (threadId: number) => void) {
-  const nodes: any[] = []
-  const regex = /\[\[FORUMLINK\|(\d+)\|(.*?)\]\]/g
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-  let key = 0
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
-    const threadId = parseInt(match[1])
-    nodes.push(
-      <span
-        key={`fl-${key++}`}
-        className="chat-forum-link"
-        style={{ color: CHANNEL_COLORS.forum, cursor: 'pointer', textDecoration: 'underline' }}
-        onClick={() => onOpenForum?.(threadId)}
-      >
-        {match[2]}
-      </span>
-    )
-    lastIndex = regex.lastIndex
-  }
-  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
-  return nodes
-}
-
 export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatPanelProps) {
   const [activeChannel, setActiveChannel] = useState('world')
   const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [resetAt, setResetAt] = useState<number | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -162,7 +109,8 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
       const all: ChatMessage[] = []
       for (const key of HISTORY_CHANNELS) {
         try {
-          const data = await apiFetch<{ messages: any[] }>(`/api/chat/history/${key}`)
+          const data = await apiFetch<{ messages: any[]; resetAt?: string }>(`/api/chat/history/${key}`)
+          if (data.resetAt) setResetAt(new Date(data.resetAt).getTime())
           const formatted = data.messages.map(m => ({
             id: m.id,
             channel: m.channel,
@@ -191,7 +139,30 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
       setHistoryLoaded(true)
     }
     loadAll()
-  }, [])
+  }, [reloadKey])
+
+  // The chat box holds today only and clears at Eastern midnight; everything
+  // said before that stays readable in the history panel. The moment comes from
+  // the server, because the client cannot derive Eastern midnight from its own
+  // clock without agreeing on a timezone first.
+  useEffect(() => {
+    if (!resetAt) return
+
+    const wait = resetAt - Date.now()
+    if (wait <= 0) {
+      setAllMessages([])
+      setReloadKey(k => k + 1)
+      return
+    }
+
+    // +2s so the server is unambiguously into the new day when we refetch.
+    const timer = setTimeout(() => {
+      setAllMessages([])
+      setReloadKey(k => k + 1)
+    }, wait + 2000)
+
+    return () => clearTimeout(timer)
+  }, [resetAt])
 
   useEffect(() => {
     if (draft) {
@@ -347,72 +318,28 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
             {label}
           </button>
         ))}
-        <span className="chat-sending-to muted-text">
-          Sending to: <span style={{ color: CHANNEL_COLORS[activeChannel] }}>{channelLabel(activeChannel)}</span>
-        </span>
+        {/* The live box caps at 200 messages; this reaches the rest of the window. */}
+        <button
+          className="chat-history-btn"
+          onClick={() => setHistoryOpen(true)}
+          title="Read today and yesterday's chat"
+        >
+          History
+        </button>
       </div>
 
       <div className="chat-messages">
         {visibleMessages.length === 0 ? (
           <p className="chat-empty muted-text">Welcome to Talaran, adventurer. The world awaits.</p>
         ) : (
-          visibleMessages.map((msg, i) => {
-            const isForumNotification = msg.message.startsWith('__FORUM__')
-
-            if (isForumNotification) {
-              const parts = msg.message.split('__')
-              const threadId = parseInt(parts[2])
-              const displayText = parts[3]
-
-              return (
-                <div key={`${msg.id}-${i}`} className="chat-message">
-                  <span className="chat-timestamp muted-text">{msg.timestamp}</span>
-                  {' '}
-                  <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS['forum'] }}>
-                    [F]
-                  </span>
-                  {' '}
-                  <span
-                    className="chat-text chat-forum-link"
-                    style={{ color: CHANNEL_COLORS['forum'], cursor: 'pointer' }}
-                    onClick={() => onOpenForum?.(threadId)}
-                  >
-                    {displayText}
-                  </span>
-                </div>
-              )
-            }
-
-            return (
-              <div key={`${msg.id}-${i}`} className="chat-message">
-                <span className="chat-timestamp muted-text">{msg.timestamp}</span>
-                {' '}
-                <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                  [{CHANNEL_SHORT[msg.channel] || msg.channel}]
-                </span>
-                {' '}
-                <span
-                  className="chat-player gold-text"
-                  onClick={() => handlePlayerClick(msg.playerName)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {msg.playerName.split('_').map((part, i, arr) => (
-                    <span key={i}>
-                      {part}
-                      {i < arr.length - 1 && (
-                        <span style={{ fontFamily: 'Tahoma, sans-serif' }}>_</span>
-                      )}
-                    </span>
-                  ))}
-                  {msg.guildTag && <span className="chat-guild-tag">[{msg.guildTag}]</span>}
-                </span>
-                <span className="chat-colon muted-text">: </span>
-                <span className="chat-text" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                  {renderMessageText(msg.message, onOpenForum)}
-                </span>
-              </div>
-            )
-          })
+          visibleMessages.map((msg, i) => (
+            <ChatMessageLine
+              key={`${msg.id}-${i}`}
+              msg={msg}
+              onOpenForum={onOpenForum}
+              onPlayerClick={handlePlayerClick}
+            />
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -430,6 +357,14 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
         />
         <button className="btn chat-send-btn" onClick={handleSend}>Send</button>
       </div>
+      {historyOpen && (
+        <ChatHistoryPanel
+          onClose={() => setHistoryOpen(false)}
+          onOpenForum={onOpenForum}
+          initialChannel={activeChannel}
+        />
+      )}
+
     </div>
   )
 }

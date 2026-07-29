@@ -309,6 +309,7 @@ router.get('/categories/:id/threads', async (req: GuildRequest, res: Response) =
             .select(
                 'guild_forum_threads.*',
                 'author.username as author_name',
+                'author.avatar_url as author_avatar',
                 'last_poster.username as last_post_username',
             );
 
@@ -347,7 +348,31 @@ router.get('/threads/:id', async (req: GuildRequest, res: Response) => {
                 'guild_forum_posts.*',
                 'players.username as author_name',
                 'players.guild_role as author_role',
+                'players.avatar_url',
+                'players.is_admin',
+                'players.is_mod',
+                'players.created_at as player_joined',
             );
+
+        // Posts made in THIS guild's forum, not the global forum_post_count. A
+        // player's standing here is about what they have contributed to this
+        // guild. One grouped query for the authors on the page rather than a
+        // count per post.
+        const authorIds = [...new Set(posts.map((p) => p.author_id))];
+
+        const counts = authorIds.length
+            ? await db('guild_forum_posts')
+                .where({ guild_id: guild.id, is_deleted: false })
+                .whereIn('author_id', authorIds)
+                .select('author_id')
+                .count('* as posts')
+                .groupBy('author_id')
+            : [];
+
+        const postsBy = new Map(counts.map((c: any) => [c.author_id, Number(c.posts)]));
+        for (const post of posts) {
+            (post as any).guild_post_count = postsBy.get(post.author_id) ?? 0;
+        }
 
         res.json({
             thread: found.thread,

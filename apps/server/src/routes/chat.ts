@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { startOfGameDay, nextGameMidnight } from '../lib/gameTime';
 import { io } from '../index';
 import { logger } from '../lib/logger';
 import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
@@ -8,7 +9,10 @@ import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 const router = Router();
 
 const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help', 'whisper', 'server']; const MAX_MESSAGE_LENGTH = 500;
-const HISTORY_DAYS = 2; // today + yesterday
+const HISTORY_DAYS = 2; // history view: today + yesterday
+
+// The live chat box shows TODAY only and clears at Eastern midnight; the history
+// view keeps the full HISTORY_DAYS window, so nothing is lost when the box resets.
 
 // Turn "Forum > Category > Thread Title" breadcrumbs (typed or pasted) into inline
 // link tokens the client renders as clickable forum links. Accepts > or › separators.
@@ -62,8 +66,8 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
 
   try {
     const player = await db('players').where({ id: playerId }).first();
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - HISTORY_DAYS);
+    // Today only. Yesterday's chat remains readable in the history view.
+    const cutoff = startOfGameDay();
 
     let query = db('chat_messages')
       .where('channel', channel)
@@ -79,7 +83,7 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
 
     if (channel === 'guild') {
       if (!player.guild_id) {
-        res.json({ messages: [] })
+        res.json({ messages: [], resetAt: nextGameMidnight().toISOString() })
         return
       }
       query = query.where('guild_id', player.guild_id);
@@ -90,7 +94,73 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
     }
 
     const messages = await query;
-    res.json({ messages });
+    res.json({ messages, resetAt: nextGameMidnight().toISOString() });
+  } catch (err) {
+    logger.error(`Chat history error: ${err}`);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * The full read window, for the history view.
+ *
+ * Named /archive rather than /history because GET /history/:channel already
+ * exists and is the LIVE chat box: it returns today only and resets at Eastern
+ * midnight. This one spans HISTORY_DAYS and is what the history panel reads.
+ *
+ * The live chat box caps at 200 messages, so a busy day scrolls out of reach
+ * within the window players are supposed to be able to see. This returns
+ * everything inside HISTORY_DAYS, paged backwards from newest.
+ *
+ * Deliberately the same visibility rules as GET /: region is resolved from where
+ * you are standing, guild from your membership, whispers to you only. History is
+ * a longer look at your own chat, not a wider one.
+ */
+router.get('/archive', chatReadLimit, requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  const channel = String(req.query.channel || 'world');
+  const before = req.query.before ? new Date(String(req.query.before)) : null;
+  const PAGE = 300;
+
+  try {
+    const player = await db('players').where({ id: playerId }).first();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - HISTORY_DAYS);
+
+    let query = db('chat_messages')
+      .where('channel', channel)
+      .where('sent_at', '>=', cutoff)
+      .orderBy('sent_at', 'desc')
+      .limit(PAGE + 1);            // one extra to detect another page
+
+    if (before && !isNaN(before.getTime())) {
+      query = query.where('sent_at', '<', before);
+    }
+
+    if (channel === 'region') {
+      const location = await db('locations').where({ id: player.current_location_id }).first();
+      query = query.where('region', location?.region || 'Unknown');
+    }
+
+    if (channel === 'guild') {
+      if (!player.guild_id) {
+        res.json({ messages: [], hasMore: false });
+        return;
+      }
+      query = query.where('guild_id', player.guild_id);
+    }
+
+    if (channel === 'whisper') {
+      query = query.where('player_id', playerId);
+    }
+
+    const rows = await query;
+    const hasMore = rows.length > PAGE;
+    const page = hasMore ? rows.slice(0, PAGE) : rows;
+
+    // Fetched newest-first for the limit to mean the right thing; returned
+    // oldest-first so the client can render it in reading order.
+    res.json({ messages: page.reverse(), hasMore });
   } catch (err) {
     logger.error(`Chat history error: ${err}`);
     res.status(500).json({ error: 'Server error' });

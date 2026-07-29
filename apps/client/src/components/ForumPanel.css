@@ -242,7 +242,7 @@
 
 .forum-post-sidebar {
     width: 200px;
-    min-width: 200x;
+    min-width: 200px;
     background: var(--color-bg-deep);
     padding: var(--space-md);
     display: flex;
