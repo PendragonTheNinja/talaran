@@ -5,6 +5,7 @@ import { logger } from '../index';
 import {
     getHusbandryState,
     startBuildPen,
+    startDemolishPen,
     startFeed,
     startFeedAll,
     startMuck,
@@ -62,6 +63,9 @@ router.post('/build-pen', requireAuth, botCheckGate,
 
 router.post('/feed', requireAuth, botCheckGate,
     startHandler(startFeed, 'Feeding', (req) => [req.body.penId]));
+
+router.post('/demolish-pen', requireAuth, botCheckGate,
+    startHandler(startDemolishPen, 'Pulling it down', (req) => [req.body.penId]));
 
 router.post('/feed-all', requireAuth, botCheckGate,
     startHandler(startFeedAll, 'Feeding'));

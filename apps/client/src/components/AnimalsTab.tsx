@@ -116,6 +116,8 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
     const [newName, setNewName] = useState('')
     const [confirmKill, setConfirmKill] = useState<AnimalCard | null>(null)
     const [confirmKillAll, setConfirmKillAll] = useState<Pen | null>(null)
+    // Demolishing refunds in full, but it is still a build being undone.
+    const [confirmDemolish, setConfirmDemolish] = useState<Pen | null>(null)
     const [penType, setPenType] = useState<'coop' | 'paddock'>('coop')
     // Pens collapse so a farm with several of them stays scannable; a full coop
     // is six animals and would otherwise be most of a screen on its own.
@@ -231,6 +233,15 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                                 {pen.species && <span className="animal-pen-species"> · {pen.species}</span>}
                             </span>
                             <span className="animal-pen-count">
+                                {pen.headCount === 0 && (
+                                    <span
+                                        className="animal-pen-demolish"
+                                        title="Pull this pen down and get the materials back"
+                                        onClick={(e) => { e.stopPropagation(); setConfirmDemolish(pen) }}
+                                    >
+                                        Demolish
+                                    </span>
+                                )}
                                 {/* Collapsed, the header is the only status the player can see. */}
                                 {collapsed[pen.id] && pen.headCount > 0 && (
                                     <span className={pen.fed ? 'pen-ok' : 'pen-warn'}>
@@ -475,6 +486,18 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                     </div>
                 ))}
             </div>
+
+            {confirmDemolish && (
+                <ConfirmModal
+                    message={`Pull down ${confirmDemolish.penType === 'coop' ? 'Coop' : 'Paddock'} ${confirmDemolish.slotIndex + 1}? Every material goes back into your pack, and the slot is freed for a different kind of pen.`}
+                    onConfirm={() => {
+                        const pen = confirmDemolish
+                        setConfirmDemolish(null)
+                        act('/api/husbandry/demolish-pen', 'demolish_pen', { penId: pen.id })
+                    }}
+                    onCancel={() => setConfirmDemolish(null)}
+                />
+            )}
 
             {confirmKillAll && (
                 <ConfirmModal

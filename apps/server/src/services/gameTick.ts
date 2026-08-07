@@ -5,9 +5,9 @@ import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
 import { recordItemFirstByName } from './inventory';
 import { isLiquid, liquidTotal } from './liquids';
-import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend } from './farming';
+import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend, resolveUproot } from './farming';
 import {
-  resolveBuildPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
+  resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
 } from './husbandry';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
@@ -140,7 +140,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'farm_sow':
       case 'farm_tend':
       case 'farm_manure':
-      case 'farm_harvest': {
+      case 'farm_harvest':
+      case 'farm_uproot': {
         // One-shot farm work: clear the action, resolve it, report.
         await db('player_actions').where({ id: action.id }).delete();
 
@@ -151,6 +152,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         else if (action.action_type === 'farm_sow') farmResult = await resolveSow(action.player_id, action.action_data);
         else if (action.action_type === 'farm_tend') farmResult = await resolveTend(action.player_id);
         else if (action.action_type === 'farm_manure') farmResult = await resolveManure(action.player_id, action.action_data);
+        // Named rather than falling through: the trailing else used to mean
+        // "anything left is a harvest", so a new farm action would silently
+        // resolve as one.
+        else if (action.action_type === 'farm_uproot') farmResult = await resolveUproot(action.player_id, action.action_data);
         else farmResult = await resolveHarvest(action.player_id, action.action_data);
 
         if (!farmResult.success) {
@@ -192,6 +197,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         return;
       }
       case 'husbandry_build_pen':
+      case 'husbandry_demolish_pen':
       case 'husbandry_feed':
       case 'husbandry_feed_all':
       case 'husbandry_muck':
@@ -207,6 +213,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
         let husResult;
         if (action.action_type === 'husbandry_build_pen') husResult = await resolveBuildPen(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_demolish_pen') husResult = await resolveDemolishPen(action.player_id, action.action_data);
         else if (action.action_type === 'husbandry_feed') husResult = await resolveFeed(action.player_id, action.action_data);
         else if (action.action_type === 'husbandry_feed_all') husResult = await resolveFeedAll(action.player_id);
         else if (action.action_type === 'husbandry_muck_all') husResult = await resolveMuckAll(action.player_id);

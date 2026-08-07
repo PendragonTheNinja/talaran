@@ -455,6 +455,67 @@ export async function startHarvest(playerId: number, plotId: number): Promise<{ 
     return { ok: true, timerSeconds: seconds };
 }
 
+// ── uproot ──────────────────────────────────────────────────────────────────
+// Any crop can be pulled up and the plot returned to tilled soil. Perennials
+// made this necessary: strawberries regrow forever by design, so without an
+// uproot the plot they sit in is theirs permanently and the player has one fewer
+// field for the rest of the game.
+//
+// Nothing is refunded and no XP is paid. Sowing pays XP, so a sow/uproot/sow
+// cycle would otherwise be free experience; giving the seeds back would make it
+// free outright. Uprooting costs you the crop, which is the honest price of
+// changing your mind.
+
+const UPROOT_SECONDS = 20;
+
+export async function startUproot(playerId: number, plotId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const plot = await ownedPlot(playerId, plotId);
+    if (!plot) return { ok: false, error: 'That is not your plot.' };
+    if (!plot.crop_id || plot.state === 'empty' || plot.state === 'tilled') {
+        return { ok: false, error: 'There is nothing growing there.' };
+    }
+    if (!(await equippedTool(playerId, 'hoe'))) {
+        return { ok: false, error: 'You need a hoe equipped to break the ground.' };
+    }
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const { novita } = await playerProperty(playerId);
+    await startAction(playerId, 'farm_uproot', UPROOT_SECONDS, String(plotId), novita?.id ?? null);
+    return { ok: true, timerSeconds: UPROOT_SECONDS };
+}
+
+export async function resolveUproot(playerId: number, plotIdRaw: string | null): Promise<FarmActionResult> {
+    try {
+        const plotId = plotIdRaw ? parseInt(plotIdRaw) : 0;
+        const plot = await ownedPlot(playerId, plotId);
+        if (!plot || !plot.crop_id) return { success: false, error: 'There is nothing growing there.' };
+
+        const crop = await db('crops').where({ id: plot.crop_id }).first();
+
+        // Left exactly as a harvest leaves it: tilled and ready to sow again.
+        // Soil is untouched, since pulling a crop early neither feeds nor drains it.
+        await db('farm_plots').where({ id: plot.id }).update({
+            state: 'tilled',
+            crop_id: null,
+            seed_count: 0,
+            planted_at: null,
+            ready_at: null,
+            tended: false,
+            rested_since: new Date(),
+        });
+
+        return {
+            success: true,
+            xp: 0,
+            skillName: 'Farming',
+            message: `You break the roots and turn the ${crop?.name?.toLowerCase() ?? 'crop'} back into the soil. The plot is bare again.`,
+        };
+    } catch (err) {
+        logger.error(`resolveUproot error: ${err}`);
+        return { success: false, error: 'Server error' };
+    }
+}
+
 // Tending is the SPEED lever — soil handles yield, this handles time. One action
 // covers every growing plot that hasn't been tended this cycle; each gets 10% cut
 // from its REMAINING grow time, so tending early is worth far more than tending

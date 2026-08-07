@@ -673,6 +673,83 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
     }
 }
 
+// ── demolish a pen ──────────────────────────────────────────────────────────
+// A pen you regret should come down. Without this, a player who builds the wrong
+// kind in their only slot is stuck: a paddock cannot hold chickens, and the level
+// needed for a second pen cannot be earned without animals to earn it from.
+//
+// Materials refund in full, and the action pays NO XP. That combination is what
+// keeps it honest: build (180s, XP) plus demolish (90s, nothing) yields about 67%
+// of the normal Carpentry rate, so cycling pens is strictly worse than simply
+// crafting. Paying XP for demolition would invert that and make it a loop.
+
+const DEMOLISH_SECONDS = Math.round(BUILD_PEN_SECONDS / 2);
+
+export async function startDemolishPen(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const pen = await ownedPen(playerId, penId);
+    if (!pen) return { ok: false, error: 'That is not your pen.' };
+
+    const head = await db('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
+    if (Number(head?.c ?? 0) > 0) {
+        return { ok: false, error: 'Move the animals out before you pull it down.' };
+    }
+
+    const toolProblem = await missingBuildTool(playerId);
+    if (toolProblem) return { ok: false, error: toolProblem };
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const { novita } = await playerProperty(playerId);
+    await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, String(penId), novita?.id ?? null);
+    return { ok: true, timerSeconds: DEMOLISH_SECONDS };
+}
+
+export async function resolveDemolishPen(playerId: number, penIdRaw: string | null): Promise<HusbandryActionResult> {
+    try {
+        let refund: { itemName: string; qty: number }[] = [];
+        let penLabel = 'pen';
+
+        await db.transaction(async (trx) => {
+            const pen = await ownedPen(playerId, penIdRaw ? parseInt(penIdRaw) : 0, trx);
+            if (!pen) throw new Error('NOT_YOURS');
+            await trx('player_pens').where({ id: pen.id }).forUpdate().first();
+
+            const head = await trx('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
+            if (Number(head?.c ?? 0) > 0) throw new Error('OCCUPIED');
+
+            penLabel = pen.pen_type === 'coop' ? 'coop' : 'paddock';
+
+            // Refund what the pen at THIS position cost. Pen cost scales with how
+            // many you have, and slot_index is not the same as position once
+            // something has been demolished before, so count what is actually
+            // standing and price the last one.
+            const rows = await trx('player_pens')
+                .where({ property_id: pen.property_id })
+                .orderBy('slot_index', 'asc');
+            refund = penCost(pen.pen_type, rows.length);
+
+            for (const r of refund) await giveItem(playerId, r.itemName, r.qty, trx);
+            await trx('player_pens').where({ id: pen.id }).delete();
+        });
+
+        await incrementStats(playerId, { total_actions_completed: 1 });
+        return {
+            success: true,
+            xp: 0,
+            skillName: 'Carpentry',
+            itemName: refund[0]?.itemName,
+            quantity: refund[0]?.qty,
+            drops: refund.map((r) => ({ name: r.itemName, quantity: r.qty })),
+            message: `You draw the nails and stack the timber. The ${penLabel} comes down, and everything that went into it comes back.`,
+        };
+    } catch (err: any) {
+        const m: string = err?.message ?? '';
+        if (m === 'NOT_YOURS') return { success: false, error: 'That is not your pen.' };
+        if (m === 'OCCUPIED') return { success: false, error: 'Move the animals out before you pull it down.' };
+        logger.error(`resolveDemolishPen error: ${err}`);
+        return { success: false, error: 'Server error' };
+    }
+}
+
 // ── stock a pen ─────────────────────────────────────────────────────────────
 // Instant, not timed: setting a chick down is not work. The animal's clock does
 // not start until the pen is fed.

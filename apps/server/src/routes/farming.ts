@@ -9,6 +9,7 @@ import {
     startTill,
     startSow,
     startHarvest,
+    startUproot,
     startManure,
     startTend,
 } from '../services/farming';
@@ -55,6 +56,18 @@ router.post('/harvest', requireAuth, botCheckGate, async (req: AuthRequest, res:
     const r = await startHarvest(req.player!.playerId, req.body.plotId);
     if (!r.ok) { res.status(400).json({ error: r.error }); return; }
     res.json({ message: 'Harvesting', timerSeconds: r.timerSeconds });
+});
+
+router.post('/uproot', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    try {
+        const r = await startUproot(req.player!.playerId, req.body.plotId);
+        if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+        res.json({ message: 'Uprooting', timerSeconds: r.timerSeconds });
+    } catch (err: any) {
+        if (err?.code === '23505') { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        logger.error(`Uproot error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 router.post('/manure', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {

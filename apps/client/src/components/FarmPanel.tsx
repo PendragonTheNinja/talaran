@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import PropertyStorage from './PropertyStorage'
 import AnimalsTab from './AnimalsTab'
+import ConfirmModal from './ConfirmModal'
 import './FarmPanel.css'
 
 interface CropDef {
@@ -75,6 +76,8 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
     // Processing holds two trades now: crops on the Farming side, dairy on the
     // Husbandry side. Farming is the default since it is the older, larger list.
     const [processingSkill, setProcessingSkill] = useState<'Farming' | 'Husbandry'>('Farming')
+    // Uprooting destroys a crop with nothing refunded, so it asks first.
+    const [confirmUproot, setConfirmUproot] = useState<any>(null)
 
     // The help button follows the tab: a player asking "what is this?" means the
     // thing in front of them, not whichever page the panel was first written for.
@@ -281,6 +284,18 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                                 onClick={() => act('/api/farming/harvest', { plotId: p.id })}>Harvest</button>
                                         </>
                                     )}
+
+                                    {/* Anything planted can be pulled up. Perennials need this most:
+                                        without it a strawberry plot is spoken for permanently. */}
+                                    {p.crop && (p.state === 'growing' || p.state === 'ready') && (
+                                        <button className="farm-btn danger" disabled={busy || !data.hasHoe}
+                                            title={data.hasHoe
+                                                ? 'Clear this plot. The crop is lost.'
+                                                : 'You need a hoe equipped'}
+                                            onClick={() => setConfirmUproot(p)}>
+                                            Uproot
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -330,6 +345,18 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                         storeAmount={storeAmount}
                         onStoreAmountChange={onStoreAmountChange}
                         refreshKey={storeRefresh}
+                    />
+                )}
+
+                {confirmUproot && (
+                    <ConfirmModal
+                        message={`Uproot the ${confirmUproot.crop?.name ?? 'crop'}? It will be lost, and no seeds are returned.${confirmUproot.crop?.isPerennial ? ' This plot will stop regrowing.' : ''}`}
+                        onConfirm={() => {
+                            const plot = confirmUproot
+                            setConfirmUproot(null)
+                            act('/api/farming/uproot', { plotId: plot.id })
+                        }}
+                        onCancel={() => setConfirmUproot(null)}
                     />
                 )}
 

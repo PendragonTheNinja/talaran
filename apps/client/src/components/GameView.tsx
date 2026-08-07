@@ -90,10 +90,12 @@ const FARM_SCENE_TEXT: Record<string, string> = {
   harvest: 'You lift the crop from the earth, filling your baskets.',
   manure: 'You barrow muck onto the field and turn it into the soil.',
   tend: 'You carry water down the rows, pulling weeds as you go.',
+  uproot: 'You break the roots and turn the crop back into the soil.',
 }
 
 const HUSBANDRY_SCENE_TEXT: Record<string, string> = {
   build_pen: 'You sink posts and hang panels, closing in a new pen.',
+  demolish_pen: 'You draw the nails and stack the timber where it stood.',
   feed: 'You go along the troughs with the pail, feeding and watering.',
   feed_all: 'You work the whole farm with the pail, trough by trough.',
   muck_all: 'You work through every pen in turn, forking out and laying fresh straw.',
@@ -667,6 +669,7 @@ export default function GameView({
       case 'farm_till':
       case 'farm_sow':
       case 'farm_harvest':
+      case 'farm_uproot':
       case 'farm_manure':
       case 'farm_tend':
         setCurrentAction('farming')
@@ -676,6 +679,7 @@ export default function GameView({
         break
 
       case 'husbandry_build_pen':
+      case 'husbandry_demolish_pen':
       case 'husbandry_feed':
       case 'husbandry_feed_all':
       case 'husbandry_muck':
