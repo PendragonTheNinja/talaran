@@ -64,7 +64,6 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
     const loadSent = async () => {
         try {
             const data = await apiFetch<{ messages: any[] }>('/api/messages/sent')
-            console.log('Sent messages:', data)
             setSentMessages(data.messages)
         } catch (err) {
             console.error('Failed to load sent:', err)

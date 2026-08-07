@@ -9,7 +9,7 @@ import { Player } from '../types'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import './GameLayout.css'
-import SmithingMenu from './SmithingMenu'
+import ForgeMenu from './ForgeMenu'
 import CarpentryMenu from './CarpentryMenu'
 import CraftingMenu from './CraftingMenu'
 import GuildPanel from './GuildPanel'
@@ -80,7 +80,6 @@ interface InventoryItem {
   quality: string | null
   tier: number
   description: string
-  stackable: boolean
   quantity: number
   slot?: string
 }
@@ -168,7 +167,11 @@ export default function GameLayout({
     }
   }, [playerData])
 
-  const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number; text?: string } | null>(null)
+  // `id` is whatever the action needs: a node id, a recipe id, or a key like
+  // 'ambren' for smelting. It has always carried both; the type said number and
+  // the string cases were errors nobody saw, because the root tsconfig has
+  // "files": [] and `tsc --noEmit` checks nothing without -p tsconfig.app.json.
+  const [gameViewAction, setGameViewAction] = useState<{ type: string; id: number | string; text?: string } | null>(null)
 
   // Remembers an action blocked by a bot check, so it auto-runs once the check passes.
   const pendingActionRef = useRef<(() => void) | null>(null)
@@ -179,7 +182,7 @@ export default function GameLayout({
     if (fn) fn()
   }
   const [showKilnModal, setShowKilnModal] = useState(false)
-  const [showSmithingMenu, setShowSmithingMenu] = useState(false)
+  const [showForgeMenu, setShowForgeMenu] = useState(false)
   const [smithingStatusKey, setSmithingStatusKey] = useState(0)
   const [showSmeltModal, setShowSmeltModal] = useState(false)
   const [smeltSkipConfirm, setSmeltSkipConfirm] = useState(false)
@@ -352,11 +355,11 @@ export default function GameLayout({
       handleKilnCollect()
     } else if (type === 'smithing_setup') {
       handleSmithingSetup()
-    } else if (type === 'smithing_menu') {
+    } else if (type === 'forge_menu') {
       apiFetch<any>('/api/smithing/status')
         .then(st => setSmithingStationActive(!!st?.workstation?.is_active))
         .catch(() => setSmithingStationActive(false))
-      setShowSmithingMenu(true)
+      setShowForgeMenu(true)
     } else if (type === 'carpentry_setup') {
       handleCarpentrySetup()
     } else if (type === 'carpentry_menu') {
@@ -477,7 +480,6 @@ export default function GameLayout({
     const loadCount = () => {
       apiFetch<{ count: number }>('/api/messages/unread/count')
         .then(data => {
-          console.log('Unread count:', data.count)
           setUnreadMessages(data.count)
         })
         .catch(() => { })
@@ -569,7 +571,6 @@ export default function GameLayout({
       veins={veinsData}
       onKilnMaxLogs={(max) => setKilnMaxLogs(max)}
       onActionLimitChange={(limit) => {
-        console.log('Action limit set to:', limit)
         setActionLimit(limit)
       }}
       onInventoryUpdate={onInventoryUpdate}
@@ -654,6 +655,9 @@ export default function GameLayout({
     { label: 'Guild', onClick: () => { closeAllPanels(); setShowGuildModal(true) } },
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
+    // Was desktop-only: the top nav has a Manual button and the mobile drawer
+    // simply never got one, so the manual was unreachable on a phone.
+    { label: 'Manual', onClick: () => { closeAllPanels(); setManualTarget(null); setShowManual(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
     { label: 'Store', onClick: () => { closeAllPanels(); setShowSupport(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
@@ -784,15 +788,22 @@ export default function GameLayout({
           </div>
         </div>
       )}
-      {showSmithingMenu && (
-        <SmithingMenu
-          onClose={() => setShowSmithingMenu(false)}
+      {showForgeMenu && (
+        <ForgeMenu
+          onClose={() => setShowForgeMenu(false)}
           onStartRecipe={(recipeId) => {
-            setShowSmithingMenu(false)
+            setShowForgeMenu(false)
             setGameViewAction({ type: 'recipe', id: recipeId })
+          }}
+          onStartSmelt={(metalKey) => {
+            setShowForgeMenu(false)
+            // Straight through: the smelt confirmation modal existed to collect a
+            // batch count, which the Action Limit bar now does for every bench.
+            setGameViewAction({ type: 'smelting', id: metalKey })
           }}
           playerSmithingLevel={playerData?.skills?.find((s: any) => s.name === 'Smithing')?.level || 1}
           stationActive={smithingStationActive}
+          inventory={inventoryData}
         />
       )}
 
@@ -930,10 +941,10 @@ export default function GameLayout({
       {showFarmPanel && (
         <FarmPanel
           onClose={() => setShowFarmPanel(false)}
-          onHelp={() => { setShowFarmPanel(false); openManualAt('skills', 'farming') }}
-          onActionStarted={(secs, kind) => {
+          onHelp={(section, slug) => { setShowFarmPanel(false); openManualAt(section, slug) }}
+          onActionStarted={(secs, kind, family) => {
             setShowFarmPanel(false)
-            setGameViewAction({ type: 'farming', id: secs, text: kind })
+            setGameViewAction({ type: family === 'husbandry' ? 'husbandry' : 'farming', id: secs, text: kind })
           }}
           onStartRecipe={(recipeId) => {
             setShowFarmPanel(false)

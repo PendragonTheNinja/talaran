@@ -183,6 +183,15 @@
   font-style: italic;
 }
 
+/* Gaining something is good news and should read like it. The muted brown is
+   for context lines (stock counts, actions to level); anything the player
+   actually received uses the same green as experience. */
+.last-result-gained {
+  color: var(--color-xp);
+  font-size: 16px;
+  font-style: italic;
+}
+
 /* ── Vein notification ── */
 .scene-vein-notification {
   position: absolute;
@@ -627,4 +636,27 @@
   border: 1px solid var(--color-border-gold);
   border-radius: 4px;
   padding: 4px 6px;
+}
+
+/* Bot check overlay — sits above open panels (.farm-overlay and friends are 500)
+   so a check tripped from inside a panel can be answered without leaving it. */
+.botcheck-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 900;
+  padding: var(--space-lg);
+}
+
+.botcheck-overlay .bot-check {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-lg);
 }

@@ -31,8 +31,6 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod')
       .first();
 
-    console.log('Player me result:', player);
-
     if (!player) {
       res.status(404).json({ error: 'Player not found' });
       return;
@@ -99,10 +97,14 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
 
   router.get('/:id/profile', requireAuth, async (req: AuthRequest, res: Response) => {
     const targetId = parseInt(req.params.id as string);
+    const isSelf = targetId === req.player!.playerId;
     try {
+      // last_login and total_seconds_played are yours alone. Nothing renders them
+      // for another player, but the endpoint returned them anyway, so anyone
+      // reading the response could see when a given person was last online —
+      // a presence signal, and a different thing from "how good are they at mining".
       const player = await db('players')
         .where({ 'players.id': targetId })
-        .leftJoin('locations', 'players.current_location_id', 'locations.id')
         .select(
           'players.id',
           'players.username',
@@ -110,8 +112,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
           'players.guild_role',
           'players.forum_post_count',
           'players.created_at',
-          'players.last_login',
-          'players.total_seconds_played',
+          ...(isSelf ? ['players.last_login', 'players.total_seconds_played'] : []),
         )
         .first();
 

@@ -1,4 +1,5 @@
 import db from '../db';
+import { notifyInventoryChanged } from './inventory';
 import { logger } from '../index';
 
 // Property storage. One SLOT holds one unique item stack of any size, so 50 slots
@@ -124,6 +125,7 @@ export async function withdrawItem(playerId: number, itemId: number, qtyRaw: num
         const inv = await db('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
         if (inv) await db('player_inventory').where({ id: inv.id }).increment('quantity', qty);
         else await db('player_inventory').insert({ player_id: playerId, item_id: itemId, quantity: qty });
+        notifyInventoryChanged(playerId);
 
         return { success: true, message: `Took ${qty} × ${item.name}.` };
     } catch (err) {

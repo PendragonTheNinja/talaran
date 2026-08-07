@@ -1,0 +1,241 @@
+/* Animals tab — lives inside .farm-modal, so it reuses FarmPanel's tokens and
+   its .farm-btn / .farm-cost / .farm-crops idioms rather than restating them. */
+
+/* Farm-wide actions, above the pens they act on. */
+.animal-round {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border-dark);
+}
+
+.animal-pens {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.animal-pen {
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
+    background: var(--color-bg-deep);
+}
+
+/* A hungry pen is paused, not dying — warn, but do not alarm. */
+.animal-pen.unfed {
+    border-color: var(--color-border-dark);
+}
+
+.animal-pen-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+    background: none;
+    border: none;
+    padding: 2px 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.animal-pen-head:hover {
+    color: var(--color-text-bright);
+}
+
+.animal-pen-caret {
+    display: inline-block;
+    width: 14px;
+    color: var(--color-gold-bright);
+}
+
+.animal-pen-species {
+    color: var(--color-gold-bright);
+}
+
+.animal-pen-count {
+    font-size: 12px;
+}
+
+.animal-pen-status {
+    display: flex;
+    gap: var(--space-md);
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.pen-ok {
+    color: var(--color-text-muted);
+}
+
+.pen-warn {
+    color: var(--color-warning, #c8a45c);
+}
+
+.animal-pen-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.animal-list {
+    display: grid;
+    /* Three across in the 680px panel, dropping to two then one as it narrows.
+       A full coop is six animals; as stacked rows that was most of a screen. */
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.animal-card {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px;
+    min-width: 0;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-raised);
+}
+
+.animal-card.stage-elder {
+    opacity: 0.88;
+}
+
+.animal-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.animal-icon img {
+    max-width: 100%;
+    max-height: 100%;
+    image-rendering: pixelated;
+}
+
+.animal-icon-text {
+    font-size: 10px;
+    line-height: 1.1;
+    text-align: center;
+    color: var(--color-text-muted);
+    word-break: break-word;
+}
+
+.animal-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.animal-name {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    flex-wrap: wrap;
+    color: var(--color-text-bright);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.animal-name:hover {
+    color: var(--color-gold-bright);
+}
+
+.animal-stage {
+    font-family: var(--font-body);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-dark);
+    color: var(--color-text-muted);
+}
+
+.stage-tag-adult {
+    border-color: var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.animal-meta {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin: 4px 0 6px;
+}
+
+.animal-elder-note {
+    font-style: italic;
+}
+
+.animal-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.animal-actions .farm-btn {
+    font-size: 12px;
+    padding: 3px 8px;
+}
+
+/* Slaughter is destructive and the animal has a name — mark it clearly. */
+.farm-btn.danger {
+    border-color: var(--color-danger, #7a3b3b);
+    color: var(--color-danger-text, #d99);
+}
+
+.farm-btn.danger:hover:not(:disabled) {
+    background: var(--color-danger, #7a3b3b);
+    color: var(--color-text-bright);
+}
+
+.animal-rename {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.animal-rename input {
+    flex: 1;
+    min-width: 0;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    padding: 3px 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+}
+
+.animal-place {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.animal-place select {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    padding: 3px 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+}
+
+.animal-pentype {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}

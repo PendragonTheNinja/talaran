@@ -62,7 +62,6 @@ export default function NPCDialogue({ npcId, onClose, onInteraction }: NPCDialog
     }, [npcId])
 
     const handleOption = async (option: DialogueOption) => {
-        console.log('Option clicked:', option)
 
         if (option.action === 'close') {
             onClose()

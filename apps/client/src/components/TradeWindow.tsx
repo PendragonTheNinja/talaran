@@ -8,7 +8,6 @@ interface TradeItem {
     item_id: number
     name: string
     type: string
-    stackable: boolean
     quantity: number
 }
 

@@ -54,7 +54,8 @@ interface GameViewProps {
   travelStatus: { message: string; seconds: number } | null
   onClearTravel: () => void
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
-  externalAction: { type: string; id: number; text?: string } | null
+  // Matches GameLayout: `id` is a node id, a recipe id, or a key like 'ambren'.
+  externalAction: { type: string; id: number | string; text?: string } | null
   onExternalActionHandled: () => void
   externalMessage: { text: string; type: 'success' | 'info' | 'error' } | null
   onExternalMessageHandled: () => void
@@ -75,8 +76,11 @@ interface LogEntry {
   type: 'success' | 'info' | 'error' | 'level'
 }
 
-const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking']
-const PROCESSING_LOCATIONS = ['Emberra', 'Verdale']
+// Where the Action Limit bar is offered. `recipe` covers every bench craft the
+// shared executor runs — Caliwen crafting, and the Farming and Husbandry
+// processing tabs — which already send actionLimit but had nowhere to set it.
+const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking', 'recipe']
+const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita']
 
 const FARM_SCENE_TEXT: Record<string, string> = {
   establish: 'You raise your farmstead, post and beam, stone and nail.',
@@ -86,6 +90,19 @@ const FARM_SCENE_TEXT: Record<string, string> = {
   harvest: 'You lift the crop from the earth, filling your baskets.',
   manure: 'You barrow muck onto the field and turn it into the soil.',
   tend: 'You carry water down the rows, pulling weeds as you go.',
+}
+
+const HUSBANDRY_SCENE_TEXT: Record<string, string> = {
+  build_pen: 'You sink posts and hang panels, closing in a new pen.',
+  feed: 'You go along the troughs with the pail, feeding and watering.',
+  feed_all: 'You work the whole farm with the pail, trough by trough.',
+  muck_all: 'You work through every pen in turn, forking out and laying fresh straw.',
+  muck: 'You fork out the soiled bedding and lay down fresh straw.',
+  collect: 'You work among the animals, gathering what they have given.',
+  collect_all: 'You go along the pen with a basket, clearing it as you pass.',
+  slaughter: 'You do the work out behind the barn, quickly and without fuss.',
+  slaughter_all: 'You work through the pen, one after another, and do not dawdle.',
+  tame: 'You work the halter on gently, letting it get used to the weight.',
 }
 
 export default function GameView({
@@ -116,11 +133,13 @@ export default function GameView({
   const [timerMax, setTimerMax] = useState(0)
   const [log, setLog] = useState<LogEntry[]>([])
   const [botCheckPending, setBotCheckPending] = useState(false)
+  const botCheckInputRef = useRef<HTMLInputElement>(null)
   const [botCheckAnswer, setBotCheckAnswer] = useState('')
   const [botCheckQuestion, setBotCheckQuestion] = useState({ a: 0, b: 0 })
   const [veins, setVeins] = useState<any[]>([])
   const [veinNotification, setVeinNotification] = useState<string | null>(null)
   const [farmKind, setFarmKind] = useState<string>('till')
+  const [husbandryKind, setHusbandryKind] = useState<string>('feed')
   const [lastResult, setLastResult] = useState<{
     itemName: string
     xpAwarded: number
@@ -186,24 +205,50 @@ export default function GameView({
     // The card renders in a few places (desktop and mobile layouts), so find
     // whichever one is actually on screen rather than holding a ref to one.
     const card = document.querySelector<HTMLElement>('.scene-last-result')
-    if (r.itemName) {
-      flyItemToPack({
-        itemName: r.itemName,
-        fromEl: card,
-        firstTime: !!r.firstEver || !!r.firstDiscovery,
-      })
-    }
 
-    // Secondary drops follow, spaced out so they read as a series rather than
-    // a pile landing at once.
+    // Build the pile in order, then unload it TOP FIRST. Previously every flyer
+    // held for a fixed time and so left in the order it arrived, which meant the
+    // bottom of the stack slid out from under the others.
+    const pile: { name: string; firstTime: boolean }[] = []
+    if (r.itemName) pile.push({ name: r.itemName, firstTime: !!r.firstEver || !!r.firstDiscovery })
+    for (const d of (r.drops || [])) pile.push({ name: d.name, firstTime: !!d.firstEver })
+
+    const APPEAR_GAP = 260      // between one item landing on the pile and the next
+    const SETTLE = 220          // beat after the last one lands, before unloading
+    const DEPART_GAP = 200      // between departures
+
     const timers: number[] = []
-    ;(r.drops || []).forEach((d, i) => {
+    pile.forEach((entry, i) => {
+      const appearAt = APPEAR_GAP * i
+      // Last in, first out: the top of the pile leaves first.
+      const departAt = APPEAR_GAP * (pile.length - 1) + SETTLE
+        + DEPART_GAP * (pile.length - 1 - i)
       timers.push(window.setTimeout(() => {
-        flyItemToPack({ itemName: d.name, fromEl: card, firstTime: !!d.firstEver })
-      }, 260 * (r.itemName ? i + 1 : i)))
+        flyItemToPack({
+          itemName: entry.name,
+          fromEl: card,
+          firstTime: entry.firstTime,
+          stackIndex: i,
+          holdMs: Math.max(0, departAt - appearAt),
+        })
+      }, appearAt))
     })
+
     return () => timers.forEach(clearTimeout)
   }, [lastResult])
+
+  // Put the cursor in the bot check the moment it appears, however it was
+  // triggered, so the player can type the answer straight away. autoFocus alone
+  // was unreliable: on a forced check the FAB still holds focus when the modal
+  // mounts, and the browser does not always hand it over.
+  useEffect(() => {
+    if (!botCheckPending) return
+    const t = window.setTimeout(() => {
+      botCheckInputRef.current?.focus()
+      botCheckInputRef.current?.select()
+    }, 60)
+    return () => clearTimeout(t)
+  }, [botCheckPending])
 
   const startCountdown = (seconds: number, completesAt?: string) => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -296,6 +341,38 @@ export default function GameView({
             setTimerMax(data.timerSeconds)
             startCountdown(data.timerSeconds, data.nextCompletes)
           }
+          return
+        }
+
+        // Husbandry: same shape as farm work below — building a pen, feeding and
+        // a truffle roll that comes up empty all produce no item, so they cannot
+        // go through the itemName gate either.
+        if (String((data as any).actionType || '').startsWith('husbandry_')) {
+          const r = data.result as any
+          const skillName = r.skillName || 'Husbandry'
+          setLastResult({
+            firstEver: (data as any).firstEver,
+            itemName: r.itemName ?? null,
+            quantity: r.quantity,
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: data.xpInfo?.totalXp || 0,
+            level: data.xpInfo?.level || 1,
+            xpToNext: data.xpInfo?.xpToNext || 0,
+            xpAtLevel: (data.xpInfo as any)?.xpAtLevel || 0,
+            skillName,
+            message: r.message,
+            drops: r.drops || [],
+          })
+          if (data.xpInfo?.leveledUp) {
+            setLevelUpSkill({ name: skillName, level: data.xpInfo.level })
+          }
+          setCurrentAction(null)
+          setActiveNodeId(null)
+          setTimerSeconds(0)
+          if (timerRef.current) clearInterval(timerRef.current)
+          onPlayerDataUpdate()
+          onInventoryUpdate()
+          setActionsCompleted(prev => prev + 1)
           return
         }
 
@@ -516,6 +593,16 @@ export default function GameView({
     const completesAt = new Date(action.completes_at).getTime()
     const secondsLeft = Math.max(0, Math.round((completesAt - now) / 1000))
 
+    // The server row carries action_limit and actions_completed, and always has.
+    // Without reading them a refresh mid-run showed no progress at all: the input
+    // is uncontrolled so it came back empty, and the counter restarted at zero.
+    if (action.action_limit && action.action_limit > 0) {
+      onActionLimitChange?.(action.action_limit)
+      const input = document.getElementById('action-limit-input') as HTMLInputElement
+      if (input) input.value = String(action.action_limit)
+    }
+    setActionsCompleted(action.actions_completed || 0)
+
     switch (action.action_type) {
       case 'woodcutting':
         setCurrentAction('woodcutting')
@@ -580,8 +667,26 @@ export default function GameView({
       case 'farm_till':
       case 'farm_sow':
       case 'farm_harvest':
+      case 'farm_manure':
+      case 'farm_tend':
         setCurrentAction('farming')
         setFarmKind(action.action_type.replace('farm_', ''))
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
+      case 'husbandry_build_pen':
+      case 'husbandry_feed':
+      case 'husbandry_feed_all':
+      case 'husbandry_muck':
+      case 'husbandry_muck_all':
+      case 'husbandry_collect':
+      case 'husbandry_collect_all':
+      case 'husbandry_slaughter':
+      case 'husbandry_slaughter_all':
+      case 'husbandry_tame':
+        setCurrentAction('husbandry')
+        setHusbandryKind(action.action_type.replace('husbandry_', ''))
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break
@@ -631,6 +736,19 @@ export default function GameView({
 
       setCurrentAction('farming')
       setFarmKind(externalAction.text || 'till')
+      setTimerMax(externalAction.id as number)
+      startCountdown(externalAction.id as number)
+    } else if (externalAction.type === 'husbandry') {
+      // Same start-of-action cleanup every other skill does (checklist item 8):
+      // clear the previous result card and any stale timer first.
+      setLastResult(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      setCurrentAction('husbandry')
+      setHusbandryKind(externalAction.text || 'feed')
       setTimerMax(externalAction.id as number)
       startCountdown(externalAction.id as number)
     } else if (externalAction.type === 'kiln_collecting') {
@@ -819,11 +937,8 @@ export default function GameView({
   }
 
   const startSmithing = async (recipe: string) => {
-    console.log('startSmithing called with:', recipe)
-    console.log('currentAction:', currentAction)
     try {
       if (currentAction) {
-        console.log('stopping current action first...')
         await apiFetch('/api/actions/stop', { method: 'POST' })
       }
       setLastResult(null)
@@ -844,7 +959,6 @@ export default function GameView({
           actionLimit: currentLimit,
         }),
       })
-      console.log('smith/start response:', res)
       setCurrentAction('smithing')
       setLog([])
       setActionsCompleted(0)
@@ -935,6 +1049,10 @@ export default function GameView({
       setCurrentAction(null)
       setActiveNodeId(null)
       setTimerSeconds(0)
+      // Every other start path resets this; recipes did not, so the count from
+      // whatever the player did earlier carried over and "N remaining" was
+      // instantly clamped to 0 for the whole run.
+      setActionsCompleted(0)
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
 
@@ -1045,7 +1163,7 @@ export default function GameView({
                 <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
               </p>
             ) : (
-              <p key={`hd-${i}`} className="last-result-remaining">
+              <p key={`hd-${i}`} className="last-result-gained">
                 You gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
               </p>
             )
@@ -1104,7 +1222,7 @@ export default function GameView({
               <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
             </p>
           ) : (
-            <p key={`drop-${i}`} className="last-result-remaining">
+            <p key={`drop-${i}`} className="last-result-gained">
               You also gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
             </p>
           )
@@ -1195,6 +1313,9 @@ export default function GameView({
               {currentAction === 'farming' && (
                 <p className="scene-action-text gold-text">{FARM_SCENE_TEXT[farmKind] || FARM_SCENE_TEXT.till}</p>
               )}
+              {currentAction === 'husbandry' && (
+                <p className="scene-action-text gold-text">{HUSBANDRY_SCENE_TEXT[husbandryKind] || HUSBANDRY_SCENE_TEXT.feed}</p>
+              )}
               {currentAction === 'foraging' && (
                 <p className="scene-action-text gold-text">
                   {(locationData as any)?.foragingHabitats?.find((h: any) => h.id === activeNodeId)?.scene_text || 'You gather among the wild growth.'}
@@ -1245,6 +1366,9 @@ export default function GameView({
               {currentAction === 'farming' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Working</button>
               )}
+              {currentAction === 'husbandry' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Tending</button>
+              )}
               {currentAction === 'recipe' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>
                   Stop {recipeLabel ? recipeLabel.skill : 'Crafting'}
@@ -1255,28 +1379,6 @@ export default function GameView({
                   {renderResultDetails(lastResult)}
                 </div>
               )}
-            </div>
-          )}
-
-          {botCheckPending && (
-            <div className="scene-action-overlay">
-              <div className="bot-check">
-                <p className="bot-check-question gold-text">
-                  Bot Check: What is {botCheckQuestion.a} + {botCheckQuestion.b}?
-                </p>
-                <div className="bot-check-input-row">
-                  <input
-                    className="chat-input"
-                    type="number"
-                    value={botCheckAnswer}
-                    onChange={e => setBotCheckAnswer(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleBotCheck()}
-                    placeholder="Your answer..."
-                    autoFocus
-                  />
-                  <button className="btn btn-gold" onClick={handleBotCheck}>Confirm</button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1373,6 +1475,34 @@ export default function GameView({
             >
               Share
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bot check lives at the top of the tree, not inside the scene. It used to
+          render as an absolutely-positioned scene element at z-index 2, which any
+          open panel (z-index 500) painted straight over — so a player who tripped
+          a check from inside the Homestead had to close the panel, answer, and
+          navigate back in. As a fixed overlay above panels it simply appears. */}
+      {botCheckPending && (
+        <div className="botcheck-overlay">
+          <div className="bot-check">
+            <p className="bot-check-question gold-text">
+              Bot Check: What is {botCheckQuestion.a} + {botCheckQuestion.b}?
+            </p>
+            <div className="bot-check-input-row">
+              <input
+                className="chat-input"
+                type="number"
+                value={botCheckAnswer}
+                onChange={e => setBotCheckAnswer(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleBotCheck()}
+                placeholder="Your answer..."
+                ref={botCheckInputRef}
+                autoFocus
+              />
+              <button className="btn btn-gold" onClick={handleBotCheck}>Confirm</button>
+            </div>
           </div>
         </div>
       )}

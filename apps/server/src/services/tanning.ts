@@ -91,8 +91,13 @@ export async function setupRack(playerId: number, locationId: number): Promise<{
 
 /** Every recipe the rack can run. */
 export async function getTanRecipes() {
+    // Grouped by what comes OUT, then by level. Ordering on level alone
+    // interleaved the two material families (Cowhide sits at 9, between Boarhide
+    // and Slothhide), so the wild buckskin line and the farmed leather line read
+    // as one confusing ladder instead of two.
     return db('recipes')
         .where({ is_active: true, mode: 'passive', station: WORKSTATION_TYPE })
+        .orderBy('output_item_name')
         .orderBy('required_level')
 }
 

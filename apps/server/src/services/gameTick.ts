@@ -4,7 +4,11 @@ import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
 import { recordItemFirstByName } from './inventory';
+import { isLiquid, liquidTotal } from './liquids';
 import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend } from './farming';
+import {
+  resolveBuildPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
+} from './husbandry';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
@@ -183,6 +187,74 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             xpToNext: xpToNextLevel(farmXpTotal),
             leveledUp: farmLevel > farmPrevLevel,
             xpAtLevel: xpForLevel(farmLevel),
+          },
+        });
+        return;
+      }
+      case 'husbandry_build_pen':
+      case 'husbandry_feed':
+      case 'husbandry_feed_all':
+      case 'husbandry_muck':
+      case 'husbandry_muck_all':
+      case 'husbandry_collect':
+      case 'husbandry_collect_all':
+      case 'husbandry_slaughter':
+      case 'husbandry_slaughter_all':
+      case 'husbandry_tame': {
+        // One-shot husbandry work, same shape as the farm block: clear the
+        // action, resolve it, report. The service owns its own transaction.
+        await db('player_actions').where({ id: action.id }).delete();
+
+        let husResult;
+        if (action.action_type === 'husbandry_build_pen') husResult = await resolveBuildPen(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_feed') husResult = await resolveFeed(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_feed_all') husResult = await resolveFeedAll(action.player_id);
+        else if (action.action_type === 'husbandry_muck_all') husResult = await resolveMuckAll(action.player_id);
+        else if (action.action_type === 'husbandry_muck') husResult = await resolveMuck(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_collect') husResult = await resolveCollect(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_collect_all') husResult = await resolveCollectAll(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_slaughter') husResult = await resolveSlaughter(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_slaughter_all') husResult = await resolveSlaughterAll(action.player_id, action.action_data);
+        else husResult = await resolveTame(action.player_id, action.action_data);
+
+        if (!husResult.success) {
+          io.to(`player_${action.player_id}`).emit('action_failed', { error: husResult.error || 'The work came to nothing.' });
+          return;
+        }
+
+        // The service deliberately does NOT record the first, so this check is
+        // the one that decides whether the sparkle fires.
+        const husFirst = husResult.itemName
+          ? (await recordItemFirstByName(action.player_id, husResult.itemName, action.action_type)).firstEver
+          : false;
+
+        const husSkill = await db('skills').where({ name: husResult.skillName || 'Husbandry' }).first();
+        const husPs = husSkill
+          ? await db('player_skills').where({ player_id: action.player_id, skill_id: husSkill.id }).first()
+          : null;
+        const husXpTotal = husPs ? parseInt(husPs.xp.toString()) : 0;
+        const husLevel = levelFromXp(husXpTotal);
+        const husPrevLevel = levelFromXp(Math.max(0, husXpTotal - (husResult.xp || 0)));
+
+        io.to(`player_${action.player_id}`).emit('action_complete', {
+          actionType: action.action_type,
+          firstEver: husFirst,
+          result: {
+            itemName: husResult.itemName,
+            quantity: husResult.quantity,
+            xpAwarded: husResult.xp,
+            skillName: husResult.skillName,
+            message: husResult.message,
+            // Slaughter yields meat AND hide/feathers; the card and the
+            // fly-to-pack animation take the whole list, as hunting does.
+            drops: husResult.drops ?? [],
+          },
+          xpInfo: {
+            totalXp: husXpTotal,
+            level: husLevel,
+            xpToNext: xpToNextLevel(husXpTotal),
+            leveledUp: husLevel > husPrevLevel,
+            xpAtLevel: xpForLevel(husLevel),
           },
         });
         return;
@@ -734,11 +806,21 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       if (recipe) {
         const inputs: { itemName: string; qty: number }[] = JSON.parse(recipe.inputs);
         for (const input of inputs) {
-          const item = await db('items').where({ name: input.itemName }).first();
-          const inv = item ? await db('player_inventory')
-            .where({ player_id: action.player_id, item_id: item.id })
-            .first() : null;
-          if (!inv || inv.quantity < input.qty) {
+          // Liquids are volume held in buckets, not an inventory row — asking
+          // player_inventory for 'Milk' always finds nothing and stops the loop
+          // after one craft. services/recipes.ts hooks the other three checks;
+          // this repeat check is its own and has to hook too.
+          let enough: boolean;
+          if (isLiquid(input.itemName)) {
+            enough = (await liquidTotal(action.player_id, input.itemName)) >= input.qty;
+          } else {
+            const item = await db('items').where({ name: input.itemName }).first();
+            const inv = item ? await db('player_inventory')
+              .where({ player_id: action.player_id, item_id: item.id })
+              .first() : null;
+            enough = !!inv && inv.quantity >= input.qty;
+          }
+          if (!enough) {
             await db('player_actions').where({ id: action.id }).delete();
             const craftSkill = await db('skills').where({ name: skillName }).first();
             const lastSkill = craftSkill ? await db('player_skills')

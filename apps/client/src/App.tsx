@@ -64,7 +64,6 @@ interface InventoryItem {
   quality: string | null
   tier: number
   description: string
-  stackable: boolean
   quantity: number
 }
 
@@ -105,7 +104,6 @@ function App() {
   const loadPlayerData = useCallback(async () => {
     try {
       const data = await apiFetch<PlayerData>('/api/player/me')
-      console.log('Player data:', JSON.stringify(data.player))
       setPlayerData(data)
       if (data.player?.has_seen_welcome === false) {
         setShowWelcome(true)
@@ -145,8 +143,10 @@ function App() {
 
   const loadInventory = useCallback(async () => {
     try {
-      const data = await apiFetch<{ inventory: InventoryItem[] }>('/api/inventory')
-      setInventoryData(data.inventory)
+      const data = await apiFetch<{ inventory: InventoryItem[]; openContainers?: InventoryItem[] }>('/api/inventory')
+      // Open liquid containers render after the real items — they occupy no slot,
+      // so a partially-full bucket never makes the pack look fuller than it is.
+      setInventoryData([...data.inventory, ...(data.openContainers ?? [])])
     } catch (err) {
       console.error('Failed to load inventory:', err)
     }
@@ -236,6 +236,13 @@ function App() {
 
       socket.on('trade_acceptance_updated', (data: any) => {
         window.dispatchEvent(new CustomEvent('trade_acceptance_updated', { detail: data }))
+      })
+
+      // The server announces any change to the pack, so items granted outside a
+      // completed action — quest rewards, NPC gifts, storage, pickups — appear
+      // without the player having to refresh the page.
+      socket.on('inventory_changed', () => {
+        loadInventory()
       })
 
       socket.on('trade_completed', () => {

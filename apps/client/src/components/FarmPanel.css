@@ -334,3 +334,14 @@
   box-shadow: 0 0 0 1px var(--color-border-gold), var(--shadow-lg);
   max-height: 78vh;
 }
+/* Processing holds two trades — a lighter second row under the main tabs so the
+   hierarchy reads as sub-navigation rather than a second set of peers. */
+.farm-subtabs {
+  margin-bottom: var(--space-md);
+  opacity: 0.92;
+}
+
+.farm-subtabs .farm-tab {
+  font-size: 13px;
+  padding: 4px var(--space-md);
+}

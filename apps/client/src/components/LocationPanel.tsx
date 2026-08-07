@@ -148,7 +148,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
       {/* Location actions */}
       <div className="location-panel-section">
-        <div className="panel-title" style={{ cursor: 'pointer' }} onClick={() => { console.log('Location refresh clicked'); onLocationRefresh?.() }}>
+        <div className="panel-title" style={{ cursor: 'pointer' }} onClick={() => onLocationRefresh?.()}>
           {locationData?.location?.name || 'Location Menu'}
         </div>
 
@@ -159,16 +159,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('woodcutting', node.id)}
           >
             Chop {node.name}
-          </button>
-        ))}
-
-        {npcs.filter(npc => !npc.submenu).map(npc => (
-          <button
-            key={npc.id}
-            className="location-action-btn npc"
-            onClick={() => setActiveNpcId(npc.id)}
-          >
-            {npc.avatar} Speak with {npc.name}
           </button>
         ))}
 
@@ -233,16 +223,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {farmsteadOpen && (
               <div className="submenu-items">
 
-                {npcs.filter(npc => npc.submenu === 'farmstead').map(npc => (
-                  <button
-                    key={npc.id}
-                    className="location-action-btn sub npc"
-                    onClick={() => setActiveNpcId(npc.id)}
-                  >
-                    {npc.avatar} Speak with {npc.name}
-                  </button>
-                ))}
-
                 <button
                   className={`location-action-btn sub ${currentAction === 'farming' ? 'active' : ''}`}
                   onClick={() => onStartAction('farm_panel', 0)}
@@ -268,16 +248,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
               <div className="submenu-items">
 
                 {/* NPCs in forge submenu */}
-                {npcs.filter(npc => npc.submenu === 'forge').map(npc => (
-                  <button
-                    key={npc.id}
-                    className="location-action-btn sub npc"
-                    onClick={() => setActiveNpcId(npc.id)}
-                  >
-                    {npc.avatar} Speak with {npc.name}
-                  </button>
-                ))}
-
                 {/* Workstation setup */}
                 {smithingStatus && !smithingStatus.workstation && questStatus === 'completed' && (
                   <button
@@ -288,7 +258,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   </button>
                 )}
 
-                {/* Kiln */}
+                {/* Kiln: its own entry in the submenu, above the bench. */}
                 {(questStatus === 'active' || questStatus === 'completed') && (
                   smithingStatus?.kilnStatus ? (
                     smithingStatus.kilnStatus.isReady ? (
@@ -313,26 +283,18 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   )
                 )}
 
-                {/* Smelt — available once quest started */}
+                {/* One bench, two halves. Smelting needs only the quest started;
+                    the anvil needs it finished, so the menu opens either way and
+                    the Anvil tab is simply empty until the player qualifies. */}
                 {(questStatus === 'active' || questStatus === 'completed' || smithingStatus?.workstation?.is_active) && (
                   <button
-                    className={`location-action-btn sub ${currentAction === 'smelting' ? 'active' : ''}`}
-                    onClick={() => onStartAction('smelting', 'ambren')}
+                    className={`location-action-btn sub ${(currentAction === 'smelting' || currentAction === 'smithing' || currentAction === 'crafting') ? 'active' : ''}`}
+                    onClick={() => onStartAction('forge_menu', 0)}
                   >
-                    Smelt Ambren Ingots
+                    Work the Forge →
                     {!smithingStatus?.workstation?.is_active && (
                       <span className="muted-text" style={{ fontSize: '11px', marginLeft: '4px' }}>(slow)</span>
                     )}
-                  </button>
-                )}
-
-                {/* Smith — available once quest complete */}
-                {(questStatus === 'completed' || smithingStatus?.workstation?.is_active) && (
-                  <button
-                    className={`location-action-btn sub ${(currentAction === 'smithing' || currentAction === 'crafting') ? 'active' : ''}`}
-                    onClick={() => onStartAction('smithing_menu', 0)}
-                  >
-                    Smith Ambren Items →
                   </button>
                 )}
 
@@ -352,16 +314,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             </button>
             {workshopOpen && (
               <div className="submenu-items">
-
-                {npcs.filter(npc => npc.submenu === 'workshop').map(npc => (
-                  <button
-                    key={npc.id}
-                    className="location-action-btn sub npc"
-                    onClick={() => setActiveNpcId(npc.id)}
-                  >
-                    {npc.avatar} Speak with {npc.name}
-                  </button>
-                ))}
 
                 {carpentryStatus?.questStatus === 'completed' && !carpentryStatus.workstation && (
                   <button
@@ -400,16 +352,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             </button>
             {craftworksOpen && (
               <div className="submenu-items">
-
-                {npcs.filter(npc => npc.submenu === 'craftworks').map(npc => (
-                  <button
-                    key={npc.id}
-                    className="location-action-btn sub npc"
-                    onClick={() => setActiveNpcId(npc.id)}
-                  >
-                    {npc.avatar} Speak with {npc.name}
-                  </button>
-                ))}
 
                 {/* Tanning rack */}
                 {!tanningStatus?.hasRack ? (
@@ -473,8 +415,29 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       {/* Players at location */}
       <div className="location-panel-section">
         <div className="panel-title">Players Here</div>
+
+        {/* NPCs are people standing in the room, so they belong in the list of
+            people standing in the room — pinned above the players and sorted
+            among themselves. Clicking one opens their dialogue. */}
+        {[...npcs].sort((a, b) => a.name.localeCompare(b.name)).map(npc => (
+          <div key={`npc-${npc.id}`} className="location-player location-npc">
+            {/* Name first, so NPC names sit on the same left edge as player
+                names. The tag trails the name as a label rather than leading it
+                as a bullet, which would indent every NPC out of line. */}
+            <span
+              className="location-player-name npc-name"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setActiveNpcId(npc.id)}
+              title={npc.title ? `${npc.name}, ${npc.title}` : npc.name}
+            >
+              {npc.name}
+            </span>
+            <span className="location-npc-tag">NPC</span>
+          </div>
+        ))}
+
         {playersHere.length === 0 ? (
-          <p className="location-panel-empty">No other players here.</p>
+          npcs.length === 0 && <p className="location-panel-empty">No other players here.</p>
         ) : (
           playersHere.map(p => (
             <div key={p.id} className="location-player">

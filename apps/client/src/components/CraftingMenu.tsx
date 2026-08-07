@@ -3,7 +3,7 @@ import './SmithingMenu.css'
 
 interface CraftingMenuProps {
     onClose: () => void
-    onStartRecipe: (recipeId: number) => void
+    onStartRecipe: (recipeId: number, batches: number | null) => void
     skill: string
     title: string
     playerLevel: number
@@ -25,7 +25,7 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
                     skill={skill}
                     playerLevel={playerLevel}
                     stationActive={stationActive}
-                    onStartRecipe={(recipeId) => { onStartRecipe(recipeId); onClose() }}
+                    onStartRecipe={(recipeId, batches) => { onStartRecipe(recipeId, batches); onClose() }}
                 />
             </div>
         </div>

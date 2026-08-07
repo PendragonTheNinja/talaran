@@ -217,3 +217,28 @@
 .location-panel--columns .panel-title {
   font-size: 11px;
 }
+/* NPCs sit at the head of the player list with a tag instead of an emoji, so a
+   glance separates people you can talk to from people who can talk back. */
+.location-player.location-npc {
+  gap: 8px;
+}
+
+.location-npc-tag {
+  flex-shrink: 0;
+  font-family: var(--font-heading);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-deep);
+}
+
+.location-player-name.npc-name {
+  color: var(--color-text-bright);
+}
+
+.location-player-name.npc-name:hover {
+  color: var(--color-gold-bright);
+}

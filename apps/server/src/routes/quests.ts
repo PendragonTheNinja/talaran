@@ -204,6 +204,19 @@ export async function backfillQuestObjectives(playerId: number, questId: number)
                 .where('player_properties.player_id', playerId)
                 .whereIn('farm_plots.state', ['tilled', 'growing'])
                 .first());
+        } else if (obj.type === 'build' && (obj.target_item === 'Coop' || obj.target_item === 'Paddock')) {
+            satisfied = !!(await db('player_pens')
+                .join('player_properties', 'player_pens.property_id', 'player_properties.id')
+                .where('player_properties.player_id', playerId)
+                .where('player_pens.pen_type', obj.target_item.toLowerCase())
+                .first());
+        } else if (obj.type === 'place_animal') {
+            // "Put a chick in the coop" — already true if one is standing there.
+            satisfied = !!(await db('player_animals')
+                .join('animal_species', 'player_animals.species_id', 'animal_species.id')
+                .where('player_animals.player_id', playerId)
+                .where('animal_species.name', obj.target_item)
+                .first());
         }
 
         if (satisfied) {

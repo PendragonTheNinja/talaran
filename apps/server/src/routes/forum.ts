@@ -106,7 +106,12 @@ router.get('/categories/:id/threads', requireAuth, async (req: AuthRequest, res:
             .where({ category_id: categoryId, is_deleted: false })
             .join('players as author', 'forum_threads.author_id', 'author.id')
             .leftJoin('players as last_poster', 'forum_threads.last_post_by', 'last_poster.id')
+            // Pinned to the top, locked to the bottom, everything else by recency.
+            // Locked threads are usually settled business — an idea that has since
+            // been built, a bug already fixed — so they were surfacing above live
+            // discussion purely because locking bumped last_post_at.
             .orderBy('forum_threads.is_pinned', 'desc')
+            .orderBy('forum_threads.is_locked', 'asc')
             .orderBy('forum_threads.last_post_at', 'desc')
             .limit(limit)
             .offset(offset)

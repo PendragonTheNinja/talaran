@@ -211,14 +211,23 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
     // Check for whisper syntax: playername@message
     const whisperMatch = message.match(/^(\w+)@(.+)$/);
     if (whisperMatch) {
-      const targetName = whisperMatch[1];
+      const typedName = whisperMatch[1];
       const whisperMessage = whisperMatch[2].trim();
-      const targetPlayer = await db('players').where({ username: targetName }).first();
+      // Case-insensitive: usernames are unique regardless of case, so there is no
+      // ambiguity to resolve, and making someone match the capitalisation of a
+      // name they only ever saw in chat is a needless way to fail.
+      const targetPlayer = await db('players')
+        .whereRaw('LOWER(username) = LOWER(?)', [typedName])
+        .first();
 
       if (!targetPlayer) {
-        res.status(404).json({ error: `Player "${targetName}" not found` });
+        res.status(404).json({ error: `Player "${typedName}" not found` });
         return;
       }
+
+      // Use the stored spelling from here on, so the whisper is labelled and
+      // filed under the player's real name rather than however it was typed.
+      const targetName = targetPlayer.username;
 
       const now = new Date();
       const timestamp = now.toTimeString().slice(0, 5);

@@ -1,6 +1,7 @@
 import db from '../db';
 import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
+import { husbandryTallyEntries } from './husbandry';
 
 // The Tally Board (see 20260726060000_tally_board for the design rationale).
 //
@@ -12,6 +13,14 @@ import { levelFromXp } from './xp';
 const CARPENTRY_REQ = 5;
 const BUILD_SECONDS = 60;
 
+/**
+ * How many boards a player may keep: the first, plus one per ten Carpentry
+ * levels. 5 (the build requirement) allows 1, 10 allows 2, 20 allows 3.
+ */
+export function boardCapForLevel(level: number): number {
+    return 1 + Math.floor(level / 10);
+}
+
 // Modest against the farmstead's 500/500/1000. This is a noticeboard, not a barn.
 const BUILD_COST = [
     { itemName: 'Lanai Planks', qty: 50 },
@@ -19,7 +28,7 @@ const BUILD_COST = [
 ];
 
 export interface TallyEntry {
-    kind: 'field' | 'vat' | 'kiln';
+    kind: 'field' | 'vat' | 'kiln' | 'pen';
     what: string;
     where: string;
     island: string;
@@ -31,9 +40,13 @@ export interface TallyEntry {
 
 export interface TallyReport {
     hasBoard: boolean;
+    /** The board being read right now, when standing at one. */
     boardLocationId: number | null;
     boardLocationName: string | null;
     atBoard: boolean;
+    /** Every board this player keeps, for the "your boards" list. */
+    boards: { locationId: number; locationName: string; island: string; here: boolean }[];
+    boardCap: number;
     entries: TallyEntry[];
     readyCount: number;
     /** Present when the player has no board yet. */
@@ -43,7 +56,9 @@ export interface TallyReport {
         cost: { itemName: string; qty: number }[];
         missing: { itemName: string; qty: number; have: number }[];
         canBuild: boolean;
+        /** True when at capacity: building here moves an existing board instead. */
         wouldRelocate: boolean;
+        atCapacity: boolean;
     };
 }
 
@@ -163,6 +178,12 @@ export async function passiveWork(playerId: number): Promise<TallyEntry[]> {
         });
     }
 
+    // ── Pens ────────────────────────────────────────────────────────────────
+    // Summarised by services/husbandry, which owns the pause-aware clocks.
+    for (const pen of await husbandryTallyEntries(playerId)) {
+        entries.push({ kind: 'pen', ...pen });
+    }
+
     // Ready first, then soonest, then idle last.
     const rank = (e: TallyEntry) => (e.status === 'ready' ? 0 : e.status === 'working' ? 1 : 2);
     entries.sort((a, b) => {
@@ -176,15 +197,26 @@ export async function passiveWork(playerId: number): Promise<TallyEntry[]> {
 
 export async function tallyReport(playerId: number): Promise<TallyReport> {
     const player = await db('players').where({ id: playerId }).first();
-    const board = await db('tally_boards').where({ player_id: playerId }).first();
 
-    let boardLocationName: string | null = null;
-    if (board) {
-        const loc = await db('locations').where({ id: board.location_id }).first();
-        boardLocationName = loc?.name ?? null;
-    }
+    const boardRows = await db('tally_boards')
+        .leftJoin('locations', 'tally_boards.location_id', 'locations.id')
+        .where({ 'tally_boards.player_id': playerId })
+        .select(
+            'tally_boards.location_id',
+            'locations.name as location_name',
+            'locations.region as island',
+        )
+        .orderBy('locations.name');
 
-    const atBoard = !!board && board.location_id === player?.current_location_id;
+    const boards = boardRows.map((b) => ({
+        locationId: b.location_id,
+        locationName: b.location_name ?? 'Unknown',
+        island: b.island ?? '',
+        here: b.location_id === player?.current_location_id,
+    }));
+
+    const boardHere = boards.find((b) => b.here) ?? null;
+    const atBoard = !!boardHere;
 
     // Only compute the report when it can actually be read. Standing at the board
     // is the cost that keeps this a place rather than a menu.
@@ -197,11 +229,16 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
         if (have < c.qty) missing.push({ itemName: c.itemName, qty: c.qty, have });
     }
 
+    const cap = boardCapForLevel(level);
+    const atCapacity = boards.length >= cap;
+
     return {
-        hasBoard: !!board,
-        boardLocationId: board?.location_id ?? null,
-        boardLocationName,
+        hasBoard: boards.length > 0,
+        boardLocationId: boardHere?.locationId ?? boards[0]?.locationId ?? null,
+        boardLocationName: boardHere?.locationName ?? boards[0]?.locationName ?? null,
         atBoard,
+        boards,
+        boardCap: cap,
         entries,
         readyCount: entries.filter((e) => e.status === 'ready').length,
         build: {
@@ -209,8 +246,11 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
             seconds: BUILD_SECONDS,
             cost: BUILD_COST,
             missing,
-            canBuild: level >= CARPENTRY_REQ && missing.length === 0,
-            wouldRelocate: !!board && board.location_id !== player?.current_location_id,
+            canBuild: level >= CARPENTRY_REQ && missing.length === 0 && !atBoard,
+            // At capacity a new board displaces an old one; below it, it is simply
+            // an addition and nothing is torn down.
+            wouldRelocate: atCapacity && !atBoard && boards.length > 0,
+            atCapacity,
         },
     };
 }
@@ -233,16 +273,20 @@ export async function shouldShowLocationLink(playerId: number): Promise<boolean>
     const settings = await db('player_settings').where({ player_id: playerId }).first();
     if (!settings?.hide_tally_when_built) return true;
 
-    const board = await db('tally_boards').where({ player_id: playerId }).first();
-    if (!board) return true;                                   // nothing built yet
-    if (board.location_id === player.current_location_id) return true;  // read it here
+    const boards = await db('tally_boards')
+        .leftJoin('locations', 'tally_boards.location_id', 'locations.id')
+        .where({ 'tally_boards.player_id': playerId })
+        .select('tally_boards.location_id', 'locations.region');
+
+    if (!boards.length) return true;                                          // nothing built yet
+    if (boards.some((b) => b.location_id === player.current_location_id)) return true;  // read it here
 
     const here = await db('locations').where({ id: player.current_location_id }).first();
-    const there = await db('locations').where({ id: board.location_id }).first();
+    if (!here?.region) return true;
 
-    // Different island: a board there is no use here, so offer to raise one.
-    if (!here?.region || !there?.region) return true;
-    return here.region !== there.region;
+    // Hide only where a board of yours already covers this island; elsewhere,
+    // keep offering, since with several boards allowed the answer is often yes.
+    return !boards.some((b) => b.region && b.region === here.region);
 }
 
 export interface BuildResult {
@@ -262,8 +306,8 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
             return { success: false, error: 'You are nowhere in particular.' };
         }
 
-        const existing = await db('tally_boards').where({ player_id: playerId }).first();
-        if (existing && existing.location_id === player.current_location_id) {
+        const boards = await db('tally_boards').where({ player_id: playerId }).orderBy('id', 'asc');
+        if (boards.some((b) => b.location_id === player.current_location_id)) {
             return { success: false, error: 'Your tally board already stands here.' };
         }
 
@@ -271,6 +315,12 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
         if (level < CARPENTRY_REQ) {
             return { success: false, error: `Raising a tally board wants Carpentry ${CARPENTRY_REQ}.` };
         }
+
+        // Under the cap this is a new board; at the cap the oldest one comes down
+        // to pay for it, which is the original one-board behaviour preserved.
+        const cap = boardCapForLevel(level);
+        const relocating = boards.length >= cap;
+        const displaced = relocating ? boards[0] : null;
 
         for (const c of BUILD_COST) {
             const have = await inventoryQty(playerId, c.itemName);
@@ -300,14 +350,18 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
                 }
             }
 
+            if (displaced) {
+                await trx('tally_boards').where({ id: displaced.id }).delete();
+            }
             await trx('tally_boards')
-                .insert({ player_id: playerId, location_id: player.current_location_id })
-                .onConflict(['player_id'])
-                .merge(['location_id', 'updated_at']);
+                .insert({ player_id: playerId, location_id: player.current_location_id });
         });
 
-        logger.info(`Player ${playerId} ${existing ? 'moved' : 'raised'} a tally board at location ${player.current_location_id}`);
-        return { success: true, relocated: !!existing };
+        logger.info(
+            `Player ${playerId} ${relocating ? 'moved' : 'raised'} a tally board at location ${player.current_location_id}`
+            + ` (${relocating ? boards.length : boards.length + 1}/${cap})`,
+        );
+        return { success: true, relocated: relocating };
     } catch (err) {
         logger.error(`Tally board build error: ${err}`);
         return { success: false, error: 'The board could not be raised.' };

@@ -89,7 +89,6 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     openThreadId?: number | null
     onThreadOpened?: () => void
 }) {
-    console.log('Forum props - isAdmin:', isAdmin, 'isMod:', isMod)
     const [view, setView] = useState<ForumView>('home')
     const [categories, setCategories] = useState<ForumCategory[]>([])
     const [recentThreads, setRecentThreads] = useState<RecentThread[]>([])
@@ -133,7 +132,6 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
 
     useEffect(() => {
         if (openThreadId) {
-            console.log('Opening thread from notification:', openThreadId)
             loadThread(openThreadId)
             onThreadOpened?.()
         }

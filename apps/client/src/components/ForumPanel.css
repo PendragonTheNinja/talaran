@@ -1,15 +1,56 @@
+/* Full-screen panel with the content held to a column in the middle, exactly as
+   Manual.css does it. An earlier pass made this a floating card over a dimmed
+   board, which looked fine on its own but matched nothing else opened from the
+   navbar. The panel is the full screen; the CONTENT is what gets centred.
+   Scoped away from the popped-out state, where DockableWindow owns the geometry. */
 .forum-panel {
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+}
+
+.forum-panel:not(.dockable-popped-inner) {
     position: fixed;
     top: 50px;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
     border-top: 1px solid var(--color-border-gold);
-    display: flex;
-    flex-direction: column;
-    z-index: 500;
     animation: slide-in-right 0.4s ease;
+}
+
+/* The column. Wider than the manual's 1180 because threads want the room. */
+.forum-panel:not(.dockable-popped-inner) > .forum-header,
+.forum-panel:not(.dockable-popped-inner) > .forum-body {
+    width: 100%;
+    max-width: 1320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* The header rule has to span the screen even though its content does not, so
+   the divider does not stop short at the column edges. */
+.forum-panel:not(.dockable-popped-inner) > .forum-header {
+    border-bottom: none;
+    position: relative;
+}
+
+.forum-panel:not(.dockable-popped-inner) > .forum-header::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 100vw;
+    border-bottom: 1px solid var(--color-border-gold);
+}
+
+@media (max-width: 900px) {
+    .forum-panel:not(.dockable-popped-inner) > .forum-header,
+    .forum-panel:not(.dockable-popped-inner) > .forum-body {
+        max-width: none;
+    }
 }
 
 .forum-header {

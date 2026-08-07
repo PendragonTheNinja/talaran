@@ -2,6 +2,11 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { recordItemFirst } from './inventory';
 
+// A drop is only worth a sparkle if it is genuinely uncommon: one in five or
+// rarer. Above that it is just a by-product and reads as noise.
+const NOTABLE_MAX_PERCENT = 20;
+const NOTABLE_MIN_ONE_IN = 5;
+
 export interface SecondaryDrop {
     name: string;
     quantity: number;
@@ -46,11 +51,14 @@ export async function rollSecondaryDrops(playerId: number, sourceKey: string): P
                 ? entry.min_qty + Math.floor(Math.random() * (entry.max_qty - entry.min_qty + 1))
                 : entry.min_qty;
 
-            // "notable" = not guaranteed (sub-100% / one-in-N) → gets a sparkle on the client.
+            // "notable" earns a sparkle, so it has to mean RARE, not merely
+            // "not guaranteed". Lanai Bark comes off sawing at 50-75% depending
+            // on log quality and was sparkling on most planks, which teaches
+            // players to ignore the sparkle entirely.
             const notable =
                 entry.chance_percent !== null && entry.chance_percent !== undefined
-                    ? Number(entry.chance_percent) < 100
-                    : entry.chance_one_in > 1;
+                    ? Number(entry.chance_percent) <= NOTABLE_MAX_PERCENT
+                    : entry.chance_one_in >= NOTABLE_MIN_ONE_IN;
 
             await awardItemById(playerId, entry.item_id, qty);
             const { firstEver } = await recordItemFirst(playerId, entry.item_id, sourceKey);

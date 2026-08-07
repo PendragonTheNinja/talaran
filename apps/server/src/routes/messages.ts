@@ -85,7 +85,10 @@ router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 
     const sender = await db('players').where({ id: playerId }).first();
-    const recipient = await db('players').where({ username: recipientName }).first();
+    // Case-insensitive, matching whispers, login and guild invites.
+    const recipient = await db('players')
+      .whereRaw('LOWER(username) = LOWER(?)', [recipientName])
+      .first();
 
     if (!recipient) {
       res.status(404).json({ error: `Player "${recipientName}" not found.` });

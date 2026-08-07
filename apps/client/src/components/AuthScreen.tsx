@@ -33,7 +33,6 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     fetch(`${API_URL}/api/news/latest`)
       .then(r => r.json())
       .then(d => {
-        console.log('News loaded:', d.posts)
         setNews(d.posts || [])
       })
       .catch(err => console.error('News fetch failed:', err))

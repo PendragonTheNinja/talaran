@@ -58,6 +58,11 @@
           "blurb": "A farmstead, and the strange discipline of leaving."
         },
         {
+          "slug": "husbandry",
+          "title": "Husbandry",
+          "blurb": "Animals, which unlike fields do not wait quietly for you."
+        },
+        {
           "slug": "carpentry",
           "title": "Carpentry",
           "blurb": "The hinge Talaran turns on. Learn this one properly."

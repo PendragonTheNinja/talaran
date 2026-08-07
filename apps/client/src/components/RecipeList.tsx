@@ -19,7 +19,8 @@ interface RecipeListProps {
     /** Which skill gates and pays XP for these recipes (Carpentry, Crafting, Smithing...) */
     skill: string
     playerLevel: number
-    onStartRecipe: (recipeId: number) => void
+    /** The batch count comes from the global Action Limit bar, not from here. */
+    onStartRecipe: (recipeId: number, batches: number | null) => void
     /** False when the player has no active workstation here — station recipes take 2x as long. */
     stationActive?: boolean
 }
@@ -83,7 +84,7 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                         <div
                             key={r.id}
                             className={`smithing-recipe-card ${locked ? 'locked' : ''}`}
-                            onClick={() => { if (!locked) onStartRecipe(r.id) }}
+                            onClick={() => { if (!locked) onStartRecipe(r.id, null) }}
                         >
                             <div className="smithing-recipe-image">
                                 <img

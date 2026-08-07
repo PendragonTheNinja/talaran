@@ -13,9 +13,20 @@
 }
 
 .tally-modal {
-    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
-    border: 1px solid var(--color-border-gold);
+    /* A board, not a dialog: faint vertical planking under the usual panel
+       gradient, and a heavier frame so it reads as a built object. */
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.014) 0px,
+            rgba(255, 255, 255, 0.014) 1px,
+            transparent 1px,
+            transparent 96px
+        ),
+        linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 2px solid var(--color-border-gold);
     border-radius: var(--radius-lg, 8px);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5) inset, var(--shadow-lg);
     padding: var(--space-xl, 24px);
     width: 620px;
     max-width: 92vw;
@@ -32,10 +43,17 @@
     align-items: center;
 }
 
+.tally-header {
+    padding-bottom: var(--space-sm, 8px);
+    border-bottom: 2px solid var(--color-border-gold);
+    margin-bottom: var(--space-xs, 4px);
+}
+
 .tally-header h2 {
     margin: 0;
     font-family: 'Cinzel', serif;
     font-size: 22px;
+    letter-spacing: 0.04em;
 }
 
 .tally-close {
@@ -49,12 +67,35 @@
 .tally-close:hover { color: var(--color-gold-bright, #e8b84b); }
 
 .tally-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
     font-family: var(--font-body, Georgia, serif);
     color: var(--color-text-base, #c8a96e);
     margin: 0 0 var(--space-sm, 8px);
-    padding-bottom: var(--space-sm, 8px);
-    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    background: rgba(0, 0, 0, 0.18);
 }
+
+/* Something waiting is the one thing worth noticing from across the room. */
+.tally-summary.has-ready {
+    border-color: var(--color-border-gold);
+    background: rgba(232, 184, 75, 0.07);
+    color: var(--color-gold-bright, #e8b84b);
+}
+
+.tally-strokes {
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--color-gold-bright, #e8b84b);
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.tally-summary-text { flex: 1; }
 
 .tally-subhead {
     font-family: var(--font-heading, 'Cinzel', serif);
@@ -65,14 +106,65 @@
     margin: var(--space-lg, 16px) 0 2px;
 }
 
+/* ── Places ───────────────────────────────────────────────────────────────── */
+
+/* Entries are grouped by town. A board is read place by place, and grouping
+   removes the location repeated down the right of every single row. */
+.tally-group {
+    margin-bottom: var(--space-md, 12px);
+}
+
+.tally-place {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm, 8px);
+    padding-bottom: 3px;
+    margin-bottom: 2px;
+    border-bottom: 1px dashed var(--color-border-mid, #4a3a22);
+}
+
+.tally-place-name {
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--color-text-bright, #e8d5a3);
+}
+
+.tally-place-island {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-dim, #6b5a3e);
+}
+
 /* ── Rows ─────────────────────────────────────────────────────────────────── */
 
 .tally-row {
     display: flex;
     align-items: center;
     gap: var(--space-md, 12px);
-    padding: 6px 0;
+    padding: 6px 8px 6px 0;
     border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    /* Status stripe down the left edge, so the state of a row is legible before
+       any of its words are. */
+    border-left: 3px solid transparent;
+    padding-left: 9px;
+    border-radius: 0 var(--radius-sm, 4px) var(--radius-sm, 4px) 0;
+    transition: background 0.15s ease;
+}
+
+.tally-row:hover { background: rgba(255, 255, 255, 0.02); }
+
+.tally-row.ready {
+    border-left-color: var(--color-gold-bright, #e8b84b);
+    background: rgba(232, 184, 75, 0.05);
+}
+
+.tally-row.working { border-left-color: var(--color-border-mid, #4a3a22); }
+
+.tally-row.idle {
+    border-left-color: transparent;
+    opacity: 0.72;
 }
 
 .tally-row:last-of-type { border-bottom: none; }
@@ -85,6 +177,18 @@
 }
 
 .tally-row.ready .tally-mark { color: var(--color-gold-bright, #e8b84b); }
+
+/* Each kind of work keeps its own hue, so the eye can pick out "my fields" or
+   "my pens" without reading. Ready overrides all of them to gold. */
+.tally-row.kind-field .tally-mark { color: #7f9a5c; }
+.tally-row.kind-vat   .tally-mark { color: #9a7a4e; }
+.tally-row.kind-kiln  .tally-mark { color: #b06a4a; }
+.tally-row.kind-pen   .tally-mark { color: #8a8fa8; }
+.tally-row.ready .tally-mark { color: var(--color-gold-bright, #e8b84b); }
+
+.tally-mark {
+    font-size: 15px;
+}
 
 .tally-main {
     flex: 1;
@@ -120,7 +224,12 @@
     color: var(--color-text-muted, #9a8060);
 }
 
-.tally-when.ready { color: var(--color-gold-bright, #e8b84b); }
+.tally-when.ready {
+    color: var(--color-gold-bright, #e8b84b);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+}
 .tally-when.idle { color: var(--color-text-dim, #6b5a3e); }
 
 .tally-row.idle .tally-what { color: var(--color-text-muted, #9a8060); }
@@ -180,4 +289,10 @@
     .tally-row { flex-wrap: wrap; }
     .tally-where { max-width: none; text-align: left; }
     .tally-when { flex-basis: auto; }
+}
+
+/* How many boards of the allowance are standing. */
+.tally-cap {
+    font-size: 12px;
+    margin-top: 4px;
 }

@@ -3,7 +3,7 @@ import './SmithingMenu.css'
 
 interface SmithingMenuProps {
   onClose: () => void
-  onStartRecipe: (recipeId: number) => void
+  onStartRecipe: (recipeId: number, batches: number | null) => void
   playerSmithingLevel: number
   stationActive?: boolean
 }
@@ -25,7 +25,7 @@ export default function SmithingMenu({ onClose, onStartRecipe, playerSmithingLev
           skill="Smithing"
           playerLevel={playerSmithingLevel}
           stationActive={stationActive}
-          onStartRecipe={(recipeId) => { onStartRecipe(recipeId); onClose() }}
+          onStartRecipe={(recipeId, batches) => { onStartRecipe(recipeId, batches); onClose() }}
         />
       </div>
     </div>

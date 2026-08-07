@@ -1,4 +1,5 @@
 import db from '../db'
+import { isLiquid, liquidTotal, consumeLiquid } from './liquids'
 import { levelFromXp } from './xp'
 import { logger } from '../lib/logger'
 import { incrementStats } from './stats'
@@ -22,6 +23,10 @@ export interface RecipeResult {
 
 interface RecipeInput { itemName: string; qty: number }
 
+// Liquid inputs are volume, not inventory rows. A recipe still writes
+// { itemName: 'Milk', qty: 3 } and knows nothing about buckets; these three
+// helpers route it through services/liquids so partial containers work for every
+// skill — Husbandry now, Cooking later — without either one being aware.
 function parseInputs(inputsJson: string): RecipeInput[] {
     try { return JSON.parse(inputsJson) } catch { return [] }
 }
@@ -56,6 +61,12 @@ export async function recipeTimerFor(playerId: number, recipe: any): Promise<num
 
 async function hasInputs(playerId: number, inputs: RecipeInput[]): Promise<{ ok: boolean; error?: string }> {
     for (const input of inputs) {
+        if (isLiquid(input.itemName)) {
+            if ((await liquidTotal(playerId, input.itemName)) < input.qty) {
+                return { ok: false, error: `You need ${input.qty} ${input.itemName.toLowerCase()}.` }
+            }
+            continue
+        }
         const item = await db('items').where({ name: input.itemName }).first()
         const inv = item
             ? await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first()
@@ -70,6 +81,10 @@ async function hasInputs(playerId: number, inputs: RecipeInput[]): Promise<{ ok:
 async function inputsRemaining(playerId: number, inputs: RecipeInput[]): Promise<{ name: string; quantity: number }[]> {
     const remaining: { name: string; quantity: number }[] = []
     for (const input of inputs) {
+        if (isLiquid(input.itemName)) {
+            remaining.push({ name: input.itemName, quantity: await liquidTotal(playerId, input.itemName) })
+            continue
+        }
         const item = await db('items').where({ name: input.itemName }).first()
         const inv = item
             ? await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first()
@@ -133,6 +148,14 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
 
         // Consume inputs
         for (const input of inputs) {
+            if (isLiquid(input.itemName)) {
+                // Draws from the open container first, cracks a sealed bucket if
+                // it runs dry, and hands back the empty when one is drained.
+                if (!(await consumeLiquid(playerId, input.itemName, input.qty))) {
+                    return { success: false, error: `You need ${input.qty} ${input.itemName.toLowerCase()}.` }
+                }
+                continue
+            }
             const item = await db('items').where({ name: input.itemName }).first()
             if (!item) return { success: false, error: `Required item not found: ${input.itemName}` }
             const inv = await db('player_inventory')

@@ -31,9 +31,13 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 
   try {
+    // Case-insensitive on both. Registration was comparing exactly, so
+    // "Pendragon" and "pendragon" could both exist — which makes impersonation
+    // trivial and makes any case-insensitive lookup elsewhere (whispers, for one)
+    // pick between them arbitrarily.
     const existing = await db('players')
-      .where({ username })
-      .orWhere({ email })
+      .whereRaw('LOWER(username) = LOWER(?)', [username])
+      .orWhereRaw('LOWER(email) = LOWER(?)', [email])
       .first();
 
     if (existing) {
@@ -122,8 +126,10 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
+    // Matching registration: someone who signed up as "Pendragon" should be able
+    // to log in as "pendragon".
     const player = await db('players')
-      .where({ username })
+      .whereRaw('LOWER(username) = LOWER(?)', [username])
       .first() as Player | undefined;
 
     if (!player) {

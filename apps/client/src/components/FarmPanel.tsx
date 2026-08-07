@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import PropertyStorage from './PropertyStorage'
+import AnimalsTab from './AnimalsTab'
 import './FarmPanel.css'
 
 interface CropDef {
@@ -52,15 +53,16 @@ const SOIL_LABEL: Record<string, string> = { rich: 'Rich soil', normal: 'Normal 
 
 interface FarmPanelProps {
     onClose: () => void
-    onActionStarted: (timerSeconds: number, kind: string) => void
-    onStartRecipe: (recipeId: number) => void
+    onActionStarted: (timerSeconds: number, kind: string, family?: 'farming' | 'husbandry') => void
+    onStartRecipe: (recipeId: number, batches: number | null) => void
     storeMode: boolean
     onToggleStoreMode: () => void
     storeAmount: number
     onStoreAmountChange: (n: number) => void
     storeRefresh?: number
     /** Opens the manual at the Farming page. Optional so the panel still works standalone. */
-    onHelp?: () => void
+    /** Opens the manual at the page matching whatever tab is showing. */
+    onHelp?: (section: string, slug: string) => void
 }
 
 export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, storeRefresh, onHelp }: FarmPanelProps) {
@@ -69,7 +71,29 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
     const [error, setError] = useState('')
     const [busy, setBusy] = useState(false)
     const [sow, setSow] = useState<Record<number, { cropId: number; count: number }>>({})
-    const [tab, setTab] = useState<'storage' | 'fields' | 'processing'>('storage')
+    const [tab, setTab] = useState<'storage' | 'fields' | 'animals' | 'processing'>('storage')
+    // Processing holds two trades now: crops on the Farming side, dairy on the
+    // Husbandry side. Farming is the default since it is the older, larger list.
+    const [processingSkill, setProcessingSkill] = useState<'Farming' | 'Husbandry'>('Farming')
+
+    // The help button follows the tab: a player asking "what is this?" means the
+    // thing in front of them, not whichever page the panel was first written for.
+    const helpTarget = (() => {
+        if (tab === 'storage') return { section: 'systems', slug: 'the-homestead', label: 'the Homestead' }
+        if (tab === 'animals') return { section: 'skills', slug: 'husbandry', label: 'Husbandry' }
+        if (tab === 'processing') {
+            return processingSkill === 'Husbandry'
+                ? { section: 'skills', slug: 'husbandry', label: 'Husbandry' }
+                : { section: 'skills', slug: 'farming', label: 'Farming' }
+        }
+        return { section: 'skills', slug: 'farming', label: 'Farming' }
+    })()
+
+    const [husbandryLevel, setHusbandryLevel] = useState<number | null>(null)
+    useEffect(() => {
+        apiFetch<{ husbandryLevel: number }>('/api/husbandry/state')
+            .then(d => setHusbandryLevel(d.husbandryLevel)).catch(() => setHusbandryLevel(1))
+    }, [])
 
     const load = useCallback(() => {
         return apiFetch<FarmState>('/api/farming/state')
@@ -88,7 +112,11 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
             const kind = (path.split('/').pop() || 'till').replace('-', '_')
             onActionStarted(res.timerSeconds, kind)   // hands off to the game view timer
         } catch (e: any) {
-            setError(e.message || 'That did not work.')
+            // 423 = a bot check is due. The server has already emitted
+            // bot_check_required, so GameView's overlay is about to appear on top
+            // of this panel — showing a red error underneath it just reads as a
+            // failure the player has to go and fix somewhere else.
+            if (e?.status !== 423) setError(e.message || 'That did not work.')
             setBusy(false)
         }
     }
@@ -105,7 +133,9 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                     <h2>Homestead</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {onHelp && (
-                            <button className="manual-help-btn" onClick={onHelp} title="Read about Farming">
+                            <button className="manual-help-btn"
+                                onClick={() => onHelp(helpTarget.section, helpTarget.slug)}
+                                title={`Read about ${helpTarget.label}`}>
                                 ?
                             </button>
                         )}
@@ -117,6 +147,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                     <div className="farm-tabs">
                         <button className={`farm-tab ${tab === 'storage' ? 'active' : ''}`} onClick={() => setTab('storage')}>Storage</button>
                         <button className={`farm-tab ${tab === 'fields' ? 'active' : ''}`} onClick={() => setTab('fields')}>Fields</button>
+                        <button className={`farm-tab ${tab === 'animals' ? 'active' : ''}`} onClick={() => setTab('animals')}>Animals</button>
                         <button className={`farm-tab ${tab === 'processing' ? 'active' : ''}`} onClick={() => setTab('processing')}>Processing</button>
                     </div>
                 )}
@@ -302,12 +333,27 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                     />
                 )}
 
-                {!loading && data && data.hasFarmstead && tab === 'processing' && (
-                    <RecipeList
-                        skill="Farming"
-                        playerLevel={data.farmingLevel}
-                        onStartRecipe={(id) => { onStartRecipe(id); onClose() }}
+                {!loading && data && data.hasFarmstead && tab === 'animals' && (
+                    <AnimalsTab
+                        onActionStarted={(secs, kind) => onActionStarted(secs, kind, 'husbandry')}
                     />
+                )}
+
+                {!loading && data && data.hasFarmstead && tab === 'processing' && (
+                    <>
+                        <div className="farm-tabs farm-subtabs">
+                            <button className={`farm-tab ${processingSkill === 'Farming' ? 'active' : ''}`}
+                                onClick={() => setProcessingSkill('Farming')}>Farming</button>
+                            <button className={`farm-tab ${processingSkill === 'Husbandry' ? 'active' : ''}`}
+                                onClick={() => setProcessingSkill('Husbandry')}>Husbandry</button>
+                        </div>
+                        <RecipeList
+                            key={processingSkill}
+                            skill={processingSkill}
+                            playerLevel={processingSkill === 'Farming' ? data.farmingLevel : (husbandryLevel ?? 1)}
+                            onStartRecipe={(id, batches) => { onStartRecipe(id, batches); onClose() }}
+                        />
+                    </>
                 )}
             </div>
         </div>

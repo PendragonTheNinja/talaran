@@ -8,7 +8,11 @@ Talaran is a live browser-based medieval skilling MMORPG in alpha (~30+ players)
 
 **Read this whole file, then read the nearest existing implementation in full** — not the slice that looks relevant, the whole file. Before a new skill: a finished skill's service, route, tick block, *and* client panel. Before new UI: the component that already does the closest thing. Before writing any new file, name the existing feature it mirrors; if that can't be answered with a filename, the codebase hasn't been read yet.
 
-Every repeat failure this past patch was a convention that already existed here and went unread, not a hard call gotten wrong: a two-column storage list built without opening the inventory grid; thirteen recipes shipped with no `flavor_text` (a column that exists for exactly that); an action with no cancel button (checklist item 7); hard-coded client scene text (§2 forbids it by name); a migration edited after it had run (§3 freezes it). Reading first is the single highest-leverage habit.
+**§2b-2 is a table of exactly which file to open for what you are building. Use it. It is faster than searching and it is the accumulated answer to "why didn't you copy the thing that already worked?"**
+
+Every repeat failure this past patch was a convention that already existed here and went unread, not a hard call gotten wrong: a two-column storage list built without opening the inventory grid; thirteen recipes shipped with no `flavor_text` (a column that exists for exactly that); an action with no cancel button (checklist item 7); hard-coded client scene text (§2 forbids it by name); a migration edited after it had run (§3 freezes it); pen-building paying the wrong skill when the farmstead beside it had paid Carpentry for months; a slaughter reporting one item when `drops` existed and was already animated. Reading first is the single highest-leverage habit.
+
+**When you catch yourself pattern-matching from memory instead of from a file open in front of you, stop and open the file.** Nearly every entry above was written by an assistant who "knew" how the codebase worked.
 
 ## 1. Working rules (non-negotiable)
 
@@ -49,13 +53,68 @@ Every repeat failure this past patch was a convention that already existed here 
 9. **The result card has THREE render branches** (hunting / message-carrying / generic) and a change to one reaches none of the others. Anything XP-only (till, build, tend) also falls through the generic branch's `itemName` gate and renders nothing — send a `message` and give it a branch. Check all three every time.
 10. **New recipes set `flavor_text`.** The per-skill fallback in `RECIPE_FLAVOR_BY_SKILL` is a net, not the plan, and needs an entry for any new recipe-owning skill.
 
+## 2a-1. Verifying the client actually compiles
+
+**`npx tsc --noEmit` in `apps/client` checks NOTHING.** The root `tsconfig.json` is `"files": []` with project references, so it exits 0 on any codebase, however broken. Use:
+
+```
+npx tsc --noEmit -p tsconfig.app.json
+```
+
+The client currently has ~21 pre-existing type errors, so a clean run is not the bar. The bar is **no NEW errors**, measured against the untouched tree:
+
+```
+npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | sed -E 's/\([0-9]+,[0-9]+\)//' | sort > /tmp/now.txt
+git stash -q && npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | sed -E 's/\([0-9]+,[0-9]+\)//' | sort > /tmp/base.txt && git stash pop -q
+comm -13 /tmp/base.txt /tmp/now.txt      # anything here is yours
+```
+
+Strip line/column before comparing, or every shifted line reads as a new error. `npx vite build` succeeds regardless of type errors, so a green build proves nothing about types.
+
+### Migrations are not type-checked either
+
+`apps/server/tsconfig.json` **excludes** `src/db/seeds` and `src/db/migrations`, so `npx tsc --noEmit` in `apps/server` reports 0 while a migration is broken. `npm run migrate` compiles them through ts-node and fails at the terminal, which is the worst place to find out.
+
+Before handing over any migration, check it:
+
+```
+cd apps/server
+cat > /tmp/tsc-mig.json <<'EOF'
+{ "compilerOptions": { "target":"ES2020","module":"commonjs","lib":["ES2020"],
+    "strict":true,"esModuleInterop":true,"skipLibCheck":true,"noEmit":true,"types":["node"] },
+  "include": ["src/db/migrations/**/*.ts"] }
+EOF
+cp /tmp/tsc-mig.json tsconfig.migrations.json && npx tsc -p tsconfig.migrations.json; rm tsconfig.migrations.json
+```
+
+Known trap: adding `.count()` to a `.select()` makes knex infer the row as the aggregate shape alone, so `row.some_column` stops existing. Type the call — `.select<{ player_id: number }[]>('player_id')` — rather than reaching for `any`.
+
 ## 2b. Client patterns (match these, don't invent)
 
 - **Items are always an icon grid**, never a text list: `getItemIcon(name)` from `lib/items`, rendered as `inventory-slot` tiles, name fallback on image error, quantity badge. Inventory, ground items, and property storage all do this.
 - **Persistent modes follow drop mode** (`dropMode`/`tradeMode` in `LeftPanel.tsx`): a toggle that changes what tapping an inventory item does. Full-screen panels cover the inventory, so any "tap your items to do X" feature must be a mode that outlives the panel, and the panel overlay must pass clicks through (`pointer-events`) while it's active. Give the grid a visible active state; `drop-mode-active` is referenced but never styled, so don't copy that gap.
 - **Feature panels are one modal with tabs**, not several location buttons. The farm panel carries Storage / Fields / Processing; new sub-systems become tabs.
 - **Admin main-column cards are `admin-action-card`** with an emoji-led `admin-section-title`. `admin-section` is the plain sidebar style and renders an unboxed control that looks broken. Gate admin-only tools on `isAdmin` in the UI too, not just the route.
+- **`recipes.station` is a `workstations.type`, never a display name.** Valid values: `'tanning'`, `'smithing'`, `'carpentry'`, or null for benchless work. Services query it directly (`services/tanning.ts` filters `station: 'tanning'`), so a recipe with `'Tanning Rack'` is not broken — it is *invisible*, which is worse, because it saves and reads back fine. This has now happened twice: 20260716025233 fixed the original three, and Tan Cowhide repeated it by copying the pre-fix seed.
+- **A result card reports EVERY item, not the first.** Services return `drops: [{name, quantity}]` alongside `itemName`; `gameTick` passes it through; `GameView` animates each into the pack. Anything with more than one yield (slaughter, hunting kills, sawing secondaries) must populate `drops` or the extra items land silently in the inventory with nothing on screen. Canonical: `rollSecondaryDrops` in `services/carpentry.ts` and the hunting block in `gameTick.ts`.
+- **Building a structure pays CARPENTRY**, never the skill the structure serves. Farmsteads, fields, coops and paddocks all award Carpentry at the Carpentry rate and report `skillName: 'Carpentry'`. The skill a building belongs to is earned by *using* it.
 - **Reuse `RecipeList`** for any skill's recipes; never write a second one. Its category tabs wrap (crossover `for_skill` means a bench advertises every skill it serves, so the list grows).
+
+## 2b-2. Where to look before writing a feature
+
+Every new skill is a re-implementation of an existing one. Read the closest sibling **in full** before writing, and copy its shape; the checklist in §0 catches the plumbing, this catches the behaviour.
+
+| Building… | Read first | Because |
+|---|---|---|
+| a timed action of any kind | `services/farming.ts` + §0 checklist | start/resolve split, `player_actions`, tool checks |
+| anything with multiple yields | `services/carpentry.ts` (`resolveSaw`) | the `drops` array and its animation |
+| a homestead sub-system | `services/farming.ts`, `services/husbandry.ts` | plot/pen capacity, property rows, build XP |
+| a structure the player builds | `resolveEstablish` / `resolveBuildPlot` | mallet+saw gate, **Carpentry XP** |
+| a quest with world-state steps | `backfillQuestObjectives` in `routes/quests.ts` | steps already satisfied must auto-complete |
+| an NPC | `routes/npcs.ts` `getDialogueStage` | stages are derived, and scoped by `npc_name` |
+| a passive/persistent entity | `services/husbandry.ts` (`accrue`) | pause-aware clocks, lazy evaluation, no cron |
+| a new panel | `FarmPanel.tsx` | tabs not buttons, help button per tab |
+| anything reading `recipe.inputs` | `services/liquids.ts` + §2c-4 | liquids are volume, not inventory rows |
 
 ## 2c. Property & homestead model
 
@@ -63,6 +122,31 @@ Every repeat failure this past patch was a convention that already existed here 
 - **Storage is per-property**, keyed by the location the player stands in, so a new property type gets storage with no new code. One slot = one unique item stack of any size; topping up an existing stack never needs a free slot.
 - **Sub-system capacity lives on the property row** (`plot_slots`, `storage_slots`) so a tier upgrade is a number change, not a schema change.
 - **Skill gates belong to the skill that owns the sub-system.** Farming level caps plot count; Carpentry level caps house tier. Never gate one skill's capacity behind another skill's level — materials trade between players, levels don't.
+
+## 2c-3. Husbandry
+
+- **Animal clocks are PAUSE-AWARE, and this is the whole skill.** An animal accrues growth and product only while its pen is both fed and mucked. We store accrued fed-seconds + `accrued_at` and fold forward on read — no tick sweep, unlike `farm_plots.ready_at` which is a wall-clock stamp. Copying the farming pattern here is wrong.
+- **Nothing can die.** There is no death path, no health column, no starvation. An unfed animal *stops*. Neglect costs the time away and nothing else. Do not add mortality; it punishes exactly the player who took a week off.
+- **Juvenile → Adult → Elder.** Elders are slower at everything they *produce* (yield and interval both), and never die. But an elder **butchers out at full value** — age never reduces meat or hide. Only XP is weighted, by life lived.
+- **`xp_slaughter` is a full-life maximum**, paid at `life_accrued / full_lifespan` (capped at 1.0 from elderhood). Without this, butchering the instant an animal matured paid up to **6.4× the intended rate**, since every milestone lands at or before adulthood and only product XP requires waiting. Mounts are exempt — a flat payout, because collecting one at maturity is the intended play.
+- **XP parity rule:** a full pen earns what a full plot earns. Per-animal rate targets `(0.12 / pen_capacity) × band(species level)`, the same 0.12 Farming uses per plot. Filled farm ≈ 63% of band at realistic uptime; Farming is ~60%.
+- **A pen holds one species**, locked on first placement, released when the last head leaves. Coop = small stock, paddock = large.
+- **Mounts leave the pen as items, and items do not age.** A collected mount is permanent. Dual gate: Husbandry to raise, Equitation to ride (`SUBTYPE_SKILL` in `routes/equipment.ts` — `horse`/`pony` map to Equitation, and without that entry `level_required` on a mount is decorative).
+- **No breeding, on purpose.** Young come only from Trapping (Nesting Hen, Wild Sow) and Hunting (Calf, foals). This is what keeps a homestead skill sending players back into the world.
+
+## 2c-4. Liquids (`services/liquids.ts`)
+
+Milk is not an item a player holds. It is volume inside buckets, and the whole system rests on one invariant:
+
+> **An open container is a bucket that has LEFT the inventory.** Every bucket is therefore in exactly one of three states — empty in the pack, sealed as a `Bucket of X`, or open with units in it. Never nowhere, never counted twice.
+
+- `Lanai Bucket` (empty) and `Bucket of Milk` (sealed, 10 units) are ordinary stackable items, so storage, trade and pickup handle them with no special cases. **This is the point**: an earlier design tracked capacity as a permit (buckets × 10) and the storage route happily handed back unlimited milk, because the constraint did not travel with the item.
+- `player_liquids` holds the ONE open container per liquid per player, 1..per-1 units. A row at full capacity should never exist — it seals into an item instead.
+- The open container follows the **player**, not a workstation. Dairy has no bench, milking happens at a pen, Cooking will happen at a hearth; binding it to a place would strand milk the moment the player walked indoors.
+- Partials cannot be traded, stored or dropped. This is enforced by having no inventory row at all, not by a check: `routes/inventory.ts` appends a synthetic tile so the player can see it, and the client ignores every mode for `synthetic` items.
+- **`Milk` still exists as an item row** because recipes name it and `animal_species` produces it, but it can never appear in an inventory again. Do not "fix" this by granting loose Milk.
+
+**The trap, and it has already bitten once:** recipes declare `{ itemName: 'Milk', qty: 3 }` and know nothing about buckets. Four places check recipe inputs — `hasInputs`, `inputsRemaining`, the consume loop in `resolveRecipe`, and **the repeat check in `gameTick.ts`**. All four must call `isLiquid()` first. The fourth was missed on the first pass, so crafting cheese worked exactly once and then stopped with "out of resources". **Any new code that reads `recipe.inputs` and queries `player_inventory` is this bug again.**
 
 ## 2c-2. The Manual (`docs/manual-spec.md` is the authority)
 
@@ -78,7 +162,13 @@ Two rules the prose must keep: **Talaran is the world, Taiar Island is one islan
 
 Applies to everything a player reads: item/habitat descriptions, NPC dialogue, quest text, flavor text, scene text, result messages, button labels, errors.
 
-- **Em dashes sparingly.** Badly overused by default. Reach for a full stop, comma, colon, or semicolon first; keep one only where the break genuinely earns it. A patch shipped with 27 player-facing lines carrying an em dash and needed a cleanup pass.
+- **NO EM DASHES. None.** Not sparingly, not where they "earn it". Zero, in anything a player reads. The previous instruction was "use them sparingly" and it did not work: a patch shipped 27 player-facing lines carrying one, and the Husbandry patch shipped many more. The rule is now absolute because a soft limit is not a limit.
+  - Applies to: item and habitat descriptions, NPC dialogue, quest text and objectives, flavor text, scene text, result and error messages, button labels, manual pages, patch notes.
+  - Use instead: a full stop (usually best), a comma, a colon, a semicolon, or a rewritten sentence. If a clause seems to need an em dash, it is usually two sentences.
+  - Hyphens in compound words are fine (`bark-liquor`, `well-fed`). Ranges are fine. This is about the dash used as a dramatic pause.
+  - **Before shipping any player-facing text, grep it.** An em dash is easy to type without noticing and impossible to spot by eye in a 200-line migration.
+  - Claude's own conversational replies are not covered by this. Player-facing game text is.
+  - Text written before this rule may still contain them. Nathan is clearing those by hand. Do not run a sweep over old content; just never add another.
 - **Text is content, so it lives in the DB.** A wording change ships as a migration, not a code edit. Exception: UI chrome (button labels, status lines) lives in the component.
 - Keep the voice: plain, concrete, a little folkloric. NPCs talk like working people, not narrators.
 
@@ -102,7 +192,7 @@ Applies to everything a player reads: item/habitat descriptions, NPC dialogue, q
 ### Material families (locked)
 - **Leather** (farmed, Husbandry): the mainline. Five tiers of Leather and Leather Strips; armor, saddles, storage. Cattle-only at every sheet tier and strip tiers 2–5.
 - **Buckskin** (wild, Hunting): ONE item, yield-scaled by animal size (Deerhide 1 / Boarhide 2 / Slothhide 3). Cuts into **tier-1 Leather Strips only**.
-- **Feathers**: wild (pheasant) = trickle; **farmed (Husbandry geese) = volume**. Same wild/farmed shape as Buckskin/Leather. Do *not* spread feathers to Woodcutting/Agility — trapping is the bird-catching mode, and that's its identity.
+- **Feathers**: wild (pheasant) = trickle; **farmed (Husbandry chickens) = volume**. Same wild/farmed shape as Buckskin/Leather. Do *not* spread feathers to Woodcutting/Agility — trapping is the bird-catching mode, and that's its identity. *(Was geese; Nathan cut geese during the Husbandry build and gave feathers to chickens instead — one fewer species for the same loop.)*
 - **Bark** (Carpentry sawing byproduct) supplies tanning's tannins. The five barks map onto five future leather tiers: Lanai tans tier-1, Hatch tier-2, etc.
 - Cryptids are the rare tier (Squonk, 0.5% weight). `notable` and `perishable` are per-drop data flags, never inferred from chance.
 
@@ -139,14 +229,16 @@ On the box (`ssh talaran`): `cd /var/www/talaran` → `git pull` → `cd apps/se
 
 ## 7. Docs index & open threads
 
+- `docs/husbandry-design.md` — pre-build Husbandry design. Kept for reasoning; §2c-3 above is the summary of record.
+
 Specs: `docs/manual-spec.md` (the manual's authority — content model, directives, IA, voice) · `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/IDEAS.md` (parking lot; the event-chat "firsts" feed lives here). Sims are regenerable — ask Claude to re-derive constants when knobs change.
 
 **Shipped 2026-07-26 (a68b680):** the Manual (19 pages, public `/manual` + in-game panel, live data blocks, admin override editor) and per-guild forums (`guild_forum_*`, own boards and per-board rank permissions, Forum tab in `GuildPanel`).
 
-**Manual pages still unwritten:** Husbandry (blocked on the skill), Fishing, Cooking, Combat, plus Trading, Item Firsts, Themes & Palettes, and a Bestiary. The Skills sidebar will want grouping before those land. `/manual` is also not yet linked from the homepage.
+**Manual pages still unwritten:** Fishing, Cooking, Combat, plus Trading, Item Firsts, Themes & Palettes, and a Bestiary. The Skills sidebar will want grouping before those land. `/manual` is also not yet linked from the homepage.
 
 **Next patch, in rough priority:**
-- **Husbandry** — closes several loops left open by the farming patch: manure (soil restore has no source without it), Husbandry leather (foraging gloves are recipe-less until then, so the Bramble Thicket's glove-gated rows stay dark), and the grain/straw sinks. Also the geese/cattle/live-capture-box work below.
+- **Husbandry** — SHIPPED (see §Husbandry below). Chickens/cows/pigs, rouncey + palfrey, pens, and the manure faucet.
 - **Legacy deletion**: `WOODWORK_RECIPES`, `SMITH_RECIPES`, their routes, and gameTick's `woodworking`/`smithing` branches. Kept one deploy so in-flight actions could resolve; delete now.
 - **Onboarding discovery**: the bow moved to Geonsen's quest and nothing signals he exists. Nathan wants quests discovered by finding the giver, *not* listed in the panel — so this needs a hint, an NPC pointer at Talador, or the bow staying at spawn with Geonsen giving only snares.
 - Tutorial NPC per skill, the Geo- pattern (Geoffrey/forge, Geossica/workshop, Geonsen/hunt, Georgic/field — all shipped; keep the convention for new skills).
@@ -154,5 +246,5 @@ Specs: `docs/manual-spec.md` (the manual's authority — content model, directiv
 - Crafting content: gems + finery (deferred — jewelry had no purpose yet). Sinks for Squonk Tears / Rabbit's Foot / Prized Plume.
 - Tooltip unification (skill-hover style wins, one shared component).
 - Audit continuation: `gameTick` + economy services, trade atomicity, ground-item dupe, the ~29 client type errors → `docs/audit.md`.
-- Husbandry: geese (feather volume), cattle (leather), live-capture box trap (the Hunting→Husbandry bridge).
+- Husbandry: buffalo (L25, Thick Leather), beekeeping (~L35), aurochs (L50, Heavy Leather), sheep (~L60, blocked on a textile consumer), mounts IV–IX. **Breeding** (~L20-25) is deliberately unbuilt — babies come only from the wild, and that's what sends players back out.
 - Paper-doll reskin parked, recoverable at commit `8745528`. UI queue: number-font token (`--font-num`, tabular figures), stage-at-rest treatment.

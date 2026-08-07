@@ -176,7 +176,12 @@ router.post('/invite', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const target = await db('players').where({ username }).first();
+        // Case-insensitive, as with whispers and login: usernames are unique
+        // without regard to case, so requiring exact capitalisation of a name
+        // someone read in chat only produces confusing "player not found".
+        const target = await db('players')
+            .whereRaw('LOWER(username) = LOWER(?)', [username])
+            .first();
         if (!target) {
             res.status(404).json({ error: 'Player not found.' });
             return;

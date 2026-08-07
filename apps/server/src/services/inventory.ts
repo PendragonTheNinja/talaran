@@ -1,5 +1,5 @@
 import db from '../db';
-import { logger } from '../index';
+import { logger, io } from '../index';
 
 // The one place items are EARNED.
 //
@@ -23,6 +23,20 @@ export interface GrantResult {
 }
 
 /** Plain inventory add. Use for moving items about, not for earning them. */
+/**
+ * Tells the player's client its pack has changed, so it can refetch.
+ * Every path that grants items — quest rewards, NPC gifts, storage withdrawals,
+ * ground pickups — flows through addItemToInventory, so announcing it here covers
+ * all of them at once instead of each caller remembering to.
+ */
+export function notifyInventoryChanged(playerId: number): void {
+    try {
+        io.to(`player_${playerId}`).emit('inventory_changed');
+    } catch {
+        // Socket may not be up (scripts, migrations); a missed refresh is harmless.
+    }
+}
+
 export async function addItemToInventory(playerId: number, itemId: number, quantity: number): Promise<void> {
     const existing = await db('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
     if (existing) {
@@ -30,6 +44,7 @@ export async function addItemToInventory(playerId: number, itemId: number, quant
     } else {
         await db('player_inventory').insert({ player_id: playerId, item_id: itemId, quantity });
     }
+    notifyInventoryChanged(playerId);
 }
 
 /**

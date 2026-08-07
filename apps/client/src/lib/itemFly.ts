@@ -43,12 +43,19 @@ function findPackSlot(itemName: string): HTMLElement | null {
     return withinView ? exact : grid
 }
 
+const STACK_OFFSET = 11
+const FLYER_BASE_Z = 4000
+
 export function flyItemToPack(opts: {
     itemName: string
     fromEl: HTMLElement | null
     firstTime?: boolean
+    /** Position in the pile: each one sits slightly above and in front of the last. */
+    stackIndex?: number
+    /** How long to sit in the pile before flying. Lets the caller unload top-first. */
+    holdMs?: number
 }): void {
-    const { itemName, fromEl, firstTime } = opts
+    const { itemName, fromEl, firstTime, stackIndex = 0, holdMs } = opts
     if (!fromEl || !animationEnabled || prefersReducedMotion()) return
 
     const target = findPackSlot(itemName)
@@ -58,7 +65,9 @@ export function flyItemToPack(opts: {
     const to = target.getBoundingClientRect()
 
     const startX = from.left + from.width / 2 - FLYER_SIZE / 2
-    const startY = from.top - FLYER_SIZE - 8
+    // Each new item lands a little above the last, so a multi-drop reads as a
+    // pile being built rather than three things in the same place.
+    const startY = from.top - FLYER_SIZE - 8 - stackIndex * STACK_OFFSET
 
     const flyer = document.createElement('div')
     flyer.className = 'item-flyer'
@@ -66,6 +75,8 @@ export function flyItemToPack(opts: {
     flyer.style.top = `${startY}px`
     flyer.style.width = `${FLYER_SIZE}px`
     flyer.style.height = `${FLYER_SIZE}px`
+    // Later arrivals sit in front, so the top of the pile is the one you see.
+    flyer.style.zIndex = String(FLYER_BASE_Z + stackIndex)
 
     const glow = document.createElement('div')
     glow.className = 'item-flyer-glow'
@@ -121,12 +132,12 @@ export function flyItemToPack(opts: {
             { opacity: 1, transform: 'scale(1.16) rotateY(340deg)', offset: 0.72 },
             { opacity: 1, transform: 'scale(1) rotateY(360deg)' },
         ], { duration: 980, easing: 'cubic-bezier(.25,.6,.3,1)', fill: 'forwards' })
-            .finished.then(() => setTimeout(flight, 380)).catch(finish)
+            .finished.then(() => setTimeout(flight, holdMs ?? 380)).catch(finish)
     } else {
         flyer.animate([
             { opacity: 0, transform: 'scale(.78) translateY(6px)' },
             { opacity: 1, transform: 'scale(1) translateY(0)' },
         ], { duration: 220, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
-            .finished.then(() => setTimeout(flight, 420)).catch(finish)
+            .finished.then(() => setTimeout(flight, holdMs ?? 420)).catch(finish)
     }
 }

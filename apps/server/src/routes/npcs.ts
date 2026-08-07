@@ -216,8 +216,13 @@ async function resolveStage(playerId: number, npcId: number): Promise<string> {
     const npc = await db('npcs').where({ id: npcId }).first();
     const location = await db('locations').where({ id: npc.location_id }).first();
 
-    // Find active or completed quests at this NPC's location
-    const quests = await db('quests').where({ location_id: npc.location_id, is_active: true });
+    // Quests belonging to THIS NPC. Scoping by location alone was wrong the
+    // moment a location got a second quest-giver: Novita has both Georgic and
+    // Geothro, so a player who had finished Georgic's lesson got 'complete' from
+    // Geothro on first meeting him, skipping his entire quest.
+    // npc_name is nullable, so a quest without one still falls back to location.
+    const quests = (await db('quests').where({ location_id: npc.location_id, is_active: true }))
+        .filter((q: any) => !q.npc_name || q.npc_name === npc.name);
 
     for (const quest of quests) {
         const playerQuest = await db('player_quests')
@@ -253,7 +258,10 @@ async function resolveStage(playerId: number, npcId: number): Promise<string> {
 
 async function getQuestProgress(playerId: number, npcId: number): Promise<any> {
     const npc = await db('npcs').where({ id: npcId }).first();
-    const quests = await db('quests').where({ location_id: npc.location_id, is_active: true });
+    // Same NPC scoping as getDialogueStage — otherwise an NPC reports the
+    // objectives of whichever quest-giver at his location was inserted first.
+    const quests = (await db('quests').where({ location_id: npc.location_id, is_active: true }))
+        .filter((q: any) => !q.npc_name || q.npc_name === npc.name);
 
     for (const quest of quests) {
         const playerQuest = await db('player_quests')

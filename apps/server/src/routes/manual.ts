@@ -377,15 +377,21 @@ const registry: Record<string, QueryHandler> = {
         ];
 
         if (item.travel_speed_modifier && Number(item.travel_speed_modifier) !== 1) {
+            const start = Math.round(Number(item.travel_speed_modifier) * 100);
+            const floor = item.travel_floor !== null && item.travel_floor !== undefined
+                ? Math.round(Number(item.travel_floor) * 100)
+                : null;
             rows.push({
                 field: 'Travel',
-                value: `×${item.travel_speed_modifier} journey time`,
+                value: floor !== null
+                    ? `${start}% of journey time, falling to ${floor}% as Equitation rises`
+                    : `${start}% of journey time`,
             });
         }
         if (item.agility_reduction) {
             rows.push({
                 field: 'On foot',
-                value: `−${Math.round(Number(item.agility_reduction) * 100)}% journey time`,
+                value: `−${Math.round(Number(item.agility_reduction) * 100)}% of the journey time Agility has not already saved`,
             });
         }
 

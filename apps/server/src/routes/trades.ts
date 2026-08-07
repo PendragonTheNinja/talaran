@@ -28,7 +28,6 @@ async function getTradeData(tradeId: number) {
             'items.name',
             'items.type',
             'items.subtype',
-            'items.stackable',
         );
 
     const gold = await db('trade_gold').where({ trade_id: tradeId });
