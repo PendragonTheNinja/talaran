@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "location_id": 5,
+    "trap_type_id": 1,
+    "name": "Rabbit",
+    "weight": 640,
+    "xp": 400,
+    "drop_table": "[{\"itemName\":\"Rabbit Meat\",\"min\":1,\"max\":2,\"chance\":100,\"perishable\":true},{\"itemName\":\"Rabbit Fur\",\"min\":1,\"max\":1,\"chance\":70},{\"itemName\":\"Rabbit's Foot\",\"min\":1,\"max\":1,\"chance\":5,\"notable\":true}]",
+    "is_active": true,
+    "flavor_text": null
+  },
+  {
+    "id": 2,
+    "location_id": 5,
+    "trap_type_id": 1,
+    "name": "Pheasant",
+    "weight": 355,
+    "xp": 640,
+    "drop_table": "[{\"itemName\":\"Pheasant Meat\",\"min\":1,\"max\":1,\"chance\":100,\"perishable\":true},{\"itemName\":\"Feathers\",\"min\":12,\"max\":20,\"chance\":100},{\"itemName\":\"Prized Plume\",\"min\":1,\"max\":1,\"chance\":5,\"notable\":true}]",
+    "is_active": true,
+    "flavor_text": null
+  },
+  {
+    "id": 3,
+    "location_id": 5,
+    "trap_type_id": 1,
+    "name": "Squonk",
+    "weight": 5,
+    "xp": 3000,
+    "drop_table": "[{\"itemName\":\"Squonk Tears\",\"min\":1,\"max\":1,\"chance\":100,\"notable\":true}]",
+    "is_active": true,
+    "flavor_text": "Your snare closes on nothing but a spreading puddle. Cornered at last, the squonk has wept itself away... dissolved into bubbles and brine, as its kind always do when there is nowhere left to hide. Only its tears remain."
+  },
+  {
+    "id": 4,
+    "location_id": 5,
+    "trap_type_id": 1,
+    "name": "Nesting Hen",
+    "weight": 90,
+    "xp": 520,
+    "drop_table": "[{\"itemName\":\"Chick\",\"min\":1,\"max\":2,\"chance\":100,\"notable\":true},{\"itemName\":\"Feathers\",\"min\":2,\"max\":4,\"chance\":80}]",
+    "is_active": true,
+    "flavor_text": null
+  },
+  {
+    "id": 5,
+    "location_id": 5,
+    "trap_type_id": 1,
+    "name": "Wild Sow",
+    "weight": 45,
+    "xp": 900,
+    "drop_table": "[{\"itemName\":\"Piglet\",\"min\":1,\"max\":1,\"chance\":100,\"notable\":true}]",
+    "is_active": true,
+    "flavor_text": null
+  }
+]

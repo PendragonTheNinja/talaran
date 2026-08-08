@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "name": "Snare",
+    "item_name": "Snare",
+    "required_level": 1,
+    "roll_interval_seconds": 1800,
+    "catch_chance": 55,
+    "break_chance": 25,
+    "scavenger_safe_hours": 4,
+    "scavenger_hourly_chance": 15,
+    "is_active": true
+  }
+]

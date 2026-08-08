@@ -1,0 +1,20 @@
+{
+  "exported_at": "2026-08-08T19:22:58.871Z",
+  "latest_migration": "20260801050000_case_insensitive_usernames.ts",
+  "tables": {
+    "skills": 21,
+    "items": 208,
+    "locations": 13,
+    "location_connections": 18,
+    "npcs": 5,
+    "npc_dialogues": 25,
+    "resource_nodes": 6,
+    "huntable_animals": 3,
+    "trap_types": 1,
+    "trap_targets": 5,
+    "recipes": 44,
+    "drop_table_entries": 32,
+    "quests": 5,
+    "quest_objectives": 15
+  }
+}

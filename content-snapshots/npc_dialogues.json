@@ -1,0 +1,513 @@
+[
+  {
+    "id": 1,
+    "npc_id": 1,
+    "stage_key": "intro",
+    "text_lines": [
+      "Hm? Another one looking to learn the craft, are ye? I don't give lessons for free, stranger.",
+      "But I'll make ye a deal. If you can smelt me 6 Ambren Ingots using my forge, I'll know you're serious. You'll need Ambren Ore and Charc, both found up in the mines to the north at Grundagr and Origrund.",
+      "Fair warning — my forge isn't as efficient as having your own setup. Once you prove yourself, I'll show you how to smith your own tools and build a proper workstation. That's when the real work begins."
+    ],
+    "options": [
+      {
+        "label": "\"I'll do it.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Maybe later.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-02T00:18:36.224Z",
+    "updated_at": "2026-06-02T00:18:36.224Z"
+  },
+  {
+    "id": 2,
+    "npc_id": 1,
+    "stage_key": "offer",
+    "text_lines": [
+      "Good. The forge is yours to use. Smelt those ingots and come back to me when you're done."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:1",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-02T00:18:36.224Z",
+    "updated_at": "2026-06-02T00:18:36.224Z"
+  },
+  {
+    "id": 3,
+    "npc_id": 1,
+    "stage_key": "progress",
+    "text_lines": [
+      "Back already? Don't rush it. Good metal takes patience."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-02T00:18:36.224Z",
+    "updated_at": "2026-06-02T00:18:36.224Z"
+  },
+  {
+    "id": 4,
+    "npc_id": 1,
+    "stage_key": "ready",
+    "text_lines": [
+      "Well now. You actually did it. I'll admit, I had my doubts.",
+      "A deal's a deal. You've earned access to my anvil for smithing. But hear me — this forge is slow. If you want real speed, you'll need to smith your own tools and set up your own workstation.",
+      "You'll need an Ambren Anvil, an Ambren Hammer, and Ambren Tongs. All things you can smith yourself at my trust Anvil."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Geoffrey.\"",
+        "action": "complete_talk_objective:1",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-06-02T00:18:36.224Z",
+    "updated_at": "2026-06-02T00:18:36.224Z"
+  },
+  {
+    "id": 5,
+    "npc_id": 1,
+    "stage_key": "complete",
+    "text_lines": [
+      "The forge is yours to use whenever you need it. But don't forget! Build your own workstation when you're ready. My anvil won't wait around forever."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-02T00:18:36.224Z",
+    "updated_at": "2026-06-02T00:18:36.224Z"
+  },
+  {
+    "id": 6,
+    "npc_id": 2,
+    "stage_key": "intro",
+    "text_lines": [
+      "New face in Verdale, eh? Come to learn the grain, have you?",
+      "Tell you what... prove your hands are honest. Saw me 6 good batches of planks at the bench here, and I'll know you're serious.",
+      "Mind, the public bench is slow going. Earn your keep and I'll show you how to set up your own — that's when the wood really starts to sing."
+    ],
+    "options": [
+      {
+        "label": "\"I'll do it.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Maybe later.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-11T02:22:52.187Z",
+    "updated_at": "2026-06-11T02:22:52.187Z"
+  },
+  {
+    "id": 7,
+    "npc_id": 2,
+    "stage_key": "offer",
+    "text_lines": [
+      "Good. The bench is yours. Saw your planks and come find me when the sawdust settles."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:2",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-11T02:22:52.187Z",
+    "updated_at": "2026-06-11T02:22:52.187Z"
+  },
+  {
+    "id": 8,
+    "npc_id": 2,
+    "stage_key": "progress",
+    "text_lines": [
+      "Still at it? Don't force the cut. The saw does the work if you let it."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-11T02:22:52.187Z",
+    "updated_at": "2026-06-11T02:22:52.187Z"
+  },
+  {
+    "id": 9,
+    "npc_id": 2,
+    "stage_key": "ready",
+    "text_lines": [
+      "Well, look at that. Clean lines, every one. You've got the feel for it.",
+      "A deal's a deal — the workshop's open to you. But this old bench is slow. For real speed, build your own: a Lanai Sawhorse, an Ambren Saw, and an Ambren Plane.",
+      "Saw the sawhorse here from your own planks; the saw and plane you'll forge at a smithy. Put them together and you'll have a proper workstation."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Geossica.\"",
+        "action": "complete_talk_objective:2",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-06-11T02:22:52.187Z",
+    "updated_at": "2026-06-11T02:22:52.187Z"
+  },
+  {
+    "id": 10,
+    "npc_id": 2,
+    "stage_key": "complete",
+    "text_lines": [
+      "The bench is yours whenever you need it. But build your own setup when you can — your back will thank you."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-06-11T02:22:52.187Z",
+    "updated_at": "2026-06-11T02:22:52.187Z"
+  },
+  {
+    "id": 11,
+    "npc_id": 3,
+    "stage_key": "intro",
+    "text_lines": [
+      "Stand still a moment. You walk like a man crossing a market square, and the grove has already told everything in it that you're here.",
+      "I keep this wood. That means I take from it, and I leave it able to give again. Most who come through only learn the first half.",
+      "You've no bow. I've a spare, and no great use for it. Learn to use it properly and it's yours."
+    ],
+    "options": [
+      {
+        "label": "\"Teach me.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 12,
+    "npc_id": 3,
+    "stage_key": "offer",
+    "text_lines": [
+      "Take it. Arrows too. You'll lose fewer than you think if you mind where they fall.",
+      "Bring down three deer. Not two, not one lucky shot. Three, so I know it wasn't the grove being generous."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:3",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 13,
+    "npc_id": 3,
+    "stage_key": "progress",
+    "text_lines": [
+      "Three deer. Track first, then close the distance, then loose. Rushing any of the three costs you an arrow and tells the wood you're a fool."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 14,
+    "npc_id": 3,
+    "stage_key": "ready",
+    "text_lines": [
+      "Three. And you've still most of your arrows, which says more than the deer do.",
+      "Now the other half. A bow feeds a man who's watching. A snare feeds him while he sleeps — rabbits, pheasant, and things I'll not name in daylight.",
+      "Here. Three snares, my own tying. Set them, walk your line, and don't leave a catch to the foxes. Learn to tie your own and you'll never want for arrows; it's the pheasant that gives you your fletching, not the deer."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Geonsen.\"",
+        "action": "complete_talk_objective:3",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 15,
+    "npc_id": 3,
+    "stage_key": "complete",
+    "text_lines": [
+      "The grove's yours to hunt, so long as you hunt it kindly. Take what you need. Leave the rest breeding.",
+      "And if you ever haul a hide worth keeping, Caliwen's the place — bark and time make leather of it. Nothing I do here does."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 16,
+    "npc_id": 4,
+    "stage_key": "intro",
+    "text_lines": [
+      "You've the look of someone who thinks food comes from a barrel. It comes from here, and it comes slow.",
+      "I've worked this ground longer than I care to count. Nothing about it is quick, and nothing about it is difficult either; it only wants doing in the right order, and then leaving alone.",
+      "If you've the patience for it, I'll walk you through a season. If you haven't, there's no shame in it. Go and chop something down."
+    ],
+    "options": [
+      {
+        "label": "\"Teach me.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 17,
+    "npc_id": 4,
+    "stage_key": "offer",
+    "text_lines": [
+      "First you'll want land of your own. A farmstead—timber, dressed stone, and a great many nails. It's a long haul and I'll not pretend otherwise. Half the folk who mean to farm never get past it.",
+      "I'll not carry that for you. But here, a hoe, a bucket, and enough carrot seed to fill your first field. When the farmstead stands, the rest of it is easy.",
+      "One thing more, and mind it. A mallet in your hands and a saw in your pack, or the frame won't go up at all. Carpenter's kit, that, not mine to give. More folk have stood in a field blaming the ground than have thought to check what they were holding.",
+      "Raise it. Break a field. Sow it. Then leave it be, and come back when it's ready. That's the whole of it."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:4",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-29T22:00:48.023Z"
+  },
+  {
+    "id": 18,
+    "npc_id": 4,
+    "stage_key": "progress",
+    "text_lines": [
+      "Still at it? Good. Order matters: the farmstead first, then a field broken with the hoe, then the seed in.",
+      "And once it's sown, leave it. Standing over a field does nothing for it. Go and do something useful and let the ground work while you're gone. That's the whole trick of farming, and it's why most folk are bad at it.",
+      "If you've a mind to hurry it along, carry water down the rows and pull the weeds. Won't do much at the end. Does a great deal at the start."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 19,
+    "npc_id": 4,
+    "stage_key": "ready",
+    "text_lines": [
+      "Carrots out of your own ground. There's not much better, and it never stops being true.",
+      "Now the part nobody tells you. That field is poorer than it was; the crop took it out of the soil, and the next sowing there will come up thinner. Every hungry crop does it. Carrots, onions, grain, flax, all of them.",
+      "Three ways back. Let it lie idle and it mends on its own, slow. Spread muck on it and it mends at once. Here, take what's left of mine, though you'll want beasts of your own before long if you mean to keep it up.",
+      "Or sow peas. Peas give back to the ground instead of taking from it, the only crop I know that leaves a field better than it found it. Take these. You'll want the knack of it by the time you can plant them.",
+      "That's farming. Break it, sow it, leave it, lift it, and mind what you've taken out of the earth."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Georgic.\"",
+        "action": "complete_talk_objective:4",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 20,
+    "npc_id": 4,
+    "stage_key": "complete",
+    "text_lines": [
+      "Fields are yours to work now. Build more as you learn; you'll manage more ground the better you get, and there's no hurry about it.",
+      "Seed's the thing you'll run short of, not land. Go out to Lanaivale and forage properly. There's carrot and onion and turnip seed in the meadow there, flax and peas down by the creek, and berry runners in the thickets if you fancy something that fruits year on year.",
+      "And what you grow wants working before it's worth much. Grain wants threshing and milling. Flax wants rotting and beating before it'll ever be linen. But that's a lesson for a day you've time for."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 21,
+    "npc_id": 5,
+    "stage_key": "intro",
+    "text_lines": [
+      "You've the look of someone who's been fed by fields and thinks that's the whole of it. Fields are patient. Fields wait for you.",
+      "An animal does not wait. An animal is hungry now, and will be hungry again this evening, and that is the entire trade in one sentence.",
+      "Georgic sends me the ones who've taken to the soil. I've two chicks spare and no one to mind them."
+    ],
+    "options": [
+      {
+        "label": "\"Show me the work.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"I've enough to mind already.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 22,
+    "npc_id": 5,
+    "stage_key": "offer",
+    "text_lines": [
+      "Build them a coop first, boarded tight, and a door that latches. Then put a chick in it. Then feed them, and keep feeding them.",
+      "Take grain and straw enough to start. Grain goes in them, straw goes under them, and both come off a field; so when you run dry, you know where to go.",
+      "Understand what feeding buys you. A bird that isn't fed doesn't sicken and it doesn't die. It simply stops. Stops growing, stops laying, stands there waiting on you. Come back in a month and you'll find it exactly as you left it, and a month behind where it might have been.",
+      "That's the cruelty of it, if you want one. Nothing here punishes you. It only waits."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:The Stockman's Seminar",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 23,
+    "npc_id": 5,
+    "stage_key": "progress",
+    "text_lines": [
+      "Coop, chick, feed. In that order, and the pail in your hand; carrying it in your pack feeds nobody.",
+      "Muck them out when it wants doing, too. A fouled pen stops just as surely as a hungry one."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 24,
+    "npc_id": 5,
+    "stage_key": "ready",
+    "text_lines": [
+      "Fed and housed. Good. They'll lay for you now, and go on laying until they're old—and they will get old, and slow with it. That's your signal, not a failure.",
+      "An elder bird still eats. Take her for the pot and put a young one in her place, and the wheel turns. Keep her if you're fond of her; plenty do. It costs you eggs, not much else.",
+      "Here, a calf, for when you've the level to pen her. Now that's the real choice of this trade. Milk her for as long as you keep her, or take the hide and the beef the day you stop. Both are honest. Only don't stand about deciding while she eats her way through your grain."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Geothro.\"",
+        "action": "complete_talk_objective:The Stockman's Seminar",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 25,
+    "npc_id": 5,
+    "stage_key": "complete",
+    "text_lines": [
+      "Mind the muck heap. It's not waste,  it's next year's field, and Georgic will take all you can barrow over.",
+      "And if you ever bring a foal back from the wood, bring it here. A horse grown in your own paddock carries you differently than one bought at market. I've no proof of that. I'm right all the same."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  }
+]

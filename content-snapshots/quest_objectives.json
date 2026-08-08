@@ -1,0 +1,167 @@
+[
+  {
+    "id": 1,
+    "quest_id": 1,
+    "order": 1,
+    "description": "Smelt 6 Ambren Ingots at Geoffrey's forge",
+    "type": "smelt",
+    "target_item": "Ambren Ingot",
+    "required_amount": 6,
+    "created_at": "2026-06-02T00:18:34.779Z",
+    "updated_at": "2026-06-02T00:18:34.779Z"
+  },
+  {
+    "id": 2,
+    "quest_id": 1,
+    "order": 2,
+    "description": "Speak to Geoffrey to complete the bargain",
+    "type": "talk",
+    "target_item": null,
+    "required_amount": 1,
+    "created_at": "2026-06-02T00:18:34.779Z",
+    "updated_at": "2026-06-02T00:18:34.779Z"
+  },
+  {
+    "id": 3,
+    "quest_id": 2,
+    "order": 1,
+    "description": "Saw 6 batches of planks at the workshop bench",
+    "type": "saw",
+    "target_item": "Lanai Planks",
+    "required_amount": 6,
+    "created_at": "2026-06-11T02:22:50.690Z",
+    "updated_at": "2026-06-11T02:22:50.690Z"
+  },
+  {
+    "id": 4,
+    "quest_id": 2,
+    "order": 2,
+    "description": "Speak to Geossica to complete the commission",
+    "type": "talk",
+    "target_item": null,
+    "required_amount": 1,
+    "created_at": "2026-06-11T02:22:50.690Z",
+    "updated_at": "2026-06-11T02:22:50.690Z"
+  },
+  {
+    "id": 5,
+    "quest_id": 3,
+    "order": 1,
+    "description": "Take 3 Deer in the Eld Grove",
+    "type": "hunt",
+    "target_item": "Deer",
+    "required_amount": 3,
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 6,
+    "quest_id": 3,
+    "order": 2,
+    "description": "Return to Geonsen",
+    "type": "talk",
+    "target_item": null,
+    "required_amount": 1,
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 7,
+    "quest_id": 4,
+    "order": 1,
+    "description": "Raise a farmstead at Novita",
+    "type": "build",
+    "target_item": "Farmstead",
+    "required_amount": 1,
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 8,
+    "quest_id": 4,
+    "order": 2,
+    "description": "Break a field with your hoe",
+    "type": "till",
+    "target_item": "Field",
+    "required_amount": 1,
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 9,
+    "quest_id": 4,
+    "order": 3,
+    "description": "Sow 10 carrot seeds",
+    "type": "sow",
+    "target_item": "Carrot",
+    "required_amount": 10,
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 10,
+    "quest_id": 4,
+    "order": 4,
+    "description": "Lift the carrot crop when it is ready",
+    "type": "harvest",
+    "target_item": "Carrot",
+    "required_amount": 1,
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 11,
+    "quest_id": 4,
+    "order": 5,
+    "description": "Return to Georgic",
+    "type": "talk",
+    "target_item": null,
+    "required_amount": 1,
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 12,
+    "quest_id": 5,
+    "order": 1,
+    "description": "Raise a coop at your farmstead",
+    "type": "build",
+    "target_item": "Coop",
+    "required_amount": 1,
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 13,
+    "quest_id": 5,
+    "order": 2,
+    "description": "Put a chick in the coop",
+    "type": "place_animal",
+    "target_item": "Chicken",
+    "required_amount": 1,
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 14,
+    "quest_id": 5,
+    "order": 3,
+    "description": "Feed and water your birds",
+    "type": "feed",
+    "target_item": "Chicken",
+    "required_amount": 1,
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 15,
+    "quest_id": 5,
+    "order": 4,
+    "description": "Return to Geothro",
+    "type": "talk",
+    "target_item": null,
+    "required_amount": 1,
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "name": "Geoffrey",
+    "title": "Blacksmith of Emberra",
+    "location_id": 2,
+    "submenu": "forge",
+    "avatar": "🔨",
+    "is_active": true,
+    "created_at": "2026-06-02T00:18:36.222Z",
+    "updated_at": "2026-06-02T00:18:36.222Z"
+  },
+  {
+    "id": 2,
+    "name": "Geossica",
+    "title": "Carpenter of Verdale",
+    "location_id": 8,
+    "submenu": "workshop",
+    "avatar": "🪚",
+    "is_active": true,
+    "created_at": "2026-06-11T02:22:52.185Z",
+    "updated_at": "2026-06-11T02:22:52.185Z"
+  },
+  {
+    "id": 3,
+    "name": "Geonsen",
+    "title": "Huntsman of the Eld Grove",
+    "location_id": 5,
+    "submenu": null,
+    "avatar": "🏹",
+    "is_active": true,
+    "created_at": "2026-07-17T12:14:55.015Z",
+    "updated_at": "2026-07-17T12:14:55.015Z"
+  },
+  {
+    "id": 4,
+    "name": "Georgic",
+    "title": "Old Farmer of Novita",
+    "location_id": 6,
+    "submenu": "farmstead",
+    "avatar": "🌾",
+    "is_active": true,
+    "created_at": "2026-07-25T16:11:23.176Z",
+    "updated_at": "2026-07-25T16:11:23.176Z"
+  },
+  {
+    "id": 5,
+    "name": "Geothro",
+    "title": "Stockman of Novita",
+    "location_id": 6,
+    "submenu": null,
+    "avatar": "🐄",
+    "is_active": true,
+    "created_at": "2026-08-07T00:46:08.435Z",
+    "updated_at": "2026-08-07T00:46:08.435Z"
+  }
+]

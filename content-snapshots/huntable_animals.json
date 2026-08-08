@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "location_id": 5,
+    "name": "Deer",
+    "required_level": 1,
+    "base_timer": 65,
+    "min_timer": 40,
+    "base_catch_chance": 70,
+    "xp_success": 48,
+    "xp_failure": 19,
+    "drop_table": "[{\"itemName\":\"Venison\",\"min\":1,\"max\":2,\"chance\":100},{\"itemName\":\"Bones\",\"min\":1,\"max\":2,\"chance\":60},{\"itemName\":\"Deerhide\",\"min\":1,\"max\":1,\"chance\":40},{\"itemName\":\"Antler\",\"min\":1,\"max\":1,\"chance\":0.33,\"notable\":true},{\"itemName\":\"Calf\",\"min\":1,\"max\":1,\"chance\":1.5,\"notable\":true},{\"itemName\":\"Rouncey Foal\",\"min\":1,\"max\":1,\"chance\":1,\"notable\":true}]",
+    "is_active": true,
+    "created_at": "2026-06-30T02:26:57.980Z",
+    "updated_at": "2026-06-30T02:26:57.980Z"
+  },
+  {
+    "id": 2,
+    "location_id": 5,
+    "name": "Boar",
+    "required_level": 9,
+    "base_timer": 85,
+    "min_timer": 50,
+    "base_catch_chance": 60,
+    "xp_success": 83,
+    "xp_failure": 33,
+    "drop_table": "[{\"itemName\":\"Boar Meat\",\"min\":2,\"max\":3,\"chance\":100},{\"itemName\":\"Bones\",\"min\":2,\"max\":3,\"chance\":60},{\"itemName\":\"Boarhide\",\"min\":1,\"max\":1,\"chance\":45},{\"itemName\":\"Boar Tusk\",\"min\":1,\"max\":1,\"chance\":0.33,\"notable\":true},{\"itemName\":\"Calf\",\"min\":1,\"max\":1,\"chance\":1.5,\"notable\":true},{\"itemName\":\"Rouncey Foal\",\"min\":1,\"max\":1,\"chance\":1,\"notable\":true},{\"itemName\":\"Palfrey Foal\",\"min\":1,\"max\":1,\"chance\":0.5,\"notable\":true}]",
+    "is_active": true,
+    "created_at": "2026-06-30T02:26:57.982Z",
+    "updated_at": "2026-06-30T02:26:57.982Z"
+  },
+  {
+    "id": 3,
+    "location_id": 5,
+    "name": "Ground Sloth",
+    "required_level": 17,
+    "base_timer": 120,
+    "min_timer": 70,
+    "base_catch_chance": 55,
+    "xp_success": 147,
+    "xp_failure": 59,
+    "drop_table": "[{\"itemName\":\"Sloth Meat\",\"min\":3,\"max\":5,\"chance\":100},{\"itemName\":\"Bones\",\"min\":3,\"max\":5,\"chance\":65},{\"itemName\":\"Slothhide\",\"min\":1,\"max\":1,\"chance\":60},{\"itemName\":\"Sloth Claw\",\"min\":1,\"max\":1,\"chance\":0.33,\"notable\":true},{\"itemName\":\"Calf\",\"min\":1,\"max\":1,\"chance\":1.5,\"notable\":true},{\"itemName\":\"Palfrey Foal\",\"min\":1,\"max\":1,\"chance\":0.5,\"notable\":true},{\"itemName\":\"Rouncey Foal\",\"min\":1,\"max\":1,\"chance\":1,\"notable\":true}]",
+    "is_active": true,
+    "created_at": "2026-06-30T02:26:57.984Z",
+    "updated_at": "2026-06-30T02:26:57.984Z"
+  }
+]
