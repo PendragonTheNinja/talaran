@@ -171,7 +171,6 @@ function App() {
     if (data) {
       const socket = connectSocket(playerInfo.id)
       socket.on('action_complete', () => {
-        console.log('action_complete received, loading inventory...')
         loadPlayerData()
         loadInventory()
         loadLocationData()

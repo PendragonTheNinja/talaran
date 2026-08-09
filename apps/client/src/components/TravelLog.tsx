@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../lib/api'
-import './TravelLog.css'
+
+// Travel log ENTRIES only. The launcher button, panel frame and close button
+// moved to LogPanel.tsx when the loot log joined it as a second tab; this file
+// kept its name and its rendering so the journey markup stayed where anyone
+// looking for it would expect, rather than being copied into the shell and
+// leaving a dead component behind.
 
 export interface TravelLogEvent {
     message: string
@@ -17,13 +22,10 @@ export interface TravelLogEntry {
 }
 
 interface TravelLogProps {
-    open: boolean
-    onOpen: () => void
-    onClose: () => void
     refreshKey: number   // bump to re-fetch (e.g. after a new walk)
 }
 
-export default function TravelLog({ open, onOpen, onClose, refreshKey }: TravelLogProps) {
+export default function TravelLog({ refreshKey }: TravelLogProps) {
     const [log, setLog] = useState<TravelLogEntry[]>([])
 
     const loadLog = useCallback(async () => {
@@ -45,49 +47,33 @@ export default function TravelLog({ open, onOpen, onClose, refreshKey }: TravelL
 
     const bodyRef = useRef<HTMLDivElement>(null)
     useEffect(() => {
-        if (open && bodyRef.current) {
+        if (bodyRef.current) {
             bodyRef.current.scrollTop = bodyRef.current.scrollHeight
         }
-    }, [open, log])
+    }, [log])
 
     return (
-        <>
-            {!open && (
-                <button className="travel-log-icon" onClick={onOpen} title="Travel Log" aria-label="Open travel log">
-                    📜
-                </button>
-            )}
-
-            {open && (
-                <div className="travel-log-panel">
-                    <div className="travel-log-header">
-                        <span className="travel-log-title">Travel Log</span>
-                        <button className="travel-log-close" onClick={onClose} aria-label="Close travel log">✕</button>
+        <div className="travel-log-body" ref={bodyRef}>
+            {log.length === 0 ? (
+                <p className="travel-log-empty">No journeys recorded yet. Set out and see what you find.</p>
+            ) : (
+                [...log].reverse().map((entry, idx, arr) => (
+                    <div key={entry.id} className={`travel-log-entry ${idx === arr.length - 1 ? 'most-recent' : ''}`}>
+                        <div className="travel-log-entry-head">
+                            <span className="travel-log-route">{entry.from} → {entry.to}</span>
+                            <span className="travel-log-time">{fmt(entry.timestamp)}</span>
+                        </div>
+                        {entry.events.map((ev, i) => (
+                            <p key={i} className="travel-log-event">
+                                {ev.message}
+                                {ev.itemName && (
+                                    <span className="travel-log-item"> ({ev.quantity > 1 ? `${ev.quantity}× ` : ''}{ev.itemName})</span>
+                                )}
+                            </p>
+                        ))}
                     </div>
-                    <div className="travel-log-body" ref={bodyRef}>
-                        {log.length === 0 ? (
-                            <p className="travel-log-empty">No journeys recorded yet. Set out and see what you find.</p>
-                        ) : (
-                            [...log].reverse().map((entry, idx, arr) => (
-                                <div key={entry.id} className={`travel-log-entry ${idx === arr.length - 1 ? 'most-recent' : ''}`}>
-                                    <div className="travel-log-entry-head">
-                                        <span className="travel-log-route">{entry.from} → {entry.to}</span>
-                                        <span className="travel-log-time">{fmt(entry.timestamp)}</span>
-                                    </div>
-                                    {entry.events.map((ev, i) => (
-                                        <p key={i} className="travel-log-event">
-                                            {ev.message}
-                                            {ev.itemName && (
-                                                <span className="travel-log-item"> ({ev.quantity > 1 ? `${ev.quantity}× ` : ''}{ev.itemName})</span>
-                                            )}
-                                        </p>
-                                    ))}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+                ))
             )}
-        </>
+        </div>
     )
 }

@@ -10,11 +10,7 @@ export function connectSocket(playerId: number): Socket {
     auth: { token: localStorage.getItem('talaran_token') }
   })
   socket.on('connect', () => {
-    console.log('Socket connected')
     socket!.emit('join', playerId)
-  })
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected')
   })
   return socket
 }

@@ -217,6 +217,14 @@ export async function backfillQuestObjectives(playerId: number, questId: number)
                 .where('player_animals.player_id', playerId)
                 .where('animal_species.name', obj.target_item)
                 .first());
+        } else if (obj.type === 'fish') {
+            // Someone who caught their three Tiddle before ever meeting Georemy
+            // should not have to catch three more. player_fishing_records.catches
+            // is the lifetime count per species, which is exactly the question.
+            const record = await db('player_fishing_records')
+                .where({ player_id: playerId, species: obj.target_item })
+                .first();
+            satisfied = !!record && Number(record.catches) >= obj.required_amount;
         }
 
         if (satisfied) {

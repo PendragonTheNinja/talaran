@@ -31,6 +31,7 @@ import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import HuntingMenu from './HuntingMenu'
 import ForagingMenu from './ForagingMenu'
+import FishingMenu from './FishingMenu'
 import FarmPanel from './FarmPanel'
 import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
@@ -234,6 +235,7 @@ export default function GameLayout({
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
   const [showForagingMenu, setShowForagingMenu] = useState(false)
+  const [showFishingMenu, setShowFishingMenu] = useState(false)
   const [showFarmPanel, setShowFarmPanel] = useState(false)
 
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
@@ -383,6 +385,8 @@ export default function GameLayout({
       setShowHuntingMenu(true)
     } else if (type === 'foraging_menu') {
       setShowForagingMenu(true)
+    } else if (type === 'fishing_menu') {
+      setShowFishingMenu(true)
     } else if (type === 'farm_panel') {
       setShowFarmPanel(true)
     } else if (type === 'tanning_setup') {
@@ -935,6 +939,24 @@ export default function GameLayout({
             setGameViewAction({ type: 'foraging', id: habitatId })
           }}
           playerForagingLevel={playerData?.skills?.find((s: any) => s.name === 'Foraging')?.level || 1}
+        />
+      )}
+
+      {showFishingMenu && (
+        <FishingMenu
+          onClose={() => setShowFishingMenu(false)}
+          onStartRod={(baitCategory) => {
+            setShowFishingMenu(false)
+            setGameViewAction({ type: 'fishing_rod', id: baitCategory ?? '' })
+          }}
+          onStartNet={() => {
+            setShowFishingMenu(false)
+            setGameViewAction({ type: 'fishing_net', id: '' })
+          }}
+          onStartCut={(species) => {
+            setShowFishingMenu(false)
+            setGameViewAction({ type: 'fishing_cut_bait', id: species })
+          }}
         />
       )}
 

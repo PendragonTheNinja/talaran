@@ -53,6 +53,11 @@
           "blurb": "The chase, and the traps you leave working while you are elsewhere."
         },
         {
+          "slug": "fishing",
+          "title": "Fishing",
+          "blurb": "The only trade that cares what hour it is."
+        },
+        {
           "slug": "farming",
           "title": "Farming",
           "blurb": "A farmstead, and the strange discipline of leaving."

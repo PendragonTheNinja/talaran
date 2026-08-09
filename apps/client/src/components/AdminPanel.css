@@ -490,3 +490,78 @@
 .usage-section.usage-balance {
     border-left-color: #5b7f9e;   /* steel — balance drift, judgment calls */
 }
+
+/* --- Content browser sidebar: filter + collapsible groups ---------------
+   Added when the registry grew from 18 tables to 82. Groups are shut by
+   default; the filter matches label, raw table name and group, and forces
+   every surviving group open so a match is never hidden behind a closed
+   header. */
+
+.admin-table-filter {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.admin-table-filter input {
+    width: 100%;
+    background: var(--color-bg-dark);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 6px 26px 6px 9px;
+    font-size: 13px;
+}
+
+.admin-table-filter input:focus {
+    outline: none;
+    border-color: var(--color-border-gold);
+}
+
+.admin-filter-clear {
+    position: absolute;
+    right: 4px;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 5px;
+}
+
+.admin-filter-clear:hover { color: var(--color-text-bright); }
+
+.admin-section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 5px 2px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.admin-section-toggle:hover .admin-section-title-text {
+    color: var(--color-gold-bright);
+}
+
+.admin-section-caret {
+    color: var(--color-text-dim);
+    font-size: 10px;
+    width: 10px;
+}
+
+.admin-section-title-text {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--color-gold);
+}
+
+.admin-section-count {
+    margin-left: auto;
+    color: var(--color-text-dim);
+    font-size: 11px;
+}

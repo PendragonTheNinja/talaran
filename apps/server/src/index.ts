@@ -42,6 +42,7 @@ import tradeRoutes from './routes/trades';
 import questRoutes from './routes/quests';
 import npcRoutes from './routes/npcs';
 import { issueBotCheck } from './services/botCheck';
+import { markSeen } from './lib/presence';
 import huntingRoutes from './routes/hunting';
 import foragingRoutes from './routes/foraging';
 import farmingRoutes from './routes/farming';
@@ -51,6 +52,8 @@ import tallyRoutes from './routes/tally';
 import recipeRoutes from './routes/recipes';
 import tanningRoutes from './routes/tanning';
 import trappingRoutes from './routes/trapping';
+import fishingRoutes from './routes/fishing';
+import lootLogRoutes from './routes/lootLog';
 
 dotenv.config();
 
@@ -172,6 +175,8 @@ app.use('/api/tally', tallyRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/tanning', tanningRoutes);
 app.use('/api/trapping', trappingRoutes);
+app.use('/api/fishing', fishingRoutes);
+app.use('/api/loot-log', lootLogRoutes);
 
 // Socket.io.
 //
@@ -235,6 +240,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', async () => {
     if (!socket.data.playerId) return;
     connectedPlayers.delete(socket.data.playerId);
+    // Stamp the departure so the tick can stop resolving this player's action.
+    // See lib/presence.ts: the cancellation itself happens at resolution time,
+    // not here, so a reconnect inside the grace window costs them nothing.
+    markSeen(socket.data.playerId);
 
     // Cancel any active trades
     try {

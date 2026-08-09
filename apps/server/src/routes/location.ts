@@ -35,6 +35,14 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .where({ location_id: player.current_location_id, is_active: true })
       .orderBy('display_order');
 
+    // Only a count is needed: the panel uses it to decide whether this place
+    // has water worth fishing. The species themselves come from
+    // /api/fishing/overview, which knows what the player has discovered.
+    const fishSpecies = await db('fish_species')
+      .where({ location_id: player.current_location_id, is_active: true })
+      .count('id as count').first();
+    const fishSpeciesCount = Number(fishSpecies?.count || 0);
+
     // Direct connections FROM current location
     const directConnections = await db('location_connections')
       .where({ from_location_id: player.current_location_id })
@@ -95,6 +103,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       allConnections,
       huntableAnimals,
       foragingHabitats,
+      fishSpeciesCount,
     });
 
   } catch (err) {

@@ -64,6 +64,11 @@ function overlayInitialValue(value: unknown, kind: ColumnKind): string {
 
 export default function AdminContentBrowser() {
     const [tables, setTables] = useState<ContentTable[]>([])
+    // Sidebar filter and per-group collapse. 82 tables across 19 groups is far
+    // too much to scroll, so groups start shut and the filter opens only what
+    // matches.
+    const [tableFilter, setTableFilter] = useState('')
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
     const [selected, setSelected] = useState<string | null>(null)  // table name or '__changes'
     const [data, setData] = useState<TableData | null>(null)
     const [changes, setChanges] = useState<ContentChange[]>([])
@@ -346,10 +351,28 @@ export default function AdminContentBrowser() {
         })
         : filteredRows
 
-    const groups = tables.reduce<Record<string, ContentTable[]>>((acc, t) => {
+    // Match on the table's label, its raw name, and its group, so "fish" finds
+    // Fish Species and "fishing" also finds the whole Fishing group.
+    const filterQuery = tableFilter.trim().toLowerCase()
+    const matchesFilter = (t: ContentTable) => (
+        !filterQuery
+        || t.label.toLowerCase().includes(filterQuery)
+        || t.name.toLowerCase().includes(filterQuery)
+        || t.group.toLowerCase().includes(filterQuery)
+    )
+
+    const groups = tables.filter(matchesFilter).reduce<Record<string, ContentTable[]>>((acc, t) => {
         (acc[t.group] = acc[t.group] || []).push(t)
         return acc
     }, {})
+
+    // Collapsed by default. While filtering, every surviving group is forced open
+    // so results are never hidden behind a shut header: a filter that finds
+    // something and shows nothing reads as a broken filter.
+    const isGroupOpen = (group: string) => (
+        filterQuery ? true : (openGroups[group] ?? false)
+    )
+    const toggleGroup = (group: string) => setOpenGroups(g => ({ ...g, [group]: !isGroupOpen(group) }))
 
     return (
         <div className="admin-body">
@@ -382,23 +405,59 @@ export default function AdminContentBrowser() {
                     </div>
                 </div>
                 <div className="admin-divider" />
-                {Object.entries(groups).map(([group, groupTables]) => (
-                    <div className="admin-section" key={group}>
-                        <p className="admin-section-title">{group}</p>
-                        {groupTables.map(t => (
-                            <div
-                                key={t.name}
-                                className={`admin-player-row clickable ${selected === t.name ? 'selected' : ''}`}
-                                onClick={() => loadTable(t.name)}
+
+                <div className="admin-table-filter">
+                    <input
+                        type="text"
+                        value={tableFilter}
+                        placeholder="Filter tables…"
+                        onChange={e => setTableFilter(e.target.value)}
+                    />
+                    {tableFilter && (
+                        <button
+                            className="admin-filter-clear"
+                            onClick={() => setTableFilter('')}
+                            title="Clear the filter"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
+
+                {Object.keys(groups).length === 0 && (
+                    <p className="muted-text" style={{ fontSize: '13px', padding: '8px 4px' }}>
+                        No table matches “{tableFilter}”.
+                    </p>
+                )}
+
+                {Object.entries(groups).map(([group, groupTables]) => {
+                    const open = isGroupOpen(group)
+                    return (
+                        <div className="admin-section" key={group}>
+                            <button
+                                className="admin-section-toggle"
+                                onClick={() => toggleGroup(group)}
+                                aria-expanded={open}
                             >
-                                <span style={{ fontSize: '15px', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className={selected === t.name ? 'gold-text' : ''}>{t.label}</span>
-                                    <span className="muted-text" style={{ fontSize: '13px' }}>{t.rowCount}</span>
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ))}
+                                <span className="admin-section-caret">{open ? '▾' : '▸'}</span>
+                                <span className="admin-section-title-text">{group}</span>
+                                <span className="admin-section-count">{groupTables.length}</span>
+                            </button>
+                            {open && groupTables.map(t => (
+                                <div
+                                    key={t.name}
+                                    className={`admin-player-row clickable ${selected === t.name ? 'selected' : ''}`}
+                                    onClick={() => loadTable(t.name)}
+                                >
+                                    <span style={{ fontSize: '15px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span className={selected === t.name ? 'gold-text' : ''}>{t.label}</span>
+                                        <span className="muted-text" style={{ fontSize: '13px' }}>{t.rowCount}</span>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                })}
             </div>
 
             {/* Main pane */}

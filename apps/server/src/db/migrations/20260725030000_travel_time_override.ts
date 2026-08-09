@@ -25,7 +25,16 @@ export async function up(knex: Knex): Promise<void> {
 
     if (await knex('items').where({ name: ADMIN_HORSE }).first()) return;
 
-    await knex('items').insert({
+    // FRESH-INSTALL GUARD (CLAUDE.md §6). travel_speed_modifier is created by
+    // 20260731120000_travel_curve_floor.ts, a LATER filename than this one. On
+    // live that never mattered because migrations ran piecemeal in authoring
+    // order; on a fresh database this insert ran before the column existed and
+    // killed the whole install. The horse takes the modifier only when the
+    // column already exists; otherwise the later migration's default (1.0)
+    // applies, which is fine, since travel_time_override is what actually moves
+    // this horse.
+    const hasSpeedColumn = await knex.schema.hasColumn('items', 'travel_speed_modifier');
+    const horse: Record<string, unknown> = {
         name: ADMIN_HORSE,
         type: 'mount',
         subtype: 'horse',
@@ -33,14 +42,16 @@ export async function up(knex: Knex): Promise<void> {
         quality: null,
         slot: 'mount',
         level_required: 1,
-        travel_speed_modifier: 0.01,   // cosmetic; the override is what applies
         travel_time_override: 1,
         stackable: false,
         is_active: false,
         description:
             'A horse of impossible temperament, saddled for those who built the roads. '
             + 'It does not so much travel as arrive.',
-    });
+    };
+    if (hasSpeedColumn) horse.travel_speed_modifier = 0.01;   // cosmetic; the override is what applies
+
+    await knex('items').insert(horse);
 }
 
 export async function down(knex: Knex): Promise<void> {

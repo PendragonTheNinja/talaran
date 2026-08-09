@@ -1,0 +1,347 @@
+/* Fishing panel. Same tokens and modal shape as ForagingMenu.css, with the
+   extra rows fishing needs: conditions, bait pouch, and personal bests. */
+
+.fishing-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: var(--space-md);
+}
+
+.fishing-modal {
+    width: 100%;
+    max-width: 660px;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.fishing-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.fishing-header h2 {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    margin: 0;
+}
+
+.fishing-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* --- Conditions ------------------------------------------------------- */
+
+.fishing-conditions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
+    font-size: 13px;
+}
+
+.fishing-place {
+    font-family: var(--font-heading);
+    color: var(--color-text-bright);
+}
+
+.fishing-water {
+    margin-left: 8px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--color-text-dim);
+    font-style: italic;
+}
+
+.fishing-cond {
+    color: var(--color-text-muted);
+    text-transform: capitalize;
+}
+
+.fishing-until {
+    color: var(--color-text-dim);
+    font-size: 12px;
+    text-transform: none;
+}
+
+/* --- Tools ------------------------------------------------------------ */
+
+.fishing-tools {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+    font-size: 13px;
+}
+
+.fishing-tools .tool-on { color: var(--color-xp); }
+.fishing-tools .tool-off { color: var(--color-text-dim); }
+
+/* --- Bait pouch ------------------------------------------------------- */
+
+.fishing-pouch {
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
+    background: var(--color-bg-deep);
+    margin-bottom: var(--space-md);
+}
+
+.fishing-pouch-label {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    color: var(--color-text-bright);
+    margin-bottom: 8px;
+}
+
+.fishing-pouch-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.fishing-bait-chip {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-bg-dark);
+    color: var(--color-text-bright);
+    cursor: pointer;
+}
+
+.fishing-bait-chip.empty {
+    color: var(--color-text-dim);
+    cursor: default;
+}
+
+.fishing-bait-chip.selected {
+    border-color: var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.fishing-bait-count {
+    color: var(--color-text-muted);
+    margin-left: 4px;
+}
+
+.fishing-convert,
+.fishing-cut {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.fishing-cut {
+    margin-bottom: var(--space-md);
+}
+
+.fishing-convert select,
+.fishing-cut select {
+    flex: 1;
+    min-width: 180px;
+    background: var(--color-bg-dark);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 5px 8px;
+    font-size: 12px;
+}
+
+.fishing-convert input {
+    width: 64px;
+    background: var(--color-bg-dark);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 5px 8px;
+    font-size: 12px;
+}
+
+.fishing-secondary {
+    background: var(--color-bg-raised);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.fishing-secondary:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.fishing-note,
+.fishing-notice {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin: 8px 0 0;
+}
+
+.fishing-notice { color: var(--color-xp); }
+
+/* --- Actions ---------------------------------------------------------- */
+
+.fishing-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.fishing-go {
+    flex: 1;
+    background: var(--color-gold);
+    color: var(--color-bg-deepest);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 9px 16px;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.fishing-go.secondary {
+    background: var(--color-bg-raised);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-mid);
+}
+
+.fishing-go:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.fishing-timer {
+    font-family: var(--font-body);
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+/* --- Species list ----------------------------------------------------- */
+
+.fishing-species-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    color: var(--color-text-bright);
+}
+
+.fishing-progress {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.fishing-species-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fishing-species {
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-deep);
+    padding: 8px 10px;
+}
+
+.fishing-species.blocked { opacity: 0.5; }
+.fishing-species.unknown .fishing-species-name { color: var(--color-text-dim); font-style: italic; }
+.fishing-species.inline { display: inline; padding: 1px 6px; border-radius: 10px; }
+
+.fishing-species-main {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.fishing-species-name {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    color: var(--color-text-bright);
+}
+
+.fishing-species-lvl {
+    font-size: 11px;
+    color: var(--color-text-dim);
+    white-space: nowrap;
+}
+
+.fishing-species-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.fishing-tag {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 9px;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-bg-dark);
+    color: var(--color-text-muted);
+    text-transform: capitalize;
+}
+
+.fishing-tag.bait { color: var(--color-xp); }
+.fishing-tag.lock { border-color: var(--color-border-gold); color: var(--color-gold-bright); }
+.fishing-tag.off { color: var(--color-text-dim); font-style: italic; text-transform: none; }
+
+.fishing-record {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.fishing-record-count { color: var(--color-text-dim); }
+
+/* --- States ----------------------------------------------------------- */
+
+.fishing-empty, .fishing-error, .fishing-hint {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 13px;
+    padding: var(--space-sm);
+}
+
+.fishing-error { color: var(--color-red-glow); }
+.fishing-hint { margin-top: var(--space-md); font-size: 12px; }

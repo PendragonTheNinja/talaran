@@ -3,7 +3,8 @@ import { apiFetch } from '../lib/api'
 import { flyItemToPack, setItemAnimationEnabled } from '../lib/itemFly'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
-import TravelLog from './TravelLog'
+import LogPanel from './LogPanel'
+import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 
 interface Node {
@@ -81,6 +82,12 @@ interface LogEntry {
 // processing tabs — which already send actionLimit but had nowhere to set it.
 const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking', 'recipe']
 const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita']
+
+const FISHING_SCENE_TEXT: Record<string, string> = {
+  fishing_rod: 'You cast out, and settle in to wait.',
+  fishing_net: 'You pay the net out across the shallows and begin the long haul.',
+  fishing_cut_bait: 'You work the knife along the flank, cutting the fish down for bait.',
+}
 
 const FARM_SCENE_TEXT: Record<string, string> = {
   establish: 'You raise your farmstead, post and beam, stone and nail.',
@@ -166,6 +173,9 @@ export default function GameView({
 
   const [travelLogOpen, setTravelLogOpen] = useState(false)
   const [travelLogKey, setTravelLogKey] = useState(0)
+  // Bumped ONLY when a journey turned something up, so the panel switches to
+  // the travel tab exactly when it auto-opens, not after every uneventful walk.
+  const [travelFindKey, setTravelFindKey] = useState(0)
   const [showTravelLogSetting, setShowTravelLogSetting] = useState(true)
 
   // ── Refs ──────────────────────────────────────────────────────────
@@ -346,6 +356,58 @@ export default function GameView({
           return
         }
 
+        // Fishing: rod casts, net hauls and cutting bait.
+        //
+        // A snapped line and a cut fish both produce no item, so neither can go
+        // through the itemName gate below. Fishing also repeats, so unlike
+        // husbandry this branch must restart the countdown rather than clear it.
+        if (String((data as any).actionType || '').startsWith('fishing_')) {
+          const r = data.result as any
+          setLastResult({
+            firstEver: (data as any).firstEver,
+            itemName: r.itemName ?? null,
+            quantity: r.quantity,
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: data.xpInfo?.totalXp || 0,
+            level: data.xpInfo?.level || 1,
+            xpToNext: data.xpInfo?.xpToNext || 0,
+            xpAtLevel: (data.xpInfo as any)?.xpAtLevel || 0,
+            skillName: 'Fishing',
+            message: r.message,
+            craftingXp: r.craftingXp,
+            weightLb: r.weightLb,
+            newRecord: r.newRecord,
+            newHeaviest: r.newHeaviest,
+            newLightest: r.newLightest,
+            snapped: r.snapped,
+            baitRemaining: r.baitRemaining,
+            baitCategory: r.baitCategory,
+            firstDiscovery: r.firstDiscovery,
+            drops: r.drops || [],
+          } as any)
+
+          if (data.xpInfo?.leveledUp) {
+            setLevelUpSkill({ name: 'Fishing', level: data.xpInfo.level })
+          }
+          onPlayerDataUpdate()
+          onInventoryUpdate()
+          setActionsCompleted(prev => prev + 1)
+
+          // No nextCompletes means the server stopped the loop: rod unequipped,
+          // knife put away, or the last fish of the stack cut.
+          if (data.timerSeconds && data.nextCompletes) {
+            setTimerSeconds(data.timerSeconds)
+            setTimerMax(data.timerSeconds)
+            startCountdown(data.timerSeconds, data.nextCompletes)
+          } else {
+            setCurrentAction(null)
+            setActiveNodeId(null)
+            setTimerSeconds(0)
+            if (timerRef.current) clearInterval(timerRef.current)
+          }
+          return
+        }
+
         // Husbandry: same shape as farm work below — building a pen, feeding and
         // a truffle roll that comes up empty all produce no item, so they cannot
         // go through the itemName gate either.
@@ -478,6 +540,7 @@ export default function GameView({
         const hadEvents = data?.result?.events && data.result.events.length > 0
         setTravelLogKey(k => k + 1)
         if (hadEvents) {
+          setTravelFindKey(k => k + 1)
           apiFetch<{ showTravelLog?: boolean }>('/api/settings')
             .then(d => { if (d.showTravelLog ?? true) setTravelLogOpen(true) })
             .catch(() => { })
@@ -702,6 +765,14 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'fishing_rod':
+      case 'fishing_net':
+      case 'fishing_cut_bait':
+        setCurrentAction(action.action_type)
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'recipe':
         setCurrentAction('recipe')
         setTimerMax(secondsLeft || 5)
@@ -769,6 +840,13 @@ export default function GameView({
       startHunt(externalAction.id as number)
     } else if (externalAction.type === 'foraging') {
       startForage(externalAction.id as number)
+    } else if (externalAction.type === 'fishing_rod') {
+      // id carries the bait category, or an empty string for an unbaited cast.
+      startRodFishing((externalAction.id as string) || null)
+    } else if (externalAction.type === 'fishing_net') {
+      startNetFishing()
+    } else if (externalAction.type === 'fishing_cut_bait') {
+      startCutBait(externalAction.id as string)
     } else if (externalAction.type === 'recipe') {
       startRecipe(externalAction.id as number)
     }
@@ -1122,6 +1200,48 @@ export default function GameView({
     }
   }
 
+  // Fishing. Three entry points, one shape: stop whatever is running, clear the
+  // previous result card (checklist item 8), then start.
+  const startFishingAction = async (
+    endpoint: string,
+    body: Record<string, unknown>,
+    actionType: string,
+    failure: string,
+  ) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })
+      setCurrentAction(actionType)
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
+    } catch (err: any) {
+      if (err.status === 423) {
+        rememberPendingAction(() => startFishingAction(endpoint, body, actionType, failure))
+        return
+      }
+      addLog(err.message || failure, 'error')
+    }
+  }
+
+  const startRodFishing = (baitCategory: string | null) =>
+    startFishingAction('/api/fishing/start', { baitCategory }, 'fishing_rod', 'Could not start fishing.')
+
+  const startNetFishing = () =>
+    startFishingAction('/api/fishing/net/start', {}, 'fishing_net', 'Could not cast the net.')
+
+  const startCutBait = (species: string) =>
+    startFishingAction('/api/fishing/cut', { species }, 'fishing_cut_bait', 'Could not cut bait.')
+
   // ── Derived values ────────────────────────────────────────────────
   const woodcuttingNodes = locationData?.nodes.filter(n => n.skill === 'woodcutting') || []
   const miningNodes = locationData?.nodes.filter(n => n.skill === 'mining') || []
@@ -1142,6 +1262,65 @@ export default function GameView({
 
   // ── Render ────────────────────────────────────────────────────────
   const renderResultDetails = (r: any) => {
+    // Fishing: the catch is a weight, not just an item, and a snapped line
+    // produces nothing at all.
+    if (r.skillName === 'Fishing') {
+      return (
+        <>
+          {r.snapped ? (
+            <p className="last-result-item">{r.message}</p>
+          ) : (
+            <>
+              <p className="last-result-item">{r.message}</p>
+              {r.newHeaviest && (
+                <p className="last-result-drop">
+                  <span className="drop-sparkle">✦</span> The largest you have ever landed.
+                </p>
+              )}
+              {r.newLightest && (
+                <p className="last-result-drop">
+                  <span className="drop-sparkle">✦</span> The smallest you have ever landed.
+                </p>
+              )}
+              {r.drops && r.drops.map((d: any, i: number) => (
+                <p key={`fd-${i}`} className="last-result-gained">
+                  You gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
+                </p>
+              ))}
+            </>
+          )}
+
+          {r.xpAwarded > 0 ? (
+            <>
+              <p className="last-result-xp">
+                +{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.
+              </p>
+              {r.craftingXp > 0 && (
+                <p className="last-result-xp">+{r.craftingXp} Crafting experience.</p>
+              )}
+              <p className="last-result-next">
+                {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
+                  (() => {
+                    const xpIntoLevel = r.totalXp - r.xpAtLevel
+                    const xpNeededForLevel = xpIntoLevel + r.xpToNext
+                    return ((xpIntoLevel / xpNeededForLevel) * 100).toFixed(2)
+                  })()
+                }%)
+              </p>
+            </>
+          ) : (
+            <p className="last-result-remaining muted-text">No experience from a lost line.</p>
+          )}
+
+          {r.baitCategory && (
+            <p className="last-result-remaining muted-text">
+              {r.baitRemaining} {r.baitCategory} bait left in the pouch.
+            </p>
+          )}
+        </>
+      )
+    }
+
     // Hunting: success/miss layout (no single itemName)
     if (r.skillName === 'Hunting') {
       return (
@@ -1325,6 +1504,11 @@ export default function GameView({
                   {(locationData as any)?.foragingHabitats?.find((h: any) => h.id === activeNodeId)?.scene_text || 'You gather among the wild growth.'}
                 </p>
               )}
+              {currentAction.startsWith('fishing_') && (
+                <p className="scene-action-text gold-text">
+                  {FISHING_SCENE_TEXT[currentAction] || FISHING_SCENE_TEXT.fishing_rod}
+                </p>
+              )}
               {currentAction === 'recipe' && (
                 <p className="scene-action-text gold-text">
                   {recipeLabel?.flavorText
@@ -1372,6 +1556,15 @@ export default function GameView({
               )}
               {currentAction === 'husbandry' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Tending</button>
+              )}
+              {currentAction === 'fishing_rod' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Fishing</button>
+              )}
+              {currentAction === 'fishing_net' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Netting</button>
+              )}
+              {currentAction === 'fishing_cut_bait' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Cutting</button>
               )}
               {currentAction === 'recipe' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>
@@ -1442,11 +1635,13 @@ export default function GameView({
             </div>
           )}
 
-          <TravelLog
+          <LogPanel
             open={travelLogOpen}
             onOpen={() => setTravelLogOpen(true)}
             onClose={() => setTravelLogOpen(false)}
-            refreshKey={travelLogKey}
+            travelRefreshKey={travelLogKey}
+            lootRefreshKey={actionsCompleted}
+            forceTravelTab={travelFindKey}
           />
 
           {onForceBotCheck && <BotCheckFab onClick={onForceBotCheck} />}

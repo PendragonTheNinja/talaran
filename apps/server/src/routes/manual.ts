@@ -168,7 +168,54 @@ const registry: Record<string, QueryHandler> = {
             )
             : [];
 
+        // Fishing has the same problem Farming does: a fish is neither a resource
+        // node nor a recipe, it is a row in fish_species, and all three pieces of
+        // fishing gear are made by OTHER skills (rod by Carpentry, net by
+        // Crafting, hook by Smithing). Without this the Fishing page would be
+        // completely empty rather than merely thin.
+        const fish = skill.toLowerCase() === 'fishing'
+            ? await db('fish_species')
+                .leftJoin('locations', 'fish_species.location_id', 'locations.id')
+                .where('fish_species.is_active', true)
+                .select(
+                    'fish_species.name',
+                    'fish_species.item_name',
+                    'fish_species.required_level',
+                    'fish_species.bait_category',
+                    'fish_species.time_window',
+                    'fish_species.window_exclusive',
+                    'fish_species.seasons',
+                    'fish_species.season_exclusive',
+                    'fish_species.min_weight_cw',
+                    'fish_species.max_weight_cw',
+                    'fish_species.xp',
+                    'locations.name as location_name',
+                    'locations.region as island',
+                )
+            : [];
+
         const rows = [
+            ...fish.map((f) => {
+                const notes = [`${f.xp} XP`];
+                if (f.bait_category) notes.push(`takes ${f.bait_category}`);
+                if (f.time_window) {
+                    notes.push(f.window_exclusive ? `${f.time_window} only` : `favours ${f.time_window}`);
+                }
+                if (f.seasons) {
+                    notes.push(f.season_exclusive
+                        ? `${String(f.seasons).replace(/,/g, ' and ')} only`
+                        : `favours ${String(f.seasons).replace(/,/g, ' and ')}`);
+                }
+                notes.push(`${(Number(f.min_weight_cw) / 100).toFixed(2)} to ${(Number(f.max_weight_cw) / 100).toFixed(2)} lb`);
+                return {
+                    level: f.required_level,
+                    unlock: f.name,
+                    island: f.island || '',
+                    where: f.location_name || 'Unknown',
+                    iconName: f.item_name,
+                    details: notes.join(' · '),
+                };
+            }),
             ...crops.map((c) => {
                 const notes = [
                     `Sow · ${fmtSeconds(c.grow_seconds)} to grow`,

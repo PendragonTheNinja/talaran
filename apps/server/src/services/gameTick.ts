@@ -3,6 +3,10 @@ import db from '../db';
 import { logger } from '../index';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
+import {
+  processFishingCast, processNetHaul, processCutBait,
+  rodTimer, netTimer, cutBaitTimer, equippedToolTier, getBaitPouch,
+} from './fishing';
 import { recordItemFirstByName } from './inventory';
 import { isLiquid, liquidTotal } from './liquids';
 import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend, resolveUproot } from './farming';
@@ -15,11 +19,41 @@ import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getS
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
+import { shouldCancelForAbsence } from '../lib/presence';
+import { recordLoot } from './lootLog';
 import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
 import { rollTravelEvents } from './travelEvents'
 
 const TICK_INTERVAL = 2000;
 let lastTrapSweep = 0;
+
+/**
+ * Emit action_complete AND fold the result into the loot log.
+ *
+ * Every completion in this file goes through here. That is the whole point: the
+ * loot log is not something each skill opts into, because every per-branch
+ * opt-in in this file has eventually been missed by a later skill (the action
+ * limiter and the scene-text chain both shipped broken for exactly that reason).
+ * A skill that emits a completion is logged, including skills not written yet.
+ *
+ * The emit goes first so the client is never waiting on a log write, and
+ * recordLoot swallows its own failures so a logging problem can never cost a
+ * player the drop they already earned.
+ */
+async function emitActionComplete(io: Server, action: any, payload: any): Promise<void> {
+  io.to(`player_${action.player_id}`).emit('action_complete', payload);
+
+  const result = payload?.result;
+  if (!result) return;
+  await recordLoot(action.player_id, action.action_type, action.location_id ?? null, {
+    drops: result.drops,
+    xpAwards: result.xpAwards,
+    skillName: result.skillName,
+    xpAwarded: result.xpAwarded,
+    itemName: result.itemName,
+    quantity: result.quantity,
+  });
+}
 
 export function startGameTick(io: Server): void {
   logger.info('Game tick started');
@@ -88,6 +122,19 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
     const now = new Date();
     const player = await db('players').where({ id: action.player_id }).first();
+
+    // Nobody home: stop rather than resolve. Actions are not meant to run for a
+    // logged-out player, and until this existed the only thing that eventually
+    // halted one was the 30 minute bot check, which made a captcha the de facto
+    // AFK limiter. Travel is included deliberately: a cancelled journey simply
+    // leaves the player where they set off from, which is harmless, and travel
+    // grants XP and find-events like any other action.
+    if (shouldCancelForAbsence(io, action.player_id)) {
+      await db('player_actions').where({ id: action.id }).delete();
+      logger.info(`Cancelled ${action.action_type} for absent player ${action.player_id}`);
+      return;
+    }
+
     if (player && isBotCheckDue(player, now)) {
       await issueBotCheck(action.player_id);
       // Freeze this action so the tick stops reprocessing it until they answer.
@@ -134,6 +181,18 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'foraging':
         result = await processForagingAction(action.player_id, action.action_data);
         break;
+      case 'fishing_rod':
+        // action_data carries the chosen bait category (empty string = none).
+        result = await processFishingCast(
+          action.player_id, action.location_id, action.action_data || null,
+        );
+        break;
+      case 'fishing_net':
+        result = await processNetHaul(action.player_id, action.location_id);
+        break;
+      case 'fishing_cut_bait':
+        result = await processCutBait(action.player_id, action.action_data);
+        break;
       case 'farm_establish':
       case 'farm_build_plot':
       case 'farm_till':
@@ -175,7 +234,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const farmLevel = levelFromXp(farmXpTotal);
         const farmPrevLevel = levelFromXp(Math.max(0, farmXpTotal - (farmResult.xp || 0)));
 
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           actionType: action.action_type,
           firstEver: farmFirst,
           result: {
@@ -243,7 +302,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const husLevel = levelFromXp(husXpTotal);
         const husPrevLevel = levelFromXp(Math.max(0, husXpTotal - (husResult.xp || 0)));
 
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           actionType: action.action_type,
           firstEver: husFirst,
           result: {
@@ -479,7 +538,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           last_timer_seconds: nextTimer,
         });
 
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result: {
@@ -497,7 +556,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
       } else {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result: {
@@ -572,7 +631,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           last_timer_seconds: nextTimer,
         });
 
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result: resultPayload,
@@ -582,11 +641,153 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
       } else {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result: resultPayload,
           xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
+        });
+      }
+      return;
+    }
+
+    // Fishing: rod casts, net hauls, and cutting bait.
+    //
+    // All three repeat, and all three re-validate on every cycle: a rod that got
+    // unequipped, a knife put away, a species that ran out, a window that closed
+    // while the player was away. Each exit branch either restarts the action or
+    // deletes it. Nothing falls through still looping.
+    if (
+      action.action_type === 'fishing_rod'
+      || action.action_type === 'fishing_net'
+      || action.action_type === 'fishing_cut_bait'
+    ) {
+      const fish = result as any;
+      if (!fish || !fish.success) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: fish?.error || 'Your fishing ended.',
+        });
+        return;
+      }
+
+      const fishingSkill = await db('skills').where({ name: 'Fishing' }).first();
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: fishingSkill?.id }).first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (fish.xp || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const previousLevel = levelFromXp(previousXp);
+      const leveledUp = currentLevel > previousLevel;
+
+      // Quest progress. A netted fish counts the same as a rodded one, so
+      // Georemy's three Tiddle can be met either way.
+      if (!fish.snapped && Array.isArray(fish.drops)) {
+        const { updateQuestObjectiveProgress } = await import('../routes/quests');
+        for (const drop of fish.drops) {
+          await updateQuestObjectiveProgress(action.player_id, 'fish', drop.name, drop.quantity);
+        }
+      }
+
+      // The result card's generic branch is gated on itemName, so a snap or a
+      // cut (both XP-only) must carry a message or it renders nothing at all.
+      const message = fish.snapped
+        ? fish.message
+        : fish.message
+          ?? (fish.weightLb !== undefined
+            ? `You land a ${fish.itemName}. It weighs ${fish.weightLb.toFixed(2)} lb.`
+            : undefined);
+
+      const resultPayload = {
+        itemName: fish.itemName,
+        quantity: fish.quantity,
+        xpAwarded: fish.xp,
+        skillName: 'Fishing',
+        craftingXp: fish.craftingXp,
+        xpAwards: fish.xpAwards,
+        message,
+        weightLb: fish.weightLb,
+        newRecord: fish.newRecord,
+        newHeaviest: fish.newHeaviest,
+        newLightest: fish.newLightest,
+        snapped: !!fish.snapped,
+        baitRemaining: fish.baitRemaining,
+        baitCategory: fish.baitCategory,
+        firstDiscovery: fish.firstDiscovery,
+        drops: fish.drops ?? [],
+      };
+
+      // Can the action legitimately run again?
+      let canRepeat = true;
+      let nextTimer = action.last_timer_seconds || 30;
+
+      if (action.action_type === 'fishing_cut_bait') {
+        // Out of that fish? Stop cleanly rather than failing on the next cycle.
+        const speciesRow = await db('fish_species').where({ name: action.action_data }).first();
+        const item = speciesRow
+          ? await db('items').where({ name: speciesRow.item_name }).first()
+          : null;
+        const inv = item
+          ? await db('player_inventory')
+            .where({ player_id: action.player_id, item_id: item.id }).first()
+          : null;
+        const knife = await equippedToolTier(action.player_id, 'butcher_knife');
+        canRepeat = !!inv && inv.quantity > 0 && knife > 0;
+        nextTimer = cutBaitTimer();
+      } else if (action.action_type === 'fishing_net') {
+        const tier = await equippedToolTier(action.player_id, 'fishing_net');
+        canRepeat = tier > 0;
+        nextTimer = netTimer(currentLevel, tier);
+      } else {
+        const tier = await equippedToolTier(action.player_id, 'fishing_rod');
+        canRepeat = tier > 0;
+        // Bait is re-checked every cast. When the pouch runs dry the action
+        // carries on unbaited at the slower timer instead of stopping.
+        const bait = action.action_data || '';
+        const pouch = await getBaitPouch(action.player_id);
+        const stillBaited = bait !== '' && (pouch[bait] || 0) > 0;
+        nextTimer = rodTimer(currentLevel, tier, stillBaited);
+      }
+
+      if (canRepeat) {
+        const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
+        await db('player_actions').where({ id: action.id }).update({
+          completes_at: nextCompletion,
+          last_timer_seconds: nextTimer,
+        });
+        await emitActionComplete(io, action, {
+          firstEver,
+          actionType: action.action_type,
+          result: resultPayload,
+          nextCompletes: nextCompletion,
+          timerSeconds: nextTimer,
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
+        });
+
+        // The action limiter is applied per repeating block rather than in one
+        // shared place, so a new looping skill has to opt in explicitly or it
+        // silently ignores the limit every other skill honours.
+        if (action.action_limit && action.action_limit > 0) {
+          const actionsCompleted = (action.actions_completed || 0) + 1;
+          if (actionsCompleted >= action.action_limit) {
+            await db('player_actions').where({ id: action.id }).delete();
+            io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+              message: `Action limit of ${action.action_limit} reached.`,
+            });
+            return;
+          }
+          await db('player_actions').where({ id: action.id }).update({
+            actions_completed: actionsCompleted,
+            last_timer_seconds: nextTimer,
+          });
+        }
+      } else {
+        await db('player_actions').where({ id: action.id }).delete();
+        await emitActionComplete(io, action, {
+          firstEver,
+          actionType: action.action_type,
+          result: resultPayload,
+          xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
         });
       }
       return;
@@ -699,7 +900,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const xpAtLevel = xpForLevel(currentLevel)
       const updatedVein = await db('ore_veins').where({ id: action.action_data }).first();
 
-      io.to(`player_${action.player_id}`).emit('action_complete', {
+      await emitActionComplete(io, action, {
           firstEver,
         actionType: action.action_type,
         result: {
@@ -737,7 +938,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             const lastXpNeeded = xpToNextLevel(lastXp);
             const xpAtLevel = xpForLevel(lastLevel)
 
-            io.to(`player_${action.player_id}`).emit('action_complete', {
+            await emitActionComplete(io, action, {
           firstEver,
               actionType: action.action_type,
               result,
@@ -778,7 +979,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const xpNeeded = xpToNextLevel(currentXp);
       const xpAtLevel = xpForLevel(currentLevel)
 
-      io.to(`player_${action.player_id}`).emit('action_complete', {
+      await emitActionComplete(io, action, {
           firstEver,
         actionType: action.action_type,
         result,
@@ -834,7 +1035,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
               .where({ player_id: action.player_id, skill_id: craftSkill.id }).first() : null;
             const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
             const lastLevel = levelFromXp(lastXp);
-            io.to(`player_${action.player_id}`).emit('action_complete', {
+            await emitActionComplete(io, action, {
           firstEver,
               actionType: action.action_type,
               result,
@@ -869,7 +1070,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const previousLevel = levelFromXp(previousXp);
       const leveledUp = currentLevel > previousLevel;
 
-      io.to(`player_${action.player_id}`).emit('action_complete', {
+      await emitActionComplete(io, action, {
           firstEver,
         actionType: action.action_type,
         result,
@@ -913,7 +1114,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
               .where({ player_id: action.player_id, skill_id: carpSkill.id }).first();
             const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
             const lastLevel = levelFromXp(lastXp);
-            io.to(`player_${action.player_id}`).emit('action_complete', {
+            await emitActionComplete(io, action, {
           firstEver,
               actionType: action.action_type,
               result,
@@ -948,7 +1149,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const previousLevel = levelFromXp(previousXp);
       const leveledUp = currentLevel > previousLevel;
 
-      io.to(`player_${action.player_id}`).emit('action_complete', {
+      await emitActionComplete(io, action, {
           firstEver,
         actionType: action.action_type,
         result,
@@ -1019,7 +1220,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const xpNeeded = xpToNextLevel(currentXp);
       const xpAtLevel = xpForLevel(currentLevel)
 
-      io.to(`player_${action.player_id}`).emit('action_complete', {
+      await emitActionComplete(io, action, {
           firstEver,
         actionType: action.action_type,
         result,
@@ -1044,7 +1245,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const xpNeeded = xpToNextLevel(currentXp);
         const xpAtLevel = xpForLevel(currentLevel)
 
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result,
@@ -1053,7 +1254,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpNeeded, leveledUp, xpAtLevel },
         });
       } else {
-        io.to(`player_${action.player_id}`).emit('action_complete', {
+        await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result,

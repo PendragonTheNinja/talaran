@@ -121,6 +121,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.name.toLowerCase().includes('rock'))
   const huntableAnimals = locationData?.huntableAnimals || []
   const foragingHabitats = locationData?.foragingHabitats || []
+  const fishSpeciesCount = locationData?.fishSpeciesCount || 0
 
   const handlePickup = async (groundItemId: number) => {
     try {
@@ -200,6 +201,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('foraging_menu', 0)}
           >
             Forage the Forest →
+          </button>
+        )}
+
+        {fishSpeciesCount > 0 && (
+          <button
+            className={`location-action-btn ${String(currentAction || '').startsWith('fishing_') ? 'active' : ''}`}
+            onClick={() => onStartAction('fishing_menu', 0)}
+          >
+            Fish the Water →
           </button>
         )}
 

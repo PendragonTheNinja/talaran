@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { CONTENT_TABLES, isEditableColumn } from '../lib/contentTables';
+import { CONTENT_TABLES, isEditableColumn, secretColumns, isSecretColumn } from '../lib/contentTables';
 
 const router = Router();
 
@@ -227,8 +227,12 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
         }
 
         const info = await db(name).columnInfo();
-        const columns = Object.keys(info);
-        const rows = await db(name).select('*').orderBy('id', 'asc').limit(ROW_LIMIT);
+        // Secret columns are dropped from the column list AND selected out of the
+        // query, so a password hash is never in a response body at all, rather
+        // than merely hidden by the client.
+        const secret = secretColumns(name);
+        const columns = Object.keys(info).filter(c => !secret.includes(c));
+        const rows = await db(name).select(columns).orderBy('id', 'asc').limit(ROW_LIMIT);
         const editable = columns.filter(c => isEditableColumn(name, c));
         const columnKinds: Record<string, ColumnKind> = {};
         for (const c of columns) columnKinds[c] = kindOf(String((info as any)[c].type));
@@ -367,7 +371,7 @@ router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response)
             return;
         }
         const meta = CONTENT_TABLES[name];
-        if (!meta || meta.stateOnly) {
+        if (!meta || !meta.editable) {
             res.status(400).json({ error: 'Rows cannot be created in that table from the panel.' });
             return;
         }
@@ -381,6 +385,10 @@ router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response)
         for (const [column, raw] of Object.entries(values)) {
             if (raw === undefined) continue;
             if (['id', 'created_at', 'updated_at'].includes(column)) continue;
+            if (isSecretColumn(name, column)) {
+                res.status(400).json({ error: `${column} cannot be set from the panel.` });
+                return;
+            }
             const colInfo = (info as any)[column];
             if (!colInfo) {
                 res.status(400).json({ error: `No such column: ${column}` });
@@ -468,7 +476,7 @@ async function scanItemUsage(itemName: string, itemId: number) {
     };
 
     for (const [table, meta] of Object.entries(CONTENT_TABLES)) {
-        if (table === 'items' || meta.stateOnly) continue;
+        if (table === 'items' || !meta.snapshot) continue;   // authored content only
         const info = await db(table).columnInfo();
         const rows = await db(table).select('*');
         for (const row of rows) {
@@ -562,7 +570,7 @@ router.get('/usage/orphans', requireAuth, async (req: AuthRequest, res: Response
         };
 
         for (const [table, meta] of Object.entries(CONTENT_TABLES)) {
-            if (table === 'items' || meta.stateOnly) continue;
+            if (table === 'items' || !meta.snapshot) continue;   // authored content only
             const info = await db(table).columnInfo();
             const rows = await db(table).select('*');
             const sourceGroup = new Set(USAGE_GROUPS.filter(g => g.kind === 'source').flatMap(g => g.columns));
@@ -629,6 +637,7 @@ router.get('/reports/validate', requireAuth, async (req: AuthRequest, res: Respo
             emptyJson: { id: 'emptyJson', title: 'Empty inputs / drop tables', severity: 'warning', entries: [] },
             badNumbers: { id: 'badNumbers', title: 'Suspicious numbers (qty/weight ≤ 0)', severity: 'warning', entries: [] },
             balance: { id: 'balance', title: `Earn rates drifted >±${DRIFT_FLAG * 100}% off their band`, severity: 'balance', entries: [] },
+            itemTier: { id: 'itemTier', title: 'items.tier disagrees with its unlock level (recipe / fish / forage / trap sources only)', severity: 'warning', entries: [] },
         };
         const add = (check: keyof typeof checks, table: string, row: any, message: string) => {
             const rowName = String(row.name ?? `#${row.id}`);
@@ -645,7 +654,7 @@ router.get('/reports/validate', requireAuth, async (req: AuthRequest, res: Respo
 
         // --- Generic referential + JSON checks over every content table
         for (const [table, meta] of Object.entries(CONTENT_TABLES)) {
-            if (meta.stateOnly) continue;
+            if (!meta.snapshot) continue;   // authored content only
             const info = await db(table).columnInfo();
             const rows = await db(table).select('*');
             for (const row of rows) {
@@ -767,6 +776,95 @@ router.get('/reports/validate', requireAuth, async (req: AuthRequest, res: Respo
                 if (Math.abs(d) > DRIFT_FLAG) {
                     add('balance', 'trap_types', tt, `~${Math.round(actual)} xp/hr at location #${locId} vs ×0.30 band at L${tt.required_level ?? 1} (${pct(d)})`);
                 }
+            }
+        }
+
+        // --- items.tier vs the level the item first becomes obtainable ---------
+        //
+        // Tier is DERIVED, never chosen (CLAUDE.md §4): tier 1 is anything
+        // reachable below level 13, tier 2 is 13-24, then twelves thereafter. It
+        // is not a judgement about how grand the thing is, which is exactly the
+        // mistake that shipped ten of the eighteen fish as tier 2 and 3.
+        //
+        // COVERAGE, stated honestly: recipes and fish_species carry the item and
+        // its gate on one row; foraging_habitats and trap_targets carry theirs in a
+        // JSON drop_table, with the gate on the parent (a trap_target's gate is on
+        // its trap_type).
+        //
+        // Not covered: anything reached through drop_table_entries. Those rows
+        // key off a free-form `source_key` ('woodcutting:lanai',
+        // 'mining:rock:granite') built in code at call time, with no column
+        // linking back to the node's required_level. Logs, ores and hunting
+        // drops therefore cannot be checked from data alone, and inventing a
+        // parse of those strings would produce confident wrong answers. Better a
+        // report with a known blind spot than one that cries wolf.
+        const TIER_BAND = 12;
+        const tierForLevel = (level: number) => Math.floor((Math.max(1, level) - 1) / TIER_BAND) + 1;
+
+        const minLevelByItem = new Map<string, number>();
+        const noteSource = (itemName: unknown, level: unknown) => {
+            const name = typeof itemName === 'string' ? itemName : null;
+            if (!name) return;
+            const lvl = Number(level);
+            if (!Number.isFinite(lvl)) return;
+            const prev = minLevelByItem.get(name);
+            if (prev === undefined || lvl < prev) minLevelByItem.set(name, lvl);
+        };
+
+        for (const row of await db('recipes').select('output_item_name', 'required_level', 'is_active')) {
+            if (row.is_active === false) continue;
+            noteSource(row.output_item_name, row.required_level);
+        }
+        for (const row of await db('fish_species').select('item_name', 'required_level', 'is_active')) {
+            if (row.is_active === false) continue;
+            noteSource(row.item_name, row.required_level);
+        }
+
+        // Foraging and trapping keep their yields in a JSON `drop_table` column
+        // of { itemName, ... } entries rather than a flat item_name, so the level
+        // gate lives on the parent row and the items inside it.
+        const fromJsonDropTable = (raw: unknown, level: unknown) => {
+            if (raw == null) return;
+            try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (!Array.isArray(parsed)) return;
+                for (const entry of parsed) noteSource(entry?.itemName, level);
+            } catch {
+                // Malformed JSON is already reported by the badJson check.
+            }
+        };
+        for (const row of await db('foraging_habitats').select('drop_table', 'required_level', 'is_active')) {
+            if (row.is_active === false) continue;
+            fromJsonDropTable(row.drop_table, row.required_level);
+        }
+        // trap_targets has no level of its own: the gate is on its trap_type,
+        // and a target may be open to every type (trap_type_id null), in which
+        // case the lowest-level trap that can catch it is the honest gate.
+        const trapTypeLevels = new Map<number, number>();
+        let lowestTrapLevel = Number.POSITIVE_INFINITY;
+        for (const tt of await db('trap_types').select('id', 'required_level', 'is_active')) {
+            if (tt.is_active === false) continue;
+            const lvl = Number(tt.required_level) || 1;
+            trapTypeLevels.set(Number(tt.id), lvl);
+            if (lvl < lowestTrapLevel) lowestTrapLevel = lvl;
+        }
+        for (const row of await db('trap_targets').select('drop_table', 'trap_type_id', 'is_active')) {
+            if (row.is_active === false) continue;
+            const level = row.trap_type_id == null
+                ? (Number.isFinite(lowestTrapLevel) ? lowestTrapLevel : 1)
+                : trapTypeLevels.get(Number(row.trap_type_id));
+            if (level === undefined) continue;
+            fromJsonDropTable(row.drop_table, level);
+        }
+
+        for (const item of await db('items').select('id', 'name', 'tier')) {
+            const min = minLevelByItem.get(String(item.name));
+            if (min === undefined) continue;              // unauditable or unsourced
+            if (item.tier === null || item.tier === undefined) continue;
+            const expected = tierForLevel(min);
+            if (Number(item.tier) !== expected) {
+                add('itemTier', 'items', item,
+                    `tier ${item.tier} but first obtainable at level ${min}, so it should be tier ${expected}`);
             }
         }
 

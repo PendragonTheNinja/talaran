@@ -31,3 +31,19 @@ drops** to everyone in Talaran.
 updates a built-in hype loop.
 
 ---
+
+## Suspicious trades tool (admin)
+
+Talaran is one account per player, so players who trade with each other far more
+often than with anyone else are a signal for multi-accounting. The `trades`,
+`trade_offers` and `trade_gold` tables already hold everything needed; nothing
+new has to be recorded.
+
+Shape: for each pair of players, count completed trades and total value moved,
+flag pairs whose exchanges are heavily one-directional or who trade almost
+exclusively with each other. Wants item values to be meaningful, so it lands
+naturally after currency.
+
+Read-only report in the admin panel, sitting beside the validate sweep. The
+trades tables are deliberately non-editable there: they are the audit trail this
+would read, and hand-editing them would destroy the evidence.

@@ -1,0 +1,254 @@
+/* Shell for both logs, plus the loot grid.
+   TravelLog.css still supplies the journey entry styles and is still imported. */
+
+.log-panel-icon {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 20;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.log-panel-icon:hover {
+    background: var(--color-bg-hover);
+    transform: translateY(-2px);
+}
+
+.log-panel {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 25;
+    width: 360px;
+    max-width: calc(100% - 24px);
+    max-height: 65%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-gold);
+    border-radius: 8px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+}
+
+.log-panel-header {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--color-border-gold);
+    background: var(--color-bg-raised);
+}
+
+.log-panel-tabs {
+    display: flex;
+}
+
+.log-panel-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-muted);
+    padding: 8px 16px;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.log-panel-tab:hover { color: var(--color-text-bright); }
+
+.log-panel-tab.active {
+    color: var(--color-gold-bright);
+    border-bottom-color: var(--color-gold);
+}
+
+.log-panel-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 12px;
+}
+
+.log-panel-close:hover { color: var(--color-text-bright); }
+
+.log-panel-body {
+    overflow-y: auto;
+    max-height: 340px;
+}
+
+/* --- Loot ------------------------------------------------------------- */
+
+.loot-wrap { padding: 8px; }
+
+.loot-empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.loot-summary {
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-mid);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+}
+
+.loot-summary-line {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.loot-total {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    font-size: 14px;
+}
+
+.loot-value { color: var(--color-gold); font-size: 12px; }
+
+.loot-since {
+    margin-left: auto;
+    color: var(--color-text-dim);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.loot-xp-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+}
+
+.loot-xp-chip {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 9px;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-bg-dark);
+    color: var(--color-text-muted);
+}
+
+.loot-xp-chip strong { color: var(--color-xp); }
+
+.loot-controls {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.loot-btn {
+    background: var(--color-bg-dark);
+    color: var(--color-text-bright);
+    border: 1px solid var(--color-border-mid);
+    border-radius: 5px;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.loot-btn:hover { background: var(--color-bg-hover); }
+.loot-btn.danger { border-color: var(--color-red-glow); color: var(--color-red-glow); }
+.loot-btn.subtle { margin-top: 6px; opacity: 0.6; }
+.loot-btn.subtle:hover { opacity: 1; }
+
+.loot-source {
+    border: 1px solid var(--color-border-dark);
+    border-radius: 6px;
+    background: var(--color-bg-deep);
+    padding: 6px 8px;
+    margin-bottom: 6px;
+}
+
+.loot-source-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 2px 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.loot-source-name {
+    font-family: var(--font-heading);
+    color: var(--color-gold);
+    font-size: 13px;
+}
+
+.loot-source-actions {
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+.loot-source-caret {
+    margin-left: auto;
+    color: var(--color-text-dim);
+    font-size: 10px;
+}
+
+.loot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.loot-tile {
+    position: relative;
+    aspect-ratio: 1;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.loot-tile-img {
+    max-width: 82%;
+    max-height: 82%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* Shown when an item has no art yet. Deliberately readable rather than blank:
+   most of Talaran's items are still waiting on icons. */
+.loot-tile-fallback {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    color: var(--color-text-dim);
+    letter-spacing: 0.5px;
+}
+
+/* Stacked count, OSRS style: top-left, gold, hard shadow so it stays legible
+   over any artwork underneath. */
+.loot-tile-count {
+    position: absolute;
+    top: 1px;
+    left: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+    pointer-events: none;
+}
