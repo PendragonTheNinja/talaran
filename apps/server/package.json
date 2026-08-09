@@ -8,7 +8,8 @@
     "seed": "npx knex --knexfile knexfile.ts seed:run",
     "migrate": "npx knex --knexfile knexfile.ts migrate:latest",
     "content:export": "ts-node src/scripts/exportContent.ts",
-    "content:import": "ts-node src/scripts/importContent.ts"
+    "content:import": "ts-node src/scripts/importContent.ts",
+    "values:derive": "ts-node --transpile-only src/scripts/deriveValues.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
