@@ -21,11 +21,30 @@ export const serverStartedAt = Date.now();
 /** playerId -> epoch ms of their most recent disconnect. */
 export const lastSeenAt = new Map<number, number>();
 
+/**
+ * Players this process believes are connected, maintained explicitly.
+ *
+ * Belt and braces alongside the room check below. Room membership is normally
+ * authoritative, but it depends on `socket.join` having run, which depends on
+ * the client's 'join' emit and on handshake auth having populated
+ * socket.data.playerId. If any of that misses, a player who is plainly online
+ * looks absent and their actions get cancelled. Two independent signals mean a
+ * single point of failure cannot strand someone mid-action.
+ */
+const onlineNow = new Set<number>();
+
+export function markOnline(playerId: number): void {
+    onlineNow.add(playerId);
+    lastSeenAt.delete(playerId);
+}
+
 export function markSeen(playerId: number): void {
+    onlineNow.delete(playerId);
     lastSeenAt.set(playerId, Date.now());
 }
 
 export function isPlayerOnline(io: Server, playerId: number): boolean {
+    if (onlineNow.has(playerId)) return true;
     const room = io.sockets.adapter.rooms.get(`player_${playerId}`);
     return !!room && room.size > 0;
 }

@@ -32,7 +32,9 @@
     transition: opacity 0.2s;
 }
 
-.manual-page-back:hover { opacity: 0.7; }
+.manual-page-back:hover {
+    opacity: 0.7;
+}
 
 .manual-page-wordmark {
     font-family: 'Cinzel', serif;
@@ -56,7 +58,9 @@
 }
 
 .manual-page-nav-link:hover,
-.manual-page-nav-link.active { color: #e8b84b; }
+.manual-page-nav-link.active {
+    color: #e8b84b;
+}
 
 .manual-page-hero {
     text-align: center;
@@ -118,7 +122,9 @@
     padding-right: var(--space-sm, 8px);
 }
 
-.manual-search { margin-bottom: var(--space-lg, 16px); }
+.manual-search {
+    margin-bottom: var(--space-lg, 16px);
+}
 
 .manual-search-input {
     width: 100%;
@@ -137,7 +143,9 @@
     border-color: var(--color-border-bright, #9a7840);
 }
 
-.manual-search-input::placeholder { color: var(--color-text-dim, #6b5a3e); }
+.manual-search-input::placeholder {
+    color: var(--color-text-dim, #6b5a3e);
+}
 
 .manual-nav-label {
     font-family: var(--font-heading, 'Cinzel', serif);
@@ -148,7 +156,9 @@
     margin: var(--space-lg, 16px) 0 var(--space-xs, 4px);
 }
 
-.manual-nav-section + .manual-nav-section { margin-top: var(--space-xs, 4px); }
+.manual-nav-section+.manual-nav-section {
+    margin-top: var(--space-xs, 4px);
+}
 
 .manual-nav-home,
 .manual-nav-link {
@@ -195,7 +205,9 @@
     margin: 0;
 }
 
-.manual-nav-toggle { display: none; }
+.manual-nav-toggle {
+    display: none;
+}
 
 /* Search results */
 
@@ -212,7 +224,9 @@
     transition: border-color 0.15s;
 }
 
-.manual-search-hit:hover { border-color: var(--color-border-gold, #6b5030); }
+.manual-search-hit:hover {
+    border-color: var(--color-border-gold, #6b5030);
+}
 
 .manual-search-hit-title {
     display: block;
@@ -295,7 +309,9 @@
     font-style: italic;
 }
 
-.manual-content .markdown-content a { color: var(--color-gold-bright, #e8b84b); }
+.manual-content .markdown-content a {
+    color: var(--color-gold-bright, #e8b84b);
+}
 
 .manual-signature {
     font-family: 'Crimson Pro', Georgia, serif;
@@ -368,7 +384,7 @@
     background: linear-gradient(90deg, var(--color-border-gold, #6b5030), transparent);
 }
 
-.manual-content .markdown-content hr ~ p {
+.manual-content .markdown-content hr~p {
     font-size: 14px;
     color: var(--color-text-dim, #6b5a3e);
     line-height: 1.6;
@@ -410,7 +426,9 @@
 
 /* ── Overview / contents ──────────────────────────────────────────────────── */
 
-.manual-overview { max-width: 76ch; }
+.manual-overview {
+    max-width: 76ch;
+}
 
 .manual-overview-intro {
     font-family: 'Crimson Pro', Georgia, serif;
@@ -423,7 +441,9 @@
     border-bottom: 1px solid var(--color-border-dark, #2e2418);
 }
 
-.manual-overview-section { margin-bottom: var(--space-xl, 24px); }
+.manual-overview-section {
+    margin-bottom: var(--space-xl, 24px);
+}
 
 .manual-overview-heading {
     font-family: 'Cinzel', serif;
@@ -493,19 +513,21 @@
     margin: 0 0 var(--space-sm, 8px);
 }
 
-.manual-data-scroll { overflow-x: auto; }
+.manual-data-scroll {
+    overflow-x: auto;
+}
 
 .manual-table {
     width: 100%;
     border-collapse: collapse;
     font-family: var(--font-body, Georgia, serif);
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .manual-table th {
     text-align: left;
     font-family: var(--font-heading, 'Cinzel', serif);
-    font-size: 11px;
+    font-size: 15px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-gold, #c8922a);
@@ -521,8 +543,13 @@
     vertical-align: top;
 }
 
-.manual-table tr:last-child td { border-bottom: none; }
-.manual-table .align-right { text-align: right; }
+.manual-table tr:last-child td {
+    border-bottom: none;
+}
+
+.manual-table .align-right {
+    text-align: right;
+}
 
 .manual-data-note {
     color: var(--color-text-dim, #6b5a3e);
@@ -550,12 +577,23 @@
     margin-bottom: 8px;
 }
 
-.manual-data-skeleton:nth-child(2) { width: 85%; }
-.manual-data-skeleton:nth-child(3) { width: 60%; margin-bottom: 0; }
+.manual-data-skeleton:nth-child(2) {
+    width: 85%;
+}
+
+.manual-data-skeleton:nth-child(3) {
+    width: 60%;
+    margin-bottom: 0;
+}
 
 @keyframes manual-shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 /* ── Collapsible appendices ───────────────────────────────────────────────── */
@@ -584,12 +622,21 @@
     transition: background 0.15s;
 }
 
-.manual-details-toggle:hover { background: var(--color-bg-hover, #3d3020); }
+.manual-details-toggle:hover {
+    background: var(--color-bg-hover, #3d3020);
+}
 
-.manual-details-chevron { font-size: 11px; }
+.manual-details-chevron {
+    font-size: 11px;
+}
 
-.manual-details-body { padding: var(--space-md, 12px); }
-.manual-details-body .manual-data { margin-top: 0; }
+.manual-details-body {
+    padding: var(--space-md, 12px);
+}
+
+.manual-details-body .manual-data {
+    margin-top: 0;
+}
 
 /* ── Panel variant ────────────────────────────────────────────────────────── */
 /* Fullscreen below the top nav, matching ForumPanel. Keyframes are defined
@@ -611,13 +658,23 @@
 }
 
 @keyframes manual-slide-in {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
 }
 
 @keyframes manual-slide-out {
-    from { transform: translateY(0); }
-    to { transform: translateY(100%); }
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
 }
 
 .manual-panel.closing {
@@ -677,9 +734,13 @@
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-    .manual--page { padding: 8px 5vw 60px; }
+    .manual--page {
+        padding: 8px 5vw 60px;
+    }
 
-    .manual-page-nav { gap: 14px; }
+    .manual-page-nav {
+        gap: 14px;
+    }
 
     .manual {
         flex-direction: column;
@@ -693,9 +754,13 @@
         max-height: none;
     }
 
-    .manual-article { max-width: none; }
+    .manual-article {
+        max-width: none;
+    }
 
-    .manual-content .markdown-content { font-size: 16px; }
+    .manual-content .markdown-content {
+        font-size: 16px;
+    }
 
     .manual-dropcap::first-letter {
         font-size: 44px;
@@ -703,7 +768,10 @@
     }
 
     /* Vertical space is scarce here, so the panel's nav slides over instead. */
-    .manual-panel .manual { position: relative; padding: var(--space-lg, 16px); }
+    .manual-panel .manual {
+        position: relative;
+        padding: var(--space-lg, 16px);
+    }
 
     .manual-panel .manual-nav-toggle {
         display: block;
@@ -729,19 +797,30 @@
         transition: transform 0.2s ease;
     }
 
-    .manual-panel .manual-nav.open { transform: translateX(0); }
+    .manual-panel .manual-nav.open {
+        transform: translateX(0);
+    }
 }
 
 /* Quality floor: honour a reduced-motion preference. */
 @media (prefers-reduced-motion: reduce) {
+
     .manual-panel,
-    .manual-panel.closing { animation: none; }
+    .manual-panel.closing {
+        animation: none;
+    }
 
-    .manual-panel .manual-nav { transition: none; }
+    .manual-panel .manual-nav {
+        transition: none;
+    }
 
-    .manual-data-skeleton { animation: none; }
+    .manual-data-skeleton {
+        animation: none;
+    }
 
-    .manual-card:hover { transform: none; }
+    .manual-card:hover {
+        transform: none;
+    }
 }
 
 /* ── Admin editor ─────────────────────────────────────────────────────────── */
@@ -764,7 +843,10 @@
     padding-right: var(--space-sm, 8px);
 }
 
-.admin-manual-new { width: 100%; margin-bottom: var(--space-md, 12px); }
+.admin-manual-new {
+    width: 100%;
+    margin-bottom: var(--space-md, 12px);
+}
 
 .admin-manual-flag {
     color: var(--color-gold-bright, #e8b84b);
@@ -787,7 +869,9 @@
     gap: var(--space-sm, 8px);
 }
 
-.admin-manual-wide { grid-column: 1 / -1; }
+.admin-manual-wide {
+    grid-column: 1 / -1;
+}
 
 .admin-manual-fields label {
     display: flex;
@@ -876,7 +960,9 @@
 /* One skill, several faces. Trapping under Hunting, the crafting disciplines
    under Crafting. These are deliberately NOT separate contents entries. */
 
-.manual-tabs { margin: var(--space-lg, 16px) 0; }
+.manual-tabs {
+    margin: var(--space-lg, 16px) 0;
+}
 
 .manual-tabs-bar {
     display: flex;
@@ -901,7 +987,9 @@
     transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
-.manual-tab:hover { color: var(--color-text-bright, #e8d5a3); }
+.manual-tab:hover {
+    color: var(--color-text-bright, #e8d5a3);
+}
 
 .manual-tab.active {
     color: var(--color-gold-bright, #e8b84b);
@@ -928,10 +1016,9 @@
    so the table stays narrow and scannable. */
 
 .manual-table-icon {
-    width: 22px;
-    height: 22px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
-    image-rendering: pixelated;
     flex: 0 0 auto;
 }
 
@@ -975,7 +1062,9 @@
     background: var(--color-bg-dark, #1a1510);
 }
 
-.manual-article-head .manual-breadcrumb { margin: 0; }
+.manual-article-head .manual-breadcrumb {
+    margin: 0;
+}
 
 .manual-back {
     background: none;
@@ -1023,7 +1112,9 @@
     cursor: pointer;
 }
 
-.manual-onpage-link:hover { color: var(--color-gold-bright, #e8b84b); }
+.manual-onpage-link:hover {
+    color: var(--color-gold-bright, #e8b84b);
+}
 
 .admin-manual-warnings {
     border: 1px solid var(--color-border-gold, #6b5030);

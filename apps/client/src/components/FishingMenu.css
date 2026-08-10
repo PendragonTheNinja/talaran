@@ -96,8 +96,13 @@
     font-size: 13px;
 }
 
-.fishing-tools .tool-on { color: var(--color-xp); }
-.fishing-tools .tool-off { color: var(--color-text-dim); }
+.fishing-tools .tool-on {
+    color: var(--color-xp);
+}
+
+.fishing-tools .tool-off {
+    color: var(--color-text-dim);
+}
 
 /* --- Bait pouch ------------------------------------------------------- */
 
@@ -206,7 +211,9 @@
     margin: 8px 0 0;
 }
 
-.fishing-notice { color: var(--color-xp); }
+.fishing-notice {
+    color: var(--color-xp);
+}
 
 /* --- Actions ---------------------------------------------------------- */
 
@@ -273,16 +280,68 @@
     gap: 6px;
 }
 
+/* Row is icon + body. The icon column is a FIXED width and always present, so
+   every name in the list lines up whether or not that fish has been found. */
 .fishing-species {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
     border: 1px solid var(--color-border-dark);
     border-radius: var(--radius-sm);
     background: var(--color-bg-deep);
     padding: 8px 10px;
 }
 
-.fishing-species.blocked { opacity: 0.5; }
-.fishing-species.unknown .fishing-species-name { color: var(--color-text-dim); font-style: italic; }
-.fishing-species.inline { display: inline; padding: 1px 6px; border-radius: 10px; }
+.fishing-species-body {
+    flex: 1;
+    min-width: 0;
+    /* lets long names ellipsis instead of stretching the row */
+}
+
+.fishing-species-icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.fishing-species-icon img {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+}
+
+.fishing-species-icon.unknown-icon {
+    color: var(--color-text-dim);
+    font-family: var(--font-heading);
+    font-size: 16px;
+}
+
+.fishing-species-icon-fallback {
+    font-size: 18px;
+    opacity: 0.5;
+}
+
+.fishing-species.blocked {
+    opacity: 0.5;
+}
+
+.fishing-species.unknown .fishing-species-name {
+    color: var(--color-text-dim);
+    font-style: italic;
+}
+
+.fishing-species.inline {
+    display: inline;
+    padding: 1px 6px;
+    border-radius: 10px;
+}
 
 .fishing-species-main {
     display: flex;
@@ -320,9 +379,20 @@
     text-transform: capitalize;
 }
 
-.fishing-tag.bait { color: var(--color-xp); }
-.fishing-tag.lock { border-color: var(--color-border-gold); color: var(--color-gold-bright); }
-.fishing-tag.off { color: var(--color-text-dim); font-style: italic; text-transform: none; }
+.fishing-tag.bait {
+    color: var(--color-xp);
+}
+
+.fishing-tag.lock {
+    border-color: var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.fishing-tag.off {
+    color: var(--color-text-dim);
+    font-style: italic;
+    text-transform: none;
+}
 
 .fishing-record {
     display: flex;
@@ -332,16 +402,36 @@
     color: var(--color-text-muted);
 }
 
-.fishing-record-count { color: var(--color-text-dim); }
+.fishing-record-count {
+    color: var(--color-text-dim);
+}
 
 /* --- States ----------------------------------------------------------- */
 
-.fishing-empty, .fishing-error, .fishing-hint {
+.fishing-empty,
+.fishing-error,
+.fishing-hint {
     text-align: center;
     color: var(--color-text-muted);
     font-size: 13px;
     padding: var(--space-sm);
 }
 
-.fishing-error { color: var(--color-red-glow); }
-.fishing-hint { margin-top: var(--space-md); font-size: 12px; }
+.fishing-error {
+    color: var(--color-red-glow);
+}
+
+.fishing-hint {
+    margin-top: var(--space-md);
+    font-size: 12px;
+}
+
+/* Salvage: things caught instead of a fish. Listed apart from the species list
+   because they have no window, no season and cannot be targeted, so showing
+   them among the fish would imply a control the player does not have. */
+.fishing-salvage-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: var(--space-sm);
+}

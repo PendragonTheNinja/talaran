@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import TravelLog from './TravelLog'
 import LootLog from './LootLog'
 import './LogPanel.css'
@@ -9,6 +9,11 @@ import './LogPanel.css'
 // and still live, rather than left behind as a second unused component.
 
 type Tab = 'loot' | 'travel'
+
+// Must match the log-panel-out animation in LogPanel.css. The panel has to stay
+// mounted for the length of its own exit, or there is nothing left on screen to
+// animate; unmounting immediately is why closing used to just blink out.
+const CLOSE_MS = 130
 
 interface LogPanelProps {
     open: boolean
@@ -25,6 +30,25 @@ export default function LogPanel({
 }: LogPanelProps) {
     const [tab, setTab] = useState<Tab>('loot')
     const [lastForced, setLastForced] = useState(forceTravelTab)
+    const [closing, setClosing] = useState(false)
+    const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Cancel a pending close on unmount, so a stale timer cannot call onClose
+    // against a parent that has already moved on.
+    useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
+
+    // Play the exit, THEN tell the parent. Until that timer fires the panel is
+    // still open as far as the parent is concerned, which is what keeps it on
+    // screen long enough to animate away.
+    const beginClose = () => {
+        if (closing) return
+        setClosing(true)
+        closeTimer.current = setTimeout(() => {
+            closeTimer.current = null
+            setClosing(false)
+            onClose()
+        }, CLOSE_MS)
+    }
 
     // A travel find auto-opens the panel. When it does, it should land on the
     // travel tab rather than dropping the player on loot with no idea why the
@@ -35,7 +59,7 @@ export default function LogPanel({
         if (tab !== 'travel') setTab('travel')
     }
 
-    if (!open) {
+    if (!open && !closing) {
         return (
             <button className="log-panel-icon" onClick={onOpen} title="Logs" aria-label="Open logs">
                 📜
@@ -44,7 +68,7 @@ export default function LogPanel({
     }
 
     return (
-        <div className="log-panel">
+        <div className={`log-panel ${closing ? 'closing' : ''}`}>
             <div className="log-panel-header">
                 <div className="log-panel-tabs">
                     <button
@@ -60,7 +84,7 @@ export default function LogPanel({
                         Travel
                     </button>
                 </div>
-                <button className="log-panel-close" onClick={onClose} aria-label="Close logs">✕</button>
+                <button className="log-panel-close" onClick={beginClose} aria-label="Close logs">✕</button>
             </div>
 
             <div className="log-panel-body">

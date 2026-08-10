@@ -271,7 +271,7 @@ export default function GameLayout({
       onInventoryUpdate()
       setSmithingStatusKey(k => k + 1)
     } catch (err: any) {
-      console.log('Workstation setup error:', err.message)
+      console.error('Workstation setup error:', err.message)
       setExternalMessage({
         text: `${err.message || 'Could not set up workstation.'} Required: Ambren Anvil, Ambren Hammer, Ambren Tongs.`,
         type: 'error'

@@ -46,6 +46,7 @@ interface Overview {
     discoveredCount: number
     totalCount: number
     pouch: Record<string, number>
+    salvage: Array<{ name: string | null; discovered: boolean }>
     convertible: Convertible[]
     cuttable: Cuttable[]
     tools: { hasRod: boolean; rodTier: number; hasNet: boolean; hasKnife: boolean }
@@ -73,6 +74,37 @@ const WINDOW_ICONS: Record<string, string> = {
 
 const SEASON_ICONS: Record<string, string> = {
     spring: '🌱', summer: '🌞', autumn: '🍂', winter: '❄️',
+}
+
+/**
+ * The species portrait, or a placeholder holding its space.
+ *
+ * The slot is ALWAYS rendered, even for an undiscovered fish, so every row in
+ * the list starts its text at the same x. Letting the icon appear only once a
+ * fish is found would make the list shuffle sideways as you discover things.
+ *
+ * Undiscovered fish deliberately show a question mark rather than their art:
+ * the silhouette would give away the shape of something the panel is otherwise
+ * careful not to name.
+ */
+function SpeciesIcon({ name, discovered }: { name: string | null; discovered: boolean }) {
+    const [failed, setFailed] = useState(false)
+    if (!discovered || !name) {
+        return <div className="fishing-species-icon unknown-icon">?</div>
+    }
+    return (
+        <div className="fishing-species-icon">
+            {failed
+                // Art lands skill by skill and always after the content, so a
+                // missing file is a normal state, not a broken one.
+                ? <span className="fishing-species-icon-fallback">🐟</span>
+                : <img
+                    src={`/images/items/${name.replace(/ /g, '_')}.png`}
+                    alt=""
+                    onError={() => setFailed(true)}
+                />}
+        </div>
+    )
 }
 
 function countdown(toIso: string): string {
@@ -285,6 +317,8 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
                                         key={i}
                                         className={`fishing-species ${s.discovered ? 'found' : 'unknown'} ${s.eligibleNow ? '' : 'blocked'}`}
                                     >
+                                        <SpeciesIcon name={s.name} discovered={s.discovered} />
+                                        <div className="fishing-species-body">
                                         <div className="fishing-species-main">
                                             <span className="fishing-species-name">
                                                 {s.discovered ? s.name : '???'}
@@ -320,10 +354,32 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
                                                 <span className="fishing-record-count">{s.record.catches} caught</span>
                                             </div>
                                         )}
+                                        </div>
                                     </div>
                                 )
                             })}
                         </div>
+
+                        {data.salvage && data.salvage.length > 0 && (
+                            <>
+                                <div className="fishing-species-head">
+                                    <span>What else the water gives up</span>
+                                </div>
+                                <div className="fishing-salvage-row">
+                                    {data.salvage.map((s, i) => (
+                                        <span
+                                            key={i}
+                                            className={`fishing-tag ${s.discovered ? '' : 'off'}`}
+                                            title={s.discovered
+                                                ? 'Comes up instead of a fish. Bait makes it less likely.'
+                                                : 'Something you have not pulled up yet.'}
+                                        >
+                                            {s.discovered ? s.name : '???'}
+                                        </span>
+                                    ))}
+                                </div>
+                            </>
+                        )}
 
                         <p className="fishing-hint">
                             Fish stay <span className="fishing-species unknown inline">???</span> until you land one yourself.

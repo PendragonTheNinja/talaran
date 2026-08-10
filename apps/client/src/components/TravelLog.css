@@ -64,10 +64,14 @@
     color: var(--color-text-bright);
 }
 
+/* Fills the shared shell rather than imposing its own cap. LogPanel.css owns
+   the height now, so both tabs are always exactly the same size; this element
+   stays the scroller only because TravelLog.tsx scrolls it to the bottom to
+   show the newest journey. */
 .travel-log-body {
     overflow-y: auto;
     padding: 8px;
-    max-height: 280px;
+    max-height: 100%;
 }
 
 .travel-log-empty {

@@ -64,7 +64,9 @@
     cursor: pointer;
 }
 
-.log-panel-tab:hover { color: var(--color-text-bright); }
+.log-panel-tab:hover {
+    color: var(--color-text-bright);
+}
 
 .log-panel-tab.active {
     color: var(--color-gold-bright);
@@ -80,16 +82,20 @@
     padding: 0 12px;
 }
 
-.log-panel-close:hover { color: var(--color-text-bright); }
+.log-panel-close:hover {
+    color: var(--color-text-bright);
+}
 
 .log-panel-body {
     overflow-y: auto;
-    max-height: 340px;
+    max-height: 300px;
 }
 
 /* --- Loot ------------------------------------------------------------- */
 
-.loot-wrap { padding: 8px; }
+.loot-wrap {
+    padding: 8px;
+}
 
 .loot-empty {
     color: var(--color-text-muted);
@@ -120,12 +126,15 @@
     font-size: 14px;
 }
 
-.loot-value { color: var(--color-gold); font-size: 12px; }
+.loot-value {
+    color: var(--color-gold);
+    font-size: 12px;
+}
 
 .loot-since {
     margin-left: auto;
     color: var(--color-text-dim);
-    font-size: 11px;
+    font-size: 13px;
     white-space: nowrap;
 }
 
@@ -145,7 +154,9 @@
     color: var(--color-text-muted);
 }
 
-.loot-xp-chip strong { color: var(--color-xp); }
+.loot-xp-chip strong {
+    color: var(--color-xp);
+}
 
 .loot-controls {
     display: flex;
@@ -159,20 +170,33 @@
     border: 1px solid var(--color-border-mid);
     border-radius: 5px;
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: 10px;
     cursor: pointer;
 }
 
-.loot-btn:hover { background: var(--color-bg-hover); }
-.loot-btn.danger { border-color: var(--color-red-glow); color: var(--color-red-glow); }
-.loot-btn.subtle { margin-top: 6px; opacity: 0.6; }
-.loot-btn.subtle:hover { opacity: 1; }
+.loot-btn:hover {
+    background: var(--color-bg-hover);
+}
+
+.loot-btn.danger {
+    border-color: var(--color-red-glow);
+    color: var(--color-red-glow);
+}
+
+.loot-btn.subtle {
+    margin-top: 6px;
+    opacity: 0.6;
+}
+
+.loot-btn.subtle:hover {
+    opacity: 1;
+}
 
 .loot-source {
     border: 1px solid var(--color-border-dark);
     border-radius: 6px;
     background: var(--color-bg-deep);
-    padding: 6px 8px;
+    padding: 4px 8px;
     margin-bottom: 6px;
 }
 
@@ -191,7 +215,7 @@
 .loot-source-name {
     font-family: var(--font-heading);
     color: var(--color-gold);
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .loot-source-actions {
@@ -202,12 +226,12 @@
 .loot-source-caret {
     margin-left: auto;
     color: var(--color-text-dim);
-    font-size: 10px;
+    font-size: 12px;
 }
 
 .loot-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
     gap: 4px;
     margin-top: 6px;
 }
@@ -225,17 +249,15 @@
 }
 
 .loot-tile-img {
-    max-width: 82%;
-    max-height: 82%;
+    max-width: 99%;
+    max-height: 99%;
     object-fit: contain;
-    image-rendering: pixelated;
 }
 
-/* Shown when an item has no art yet. Deliberately readable rather than blank:
-   most of Talaran's items are still waiting on icons. */
+/* Shown when an item has no art yet. Deliberately readable rather than blank */
 .loot-tile-fallback {
     font-family: var(--font-heading);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-text-dim);
     letter-spacing: 0.5px;
 }
@@ -246,9 +268,70 @@
     position: absolute;
     top: 1px;
     left: 3px;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--color-gold-bright);
     text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
     pointer-events: none;
+}
+
+@keyframes log-panel-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes log-panel-out {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.94) translateY(6px);
+    }
+}
+
+@keyframes log-icon-in {
+    from {
+        opacity: 0;
+        transform: scale(0.82);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.log-panel {
+    transform-origin: bottom left;
+    animation: log-panel-in 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* `forwards` holds the final frame so it cannot flash back to full opacity in
+   the gap before the parent unmounts it. */
+.log-panel.closing {
+    animation: log-panel-out 130ms ease-in forwards;
+    pointer-events: none;
+}
+
+.log-panel-icon {
+    animation: log-icon-in 160ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .log-panel,
+    .log-panel.closing,
+    .log-panel-icon {
+        animation: none;
+    }
 }

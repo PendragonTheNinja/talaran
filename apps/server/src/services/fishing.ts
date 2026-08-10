@@ -43,6 +43,11 @@ const BAIT_WEIGHT_MULT = 2.5;
 const WINDOW_WEIGHT_MULT = 2.0;
 const SEASON_WEIGHT_MULT = 2.0;
 const SNAP_CHANCE_PCT = 5;
+// Salvage: caught INSTEAD of a fish, never as well as. Bait suppresses it,
+// which is bait's third benefit after the faster timer and the weighted odds.
+const SALVAGE_CHANCE_PCT = 6;
+const SALVAGE_CHANCE_BAITED_PCT = 2;
+const SALVAGE_XP_FRACTION = 0.5;
 const TIER_BONUS_PER_TIER = 0.05;       // (tier - 1) x 5%: the island's own rod is the baseline
 const TIER_BONUS_CAP = 0.5;
 const DISCOVERY_EXPLORATION_XP = 10;    // matches foraging's first-find bonus
@@ -78,6 +83,7 @@ export interface FishSpeciesRow {
     bait_value: number;
     display_order: number;
     is_active: boolean;
+    kind: string;                 // 'fish' | 'salvage'
 }
 
 export interface FishingCatch {
@@ -94,6 +100,7 @@ export interface FishingResult {
     success: boolean;
     error?: string;
     snapped?: boolean;
+    salvage?: boolean;
     message?: string;
     itemName?: string;
     quantity?: number;
@@ -240,9 +247,23 @@ function weightedPick<T>(entries: Array<{ row: T; weight: number }>): T {
     return entries[entries.length - 1].row;
 }
 
+/**
+ * The FISH of a water. Salvage is deliberately excluded here rather than
+ * filtered at each call site: every existing caller (eligibility, the panel,
+ * net hauls, the can-I-fish check) means fish when it says pool, and one
+ * forgotten filter would put a Rusted Chest in a net haul or let salvage
+ * satisfy "is anything biting".
+ */
 export async function speciesAt(locationId: number): Promise<FishSpeciesRow[]> {
     return db('fish_species')
-        .where({ location_id: locationId, is_active: true })
+        .where({ location_id: locationId, is_active: true, kind: 'fish' })
+        .orderBy('display_order', 'asc');
+}
+
+/** The salvage table of a water: things caught instead of a fish. */
+export async function salvageAt(locationId: number): Promise<FishSpeciesRow[]> {
+    return db('fish_species')
+        .where({ location_id: locationId, is_active: true, kind: 'salvage' })
         .orderBy('display_order', 'asc');
 }
 
@@ -423,6 +444,8 @@ export async function canFishHere(
 
 // --- The panel payload ----------------------------------------------------
 
+const found_has = (set: Set<string>, name: string) => set.has(name);
+
 export async function getFishingOverview(playerId: number, locationId: number) {
     const location = await db('locations').where({ id: locationId }).first();
     const pool = await speciesAt(locationId);
@@ -480,6 +503,14 @@ export async function getFishingOverview(playerId: number, locationId: number) {
         baitValue: Number(byName.get(o.name)!.bait_value),
     }));
 
+    // Salvage listed separately: it is not a fish, has no window or season, and
+    // showing it inside the fish list would imply it can be targeted.
+    const salvageRows = await salvageAt(locationId);
+    const salvage = salvageRows.map((s) => ({
+        name: found_has(found, s.name) ? s.name : null,
+        discovered: found_has(found, s.name),
+    }));
+
     const rodTier = await equippedToolTier(playerId, 'fishing_rod');
     const netTier = await equippedToolTier(playerId, 'fishing_net');
     const knifeTier = await equippedToolTier(playerId, 'butcher_knife');
@@ -512,6 +543,7 @@ export async function getFishingOverview(playerId: number, locationId: number) {
         discoveredCount: species.filter((s) => s.discovered).length,
         totalCount: species.length,
         pouch: await getBaitPouch(playerId),
+        salvage,
         convertible,
         cuttable,
         tools: {
@@ -561,6 +593,8 @@ export async function processFishingCast(
         const eligible = pool.filter((s) => ineligibleReason(s, level, window, season) === null);
         if (eligible.length === 0) return { success: false, error: 'Nothing is biting here just now.' };
 
+        const salvage = await salvageAt(locationId);
+
         // Something out there is beyond you. That is what can take the line.
         const hasBiggerFish = pool.some((s) => s.required_level > level);
 
@@ -587,6 +621,36 @@ export async function processFishingCast(
                     baitRemaining: baitRemaining ?? undefined,
                     baitCategory: baited ? baitCategory : null,
                     drops: [],
+                };
+                return;
+            }
+
+            // Salvage comes up INSTEAD of a fish, so it is rolled before the
+            // pick and returns early. It pays half XP and, being no fish, rolls
+            // no weight and touches no personal best. Bait having already been
+            // spent is correct: the cast happened either way.
+            const salvageChance = baited ? SALVAGE_CHANCE_BAITED_PCT : SALVAGE_CHANCE_PCT;
+            if (salvage.length > 0 && Math.random() * 100 < salvageChance) {
+                const found = weightedPick(
+                    salvage.map((row) => ({ row, weight: row.base_weight })),
+                );
+                const salvageXp = Math.max(1, Math.round(found.xp * SALVAGE_XP_FRACTION));
+                await addToInventory(trx, playerId, found.item_name, 1);
+                await awardSkillXp(trx, playerId, 'Fishing', salvageXp);
+                const firstFind = await recordDiscovery(trx, playerId, found.name);
+
+                out = {
+                    success: true,
+                    snapped: false,
+                    salvage: true,
+                    itemName: found.item_name,
+                    quantity: 1,
+                    xp: salvageXp,
+                    message: `No fish this time. Your line brings up ${found.item_name}.`,
+                    firstDiscovery: firstFind,
+                    baitRemaining: baitRemaining ?? undefined,
+                    baitCategory: baited ? baitCategory : null,
+                    drops: [{ name: found.item_name, quantity: 1 }],
                 };
                 return;
             }

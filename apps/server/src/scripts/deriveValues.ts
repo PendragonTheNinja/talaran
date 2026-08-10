@@ -191,11 +191,11 @@ async function main(): Promise<void> {
         const actionValue = Number(n.xp_reward) / VALUE_DIVISOR;
         const subtype = String(n.name).split(' ')[0].toLowerCase();
         if (n.skill === 'woodcutting') {
-            const qualities: Array<[string, number]> = [
+            const qualities: Array<[string, number]> = ([
                 ['poor', Number(n.poor_chance) || 0],
                 ['fine', Number(n.fine_chance) || 0],
                 ['excellent', Number(n.excellent_chance) || 0],
-            ].filter(([, c]) => c > 0) as Array<[string, number]>;
+            ] as Array<[string, number]>).filter(([, c]) => c > 0);
             const totalC = qualities.reduce((s, [, c]) => s + c, 0);
             if (totalC <= 0) continue;
             const N = qualities.length;

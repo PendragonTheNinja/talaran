@@ -132,6 +132,15 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     if (shouldCancelForAbsence(io, action.player_id)) {
       await db('player_actions').where({ id: action.id }).delete();
       logger.info(`Cancelled ${action.action_type} for absent player ${action.player_id}`);
+      // Tell them, even though we think nobody is listening. A delete with no
+      // emit is the one path in this file that can end an action with no timer,
+      // no result card and no message, which is indistinguishable from a bug.
+      // If presence is ever wrong, this turns a silent stall into a sentence
+      // that says what happened.
+      io.to(`player_${action.player_id}`).emit('action_failed', {
+        error: 'Your action stopped because the connection dropped.',
+        info: true,
+      });
       return;
     }
 
@@ -711,6 +720,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         newHeaviest: fish.newHeaviest,
         newLightest: fish.newLightest,
         snapped: !!fish.snapped,
+        salvage: !!fish.salvage,
         baitRemaining: fish.baitRemaining,
         baitCategory: fish.baitCategory,
         firstDiscovery: fish.firstDiscovery,

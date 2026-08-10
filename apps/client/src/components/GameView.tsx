@@ -221,9 +221,21 @@ export default function GameView({
     // Build the pile in order, then unload it TOP FIRST. Previously every flyer
     // held for a fixed time and so left in the order it arrived, which meant the
     // bottom of the stack slid out from under the others.
+    //
+    // Deduplicated by name, because a result may legitimately report the same
+    // item BOTH ways: fishing sends the catch as itemName AND as its only drop,
+    // so a single Perch used to fly twice. Skills whose drops are SECONDARY
+    // (woodcutting's log plus a bird's nest) are unaffected, since those names
+    // differ and both still fly.
     const pile: { name: string; firstTime: boolean }[] = []
-    if (r.itemName) pile.push({ name: r.itemName, firstTime: !!r.firstEver || !!r.firstDiscovery })
-    for (const d of (r.drops || [])) pile.push({ name: d.name, firstTime: !!d.firstEver })
+    const seen = new Set<string>()
+    const push = (name: string, firstTime: boolean) => {
+      if (!name || seen.has(name)) return
+      seen.add(name)
+      pile.push({ name, firstTime })
+    }
+    if (r.itemName) push(r.itemName, !!r.firstEver || !!r.firstDiscovery)
+    for (const d of (r.drops || [])) push(d.name, !!d.firstEver)
 
     const APPEAR_GAP = 260      // between one item landing on the pile and the next
     const SETTLE = 220          // beat after the last one lands, before unloading
@@ -318,6 +330,13 @@ export default function GameView({
       clearInterval(interval)
 
       socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
+        // Keep the vein counter honest. Veins were only refetched when one was
+        // discovered or ran out, so the "(7 left)" on the action link sat stale
+        // through every swing in between and only corrected itself when the vein
+        // vanished. Every completed swing changes that number, so every completed
+        // swing should refresh it.
+        if ((data as any).actionType === 'mining_vein') loadVeins()
+
         // Hunting: its own result shape (no single itemName; success/miss + drops)
         if ((data.result as any)?.skillName === 'Hunting') {
           const r = data.result as any
@@ -380,6 +399,7 @@ export default function GameView({
             newHeaviest: r.newHeaviest,
             newLightest: r.newLightest,
             snapped: r.snapped,
+            salvage: r.salvage,
             baitRemaining: r.baitRemaining,
             baitCategory: r.baitCategory,
             firstDiscovery: r.firstDiscovery,
@@ -1282,7 +1302,12 @@ export default function GameView({
                   <span className="drop-sparkle">✦</span> The smallest you have ever landed.
                 </p>
               )}
-              {r.drops && r.drops.map((d: any, i: number) => (
+              {/* A rod catch is already fully described by the message above
+                  ("You land a Perch. It weighs 2.31 lb"), so listing it again
+                  as a gained line just says the same thing twice. Net hauls
+                  have no weight and a message that names no fish, so their
+                  drops list is the only place the catch is reported. */}
+              {r.weightLb === undefined && !r.salvage && r.drops && r.drops.map((d: any, i: number) => (
                 <p key={`fd-${i}`} className="last-result-gained">
                   You gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
                 </p>
