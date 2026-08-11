@@ -105,6 +105,9 @@ const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
     }
 
     if (parseInt(answer) !== player.bot_check_answer) {
+      // Counted, never punished. The question stays open and they may try
+      // again as many times as it takes; the tally is a joke, not a gate.
+      await db('players').where({ id: playerId }).increment('failed_bot_checks', 1);
       res.status(400).json({ error: 'Incorrect answer. Try again.' });
       return;
     }

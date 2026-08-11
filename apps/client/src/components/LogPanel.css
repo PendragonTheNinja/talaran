@@ -223,6 +223,14 @@
     font-size: 11px;
 }
 
+/* Worth of one source's haul, shown on the collapsed header. Gold, so it reads
+   as money at a glance, but quieter than the source name so scanning the list
+   still finds the source first. */
+.loot-source-value {
+    color: var(--color-gold);
+    font-size: 12px;
+}
+
 .loot-source-caret {
     margin-left: auto;
     color: var(--color-text-dim);

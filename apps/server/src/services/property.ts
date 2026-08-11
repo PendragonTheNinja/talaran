@@ -13,16 +13,32 @@ export interface StorageResult {
     message?: string;
 }
 
-async function propertyForPlayerHere(playerId: number) {
+/**
+ * The player's property at their current location.
+ *
+ * Shops are EXCLUDED unless asked for by name. This lookup used to match on
+ * player and location alone, which was fine while a farmstead was the only
+ * thing anyone could own. Now that a shop is also a player_properties row, a
+ * bare .first() at a town holding both would return whichever Postgres felt
+ * like, and the homestead panel would quietly show the shop's back room.
+ *
+ * Pass a type to address one deliberately.
+ */
+async function propertyForPlayerHere(playerId: number, type?: string) {
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     if (!player) return null;
-    return db('player_properties')
-        .where({ player_id: playerId, location_id: player.current_location_id })
-        .first();
+
+    const q = db('player_properties')
+        .where({ player_id: playerId, location_id: player.current_location_id });
+
+    if (type) q.where({ type });
+    else q.whereNot({ type: 'shop' });
+
+    return q.first();
 }
 
-export async function getStorage(playerId: number) {
-    const property = await propertyForPlayerHere(playerId);
+export async function getStorage(playerId: number, type?: string) {
+    const property = await propertyForPlayerHere(playerId, type);
     if (!property) return { hasProperty: false, slots: 0, used: 0, items: [] as any[] };
 
     const rows = await db('property_storage')
@@ -63,9 +79,9 @@ export async function getCarried(playerId: number) {
         .orderBy('items.name', 'asc');
 }
 
-export async function depositItem(playerId: number, itemId: number, qtyRaw: number): Promise<StorageResult> {
+export async function depositItem(playerId: number, itemId: number, qtyRaw: number, type?: string): Promise<StorageResult> {
     try {
-        const property = await propertyForPlayerHere(playerId);
+        const property = await propertyForPlayerHere(playerId, type);
         if (!property) return { success: false, error: 'You have nothing of your own here.' };
 
         const inv = await db('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
@@ -106,9 +122,9 @@ export async function depositItem(playerId: number, itemId: number, qtyRaw: numb
     }
 }
 
-export async function withdrawItem(playerId: number, itemId: number, qtyRaw: number): Promise<StorageResult> {
+export async function withdrawItem(playerId: number, itemId: number, qtyRaw: number, type?: string): Promise<StorageResult> {
     try {
-        const property = await propertyForPlayerHere(playerId);
+        const property = await propertyForPlayerHere(playerId, type);
         if (!property) return { success: false, error: 'You have nothing of your own here.' };
 
         const stored = await db('property_storage')

@@ -192,9 +192,19 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   }, [isMobile, sortOpen])
 
   // Cursor straight into the filter box, so the popover can be used by typing.
+  //
+  // An existing filter is SELECTED rather than just focused. The filter sticks
+  // around after the popover closes, so reopening it almost always means
+  // replacing the old term, not adding to it. Selecting makes the first
+  // keystroke overwrite instead of forcing a backspace for every character.
   useEffect(() => {
     if (!sortOpen) return
-    const t = window.setTimeout(() => filterInputRef.current?.focus(), 40)
+    const t = window.setTimeout(() => {
+      const input = filterInputRef.current
+      if (!input) return
+      input.focus()
+      if (input.value) input.select()
+    }, 40)
     return () => clearTimeout(t)
   }, [sortOpen])
 

@@ -107,7 +107,7 @@
 }
 
 .inventory-grid::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .inventory-grid::-webkit-scrollbar-track {
@@ -379,15 +379,18 @@
 .equipment-panel {
   flex-shrink: 0;
 }
+
 /* Store mode — tapping an inventory item deposits it into the property store.
    A persistent mode needs an obvious cue, since clicks silently move items. */
 .inventory-grid.store-mode-active {
   outline: 1px solid var(--color-border-gold);
   outline-offset: 2px;
 }
+
 .inventory-grid.store-mode-active .inventory-slot.occupied {
   cursor: pointer;
 }
+
 .inventory-grid.store-mode-active .inventory-slot.occupied:hover {
   border-color: var(--color-gold-bright);
 }
@@ -396,10 +399,20 @@
 .inventory-slot.slot-landed {
   animation: slotLanded 460ms cubic-bezier(.22, .61, .36, 1);
 }
+
 @keyframes slotLanded {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.10); border-color: var(--color-gold-bright); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.10);
+    border-color: var(--color-gold-bright);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* An opened liquid container: a bucket in use rather than a bucket held. It has
@@ -436,7 +449,7 @@
 }
 
 .sort-popover.closing,
-.sort-popover.closing ~ * {
+.sort-popover.closing~* {
   pointer-events: none;
 }
 
@@ -465,8 +478,15 @@
 }
 
 @keyframes sort-drawer-out {
-  from { opacity: 0; transform: translateX(-14px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* `forwards` holds the end state, so the drawer stays hidden for the moment
@@ -476,8 +496,15 @@
 }
 
 @keyframes sort-drawer-in {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(-14px); }
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
 }
 
 /* Mobile: the inventory is a full-width sheet, so a side drawer makes no sense.
@@ -491,8 +518,15 @@
 }
 
 @keyframes sort-drop-down {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .sort-popover.mobile.closing {
@@ -500,8 +534,15 @@
 }
 
 @keyframes sort-drop-up {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(6px); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .sort-filter-input {
@@ -578,6 +619,7 @@
 
   .sort-filter-input {
     padding: 8px;
-    font-size: 16px; /* iOS zooms the page on focus below 16px */
+    font-size: 16px;
+    /* iOS zooms the page on focus below 16px */
   }
 }

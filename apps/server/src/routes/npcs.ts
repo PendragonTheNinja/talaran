@@ -10,7 +10,23 @@ const router = Router();
 router.get('/location/:locationId', requireAuth, async (req: AuthRequest, res: Response) => {
     const locationId = parseInt(req.params.locationId as string);
     try {
-        const npcs = await db('npcs').where({ location_id: locationId, is_active: true });
+        // An NPC may bow out once you are done with them. hide_after_quest_id is
+        // per player, not server-wide: Quank is gone for you and still standing
+        // there for everyone who has not met him yet.
+        const playerId = req.player!.playerId;
+        const all = await db('npcs').where({ location_id: locationId, is_active: true });
+
+        const gating = all.filter((n: any) => n.hide_after_quest_id).map((n: any) => n.hide_after_quest_id);
+        const finished = new Set<number>();
+        if (gating.length) {
+            const rows = await db('player_quests')
+                .where({ player_id: playerId, status: 'completed' })
+                .whereIn('quest_id', gating)
+                .pluck('quest_id');
+            for (const id of rows) finished.add(Number(id));
+        }
+
+        const npcs = all.filter((n: any) => !n.hide_after_quest_id || !finished.has(Number(n.hide_after_quest_id)));
         res.json({ npcs });
     } catch (err) {
         logger.error(`Get NPCs error: ${err}`);
@@ -46,9 +62,39 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
             questProgress = await getQuestProgress(playerId, npcId);
         }
 
+        // On the closing stage, what the player is ABOUT to receive.
+        //
+        // Sent up front so the farewell and the rewards are one screen. Showing
+        // them only after the button was pressed meant re-presenting the same
+        // wall of text a second time, which reads as a duplicate rather than a
+        // conclusion.
+        let pendingRewards = null;
+        if (stageKey === 'ready') {
+            const quest = (await db('quests')
+                .where({ location_id: npc.location_id, is_active: true }))
+                .filter((q: any) => !q.npc_name || q.npc_name === npc.name)
+                .find((q: any) => true);
+
+            if (quest) {
+                let items: Array<{ itemName: string; quantity: number }> = [];
+                try {
+                    const parsed = typeof quest.reward_items === 'string'
+                        ? JSON.parse(quest.reward_items) : quest.reward_items;
+                    items = (parsed || []).map((e: any) => ({ itemName: e.itemName, quantity: e.qty ?? e.quantity ?? 1 }));
+                } catch { items = []; }
+
+                const gold = Number(quest.reward_gold ?? 0);
+                const xp = Number(quest.reward_xp ?? 0);
+                if (items.length || gold > 0 || xp > 0) {
+                    pendingRewards = { questName: quest.name, items, gold, xp, skill: quest.skill ?? null };
+                }
+            }
+        }
+
         res.json({
             npc,
             stage: stageKey,
+            pendingRewards,
             dialogue: {
                 ...dialogue,
                 options: typeof dialogue.options === 'string'
@@ -137,6 +183,8 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 .where({ quest_id: quest.id, type: 'talk' })
                 .orderBy('order', 'asc');
 
+            let rewards: Awaited<ReturnType<typeof checkQuestCompletion>> = null;
+
             for (const obj of talkObjectives) {
                 const playerObj = await db('player_quest_objectives')
                     .where({ player_id: playerId, objective_id: obj.id })
@@ -166,13 +214,16 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                         .where({ player_id: playerId, objective_id: obj.id })
                         .update({ current_amount: 1, is_complete: true });
 
-                    await checkQuestCompletion(playerId, quest.id);
+                    rewards = await checkQuestCompletion(playerId, quest.id);
                     break;
                 }
             }
 
             logger.info(`Player ${playerId} completed talk objective for "${quest.name}"`);
-            res.json({ success: true, action: 'next_stage' });
+            // Rewards ride back on THIS response so the dialogue can show them
+            // as the last thing said, rather than as a box that appears
+            // elsewhere on screen a moment later.
+            res.json({ success: true, action: 'next_stage', rewards });
             return;
         }
 

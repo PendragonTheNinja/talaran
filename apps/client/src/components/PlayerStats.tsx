@@ -45,6 +45,12 @@ export default function PlayerStats({ playerId }: PlayerStatsProps) {
                 <div className="stat-row"><span>Time played</span><span>{formatPlaytime(p.total_seconds_played)}</span></div>
                 <div className="stat-row"><span>Last login</span><span>{formatDate(p.last_login)}</span></div>
                 <div className="stat-row"><span>Forum posts</span><span>{p.forum_post_count ?? 0}</span></div>
+                {/* A monument to everyone who has confidently typed the wrong
+                    answer to a sum a child could do. Gates nothing, and the
+                    server only sends it for your own profile. */}
+                {p.failed_bot_checks !== undefined && (
+                    <div className="stat-row"><span>Failed bot checks</span><span>{p.failed_bot_checks}</span></div>
+                )}
             </div>
 
             <div className="stats-section">

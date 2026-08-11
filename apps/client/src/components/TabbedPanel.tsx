@@ -22,6 +22,13 @@ interface TabbedPanelProps {
     equipmentData: EquipmentData | null
     onEquipmentUpdate: () => void
     onInventoryUpdate: () => void
+    /* Identity line above the skills grid. This is the DESKTOP mount of
+       SkillsPanel; GameLayout's skillsPanelEl is the mobile one. Both need
+       these or the header only shows on one of them. */
+    playerName?: string
+    totalLevel?: number
+    totalXp?: number
+    gold?: number
 }
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
@@ -30,7 +37,7 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
     { key: 'quests', label: 'Quests', icon: '❗' },
 ]
 
-export default function TabbedPanel({ playerId, skills, equipmentData, onEquipmentUpdate, onInventoryUpdate }: TabbedPanelProps) {
+export default function TabbedPanel({ playerId, skills, equipmentData, onEquipmentUpdate, onInventoryUpdate, playerName, totalLevel, totalXp, gold }: TabbedPanelProps) {
     const [active, setActive] = useState<TabKey>('skills')
 
     // F1–F3 routing (guarded so it doesn't fight typing in inputs)
@@ -63,7 +70,15 @@ export default function TabbedPanel({ playerId, skills, equipmentData, onEquipme
                 ))}
             </div>
             <div className="tab-content">
-                {active === 'skills' && <SkillsPanel skills={skills} />}
+                {active === 'skills' && (
+                    <SkillsPanel
+                        skills={skills}
+                        playerName={playerName}
+                        totalLevel={totalLevel}
+                        totalXp={totalXp}
+                        gold={gold}
+                    />
+                )}
                 {active === 'stats' && <PlayerStats playerId={playerId} />}
                 {active === 'quests' && <QuestsView />}
             </div>

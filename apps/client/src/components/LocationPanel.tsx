@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
 import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
 import NPCDialogue from './NPCDialogue'
+import MarketplaceMenu from './MarketplaceMenu'
+import ShopsMenu from './ShopsMenu'
+import MyShopMenu from './MyShopMenu'
 
 interface GroundItem {
   id: number
@@ -12,9 +15,17 @@ interface GroundItem {
   dropped_by: string
 }
 
+/** What the water is called, per place. Luxmere is a lake; Dawncrest is coast. */
+const WATER_LABELS: Record<string, string> = {
+  Luxmere: 'Fish the Lake',
+  Dawncrest: 'Fish the Sea',
+}
+
 interface PlayerAtLocation {
   id: number
   username: string
+  /** Same column chat reads, so a tag looks identical wherever a name appears. */
+  guild_tag?: string | null
   combat_level?: number
   onRequestTrade?: (playerId: number) => void
 }
@@ -41,6 +52,26 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [forgeOpen, setForgeOpen] = useState(false)
   // Self-contained: the panel fetches its own state, so no props to thread.
   const [tallyOpen, setTallyOpen] = useState(false)
+  const [marketplaceOpen, setMarketplaceOpen] = useState(false)
+  const [shopsOpen, setShopsOpen] = useState(false)
+  const [shopUnseen, setShopUnseen] = useState(0)
+  const [myShopOpen, setMyShopOpen] = useState(false)
+
+  /* Gold lives on playerData, so a purchase has to refresh it or the skills
+     header keeps showing the old purse. Memoised because the marketplace panel
+     would otherwise see a new function on every render of this one. */
+  /* The badge is the whole notification system: passive, self-collapsing, and
+     impossible to spam with. Opening History clears it. */
+  const refreshShopBadge = useCallback(() => {
+    apiFetch<{ count: number }>('/api/shops/mine/unseen')
+      .then(r => setShopUnseen(r.count))
+      .catch(() => { })
+  }, [])
+
+  const handleGoldChanged = useCallback(() => {
+    onLocationRefresh?.()
+    onInventoryUpdate?.()
+  }, [onLocationRefresh, onInventoryUpdate])
   const [smithingStatus, setSmithingStatus] = useState<any>(null)
 
   const [carpentryStatus, setCarpentryStatus] = useState<any>(null)
@@ -59,6 +90,11 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const isVerdale = location?.name === 'Verdale'
   const isCaliwen = location?.name === 'Caliwen'
   const isNovita = location?.name === 'Novita'
+  const isTalador = location?.name === 'Talador'
+
+  useEffect(() => {
+    if (isTalador) refreshShopBadge()
+  }, [isTalador, refreshShopBadge])
 
   const [questStatus, setQuestStatus] = useState<'not_started' | 'active' | 'completed'>('not_started')
   const [showBlacksmith, setShowBlacksmith] = useState(false)
@@ -209,7 +245,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${String(currentAction || '').startsWith('fishing_') ? 'active' : ''}`}
             onClick={() => onStartAction('fishing_menu', 0)}
           >
-            Fish the Water →
+            {/* Named for what is actually out there. Anywhere not listed keeps
+                the generic label. */}
+            {WATER_LABELS[locationData?.location?.name ?? ''] ?? 'Fish the Water'} →
           </button>
         )}
 
@@ -219,6 +257,20 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {showTallyLink && (
           <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
             Tally Board →
+          </button>
+        )}
+
+        {isTalador && (
+          <button className="location-action-btn" onClick={() => setMarketplaceOpen(true)}>
+            Taiar Marketplace →
+          </button>
+        )}
+
+        {isTalador && (
+          <button className="location-action-btn" onClick={() => setShopsOpen(true)}>
+            Player Shops
+            {shopUnseen > 0 && <span className="location-badge">{shopUnseen > 99 ? '99+' : shopUnseen}</span>}
+            {' →'}
           </button>
         )}
 
@@ -458,6 +510,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
               >
                 {p.username}
               </span>
+              {/* Trails the name, matching chat and the highscores. Outside the
+                  clickable name so it does not read as part of the profile
+                  link. */}
+              {p.guild_tag && <span className="location-guild-tag">[{p.guild_tag}]</span>}
               {locationData?.location?.name === 'Talador' && p.id !== currentPlayerId && (
                 <button
                   className="btn"
@@ -524,6 +580,29 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       )}
 
       {tallyOpen && <TallyBoardPanel onClose={() => setTallyOpen(false)} />}
+
+      {shopsOpen && (
+        <ShopsMenu
+          onClose={() => setShopsOpen(false)}
+          onChanged={handleGoldChanged}
+          onManage={() => setMyShopOpen(true)}
+          onActionStarted={(secs) => { setShopsOpen(false); onStartAction('shop_build', secs) }}
+        />
+      )}
+
+      {myShopOpen && (
+        <MyShopMenu
+          onClose={() => { setMyShopOpen(false); refreshShopBadge() }}
+          onChanged={handleGoldChanged}
+        />
+      )}
+
+      {marketplaceOpen && (
+        <MarketplaceMenu
+          onClose={() => setMarketplaceOpen(false)}
+          onGoldChanged={handleGoldChanged}
+        />
+      )}
 
     </aside>
   )

@@ -1,3 +1,51 @@
+.skills-identity {
+    padding: 5px 7px 5px;
+    margin-bottom: 0px;
+    background: var(--color-bg-deep);
+    border-radius: 4px;
+    border-bottom: 1px solid var(--color-border-gold);
+}
+
+.skills-identity-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.skills-identity-name {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skills-identity-gold {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    color: var(--color-gold-bright);
+    flex-shrink: 0;
+}
+
+.skills-identity-unit {
+    font-size: 14px;
+    color: var(--color-gold-bright);
+    margin-left: 1px;
+}
+
+.skills-identity-sub {
+    margin-top: 0px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.skills-identity-sub b {
+    color: var(--color-text-base);
+    font-weight: 600;
+}
+
 .skills-panel {
     display: flex;
     flex-direction: column;
@@ -22,7 +70,7 @@
 }
 
 .skill-tile:hover {
-    transform: translateY(-1px);
+    transform: translateY(-3px);
 }
 
 .skill-icon {
@@ -47,23 +95,23 @@
 .skill-ring-track {
     fill: none;
     stroke: var(--color-bg-raised);
-    stroke-width: 5;
-    opacity: 0.5;
+    stroke-width: 4;
+    opacity: 0.1;
 }
 
 .skill-ring-fill {
     fill: none;
     stroke: var(--color-gold);
-    stroke-width: 5;
+    stroke-width: 4;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.4s ease;
 }
 
 .skill-level {
     position: absolute;
-    bottom: 3px;
-    right: 5px;
-    font-size: 12px;
+    bottom: 2px;
+    right: 4px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--color-gold-shine);
     text-shadow: 0 1px 3px #000, 0 0 3px #000;
@@ -101,7 +149,7 @@
 }
 
 .skill-tooltip-level {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-text-muted);
 }
 
@@ -113,6 +161,6 @@
 }
 
 .skill-tooltip-progress {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--color-text-muted);
 }

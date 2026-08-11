@@ -122,3 +122,55 @@
     text-align: left;
     justify-content: flex-start;
 }
+/* ── Quest rewards ─────────────────────────────────────────────────────── */
+
+/* The last thing said, not a separate announcement. Rewards used to arrive as a
+   persistent line in the centre of the screen that never expired and had no
+   relationship to the conversation that earned them. */
+
+.npc-rewards {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-sm);
+}
+
+.npc-rewards-head {
+    margin: 0 0 var(--space-sm);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-gold-bright);
+}
+
+/* "will receive", not "received": this block is shown BEFORE the button is
+   pressed, as part of the farewell rather than after it. */
+.npc-rewards-head::after {
+    content: ' rewards';
+    color: var(--color-text-dim);
+    font-size: 13px;
+}
+
+.npc-rewards-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.npc-rewards-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    font-size: 14px;
+    color: var(--color-text-base);
+}
+
+.npc-rewards-amt {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    white-space: nowrap;
+}

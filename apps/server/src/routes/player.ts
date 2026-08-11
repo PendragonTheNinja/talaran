@@ -28,13 +28,17 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const player = await db('players')
       .where({ id: playerId })
-      .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod')
+      .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod', 'gold')
       .first();
 
     if (!player) {
       res.status(404).json({ error: 'Player not found' });
       return;
     }
+
+    // pg returns bigint as a string. The client does arithmetic and formatting
+    // on this, so normalise once here rather than at every call site.
+    player.gold = Number(player.gold ?? 0);
 
     // Get all skills with player XP
     const skills = await db('skills')
@@ -112,7 +116,9 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
           'players.guild_role',
           'players.forum_post_count',
           'players.created_at',
-          ...(isSelf ? ['players.last_login', 'players.total_seconds_played'] : []),
+          // failed_bot_checks is self-only. It is a joke, and a joke about
+          // yourself lands differently from one somebody else can point at.
+          ...(isSelf ? ['players.last_login', 'players.total_seconds_played', 'players.failed_bot_checks'] : []),
         )
         .first();
 

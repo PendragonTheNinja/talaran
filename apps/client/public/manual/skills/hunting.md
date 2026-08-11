@@ -29,6 +29,10 @@ Your starting **Lanai Hunting Bow** covers the first requirement from your very 
 
 The animals climb in eight-level steps, three to a forest, each forest keeping its own roster. On Taiar you begin with deer at Eld Grove, and further up the ladder wait boar and things considerably stranger.
 
+{{data:huntable-animals}}
+
+Read that table with one thing in mind: the odds column is the *worst* number you will ever see. It is what you face on the day you qualify, holding the plainest bow anyone will sell you. Everything after that is improvement.
+
 ## The arithmetic of a shot
 
 Your chance of a clean kill improves half a percent for every level you stand above what the animal demands, and a better bow adds three percent per grade above the humblest.
@@ -79,6 +83,36 @@ That third state is the one to care about. A neglected trap is not emptied entir
 
 So trapping does not punish absence, which is the whole point of it. Trapping punishes *forgetting*, which is a different sin and a fairer one.
 
+## What comes to a snare
+
+{{data:trap-targets}}
+
+Note the two entries that matter more than their size suggests. **Nesting Hen** and **Wild Sow** are where livestock comes from: the chicks and piglets that let you keep animals at all arrive in a snare and nowhere else. Between them they are about one catch in eight, which is a thin thread for an entire trade to hang on.
+
+Which is what bait is for.
+
+## Bait
+
+An unbaited snare takes whatever blunders into it. A baited one is an argument aimed at something in particular.
+
+Every animal has a food it will not walk past. Lay it in the snare when you set it, and that animal becomes **eight times** as likely as it was, while everything else in the wood stays exactly as likely as it was. You do not stop catching rabbits. You simply catch a great many more hens.
+
+The difference is not subtle:
+
+- **Nesting Hen**, roughly one catch in twelve, becomes better than two in five.
+- **Wild Sow**, one in twenty five, becomes one in four.
+- The scarce and peculiar things stay scarce, but stop being hypothetical.
+
+**Bait comes from the same pouch your fishing does.** There is no separate trapping bait to hunt down and no new thing to make. Break down grain, cheese, eggs, spawn or raw meat in the trapline panel, exactly as you would at the water, and the pouch serves both trades.
+
+Which is a tension worth naming. Spawn is scarce, and spawn spent on a snare is spawn not spent on a line. That is a real decision and I decline to make it for you.
+
+Three rules, and then I will stop:
+
+- **One bait per snare**, spent the moment you set it.
+- **It does not come back.** Not on collection, not on dismantling. It is on the ground the instant you walk away.
+- **It aims, it does not promise.** A baited trap can still catch a rabbit. It will simply be surprised about it.
+
 ## How many traps you may run
 
 Your Hunting level governs the length of your line:
@@ -100,6 +134,8 @@ Budget for it. A trapper who builds exactly as many traps as he has slots will, 
 
 Trapping is not a substitute for the hunt. It is slower, and it catches smaller things.
 
+But it is the only road into Husbandry, which makes it the least optional optional trade in Talaran.
+
 It is a companion to everything else you do. The best trapper I ever knew never once went trapping. He went everywhere else, and collected on his way past.
 
 {{/tabs}}
@@ -109,7 +145,7 @@ It is a companion to everything else you do. The best trapper I ever knew never 
 Hunting is the most thoroughly braided trade in Talaran, and the braiding is the point.
 
 - **Carpentry** and **Smithing** make your arrows. A hunter who cannot supply his own ammunition is a hunter with a permanent tax.
-- **Husbandry** begins with hunting. The young animals and eggs that let you keep livestock come from the hunt, so every herd in Talaran started in a forest.
+- **Husbandry** begins here, and specifically in the trapline. Chicks come from a Nesting Hen and piglets from a Wild Sow, both of them snared rather than shot, so every herd in Talaran started in somebody's trap.
 - **Crafting** takes your hides, tans them, and turns them into leather goods. A hunter who sells raw skins leaves most of the animal's value with the buyer.
 - **Cooking** takes the meat, which is the least glamorous and most consistently profitable end of the whole business.
 

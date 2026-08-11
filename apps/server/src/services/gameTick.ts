@@ -10,6 +10,7 @@ import {
 import { recordItemFirstByName } from './inventory';
 import { isLiquid, liquidTotal } from './liquids';
 import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend, resolveUproot } from './farming';
+import { resolveEstablishShop } from './shops';
 import {
   resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
 } from './husbandry';
@@ -40,10 +41,53 @@ let lastTrapSweep = 0;
  * recordLoot swallows its own failures so a logging problem can never cost a
  * player the drop they already earned.
  */
+/**
+ * Which action types can turn up coins, and under which flavour set.
+ *
+ * Kept here rather than in each service because the roll happens once, at the
+ * single point every action result passes through. Six services each rolling
+ * their own would be six chances to get the rate wrong and six places to fix it.
+ *
+ * Anything absent never finds coins. Passive work is absent on purpose: see the
+ * note in services/goldFinds.ts.
+ */
+const GOLD_FIND_ACTIONS: Record<string, string> = {
+  mining_rock: 'mining',
+  mining_vein: 'mining',
+  woodcutting: 'woodcutting',
+  foraging: 'foraging',
+  fishing_rod: 'fishing',
+  fishing_net: 'fishing',
+  fishing_cut_bait: 'cut_bait',
+  // Farming only where a person is actually doing something. Growth happens on
+  // its own and must never pay coin for elapsed time.
+  farm_till: 'farming',
+  farm_harvest: 'farming',
+  hunting: 'hunting',
+};
+
 async function emitActionComplete(io: Server, action: any, payload: any): Promise<void> {
+  const result = payload?.result;
+
+  // Coins are rolled BEFORE the emit, so the find rides along with the action
+  // that produced it rather than arriving as a second, unexplained message.
+  if (result && result.xpAwarded > 0) {
+    const flavourKey = GOLD_FIND_ACTIONS[action.action_type];
+    if (flavourKey) {
+      const { rollGoldFind, GOLD_DROP_NAME } = await import('./goldFinds');
+      const find = await rollGoldFind(action.player_id, flavourKey, result.xpAwarded);
+      if (find) {
+        // The flavour replaces the main line above the timer for this one
+        // action. The player knows what they were doing; once in forty actions
+        // the world can say something else.
+        result.message = find.message;
+        result.drops = [...(result.drops || []), { name: GOLD_DROP_NAME, quantity: find.amount, notable: true }];
+      }
+    }
+  }
+
   io.to(`player_${action.player_id}`).emit('action_complete', payload);
 
-  const result = payload?.result;
   if (!result) return;
   await recordLoot(action.player_id, action.action_type, action.location_id ?? null, {
     drops: result.drops,
@@ -260,6 +304,46 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             xpToNext: xpToNextLevel(farmXpTotal),
             leveledUp: farmLevel > farmPrevLevel,
             xpAtLevel: xpForLevel(farmLevel),
+          },
+        });
+        return;
+      }
+      case 'shop_establish': {
+        // One-shot Carpentry build, same shape as farm_establish: clear the
+        // action first, resolve it, then report.
+        await db('player_actions').where({ id: action.id }).delete();
+
+        const shopResult = await resolveEstablishShop(action.player_id);
+        if (!shopResult.success) {
+          io.to(`player_${action.player_id}`).emit('action_failed', { error: shopResult.error || 'The work came to nothing.' });
+          return;
+        }
+
+        const shopSkill = await db('skills').where({ name: 'Carpentry' }).first();
+        const shopPs = shopSkill
+          ? await db('player_skills').where({ player_id: action.player_id, skill_id: shopSkill.id }).first()
+          : null;
+        const shopXpTotal = shopPs ? parseInt(shopPs.xp.toString()) : 0;
+        const shopLevel = levelFromXp(shopXpTotal);
+        const shopPrevLevel = levelFromXp(Math.max(0, shopXpTotal - (shopResult.xp || 0)));
+
+        await emitActionComplete(io, action, {
+          actionType: action.action_type,
+          firstEver: false,
+          result: {
+            itemName: null,
+            quantity: 0,
+            xpAwarded: shopResult.xp,
+            skillName: 'Carpentry',
+            message: shopResult.message,
+            drops: [],
+          },
+          xpInfo: {
+            totalXp: shopXpTotal,
+            level: shopLevel,
+            xpToNext: xpToNextLevel(shopXpTotal),
+            leveledUp: shopLevel > shopPrevLevel,
+            xpAtLevel: xpForLevel(shopLevel),
           },
         });
         return;
@@ -733,7 +817,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
       if (action.action_type === 'fishing_cut_bait') {
         // Out of that fish? Stop cleanly rather than failing on the next cycle.
-        const speciesRow = await db('fish_species').where({ name: action.action_data }).first();
+        // kind guard here too: an action queued before this was fixed would
+        // otherwise keep cutting salvage on every restart.
+        const speciesRow = await db('fish_species').where({ name: action.action_data, kind: 'fish' }).first();
         const item = speciesRow
           ? await db('items').where({ name: speciesRow.item_name }).first()
           : null;

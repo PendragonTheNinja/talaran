@@ -31,6 +31,16 @@ interface DialogueData {
         options: DialogueOption[]
     }
     questProgress: QuestObjective[] | null
+    /** On the closing stage: what this conversation is about to hand over. */
+    pendingRewards: QuestRewards | null
+}
+
+interface QuestRewards {
+    questName: string
+    items: Array<{ itemName: string; quantity: number }>
+    xp: number
+    skill: string | null
+    gold: number
 }
 
 interface NPCDialogueProps {
@@ -73,12 +83,36 @@ export default function NPCDialogue({ npcId, onClose, onInteraction }: NPCDialog
         try {
             if (option.action) {
                 // Server action — interact then reload
-                await apiFetch(`/api/npcs/${npcId}/interact`, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: option.action }),
-                })
+                const result = await apiFetch<{ rewards?: QuestRewards | null }>(
+                    `/api/npcs/${npcId}/interact`,
+                    { method: 'POST', body: JSON.stringify({ action: option.action }) },
+                )
                 onInteraction?.()
-                await loadDialogue()
+
+                // Finishing a quest ends the conversation. The rewards were
+                // already shown alongside the farewell, so there is nothing
+                // left to say: close rather than reload into whatever the NPC
+                // says to a stranger afterwards.
+                if (result?.rewards) {
+                    onClose()
+                    return
+                }
+
+                // An option can carry BOTH an action and a next_stage, and the
+                // next_stage has to win. Reloading instead re-runs resolveStage,
+                // which answers "where is this player in the quest" rather than
+                // "what did they just click" — so accepting a quest whose next
+                // stage is more conversation jumped straight past all of it to
+                // the mid-quest nag, and showed the objective list at the same
+                // time.
+                if (option.next_stage) {
+                    const staged = await apiFetch<DialogueData>(
+                        `/api/npcs/${npcId}/dialogue?stage=${option.next_stage}`,
+                    )
+                    setData(staged)
+                } else {
+                    await loadDialogue()
+                }
             } else if (option.next_stage) {
                 // Client-side stage navigation — fetch that specific stage
                 const result = await apiFetch<DialogueData>(`/api/npcs/${npcId}/dialogue?stage=${option.next_stage}`)
@@ -155,6 +189,32 @@ export default function NPCDialogue({ npcId, onClose, onInteraction }: NPCDialog
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+
+                            {data.pendingRewards && (
+                                <div className="npc-rewards">
+                                    <p className="npc-rewards-head">{data.pendingRewards.questName}</p>
+                                    <ul className="npc-rewards-list">
+                                        {data.pendingRewards.items.map((it, i) => (
+                                            <li key={`i${i}`}>
+                                                <span>{it.itemName}</span>
+                                                <span className="npc-rewards-amt">×{it.quantity.toLocaleString()}</span>
+                                            </li>
+                                        ))}
+                                        {data.pendingRewards.gold > 0 && (
+                                            <li>
+                                                <span>Gold</span>
+                                                <span className="npc-rewards-amt">{data.pendingRewards.gold.toLocaleString()}g</span>
+                                            </li>
+                                        )}
+                                        {data.pendingRewards.xp > 0 && (
+                                            <li>
+                                                <span>{data.pendingRewards.skill} experience</span>
+                                                <span className="npc-rewards-amt">{data.pendingRewards.xp.toLocaleString()}</span>
+                                            </li>
+                                        )}
+                                    </ul>
                                 </div>
                             )}
 

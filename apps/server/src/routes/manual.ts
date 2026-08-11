@@ -3,6 +3,7 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { xpForLevel } from '../services/xp';
 import { plotCost, plotCapForLevel, FARMSTEAD_TOWN } from '../services/farming';
+import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
 //
@@ -316,6 +317,30 @@ const registry: Record<string, QueryHandler> = {
      * Field costs at a farmstead. Escalates per plot; the cap is gated on Farming
      * level. Both read from the constants in services/farming.ts.
      */
+    // Read from services/shops.ts rather than restated here, so the Manual
+    // cannot quietly disagree with the game about what a shop costs.
+    'shop-cost': async () => {
+        const tier = SHOP_TIERS[1];
+        return {
+            title: `Raising a shop in ${SHOP_TOWN}`,
+            columns: [
+                { key: 'what', label: 'Requirement' },
+                { key: 'detail', label: '' },
+            ],
+            rows: [
+                ...ESTABLISH_COST.map((c) => ({ what: c.itemName, detail: `${c.qty.toLocaleString()}` })),
+                { what: 'Carpentry', detail: `level ${CARPENTRY_REQ}` },
+                { what: 'Tools', detail: 'mallet and saw, both equipped' },
+                { what: 'Time', detail: `${Math.round(ESTABLISH_SECONDS / 60)} minutes` },
+                { what: 'Storage', detail: `${tier.storageSlots} slots` },
+                { what: 'Selling slots', detail: `${tier.sellSlots}` },
+                { what: 'Buying slots', detail: `${tier.buySlots}` },
+                { what: 'Tithe on sales', detail: `${Math.round(SALE_TAX_RATE * 100)}%` },
+            ],
+            note: 'One shop per player. It trades while you are away.',
+        };
+    },
+
     'plot-costs': async () => {
         const rows = [];
         for (let plot = 1; plot <= 10; plot++) {
@@ -405,6 +430,105 @@ const registry: Record<string, QueryHandler> = {
             columns,
             rows,
             note: 'None of these appear until the person offering them has spoken to you.',
+        };
+    },
+
+    /**
+     * What can be hunted, where, and how hard it is.
+     *
+     * base_catch_chance is the figure at the required level with the humblest
+     * bow, which is the number a reader actually wants: it is the worst case
+     * they will ever face, and everything they do from there improves it.
+     */
+    'huntable-animals': async () => {
+        const rows = await db('huntable_animals')
+            .join('locations', 'locations.id', 'huntable_animals.location_id')
+            .where('huntable_animals.is_active', true)
+            .orderBy('huntable_animals.required_level')
+            .select(
+                'huntable_animals.name as animal',
+                'huntable_animals.required_level as level',
+                'huntable_animals.base_catch_chance as chance',
+                'huntable_animals.base_timer as timer',
+                'huntable_animals.xp_success as xp',
+                'locations.name as where',
+            );
+
+        return {
+            title: 'The quarry',
+            columns: [
+                { key: 'animal', label: 'Animal' },
+                { key: 'where', label: 'Forest' },
+                { key: 'level', label: 'Hunting', align: 'right' },
+                { key: 'chance', label: 'Base odds', align: 'right' },
+                { key: 'timer', label: 'Stalk', align: 'right' },
+                { key: 'xp', label: 'XP', align: 'right' },
+            ],
+            rows: rows.map((r: any) => ({
+                animal: r.animal,
+                where: r.where,
+                level: r.level,
+                chance: `${r.chance}%`,
+                timer: `${r.timer}s`,
+                xp: Number(r.xp).toLocaleString(),
+            })),
+            note: 'Base odds are what you face at the required level with the plainest bow. Every level above, and every better bow, improves them.',
+        };
+    },
+
+    /**
+     * What a snare can catch, and what tempts it.
+     *
+     * Deliberately shows RARITY IN WORDS rather than percentages. The exact
+     * weights are a balance concern, not a player one, and a table of decimals
+     * invites optimising a thing that is meant to feel like luck.
+     */
+    'trap-targets': async () => {
+        const rows = await db('trap_targets')
+            .join('locations', 'locations.id', 'trap_targets.location_id')
+            .where('trap_targets.is_active', true)
+            .select(
+                'trap_targets.name as target',
+                'trap_targets.weight as weight',
+                'trap_targets.xp as xp',
+                'trap_targets.bait_category as bait',
+                'locations.name as where',
+            );
+
+        // Rarity is relative to the location's own table, so a place with only
+        // rare things in it does not report everything as common.
+        const totals = new Map<string, number>();
+        for (const r of rows) totals.set(r.where, (totals.get(r.where) ?? 0) + Number(r.weight));
+
+        const rarity = (share: number) =>
+            share >= 0.30 ? 'Common'
+                : share >= 0.10 ? 'Uncommon'
+                    : share >= 0.02 ? 'Rare'
+                        : 'Scarce';
+
+        const shaped = rows.map((r: any) => {
+            const share = Number(r.weight) / (totals.get(r.where) || 1);
+            return {
+                target: r.target,
+                where: r.where,
+                rarity: rarity(share),
+                bait: r.bait ? r.bait.charAt(0).toUpperCase() + r.bait.slice(1) : 'None',
+                xp: Number(r.xp).toLocaleString(),
+                _share: share,
+            };
+        }).sort((a, b) => b._share - a._share).map(({ _share, ...rest }) => rest);
+
+        return {
+            title: 'What a snare catches',
+            columns: [
+                { key: 'target', label: 'Animal' },
+                { key: 'where', label: 'Where' },
+                { key: 'rarity', label: 'How often', align: 'right' },
+                { key: 'bait', label: 'Tempted by' },
+                { key: 'xp', label: 'XP', align: 'right' },
+            ],
+            rows: shaped,
+            note: 'Bait multiplies its animal eightfold against everything else in the same wood. It never guarantees anything.',
         };
     },
 

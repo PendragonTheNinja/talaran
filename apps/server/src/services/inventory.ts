@@ -48,6 +48,56 @@ export async function addItemToInventory(playerId: number, itemId: number, quant
 }
 
 /**
+ * Transaction-aware plain add. Same semantics as addItemToInventory, but joins
+ * the caller's transaction and does NOT emit, because a socket message sent
+ * from inside a transaction announces a change that a later rollback undoes.
+ * Call notifyInventoryChanged(playerId) after the commit.
+ */
+export async function addItemToInventoryWithin(
+    trx: any,
+    playerId: number,
+    itemId: number,
+    quantity: number,
+): Promise<void> {
+    const existing = await trx('player_inventory')
+        .where({ player_id: playerId, item_id: itemId })
+        .forUpdate()
+        .first();
+
+    if (existing) {
+        await trx('player_inventory').where({ id: existing.id }).increment('quantity', quantity);
+    } else {
+        await trx('player_inventory').insert({ player_id: playerId, item_id: itemId, quantity });
+    }
+}
+
+/**
+ * Transaction-aware plain remove. Returns false without side effects when the
+ * player does not hold enough, which is an expected race (another tab spent
+ * them) rather than an error.
+ */
+export async function removeItemFromInventoryWithin(
+    trx: any,
+    playerId: number,
+    itemId: number,
+    quantity: number,
+): Promise<boolean> {
+    const row = await trx('player_inventory')
+        .where({ player_id: playerId, item_id: itemId })
+        .forUpdate()
+        .first();
+
+    if (!row || Number(row.quantity) < quantity) return false;
+
+    if (Number(row.quantity) === quantity) {
+        await trx('player_inventory').where({ id: row.id }).delete();
+    } else {
+        await trx('player_inventory').where({ id: row.id }).decrement('quantity', quantity);
+    }
+    return true;
+}
+
+/**
  * Record that a player earned an item, without touching inventory. Lets existing
  * services keep their own inventory writes and add first-tracking in one line.
  */

@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../index';
 import { io } from '../index';
+import { getGold, lockPlayersInOrder, transferGoldWithin } from '../services/gold';
 
 const router = Router();
 
@@ -254,13 +255,34 @@ router.post('/offer/gold', requireAuth, async (req: AuthRequest, res: Response) 
     const { tradeId, goldAmount } = req.body;
 
     try {
+        // Party check. Without it, anyone holding a trade id could reset two
+        // other players' acceptance flags at will, which is a griefing lever
+        // even though it moves nothing. (/offer/item already checks this;
+        // /offer/item/remove still does not — separate fix.)
         const trade = await db('trades').where({ id: tradeId, status: 'active' }).first();
-        if (!trade) {
+        if (!trade || (trade.player1_id !== playerId && trade.player2_id !== playerId)) {
             res.status(404).json({ error: 'Trade not found.' });
             return;
         }
 
-        await db('trade_gold').where({ trade_id: tradeId, player_id: playerId }).update({ gold_amount: Math.max(0, goldAmount) });
+        // Sanitise before it ever reaches the column: the old code passed the
+        // raw body value through Math.max, so a float or a numeric string went
+        // straight into trade_gold and became real money at accept time.
+        const amount = Math.floor(Number(goldAmount));
+        if (!Number.isFinite(amount) || amount < 0) {
+            res.status(400).json({ error: 'Invalid gold amount.' });
+            return;
+        }
+
+        // Courtesy check only. The binding check is at accept, because a player
+        // can spend this gold elsewhere between offering and accepting.
+        const balance = await getGold(playerId);
+        if (amount > balance) {
+            res.status(400).json({ error: 'You do not have that much gold.' });
+            return;
+        }
+
+        await db('trade_gold').where({ trade_id: tradeId, player_id: playerId }).update({ gold_amount: amount });
         await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
 
         const { offers, gold } = await getTradeData(tradeId);
@@ -330,15 +352,34 @@ router.post('/accept', requireAuth, async (req: AuthRequest, res: Response) => {
             const offers = await trx('trade_offers').where({ trade_id: tradeId });
             const gold = await trx('trade_gold').where({ trade_id: tradeId });
 
-            // Gold cannot be transferred: players have no currency balance. The
-            // offer field writes to trade_gold and nothing ever moved it, so a
-            // player could trade items away expecting gold and receive nothing.
-            // Refuse rather than complete a trade we cannot honour.
-            const goldOffered = gold.reduce((sum, g) => sum + Number(g.gold_amount || 0), 0);
-            if (goldOffered > 0) {
-                throw new TradeAbort(
-                    'Gold cannot be traded yet. Set both gold offers to zero and try again.',
-                );
+            // ── Gold ────────────────────────────────────────────────────────
+            // Both player rows are locked UP FRONT, in ascending id order,
+            // before any balance is read or moved. Two transactions grabbing
+            // the same pair in opposite orders deadlock under load, and this
+            // path now shares players with the shop sale path. See
+            // services/gold.ts for the rule.
+            await lockPlayersInOrder(trx, [trade.player1_id, trade.player2_id]);
+
+            const goldOfferedBy = (pid: number) =>
+                Math.max(0, Math.floor(Number(
+                    gold.find((g) => g.player_id === pid)?.gold_amount ?? 0,
+                )));
+
+            const p1Gold = goldOfferedBy(trade.player1_id);
+            const p2Gold = goldOfferedBy(trade.player2_id);
+
+            // Each side must still hold what it OFFERED, not merely what it
+            // nets out owing. Checking only the net would let a player display
+            // an offer they cannot back and still walk away richer.
+            for (const [pid, amount] of [
+                [trade.player1_id, p1Gold],
+                [trade.player2_id, p2Gold],
+            ] as const) {
+                if (amount === 0) continue;
+                const row = await trx('players').where({ id: pid }).select('gold').first();
+                if (!row || Number(row.gold) < amount) {
+                    throw new TradeAbort('A player no longer has the gold they offered.');
+                }
             }
 
             // Validate EVERY offer before moving anything. The old code moved
@@ -394,6 +435,25 @@ router.post('/accept', requireAuth, async (req: AuthRequest, res: Response) => {
                         item_id: move.itemId,
                         quantity: move.qty,
                     });
+                }
+            }
+
+            // Gold moves last, after every item has landed. Only the NET moves:
+            // a 100-for-40 trade transfers 60. The gross offers stay readable on
+            // trade_gold, so nothing is lost for auditing, and neither side
+            // needs a balance it was only ever going to get straight back.
+            if (p1Gold !== p2Gold) {
+                const p1Pays = p1Gold > p2Gold;
+                const moved = await transferGoldWithin(trx, {
+                    fromPlayerId: p1Pays ? trade.player1_id : trade.player2_id,
+                    toPlayerId: p1Pays ? trade.player2_id : trade.player1_id,
+                    amount: Math.abs(p1Gold - p2Gold),
+                    reason: 'trade',
+                    refType: 'trade',
+                    refId: tradeId,
+                });
+                if (!moved) {
+                    throw new TradeAbort('A player no longer has the gold they offered.');
                 }
             }
 

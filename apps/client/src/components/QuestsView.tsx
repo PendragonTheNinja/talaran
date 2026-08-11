@@ -14,7 +14,7 @@ interface Quest {
     id: number
     name: string
     description: string
-    skill: string
+    skill: string | null
     npc_name: string
     status: string
     objectives: QuestObjective[]
@@ -49,7 +49,8 @@ export default function QuestsView() {
             <div key={q.id} className={`quest-card ${open ? 'open' : ''}`}>
                 <div className="quest-card-head" onClick={() => toggle(q.id)} style={{ cursor: 'pointer' }}>
                     <span className="quest-name gold-text">{open ? '▾ ' : '▸ '}{q.name}</span>
-                    <span className="quest-skill muted-text">{q.skill}</span>
+                    {/* Null for quests that belong to no trade, like the tutorial. */}
+                    <span className="quest-skill muted-text">{q.skill ?? ''}</span>
                 </div>
                 {open && (
                     <>

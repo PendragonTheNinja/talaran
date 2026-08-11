@@ -95,6 +95,10 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
         equipmentData={equipmentData}
         onEquipmentUpdate={onEquipmentUpdate}
         onInventoryUpdate={onInventoryUpdate}
+        playerName={player.username}
+        totalLevel={totalLevel}
+        totalXp={playerData?.totalXp}
+        gold={playerData?.player?.gold}
       />
 
       {showMap && (

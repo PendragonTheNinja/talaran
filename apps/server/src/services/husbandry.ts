@@ -7,6 +7,7 @@ import { notifyInventoryChanged } from './inventory';
 import { activeXpForSeconds } from './farming';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { isLiquid, canFill, addLiquid, liquidState } from './liquids';
+import { missingBuildTool as sharedMissingBuildTool } from './construction';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
 // beside the fields, then stocked with animals found in the wild: feed → collect
@@ -44,15 +45,13 @@ const TAME_SECONDS = 30;
 // Tools, by the slot each must be EQUIPPED in (the foraging TOOL_SLOT_COLUMN
 // pattern — carrying one is not enough).
 // Raising a pen is Carpentry work, so it carries the same tool requirement every
-// other structure does (services/farming.ts BUILD_MALLET / BUILD_HELD): the mallet
-// must be EQUIPPED, and the saw is consumed-by-presence in the pack.
+// other structure does. That rule now lives in services/construction.ts: mallet
+// equipped mainhand, saw equipped offhand.
 // Mucking out lays FRESH BEDDING, so it costs straw and returns manure. That
 // gives Farming's straw a sink and Farming's soil restore its only faucet, which
 // is the loop this skill was meant to close.
 const BEDDING = { itemName: 'Straw', perHead: 1 };
 
-const BUILD_MALLET = { subtype: 'mallet', itemName: 'Lanai Mallet' };
-const BUILD_SAW = { subtype: 'saw', itemName: 'Ambren Saw' };
 
 const TOOL_SLOT_COLUMN: Record<string, string> = {
     mallet: 'mainhand_item_id',
@@ -181,15 +180,14 @@ async function awardXp(playerId: number, skillName: string, xp: number, x: Ex = 
     else await x('player_skills').insert({ player_id: playerId, skill_id: skill.id, xp });
 }
 
-/** First unmet build-tool requirement, or null when properly kitted. */
+/**
+ * First unmet build-tool requirement, or null when properly kitted.
+ *
+ * This skill had the rule right before the others did; it now defers to
+ * services/construction.ts so there is a single definition to correct.
+ */
 async function missingBuildTool(playerId: number, x: Ex = db): Promise<string | null> {
-    if (!(await equippedTool(playerId, BUILD_MALLET.subtype, x))) {
-        return `You need a ${BUILD_MALLET.itemName} equipped to build.`;
-    }
-    if (!(await equippedTool(playerId, BUILD_SAW.subtype, x))) {
-        return `You need a ${BUILD_SAW.itemName} equipped to build.`;
-    }
-    return null;
+    return (await sharedMissingBuildTool(playerId, x))?.message ?? null;
 }
 
 async function playerProperty(playerId: number, x: Ex = db) {

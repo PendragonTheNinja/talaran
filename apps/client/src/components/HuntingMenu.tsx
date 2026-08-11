@@ -13,6 +13,8 @@ interface PlayerTrap {
     trapName: string
     sprung: boolean
     placedAt: string
+    /** What it was baited with. Never what it is likely to catch. */
+    bait: string | null
 }
 
 interface TrapType {
@@ -54,12 +56,31 @@ function timeSince(iso: string): string {
     return `${hrs}h ${mins % 60}m ago`
 }
 
+interface TrapBaitData {
+    baits: Array<{ category: string; held: number }>
+    convertible: Array<{ itemName: string; quantity: number; category: string; baitValue: number }>
+}
+
+/** Same names the fishing panel uses, so one pouch reads one way everywhere. */
+const BAIT_LABELS: Record<string, string> = {
+    grain: 'Grain',
+    cheese: 'Cheese',
+    egg: 'Egg',
+    spawn: 'Spawn',
+    meat: 'Meat',
+}
+
 export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, onTrapsChanged }: HuntingMenuProps) {
     const [tab, setTab] = useState<'hunting' | 'trapping'>('hunting')
     const [animals, setAnimals] = useState<HuntableAnimal[]>([])
     const [trapline, setTrapline] = useState<TraplineData | null>(null)
     const [reveal, setReveal] = useState<CollectResult | null>(null)
     const [trapError, setTrapError] = useState('')
+    const [baitData, setBaitData] = useState<TrapBaitData | null>(null)
+    const [chosenBait, setChosenBait] = useState('')
+    const [convertItem, setConvertItem] = useState('')
+    const [convertQty, setConvertQty] = useState(1)
+    const [baitNotice, setBaitNotice] = useState('')
     const [busy, setBusy] = useState(false)
 
     useEffect(() => {
@@ -72,6 +93,27 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
         apiFetch<TraplineData>('/api/trapping/traps')
             .then(data => { setTrapline(data); onTrapsChanged?.() })
             .catch(() => setTrapline(null))
+        apiFetch<TrapBaitData>('/api/trapping/bait')
+            .then(setBaitData)
+            .catch(() => setBaitData(null))
+    }
+
+    /* Breaking down bait is the same pouch fishing fills, so this posts to the
+       same endpoint. A second implementation would be a second thing to keep
+       in step. */
+    const doConvert = async () => {
+        if (!convertItem) return
+        setBaitNotice('')
+        try {
+            const res = await apiFetch<{ category: string; added: number }>('/api/fishing/bait/convert', {
+                method: 'POST',
+                body: JSON.stringify({ itemName: convertItem, quantity: convertQty }),
+            })
+            setBaitNotice(`${res.added} ${BAIT_LABELS[res.category] ?? res.category} bait added to your pouch.`)
+            loadTrapline()
+        } catch (err: any) {
+            setBaitNotice(err?.message || 'That could not be turned into bait.')
+        }
     }
 
     useEffect(() => {
@@ -82,7 +124,10 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
         if (busy) return
         setBusy(true); setTrapError('')
         try {
-            await apiFetch('/api/trapping/place', { method: 'POST', body: JSON.stringify({ trapTypeId }) })
+            await apiFetch('/api/trapping/place', {
+                method: 'POST',
+                body: JSON.stringify({ trapTypeId, bait: chosenBait || null }),
+            })
             loadTrapline()
         } catch (err: any) {
             setTrapError(err.message || 'Could not place the trap.')
@@ -174,7 +219,14 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                 {trapline.traps.map(trap => (
                     <div key={trap.id} className={`trap-card ${trap.sprung ? 'sprung' : ''}`}>
                         <div className="trap-card-info">
-                            <span className="trap-card-name">{trap.trapName}</span>
+                            <span className="trap-card-name">
+                                {trap.trapName}
+                                {trap.bait && (
+                                    <span className="trap-card-bait">
+                                        {BAIT_LABELS[trap.bait] ?? trap.bait}
+                                    </span>
+                                )}
+                            </span>
                             <span className="trap-card-state">
                                 {trap.sprung ? "Something's caught!" : `Set · ${timeSince(trap.placedAt)}`}
                             </span>
@@ -191,6 +243,65 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                     </div>
                 ))}
 
+                {/* Bait. A snare picks from a weighted table, so without this a
+                    player who wants Chicks can only wait: Nesting Hen is about
+                    8% of catches. Baiting makes it 41%. */}
+                {baitData && baitData.baits.length > 0 && (
+                    <div className="trap-bait">
+                        <p className="trap-bait-head">Bait the next snare</p>
+                        <div className="trap-bait-row">
+                            <button
+                                className={`trap-bait-chip${chosenBait === '' ? ' is-active' : ''}`}
+                                onClick={() => setChosenBait('')}
+                            >
+                                None
+                            </button>
+                            {baitData.baits.map(b => (
+                                <button
+                                    key={b.category}
+                                    className={`trap-bait-chip${chosenBait === b.category ? ' is-active' : ''}`}
+                                    disabled={b.held < 1}
+                                    title={b.held < 1
+                                        ? `No ${(BAIT_LABELS[b.category] ?? b.category).toLowerCase()} bait. Break something down below.`
+                                        : 'One is spent when the snare is set, and is not returned.'}
+                                    onClick={() => setChosenBait(b.category)}
+                                >
+                                    {BAIT_LABELS[b.category] ?? b.category}
+                                    <span className="trap-bait-count">{b.held}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {baitData.convertible.length > 0 ? (
+                            <div className="trap-bait-convert">
+                                <select value={convertItem} onChange={e => setConvertItem(e.target.value)}>
+                                    <option value="">Break something down…</option>
+                                    {baitData.convertible.map(c => (
+                                        <option key={c.itemName} value={c.itemName}>
+                                            {c.itemName} ({c.quantity}) → {c.baitValue} {BAIT_LABELS[c.category] ?? c.category}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={convertQty}
+                                    onChange={e => setConvertQty(Math.max(1, parseInt(e.target.value) || 1))}
+                                />
+                                <button className="trap-btn" disabled={!convertItem} onClick={doConvert}>
+                                    Break down
+                                </button>
+                            </div>
+                        ) : (
+                            <p className="muted-text trap-bait-note">
+                                Nothing in your pack would tempt an animal. Grain, cheese, eggs, spawn and raw meat all serve.
+                            </p>
+                        )}
+
+                        {baitNotice && <p className="trapline-error">{baitNotice}</p>}
+                    </div>
+                )}
+
                 <div className="trapline-place">
                     {trapline.trapTypes.map(t => {
                         const locked = trapline.huntingLevel < t.requiredLevel
@@ -199,7 +310,11 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                             <div key={t.id} className="trapline-place-row">
                                 <span>{t.name} <span className="muted-text">(you have {t.inInventory})</span></span>
                                 <button className="trap-btn trap-btn-place" disabled={!canPlace || busy} onClick={() => doPlace(t.id)}>
-                                    {locked ? `Level ${t.requiredLevel}` : slotsFull ? 'Slots full' : t.inInventory === 0 ? `No ${t.itemName}` : 'Set trap'}
+                                    {locked ? `Level ${t.requiredLevel}`
+                                        : slotsFull ? 'Slots full'
+                                            : t.inInventory === 0 ? `No ${t.itemName}`
+                                                : chosenBait ? `Set with ${(BAIT_LABELS[chosenBait] ?? chosenBait).toLowerCase()}`
+                                                    : 'Set trap'}
                                 </button>
                             </div>
                         )

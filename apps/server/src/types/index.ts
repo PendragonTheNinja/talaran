@@ -7,6 +7,7 @@ export interface Player {
   is_admin: boolean
   is_mod: boolean
   last_login: Date | null
+  gold: number
   banned_until: Date | null
   ban_reason: string | null
 }

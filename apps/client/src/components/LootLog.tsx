@@ -142,9 +142,11 @@ export default function LootLog({ refreshKey }: LootLogProps) {
             <div className="loot-summary">
                 <div className="loot-summary-line">
                     <span className="loot-total">{data.totals.items.toLocaleString()} items</span>
-                    {/* Rendered only once Talaran has a currency; null until then. */}
+                    {/* Base worth, not a merchant's offer: a pawnbroker pays 35%
+                        of this and a player shop lands nearer it. Null when
+                        nothing in the log has a derived value yet. */}
                     {data.totals.value !== null && (
-                        <span className="loot-value">{data.totals.value.toLocaleString()} value</span>
+                        <span className="loot-value">{data.totals.value.toLocaleString()}g worth</span>
                     )}
                     {data.since && <span className="loot-since">since {fmtSince(data.since)}</span>}
                 </div>
@@ -185,6 +187,12 @@ export default function LootLog({ refreshKey }: LootLogProps) {
                             onClick={() => setCollapsed(c => ({ ...c, [s.source]: !c[s.source] }))}
                         >
                             <span className="loot-source-name">{s.source}</span>
+                            {/* Worth of this source's haul, visible while the
+                                section is collapsed so a long log can be scanned
+                                for where the gold actually came from. */}
+                            {s.totalValue !== null && (
+                                <span className="loot-source-value">{s.totalValue.toLocaleString()}g</span>
+                            )}
                             <span className="loot-source-actions">×{s.actions.toLocaleString()}</span>
                             <span className="loot-source-caret">{shut ? '▾' : '▴'}</span>
                         </button>
@@ -198,7 +206,9 @@ export default function LootLog({ refreshKey }: LootLogProps) {
                                             src={`/images/items/${it.name.replace(/ /g, '_')}.png`}
                                             label={it.name}
                                             amount={it.amount}
-                                            title={`${it.name} ×${it.amount.toLocaleString()}`}
+                                            title={it.value !== null
+                                                ? `${it.name} ×${it.amount.toLocaleString()} — worth ${it.value.toLocaleString()}g`
+                                                : `${it.name} ×${it.amount.toLocaleString()}`}
                                         />
                                     ))}
                                     {s.xp.map(x => (

@@ -1,6 +1,7 @@
 import db from '../db'
 import { levelFromXp } from './xp'
 import { logger } from '../lib/logger'
+import { spendBait } from './fishing'
 
 // ── Trapping (docs/trapping-spec.md) ──────────────────────────────
 // Passive hunting mode. Traps are independent of player_actions: they run
@@ -46,6 +47,14 @@ async function huntingLevel(playerId: number): Promise<number> {
 }
 
 /** Weighted pick from the location's catch pool. */
+/**
+ * How much a baited snare favours its target. Eight was chosen against the real
+ * weights: Nesting Hen 7.9% -> 40.8%, Wild Sow 4% -> 24.8%, Squonk 0.4% -> 3.4%.
+ * Enough that baiting is clearly the right move when you want something
+ * specific, not so much that the other animals stop existing.
+ */
+export const BAIT_WEIGHT_MULT = 8;
+
 function pickTarget(targets: { id: number; weight: number }[]): number | null {
     const total = targets.reduce((s, t) => s + t.weight, 0)
     if (total <= 0) return null
@@ -90,10 +99,26 @@ export async function canPlaceTrap(playerId: number, trapTypeId: number, locatio
 }
 
 /** Place a trap: consumes the trap item, creates the row. Transactional. */
-export async function placeTrap(playerId: number, trapTypeId: number, locationId: number): Promise<{ success: boolean; error?: string }> {
+export async function placeTrap(
+    playerId: number,
+    trapTypeId: number,
+    locationId: number,
+    baitCategory?: string | null,
+): Promise<{ success: boolean; error?: string }> {
     try {
         const check = await canPlaceTrap(playerId, trapTypeId, locationId)
         if (!check.allowed) return { success: false, error: check.reason }
+
+        // Only categories something here actually wants. Baiting with grain
+        // where nothing eats grain would silently cost a bait for nothing.
+        let bait: string | null = null
+        if (baitCategory) {
+            const wanted = await db('trap_targets')
+                .where({ location_id: locationId, is_active: true, bait_category: baitCategory })
+                .first()
+            if (!wanted) return { success: false, error: 'Nothing here is interested in that bait.' }
+            bait = baitCategory
+        }
 
         const trapType = await db('trap_types').where({ id: trapTypeId }).first()
         const item = await db('items').where({ name: trapType.item_name }).first()
@@ -108,12 +133,20 @@ export async function placeTrap(playerId: number, trapTypeId: number, locationId
                 await trx('player_inventory').where({ id: inv.id }).update({ quantity: inv.quantity - 1 })
             }
 
+            // Bait is spent when the snare is set and never comes back, not
+            // even on dismantle: it is on the ground the moment you walk away.
+            if (bait) {
+                const left = await spendBait(trx, playerId, bait)
+                if (left === null) throw new Error('NO_BAIT')
+            }
+
             const now = new Date()
             await trx('player_traps').insert({
                 player_id: playerId,
                 trap_type_id: trapTypeId,
                 location_id: locationId,
                 state: 'set',
+                bait_category: bait,
                 next_roll_at: new Date(now.getTime() + trapType.roll_interval_seconds * 1000),
                 placed_at: now,
             })
@@ -122,6 +155,7 @@ export async function placeTrap(playerId: number, trapTypeId: number, locationId
         return { success: true }
     } catch (err: any) {
         if (err.message === 'NO_TRAP_ITEM') return { success: false, error: 'You need that trap in your inventory.' }
+        if (err.message === 'NO_BAIT') return { success: false, error: 'You have none of that bait in your pouch.' }
         logger.error('placeTrap error: ' + err)
         return { success: false, error: 'Server error' }
     }
@@ -239,13 +273,35 @@ export async function getPlayerTraps(playerId: number, locationId: number) {
     const traps = await db('player_traps')
         .join('trap_types', 'player_traps.trap_type_id', 'trap_types.id')
         .where({ 'player_traps.player_id': playerId, 'player_traps.location_id': locationId })
-        .select('player_traps.id', 'trap_types.name as trapName', 'player_traps.state', 'player_traps.placed_at')
+        .select('player_traps.id', 'trap_types.name as trapName', 'player_traps.state',
+            'player_traps.placed_at', 'player_traps.bait_category')
     return traps.map((t: any) => ({
         id: t.id,
         trapName: t.trapName,
         sprung: t.state !== 'set',   // 'sprung' and 'scavenged' both read as "something's caught!"
         placedAt: t.placed_at,
+        // What it is baited with, never what it is likely to catch. The reveal
+        // still happens at collect.
+        bait: t.bait_category ?? null,
     }))
+}
+
+/**
+ * Baits that something at this location wants, with what the player holds.
+ * Feeds the picker beside the Set Snare button.
+ */
+export async function baitOptionsAt(playerId: number, locationId: number) {
+    const rows = await db('trap_targets')
+        .where({ location_id: locationId, is_active: true })
+        .whereNotNull('bait_category')
+        .distinct('bait_category')
+
+    const pouch = await db('player_bait').where({ player_id: playerId })
+    const held = new Map<string, number>(pouch.map((r: any) => [r.category, Number(r.amount)]))
+
+    return rows
+        .map((r: any) => ({ category: r.bait_category as string, held: held.get(r.bait_category) ?? 0 }))
+        .sort((a, b) => a.category.localeCompare(b.category))
 }
 
 /**
@@ -268,6 +324,15 @@ export async function processTrapTicks(now: Date): Promise<{ sprung: { playerId:
                 .where(function () { this.where({ trap_type_id: trap.trap_type_id }).orWhereNull('trap_type_id') })
             if (targets.length === 0) continue
 
+            // A baited snare weights its target heavily and leaves the rest
+            // alone, so bait aims the roll rather than replacing it.
+            const weighted = targets.map((t: any) => ({
+                ...t,
+                weight: trap.bait_category && t.bait_category === trap.bait_category
+                    ? t.weight * BAIT_WEIGHT_MULT
+                    : t.weight,
+            }))
+
             const intervalMs = type.roll_interval_seconds * 1000
             let rollAt = new Date(trap.next_roll_at).getTime()
             let caughtTargetId: number | null = null
@@ -276,7 +341,7 @@ export async function processTrapTicks(now: Date): Promise<{ sprung: { playerId:
             // Offline catch-up: one roll per elapsed interval until a catch or we're current
             while (rollAt <= now.getTime()) {
                 if (Math.random() * 100 < type.catch_chance) {
-                    caughtTargetId = pickTarget(targets)
+                    caughtTargetId = pickTarget(weighted)
                     caughtAt = new Date(rollAt)
                     break
                 }

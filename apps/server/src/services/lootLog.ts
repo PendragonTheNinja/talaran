@@ -34,6 +34,7 @@ const ACTION_LABELS: Record<string, string> = {
     fishing_net: 'Net Fishing',
     fishing_cut_bait: 'Cutting Bait',
     farm_establish: 'Farmstead Work',
+    shop_establish: 'Shop Building',
     farm_build_plot: 'Farmstead Work',
     farm_till: 'Tilling',
     farm_sow: 'Sowing',
@@ -169,7 +170,11 @@ export interface LootLogEntry {
     name: string;
     amount: number;
     lastAt: string;
-    /** Null until Talaran has a currency. The panel hides the column while it is. */
+    /**
+     * Base worth of this line: items.value multiplied by the amount gathered.
+     * Null for xp rows, and null for items with no derived value, so an
+     * unpriced item reads as "unknown" rather than as free.
+     */
     value: number | null;
 }
 
@@ -212,23 +217,47 @@ export async function getLootLog(playerId: number): Promise<{
         bySource.get(e.source_id)!.push(e);
     }
 
+    // Entries store the item NAME, so that is what we price on. One query for
+    // the whole log rather than one per line.
+    //
+    // This is BASE VALUE, the peg, not what any merchant would hand over. A
+    // pawnbroker pays 35% of it and a player shop will land somewhere near it,
+    // so it is the neutral measure of a haul rather than a quote.
+    const itemNames = [...new Set(entries.filter((e) => e.kind === 'item').map((e) => e.name))];
+    const valueByName = new Map<string, number>();
+    if (itemNames.length > 0) {
+        const priced = await db('items').whereIn('name', itemNames).whereNotNull('value').select('name', 'value');
+        for (const row of priced) valueByName.set(row.name, Number(row.value));
+    }
+
     const shaped: LootLogSource[] = sources.map((s) => {
         const mine = bySource.get(s.id) || [];
-        const toEntry = (e: any): LootLogEntry => ({
-            kind: e.kind,
-            name: e.name,
-            amount: Number(e.amount),
-            lastAt: new Date(e.last_at).toISOString(),
-            value: null,          // joins items.value once currency exists
-        });
+        const toEntry = (e: any): LootLogEntry => {
+            const amount = Number(e.amount);
+            const unit = e.kind === 'item' ? valueByName.get(e.name) : undefined;
+            return {
+                kind: e.kind,
+                name: e.name,
+                amount,
+                lastAt: new Date(e.last_at).toISOString(),
+                value: unit === undefined ? null : unit * amount,
+            };
+        };
+
+        const items = mine.filter((e) => e.kind === 'item').map(toEntry);
+
+        // Unpriced lines are skipped rather than counted as zero, so a total is
+        // never quietly wrong. A source with nothing priced reports null.
+        const priced = items.filter((i) => i.value !== null);
+
         return {
             source: s.source,
             actions: Number(s.actions),
             firstAt: new Date(s.first_at).toISOString(),
             lastAt: new Date(s.last_at).toISOString(),
-            items: mine.filter((e) => e.kind === 'item').map(toEntry),
+            items,
             xp: mine.filter((e) => e.kind === 'xp').map(toEntry),
-            totalValue: null,
+            totalValue: priced.length > 0 ? priced.reduce((sum, i) => sum + (i.value ?? 0), 0) : null,
         };
     });
 
@@ -253,7 +282,9 @@ export async function getLootLog(playerId: number): Promise<{
             xp: [...xpBySkill.entries()]
                 .map(([skill, xp]) => ({ skill, xp }))
                 .sort((a, b) => b.xp - a.xp),
-            value: null,
+            value: shaped.some((s) => s.totalValue !== null)
+                ? shaped.reduce((sum, s) => sum + (s.totalValue ?? 0), 0)
+                : null,
         },
         since: player?.loot_reset_at
             ? new Date(player.loot_reset_at).toISOString()

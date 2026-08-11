@@ -3,6 +3,7 @@ import { logger } from '../index';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
+import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -27,9 +28,7 @@ const CARPENTRY_REQ = 1;
 // Building is joinery. Tools are held, not consumed. The mallet is the tool in
 // your hands, so it must be EQUIPPED (mainhand) like the hoe on tilling; the saw
 // is bench kit and only needs to be carried.
-const BUILD_MALLET = { subtype: 'mallet', itemName: 'Lanai Mallet' };
-const BUILD_HELD = ['Ambren Saw'];
-const BUILD_TOOLS = [BUILD_MALLET.itemName, ...BUILD_HELD];
+const BUILD_TOOLS = [BUILD_MALLET.itemName, BUILD_SAW.itemName];
 
 const ESTABLISH_COST = [
     { itemName: 'Lanai Planks', qty: 500 },
@@ -167,29 +166,11 @@ async function giveItem(playerId: number, itemName: string, qty: number) {
     else await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
 }
 
-// Returns the first unmet build-tool requirement, or null when fully kitted.
-// `itemName` keeps the old API shape; `message` carries the equipped-vs-held
-// distinction so the error tells the player what to actually do.
-async function missingBuildTool(
-    playerId: number,
-): Promise<{ itemName: string; message: string } | null> {
-    if (!(await equippedTool(playerId, BUILD_MALLET.subtype))) {
-        return {
-            itemName: BUILD_MALLET.itemName,
-            message: `You need a ${BUILD_MALLET.itemName} equipped to build.`,
-        };
-    }
+// Build-tool checks live in services/construction.ts. The old local version
+// treated the saw as merely CARRIED, which let a player build with it sitting
+// in the pack. Do not reintroduce a copy here.
 
-    for (const name of BUILD_HELD) {
-        if ((await inventoryQty(playerId, name)) < 1) {
-            return { itemName: name, message: `You need a ${name} to build.` };
-        }
-    }
-
-    return null;
-}
-
-// Tools must be EQUIPPED (mainhand), same as the woodcutting hatchet.
+// Non-build tools (the hoe) are still checked locally. Mainhand only.
 async function equippedTool(playerId: number, subtype: string) {
     const equipment = await db('player_equipment').where({ player_id: playerId }).first();
     const id = equipment?.mainhand_item_id;

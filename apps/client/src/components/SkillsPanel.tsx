@@ -14,19 +14,37 @@ interface Skill {
 
 interface SkillsPanelProps {
     skills: Skill[]
+    playerName?: string
+    totalLevel?: number
+    totalXp?: number
+    gold?: number
 }
+
+const fmt = (n: number) => n.toLocaleString('en-US')
 
 // Rounded-rect perimeter for the progress outline (viewBox is 100×100).
 const RW = 94, RH = 94, RR = 12   // rect size + corner radius (in viewBox units)
 const RING_P = 2 * (RW - 2 * RR) + 2 * (RH - 2 * RR) + 2 * Math.PI * RR
 
-export default function SkillsPanel({ skills }: SkillsPanelProps) {
+export default function SkillsPanel({ skills, playerName, totalLevel, totalXp, gold }: SkillsPanelProps) {
     const [showModal, setShowModal] = useState(false)
     const [hoveredSkill, setHoveredSkill] = useState<Skill | null>(null)
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
 
     return (
         <div className="skills-panel">
+            {playerName && (
+                <div className="skills-identity">
+                    <div className="skills-identity-row">
+                        <span className="skills-identity-name">{playerName}</span>
+                        <span className="skills-identity-gold">{fmt(gold ?? 0)}<span className="skills-identity-unit">g</span></span>
+                    </div>
+                    <div className="skills-identity-row skills-identity-sub">
+                        <span>Total Level <b>{fmt(totalLevel ?? 0)}</b></span>
+                        <span>{fmt(totalXp ?? 0)} XP</span>
+                    </div>
+                </div>
+            )}
             <div className="skills-grid">
                 {skills.length === 0 ? (
                     <p className="muted-text" style={{ padding: '8px', gridColumn: '1/-1' }}>Loading skills...</p>

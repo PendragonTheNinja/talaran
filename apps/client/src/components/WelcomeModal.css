@@ -19,7 +19,7 @@
   flex-direction: column;
   gap: var(--space-lg);
   box-shadow: 0 0 60px rgba(200, 146, 42, 0.3);
-  animation: levelup-appear 0.4s ease;
+  /* Entry and exit animations live together at the foot of this file. */
 }
 
 .welcome-header {
@@ -89,4 +89,108 @@
   padding: var(--space-sm) calc(var(--space-xl) * 1.5);
   font-size: 16px;
   letter-spacing: 0.1em;
+}
+/* The wipe notice. Deliberately the loudest block on a page of warm prose,
+   because a player who learns about a wipe in week three is a player lost for
+   good, and fairly. Gold rather than red: it is important, not alarming. */
+.welcome-notice {
+    margin: var(--space-lg) 0;
+    padding: var(--space-md);
+    background: rgba(200, 146, 42, 0.08);
+    border-left: 3px solid var(--color-gold);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.welcome-notice p {
+    margin: 0 0 var(--space-sm);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.welcome-notice p:last-child {
+    margin-bottom: 0;
+}
+
+.welcome-notice-head {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    color: var(--color-gold-bright) !important;
+}
+
+.welcome-notice strong {
+    color: var(--color-gold-bright);
+}
+
+/* ── Entrance and exit ─────────────────────────────────────────────────── */
+
+/* The overlay fades; the card rises into it slightly behind, which reads as one
+   movement rather than two.
+
+   IN and OUT use DIFFERENT keyframe names on purpose. Reusing one name with
+   `reverse` looks correct and does nothing: a browser will not restart an
+   animation whose animation-name has not changed, so the element sits on its
+   finished frame and then vanishes at unmount. That was the original bug here.
+
+   Exit is quicker than entry, because a door you are walking through should not
+   linger, but not so quick it reads as a snap. WelcomeModal.tsx holds the
+   component mounted for CLOSE_MS, which must stay above the exit duration. */
+
+.welcome-overlay {
+    animation: welcome-veil-in 260ms ease-out;
+}
+
+.welcome-modal {
+    animation: welcome-rise 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes welcome-veil-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes welcome-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.welcome-overlay.closing {
+    animation: welcome-veil-out 240ms ease-in forwards;
+    pointer-events: none;
+}
+
+.welcome-overlay.closing .welcome-modal {
+    animation: welcome-sink 240ms ease-in forwards;
+}
+
+@keyframes welcome-veil-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes welcome-sink {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.985);
+    }
+}
+
+/* Anyone who has asked their system not to animate things gets no animation. */
+@media (prefers-reduced-motion: reduce) {
+    .welcome-overlay,
+    .welcome-modal,
+    .welcome-overlay.closing,
+    .welcome-overlay.closing .welcome-modal {
+        animation: none;
+    }
 }

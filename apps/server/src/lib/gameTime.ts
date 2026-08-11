@@ -35,6 +35,22 @@ export function startOfGameDay(now: Date = new Date()): Date {
     return instantForGameWallClock(wall, now);
 }
 
+/**
+ * The current Eastern day as 'YYYY-MM-DD'.
+ *
+ * Two things depend on this being an Eastern day and not a UTC or server-local
+ * one: the marketplace's per-player daily allowances, and the seed for each
+ * merchant's daily stock rotation. A day key that disagrees with the clock the
+ * player sees would reset allowances at an arbitrary hour.
+ */
+export function gameDayKey(now: Date = new Date()): string {
+    const wall = asGameWallClock(now);
+    const y = wall.getFullYear();
+    const m = String(wall.getMonth() + 1).padStart(2, '0');
+    const d = String(wall.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 /** The next Eastern midnight, i.e. when the chat box next resets. */
 export function nextGameMidnight(now: Date = new Date()): Date {
     const wall = asGameWallClock(now);

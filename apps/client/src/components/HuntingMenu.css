@@ -261,3 +261,118 @@
     margin: 4px auto 10px;
     text-align: center;
 }
+/* ── Trap bait ─────────────────────────────────────────────────────────── */
+
+.trap-bait {
+    margin: var(--space-md) 0;
+    padding: var(--space-md);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.trap-bait-head {
+    margin: 0 0 var(--space-sm);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-gold-bright);
+}
+
+.trap-bait-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+/* Chips rather than a dropdown: how much of each bait you hold is the deciding
+   factor, and a select hides four of the five counts. */
+.trap-bait-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 12px;
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.trap-bait-chip:hover:not(:disabled) {
+    color: var(--color-text-bright);
+}
+
+.trap-bait-chip.is-active {
+    background: var(--color-bg-raised);
+    border-color: var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.trap-bait-chip:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.trap-bait-count {
+    font-size: 12px;
+    color: var(--color-text-dim);
+}
+
+.trap-bait-chip.is-active .trap-bait-count {
+    color: var(--color-gold);
+}
+
+.trap-bait-convert {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.trap-bait-convert select {
+    flex: 1;
+    min-width: 160px;
+    min-height: 32px;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    font-size: 14px;
+    padding: 3px 8px;
+}
+
+.trap-bait-convert input {
+    width: 74px;
+    min-height: 32px;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    font-family: var(--font-heading);
+    font-size: 14px;
+    padding: 3px 8px;
+    text-align: center;
+}
+
+.trap-bait-note {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+/* What a set snare is baited with, on its card. */
+.trap-card-bait {
+    margin-left: 8px;
+    padding: 1px 6px;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-gold);
+}

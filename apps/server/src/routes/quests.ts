@@ -128,7 +128,24 @@ export async function grantQuestItems(
     return granted;
 }
 
-export async function checkQuestCompletion(playerId: number, questId: number): Promise<boolean> {
+export interface QuestRewardSummary {
+    questName: string;
+    items: Array<{ itemName: string; quantity: number }>;
+    xp: number;
+    skill: string | null;
+    gold: number;
+}
+
+/**
+ * Returns the reward summary when this call is what finished the quest, and
+ * null otherwise.
+ *
+ * The summary is returned rather than only broadcast so the NPC dialogue can
+ * show the rewards as the last thing the quest-giver says. A socket event
+ * arriving separately meant the rewards appeared in the middle of the screen,
+ * detached from the conversation that earned them.
+ */
+export async function checkQuestCompletion(playerId: number, questId: number): Promise<QuestRewardSummary | null> {
     const objectives = await db('quest_objectives').where({ quest_id: questId });
     const playerObjectives = await db('player_quest_objectives')
         .where({ player_id: playerId })
@@ -139,15 +156,20 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
         return po?.is_complete;
     });
 
-    if (allComplete) {
+    if (!allComplete) return null;
+
+    {
         await db('player_quests')
             .where({ player_id: playerId, quest_id: questId })
             .update({ status: 'completed', completed_at: new Date() });
 
         // Rewards
         const quest = await db('quests').where({ id: questId }).first();
+        let rewardSummaryItems: Array<{ itemName: string; quantity: number }> = [];
+        let rewardSummaryGold = 0;
         if (quest) {
             const granted = await grantQuestItems(playerId, quest.reward_items);
+            rewardSummaryItems = granted;
 
             if (quest.reward_xp && quest.skill) {
                 const skill = await db('skills').where({ name: quest.skill }).first();
@@ -166,21 +188,42 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
                 }
             }
 
-            if (granted.length > 0 || quest.reward_xp) {
+            const goldReward = Number(quest.reward_gold ?? 0);
+            rewardSummaryGold = goldReward;
+            if (goldReward > 0) {
+                const { creditGold } = await import('../services/gold');
+                await creditGold({
+                    playerId, amount: goldReward, reason: 'quest_reward',
+                    refType: 'quest', refId: questId,
+                });
+            }
+
+            if (granted.length > 0 || quest.reward_xp || goldReward > 0) {
                 const { io } = await import('../index');
                 io.to(`player_${playerId}`).emit('quest_rewards', {
                     questName: quest.name,
                     items: granted,
                     xp: quest.reward_xp || 0,
+                    gold: goldReward,
                     skill: quest.skill,
                 });
             }
         }
 
         logger.info(`Player ${playerId} completed quest ${questId}`);
+
+        if (quest) {
+            return {
+                questName: quest.name,
+                items: rewardSummaryItems,
+                xp: quest.reward_xp || 0,
+                skill: quest.skill ?? null,
+                gold: rewardSummaryGold,
+            };
+        }
     }
 
-    return allComplete;
+    return null;
 }
 
 
@@ -283,5 +326,30 @@ export async function updateQuestObjectiveProgress(
         logger.error(`Update quest objective error: ${err}`);
     }
 }
+
+/**
+ * "Go and look at X, then come back."
+ *
+ * Client-asserted, deliberately. The Manual is served unauthenticated, so there
+ * is no player to attribute a page view to server-side, and a mixed scheme
+ * where one visit is proven and the other is claimed would be worse than one
+ * honest rule. These objectives gate a pony and some starting coin on a
+ * tutorial; the stakes do not justify the machinery.
+ *
+ * Target names are matched exactly against quest_objectives.target_item, so a
+ * call naming something no active quest asks for does nothing at all.
+ */
+router.post('/visit', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const target = String(req.body?.target ?? '').slice(0, 60);
+    try {
+        if (!target) { res.status(400).json({ error: 'Invalid request.' }); return; }
+        await updateQuestObjectiveProgress(playerId, 'visit', target, 1);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Quest visit error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
 export default router;

@@ -1,7 +1,8 @@
 import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { getPlayerTraps, placeTrap, collectTrap, dismantleTrap, trapSlotsForLevel } from '../services/trapping'
+import { getPlayerTraps, placeTrap, collectTrap, dismantleTrap, trapSlotsForLevel, baitOptionsAt } from '../services/trapping'
+import { convertibleBait } from '../services/fishing'
 import { levelFromXp } from '../services/xp'
 import { logger } from '../index';
 
@@ -49,13 +50,32 @@ router.get('/traps', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 })
 
+/** Baits anything here wants, and how much of each the player holds. */
+router.get('/bait', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId
+    try {
+        const player = await db('players').where({ id: playerId }).first()
+        const [baits, convertible] = await Promise.all([
+            baitOptionsAt(playerId, player.current_location_id),
+            convertibleBait(playerId),
+        ])
+        res.json({ baits, convertible })
+    } catch (err) {
+        logger.error('Trapping bait error: ' + err)
+        res.status(500).json({ error: 'Server error' })
+    }
+})
+
 /** Place a trap at the player's current location. */
 router.post('/place', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId
-    const { trapTypeId } = req.body
+    const { trapTypeId, bait } = req.body
     try {
         const player = await db('players').where({ id: playerId }).first()
-        const result = await placeTrap(playerId, trapTypeId, player.current_location_id)
+        const result = await placeTrap(
+            playerId, trapTypeId, player.current_location_id,
+            typeof bait === 'string' && bait ? bait : null,
+        )
         if (!result.success) {
             res.status(400).json({ error: result.error })
             return

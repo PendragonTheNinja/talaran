@@ -230,7 +230,20 @@ export default function GameLayout({
   const [showSupport, setShowSupport] = useState(false)
   const [settingsClosing, setSettingsClosing] = useState(false)
 
-  const skillsPanelEl = <SkillsPanel skills={playerData?.skills || []} />
+  const skillsPanelEl = (
+    <SkillsPanel
+      skills={playerData?.skills || []}
+      playerName={player.username}
+      totalLevel={playerData?.totalLevel}
+      totalXp={playerData?.totalXp}
+      gold={playerData?.player?.gold}
+    />
+  )
+  /* Bumped whenever something happens that the player should be watching.
+     MobileShell switches to the action view on any change; on desktop the
+     action scene is always on screen, so nothing reads it. */
+  const [focusAction, setFocusAction] = useState(0)
+
   const isMobile = useIsMobile()
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
@@ -245,6 +258,10 @@ export default function GameLayout({
         body: JSON.stringify({ toLocationId }),
       })
       setTravelStatus({ message: `Traveling to ${toLocationName}...`, seconds: res.travelTime })
+      // On mobile the map is its own tab, so tapping a road there left the
+      // player staring at the same map wondering whether anything happened.
+      // Send them to where the journey is actually visible.
+      setFocusAction(n => n + 1)
     } catch (err: any) {
       if (err.status === 423) { rememberPendingAction(() => handleTravel(toLocationId, toLocationName, _travelTime)); return }
       setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
@@ -404,6 +421,10 @@ export default function GameLayout({
       setShowTanningModal(true)
     } else if (type === 'crafting_menu') {
       setShowCraftingMenu(true)
+    } else if (type === 'shop_build') {
+      // Raising a shopfront is Carpentry construction, so it borrows the
+      // farming timer the farmstead already uses. id carries the seconds.
+      setGameViewAction({ type: 'farming', id, text: 'build_shop' })
     } else {
       setGameViewAction({ type, id })
     }
@@ -459,6 +480,16 @@ export default function GameLayout({
   const [showNews, setShowNews] = useState(false)
 
   const [showManual, setShowManual] = useState(false)
+
+  // "Go and look at the book, then come back." Fires whenever the Manual opens;
+  // the server ignores it unless an active quest is actually asking for it.
+  useEffect(() => {
+    if (!showManual) return
+    apiFetch('/api/quests/visit', {
+      method: 'POST',
+      body: JSON.stringify({ target: 'Manual' }),
+    }).catch(() => { })
+  }, [showManual])
   // Which page the manual should open at. Null means the contents.
   const [manualTarget, setManualTarget] = useState<{ section: string; slug: string } | null>(null)
 
@@ -1097,6 +1128,7 @@ export default function GameLayout({
           chatPanel={chatPanelEl}
           miniMap={miniMapEl}
           mapRegion={mapRegion}
+          focusAction={focusAction}
         />
         <div className="mobile-modals">{sharedModals}</div>
       </>

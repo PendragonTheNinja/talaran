@@ -242,3 +242,26 @@
 .location-player-name.npc-name:hover {
   color: var(--color-gold-bright);
 }
+
+/* Unseen trades at your shop. Quiet on purpose: it is a nudge to go and look,
+   not an alarm, and it disappears the moment History is opened. */
+.location-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: var(--color-gold);
+    color: var(--color-bg-dark);
+    font-family: var(--font-heading);
+    font-size: 11px;
+    line-height: 16px;
+    vertical-align: middle;
+}
+
+/* Guild tag after a name in Players Here. Muted and slightly smaller than the
+   name, matching .chat-guild-tag: the tag is context, the name is the subject. */
+.location-guild-tag {
+    margin-left: 4px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+}

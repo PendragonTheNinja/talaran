@@ -6,6 +6,8 @@ import { logger } from '../lib/logger';
 import { xpForLevel, levelFromXp } from '../services/xp';
 import { sendSystemMessage } from './messages';
 import { connectedPlayers } from '../index';
+import { creditGold, debitGold } from '../services/gold';
+import { adminAdjustTalers } from '../services/talers';
 
 const router = Router();
 
@@ -416,6 +418,77 @@ router.post('/grant-xp', requireAuth, async (req: AuthRequest, res: Response) =>
             message: `${target.username}'s ${skill.name} is now level ${newLevel} (${newXp.toLocaleString()} xp).`,
         });
     } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Grant or revoke currency. One endpoint for both, because they are the same
+// decision with a different unit, and two near-identical endpoints would drift.
+//
+// A negative amount revokes. Neither balance may go below zero, so a revoke
+// larger than the balance is refused rather than clamped: silently taking less
+// than asked is worse than saying it cannot be done.
+router.post('/grant-currency', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { targetId, currency, amount } = req.body as { targetId: number; currency: string; amount: unknown };
+    try {
+        const staff = await db('players').where({ id: playerId }).first();
+        if (!staff?.is_admin) { res.status(403).json({ error: 'No permission.' }); return; }
+
+        if (currency !== 'gold' && currency !== 'talers') {
+            res.status(400).json({ error: 'Currency must be gold or talers.' });
+            return;
+        }
+
+        const value = Math.floor(Number(amount));
+        if (!Number.isFinite(value) || value === 0) {
+            res.status(400).json({ error: 'Amount must be a non-zero whole number.' });
+            return;
+        }
+
+        const target = await db('players').where({ id: targetId }).first();
+        if (!target) { res.status(404).json({ error: 'Player not found.' }); return; }
+
+        const label = currency === 'gold' ? 'gold' : 'Talers';
+        const verb = value > 0 ? 'granted' : 'revoked';
+        let balance: number;
+
+        if (currency === 'gold') {
+            if (value > 0) {
+                balance = await creditGold({
+                    playerId: targetId, amount: value,
+                    reason: 'admin_grant', refType: 'admin', refId: playerId,
+                });
+            } else {
+                const result = await debitGold({
+                    playerId: targetId, amount: -value,
+                    reason: 'admin_grant', refType: 'admin', refId: playerId,
+                });
+                if (!result.ok) {
+                    res.status(400).json({ error: `${target.username} only has ${result.balance.toLocaleString()} gold.` });
+                    return;
+                }
+                balance = result.balance;
+            }
+        } else {
+            const result = await adminAdjustTalers({
+                playerId: targetId, amount: value,
+                reason: `admin_grant by ${staff.username}`,
+            });
+            if (!result.ok) {
+                res.status(400).json({ error: `${target.username} only has ${result.balance.toLocaleString()} Talers.` });
+                return;
+            }
+            balance = result.balance;
+        }
+
+        logger.info(`${staff.username} ${verb} ${Math.abs(value)} ${label} ${value > 0 ? 'to' : 'from'} ${target.username}`);
+        res.json({
+            success: true,
+            message: `${verb} ${Math.abs(value).toLocaleString()} ${label} ${value > 0 ? 'to' : 'from'} ${target.username}. They now have ${balance.toLocaleString()}.`,
+        });
+    } catch (err) {
+        logger.error(`Grant currency error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

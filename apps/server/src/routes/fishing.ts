@@ -185,7 +185,9 @@ router.post('/cut', requireAuth, botCheckGate, async (req: AuthRequest, res: Res
         if (!species || typeof species !== 'string') {
             res.status(400).json({ error: 'No fish chosen.' }); return;
         }
-        const row = await db('fish_species').where({ name: species }).first();
+        // kind is checked here and not only in the picker: hiding a row in the
+        // client is decoration, and salvage shares this table with fish.
+        const row = await db('fish_species').where({ name: species, kind: 'fish' }).first();
         if (!row) { res.status(400).json({ error: 'That is not a fish you can cut for bait.' }); return; }
 
         if ((await equippedToolTier(playerId, 'butcher_knife')) === 0) {

@@ -95,6 +95,10 @@
           "blurb": "No trade here is self-sufficient. Not one."
         },
         {
+          "slug": "coin-and-commerce",
+          "title": "Coin & Commerce"
+        },
+        {
           "slug": "travel-and-mounts",
           "title": "Travel & Mounts",
           "blurb": "A hundred kilometres of Taiar, and how to make it cheaper."

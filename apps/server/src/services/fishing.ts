@@ -326,8 +326,37 @@ export async function convertBaitItem(
     }
 }
 
-/** Spend one bait of a category. Returns what is left, or null if there was none. */
-async function spendBait(trx: any, playerId: number, category: string): Promise<number | null> {
+/**
+ * Everything in the pack that could become bait, with what it is worth.
+ *
+ * Exported because trapping offers the same breakdown control: one bait pouch
+ * means one definition of what can go into it, or the two panels drift.
+ */
+export async function convertibleBait(playerId: number): Promise<Array<{
+    itemName: string; quantity: number; category: string; baitValue: number;
+}>> {
+    const baitRows = await db('bait_values');
+    const owned = await db('player_inventory')
+        .join('items', 'player_inventory.item_id', 'items.id')
+        .where('player_inventory.player_id', playerId)
+        .whereIn('items.name', baitRows.map((b: any) => b.item_name))
+        .select('items.name as name', 'player_inventory.quantity as quantity');
+
+    const byName = new Map(baitRows.map((b: any) => [b.item_name, b]));
+    return owned.map((o: any) => ({
+        itemName: o.name,
+        quantity: Number(o.quantity),
+        category: byName.get(o.name)!.category,
+        baitValue: Number(byName.get(o.name)!.bait_value),
+    }));
+}
+
+/**
+ * Spend one bait of a category. Returns what is left, or null if there was none.
+ * Exported because trapping draws from the same pouch: one bait store, one place
+ * that knows how to take from it.
+ */
+export async function spendBait(trx: any, playerId: number, category: string): Promise<number | null> {
     const row = await trx('player_bait')
         .where({ player_id: playerId, category }).forUpdate().first();
     if (!row || Number(row.amount) < 1) return null;
@@ -488,20 +517,7 @@ export async function getFishingOverview(playerId: number, locationId: number) {
     });
 
     // What the player could turn into bait right now, for the start dialog.
-    const baitRows = await db('bait_values');
-    const baitItemNames = baitRows.map((b) => b.item_name);
-    const owned = await db('player_inventory')
-        .join('items', 'player_inventory.item_id', 'items.id')
-        .where('player_inventory.player_id', playerId)
-        .whereIn('items.name', baitItemNames)
-        .select('items.name as name', 'player_inventory.quantity as quantity');
-    const byName = new Map(baitRows.map((b) => [b.item_name, b]));
-    const convertible = owned.map((o) => ({
-        itemName: o.name,
-        quantity: Number(o.quantity),
-        category: byName.get(o.name)!.category,
-        baitValue: Number(byName.get(o.name)!.bait_value),
-    }));
+    const convertible = await convertibleBait(playerId);
 
     // Salvage listed separately: it is not a fish, has no window or season, and
     // showing it inside the fish list would imply it can be targeted.
@@ -518,7 +534,10 @@ export async function getFishingOverview(playerId: number, locationId: number) {
     // Fish currently in the pack, for the Cut Bait picker. Every fish in the
     // game is cuttable, not just the ones from this water, so a Dawncrest haul
     // can be cut at Luxmere.
-    const allSpecies = await db('fish_species').where({ is_active: true });
+    // kind: 'fish' matters here. Salvage rows live in this same table, so
+    // without it a River Mussel or a Locked Rusty Chest offers itself up to be
+    // cut into bait. Only fish are fish.
+    const allSpecies = await db('fish_species').where({ is_active: true, kind: 'fish' });
     const heldFish = await db('player_inventory')
         .join('items', 'player_inventory.item_id', 'items.id')
         .where('player_inventory.player_id', playerId)
@@ -829,7 +848,11 @@ export async function processCutBait(playerId: number, speciesName: string): Pro
             return { success: false, error: 'You need a butchering knife equipped to cut bait.' };
         }
 
-        const species = await db('fish_species').where({ name: speciesName }).first();
+        // Third and last place kind is checked: the picker, the endpoint that
+        // starts the action, and the resolver that finishes it. An action queued
+        // before this fix will now fail cleanly instead of turning a Locked
+        // Rusty Chest into bait.
+        const species = await db('fish_species').where({ name: speciesName, kind: 'fish' }).first();
         if (!species) return { success: false, error: 'That is not a fish you can cut for bait.' };
 
         let out: FishingResult = { success: false };

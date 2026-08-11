@@ -100,6 +100,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     const [grantMode, setGrantMode] = useState<'setLevel' | 'add'>('setLevel')
     const [grantAmount, setGrantAmount] = useState('10')
     const [giveQty, setGiveQty] = useState('1')
+    const [grantCurrency, setGrantCurrency] = useState<'gold' | 'talers'>('gold')
+    const [grantCurrencyAmount, setGrantCurrencyAmount] = useState('100')
 
     useEffect(() => {
         loadOnlinePlayers()
@@ -280,6 +282,24 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             setSuccess(data.message)
         } catch (err: any) {
             setError(err.message || 'Could not grant experience.')
+        }
+    }
+
+    const handleGrantCurrency = async () => {
+        if (!selectedPlayer) return
+        setError(null); setSuccess(null)
+        try {
+            const data = await apiFetch<{ message: string }>('/api/admin/grant-currency', {
+                method: 'POST',
+                body: JSON.stringify({
+                    targetId: selectedPlayer.id,
+                    currency: grantCurrency,
+                    amount: parseInt(grantCurrencyAmount) || 0,
+                }),
+            })
+            setSuccess(data.message)
+        } catch (err: any) {
+            setError(err.message || 'Could not change that balance.')
         }
     }
 
@@ -711,6 +731,41 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                     />
                                     <button className="btn" style={{ fontSize: '13px' }} onClick={handleGrantXp} disabled={!grantSkillId}>
                                         {grantMode === 'setLevel' ? 'Set Level' : 'Add XP'}
+                                    </button>
+                                </div>
+                                )}
+
+                                {/* Grant currency — one card for both, since it is
+                                    the same decision with a different unit. A
+                                    negative amount takes it back. */}
+                                {isAdmin && (
+                                <div className="admin-action-card">
+                                    <p className="admin-section-title">💰 Grant Currency</p>
+                                    <select
+                                        className="chat-input"
+                                        value={grantCurrency}
+                                        onChange={e => setGrantCurrency(e.target.value as 'gold' | 'talers')}
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    >
+                                        <option value="gold">Gold</option>
+                                        <option value="talers">Talers</option>
+                                    </select>
+                                    <input
+                                        className="chat-input"
+                                        type="number"
+                                        value={grantCurrencyAmount}
+                                        onChange={e => setGrantCurrencyAmount(e.target.value)}
+                                        placeholder="Amount (negative to take away)"
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    />
+                                    <button
+                                        className="btn"
+                                        style={{ fontSize: '13px' }}
+                                        onClick={handleGrantCurrency}
+                                        disabled={!parseInt(grantCurrencyAmount)}
+                                    >
+                                        {(parseInt(grantCurrencyAmount) || 0) < 0 ? 'Take' : 'Grant'}
+                                        {grantCurrency === 'gold' ? ' Gold' : ' Talers'}
                                     </button>
                                 </div>
                                 )}

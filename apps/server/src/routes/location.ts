@@ -125,7 +125,9 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
     const players = await db('players')
       .where({ current_location_id: player.current_location_id })
       .whereIn('id', onlineIds)
-      .select('id', 'username');
+      // guild_tag is the same column chat reads, so a player's tag is identical
+      // wherever their name appears.
+      .select('id', 'username', 'guild_tag');
 
     res.json({ players });
   } catch (err) {

@@ -63,6 +63,48 @@ export async function creditPurchase(params: {
 }
 
 /**
+ * Adjust a player's Talers by staff decision. Positive credits, negative
+ * revokes. Returns { ok: false } without side effects if a revoke would take
+ * the balance below zero.
+ *
+ * Deliberately separate from creditPurchase: that path is idempotent on a
+ * Paddle transaction id because a webhook can be replayed, whereas a grant is a
+ * person clicking a button and every click is meant to count.
+ */
+export async function adminAdjustTalers(params: {
+    playerId: number;
+    amount: number;
+    reason: string;
+}): Promise<{ ok: boolean; balance: number }> {
+    const { playerId, amount, reason } = params;
+    if (!Number.isInteger(amount) || amount === 0) {
+        return { ok: false, balance: await getTalerBalance(playerId) };
+    }
+
+    return db.transaction(async (trx) => {
+        // Lock the player row as a mutex, the same as spends do, so two grants
+        // cannot both read the same balance before either has written.
+        await trx('players').where({ id: playerId }).forUpdate().first();
+
+        const [row] = await trx('taler_ledger').where({ player_id: playerId }).sum('delta as balance');
+        const balance = Number(row?.balance ?? 0);
+        if (balance + amount < 0) return { ok: false, balance };
+
+        await trx('taler_ledger').insert({
+            player_id: playerId,
+            delta: amount,
+            reason,
+            ref_type: 'admin',
+            ref_id: null,
+        });
+
+        const after = balance + amount;
+        logger.info(`[talers] admin adjusted player ${playerId} by ${amount}, balance ${after}`);
+        return { ok: true, balance: after };
+    });
+}
+
+/**
  * Debit Talers inside an existing transaction. The caller must hold the
  * player-row lock (forUpdate) before calling. Returns false (no insert) if
  * the balance is insufficient.

@@ -92,6 +92,7 @@ const FISHING_SCENE_TEXT: Record<string, string> = {
 const FARM_SCENE_TEXT: Record<string, string> = {
   establish: 'You raise your farmstead, post and beam, stone and nail.',
   build_plot: 'You set posts and rails, fencing in a new field.',
+  build_shop: 'You raise a shopfront, post and beam, stone and nail.',
   till: 'You break the soil, turning it over ready for seed.',
   sow: 'You work down the rows, pressing seed into the earth.',
   harvest: 'You lift the crop from the earth, filling your baskets.',
@@ -610,11 +611,23 @@ export default function GameView({
         addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
       })
 
-      socket.on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; skill: string }) => {
+      socket.on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; gold?: number; skill: string }) => {
+        // A record in the log, not an announcement. The rewards themselves are
+        // shown at the foot of the conversation that earned them (NPCDialogue).
+        // These used to persist forever, which meant a gold block sat in the
+        // middle of the screen until the page was refreshed.
         for (const item of data.items) {
-          addLog(`You received ${item.quantity}× ${item.itemName}.`, 'success', true)
+          addLog(`You received ${item.quantity}× ${item.itemName}.`, 'success')
         }
-        if (data.xp > 0) addLog(`+${data.xp} ${data.skill} experience.`, 'success', true)
+        if (data.gold && data.gold > 0) addLog(`You received ${data.gold.toLocaleString()} gold.`, 'success')
+        if (data.xp > 0) addLog(`+${data.xp} ${data.skill} experience.`, 'success')
+      })
+
+      // Throttled server-side to once every few minutes per shop, so a busy
+      // shop mentions itself occasionally rather than once per sale. The
+      // figures live in the shop's History; this is only a nudge.
+      socket.on('shop_traded', (data: { message: string }) => {
+        addLog(data.message, 'success')
       })
 
       socket.on('trap_sprung', () => {
@@ -643,6 +656,7 @@ export default function GameView({
         socket.off('action_failed')
         socket.off('trap_sprung')
         socket.off('quest_rewards')
+        socket.off('shop_traded')
         socket.off('vein_discovered')
         socket.off('vein_announced')
         socket.off('vein_depleted')
@@ -757,6 +771,19 @@ export default function GameView({
       case 'farm_tend':
         setCurrentAction('farming')
         setFarmKind(action.action_type.replace('farm_', ''))
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
+      // Its own case rather than joining the block above, because the scene key
+      // is not derivable from the action name the way 'farm_*' ones are.
+      //
+      // EVERY timed action needs a case here. Without one the server keeps
+      // counting down and the client comes back from a refresh believing it is
+      // idle, so the player is told they are busy with nothing on screen.
+      case 'shop_establish':
+        setCurrentAction('farming')
+        setFarmKind('build_shop')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break

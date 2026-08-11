@@ -304,7 +304,16 @@ router.patch('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Resp
             if (!row) return { status: 404 as const, error: 'Row not found.' };
             const oldValue = row[column];
 
-            await trx(name).where({ id: rowId }).update({ [column]: prepared.write });
+            const patch: Record<string, unknown> = { [column]: prepared.write };
+
+            // Setting a price by hand IS an override, so say so in the data.
+            // Without this the derivation engine's next --write would quietly
+            // undo the edit, and the only clue would be a number that drifted
+            // back on its own. Clear value_locked to hand the item back to the
+            // formula.
+            if (name === 'items' && column === 'value') patch.value_locked = true;
+
+            await trx(name).where({ id: rowId }).update(patch);
             await trx('content_changes').insert({
                 player_id: playerId,
                 table_name: name,

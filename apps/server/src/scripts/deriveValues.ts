@@ -95,9 +95,28 @@ const goldForSeconds = (level: number, seconds: number) =>
 type Method =
     | 'fish' | 'forage' | 'node' | 'byproduct' | 'trap' | 'hunt' | 'crop'
     | 'husbandry' | 'recipe' | 'saw' | 'woodwork' | 'smelt' | 'smith'
-    | 'tier-estimate';
+    | 'tier-estimate' | 'override';
 
 interface Derived { value: number; method: Method; basis: string; level: number }
+
+// ---- Hand-set values ------------------------------------------------------
+//
+// The rules are good but not omniscient. Some items have a derived value that
+// is technically consistent and obviously wrong to anyone who has played the
+// game. This is where you say so.
+//
+// These are applied LAST, after every rule, so they win outright. Keeping them
+// here rather than editing items.value by hand is the point: a hand edit in the
+// admin panel is erased the next time this script runs with --write, whereas an
+// entry here survives forever and carries its reasoning with it.
+//
+// Add a line, re-run with --write. Every override appears in the report so a
+// list of them is never more than one run away.
+const OVERRIDES: Record<string, { value: number; why: string }> = {
+    // The peg prices the sawing action, and the plank already carries that
+    // value. The dust is what is left on the floor.
+    'Sawdust': { value: 1, why: 'Byproduct nobody would pay real coin for' },
+};
 
 const best = new Map<string, Derived>();
 /** Keep the CHEAPEST honest acquisition: value is a floor, not an average. */
@@ -145,8 +164,9 @@ async function readTable(name: string, activeOnly = true): Promise<any[]> {
 
 async function main(): Promise<void> {
     const write = process.argv.includes('--write');
-    const items: Array<{ id: number; name: string; tier: number | null }> =
-        await db('items').select('id', 'name', 'tier');
+    const items: Array<{ id: number; name: string; tier: number | null; value_locked?: boolean }> =
+        await db('items').select('id', 'name', 'tier', 'value_locked');
+    const lockedNames = new Set(items.filter((i) => i.value_locked).map((i) => i.name));
     const itemNames = new Set(items.map((i) => i.name));
     const itemById = new Map(items.map((i) => [i.id, i.name]));
 
@@ -451,7 +471,10 @@ async function main(): Promise<void> {
     let md = `# Derived item values\n\nPeg: value = xp / ${VALUE_DIVISOR}. `
         + `NPC walls: buys at ${NPC_BUY_PCT}%, sells at ${NPC_SELL_PCT}%. `
         + `Level-1 band: ${Math.round(goldPerHour(1))}g of value per hour.\n`;
-    const order: Method[] = ['fish', 'forage', 'node', 'byproduct', 'trap', 'hunt',
+    // Overrides lead the report: they are the decisions a human made, and the
+    // most useful thing to see first when checking whether a run did what you
+    // wanted.
+    const order: Method[] = ['override', 'fish', 'forage', 'node', 'byproduct', 'trap', 'hunt',
         'crop', 'husbandry', 'saw', 'smelt', 'woodwork', 'smith', 'recipe', 'tier-estimate'];
     for (const m of order) {
         const list = (byMethod.get(m) ?? []).sort((a, b) => a.d.level - b.d.level || a.d.value - b.d.value);
@@ -481,14 +504,73 @@ async function main(): Promise<void> {
     console.log(`priced ${[...best.keys()].filter((n) => itemNames.has(n)).length}/${items.length} items; `
         + `${unpriced.length} unpriced; ${orphanRefs.length} orphan refs. Report: /tmp/derived-values.md`);
 
+    // ---- Rules that need every value settled first ------------------------
+    //
+    // Dense ore is proposed at a flat multiple of its base, but propose() keeps
+    // the CHEAPEST path, so a recipe that happens to use dense ore could drag it
+    // below the plain version. A dense rock being worth less than an ordinary
+    // one is nonsense in a way no player would forgive, so it is enforced here
+    // rather than hoped for.
+    for (const [name, d] of best) {
+        if (!name.startsWith('Dense ')) continue;
+        const baseName = name.slice('Dense '.length);
+        const base = best.get(baseName);
+        if (!base) continue;
+        const floor = base.value + 1;
+        if (d.value < floor) {
+            best.set(name, {
+                ...d,
+                value: floor,
+                basis: `${d.basis}; raised to stay above ${baseName} (${base.value}g)`,
+            });
+        }
+    }
+
+    // ---- Overrides win over everything ------------------------------------
+    for (const [name, o] of Object.entries(OVERRIDES)) {
+        if (!itemNames.has(name)) {
+            console.warn(`  (override for "${name}" ignored: no such item)`);
+            continue;
+        }
+        const prev = best.get(name);
+        best.set(name, {
+            value: Math.max(1, Math.round(o.value)),
+            method: 'override',
+            level: prev?.level ?? 1,
+            basis: `${o.why}${prev ? ` (derivation said ${prev.value}g)` : ''}`,
+        });
+    }
+    if (Object.keys(OVERRIDES).length) {
+        console.log(`applied ${Object.keys(OVERRIDES).length} hand-set override(s)`);
+    }
+
     if (write) {
         let n = 0;
+        let skipped = 0;
         for (const [name, d] of best) {
             if (!itemNames.has(name)) continue;
-            await db('items').where({ name }).update({ value: d.value });
+
+            // A locked value is a human decision. Report what the formula would
+            // have said, then leave it alone.
+            if (lockedNames.has(name) && d.method !== 'override') {
+                const current = await db('items').where({ name }).select('value').first();
+                if (Number(current?.value) !== d.value) {
+                    console.log(`  locked: ${name} stays ${current?.value}g (derivation says ${d.value}g)`);
+                }
+                skipped++;
+                continue;
+            }
+
+            // An OVERRIDES entry is equally a human decision, so writing one
+            // locks the row too. Otherwise the admin panel and this file would
+            // disagree about who owns the number.
+            await db('items').where({ name }).update({
+                value: d.value,
+                value_locked: d.method === 'override',
+            });
             n++;
         }
-        console.log(`wrote items.value for ${n} items`);
+        console.log(`wrote items.value for ${n} items${skipped ? `, left ${skipped} locked value(s) alone` : ''}`);
     }
     await db.destroy();
 }

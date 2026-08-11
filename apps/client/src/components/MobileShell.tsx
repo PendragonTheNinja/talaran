@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './MobileShell.css'
 
 type MobileView = 'action' | 'inventory' | 'skills' | 'chat' | 'map'
@@ -13,6 +13,8 @@ interface MobileShellProps {
     chatPanel: React.ReactNode
     miniMap: React.ReactNode
     mapRegion: string
+    /** Increments when something starts that the player should be watching. */
+    focusAction?: number
 }
 
 const NAV: { key: MobileView; label: string; icon: string }[] = [
@@ -23,10 +25,24 @@ const NAV: { key: MobileView; label: string; icon: string }[] = [
     { key: 'map', label: 'Map', icon: '🗺️' },
 ]
 
-export default function MobileShell({ menuItems, actionScene, locationPanel, inventoryPanel, equipmentPanel, skillsPanel, chatPanel, miniMap, mapRegion }: MobileShellProps) {
+export default function MobileShell({ menuItems, actionScene, locationPanel, inventoryPanel, equipmentPanel, skillsPanel, chatPanel, miniMap, mapRegion, focusAction = 0 }: MobileShellProps) {
     const [view, setView] = useState<MobileView>('action')
     const [showFullMap, setShowFullMap] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
+
+    /* Jump to the action view when travel begins. Tapping a road on the map tab
+       otherwise looks like nothing happened, because the thing that changed is
+       on a screen the player is not looking at.
+
+       Guarded on the first render so arriving on the app does not fight whatever
+       view the player last had. */
+    const lastFocus = useRef(focusAction)
+    useEffect(() => {
+        if (focusAction === lastFocus.current) return
+        lastFocus.current = focusAction
+        setShowFullMap(false)
+        setView('action')
+    }, [focusAction])
 
     return (
         <div className="mobile-shell">

@@ -1,0 +1,613 @@
+/* Player Shops. Same modal shape and type scale as MarketplaceMenu.css:
+
+     display   22px   panel title
+     figure    24px   the total on a confirm
+     primary   15-16px  shop names, item names, prices
+     meta      13px   stock counts, owner line
+     micro     11px   tags only
+
+   EB Garamond runs small for its point size, so nothing goes below 13px except
+   the uppercase tag. */
+
+.shp-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: var(--space-md);
+}
+
+.shp-modal {
+    width: 100%;
+    max-width: 720px;
+    max-height: 86vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) 20px 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+
+.shp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.shp-header h2 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--color-gold-bright);
+    margin: 0;
+}
+
+.shp-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+/* The purse is a number the player checks constantly, so it is sized like one
+   rather than tucked into the corner as trim. */
+.shp-purse {
+    font-family: var(--font-heading);
+    font-size: 19px;
+    line-height: 1;
+    color: var(--color-gold-bright);
+    white-space: nowrap;
+}
+
+.shp-purse-unit {
+    font-size: 13px;
+    color: var(--color-gold-dim);
+    margin-left: 2px;
+}
+
+.shp-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.shp-close:hover {
+    color: var(--color-text-bright);
+}
+
+/* ── Merchants ─────────────────────────────────────────────────────────── */
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+
+/* ── Rows ──────────────────────────────────────────────────────────────── */
+
+.shp-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.shp-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 10px 12px;
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+}
+
+.shp-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.shp-icon-blank {
+    display: inline-block;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-dark);
+}
+
+.shp-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.shp-row-name {
+    font-size: 16px;
+    line-height: 1.2;
+    color: var(--color-text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shp-row-sub {
+    font-size: 13px;
+    line-height: 1.3;
+    color: var(--color-text-dim);
+}
+
+.shp-row-price {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    color: var(--color-gold-bright);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+
+.shp-act,
+.shp-cancel {
+    flex-shrink: 0;
+    min-height: 34px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    padding: 6px 18px;
+    cursor: pointer;
+}
+
+.shp-act {
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.shp-act:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-bright);
+}
+
+.shp-act:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.shp-cancel {
+    background: none;
+    border: 1px solid var(--color-border-dark);
+    color: var(--color-text-muted);
+}
+
+.shp-cancel:hover:not(:disabled) {
+    color: var(--color-text-bright);
+    border-color: var(--color-border-mid);
+}
+
+/* ── Confirm ───────────────────────────────────────────────────────────── */
+
+.shp-confirm {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: var(--space-lg);
+}
+
+.shp-confirm h3 {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-heading);
+    font-size: 19px;
+    line-height: 1.2;
+    color: var(--color-text-bright);
+}
+
+.shp-qty {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.shp-qty input {
+    width: 92px;
+    min-height: 34px;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    font-family: var(--font-heading);
+    font-size: 16px;
+    padding: 4px 8px;
+    text-align: center;
+}
+
+.shp-qty-step,
+.shp-qty-all {
+    min-height: 34px;
+    min-width: 34px;
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-base);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+
+.shp-qty-step:hover:not(:disabled),
+.shp-qty-all:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    color: var(--color-text-bright);
+}
+
+.shp-qty-step:disabled,
+.shp-qty-all:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Band breakdown. A reduced band is the one thing on this screen a player
+   could feel cheated by, so it is marked on the row itself rather than only
+   summarised underneath. */
+
+.shp-total-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-top: 1px solid var(--color-border-dark);
+    padding-top: var(--space-sm);
+    margin-bottom: var(--space-md);
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.shp-total {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    line-height: 1;
+    color: var(--color-gold-bright);
+}
+
+.shp-warn {
+    margin: 0 0 var(--space-md);
+    padding: 9px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-gold);
+    background: rgba(200, 146, 42, 0.08);
+    border-left: 3px solid var(--color-gold);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.shp-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+/* ── States ────────────────────────────────────────────────────────────── */
+
+.shp-empty {
+    color: var(--color-text-dim);
+    font-size: 15px;
+    font-style: italic;
+    padding: 28px 0;
+    text-align: center;
+}
+
+.shp-error {
+    color: var(--color-red-glow);
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0 0 var(--space-md);
+}
+
+.shp-notice {
+    color: var(--color-xp);
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0 0 var(--space-md);
+}
+
+/* ── Narrow ────────────────────────────────────────────────────────────── */
+
+
+
+/* ── Sort bar ──────────────────────────────────────────────────────────── */
+
+.shp-sort {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.shp-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 14px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+
+.shp-sort-btn:hover {
+    color: var(--color-text-bright);
+}
+
+.shp-sort-btn.is-active {
+    color: var(--color-gold-bright);
+    border-color: var(--color-border-gold);
+    background: var(--color-bg-deep);
+}
+
+.shp-sort-arrow {
+    font-size: 9px;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+/* ── Shopfront list ────────────────────────────────────────────────────── */
+
+/* ONE line per shop. A market town is meant to hold a hundred of these, and at
+   four rows each that was a scroll marathon. Name and owner get fixed room, the
+   tagline takes whatever is left and truncates, and the state word sits right.
+   The whole row is the click target, so there is no button either. */
+
+.shp-front {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: 6px 10px;
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.shp-front:hover {
+    background: var(--color-bg-mid);
+}
+
+.shp-front.is-shut {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.shp-front.is-shut:hover {
+    background: var(--color-bg-deep);
+}
+
+.shp-front-name {
+    flex: 0 1 auto;
+    max-width: 44%;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shp-front-owner {
+    flex: 0 0 auto;
+    font-size: 13px;
+    color: var(--color-text-dim);
+}
+
+/* Takes the leftover width and gives it back when there is none. */
+.shp-front-tag {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shp-front-state {
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-text-dim);
+}
+
+.shp-mine-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--space-md);
+}
+
+/* ── Inside a shop ─────────────────────────────────────────────────────── */
+
+.shp-back-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.shp-desc {
+    margin: 0 0 var(--space-md);
+    font-size: 14px;
+    line-height: 1.5;
+    font-style: italic;
+    color: var(--color-text-muted);
+    /* The owner's line breaks are theirs to keep. The server has already
+       collapsed blank-line runs and capped the total, so this cannot be used
+       to shove the shelves off the screen. */
+    white-space: pre-wrap;
+}
+
+.shp-section {
+    margin: var(--space-md) 0 var(--space-sm);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-gold-bright);
+}
+
+.shp-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.shp-filter {
+    flex: 1;
+    min-width: 150px;
+    min-height: 34px;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    font-size: 14px;
+    padding: 4px 10px;
+}
+
+.shp-sort {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.shp-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 14px;
+    padding: 4px 11px;
+    cursor: pointer;
+}
+
+.shp-sort-btn:hover {
+    color: var(--color-text-bright);
+}
+
+.shp-sort-btn.is-active {
+    color: var(--color-gold-bright);
+    border-color: var(--color-border-gold);
+    background: var(--color-bg-deep);
+}
+
+.shp-sort-arrow {
+    font-size: 9px;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+.shp-have {
+    color: var(--color-xp);
+}
+
+/* ── Build ─────────────────────────────────────────────────────────────── */
+
+.shp-build {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.shp-build h3 {
+    margin: 0 0 var(--space-sm);
+    font-family: var(--font-heading);
+    font-size: 18px;
+    color: var(--color-gold-bright);
+}
+
+.shp-build-blurb {
+    margin: 0 0 var(--space-md);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+.shp-cost {
+    list-style: none;
+    margin: 0 0 var(--space-md);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.shp-cost li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    padding: 3px 8px;
+    border-left: 3px solid transparent;
+}
+
+.shp-cost li.is-met {
+    color: var(--color-text-muted);
+    border-left-color: var(--color-xp);
+}
+
+.shp-cost li.is-short {
+    color: var(--color-gold);
+    border-left-color: var(--color-gold);
+    background: rgba(200, 146, 42, 0.07);
+}
+
+
+/* ── Narrow ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+    .shp-modal {
+        padding: var(--space-md);
+        max-height: 92vh;
+    }
+
+    .shp-header h2 {
+        font-size: 19px;
+    }
+
+    /* The price and the button matter more than the icon when space is tight. */
+    .shp-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .shp-row {
+        gap: var(--space-sm);
+        padding: 9px 10px;
+    }
+
+    .shp-row-name,
+    .shp-row-price {
+        font-size: 15px;
+    }
+
+    .shp-act,
+    .shp-cancel {
+        padding: 6px 13px;
+    }
+}

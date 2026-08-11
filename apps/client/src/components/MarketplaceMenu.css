@@ -1,0 +1,554 @@
+/* Taiar Marketplace.
+   Same modal shape as FishingMenu.css, set on a deliberate type scale rather
+   than the cramped one this started with.
+
+     display   22px   panel title
+     figure    24px   the total on a confirm, the biggest thing on screen
+     primary   15px   merchant names, item names, prices, tabs
+     meta      13px   counts, allowances, greeting
+     micro     11px   tags only
+
+   EB Garamond runs small for its point size, so nothing here goes below 13px
+   except the uppercase tag, which is tracked out to stay readable.
+
+   The one place this panel raises its voice is a reduced price band, because
+   that is the only number here a player can be surprised by. */
+
+.mkt-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: var(--space-md);
+}
+
+.mkt-modal {
+    width: 100%;
+    max-width: 720px;
+    max-height: 86vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) 20px 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+
+.mkt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.mkt-header h2 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--color-gold-bright);
+    margin: 0;
+}
+
+.mkt-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+/* The purse is a number the player checks constantly, so it is sized like one
+   rather than tucked into the corner as trim. */
+.mkt-purse {
+    font-family: var(--font-heading);
+    font-size: 19px;
+    line-height: 1;
+    color: var(--color-gold-bright);
+    white-space: nowrap;
+}
+
+.mkt-purse-unit {
+    font-size: 13px;
+    color: var(--color-gold-dim);
+    margin-left: 2px;
+}
+
+.mkt-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.mkt-close:hover {
+    color: var(--color-text-bright);
+}
+
+/* ── Merchants ─────────────────────────────────────────────────────────── */
+
+.mkt-merchants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.mkt-merchant {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 14px;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: left;
+}
+
+.mkt-merchant:hover {
+    border-color: var(--color-border-mid);
+}
+
+.mkt-merchant.is-active {
+    border-color: var(--color-border-bright);
+    background: var(--color-bg-mid);
+}
+
+.mkt-merchant-name {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    line-height: 1.15;
+    color: var(--color-text-bright);
+}
+
+.mkt-merchant.is-active .mkt-merchant-name {
+    color: var(--color-gold-bright);
+}
+
+.mkt-merchant-title {
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--color-text-dim);
+}
+
+.mkt-greeting {
+    margin: 0 0 var(--space-md);
+    font-size: 14px;
+    line-height: 1.45;
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+
+.mkt-tabs {
+    display: flex;
+    gap: var(--space-xs);
+    border-bottom: 1px solid var(--color-border-dark);
+    margin-bottom: var(--space-md);
+}
+
+.mkt-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 16px;
+    padding: 7px 18px;
+    cursor: pointer;
+}
+
+.mkt-tab:hover {
+    color: var(--color-text-bright);
+}
+
+.mkt-tab.is-active {
+    color: var(--color-gold-bright);
+    border-bottom-color: var(--color-gold);
+}
+
+/* ── Rows ──────────────────────────────────────────────────────────────── */
+
+.mkt-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.mkt-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 10px 12px;
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+}
+
+.mkt-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.mkt-icon-blank {
+    display: inline-block;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-dark);
+}
+
+.mkt-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.mkt-row-name {
+    font-size: 16px;
+    line-height: 1.2;
+    color: var(--color-text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mkt-row-sub {
+    font-size: 13px;
+    line-height: 1.3;
+    color: var(--color-text-dim);
+}
+
+.mkt-tag {
+    margin-left: var(--space-sm);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-text-dim);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    white-space: nowrap;
+}
+
+.mkt-warn-inline {
+    color: var(--color-gold);
+}
+
+.mkt-row-price {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    color: var(--color-gold-bright);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+
+.mkt-act,
+.mkt-cancel {
+    flex-shrink: 0;
+    min-height: 34px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    padding: 6px 18px;
+    cursor: pointer;
+}
+
+.mkt-act {
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.mkt-act:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-bright);
+}
+
+.mkt-act:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.mkt-cancel {
+    background: none;
+    border: 1px solid var(--color-border-dark);
+    color: var(--color-text-muted);
+}
+
+.mkt-cancel:hover:not(:disabled) {
+    color: var(--color-text-bright);
+    border-color: var(--color-border-mid);
+}
+
+/* ── Confirm ───────────────────────────────────────────────────────────── */
+
+.mkt-confirm {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: var(--space-lg);
+}
+
+.mkt-confirm h3 {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-heading);
+    font-size: 19px;
+    line-height: 1.2;
+    color: var(--color-text-bright);
+}
+
+.mkt-qty {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.mkt-qty input {
+    width: 92px;
+    min-height: 34px;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    font-family: var(--font-heading);
+    font-size: 16px;
+    padding: 4px 8px;
+    text-align: center;
+}
+
+.mkt-qty-step,
+.mkt-qty-all {
+    min-height: 34px;
+    min-width: 34px;
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-base);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+
+.mkt-qty-step:hover:not(:disabled),
+.mkt-qty-all:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    color: var(--color-text-bright);
+}
+
+.mkt-qty-step:disabled,
+.mkt-qty-all:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Band breakdown. A reduced band is the one thing on this screen a player
+   could feel cheated by, so it is marked on the row itself rather than only
+   summarised underneath. */
+
+.mkt-bands {
+    list-style: none;
+    margin: 0 0 var(--space-md);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mkt-band {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+    padding: 5px 10px;
+    border-left: 3px solid transparent;
+}
+
+.mkt-band.is-reduced {
+    color: var(--color-gold);
+    border-left-color: var(--color-gold);
+    background: rgba(200, 146, 42, 0.07);
+}
+
+.mkt-band-qty {
+    min-width: 52px;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-text-base);
+}
+
+.mkt-band.is-reduced .mkt-band-qty {
+    color: var(--color-gold-bright);
+}
+
+.mkt-band-rate {
+    flex: 1;
+}
+
+.mkt-band-gold {
+    font-family: var(--font-heading);
+    font-size: 15px;
+}
+
+.mkt-total-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-top: 1px solid var(--color-border-dark);
+    padding-top: var(--space-sm);
+    margin-bottom: var(--space-md);
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.mkt-total {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    line-height: 1;
+    color: var(--color-gold-bright);
+}
+
+.mkt-warn {
+    margin: 0 0 var(--space-md);
+    padding: 9px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-gold);
+    background: rgba(200, 146, 42, 0.08);
+    border-left: 3px solid var(--color-gold);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.mkt-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+/* ── States ────────────────────────────────────────────────────────────── */
+
+.mkt-empty {
+    color: var(--color-text-dim);
+    font-size: 15px;
+    font-style: italic;
+    padding: 28px 0;
+    text-align: center;
+}
+
+.mkt-error {
+    color: var(--color-red-glow);
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0 0 var(--space-md);
+}
+
+.mkt-notice {
+    color: var(--color-xp);
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0 0 var(--space-md);
+}
+
+/* ── Narrow ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+    .mkt-modal {
+        padding: var(--space-md);
+        max-height: 92vh;
+    }
+
+    .mkt-header h2 {
+        font-size: 19px;
+    }
+
+    /* The price and the button matter more than the icon when space is tight. */
+    .mkt-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .mkt-row {
+        gap: var(--space-sm);
+        padding: 9px 10px;
+    }
+
+    .mkt-row-name,
+    .mkt-row-price {
+        font-size: 15px;
+    }
+
+    .mkt-act,
+    .mkt-cancel {
+        padding: 6px 13px;
+    }
+
+    .mkt-merchant {
+        flex: 1 1 calc(50% - var(--space-sm));
+        padding: 7px 11px;
+    }
+}
+
+/* ── Sort bar ──────────────────────────────────────────────────────────── */
+
+.mkt-sort {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.mkt-sort-label {
+    font-size: 13px;
+    color: var(--color-text-dim);
+    margin-right: var(--space-xs);
+}
+
+.mkt-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 14px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+
+.mkt-sort-btn:hover {
+    color: var(--color-text-bright);
+}
+
+.mkt-sort-btn.is-active {
+    color: var(--color-gold-bright);
+    border-color: var(--color-border-gold);
+    background: var(--color-bg-deep);
+}
+
+.mkt-sort-arrow {
+    font-size: 9px;
+    line-height: 1;
+    opacity: 0.85;
+}
