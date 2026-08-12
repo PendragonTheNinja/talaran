@@ -53,7 +53,8 @@ Every repeat failure this past patch was a convention that already existed here 
 9. **The result card has THREE render branches** (hunting / message-carrying / generic) and a change to one reaches none of the others. Anything XP-only (till, build, tend) also falls through the generic branch's `itemName` gate and renders nothing — send a `message` and give it a branch. Check all three every time.
 10. **New recipes set `flavor_text`.** The per-skill fallback in `RECIPE_FLAVOR_BY_SKILL` is a net, not the plan, and needs an entry for any new recipe-owning skill.
 11. **The action limiter is applied per repeating block, not once centrally.** A resolve branch that returns early skips all three copies, and the new skill silently ignores limits every other skill honours. Copy the `action.action_limit` block into any new looping branch. Fishing shipped this bug too.
-12. **Verify by grepping the FILE's vocabulary, not your own.** Grepping for the skill name only confirms what you added. Grep `currentAction ===` and `case '` and diff that list against your action types; that is what surfaces the render sites nobody thinks to search for.
+12. **`GameLayout.handleLocationAction` needs a branch if a PANEL starts the action.** It ends in a `setGameViewAction({ type, id })` fallback that only works for action types the scene already understands. A panel-started build (`shop_build`) fell through it and the player saw nothing happen, then was told they were already busy. Panels must also call `onActionStarted(seconds, kind)` — `FarmPanel.tsx:116` is the reference.
+13. **Verify by grepping the FILE's vocabulary, not your own.** Grepping for the skill name only confirms what you added. Grep `currentAction ===` and `case '` and diff that list against your action types; that is what surfaces the render sites nobody thinks to search for.
 
 ## 2a-1. Verifying the client actually compiles
 
@@ -124,6 +125,16 @@ Every new skill is a re-implementation of an existing one. Read the closest sibl
 - **Storage is per-property**, keyed by the location the player stands in, so a new property type gets storage with no new code. One slot = one unique item stack of any size; topping up an existing stack never needs a free slot.
 - **Sub-system capacity lives on the property row** (`plot_slots`, `storage_slots`) so a tier upgrade is a number change, not a schema change.
 - **Skill gates belong to the skill that owns the sub-system.** Farming level caps plot count; Carpentry level caps house tier. Never gate one skill's capacity behind another skill's level — materials trade between players, levels don't.
+
+## 2c-1. Shops & the marketplace (shipped 2026-08-11)
+
+- **A shop IS a property.** `player_properties` with `type='shop'`, so `property_storage` works unchanged and a shop and farmstead coexist at one location via the existing `(player_id, location_id, type)` unique. `player_shops` adds only the commerce layer on top.
+- **`propertyForPlayerHere()` excludes shops unless asked by name.** It used to match on player+location alone, which was fine while a farmstead was the only ownable thing; now a bare `.first()` at a town holding both returns whichever Postgres feels like. Pass a type.
+- **Two gold stores per shop, and they never mix**: `till_gold` (takings, withdraw only) and `buy_fund_gold` (backs standing buy orders). Part of the fund is reserved against outstanding orders; only `buyFundAvailable()` may be withdrawn.
+- **Escrow both sides.** Listing MOVES goods out of storage onto the shelf, so a shop can never advertise more than it holds. Cancelling with full storage **refuses** rather than destroying anything.
+- **Presence is enforced in the service layer, not the routes**, so the rule holds however a call arrives.
+- **Merchants and their stock are seed data** (`08_merchants.ts`), not code — idempotent, upsert-only, declarative (a line removed from the file deactivates the row). Run it ALONE: `npm run seed` executes every seed, and `02_items.ts` opens by deleting `player_inventory` and `player_equipment`.
+- **There is deliberately no cross-shop item index.** Finding a good price is a player activity. Don't build a search box.
 
 ## 2c-3. Husbandry
 
@@ -199,6 +210,17 @@ Applies to everything a player reads: item/habitat descriptions, NPC dialogue, q
 - **Bark** (Carpentry sawing byproduct) supplies tanning's tannins. The five barks map onto five future leather tiers: Lanai tans tier-1, Hatch tier-2, etc.
 - Cryptids are the rare tier (Squonk, 0.5% weight). `notable` and `perishable` are per-drop data flags, never inferred from chance.
 
+### Currency (shipped 2026-08-11)
+
+- **Value is DERIVED, never chosen.** `value = xp of the yielding action ÷ 5`, min 1, whole gold. `scripts/deriveValues.ts` writes it. **Do not hand-edit `items.value`** expecting it to survive; the next `--write` overwrites anything not marked `value_locked`. Setting a value in the admin content browser sets that flag automatically. The `OVERRIDES` map at the top of the script is the versioned alternative and locks the row too.
+- **The doctrine that has held this together, and that has been got wrong three times: price the ATTENTION an action costs, never the clock it runs on.** Husbandry, crops and passive recipes each broke it. It is why no passive skill drops gold, and why farming's gold finds are on `farm_till` and `farm_harvest` only.
+- **The walls: NPC sells at 175% of value, buys at 45%** (pawnbroker 35%). Because buy% sits far below sell%, store-to-NPC arbitrage always loses money *by construction*. `validateWalls()` proves it stays that way; content changes, and a silent inversion is a money printer.
+- **Gold from gathering is 1% of xp/hr, at every level, for every timer.** `coins = (xp/5) × (1..3)` at a 2.5% chance; the timer cancels out algebraically. ~22g/hr at L1, ~70g at L50, a constant 11% uplift on merchant income. If it needs to feel richer, raise the multiplier, not the frequency — frequency is what turns a surprise into income.
+- **Three safety nets exist and are wired to the admin Balance tab**: `reconcileGold()` (ledger drift — should ALWAYS be empty), `validateWalls()` (arbitrage), `unmappedItems()` (priced items no themed merchant claims, which fall to the pawnbroker's worse rate). A check nobody runs is the same as not having one.
+- **The vault counter has two sources**, because shop tax never touches `gold_ledger`: `npc_purchase` from the ledger, plus `SUM(tax)` from `shop_transactions`. See the ledger-invariant landmine in §5.
+- **Merchant domains are a map in `services/marketplace.ts`, grouped by the chain that PRODUCES an item**, not what it is made of. A hatchet is the smith's business despite the wooden handle. Unmatched items fall to the pawnbroker, which guarantees nothing is unsellable but is silent — `unmappedItems()` is how you notice a whole skill's output landed there.
+- **Daily allowances are per player, per item, per day.** Never a global pool: that hands the good rates to whichever timezone wakes first. Daily merchant stock rotation is seeded from the date string, never `Math.random()`, or the shelves reshuffle whenever pm2 bounces.
+
 ### The circularity rule (important)
 **The wild economy is gated on itself**: bow → hunt → hide → leather → snare, and both bowstrings and snare cordage would come from hunting. **Foraging is the only thing that breaks the circle** — plant fiber → cordage → snare, and wild flax → linen thread → bowstring, neither requiring a bow. Husbandry *cannot* fix this (it depends on Hunting); it supplies volume, not entry.
 
@@ -206,7 +228,7 @@ Therefore: **tool breakage cannot ship until every tool has a craft path that do
 
 ## 5. Known landmines
 
-- **The client type-check is a lie.** `apps/client/tsconfig.json` has `"files": []` + project references, so `npx tsc --noEmit` compiles **zero files** and always exits 0. The real command is **`npx tsc --noEmit -p tsconfig.app.json`**. Vite doesn't type-check on build, which is why pre-existing client type errors have accumulated (missing `is_admin`, two conflicting `Skill` types, `onRequestTrade`, `onDropModeChange`, `xpAtLevel` missing from `XpInfo`). Baseline was **30 at a68b680 (2026-07-26)** and is **34 at 8d06bfd (2026-08-07)**, so it drifts: measure it yourself on a clean tree before starting, then diff the error *sets* (not just the counts) after. Don't chase zero.
+- **The client type-check is a lie.** `apps/client/tsconfig.json` has `"files": []` + project references, so `npx tsc --noEmit` compiles **zero files** and always exits 0. The real command is **`npx tsc --noEmit -p tsconfig.app.json`**. Vite doesn't type-check on build, which is why pre-existing client type errors have accumulated (missing `is_admin`, two conflicting `Skill` types, `onRequestTrade`, `onDropModeChange`, `xpAtLevel` missing from `XpInfo`). Baseline was **30 at a68b680 (2026-07-26)**, **34 at 8d06bfd (2026-08-07)**, and **27 at 8b5f68b (2026-08-11)** — it moves in both directions: measure it yourself on a clean tree before starting, then diff the error *sets* (not just the counts) after. Don't chase zero.
 - **pg returns `numeric`/`decimal` as strings.** Use `integer` columns (trap weights are relative ints: 640/355/5) or parse explicitly.
 - **CSS tokens have no bare names**: `--color-border-mid/-dark/-gold`, `--color-text-base/-muted/-bright`, `--color-gold`. There is no `--color-border`, `--color-text`, or `--color-error`. Buttons are `btn btn-gold`, not `btn primary`. Check `apps/client/src/index.css` before styling.
 - **`:Zone.Identifier` files** breed whenever a browser download is dragged into the repo via Explorer. Gitignored now; if they reappear, something bypassed it. One attached itself to a migration filename and nearly broke the deploy.
@@ -226,6 +248,14 @@ Therefore: **tool breakage cannot ship until every tool has a craft path that do
 - **A recipe's XP in its seed migration is not its live XP.** `20260723060000_recipe_timer_floor_and_xp.ts` rebalanced the tool and material recipes, and knex tracks by filename, so the original files still read the old values while the database holds the new ones. Copying a sibling recipe's numbers out of its seed file shipped the fishing hook at double band and the net at two thirds of it. **Query the live row, or check whether a later migration touched it, before calibrating anything against it.**
 - **`window` is a reserved SQL word.** `fish_species` uses `time_window`.
 - **A new gathering skill is invisible until `routes/location.ts` says it exists.** `LocationPanel.tsx` renders each skill's entry button off a field in the location payload (`foragingHabitats`, `huntableAnimals`, `fishSpeciesCount`). Ship the skill without adding one and there is no way into it from the world, however complete the panel is.
+- **Build-tool checks live in `services/construction.ts`. Never write a local copy.** Farming and shops each had their own, and both got it wrong the same way: mallet checked as EQUIPPED, saw checked as merely CARRIED. Husbandry independently got it right, so one rule had two behaviours and nothing said which was correct. The slot map is the load-bearing part — mallet is `mainhand_item_id`, saw is `offhand_item_id`, they fit together, and checking the wrong column fails silently for one of them.
+- **`fish_species` holds two kinds of row.** Salvage (`kind='salvage'`) shares the table with fish because it shares location, weight, xp and discovery. Every query needs a `kind` filter. Without one, River Mussels and Locked Rusty Chests offered themselves up to be cut into bait — and it had to be fixed in FOUR places (the picker, the endpoint, the resolver, and gameTick's auto-restart), because hiding a row in the client is decoration, not a control.
+- **Express matches routes in registration order, so `/:id` must be declared LAST.** `router.get('/:shopId')` sitting above `/mine/state` swallowed it: `mine` arrived as the shopId, failed to parse, and every owner endpoint under it was unreachable. Looks fine in review and is invisible until something downstream needs the route.
+- **Any transaction touching TWO players' gold must lock both rows up front, in ASCENDING player id order.** Two transactions grabbing the same pair in opposite orders deadlock under load, at the worst possible moment. `lockPlayersInOrder()` in `services/gold.ts` handles it; `transferGoldWithin()` calls it for you. The trade window and the shop sale path share these rows.
+- **`gold_ledger` deltas must always sum to `players.gold`.** That invariant is the only thing making `reconcileGold()` meaningful. Shop takings go to the shop's TILL, not the owner's balance, so writing a ledger row at sale time puts every player with uncollected takings permanently out of reconciliation. The owner's row happens at collection (`shop_till_withdraw`); the sale itself is history in `shop_transactions`, and the tithe is a column on it, not a ledger line. The vault counter therefore has two sources, which is why (see §4).
+- **A trap reset must clear `bait_category`.** `collectTrap` sets the trap back to `state: 'set'`, and for one patch it left the bait on, so a single bait aimed every subsequent catch until the snare broke. Anything that resets a row to a reusable state must consider every field the previous use wrote.
+- **`quests.skill` is nullable now** (`20260810170000`). The tutorial belongs to no trade. Client renders must guard it rather than printing `null`.
+- **Dialogue actions carry the quest ID, not the name.** `resolveActionQuest` accepts a name as a warned fallback, so `start_quest:Some Quest Name` appears to work until somebody renames it. And `complete_talk_objective` **requires a payload** — the route matches on `complete_talk_objective:` with a colon, and a bare action silently completes nothing.
 - **`training-path` in `routes/manual.ts` only reads `resource_nodes` and `recipes`.** Any skill whose progression lives in its own table (`crops`, `fish_species`) renders an EMPTY manual table until a branch is added for it. Both Farming and Fishing hit this.
 
 ## 6. Deploy ritual
@@ -240,9 +270,15 @@ On the box (`ssh talaran`): `cd /var/www/talaran` → `git pull` → `cd apps/se
 
 - `docs/husbandry-design.md` — pre-build Husbandry design. Kept for reasoning; §2c-3 above is the summary of record.
 
-Specs: `docs/manual-spec.md` (the manual's authority — content model, directives, IA, voice) · `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/fishing-spec.md` · `docs/IDEAS.md` (parking lot; the event-chat "firsts" feed lives here). Sims are regenerable — ask Claude to re-derive constants when knobs change.
+Specs: `docs/marketplace-spec.md` (gold, the Taiar Marketplace, player shops, and the new player tutorial) · `docs/manual-spec.md` (the manual's authority — content model, directives, IA, voice) · `docs/xp-rebalance.md` · `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/fishing-spec.md` · `docs/IDEAS.md` (parking lot; the event-chat "firsts" feed lives here). Sims are regenerable — ask Claude to re-derive constants when knobs change.
 
 **Shipped 2026-07-26 (a68b680):** the Manual (19 pages, public `/manual` + in-game panel, live data blocks, admin override editor) and per-guild forums (`guild_forum_*`, own boards and per-board rank permissions, Forum tab in `GuildPanel`).
+
+**Shipped 2026-08-11 (Patch 2.5, "Coin"):** gold + `gold_ledger`, the Taiar Marketplace (5 merchants, 175/45/35 walls, per-player daily allowances with step-down), player shops (storage, listings, standing buy orders with reserved gold, history, unseen-trade badge), gold from gathering, Quank and the new player tutorial, quest rewards folded into the final conversation, trap bait drawn from the fishing pouch, guild tags in Players Here, and the `Coin & Commerce` manual page.
+
+**Deferred by choice, not forgotten:** shop tier ladder (tier 2+ storage/slots — the per-tier numbers already live in a table so it is data plus one row) · stall rent · a poll on one-shop-per-island vs per-location · the Provisioner (seeded but disabled: while inactive, fish/crops/forage fall to the pawnbroker's 35% instead of a themed 45%; set `is_active: true` with `sells: false` to fix without needing a shelf).
+
+**Quank name-drops Merrick** in both dialogue scripts. Rename the smith and that line needs editing in `20260810180000`.
 
 **Manual pages still unwritten:** Cooking, Combat, plus Trading, Item Firsts, Themes & Palettes, and a Bestiary. (Fishing shipped 2026-08-07.) The Skills sidebar will want grouping before those land. `/manual` is also not yet linked from the homepage.
 
