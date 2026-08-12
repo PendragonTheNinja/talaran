@@ -22,7 +22,7 @@ Foraging is the most gear-friendly trade in Talaran, and the reason is a small p
 - **Foraging gloves, worn on your hands.** Not speed. *Access.* Certain finds are prickly, thorned, or otherwise unfriendly, and without gloves those rows simply never come up. You will never know what you are missing, which is the cruelest kind of missing.
 - **Foraging basket, carried in your off hand.** One extra of whatever you found. Small, dull, and it never stops working.
 
-Notice that these occupy three different places on your person. Knife in hand, gloves on hands, basket in the other hand. **All three can be worn at once**, and all three should be. This is not a choice between tools. It is a set, and a forager missing one of the three is leaving a third of the trade on the ground.
+Notice that these occupy three different places on your person. Knife in hand, gloves on hands, basket in the other hand. **All three can be worn at once**, and all three should be. They are a set, not a choosing. A forager missing one of the three leaves a third of the trade lying on the ground.
 
 ## What it feeds
 

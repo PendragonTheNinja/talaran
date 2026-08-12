@@ -28,7 +28,7 @@ Two conveniences worth knowing.
 
 **Progress you have already made counts.** Accept a task to till a field when you have been tilling fields all morning, and the world credits what you have already done rather than pretending it never happened. Nobody enjoys performing work twice for a witness.
 
-**Turning in is a conversation too.** You return to the person who sent you and you tell them. It is not a form. It is not automatic. Someone asked you to do a thing, and now you get to say that you did it, which is most of the pleasure of doing things.
+**Turning in is a conversation too.** You return to the person who sent you and you tell them. No form to file, no quiet tick in a ledger. Someone asked you to do a thing, and now you get to say that you did it, which is most of the pleasure of doing things.
 
 ## A word on rewards
 

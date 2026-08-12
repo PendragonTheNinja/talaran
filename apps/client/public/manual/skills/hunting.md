@@ -132,7 +132,7 @@ Budget for it. A trapper who builds exactly as many traps as he has slots will, 
 
 ## What it is actually for
 
-Trapping is not a substitute for the hunt. It is slower, and it catches smaller things.
+Trapping will never replace the hunt. It is slower, and it catches smaller things.
 
 But it is the only road into Husbandry, which makes it the least optional optional trade in Talaran.
 

@@ -16,7 +16,7 @@ Then it steepens, and keeps steepening, and by the upper reaches a single level 
 
 I have opinions about this, but the useful observation is a practical one. **The cheapest levels in Talaran are always the ones you have not started yet.** A man at level ninety in one trade and level one in nine others is sitting on an enormous quantity of very cheap progress, and frequently does not realise it.
 
-That is not an argument against mastery. It is an argument for knowing what mastery costs, which is a different and more interesting thing.
+None of that argues against mastery. It argues for knowing what mastery costs before you set out after it.
 
 ---
 

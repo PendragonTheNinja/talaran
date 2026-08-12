@@ -2,7 +2,7 @@ Here is the thing about Talaran that took me longest to see, and which I now con
 
 **No trade here is self-sufficient. Not one.**
 
-I do not mean that specialising is inefficient. I mean that if you follow any trade far enough it stops, and waits, and will not continue until some other trade hands it something. This is not an oversight. It is the design, and once you see it you cannot stop seeing it.
+I do not mean that specialising is inefficient. I mean that if you follow any trade far enough it stops, and waits, and will not continue until some other trade hands it something. That waiting is deliberate, and once you see it you cannot stop seeing it.
 
 ## Follow an arrow
 
@@ -14,7 +14,7 @@ Five trades. One arrow. And the hunter, who looses it, is the only one of the fi
 
 Now consider that the hunter's kill becomes hides for the crafter, meat for the cook, and young animals for the herder, and that the herder's cattle become better leather than the wild ever produced, and that the leather comes back around to make gear for the people who started the whole business.
 
-It is not a chain. It is a wheel, and you are standing somewhere on it.
+The shape of it is a wheel, and you are standing somewhere on it.
 
 ## What this means for you, practically
 

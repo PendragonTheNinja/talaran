@@ -28,7 +28,7 @@ The floor exists so that distance means something. A world you can cross instant
 
 Certain equipment trims your journeys directly: a good staff in your hands, decent boots on your feet. These add together, and they add on top of Agility.
 
-Your starting **Lanai Staff** does this. It is a modest three percent, and I would forgive you for dismissing it, but three percent of every journey you will ever take is not a modest number at all. It is a modest-*looking* number, which is a different thing and a more interesting one.
+Your starting **Lanai Staff** does this. It is a modest three percent, and I would forgive you for dismissing it, but three percent of every journey you will ever take is not a modest number at all. It is a modest-*looking* number, and those are the ones worth checking twice.
 
 {{data:item-stats:Lanai Staff}}
 

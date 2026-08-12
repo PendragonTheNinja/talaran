@@ -30,7 +30,7 @@ This means homestead storage rewards the hoarder of few things and punishes the 
 
 ## Why you want one earlier than you think
 
-New players treat property as a late-game reward. It is not. It is infrastructure, and infrastructure pays from the day it exists.
+New players treat property as a late-game reward and leave it far too long. Property is infrastructure, and infrastructure pays from the day it exists.
 
 The moment you have somewhere to put four thousand planks, your gathering trips stop being limited by what you can carry and start being limited by how long you feel like going. That is a different game, and a considerably better one.
 

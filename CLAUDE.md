@@ -185,6 +185,39 @@ Applies to everything a player reads: item/habitat descriptions, NPC dialogue, q
 - **Text is content, so it lives in the DB.** A wording change ships as a migration, not a code edit. Exception: UI chrome (button labels, status lines) lives in the component.
 - Keep the voice: plain, concrete, a little folkloric. NPCs talk like working people, not narrators.
 
+### Banned constructions
+
+Never ship these in player-facing text. They are the default register of machine-written prose and they read as nothing in particular.
+
+- "it's not just X, it's Y", "more than just", "not merely"
+- "a testament to", "at its core", "the heart of"
+- "delve", "tapestry", "rich history of", "seamlessly", "unlock"
+- "whether you're a X or a Y"
+- Modern corporate register: leverage, streamline, optimize, robust, utilize, facilitate
+- A closing sentence that restates what the paragraph just said. Stop at the last real sentence instead.
+
+### Positive rules
+
+- **Concrete nouns over abstract ones.** "Tannin-stained hands", not "the tanning experience". Name the object, not the category it belongs to.
+- **Specific numbers over quantifiers.** "Nine winters", not "many years". Exception: the narrator's own voice may use "a great many" and similar as period diction. This is about descriptions and system text, not the Manual's narrator.
+- **Vary sentence length hard.** Fragments are allowed and good. Three medium sentences in a row is the machine default.
+- **No three-item lists used for rhythm.** If the third item exists only to complete the cadence, cut it. Two or four, or restructure.
+- **Item and NPC text is written from inside the world**, never as a description of a game feature. A pickaxe description does not mention mining levels.
+- **Period-plausible diction.** Nothing a person in Talaran could not have said.
+
+### Overuse is its own failure
+
+A good construction repeated becomes a tic, and a tic reads as machine output even when every instance was written well. Two are currently at that threshold in the Manual and must not spread further:
+
+- **The corrective reversal** ("It is not a hunt. It is a transaction with a deer."). ~13 instances across 23 Manual pages. The line is good; the frequency is not. Budget: at most one per page, and only where the reversal genuinely turns the meaning. If a page already has one, find a different move.
+- **"which is a different thing"** / "a different and more interesting thing". 5 instances, two of them near-verbatim across `systems/travel-and-mounts.md` and `reference/xp-curve.md`. Retire the phrase.
+
+Before shipping a new Manual page or a batch of descriptions, grep for both. They are easy to write without noticing, exactly like the em dash.
+
+### What this is not about
+
+These rules exist because generic prose is bad worldbuilding, not because of AI-detection. Claude output carries a model-level statistical watermark (announced 2026-08-11) that no instruction can suppress and that the model cannot see. Do not add rules aimed at evading it. Write well because Talaran should sound like itself.
+
 ## 3. Migrations — hard-won rules
 
 - **`migrate:make`, paste contents, THEN run.** Running `npm run migrate` before saving the file **burns the filename** — knex records it as complete and the real contents *never execute*. This happened (`tannery_all_timber`) and cost an hour of confusion.

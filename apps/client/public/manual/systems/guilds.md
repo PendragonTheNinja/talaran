@@ -24,7 +24,7 @@ Guilds carry a small hierarchy, and it exists to answer one question: who may ac
 
 The **founder** is whoever created the guild. Leaders share most of that authority. Between them they handle the decisions that affect the whole company, invitations chief among them.
 
-Everyone else is a **member**, which is not a lesser thing. It is the thing the guild is made of.
+Everyone else is a **member**, which is the thing a guild is actually made of.
 
 ## Joining
 
@@ -38,7 +38,7 @@ If you want one, go and be visible. Talk in Help chat. Answer a question you kno
 
 Your guild has its own chat, seen only by its members.
 
-This is the part I underrated for far too long. It is not a feature. It is the entire point of the thing. A world of long timers and slow roads becomes a completely different world when there is somebody to talk to while the timers run.
+This is the part I underrated for far too long. The channel is the entire point of the thing. A world of long timers and slow roads becomes a completely different world when there is somebody to talk to while the timers run.
 
 ## What I would tell you
 

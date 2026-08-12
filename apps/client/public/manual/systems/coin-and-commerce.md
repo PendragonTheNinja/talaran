@@ -76,7 +76,7 @@ The other half is stranger and better.
 
 You may post **standing offers to buy**: two hundred Ambren Ore at six gold apiece, say. Put gold into your shop's **buying fund**, post the offer, and any passing player may sell you ore without you being anywhere near. Partial fills are normal, and you will pay for what actually arrives.
 
-The gold behind an offer is **reserved** the moment you post it. You will see your fund split into what is promised and what is free, and only the free part can be withdrawn. This is not the shop being awkward. It is the shop making sure that a seller who walks in with two hundred ore actually gets paid.
+The gold behind an offer is **reserved** the moment you post it. You will see your fund split into what is promised and what is free, and only the free part can be withdrawn. That reservation is what lets a seller walk in with two hundred ore and know he will actually be paid for them.
 
 Your till and your buying fund never mix. One is money you have made; the other is money you have committed to spend.
 

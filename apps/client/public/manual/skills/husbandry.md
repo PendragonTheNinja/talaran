@@ -4,7 +4,7 @@ Here is the difference, and I will put it as plainly as I know how.
 
 A field is a transaction. You break the soil, you press the seed in, you go away, you come back, you take the crop, and the field forgets you entirely. The arrangement is closed. Nothing is owed in either direction.
 
-An animal is not a transaction. An animal is a **standing relationship with something that eats**. You do not finish with a cow. You are simply, from the day you acquire her, a person who has a cow.
+An animal is a **standing relationship with something that eats**. You do not finish with a cow. You are simply, from the day you acquire her, a person who has a cow.
 
 ## Where and how to start
 
@@ -39,7 +39,7 @@ Feeding fills a pen for **twelve hours**, every animal in it, one action and one
 
 Now attend to this, because it is the single most important sentence on this page: **an animal that is not fed does not die.**
 
-It does not sicken. It does not waste. It stops. Growing stops, laying stops, the whole clock halts and the animal stands there being an animal—and rather hungry—until you come back. Return in a month and you will find it precisely as you left it, and a month behind where it might have been.
+It does not sicken. It does not waste. It stops. Growing stops, laying stops, the whole clock halts and the animal stands there being an animal, and rather hungry, until you come back. Return in a month and you will find it precisely as you left it, and a month behind where it might have been.
 
 Neglect costs you the time you were away and nothing more. I have known players who found this unsatisfying, wanting a farm that punishes them properly. I would gently suggest that a game which kills your named cow because you had a difficult week is not teaching you husbandry. It is teaching you not to have a cow.
 
@@ -49,7 +49,7 @@ Neglect costs you the time you were away and nothing more. I have known players 
 
 Three stages, and only the middle one is at full strength.
 
-A **juvenile** does nothing but grow, and only while fed. An **adult** works at full rate. An **elder** is slower at everything—fewer eggs, less milk, and so on—and will go on being slow, and old, and yours for as long as you care to keep her.
+A **juvenile** does nothing but grow, and only while fed. An **adult** works at full rate. An **elder** is slower at everything. Fewer eggs, less milk, and so on. She will go on being slow, and old, and yours for as long as you care to keep her.
 
 She will never die on her own. That is deliberate. The game will not take her from you; it only makes the case, gently and continuously, that a younger one in her place would produce better.
 

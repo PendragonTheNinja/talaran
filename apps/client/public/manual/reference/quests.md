@@ -2,7 +2,7 @@ Every quest in Talaran, listed here in one place because you cannot see them any
 
 That is worth restating, since it makes this page unusual. A quest you have not been offered does not appear in your own records at all. It is not greyed out. It is not marked on a map. As far as your own log is concerned it does not exist, because the conversation has not happened.
 
-So this is not a list of your work. It is a list of *the world's* work, and of who is holding it.
+So read this as a list of *the world's* work, and of who is currently holding it.
 
 {{data:quests}}
 

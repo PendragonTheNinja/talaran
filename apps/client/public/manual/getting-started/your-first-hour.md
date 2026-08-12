@@ -6,7 +6,7 @@ I arrived the same way, some years ago, and spent my first hour standing on the 
 
 I am aware of how that sounds.
 
-Taiar runs a hundred kilometres from end to end, and you will spend more of your life crossing it than you will ever spend arriving anywhere. Your pony cuts a journey to a third of what your own two legs will charge you. That is not a convenience. That is a third of your life handed back.
+Taiar runs a hundred kilometres from end to end, and you will spend more of your life crossing it than you will ever spend arriving anywhere. Your pony cuts a journey to a third of what your own two legs will charge you. Call that a third of your life handed back to you.
 
 Ride the pony. It is not a decoration, it is not a pet, and it is certainly not, as I once treated mine, a sort of large anxious wheelbarrow.
 

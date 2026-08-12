@@ -67,7 +67,7 @@ Your Smithing level decides how many batches the kiln will take at once:
 
 At level 40 with excellent logs, that is five hundred Charc from a single three-hour burn. At level 1 with poor logs it is sixty. The same kiln, the same three hours.
 
-Every batch also pays some experience, so a full kiln is not merely fuel, it is a quiet and entirely passive fifth of a smith's progress.
+Every batch also pays some experience, so a full kiln pays you twice over: charcoal for the forge, and a quiet passive fifth of a smith's progress.
 
 ## What I would actually do
 
