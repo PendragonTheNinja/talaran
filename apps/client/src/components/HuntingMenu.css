@@ -376,3 +376,12 @@
     letter-spacing: 0.5px;
     color: var(--color-gold);
 }
+
+/* Bait consumed by a catch. Stated on the reveal because a snare that quietly
+   stopped being baited would read as the bait having failed. */
+.trapline-reveal-bait {
+    margin: var(--space-sm) 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-text-dim);
+}

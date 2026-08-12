@@ -39,6 +39,8 @@ interface CollectResult {
     drops?: { itemName: string; quantity: number; notable: boolean }[]
     broke?: boolean
     scavenged?: boolean
+    /** Bait this catch ate. The snare is bare afterwards. */
+    baitUsed?: string | null
 }
 
 interface HuntingMenuProps {
@@ -188,6 +190,13 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                         )
                     ))}
                     <p className="trapline-reveal-xp">+{reveal.xpAwarded} Hunting experience</p>
+                    {/* Said plainly, because a snare that silently stopped being
+                        baited would look like the bait had failed. */}
+                    {reveal.baitUsed && !reveal.broke && (
+                        <p className="trapline-reveal-bait">
+                            The {(BAIT_LABELS[reveal.baitUsed] ?? reveal.baitUsed).toLowerCase()} bait is gone. Set fresh bait to aim the next one.
+                        </p>
+                    )}
                     {reveal.broke && (
                         <p className="trapline-reveal-broke">Your snare broke.</p>
                     )}

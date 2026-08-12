@@ -170,6 +170,8 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
     drops?: { itemName: string; quantity: number; notable: boolean }[]
     broke?: boolean
     scavenged?: boolean
+    /** The bait this catch consumed, if any. The snare is unbaited afterwards. */
+    baitUsed?: string | null
 }> {
     try {
         let result: any = null
@@ -186,6 +188,7 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
                 // Content was removed out from under a live catch: reset the trap quietly.
                 await trx('player_traps').where({ id: trap.id }).update({
                     state: 'set', caught_target_id: null, caught_at: null, last_scavenge_check: null,
+                    bait_category: null,
                     next_roll_at: new Date(Date.now() + (trapType?.roll_interval_seconds ?? 1800) * 1000),
                 })
                 throw new Error('NOTHING_CAUGHT')
@@ -214,16 +217,29 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
             }
 
             const broke = Math.random() * 100 < trapType.break_chance
+            const wasBaited = trap.bait_category as string | null
+
             if (broke) {
                 await trx('player_traps').where({ id: trap.id }).delete()
             } else {
                 await trx('player_traps').where({ id: trap.id }).update({
                     state: 'set', caught_target_id: null, caught_at: null, last_scavenge_check: null,
+                    // Bait is EATEN by the thing that took it. Resetting the trap
+                    // without clearing this left a single bait working forever,
+                    // aiming every subsequent catch until the snare broke, which
+                    // is the opposite of the rule.
+                    bait_category: null,
                     next_roll_at: new Date(Date.now() + trapType.roll_interval_seconds * 1000),
                 })
             }
 
-            result = { success: true, species: target.name, flavorText: target.flavor_text ?? null, xpAwarded: target.xp, drops, broke, scavenged }
+            result = {
+                success: true, species: target.name, flavorText: target.flavor_text ?? null,
+                xpAwarded: target.xp, drops, broke, scavenged,
+                // So the panel can say the snare is bare again rather than
+                // leaving the owner to wonder.
+                baitUsed: wasBaited,
+            }
         })
 
         return result
