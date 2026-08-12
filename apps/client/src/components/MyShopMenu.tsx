@@ -37,6 +37,24 @@ interface MyShop {
     taxRate: number
 }
 
+interface HistoryEntry {
+    id: number
+    direction: 'sale' | 'purchase'
+    name: string
+    quantity: number
+    unitPrice: number
+    gross: number
+    tax: number
+    net: number
+    counterparty: string | null
+    at: string
+}
+
+interface HistoryData {
+    entries: HistoryEntry[]
+    totals: { earned: number; tithed: number; spent: number }
+}
+
 interface StorageState {
     slots: number
     used: number
@@ -58,7 +76,8 @@ function ItemIcon({ name }: { name: string }) {
 }
 
 export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
-    const [tab, setTab] = useState<'storage' | 'manage'>('storage')
+    const [tab, setTab] = useState<'storage' | 'manage' | 'history'>('storage')
+    const [history, setHistory] = useState<HistoryData | null>(null)
     const [shop, setShop] = useState<MyShop | null>(null)
     const [storage, setStorage] = useState<StorageState | null>(null)
     const [gold, setGold] = useState(0)
@@ -130,6 +149,17 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
         }
     }
 
+    // Loaded on demand: a shop that has never been visited has nothing to show,
+    // and the list can run to 200 rows.
+    useEffect(() => {
+        if (tab !== 'history') return
+        let cancelled = false
+        apiFetch<HistoryData>('/api/shops/mine/history')
+            .then(h => { if (!cancelled) setHistory(h) })
+            .catch(err => { if (!cancelled) setError(err.message) })
+        return () => { cancelled = true }
+    }, [tab])
+
     /** Tap-to-move, either direction, capped by what the stack actually holds. */
     const move = (dir: 'deposit' | 'withdraw', item: StoredItem) =>
         act(`/api/shops/mine/storage/${dir}`, {
@@ -181,6 +211,9 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                     </button>
                     <button className={`msh-tab${tab === 'manage' ? ' is-active' : ''}`} onClick={() => setTab('manage')}>
                         Manage Shop
+                    </button>
+                    <button className={`msh-tab${tab === 'history' ? ' is-active' : ''}`} onClick={() => setTab('history')}>
+                        History
                     </button>
                 </div>
 
@@ -527,6 +560,61 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                     ))}
                                 </ul>
                             )}
+                    </>
+                )}
+
+                {/* ── History ───────────────────────────────────────────── */}
+                {/* The whole promise of a shop is that it trades while you are
+                    away, which is worth nothing if you come back to a fuller
+                    till and no idea what left the shelf. */}
+                {tab === 'history' && (
+                    <>
+                        {!history && <p className="msh-empty">Turning the pages…</p>}
+
+                        {history && (
+                            <>
+                                <div className="msh-money">
+                                    <div className="msh-money-box">
+                                        <span className="msh-money-label">Earned, all time</span>
+                                        <span className="msh-money-value">{fmt(history.totals.earned)}g</span>
+                                        <span className="msh-money-note">after {fmt(history.totals.tithed)}g in tithes</span>
+                                    </div>
+                                    <div className="msh-money-box">
+                                        <span className="msh-money-label">Spent on buy orders</span>
+                                        <span className="msh-money-value">{fmt(history.totals.spent)}g</span>
+                                        <span className="msh-money-note">paid out to sellers</span>
+                                    </div>
+                                </div>
+
+                                {history.entries.length === 0
+                                    ? <p className="msh-empty">Nobody has traded here yet.</p>
+                                    : (
+                                        <ul className="msh-list">
+                                            {history.entries.map(e => (
+                                                <li key={e.id} className="msh-hist">
+                                                    <span className={`msh-hist-dir is-${e.direction}`}>
+                                                        {e.direction === 'sale' ? 'sold' : 'bought'}
+                                                    </span>
+                                                    <span className="msh-hist-what">
+                                                        {fmt(e.quantity)} {e.name}
+                                                    </span>
+                                                    <span className="msh-hist-who">
+                                                        {e.counterparty ?? 'someone'}
+                                                    </span>
+                                                    <span className="msh-hist-when">
+                                                        {new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                    {/* Net, not gross: the tithe is already gone, and
+                                                        showing the bigger number would only mislead. */}
+                                                    <span className={`msh-hist-gold is-${e.direction}`}>
+                                                        {e.direction === 'sale' ? '+' : '−'}{fmt(e.direction === 'sale' ? e.net : e.gross)}g
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                            </>
+                        )}
                     </>
                 )}
             </div>

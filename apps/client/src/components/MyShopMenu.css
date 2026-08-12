@@ -358,6 +358,61 @@
     text-align: center;
 }
 
+/* ── History ───────────────────────────────────────────────────────────── */
+
+/* One line each, like the shopfront list. A busy shop generates a lot of these
+   and they are read by scanning, not by studying. */
+
+.msh-hist {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: 5px 10px;
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.msh-hist-dir {
+    flex: 0 0 46px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-text-dim);
+}
+
+.msh-hist-what {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--color-text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msh-hist-who {
+    flex: 0 0 auto;
+    color: var(--color-text-dim);
+}
+
+.msh-hist-when {
+    flex: 0 0 auto;
+    color: var(--color-text-dim);
+    font-size: 12px;
+}
+
+.msh-hist-gold {
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-family: var(--font-heading);
+    font-size: 14px;
+}
+
+/* Money in reads gold, money out reads muted. Neither is an alarm. */
+.msh-hist-gold.is-sale { color: var(--color-gold-bright); }
+.msh-hist-gold.is-purchase { color: var(--color-text-muted); }
+
 /* ── Narrow ────────────────────────────────────────────────────────────── */
 
 
