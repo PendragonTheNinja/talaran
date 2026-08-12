@@ -6,6 +6,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Padding so the card never touches the edges, and start-alignment once it
+     is taller than the screen: centring a too-tall element pushes its top AND
+     bottom off the viewport at once, which is how the dismiss button ended up
+     unreachable. */
+  padding: var(--space-md);
+  overflow-y: auto;
 }
 
 .welcome-modal {
@@ -14,7 +20,12 @@
   border-radius: var(--radius-lg);
   padding: var(--space-xl) calc(var(--space-xl) * 1.5);
   max-width: 560px;
-  width: 90%;
+  width: 100%;
+  /* The card scrolls itself rather than overflowing the page. Without this the
+     whole thing was uncloseable on a short screen: no scroll, no zoom, and the
+     only button below the fold. */
+  max-height: calc(100dvh - var(--space-lg) * 2);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -192,5 +203,46 @@
     .welcome-overlay.closing,
     .welcome-overlay.closing .welcome-modal {
         animation: none;
+    }
+}
+
+
+/* ── Small screens ─────────────────────────────────────────────────────── */
+
+@media (max-width: 560px), (max-height: 720px) {
+    .welcome-overlay {
+        /* Once the card is taller than the screen, centring hides both ends.
+           Anchor to the top and let it scroll. */
+        align-items: flex-start;
+        padding: var(--space-sm);
+    }
+
+    .welcome-modal {
+        max-height: calc(100dvh - var(--space-sm) * 2);
+        padding: var(--space-lg) var(--space-md);
+        gap: var(--space-md);
+        border-radius: var(--radius-md);
+    }
+
+    .welcome-title {
+        font-size: 24px;
+    }
+
+    .welcome-text,
+    .welcome-notice p {
+        font-size: 14px;
+        line-height: 1.55;
+    }
+
+    .welcome-hint {
+        font-size: 13px;
+    }
+
+    /* The way out stays put. Whatever else scrolls, this does not move, so
+       there is never a state where the modal cannot be dismissed. */
+    .welcome-btn {
+        position: sticky;
+        bottom: 0;
+        margin-top: var(--space-sm);
     }
 }

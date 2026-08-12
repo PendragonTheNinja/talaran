@@ -515,6 +515,15 @@
 
 .manual-data-scroll {
     overflow-x: auto;
+    /* min-width is the load-bearing line. A flex or grid child defaults to
+       min-width:auto, which means it refuses to shrink below its content, so
+       the overflow never engages and the table simply runs off the screen with
+       no way to reach the far columns. */
+    min-width: 0;
+    max-width: 100%;
+    /* Momentum scrolling, and a hint that there is more to the right. */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 .manual-table {
@@ -1156,4 +1165,71 @@
 .manual-help-btn:hover {
     color: var(--color-gold-bright, #e8b84b);
     border-color: var(--color-border-bright, #9a7840);
+}
+
+/* ── Narrow screens ────────────────────────────────────────────────────── */
+
+/* Everything here exists because a table wider than the phone was unreachable:
+   no horizontal scroll, no pinch zoom inside the panel, and columns that simply
+   were not there. */
+
+@media (max-width: 600px) {
+    /* Nothing in the article may push wider than the screen, or the whole page
+       scrolls sideways instead of just the table. */
+    .manual-content,
+    .manual-article,
+    .manual-content .markdown-content {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: break-word;
+    }
+
+    .manual-data-scroll {
+        /* Bleed to the panel edges so the table gets every pixel available. */
+        margin-left: calc(var(--space-md, 12px) * -1);
+        margin-right: calc(var(--space-md, 12px) * -1);
+        padding-left: var(--space-md, 12px);
+        padding-right: var(--space-md, 12px);
+    }
+
+    .manual-table {
+        font-size: 14px;
+    }
+
+    .manual-table th {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        padding-right: var(--space-sm, 8px);
+    }
+
+    .manual-table td {
+        padding-right: var(--space-sm, 8px);
+    }
+
+    /* The first column is what a row IS, so it stays visible while the rest
+       scrolls past it. Without this you scroll right and lose track of which
+       animal you are reading about. */
+    .manual-table th:first-child,
+    .manual-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: var(--color-bg-dark, #14100a);
+        z-index: 1;
+    }
+
+    /* Numbers and short labels should never be the reason a table is wide. */
+    .manual-table .align-right {
+        white-space: nowrap;
+    }
+
+    .manual-data-note {
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    /* Long code and links were the other thing running off the edge. */
+    .manual-content code,
+    .manual-content a {
+        overflow-wrap: anywhere;
+    }
 }
