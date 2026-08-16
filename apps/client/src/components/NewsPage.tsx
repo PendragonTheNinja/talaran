@@ -37,7 +37,6 @@ export default function NewsPage() {
             {/* Header */}
             <div className="news-page-header">
                 <Link to="/" className="news-page-back">
-                    <span>✦</span>
                     <span className="news-page-wordmark">Talaran</span>
                 </Link>
                 <nav className="news-page-nav">
@@ -47,7 +46,7 @@ export default function NewsPage() {
             </div>
 
             <div className="news-page-hero">
-                <p className="news-page-eyebrow">✦ Updates & Patch Notes</p>
+                <p className="news-page-eyebrow">Updates &amp; Patch Notes</p>
                 <h1 className="news-page-title">Talaran News</h1>
                 <p className="news-page-subtitle">Follow the development of Taiar Island</p>
             </div>

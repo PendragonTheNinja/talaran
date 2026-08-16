@@ -51,7 +51,7 @@
 
 .tally-header h2 {
     margin: 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: 22px;
     letter-spacing: 0.04em;
 }
@@ -98,7 +98,7 @@
 .tally-summary-text { flex: 1; }
 
 .tally-subhead {
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 10px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
@@ -124,7 +124,7 @@
 }
 
 .tally-place-name {
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 13px;
     letter-spacing: 0.08em;
     color: var(--color-text-bright, #e8d5a3);
@@ -218,7 +218,7 @@
 .tally-when {
     flex: 0 0 68px;
     text-align: right;
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 12px;
     letter-spacing: 0.06em;
     color: var(--color-text-muted, #9a8060);
@@ -257,7 +257,7 @@
 }
 
 .tally-cost-label {
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 10px;
     letter-spacing: 0.18em;
     text-transform: uppercase;

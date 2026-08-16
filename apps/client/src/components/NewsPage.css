@@ -1,11 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap');
-
 .news-page {
     min-height: 100vh;
-    background: #080608;
+    background: var(--color-bg-deepest);
     display: flex;
     flex-direction: column;
-    color: #e8d8b0;
+    color: var(--color-text-bright);
 }
 
 /* Header */
@@ -17,7 +15,7 @@
     border-bottom: 1px solid rgba(200, 146, 42, 0.15);
     position: sticky;
     top: 0;
-    background: rgba(8, 6, 8, 0.95);
+    background: rgba(26, 21, 16, 0.96);
     backdrop-filter: blur(8px);
     z-index: 10;
 }
@@ -40,7 +38,7 @@
 }
 
 .news-page-wordmark {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -53,9 +51,9 @@
 }
 
 .news-page-nav-link {
-    font-family: 'Cinzel', serif;
-    font-size: 11px;
-    letter-spacing: 0.15em;
+    font-family: var(--font-heading);
+    font-size: 12.5px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #4a3820;
     text-decoration: none;
@@ -75,16 +73,16 @@
 }
 
 .news-page-eyebrow {
-    font-family: 'Cinzel', serif;
-    font-size: 11px;
-    letter-spacing: 0.25em;
+    font-family: var(--font-heading);
+    font-size: 12.5px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #c8922a;
     margin: 0 0 16px;
 }
 
 .news-page-title {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: clamp(40px, 6vw, 72px);
     font-weight: 900;
     color: transparent;
@@ -97,7 +95,7 @@
 }
 
 .news-page-subtitle {
-    font-family: 'Crimson Pro', serif;
+    font-family: var(--font-body);
     font-size: 18px;
     font-style: italic;
     color: #6a5030;
@@ -123,9 +121,9 @@
 }
 
 .news-page-sidebar-label {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: 9px;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #3a2a18;
     padding: 0 24px 16px;
@@ -153,7 +151,7 @@
 }
 
 .news-page-sidebar-title {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: 12px;
     color: #7a6040;
     line-height: 1.4;
@@ -166,8 +164,8 @@
 }
 
 .news-page-sidebar-date {
-    font-family: 'Crimson Pro', serif;
-    font-size: 11px;
+    font-family: var(--font-body);
+    font-size: 12.5px;
     color: #3a2a18;
 }
 
@@ -205,16 +203,16 @@
 }
 
 .news-page-article-date {
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.2em;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
     color: #4a3820;
     margin: 0;
 }
 
 .news-page-article-title {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: clamp(24px, 3vw, 36px);
     font-weight: 700;
     color: #e8c870;
@@ -224,7 +222,7 @@
 }
 
 .news-page-article-author {
-    font-family: 'Crimson Pro', serif;
+    font-family: var(--font-body);
     font-size: 14px;
     font-style: italic;
     color: #4a3820;
@@ -232,8 +230,8 @@
 }
 
 .news-page-discuss {
-    font-family: 'Cinzel', serif;
-    font-size: 11px;
+    font-family: var(--font-heading);
+    font-size: 12.5px;
     letter-spacing: 0.1em;
     color: #6a5030;
     text-decoration: none;
@@ -255,7 +253,7 @@
 }
 
 .news-page-article-body p {
-    font-family: 'Crimson Pro', serif;
+    font-family: var(--font-body);
     font-size: 18px;
     line-height: 1.8;
     color: #8a7050;
@@ -278,7 +276,7 @@
 
 .news-page-loading-text,
 .news-page-empty p {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: 14px;
     letter-spacing: 0.1em;
     color: #3a2a18;
@@ -292,9 +290,9 @@
     display: flex;
     gap: 12px;
     align-items: center;
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.15em;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #2a1e10;
 }

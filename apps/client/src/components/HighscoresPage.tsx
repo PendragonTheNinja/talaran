@@ -96,7 +96,6 @@ export default function HighscoresPage() {
             {/* Header */}
             <div className="hs-header">
                 <Link to="/" className="hs-brand">
-                    <span className="hs-brand-mark">✦</span>
                     <span className="hs-brand-name">Talaran</span>
                 </Link>
                 <nav className="hs-nav">
@@ -108,7 +107,7 @@ export default function HighscoresPage() {
 
             {/* Hero */}
             <div className="hs-hero">
-                <p className="hs-eyebrow">✦ Hall of Fame</p>
+                <p className="hs-eyebrow">Hall of Fame</p>
                 <h1 className="hs-title">Highscores</h1>
                 <p className="hs-subtitle">The finest adventurers of Taiar Island</p>
             </div>

@@ -14,7 +14,6 @@ export default function ManualPage() {
         <div className="manual-page-shell">
             <div className="manual-page-header">
                 <Link to="/" className="manual-page-back">
-                    <span>✦</span>
                     <span className="manual-page-wordmark">Talaran</span>
                 </Link>
                 <nav className="manual-page-nav">
@@ -25,7 +24,7 @@ export default function ManualPage() {
             </div>
 
             <div className="manual-page-hero">
-                <p className="manual-page-eyebrow">✦ A Guide to Taiar Island</p>
+                <p className="manual-page-eyebrow">A Guide to Taiar Island</p>
                 <h1 className="manual-page-title">The Manual of Talaran</h1>
                 <p className="manual-page-subtitle">
                     Compiled by the Geographer, who tried everything once

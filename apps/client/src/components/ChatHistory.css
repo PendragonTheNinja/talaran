@@ -35,7 +35,7 @@
 
 .chat-history-header h2 {
     margin: 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-heading);
     font-size: 20px;
 }
 
@@ -70,7 +70,7 @@
     border-bottom: none;
     border-radius: var(--radius-sm, 3px) var(--radius-sm, 3px) 0 0;
     color: var(--color-text-muted, #9a8060);
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 12px;
     letter-spacing: 0.06em;
     padding: 5px var(--space-md, 12px);
@@ -98,7 +98,7 @@
 
 /* Day separator: two days of chat should not read as one stream. */
 .chat-history-day {
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 10px;
     letter-spacing: 0.22em;
     text-transform: uppercase;

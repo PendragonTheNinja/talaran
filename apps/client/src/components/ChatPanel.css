@@ -131,7 +131,7 @@
     border: 1px solid var(--color-border-mid, #4a3820);
     border-radius: var(--radius-sm, 3px);
     color: var(--color-text-muted, #9a8060);
-    font-family: var(--font-heading, 'Cinzel', serif);
+    font-family: var(--font-heading);
     font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
