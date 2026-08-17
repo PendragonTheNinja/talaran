@@ -12,11 +12,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
    renamed or missing image never shows a broken frame.
    ──────────────────────────────────────────────────────────────── */
 const SCREENSHOTS: { src: string; caption: string }[] = [
-    { src: '/images/home/fishing.png', caption: 'Luxmere: Freshwater fishing.' },
-    { src: '/images/home/forum.png', caption: 'The player forum: fostering a great community' },
-    { src: '/images/home/market.png', caption: 'Talador Marketplace: Player shops line the quay.' },
-    { src: '/images/home/lanaivale.png', caption: 'Lanaivale: The lumberjack\s haven.' },
-    { src: '/images/home/smithing.png', caption: 'Emberra. Forge the world\'s tools.' },
+    { src: '/images/home/fishing.jpg', caption: 'Luxmere: Freshwater fishing.' },
+    { src: '/images/home/forum.jpg', caption: 'The player forum: fostering a great community' },
+    { src: '/images/home/market.jpg', caption: 'Talador Marketplace: Player shops line the quay.' },
+    { src: '/images/home/lanaivale.jpg', caption: 'Lanaivale: The lumberjack and forager\'s haven.' },
+    { src: '/images/home/smithing.jpg', caption: 'Emberra. Forge the world\'s tools.' },
 ]
 
 const SLIDE_MS = 5000
@@ -339,7 +339,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                 <section className="home-band">
                     <div className="home-wrap">
                         <div className="home-sec-head">
-                            <span className="home-sec-title">The island</span>
+                            <span className="home-sec-title">Our World</span>
                             <span className="home-sec-rule" />
                             <Link to="/manual" className="home-sec-more">See the map</Link>
                         </div>
