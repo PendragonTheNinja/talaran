@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { STORE_ITEMS, getUnlocks, purchaseItem, effectivePrice } from '../services/store';
 import { getTalerBalance } from '../services/talers';
@@ -31,7 +32,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-router.post('/purchase', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/purchase', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { key } = req.body as { key: string };
     try {

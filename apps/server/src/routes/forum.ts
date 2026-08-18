@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { io } from '../index';
 
@@ -234,7 +235,7 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Create a thread
-router.post('/threads', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { categoryId, title, content, pollQuestion, pollOptions } = req.body;
 
@@ -349,7 +350,7 @@ router.post('/threads', requireAuth, async (req: AuthRequest, res: Response) => 
 });
 
 // Reply to a thread
-router.post('/threads/:id/reply', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const threadId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
     const { content } = req.body;
@@ -408,7 +409,7 @@ router.post('/threads/:id/reply', requireAuth, async (req: AuthRequest, res: Res
 });
 
 // Vote on a post (feedback category)
-router.post('/posts/:id/vote', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/posts/:id/vote', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const postId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
     const { vote } = req.body; // 1 or -1
@@ -455,7 +456,7 @@ router.post('/posts/:id/vote', requireAuth, async (req: AuthRequest, res: Respon
 });
 
 // Vote on a poll
-router.post('/polls/:id/vote', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/polls/:id/vote', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const pollId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
     const { optionId } = req.body;

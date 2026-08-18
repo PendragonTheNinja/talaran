@@ -6,6 +6,9 @@ import { io } from '../index';
 import { logger } from '../lib/logger';
 import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 
+// Channels a guest may post in.
+const GUEST_CHAT_CHANNELS = ['help'];
+
 const router = Router();
 
 const CHANNEL_TYPES = ['world', 'region', 'guild', 'trade', 'help', 'whisper', 'server']; const MAX_MESSAGE_LENGTH = 500;
@@ -81,7 +84,7 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
       query = query.where('region', region);
     }
 
-    if (channel === 'guild') {
+  if (channel === 'guild') {
       if (!player.guild_id) {
         res.json({ messages: [], resetAt: nextGameMidnight().toISOString() })
         return
@@ -179,6 +182,22 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
 
   if (message.length > MAX_MESSAGE_LENGTH) {
     res.status(400).json({ error: `Message too long (max ${MAX_MESSAGE_LENGTH} characters)` });
+    return;
+  }
+
+  // Guests get Help, and nothing that broadcasts to the whole island. Silencing
+  // a trial player entirely makes the game feel dead, and Help is exactly where
+  // someone on their first hour belongs anyway. Reading every channel stays
+  // open: watching the world talk is a large part of what sells the game.
+  const guestRow = await db('players')
+    .select('is_guest')
+    .where({ id: playerId })
+    .first();
+  if (guestRow?.is_guest && !GUEST_CHAT_CHANNELS.includes(channel)) {
+    res.status(403).json({
+      error: 'Guests can only post in Help. Claim your character to talk everywhere.',
+      reason: 'guest',
+    });
     return;
   }
 

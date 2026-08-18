@@ -36,7 +36,7 @@ import marketplaceRoutes from './routes/marketplace';
 import shopRoutes from './routes/shops';
 import paletteRoutes from './routes/palettes';
 import settingsRoutes from './routes/settings';
-import { generalLimit, authLimit, chatLimit, chatReadLimit, forumLimit } from './middleware/rateLimit';
+import { generalLimit, authLimit, chatReadLimit, forumLimit, guestLimit } from './middleware/rateLimit';
 import playerRoutes from './routes/player';
 import locationRoutes from './routes/location';
 import inventoryRoutes from './routes/inventory';
@@ -134,9 +134,16 @@ app.get('/health', (req, res) => {
 // it. This sat below ~30 mounts, leaving them all unthrottled.
 app.use('/api', generalLimit);
 
+// Guest creation gets its own, tighter budget before the shared auth limit.
+app.use('/api/auth/guest', guestLimit);
 app.use('/api/auth', authLimit, authRoutes);
-// chatLimit and chatReadLimit existed but were never applied.
-app.use('/api/chat', chatLimit, chatRoutes);
+// chatLimit and chatReadLimit existed but were never applied. They are applied
+// per route inside routes/chat.ts, NOT here: mounting the 30-per-minute send
+// limit across the whole router also counted every history GET against it, and
+// ChatPanel fetches seven of those on each mount. A couple of reloads inside a
+// minute was enough to make chat refuse to send, which read as a bug in chat
+// rather than as a rate limit doing its job.
+app.use('/api/chat', chatRoutes);
 app.use('/api/forum', forumLimit, forumRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/player', playerRoutes);

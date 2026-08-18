@@ -10,7 +10,12 @@ const router = Router();
 
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const totalPlayers = await db('players').count('id as count').first();
+    // Guests are excluded: the home page counter is a claim about how many
+    // people play this game, and a throwaway session is not one of them.
+    const totalPlayers = await db('players')
+      .where({ is_guest: false })
+      .count('id as count')
+      .first();
     const onlinePlayers = connectedPlayers.size;
     res.json({
       totalPlayers: parseInt(totalPlayers?.count as string) || 0,
@@ -28,7 +33,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const player = await db('players')
       .where({ id: playerId })
-      .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod', 'gold')
+      .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod', 'gold',
+        'is_guest', 'guest_expires_at')
       .first();
 
     if (!player) {

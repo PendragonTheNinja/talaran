@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { botCheckGate } from '../services/botCheck';
 import { logger } from '../lib/logger';
 import { notifyInventoryChanged } from '../services/inventory';
@@ -72,7 +73,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 
 // ── Trading as a visitor ────────────────────────────────────────────────────
 
-router.post('/buy', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const listingId = asInt(req.body?.listingId);
     const quantity = asInt(req.body?.quantity);
@@ -96,7 +97,7 @@ router.post('/buy', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-router.post('/sell', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const orderId = asInt(req.body?.orderId);
     const quantity = asInt(req.body?.quantity);
@@ -122,7 +123,7 @@ router.post('/sell', requireAuth, async (req: AuthRequest, res: Response) => {
 
 // botCheckGate, same as every other timed action. Without it a shop build is a
 // hole in the bot checking that nothing else has.
-router.post('/build', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+router.post('/build', requireAuth, requireTrusted, botCheckGate, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const result = await startEstablishShop(playerId);
@@ -180,7 +181,7 @@ router.post('/mine/details', requireAuth, async (req: AuthRequest, res: Response
     }
 });
 
-router.post('/mine/open', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/mine/open', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         await respond(res, playerId, await setShopOpen(playerId, Boolean(req.body?.open)));
@@ -190,7 +191,7 @@ router.post('/mine/open', requireAuth, async (req: AuthRequest, res: Response) =
     }
 });
 
-router.post('/mine/listings', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/mine/listings', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const itemId = asInt(req.body?.itemId);
@@ -207,7 +208,7 @@ router.post('/mine/listings', requireAuth, async (req: AuthRequest, res: Respons
     }
 });
 
-router.post('/mine/listings/:listingId/price', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/mine/listings/:listingId/price', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const listingId = asInt(req.params.listingId);
@@ -233,7 +234,7 @@ router.delete('/mine/listings/:listingId', requireAuth, async (req: AuthRequest,
     }
 });
 
-router.post('/mine/orders', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/mine/orders', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const itemId = asInt(req.body?.itemId);
@@ -262,7 +263,7 @@ router.delete('/mine/orders/:orderId', requireAuth, async (req: AuthRequest, res
     }
 });
 
-router.post('/mine/fund', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/mine/fund', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const amount = asInt(req.body?.amount);
@@ -296,7 +297,7 @@ router.get('/mine/storage', requireAuth, async (req: AuthRequest, res: Response)
     }
 });
 
-router.post('/mine/storage/deposit', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/mine/storage/deposit', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const r = await depositItem(playerId, asInt(req.body?.itemId) ?? 0, asInt(req.body?.quantity) ?? 0, 'shop');
     if (!r.success) { res.status(400).json({ error: r.error }); return; }

@@ -664,6 +664,13 @@ export default function GameLayout({
 
   const chatPanelEl = (
     <ChatPanel
+      // Remounts on upgrade. connectSocket() disconnects and builds a NEW
+      // socket, but the listeners inside ChatPanel are bound once on mount, so
+      // without this they stay attached to the dead one and no live message
+      // ever arrives again. Remounting also refetches history for the channels
+      // that just became available.
+      key={(player.is_guest ?? playerData?.player?.is_guest) ? 'guest' : 'full'}
+      isGuest={player.is_guest ?? playerData?.player?.is_guest}
       onOpenForum={(threadId) => {
         setShowForum(true)
         setForumOpenThreadId(threadId)
@@ -1084,6 +1091,7 @@ export default function GameLayout({
       {showSupport && (
         <SupportPanel
           playerId={player.id}
+          isGuest={player.is_guest ?? playerData?.player?.is_guest}
           onClose={() => setShowSupport(false)}
         />
       )}

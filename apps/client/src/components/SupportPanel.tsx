@@ -24,6 +24,8 @@ interface SupportPanelProps {
     playerId: number
     onClose: () => void
     closing?: boolean
+    /** Guests have no email, so Paddle checkout cannot complete for them. */
+    isGuest?: boolean
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -32,7 +34,7 @@ const REASON_LABELS: Record<string, string> = {
     admin_grant: 'Grant',
 }
 
-export default function SupportPanel({ playerId, onClose, closing }: SupportPanelProps) {
+export default function SupportPanel({ playerId, onClose, closing, isGuest }: SupportPanelProps) {
     const [balance, setBalance] = useState<number | null>(null)
     const [history, setHistory] = useState<LedgerEntry[]>([])
     const [tiers, setTiers] = useState<Tier[]>([])
@@ -77,6 +79,13 @@ export default function SupportPanel({ playerId, onClose, closing }: SupportPane
 
     const buy = async (tier: Tier) => {
         if (!tier.paddlePriceId) return
+        // Stopped here rather than at the server. Paddle needs an email to bill,
+        // so a guest reaching checkout gets its generic "something went wrong",
+        // which reads as the store being broken rather than as a restriction.
+        if (isGuest) {
+            setError('Claim your character first. Talers need an account with an email address.')
+            return
+        }
         setError(null)
         try {
             const before = balance ?? 0

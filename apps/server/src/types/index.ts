@@ -15,4 +15,8 @@ export interface Player {
 export interface JwtPayload {
   playerId: number;
   username: string;
+  // Present only on guest tokens. Lets requireAuth skip the guest session
+  // check entirely for real accounts, which are and always will be nearly
+  // every request. Upgrading issues a fresh token without it.
+  isGuest?: boolean;
 }

@@ -13,6 +13,7 @@ import SupportUsPage from './components/SupportUsPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
 import TradeWindow from './components/TradeWindow'
+import GuestBanner, { ClaimSuccessModal } from './components/GuestBanner'
 
 interface Skill {
   id: number
@@ -288,6 +289,57 @@ function App() {
     }
   }, [])
 
+  const [guestExpired, setGuestExpired] = useState(false)
+  const [claimedName, setClaimedName] = useState<string | null>(null)
+
+  // Guest status is read from the token as well as from the API.
+  //
+  // The server marks guests in three places (the /guest response, /player/me,
+  // and the JWT), and the bar only needs one of them to be present. Reading
+  // the token means the bar cannot silently fail to appear because a single
+  // route file was missed on deploy, which is exactly what happened in
+  // testing. The claim is signed, so it cannot be forged, and it is only ever
+  // used to decide whether to show UI.
+  const tokenSaysGuest = (): boolean => {
+    try {
+      const token = localStorage.getItem('talaran_token')
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+      return payload?.isGuest === true
+    } catch {
+      return false
+    }
+  }
+
+  // apiFetch raises this when the server refuses a request because the guest
+  // session lapsed. Listening here rather than threading a callback through
+  // every component keeps the concern in one place.
+  useEffect(() => {
+    const onExpired = () => setGuestExpired(true)
+    const onBlocked = (e: Event) => {
+      const msg = (e as CustomEvent<{ message: string }>).detail?.message
+      if (!msg) return
+      setServerAnnouncement(msg)
+      setTimeout(() => setServerAnnouncement(null), 5000)
+    }
+    window.addEventListener('talaran:guest-expired', onExpired)
+    window.addEventListener('talaran:blocked', onBlocked)
+    return () => {
+      window.removeEventListener('talaran:guest-expired', onExpired)
+      window.removeEventListener('talaran:blocked', onBlocked)
+    }
+  }, [])
+
+  const handleUpgraded = async (token: string, upgraded: Player) => {
+    localStorage.setItem('talaran_token', token)
+    localStorage.setItem('talaran_player', JSON.stringify(upgraded))
+    setGuestExpired(false)
+    setClaimedName(upgraded.username)
+    // Reload from the server rather than patching state: the account is no
+    // longer a guest, and everything downstream keys off that.
+    await initializeSession(upgraded)
+  }
+
   const handleLogin = async (token: string, playerInfo: Player) => {
     localStorage.setItem('talaran_token', token)
     localStorage.setItem('talaran_player', JSON.stringify(playerInfo))
@@ -323,6 +375,17 @@ function App() {
           <AuthScreen onLogin={handleLogin} />
         ) : (
           <>
+            {(playerData?.player?.is_guest || player?.is_guest || tokenSaysGuest()) && (
+              <GuestBanner
+                player={{ ...(player as Player), ...(playerData?.player ?? {}) }}
+                onUpgraded={handleUpgraded}
+                expired={guestExpired}
+                onDismissExpired={() => setGuestExpired(false)}
+              />
+            )}
+            {claimedName && (
+              <ClaimSuccessModal username={claimedName} onClose={() => setClaimedName(null)} />
+            )}
             <GameLayout
               player={player}
               playerData={playerData}

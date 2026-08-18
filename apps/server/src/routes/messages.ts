@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { io } from '../index';
 import { logger } from '../lib/logger';
 
@@ -74,7 +75,7 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Send message
-router.post('/send', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/send', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { recipientName, subject, body, replyToId } = req.body;
 

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import {
     WALLS,
@@ -242,7 +243,7 @@ router.post('/quote', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // ── Sell ─────────────────────────────────────────────────────────────────────
-router.post('/sell', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { merchantId, itemId, expectedTotal } = req.body ?? {};
     const quantity = parseQuantity(req.body?.quantity);
@@ -331,7 +332,7 @@ router.post('/sell', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // ── Buy ──────────────────────────────────────────────────────────────────────
-router.post('/buy', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { merchantId, itemId } = req.body ?? {};
     const quantity = parseQuantity(req.body?.quantity);

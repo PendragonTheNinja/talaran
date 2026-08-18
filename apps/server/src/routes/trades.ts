@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { logger } from '../index';
 import { io } from '../index';
 import { getGold, lockPlayersInOrder, transferGoldWithin } from '../services/gold';
@@ -63,7 +64,7 @@ router.get('/active', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Request a trade
-router.post('/request', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/request', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { targetPlayerId } = req.body;
 
@@ -130,7 +131,7 @@ router.post('/request', requireAuth, async (req: AuthRequest, res: Response) => 
 });
 
 // Accept/decline trade request
-router.post('/respond', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId, accept } = req.body;
 
@@ -176,7 +177,7 @@ router.post('/respond', requireAuth, async (req: AuthRequest, res: Response) => 
 });
 
 // Add item to trade offer
-router.post('/offer/item', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/offer/item', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId, itemId, quantity } = req.body;
 
@@ -225,7 +226,7 @@ router.post('/offer/item', requireAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Remove item from trade offer
-router.post('/offer/item/remove', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/offer/item/remove', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId, itemId } = req.body;
 
@@ -250,7 +251,7 @@ router.post('/offer/item/remove', requireAuth, async (req: AuthRequest, res: Res
 });
 
 // Update gold offer
-router.post('/offer/gold', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/offer/gold', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId, goldAmount } = req.body;
 
@@ -306,7 +307,7 @@ class TradeAbort extends Error {
     }
 }
 
-router.post('/accept', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/accept', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId } = req.body;
 
@@ -494,7 +495,7 @@ router.post('/accept', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Cancel trade
-router.post('/cancel', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/cancel', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId } = req.body;
 

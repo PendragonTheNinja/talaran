@@ -65,6 +65,10 @@ router.get('/', async (req: Request, res: Response) => {
         if (skillId === 'total') {
             const rows = await db('player_skills')
                 .join('players', 'player_skills.player_id', 'players.id')
+                // Guests are hidden from the boards. A throwaway session should
+                // never take a rank from someone who earned it, and the name
+                // would vanish from the table a week later regardless.
+                .where('players.is_guest', false)
                 .select(
                     'players.id',
                     'players.username',
@@ -122,6 +126,7 @@ router.get('/', async (req: Request, res: Response) => {
         // Single-skill board
         const skillRows = await db('player_skills')
             .join('players', 'player_skills.player_id', 'players.id')
+            .where('players.is_guest', false)
             .where('player_skills.skill_id', skillId)
             .where('player_skills.xp', '>', 0)
             .select('players.id', 'players.username', 'players.guild_tag', 'player_skills.xp');

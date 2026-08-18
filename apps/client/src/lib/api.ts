@@ -23,6 +23,29 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     throw new Error('Session expired. Please log in again.')
   }
 
+  if (res.status === 403) {
+    const data = await res.json().catch(() => ({}))
+    // A lapsed guest still holds a valid token, so the 401 path above would be
+    // wrong: clearing it and redirecting drops them at a login form they never
+    // filled in, along with the progress they might have claimed. Announce it
+    // instead and let App show the claim panel over the game.
+    if (data.reason === 'guest_expired') {
+      window.dispatchEvent(new CustomEvent('talaran:guest-expired'))
+    } else if (data.reason === 'guest' || data.reason === 'unverified') {
+      // Surfaced centrally rather than at each call site. Dozens of endpoints
+      // are gated and most of their catch blocks only log, so a guest hitting
+      // one would see nothing happen at all. Announcing here covers every
+      // gated route at once, including any added later.
+      window.dispatchEvent(new CustomEvent('talaran:blocked', {
+        detail: { message: data.error as string },
+      }))
+    }
+    const error: any = new Error(data.error || 'Forbidden')
+    error.status = 403
+    error.body = data
+    throw error
+  }
+
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
     const error: any = new Error(data.error || `Request failed: ${res.status}`)

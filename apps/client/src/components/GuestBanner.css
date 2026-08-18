@@ -1,0 +1,263 @@
+/* ============================================================
+   GUEST SESSION — bar and claim panel
+   Tokens only, so this follows the active theme like everything
+   else in the game shell.
+   ============================================================ */
+
+/* Fixed, not in flow. .game-root is height:100vh inside #root{overflow:hidden},
+   so anything stacked above it is pushed straight off the bottom of the
+   viewport and clipped. Bottom-right keeps it clear of the top nav and of the
+   chat input, which runs along the bottom-left. */
+.guest-bar {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(420px, calc(100vw - 32px));
+    padding: 8px 12px;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--color-text-base);
+    flex-wrap: wrap;
+}
+
+/* Warmer as the clock runs down, rather than a colour that shouts
+   from the moment the session starts. */
+.guest-bar.is-low {
+    background: var(--color-bg-hover);
+    border-color: var(--color-gold);
+}
+
+.guest-bar-tag {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-bg-deepest);
+    background: var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    flex-shrink: 0;
+}
+
+.guest-bar-text {
+    flex: 1 1 100%;
+    order: 3;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.guest-bar-clock {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    color: var(--color-gold-bright);
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.guest-bar.is-low .guest-bar-clock {
+    color: var(--color-red-bright, #d46a6a);
+}
+
+.guest-bar-btn {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    padding: 5px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gold-shine);
+    background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dim) 100%);
+    color: var(--color-bg-deepest);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.guest-bar-btn:hover {
+    background: linear-gradient(180deg, var(--color-gold-bright) 0%, var(--color-gold) 100%);
+}
+
+/* ── Claim panel ──────────────────────────────────────── */
+
+.guest-modal-back {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(8, 6, 4, 0.9);
+}
+
+.guest-modal {
+    width: 100%;
+    max-width: 420px;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+.guest-modal-head {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold-bright);
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--color-border-gold);
+}
+
+.guest-modal-body {
+    padding: 18px;
+}
+
+.guest-modal-lede {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--color-text-muted);
+    margin: 0 0 18px;
+}
+
+.guest-field {
+    margin-bottom: 14px;
+}
+
+.guest-field label {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 5px;
+}
+
+.guest-field input {
+    width: 100%;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    color: var(--color-text-bright);
+    font-family: var(--font-body);
+    font-size: 16px;
+}
+
+.guest-field input:focus {
+    outline: none;
+    border-color: var(--color-gold-dim);
+    background: var(--color-bg-dark);
+}
+
+.guest-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--color-text-dim);
+}
+
+.guest-error {
+    font-size: 15px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    background: rgba(155, 44, 44, 0.18);
+    border: 1px solid var(--color-red);
+    color: var(--color-text-white);
+}
+
+.guest-submit {
+    width: 100%;
+    font-family: var(--font-heading);
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gold-shine);
+    background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dim) 100%);
+    color: var(--color-bg-deepest);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.guest-submit:hover {
+    background: linear-gradient(180deg, var(--color-gold-bright) 0%, var(--color-gold) 100%);
+}
+
+.guest-submit:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.guest-later {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: none;
+    border: 0;
+    padding: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--color-text-muted);
+}
+
+.guest-later:hover {
+    color: var(--color-gold);
+}
+
+@media (max-width: 680px) {
+    .guest-bar {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        max-width: none;
+        font-size: 13px;
+        gap: 8px;
+        padding: 7px 10px;
+    }
+}
+
+/* Shown once, right after a claim. Names what just became available rather
+   than repeating the welcome modal's tour of the game. */
+.guest-unlocked {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+}
+
+.guest-unlocked li {
+    position: relative;
+    padding: 5px 0 5px 20px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--color-text-base);
+    border-bottom: 1px solid var(--color-border-dark);
+}
+
+.guest-unlocked li:last-child {
+    border-bottom: 0;
+}
+
+/* Lozenge drawn rather than a glyph, matching the manual's section mark. */
+.guest-unlocked li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 13px;
+    width: 6px;
+    height: 6px;
+    background: var(--color-gold);
+    transform: rotate(45deg);
+}

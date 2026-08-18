@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { io } from '../index';
 
@@ -41,7 +42,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Drop an item
-router.post('/drop', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/drop', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { itemId, quantity } = req.body;
 

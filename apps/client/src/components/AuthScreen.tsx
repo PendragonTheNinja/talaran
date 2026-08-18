@@ -55,6 +55,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     const [playerStats, setPlayerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 })
     const [slide, setSlide] = useState(0)
     const [shots, setShots] = useState(SCREENSHOTS)
+    const [zoom, setZoom] = useState(false)
+    const [guestLoading, setGuestLoading] = useState(false)
 
     useEffect(() => {
         fetch(`${API_URL}/api/news/latest`)
@@ -72,11 +74,29 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
 
     /* Auto-advance. Held still for anyone who asked the OS to reduce motion. */
     useEffect(() => {
-        if (shots.length < 2) return
+        if (shots.length < 2 || zoom) return
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
         const t = setInterval(() => setSlide(s => (s + 1) % shots.length), SLIDE_MS)
         return () => clearInterval(t)
-    }, [shots.length])
+    }, [shots.length, zoom])
+
+    /* Esc closes, arrows step through. Registered only while open so the
+       page keeps its normal keyboard behaviour the rest of the time. */
+    useEffect(() => {
+        if (!zoom) return
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setZoom(false)
+            if (e.key === 'ArrowRight') setSlide(s => (s + 1) % shots.length)
+            if (e.key === 'ArrowLeft') setSlide(s => (s - 1 + shots.length) % shots.length)
+        }
+        window.addEventListener('keydown', onKey)
+        const prev = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        return () => {
+            window.removeEventListener('keydown', onKey)
+            document.body.style.overflow = prev
+        }
+    }, [zoom, shots.length])
 
     const dropShot = useCallback((src: string) => {
         setShots(prev => {
@@ -139,6 +159,28 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
         }
     }
 
+    // The reason this whole page exists: someone who will not hand over an
+    // email can still be playing in one click.
+    const startGuest = async () => {
+        setError('')
+        setInfo('')
+        setGuestLoading(true)
+        try {
+            const res = await fetch(`${API_URL}/api/auth/guest`, { method: 'POST' })
+            const data = await res.json()
+            if (!res.ok) {
+                setError(data.error || 'Could not start a guest session.')
+                return
+            }
+            localStorage.setItem('talaran_token', data.token)
+            onLogin(data.token, data.player)
+        } catch {
+            setError('Could not connect to the server. Please try again.')
+        } finally {
+            setGuestLoading(false)
+        }
+    }
+
     const goRegister = () => {
         setMode('register')
         setError('')
@@ -181,7 +223,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                             <h1 className="home-wordmark">Talaran</h1>
                             <p className="home-subhead">A medieval skilling game that runs in a browser tab.</p>
                             <p className="home-lede">
-                                Fell timber and saw it into boards. Set snares in and come back
+                                Fell timber and saw it into boards. Set snares and come back
                                 for whatever walked into them. Raise cattle, soak the hides in bark liquor,
                                 and sell the leather from <em>your own shop</em> at Talador.
                             </p>
@@ -195,6 +237,17 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                 </button>
                                 <Link to="/manual" className="home-btn">Read the manual</Link>
                             </div>
+                            <button
+                                className="home-try"
+                                onClick={startGuest}
+                                disabled={guestLoading}
+                            >
+                                {guestLoading ? 'Starting…' : 'Try it without an account'}
+                            </button>
+                            <p className="home-try-note">
+                                No email, no password. You get an hour on the island, and you can
+                                keep the character if you want it.
+                            </p>
                         </div>
 
                         {/* ── Ledger (auth) ── */}
@@ -348,7 +401,11 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                             <div className="home-frame">
                                 <span className="home-nail tl" /><span className="home-nail tr" />
                                 <span className="home-nail bl" /><span className="home-nail br" />
-                                <div className="home-pane">
+                                <button
+                                    className="home-pane"
+                                    onClick={() => setZoom(true)}
+                                    aria-label={`Enlarge screenshot: ${shots[slide]?.caption ?? ''}`}
+                                >
                                     {shots.map((s, i) => (
                                         <img
                                             key={s.src}
@@ -359,7 +416,14 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                             onError={() => dropShot(s.src)}
                                         />
                                     ))}
-                                </div>
+                                    <span className="home-glass" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            strokeWidth="2" strokeLinecap="round">
+                                            <circle cx="10.5" cy="10.5" r="6.5" />
+                                            <path d="M15.4 15.4 21 21M10.5 7.8v5.4M7.8 10.5h5.4" />
+                                        </svg>
+                                    </span>
+                                </button>
                             </div>
                             <div className="home-plate">
                                 <span className="home-plate-cap">{shots[slide]?.caption}</span>
@@ -379,6 +443,48 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         </div>
                     </div>
                 </section>
+            )}
+
+            {/* ── Lightbox ────────────────────────────────────── */}
+            {zoom && shots[slide] && (
+                <div
+                    className="home-lightbox"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={shots[slide].caption}
+                    onClick={() => setZoom(false)}
+                >
+                    <button
+                        className="home-lb-close"
+                        onClick={() => setZoom(false)}
+                        aria-label="Close"
+                    >×</button>
+
+                    {shots.length > 1 && (
+                        <button
+                            className="home-lb-arrow prev"
+                            onClick={e => { e.stopPropagation(); setSlide(s => (s - 1 + shots.length) % shots.length) }}
+                            aria-label="Previous screenshot"
+                        >‹</button>
+                    )}
+
+                    {/* Stops the backdrop handler from firing on the image itself. */}
+                    <figure className="home-lb-figure" onClick={e => e.stopPropagation()}>
+                        <img src={shots[slide].src} alt={shots[slide].caption} />
+                        <figcaption>
+                            {shots[slide].caption}
+                            <span>{slide + 1} of {shots.length}</span>
+                        </figcaption>
+                    </figure>
+
+                    {shots.length > 1 && (
+                        <button
+                            className="home-lb-arrow next"
+                            onClick={e => { e.stopPropagation(); setSlide(s => (s + 1) % shots.length) }}
+                            aria-label="Next screenshot"
+                        >›</button>
+                    )}
+                </div>
             )}
 
             {/* ── Trades ──────────────────────────────────────── */}

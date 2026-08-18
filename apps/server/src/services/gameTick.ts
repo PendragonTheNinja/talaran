@@ -99,12 +99,24 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
   });
 }
 
+// Expired guests are swept hourly. Nothing about this is urgent — the session
+// deadline is what locks a guest out; this is only the later cleanup, a week
+// after the fact.
+let lastGuestSweep = 0;
+const GUEST_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+
 export function startGameTick(io: Server): void {
   logger.info('Game tick started');
 
   setInterval(async () => {
     try {
       await checkVeinAnnouncements();
+
+      if (Date.now() - lastGuestSweep > GUEST_SWEEP_INTERVAL_MS) {
+        lastGuestSweep = Date.now();
+        const { sweepExpiredGuests } = await import('./guest');
+        await sweepExpiredGuests();
+      }
 
       // Trap sweep — trapping runs on minutes, not seconds, so throttle to every 30s
       if (Date.now() - lastTrapSweep > 30000) {

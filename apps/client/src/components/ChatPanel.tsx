@@ -10,6 +10,9 @@ interface ChatPanelProps {
   onOpenForum?: (threadId: number) => void
   draft?: string | null
   onDraftConsumed?: () => void
+
+  /** Guests only get Help, so the other tabs are not shown at all. */
+  isGuest?: boolean
 }
 
 const CHANNELS = [
@@ -28,8 +31,13 @@ function formatTime(date: Date): string {
 }
 
 // Renders chat text, turning [[FORUMLINK|id|label]] tokens into clickable forum links.
-export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatPanelProps) {
-  const [activeChannel, setActiveChannel] = useState('world')
+export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest }: ChatPanelProps) {
+  // Guests see Help and nothing else. Showing tabs that reject every message
+  // is worse than not showing them: it advertises a restriction instead of
+  // just presenting the one channel that works.
+  const channels = isGuest ? CHANNELS.filter(c => c.key === 'help') : CHANNELS
+  const historyChannels = isGuest ? ['help'] : HISTORY_CHANNELS
+  const [activeChannel, setActiveChannel] = useState(isGuest ? 'help' : 'world')
   const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -107,7 +115,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
   useEffect(() => {
     const loadAll = async () => {
       const all: ChatMessage[] = []
-      for (const key of HISTORY_CHANNELS) {
+      for (const key of historyChannels) {
         try {
           const data = await apiFetch<{ messages: any[]; resetAt?: string }>(`/api/chat/history/${key}`)
           if (data.resetAt) setResetAt(new Date(data.resetAt).getTime())
@@ -299,7 +307,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
   }
 
   const channelLabel = (channel: string) => {
-    const found = CHANNELS.find(c => c.key === channel)
+    const found = channels.find(c => c.key === channel)
     return found ? found.label : channel
   }
 
@@ -308,7 +316,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed }: ChatP
   return (
     <div className="chat-panel panel">
       <div className="chat-tabs">
-        {CHANNELS.map(({ key, label }) => (
+        {channels.map(({ key, label }) => (
           <button
             key={key}
             className={`chat-tab ${activeChannel === key ? 'active' : ''}`}
