@@ -11,6 +11,9 @@ interface GuestBannerProps {
     /** Set once the server has refused a request because the session lapsed. */
     expired: boolean
     onDismissExpired: () => void
+    /** Set when a milestone is worth interrupting for. Null the rest of the time. */
+    nudge?: string | null
+    onDismissNudge?: () => void
 }
 
 /** mm:ss remaining, or null once the deadline has passed. */
@@ -45,6 +48,8 @@ export default function GuestBanner({
     onUpgraded,
     expired,
     onDismissExpired,
+    nudge,
+    onDismissNudge,
 }: GuestBannerProps) {
     const [open, setOpen] = useState(false)
     const [username, setUsername] = useState('')
@@ -62,11 +67,16 @@ export default function GuestBanner({
         if (expired) setOpen(true)
     }, [expired])
 
+    useEffect(() => {
+        if (nudge) setOpen(true)
+    }, [nudge])
+
     const close = useCallback(() => {
         if (expired) return // nothing works until they claim or leave
         setOpen(false)
         setError('')
-    }, [expired])
+        onDismissNudge?.()
+    }, [expired, onDismissNudge])
 
     useEffect(() => {
         if (!open) return
@@ -136,6 +146,7 @@ export default function GuestBanner({
                     >
                         <div className="guest-modal-head">Claim your character</div>
                         <div className="guest-modal-body">
+                            {nudge && <p className="guest-nudge">{nudge}</p>}
                             <p className="guest-modal-lede">
                                 Every skill, item and coin you have earned stays exactly where it is.
                                 Pick a real name and this stops being a trial.

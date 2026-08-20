@@ -122,6 +122,11 @@ export async function createGuest(): Promise<CreatedGuest | null> {
                 email: null,
                 password_hash: null,
                 is_guest: true,
+                // Never cleared, including on upgrade. is_guest answers "is this
+                // a trial now"; this answers "did this account start as one",
+                // which is the half that survives a conversion and makes the
+                // rate measurable later.
+                was_guest: true,
                 guest_expires_at: expiresAt,
                 current_location_id: startingLocation?.id || null,
             })

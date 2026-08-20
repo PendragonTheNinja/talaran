@@ -379,7 +379,17 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
       email_verified_at: null,
     });
 
-    logger.info(`[guest] ${player.username} upgraded to ${username} (player ${playerId})`);
+    const [{ started }] = await db('players')
+      .where({ was_guest: true })
+      .count<{ started: string }[]>('id as started');
+    const [{ converted }] = await db('players')
+      .where({ was_guest: true, is_guest: false })
+      .count<{ converted: string }[]>('id as converted');
+
+    logger.info(
+      `[guest] converted ${player.username} -> ${username} (player ${playerId}); `
+      + `${converted}/${started} guests claimed to date`,
+    );
 
     const token = jwt.sign(
       { playerId },

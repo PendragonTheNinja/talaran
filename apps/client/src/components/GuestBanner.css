@@ -261,3 +261,16 @@
     background: var(--color-gold);
     transform: rotate(45deg);
 }
+
+/* The reason the panel opened, above the pitch. Says what just happened rather
+   than repeating the generic ask underneath it. */
+.guest-nudge {
+    margin: 0 0 14px;
+    padding: 10px 13px;
+    background: var(--color-bg-deep);
+    border-left: 3px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--color-text-bright);
+}

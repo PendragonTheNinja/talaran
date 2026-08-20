@@ -394,7 +394,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         <div className="home-sec-head">
                             <span className="home-sec-title">Our World</span>
                             <span className="home-sec-rule" />
-                            <Link to="/manual" className="home-sec-more">See the map</Link>
+                            <Link to="/manual" className="home-sec-more">Learn more in the manual</Link>
                         </div>
 
                         <div className="home-casement">
@@ -503,7 +503,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         ))}
                     </div>
                     <p className="home-trades-note">
-                        Every one of these is live. Cooking and combat are being actively developed. 
+                        Every one of these is live. Cooking and combat are being actively developed.
                     </p>
                 </div>
             </section>
