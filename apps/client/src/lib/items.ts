@@ -1,5 +1,24 @@
+/**
+ * Art whose filename does not follow from the item's name.
+ *
+ * Icons are normally found by turning the name into a filename, which works
+ * for almost everything and needs no bookkeeping. A few items are named one
+ * thing and drawn as another, on purpose: the item is "Milk" because that is
+ * what recipes ask for, while the picture is of the bucket it comes in.
+ *
+ * Without this the icon simply 404s and the item shows up blank everywhere it
+ * appears, inventory and shops included, not only in the manual. Add a line
+ * here rather than renaming an item that recipes refer to by name.
+ */
+const ICON_OVERRIDES: Record<string, string> = {
+  'Milk': 'Bucket_of_Milk',
+  'Boar Hide': 'Boarhide',
+  'Deer Hide': 'Deerhide',
+}
+
 export function getItemIcon(itemName: string): string {
-  const filename = itemName.replace(/ /g, '_').replace(/'/g, '') + '.png'
+  const override = ICON_OVERRIDES[itemName]
+  const filename = (override ?? itemName.replace(/ /g, '_').replace(/'/g, '')) + '.png'
   return `/images/items/${filename}`
 }
 

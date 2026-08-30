@@ -13,7 +13,7 @@ import { incrementStats } from './stats'
 
 // A tannery is a rack (scraping, stretching) plus a barrel (the bark-liquor
 // soak). Both are consumed on setup — same shape as smithing's anvil/hammer/tongs.
-const STATION_ITEMS = ['Lanai Tanning Rack', 'Lanai Tanning Barrel']
+export const STATION_ITEMS = ['Lanai Tanning Rack', 'Lanai Tanning Barrel']
 const WORKSTATION_TYPE = 'tanning'
 export const HIDES_PER_VAT = 10
 

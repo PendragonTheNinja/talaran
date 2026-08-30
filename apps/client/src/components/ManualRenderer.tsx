@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import MarkdownRenderer from './MarkdownRenderer'
 import ManualDataBlock from './ManualDataBlock'
-import { parseManual, type ManualNode } from '../lib/manual'
+import { parseManual, toReference, type ManualNode } from '../lib/manual'
 
 interface ManualRendererProps {
     content: string
     onNavigate: (section: string, slug: string) => void
+    /** Strip the prose and keep the structure. See toReference in lib/manual. */
+    reference?: boolean
 }
 
 /**
@@ -18,8 +20,9 @@ interface ManualRendererProps {
  * for cross-references inside the manual. A click on /manual/... navigates in
  * place, on the page or inside the panel.
  */
-export default function ManualRenderer({ content, onNavigate }: ManualRendererProps) {
-    const nodes = parseManual(content)
+export default function ManualRenderer({ content, onNavigate, reference }: ManualRendererProps) {
+    const parsed = parseManual(content)
+    const nodes = reference ? toReference(parsed) : parsed
 
     const interceptLinks = (e: React.MouseEvent<HTMLDivElement>) => {
         const anchor = (e.target as HTMLElement).closest('a')
@@ -100,8 +103,17 @@ function ManualTabs({ tabs }: { tabs: { label: string; children: ManualNode[] }[
     )
 }
 
+/**
+ * A ledger, open on arrival.
+ *
+ * These hold the tables, and a table nobody can see is a table nobody uses.
+ * Collapsing them by default made sense when the manual was a guide with
+ * reference tucked inside it; now that people read these pages to look things
+ * up, the first thing they did on every visit was open the ledger. The control
+ * stays, so a page can still be folded down to its headings.
+ */
 function ManualDetails({ label, nodes }: { label: string; nodes: ManualNode[] }) {
-    const [open, setOpen] = useState(false)
+    const [open, setOpen] = useState(true)
 
     return (
         <div className={`manual-details ${open ? 'open' : ''}`}>

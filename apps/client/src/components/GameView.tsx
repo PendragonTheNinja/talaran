@@ -667,6 +667,20 @@ export default function GameView({
     }
   }, [onPlayerDataUpdate, loadVeins])
 
+  // The same prompt, delivered over HTTP rather than the socket. apiFetch
+  // raises this whenever a request comes back 423, so a player whose socket is
+  // down still gets the question the moment they try to do anything.
+  useEffect(() => {
+    const onBotCheck = (e: Event) => {
+      const d = (e as CustomEvent<{ a: number; b: number }>).detail
+      if (!d) return
+      setBotCheckQuestion({ a: d.a, b: d.b })
+      setBotCheckPending(true)
+    }
+    window.addEventListener('talaran:bot-check', onBotCheck)
+    return () => window.removeEventListener('talaran:bot-check', onBotCheck)
+  }, [])
+
   // ── Travel timer ──────────────────────────────────────────────────
   useEffect(() => {
     if (!travelStatus?.seconds) return

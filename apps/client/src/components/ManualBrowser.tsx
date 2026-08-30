@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import ManualRenderer from './ManualRenderer'
+import ManualItem from './ManualItem'
+import ManualItemIndex from './ManualItemIndex'
+import { supportsReference, toReference, parseManual } from '../lib/manual'
+import { apiFetch } from '../lib/api'
 import {
     loadManifest,
     loadPage,
@@ -39,6 +43,25 @@ export default function ManualBrowser({
     // Where you were before. Following a cross-reference and wanting to come
     // straight back is the commonest thing a reader does in a manual.
     const [history, setHistory] = useState<{ section: string | null; slug: string | null }[]>([])
+
+    // Reference mode. Read from the account so it follows the player, and held
+    // locally too so the toggle responds at once rather than after a round trip.
+    const [reference, setReference] = useState(false)
+
+    useEffect(() => {
+        apiFetch<{ manualReferenceMode?: boolean }>('/api/settings')
+            .then(d => setReference(!!d.manualReferenceMode))
+            .catch(() => { /* logged out, or settings unavailable: guide as written */ })
+    }, [])
+
+    const toggleReference = () => {
+        const next = !reference
+        setReference(next)
+        apiFetch('/api/settings/manual-mode', {
+            method: 'POST',
+            body: JSON.stringify({ manualReferenceMode: next }),
+        }).catch(() => { /* the view already changed; the preference can wait */ })
+    }
 
     // Manifest drives the whole nav — one fetch, once.
     useEffect(() => {
@@ -97,6 +120,19 @@ export default function ManualBrowser({
         if (variant === 'page') window.scrollTo({ top: 0, behavior: 'smooth' })
     }, [onLocationChange, variant, section, slug])
 
+    // Item pages are a section like any other, so back, history and the URL
+    // all work without special cases.
+    const openItem = useCallback((itemName: string) => go('item', itemName), [go])
+
+    useEffect(() => {
+        const onItem = (e: Event) => {
+            const n = (e as CustomEvent<{ name: string }>).detail?.name
+            if (n) openItem(n)
+        }
+        window.addEventListener('talaran:manual-item', onItem)
+        return () => window.removeEventListener('talaran:manual-item', onItem)
+    }, [openItem])
+
     const goBack = useCallback(() => {
         setHistory(h => {
             if (h.length === 0) return h
@@ -127,10 +163,22 @@ export default function ManualBrowser({
     // lib/markdown.ts strips id attributes, so headings can't be anchored through
     // the sanitiser. The rail scrolls to them by position instead, matching on
     // text, which needs no markup and cannot be sanitised away.
-    const headings = content
-        .split('\n')
-        .filter(line => line.startsWith('## '))
-        .map(line => line.slice(3).trim())
+    // Built from what is actually on the page. Reference mode drops every
+    // heading whose section was pure prose, so listing the raw file's headings
+    // sent the rail to anchors that were no longer rendered.
+    const headings = (() => {
+        const inReference = reference && supportsReference(section || '')
+        const source = inReference
+            ? toReference(parseManual(content))
+                .filter((n): n is { type: 'prose'; text: string } => n.type === 'prose')
+                .map(n => n.text)
+                .join('\n')
+            : content
+        return source
+            .split('\n')
+            .filter(line => line.startsWith('## '))
+            .map(line => line.slice(3).trim())
+    })()
 
     const scrollToHeading = (text: string) => {
         const root = document.querySelector(variant === 'page' ? '.manual--page' : '.manual--panel')
@@ -186,6 +234,16 @@ export default function ManualBrowser({
                             Contents
                         </button>
 
+                        {/* Sits with Contents rather than inside a section: it is
+                            not a page of the manual, it is the way into every
+                            item in the game. */}
+                        <button
+                            className={`manual-nav-home ${section === 'item' ? 'active' : ''}`}
+                            onClick={() => go('item', null)}
+                        >
+                            Items
+                        </button>
+
                         {manifest?.sections.map(s => (
                             <div key={s.key} className="manual-nav-section">
                                 <p className="manual-nav-label">{s.title}</p>
@@ -213,8 +271,33 @@ export default function ManualBrowser({
                     <div className="manual-message">
                         <p>{error}</p>
                     </div>
+                ) : section === 'item' && !slug ? (
+                    <article className="manual-article">
+                        <div className="manual-article-head">
+                            {history.length > 0 && (
+                                <button className="manual-back" onClick={goBack}>
+                                    ‹ Back
+                                </button>
+                            )}
+                            <p className="manual-breadcrumb">Items</p>
+                        </div>
+                        <h1 className="manual-title">Every item in Talaran</h1>
+                        <ManualItemIndex onOpen={openItem} />
+                    </article>
                 ) : !slug ? (
                     <ManualOverview manifest={manifest} onOpen={go} />
+                ) : section === 'item' ? (
+                    <article className="manual-article">
+                        <div className="manual-article-head">
+                            {history.length > 0 && (
+                                <button className="manual-back" onClick={goBack}>
+                                    ‹ Back
+                                </button>
+                            )}
+                            <p className="manual-breadcrumb">Items</p>
+                        </div>
+                        <ManualItem name={slug} onNavigate={go} onOpenItem={openItem} />
+                    </article>
                 ) : loading ? (
                     <div className="manual-message">
                         <p>Turning the page…</p>
@@ -232,6 +315,26 @@ export default function ManualBrowser({
 
                         <h1 className="manual-title">{currentPage?.title}</h1>
 
+                        {supportsReference(section || '') && (
+                            <div className="manual-mode">
+                                <span className="manual-mode-label">
+                                    {reference ? 'Reference' : 'The Geographer'}
+                                </span>
+                                <button
+                                    className={`manual-mode-switch ${reference ? 'on' : ''}`}
+                                    onClick={toggleReference}
+                                    role="switch"
+                                    aria-checked={reference}
+                                    aria-label="Reference mode"
+                                    title={reference
+                                        ? 'Showing tables and headings only. Switch back for the written guide.'
+                                        : 'Switch to tables and headings only, without the writing.'}
+                                >
+                                    <span className="manual-mode-knob" />
+                                </button>
+                            </div>
+                        )}
+
                         {headings.length > 2 && (
                             <nav className="manual-onpage">
                                 <p className="manual-onpage-label">On this page</p>
@@ -247,8 +350,14 @@ export default function ManualBrowser({
                             </nav>
                         )}
 
-                        <ManualRenderer content={content} onNavigate={go} />
-                        <p className="manual-signature">— the Geographer</p>
+                        <ManualRenderer
+                            content={content}
+                            onNavigate={go}
+                            reference={reference && supportsReference(section || '')}
+                        />
+                        {!(reference && supportsReference(section || '')) && (
+                            <p className="manual-signature">— the Geographer</p>
+                        )}
                     </article>
                 )}
             </div>

@@ -59,6 +59,10 @@ Everything the trade opens as you climb:
 And the bow you were handed on arrival:
 
 {{data:item-stats:Lanai Hunting Bow}}
+
+And every bait, with what it is worth to a snare:
+
+{{data:bait}}
 {{/details}}
 
 {{tab:Trapping}}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { formatGameDateLong } from '../lib/time'
 import './AuthScreen.css'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -44,6 +44,23 @@ interface NewsPost {
 type AuthMode = 'login' | 'register' | 'forgot'
 
 export default function AuthScreen({ onLogin }: AuthScreenProps) {
+    const navigate = useNavigate()
+
+    // Read once, on mount. Presenting a login form to somebody who already has
+    // a session is what actually invites a second account: it is a box asking
+    // for credentials, shown to a person who is signed in. A Play button in the
+    // same place removes the invitation instead of adding one. No username and
+    // no "log in as someone else" appear anywhere.
+    const [hasSession] = useState(() => !!localStorage.getItem('talaran_token'))
+
+    const play = () => {
+        if (hasSession) {
+            navigate('/game')
+            return
+        }
+        // Signed out, Play means "the form is down here", not a dead end.
+        document.getElementById('ledger')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
     const [mode, setMode] = useState<AuthMode>('login')
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
@@ -152,6 +169,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
 
             localStorage.setItem('talaran_token', data.token)
             onLogin(data.token, data.player)
+            navigate('/game')
         } catch {
             setError('Could not connect to the server. Please try again.')
         } finally {
@@ -200,6 +218,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                 <div className="home-masthead-in">
                     <span className="home-brand">Talaran</span>
                     <nav className="home-mast-nav">
+                        <button className="home-mast-link is-play" onClick={play}>Play</button>
                         <Link to="/manual" className="home-mast-link">Manual</Link>
                         <Link to="/news" className="home-mast-link">News</Link>
                         <Link to="/highscores" className="home-mast-link">Highscores</Link>
@@ -237,6 +256,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                 </button>
                                 <Link to="/manual" className="home-btn">Read the manual</Link>
                             </div>
+                            {!hasSession && (
+                            <>
                             <button
                                 className="home-try"
                                 onClick={startGuest}
@@ -248,9 +269,25 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                 No email, no password. You get an hour on the island, and you can
                                 keep the character if you want it.
                             </p>
+                            </>
+                            )}
                         </div>
 
                         {/* ── Ledger (auth) ── */}
+                        {hasSession ? (
+                            <div className="home-ledger" id="ledger">
+                                <div className="home-ledger-head">Talaran</div>
+                                <div className="home-ledger-body">
+                                    <p className="home-hint">
+                                        Anything you set running has been ticking away while you
+                                        were reading.
+                                    </p>
+                                    <button className="home-btn home-btn-gold home-btn-wide" onClick={play}>
+                                        Play
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
                         <div className="home-ledger" id="ledger">
                             <div className="home-ledger-head">
                                 {mode === 'login' ? 'Enter the realm' : mode === 'register' ? 'Begin your journey' : 'Reset password'}
@@ -354,6 +391,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                 )}
                             </div>
                         </div>
+                        )}
                     </div>
                 </div>
             </section>
@@ -394,7 +432,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         <div className="home-sec-head">
                             <span className="home-sec-title">Our World</span>
                             <span className="home-sec-rule" />
-                            <Link to="/manual" className="home-sec-more">Learn more in the manual</Link>
+                            <Link to="/manual" className="home-sec-more">See the map</Link>
                         </div>
 
                         <div className="home-casement">
@@ -503,7 +541,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         ))}
                     </div>
                     <p className="home-trades-note">
-                        Every one of these is live. Cooking and combat are being actively developed.
+                        Every one of these is live. Cooking and combat are being actively developed. 
                     </p>
                 </div>
             </section>

@@ -113,10 +113,16 @@ app.use((req, res, next) => {
 
 const server = http.createServer(app);
 
+// The socket server had its own origin list containing only localhost, so in
+// production it worked purely by accident: apex visitors are same-origin and
+// never trigger a CORS check at all. Anyone arriving on www.talaran.net was
+// cross-origin, had every socket request blocked, and lost the entire live
+// channel: no action completions, no chat, and no bot check prompt. Sharing
+// ALLOWED_ORIGINS keeps the two lists from drifting apart again.
 export const io = new Server(server, {
   cors: {
     origin: [
-      'http://localhost:5173',
+      ...ALLOWED_ORIGINS,
       'http://localhost:5174',
       'http://localhost:5175',
       'http://localhost:5176',
@@ -295,43 +301,55 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start the game tick
-startGameTick(io);
-startPlaytimeTracking();
+// ── Boot ────────────────────────────────────────────────────────────────────
+//
+// Everything below runs only when this file IS the program. It used to run on
+// import, which meant anything reaching in for a constant, a type or `io`
+// started a second server: the tick began, the schedulers armed, and port 3000
+// was claimed. scripts/auditItemCoverage.ts hit exactly that, and any future
+// script or test would have too.
+//
+// require.main is the module Node was started with, so this is true under
+// `node dist/index.js` and `ts-node src/index.ts`, and false on every import.
+if (require.main === module) {
+  // Start the game tick
+  startGameTick(io);
+  startPlaytimeTracking();
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  logger.info(`Talaran server running on port ${PORT}`);
-});
-
-// Take weekly snapshot on startup if not taken this week
-const now = new Date();
-const weekStart = getWeekStart(now);
-db('skill_snapshots')
-  .where('snapshot_date', weekStart)
-  .count('id as count')
-  .first()
-  .then(result => {
-    if (parseInt(result?.count as string) === 0) {
-      takeWeeklySnapshot();
-    }
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    logger.info(`Talaran server running on port ${PORT}`);
   });
 
-// Schedule weekly snapshot every Monday
-const msUntilMonday = () => {
+  // Take weekly snapshot on startup if not taken this week
   const now = new Date();
-  const nextMonday = getWeekStart(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
-  return nextMonday.getTime() - now.getTime();
-};
+  const weekStart = getWeekStart(now);
+  db('skill_snapshots')
+    .where('snapshot_date', weekStart)
+    .count('id as count')
+    .first()
+    .then(result => {
+      if (parseInt(result?.count as string) === 0) {
+        takeWeeklySnapshot();
+      }
+    });
 
-setTimeout(function scheduleSnapshot() {
-  takeWeeklySnapshot();
-  setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
-}, msUntilMonday());
+  // Schedule weekly snapshot every Monday
+  const msUntilMonday = () => {
+    const now = new Date();
+    const nextMonday = getWeekStart(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
+    return nextMonday.getTime() - now.getTime();
+  };
 
-// Audit finding 7: chat_messages was never pruned. Daily, and once shortly
-// after boot so the first large backlog clears without waiting a day.
-setTimeout(function scheduleChatPrune() {
-  pruneChatHistory();
-  setTimeout(scheduleChatPrune, 24 * 60 * 60 * 1000);
-}, 60 * 1000);
+  setTimeout(function scheduleSnapshot() {
+    takeWeeklySnapshot();
+    setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
+  }, msUntilMonday());
+
+  // Audit finding 7: chat_messages was never pruned. Daily, and once shortly
+  // after boot so the first large backlog clears without waiting a day.
+  setTimeout(function scheduleChatPrune() {
+    pruneChatHistory();
+    setTimeout(scheduleChatPrune, 24 * 60 * 60 * 1000);
+  }, 60 * 1000);
+}

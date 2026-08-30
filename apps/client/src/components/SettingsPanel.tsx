@@ -26,6 +26,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
     const [newEmail, setNewEmail] = useState('')
     const [emailPassword, setEmailPassword] = useState('')
     const [showTravelLog, setShowTravelLog] = useState(true)
+    const [manualReferenceMode, setManualReferenceMode] = useState(false)
     const [showItemAnimation, setShowItemAnimation] = useState(true)
     const [hideTallyWhenBuilt, setHideTallyWhenBuilt] = useState(false)
     const [activeTheme, setActiveTheme] = useState<string>(() => {
@@ -107,7 +108,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
 
     const loadSettings = async () => {
         try {
-            const data = await apiFetch<{ mutedChannels: string[]; showTravelLog?: boolean; showItemAnimation?: boolean; hideTallyWhenBuilt?: boolean }>('/api/settings')
+            const data = await apiFetch<{ mutedChannels: string[]; showTravelLog?: boolean; showItemAnimation?: boolean; hideTallyWhenBuilt?: boolean; manualReferenceMode?: boolean }>('/api/settings')
             const muted: Record<string, boolean> = {
                 world: false,
                 region: false,
@@ -117,6 +118,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
             data.mutedChannels?.forEach(ch => { muted[ch] = true })
             setMutedChannels(muted)
             setShowTravelLog(data.showTravelLog ?? true)
+            setManualReferenceMode(data.manualReferenceMode ?? false)
             setShowItemAnimation(data.showItemAnimation ?? true)
             setHideTallyWhenBuilt(data.hideTallyWhenBuilt ?? false)
         } catch (err) { }
@@ -225,6 +227,19 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
             })
         } catch (err) {
             setShowTravelLog(!next) // revert on failure
+        }
+    }
+
+    const handleManualModeToggle = async () => {
+        const next = !manualReferenceMode
+        setManualReferenceMode(next)
+        try {
+            await apiFetch('/api/settings/manual-mode', {
+                method: 'POST',
+                body: JSON.stringify({ manualReferenceMode: next }),
+            })
+        } catch {
+            setManualReferenceMode(!next) // revert on failure
         }
     }
 
@@ -479,6 +494,21 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                                 onClick={handleTravelLogToggle}
                             >
                                 {showTravelLog ? 'On' : 'Off'}
+                            </button>
+                        </div>
+
+                        <div className="settings-toggle-row">
+                            <div className="settings-toggle-info">
+                                <span className="settings-toggle-label">Manual: Reference Mode</span>
+                                <span className="muted-text" style={{ fontSize: '13px' }}>
+                                    Show skill pages as tables and headings only, without the Geographer's writing. Guides are unaffected.
+                                </span>
+                            </div>
+                            <button
+                                className={`settings-toggle-btn ${manualReferenceMode ? 'active' : 'muted'}`}
+                                onClick={handleManualModeToggle}
+                            >
+                                {manualReferenceMode ? 'On' : 'Off'}
                             </button>
                         </div>
 

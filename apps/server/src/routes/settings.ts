@@ -26,6 +26,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             showTravelLog: settings?.show_travel_log ?? true,
             showItemAnimation: settings?.show_item_animation ?? true,
             hideTallyWhenBuilt: settings?.hide_tally_when_built ?? false,
+            manualReferenceMode: settings?.manual_reference_mode ?? false,
             theme,
             paletteTokens,
             paletteName,
@@ -36,6 +37,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             showTravelLog: true,
             showItemAnimation: true,
             hideTallyWhenBuilt: false,
+            manualReferenceMode: false,
             theme: 'tavern',
         });
     }
@@ -112,6 +114,23 @@ router.post('/travel-log', requireAuth, async (req: AuthRequest, res: Response) 
         res.json({ success: true });
     } catch (err) {
         logger.error(`Update travel log setting error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Reference mode for the manual. Per account, so it follows the player rather
+// than the browser they happened to read on.
+router.post('/manual-mode', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { manualReferenceMode } = req.body;
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, manual_reference_mode: !!manualReferenceMode })
+            .onConflict(['player_id'])
+            .merge(['manual_reference_mode']);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Update manual mode setting error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

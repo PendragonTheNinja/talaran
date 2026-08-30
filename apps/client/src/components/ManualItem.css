@@ -1,0 +1,276 @@
+/* ============================================================
+   ITEM PAGE
+   One page per item, assembled from live data. Built on the
+   same panel language as the rest of the game: flat fills,
+   one-pixel gold borders, no glow. The art is given room
+   because for many items it is the fastest answer to "what
+   is this".
+   ============================================================ */
+
+.mitem {
+    max-width: 900px;
+}
+
+/* ── Plate ────────────────────────────────────────────── */
+
+.mitem-plate {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg, 16px);
+    padding: var(--space-lg, 16px);
+    background: var(--color-bg-panel, #2a2118);
+    border: 1px solid var(--color-border-gold, #6b5030);
+    border-radius: var(--radius-md, 5px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Framed the way the skill icons are, so an item sits in the same world as
+   the rest of the art rather than floating on the panel. */
+.mitem-art {
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm, 3px);
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-mid, #4a3820);
+    padding: 4px;
+    image-rendering: auto;
+}
+
+.mitem-plate-text {
+    min-width: 0;
+}
+
+.mitem-name {
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    color: var(--color-gold-bright, #e8b84b);
+    margin: 0;
+}
+
+.mitem-desc {
+    margin: 6px 0 0;
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--color-text-muted, #9a8060);
+}
+
+/* ── Facts ────────────────────────────────────────────── */
+
+.mitem-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    margin: var(--space-lg, 16px) 0 0;
+    padding: 0;
+    background: var(--color-border-dark, #2e2418);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    overflow: hidden;
+}
+
+.mitem-fact {
+    padding: 10px 14px;
+    background: var(--color-bg-deep, #13100c);
+}
+
+.mitem-fact dt {
+    font-family: var(--font-heading);
+    font-size: 11.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-dim, #6b5a3e);
+}
+
+.mitem-fact dd {
+    margin: 3px 0 0;
+    font-family: var(--font-body);
+    font-size: 17px;
+    color: var(--color-text-bright, #e8d5a3);
+}
+
+/* ── Sections ─────────────────────────────────────────── */
+
+.mitem-section {
+    margin-top: var(--space-xl, 24px);
+}
+
+.mitem-section-title {
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 17px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold-bright, #e8b84b);
+    margin: 0 0 var(--space-sm, 8px);
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--color-border-gold, #6b5030);
+}
+
+.mitem-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* A row is a grid rather than a table: the columns carry different things for
+   a forage and for a recipe, and forcing both into one table shape produced
+   half-empty cells. */
+/* Four columns, and the two middle ones must be allowed to shrink.
+   `auto` on the detail column let a long ingredient list claim more width than
+   the row had, which pushed it over the name beside it. minmax(0, …) lets both
+   give way and wrap instead of overlapping. */
+.mitem-entry {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1.6fr) auto;
+    align-items: start;
+    gap: var(--space-sm, 8px) var(--space-md, 12px);
+    padding: 11px 2px;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+    line-height: 1.4;
+}
+
+.mitem-entry:last-child {
+    border-bottom: 0;
+}
+
+.mitem-entry-kind {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+}
+
+.mitem-entry-main {
+    min-width: 0;
+}
+
+.mitem-entry-name {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    letter-spacing: 0.02em;
+    color: var(--color-text-bright, #e8d5a3);
+    overflow-wrap: anywhere;
+}
+
+.mitem-entry-where {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--color-text-dim, #6b5a3e);
+}
+
+.mitem-entry-detail {
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    color: var(--color-text-muted, #9a8060);
+    text-align: left;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.mitem-entry-more {
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-mid, #4a3820);
+    padding: 0 0 1px;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #9a8060);
+    white-space: nowrap;
+}
+
+.mitem-entry-more:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-bottom-color: var(--color-gold, #c8922a);
+}
+
+/* Item names are links wherever they appear. Underlined rather than coloured,
+   so a table full of them does not turn into a wall of gold. */
+.mitem-link {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-size: 17px;
+    letter-spacing: 0.02em;
+    color: var(--color-text-bright, #e8d5a3);
+    border-bottom: 1px dotted var(--color-border-bright, #9a7840);
+    text-align: left;
+}
+
+.mitem-link:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-bottom-style: solid;
+    border-bottom-color: var(--color-gold, #c8922a);
+}
+
+.mitem-none {
+    font-family: var(--font-body);
+    font-size: 17px;
+    color: var(--color-text-muted, #9a8060);
+    margin: 0;
+    padding: 6px 0;
+}
+
+/* ── States ───────────────────────────────────────────── */
+
+.mitem-empty {
+    padding: var(--space-lg, 16px);
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-dark, #2e2418);
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-text-muted, #9a8060);
+    font-family: var(--font-body);
+}
+
+.mitem-skeleton {
+    height: 108px;
+    border-radius: var(--radius-md, 5px);
+    background: var(--color-bg-panel, #2a2118);
+    opacity: 0.5;
+}
+
+@media (max-width: 680px) {
+    .mitem-plate {
+        gap: var(--space-md, 12px);
+        padding: var(--space-md, 12px);
+    }
+
+    .mitem-art {
+        width: 56px;
+        height: 56px;
+    }
+
+    .mitem-name {
+        font-size: 24px;
+    }
+
+    /* The four-column row cannot hold at this width, so it folds into two
+       lines with the detail under the name rather than beside it. */
+    .mitem-entry {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 4px var(--space-sm, 8px);
+    }
+
+    .mitem-entry-main {
+        grid-column: 1;
+    }
+
+    .mitem-entry-kind {
+        grid-column: 1 / -1;
+    }
+
+    .mitem-entry-detail {
+        grid-column: 1 / -1;
+        text-align: left;
+    }
+}

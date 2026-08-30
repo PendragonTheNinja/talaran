@@ -1037,10 +1037,20 @@
     flex: 0 0 auto;
 }
 
+/* A <td> set to display:flex is taken out of the table layout algorithm, so
+   the cell stops aligning to its column. That was invisible while only one
+   column per table carried an icon and became obvious the moment several did.
+   The cell stays a table-cell; the icon and its label are aligned inline. */
 .manual-table td.has-icon {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm, 8px);
+    white-space: nowrap;
+}
+
+.manual-table td.has-icon > * {
+    vertical-align: middle;
+}
+
+.manual-table td.has-icon .manual-table-icon {
+    margin-right: var(--space-sm, 8px);
 }
 
 .manual-data-title {
@@ -1238,4 +1248,269 @@
     .manual-content a {
         overflow-wrap: anywhere;
     }
+}
+
+/* ── Reference mode switch ────────────────────────────────
+   Sits above the page body on skill pages only. Deliberately
+   quiet: it changes how the page reads, not what it says.
+   ──────────────────────────────────────────────────────── */
+
+.manual-mode {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border-dark);
+}
+
+.manual-mode-label {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.manual-mode-switch {
+    position: relative;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+    padding: 0;
+    border-radius: 11px;
+    border: 1px solid var(--color-border-mid);
+    background: var(--color-bg-deep);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.manual-mode-switch.on {
+    background: var(--color-bg-raised);
+    border-color: var(--color-gold);
+}
+
+.manual-mode-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    transition: transform 0.15s ease, background 0.15s;
+}
+
+.manual-mode-switch.on .manual-mode-knob {
+    transform: translateX(20px);
+    background: var(--color-gold-bright);
+}
+
+/* ── Manual tables, second pass ───────────────────────────
+   These are read to look things up, often across eight or
+   nine columns and forty rows, so the work here is all
+   about holding a row together and finding it again.
+   ──────────────────────────────────────────────────────── */
+
+/* The header stays put on a long table. Without this you scroll into a wall
+   of numbers with no idea which column is which. */
+/* Everything is on screen from the first click. A reference table that hides
+   rows behind a scrollbar is a table people stop trusting, because there is no
+   way to tell at a glance whether they have seen all of it. */
+.manual-data-scroll {
+    max-height: none;
+    overflow-y: visible;
+}
+
+/* No sticky header: with nothing scrolling there is nothing to stick to. */
+.manual-table thead th {
+    background: var(--color-bg-deep, #13100c);
+}
+
+/* Alternating ground, kept very slight. Enough to track a row across a wide
+   table, not enough to read as stripes. */
+.manual-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.014);
+}
+
+.manual-table tbody tr:hover {
+    background: rgba(200, 146, 42, 0.07);
+}
+
+/* The subject column carries the row. Setting it in the display face and a
+   shade brighter gives the eye an anchor to come back to. */
+.manual-table td.is-subject {
+    font-family: var(--font-heading);
+    letter-spacing: 0.02em;
+    color: var(--color-text-bright, #e8d5a3);
+}
+
+/* A repeat of the value above. Dimmed to near-invisible and the row's top
+   border removed, so the group reads as one block. */
+.manual-table td.is-repeat {
+    color: var(--color-text-dim, #6b5a3e);
+    opacity: 0.35;
+}
+
+.manual-table tr.is-grouped td {
+    border-top: none;
+}
+
+.manual-table tr.is-grouped td.is-subject {
+    border-bottom-color: transparent;
+}
+
+/* Figures line up in columns. Garamond's default proportional numerals do not,
+   which makes a column of percentages hard to compare down its length. */
+.manual-table td.align-right,
+.manual-table th.align-right {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Cells carrying an icon keep the art and the text on one line. */
+.manual-table td.has-icon {
+    white-space: nowrap;
+}
+
+/* The title reads as the head of the panel rather than a line floating above
+   an unrelated table. */
+.manual-data-title {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+@media (max-width: 680px) {
+    .manual-table {
+        font-size: 13.5px;
+    }
+
+    /* Below this width a nine-column table cannot fit whatever is done to it,
+       so sideways scrolling comes back rather than columns being cut off. */
+    .manual-data-scroll {
+        overflow-x: auto;
+    }
+}
+
+
+/* ── Room for the tables ──────────────────────────────────
+   .manual-article is capped at 74ch, which is right for
+   reading prose and far too narrow for a nine-column
+   reference table. On the full page the article widens and
+   the PROSE keeps the measure instead, so paragraphs read
+   the same and tables stop overflowing.
+   ──────────────────────────────────────────────────────── */
+
+.manual--page .manual-article {
+    max-width: 1320px;
+}
+
+.manual--page .manual-article .markdown-content {
+    max-width: 74ch;
+}
+
+.manual--page .manual-article .manual-data {
+    max-width: none;
+}
+
+/* Headers were set at the body size, which forced every narrow column to be
+   at least as wide as its heading. Level, XP and Tier are three characters of
+   data under a nine-character word, and the word was deciding the width. */
+.manual-table th {
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    padding-right: var(--space-sm, 8px);
+}
+
+.manual-table td {
+    padding-right: var(--space-sm, 8px);
+}
+
+/* Numbers never need to wrap, and wrapping them is what produced "20s to" on
+   one line and "20s" on the next. */
+.manual-table td.align-right {
+    white-space: nowrap;
+}
+
+/* ── Sortable headers ─────────────────────────────────────
+   The header is the control. No separate affordance, since
+   a reference table is scanned far more often than sorted.
+   ──────────────────────────────────────────────────────── */
+
+.manual-table th.is-sortable {
+    padding: 0;
+}
+
+.manual-table .manual-th-sort {
+    width: 100%;
+    background: none;
+    border: 0;
+    padding: var(--space-xs, 4px) var(--space-sm, 8px) var(--space-xs, 4px) 0;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.manual-table .manual-th-sort:hover {
+    color: var(--color-gold-bright, #e8b84b);
+}
+
+.manual-table th.align-right .manual-th-sort {
+    text-align: right;
+}
+
+.manual-table th.is-sorted .manual-th-sort {
+    color: var(--color-gold-bright, #e8b84b);
+}
+
+.manual-th-arrow {
+    display: inline-block;
+    width: 1em;
+    margin-left: 0.35em;
+    font-size: 0.7em;
+    vertical-align: 0.1em;
+}
+
+/* Grouping dimming assumes the query's own order. Once a reader sorts by
+   something else the grouping is meaningless, so every value is printed. */
+.manual-table th.is-sorted~th .is-repeat,
+.manual-table:has(th.is-sorted) td.is-repeat {
+    color: inherit;
+    opacity: 1;
+}
+
+
+/* The outer shell caps at 1180px, which the article then sits inside along
+   with the navigation rail. Reference tables need more than what is left over,
+   so both shells widen on the standalone page. The in-game panel is left as it
+   was, since it shares the screen with the game. */
+.manual--page {
+    max-width: 1600px;
+}
+
+.manual-page .manual--page {
+    max-width: 1600px;
+}
+
+/* Item names inside tables. Dotted underline rather than a colour, so a table
+   with an item in every row does not read as a wall of links. */
+.manual-item-link {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    border-bottom: 1px dotted var(--color-border-bright, #9a7840);
+}
+
+.manual-item-link:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-bottom-style: solid;
+    border-bottom-color: var(--color-gold, #c8922a);
 }

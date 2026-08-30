@@ -1,4 +1,7 @@
 import db from '../db'
+
+/** Ammunition. One is spent per shot, and may be recovered on the roll. */
+export const HUNT_AMMO = 'Ambren Arrow';
 import { levelFromXp } from './xp'
 
 // ── Tuning constants ──────────────────────────────────────────────
@@ -41,7 +44,7 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
     if (!bow) return { allowed: false, reason: 'You need a hunting bow equipped.' }
 
     // At least one arrow in inventory
-    const arrowItem = await db('items').where({ name: 'Ambren Arrow' }).first()
+    const arrowItem = await db('items').where({ name: HUNT_AMMO }).first()
     const arrows = arrowItem
         ? await db('player_inventory').where({ player_id: playerId, item_id: arrowItem.id }).first()
         : null

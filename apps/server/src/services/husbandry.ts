@@ -50,7 +50,7 @@ const TAME_SECONDS = 30;
 // Mucking out lays FRESH BEDDING, so it costs straw and returns manure. That
 // gives Farming's straw a sink and Farming's soil restore its only faucet, which
 // is the loop this skill was meant to close.
-const BEDDING = { itemName: 'Straw', perHead: 1 };
+export const BEDDING = { itemName: 'Straw', perHead: 1 };
 
 
 const TOOL_SLOT_COLUMN: Record<string, string> = {
@@ -66,7 +66,7 @@ const TOOL_SLOT_COLUMN: Record<string, string> = {
 // a loose item — services/liquids.ts owns that. Everything else is an ordinary
 // item and goes straight to the pack.
 
-const PEN_COST: Record<string, (n: number) => { itemName: string; qty: number }[]> = {
+export const PEN_COST: Record<string, (n: number) => { itemName: string; qty: number }[]> = {
     coop: (n) => [
         { itemName: 'Lanai Planks', qty: 20 + (n - 1) * 8 },
         { itemName: 'Ambren Nails', qty: 30 + (n - 1) * 10 },

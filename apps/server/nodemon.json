@@ -1,0 +1,25 @@
+{
+  "watch": ["src"],
+  "ext": "ts",
+  "exec": "ts-node src/index.ts",
+
+  "//": [
+    "legacyWatch turns on polling instead of inotify.",
+    "",
+    "Nodemon normally listens for kernel file-change events, which is cheap and",
+    "instant. Under WSL those events are not raised for files written from the",
+    "Windows side: copying through Explorer or saving from a Windows editor",
+    "changes the file on disk and tells the Linux kernel nothing. Nodemon sits",
+    "there believing nothing happened, and the server keeps serving the old",
+    "code with no error to suggest otherwise.",
+    "",
+    "Polling checks the files on a timer instead, so it notices a change however",
+    "the file arrived. It costs a little CPU, which on a project this size is",
+    "not worth measuring against losing an afternoon to code that was never",
+    "actually running."
+  ],
+  "legacyWatch": true,
+  "pollingInterval": 400,
+
+  "delay": 300
+}

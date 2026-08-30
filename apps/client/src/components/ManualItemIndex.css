@@ -1,0 +1,144 @@
+/* ============================================================
+   ITEM INDEX
+   The front door to item pages. Built to be scanned, so the
+   art carries most of the recognition and the names stay in
+   even columns rather than a ragged list.
+   ============================================================ */
+
+.mindex {
+    max-width: 1000px;
+}
+
+/* ── Search ───────────────────────────────────────────── */
+
+.mindex-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+    margin-bottom: var(--space-lg, 16px);
+}
+
+.mindex-search input {
+    flex: 1;
+    min-width: 0;
+    background: var(--color-bg-deep, #13100c);
+    border: 1px solid var(--color-border-gold, #6b5030);
+    border-radius: var(--radius-sm, 3px);
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 18px;
+    color: var(--color-text-bright, #e8d5a3);
+}
+
+.mindex-search input::placeholder {
+    color: var(--color-text-dim, #6b5a3e);
+}
+
+.mindex-search input:focus {
+    outline: none;
+    border-color: var(--color-gold, #c8922a);
+    background: var(--color-bg-dark, #1a1510);
+}
+
+.mindex-count {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-dim, #6b5a3e);
+    white-space: nowrap;
+}
+
+/* ── Groups ───────────────────────────────────────────── */
+
+.mindex-group {
+    margin-bottom: var(--space-lg, 16px);
+}
+
+.mindex-group-title {
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 15px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-gold-dim, #7a6030);
+    margin: 0 0 var(--space-sm, 8px);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.mindex-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 2px;
+}
+
+.mindex-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    width: 100%;
+    padding: 6px 8px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 3px);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.mindex-item:hover {
+    background: var(--color-bg-panel, #2a2118);
+    border-color: var(--color-border-gold, #6b5030);
+}
+
+.mindex-icon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 2px;
+    background: var(--color-bg-deep, #13100c);
+}
+
+.mindex-name {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-body);
+    font-size: 17px;
+    color: var(--color-text-base, #c8a96e);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mindex-item:hover .mindex-name {
+    color: var(--color-gold-bright, #e8b84b);
+}
+
+.mindex-tier {
+    font-family: var(--font-heading);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-dim, #6b5a3e);
+    white-space: nowrap;
+}
+
+.mindex-message {
+    font-family: var(--font-body);
+    font-size: 17px;
+    color: var(--color-text-muted, #9a8060);
+    padding: var(--space-md, 12px) 0;
+}
+
+@media (max-width: 680px) {
+    .mindex-list {
+        grid-template-columns: 1fr;
+    }
+
+    .mindex-search input {
+        font-size: 16px;
+    }
+}

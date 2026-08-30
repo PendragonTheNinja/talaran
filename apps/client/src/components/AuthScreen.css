@@ -104,6 +104,19 @@
     background: var(--color-bg-raised);
 }
 
+.home-mast-link.is-play {
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    border-color: var(--color-border-gold);
+}
+
+.home-mast-link.is-play:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-gold);
+}
+
 .home-mast-link.is-discord {
     color: var(--color-text-muted);
 }

@@ -86,3 +86,17 @@ There is no breeding. This is the constraint the whole skill is built around, an
 **Snares** take small things alive: a nesting hen, and with some luck a wild sow with a piglet at foot. **Hunting** turns up the larger young: a calf strayed from a drove, or a foal standing beside something you were tracking for entirely different reasons.
 
 I find there is something fitting in that. The tame animals of Talaran all begin as wild ones, and the stockman's craft is not making animals. It is bringing them in, and then getting up in the morning.
+
+{{details:The Geographer's ledgers}}
+Every animal you may keep, what it eats, and how long it makes you wait:
+
+{{data:animals}}
+
+What each gives you for the trouble of keeping it alive:
+
+{{data:animal-produce}}
+
+And what comes off one at the end:
+
+{{data:animal-slaughter}}
+{{/details}}

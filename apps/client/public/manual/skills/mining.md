@@ -49,5 +49,11 @@ Read those two figures again and note that they are not symmetrical. The lesson 
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb, and where to find it:
 
-{{data:training-path:Mining}}
+The rocks, and what comes out of them:
+
+{{data:rocks}}
+
+And the veins, which are worth knowing about before you find one:
+
+{{data:veins}}
 {{/details}}

@@ -4,6 +4,8 @@ import { logger } from '../lib/logger';
 import { xpForLevel } from '../services/xp';
 import { plotCost, plotCapForLevel, FARMSTEAD_TOWN } from '../services/farming';
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
+import { extraQueries } from '../services/manualQueries';
+import { buildItemPage } from '../services/itemPage';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
 //
@@ -115,6 +117,11 @@ function recipeTown(skill: string): string | null {
 type QueryHandler = (param: string | undefined) => Promise<ManualTable>;
 
 const registry: Record<string, QueryHandler> = {
+    // Skill reference tables live in services/manualQueries.ts. Split out
+    // because this file was already long, and because those are pure data
+    // shaping with no routing concern of their own.
+    ...extraQueries,
+
     /**
      * Everything a skill unlocks, by level: gathering nodes and craft recipes in
      * one ladder. Gathering skills live in resource_nodes, crafting skills in the
@@ -540,11 +547,42 @@ const registry: Record<string, QueryHandler> = {
         const item = await db('items').whereRaw('LOWER(name) = ?', [name.toLowerCase()]).first();
         if (!item) return { title: name, columns: [], rows: [] };
 
+        // The columns store lowercase machine values: 'tool', 'bow', 'mainhand'.
+        // Printed raw they read like a database row, so they are turned into
+        // the words a person would actually use.
+        const sentence = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
+        const SLOT_WORDS: Record<string, string> = {
+            mainhand: 'Main hand',
+            offhand: 'Off hand',
+            head: 'Head',
+            chest: 'Chest',
+            legs: 'Legs',
+            feet: 'Feet',
+            hands: 'Hands',
+            neck: 'Neck',
+            ring: 'Ring',
+            back: 'Back',
+            mount: 'Mount',
+        };
+
         const rows: Record<string, string | number>[] = [
-            { field: 'Type', value: item.subtype ? `${item.type} (${item.subtype})` : item.type },
-            { field: 'Tier', value: item.tier ?? '—' },
-            { field: 'Worn', value: item.slot || 'Carried, not worn' },
-            { field: 'Level required', value: item.level_required ?? 1 },
+            {
+                field: 'Type',
+                value: item.subtype
+                    ? `${sentence(item.subtype)} ${item.type}`
+                    : sentence(item.type),
+            },
+            { field: 'Tier', value: item.tier ? `Tier ${item.tier}` : 'Untiered' },
+            {
+                field: 'Worn',
+                value: item.slot
+                    ? (SLOT_WORDS[item.slot] || sentence(item.slot))
+                    : 'Carried, not worn',
+            },
+            {
+                field: 'Level required',
+                value: (item.level_required ?? 1) > 1 ? item.level_required : 'None',
+            },
         ];
 
         if (item.travel_speed_modifier && Number(item.travel_speed_modifier) !== 1) {
@@ -616,6 +654,47 @@ router.get('/data/:query/:param', handleData);
 // rest of this router: the manual must render logged out.
 
 /** Published overrides, without content, so the client can merge the manifest. */
+/**
+ * The item index. Active items only, and that is not a filter to be relaxed:
+ * a retired item is content the player can no longer obtain, and listing it
+ * sends someone hunting for something that is not there any more.
+ *
+ * The whole list ships at once. Two hundred rows is a few kilobytes, and it
+ * makes the manual's search instant and offline rather than a request per
+ * keystroke.
+ */
+router.get('/items', async (_req: Request, res: Response) => {
+    try {
+        const items = await db('items')
+            .where({ is_active: true })
+            .orderBy('name')
+            .select('name', 'type', 'subtype', 'tier', 'quality');
+        res.json({ items });
+    } catch (err) {
+        logger.error(`Manual item index error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/**
+ * One item, with everything that produces it and everything it feeds.
+ * Assembled per request from the live tables; nothing about items is authored.
+ */
+router.get('/item/:name', async (req: Request, res: Response) => {
+    try {
+        const raw = req.params.name;
+        const page = await buildItemPage(decodeURIComponent(Array.isArray(raw) ? raw[0] : raw));
+        if (!page) {
+            res.status(404).json({ error: 'No such item.' });
+            return;
+        }
+        res.json(page);
+    } catch (err) {
+        logger.error(`Manual item page error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.get('/pages', async (_req: Request, res: Response) => {
     try {
         const pages = await db('manual_pages')

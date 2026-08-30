@@ -22,7 +22,7 @@ export function boardCapForLevel(level: number): number {
 }
 
 // Modest against the farmstead's 500/500/1000. This is a noticeboard, not a barn.
-const BUILD_COST = [
+export const BUILD_COST = [
     { itemName: 'Lanai Planks', qty: 50 },
     { itemName: 'Ambren Nails', qty: 100 },
 ];

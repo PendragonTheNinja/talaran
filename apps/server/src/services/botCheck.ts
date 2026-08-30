@@ -25,12 +25,17 @@ export function isBotCheckDue(player: any, now: Date = new Date()): boolean {
 /** Each addend runs 1 to this. Both together top out at twice it. */
 export const BOT_CHECK_MAX_ADDEND = 50;
 
-export async function issueBotCheck(playerId: number): Promise<void> {
+export async function issueBotCheck(playerId: number): Promise<{ a: number; b: number }> {
     const a = Math.floor(Math.random() * BOT_CHECK_MAX_ADDEND) + 1;
     const b = Math.floor(Math.random() * BOT_CHECK_MAX_ADDEND) + 1;
     await db('players').where({ id: playerId }).update({ bot_check_answer: a + b });
     io.to(`player_${playerId}`).emit('bot_check_required', { a, b });
     logger.info(`Bot check issued for player ${playerId}`);
+    // Returned as well as emitted. The socket is one delivery route and it can
+    // fail: a dropped connection, a sleeping tab, a blocked origin. When the
+    // only copy of the question goes over a channel that is down, the player is
+    // locked out of every action with no way to ask for it again.
+    return { a, b };
 }
 
 // Middleware gating any "start an action / travel" route.
@@ -49,8 +54,11 @@ export async function botCheckGate(
             return;
         }
         if (hasPendingBotCheck(player) || isBotCheckDue(player)) {
-            await issueBotCheck(playerId);
-            res.status(423).json({ error: 'Bot check required.', botCheck: true });
+            const { a, b } = await issueBotCheck(playerId);
+            // The question travels with the refusal. Any blocked action now
+            // re-presents the check, so being stuck is self-correcting: the
+            // player clicks something, the prompt appears, they answer it.
+            res.status(423).json({ error: 'Bot check required.', botCheck: true, a, b });
             return;
         }
         next();

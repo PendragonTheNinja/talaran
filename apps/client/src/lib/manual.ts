@@ -324,3 +324,95 @@ export function searchCorpus(query: string, limit = 12): SearchHit[] {
         return at - bt
     })
 }
+
+// ── Reference mode ──────────────────────────────────────────────────────────
+//
+// Turns a skill page from a guide into a data sheet by dropping the prose and
+// keeping everything structural. There is no second copy of the manual: the
+// same markdown feeds both readings, so a table added once appears in both and
+// the two can never drift apart.
+//
+// What survives, and why:
+//   headings    the page's shape, and what a reader scans for
+//   lists       almost always the factual part already (tools, what feeds what)
+//   tables      hand-written tables are data by definition
+//   data blocks the live tables, which are the entire point of this mode
+//   details     collapsed ledgers, which hold tables
+//
+// What goes: paragraphs and blockquotes. That is where the voice lives.
+//
+// A heading left with nothing beneath it is dropped too. Reference mode should
+// read as a document that was built this way, not as one with holes in it.
+
+const KEEP_LINE = [
+    /^\s{0,3}#{1,6}\s/,        // heading
+    /^\s{0,3}[-*+]\s/,         // bullet
+    /^\s{0,3}\d+[.)]\s/,       // numbered
+    /^\s{0,3}\|/,              // table row
+    /^\s{0,3}(\*\s*){3,}$/,    // rule
+    /^\s{0,3}(-\s*){3,}$/,
+]
+
+function isHeading(line: string): boolean {
+    return /^\s{0,3}#{1,6}\s/.test(line)
+}
+
+/** Keeps the structural lines of a markdown block and discards the prose. */
+function referenceProse(text: string): string {
+    const kept = text
+        .split('\n')
+        .filter(line => line.trim() === '' || KEEP_LINE.some(re => re.test(line)))
+
+    // Drop a heading that now has nothing under it, and collapse the blank
+    // lines that removing paragraphs leaves behind.
+    const out: string[] = []
+    for (let i = 0; i < kept.length; i++) {
+        const line = kept[i]
+        if (isHeading(line)) {
+            const next = kept.slice(i + 1).find(l => l.trim() !== '')
+            if (!next || isHeading(next)) continue
+        }
+        if (line.trim() === '' && out[out.length - 1]?.trim() === '') continue
+        out.push(line)
+    }
+    return out.join('\n').trim()
+}
+
+export function toReference(nodes: ManualNode[]): ManualNode[] {
+    const out: ManualNode[] = []
+    for (const node of nodes) {
+        if (node.type === 'prose') {
+            const text = referenceProse(node.text)
+            if (text) out.push({ type: 'prose', text })
+            continue
+        }
+        if (node.type === 'details') {
+            // Unwrapped, not relabelled. "The Geographer's ledgers" is the
+            // Cartographer speaking, and reference mode is the view without
+            // him in it. Flattening also settles an inconsistency that was
+            // plainly visible on the page: some tables sat inside a collapsible
+            // ledger and others sat loose, for no reason a reader could see.
+            // Every table now sits at the same level.
+            out.push(...toReference(node.children))
+            continue
+        }
+        if (node.type === 'tabs') {
+            out.push({
+                ...node,
+                tabs: node.tabs.map(t => ({ ...t, children: toReference(t.children) })),
+            })
+            continue
+        }
+        out.push(node)
+    }
+    return out
+}
+
+/**
+ * Reference mode is for pages built on data. The guides have no data blocks in
+ * them, so stripping their prose leaves headings over nothing, and they are
+ * left exactly as written whatever the setting says.
+ */
+export function supportsReference(section: string): boolean {
+    return section === 'skills'
+}

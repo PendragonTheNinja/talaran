@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import GameLayout from './components/GameLayout'
 import AuthScreen from './components/AuthScreen'
 import { Player } from './types'
 import { connectSocket, disconnectSocket, getSocket } from './lib/socket'
 import { apiFetch } from './lib/api'
 import WelcomeModal from './components/WelcomeModal'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import NewsPage from './components/NewsPage'
 import ManualPage from './components/ManualPage'
 import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
@@ -14,10 +14,6 @@ import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
 import TradeWindow from './components/TradeWindow'
 import GuestBanner, { ClaimSuccessModal } from './components/GuestBanner'
-import {
-  reachMilestone, clearMilestones, isTutorialQuest,
-  CRAFTING_SKILLS, MILESTONE_COPY, type Milestone,
-} from './lib/guestMilestones'
 
 interface Skill {
   id: number
@@ -180,10 +176,6 @@ function App() {
         loadInventory()
         loadLocationData()
       })
-      socket.on('quest_rewards', (data: { questName?: string }) => {
-        if (isTutorialQuest(data?.questName)) nudgeOn('tutorial')
-      })
-
       socket.on('travel_complete', () => {
         loadLocationData()
         loadPlayerData()
@@ -299,7 +291,6 @@ function App() {
 
   const [guestExpired, setGuestExpired] = useState(false)
   const [claimedName, setClaimedName] = useState<string | null>(null)
-  const [nudge, setNudge] = useState<string | null>(null)
 
   // Guest status is read from the token as well as from the API.
   //
@@ -309,55 +300,6 @@ function App() {
   // route file was missed on deploy, which is exactly what happened in
   // testing. The claim is signed, so it cannot be forged, and it is only ever
   // used to decide whether to show UI.
-  const isGuest = (): boolean =>
-    Boolean(playerData?.player?.is_guest || player?.is_guest || tokenSaysGuest())
-
-  // Fires a prompt the first time a guest hits a milestone worth marking.
-  const nudgeOn = useCallback((milestone: Milestone) => {
-    const id = player?.id ?? playerData?.player?.id
-    if (!id) return
-    if (!(playerData?.player?.is_guest || player?.is_guest)) return
-    if (reachMilestone(id, milestone)) setNudge(MILESTONE_COPY[milestone])
-  }, [player, playerData])
-
-  // Left Talador. The world being a place, rather than a screen, is most of
-  // what a trial has to communicate.
-  const firstLocation = useRef<number | null>(null)
-  useEffect(() => {
-    const id = locationData?.location?.id
-    if (!id) return
-    if (firstLocation.current === null) {
-      firstLocation.current = id
-      return
-    }
-    if (id !== firstLocation.current) nudgeOn('travel')
-  }, [locationData, nudgeOn])
-
-  // Turned raw material into a good. This is the moment the game stops looking
-  // like a clicker and starts looking like a production chain.
-  useEffect(() => {
-    if (!playerData?.skills) return
-    const crafted = playerData.skills.some(
-      sk => CRAFTING_SKILLS.includes(sk.name) && sk.xp > 0,
-    )
-    if (crafted) nudgeOn('craft')
-  }, [playerData, nudgeOn])
-
-  // Half an hour left. A backstop for anyone who wanders without tripping the
-  // others, and still far enough from the end to be worth answering.
-  useEffect(() => {
-    const expiry = playerData?.player?.guest_expires_at ?? player?.guest_expires_at
-    if (!expiry) return
-    const fire = () => nudgeOn('halfway')
-    const ms = new Date(expiry).getTime() - Date.now() - 30 * 60 * 1000
-    if (ms <= 0) {
-      fire()
-      return
-    }
-    const t = setTimeout(fire, ms)
-    return () => clearTimeout(t)
-  }, [playerData, player, nudgeOn])
-
   const tokenSaysGuest = (): boolean => {
     try {
       const token = localStorage.getItem('talaran_token')
@@ -392,9 +334,8 @@ function App() {
     localStorage.setItem('talaran_token', token)
     localStorage.setItem('talaran_player', JSON.stringify(upgraded))
     setGuestExpired(false)
+    navigate('/game')
     setClaimedName(upgraded.username)
-    setNudge(null)
-    clearMilestones(upgraded.id)
     // Reload from the server rather than patching state: the account is no
     // longer a guest, and everything downstream keys off that.
     await initializeSession(upgraded)
@@ -403,8 +344,11 @@ function App() {
   const handleLogin = async (token: string, playerInfo: Player) => {
     localStorage.setItem('talaran_token', token)
     localStorage.setItem('talaran_player', JSON.stringify(playerInfo))
+    navigate('/game')
     await initializeSession(playerInfo)
   }
+
+  const navigate = useNavigate()
 
   const handleLogout = () => {
     disconnectSocket()
@@ -415,6 +359,7 @@ function App() {
     setLocationData(null)
     setInventoryData([])
     setEquipmentData(null)
+    navigate('/')
   }
 
   if (checking) return null
@@ -430,9 +375,14 @@ function App() {
       <Route path="/refunds" element={<RefundPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/highscores" element={<HighscoresPage />} />
-      <Route path="*" element={
+      <Route path="/" element={<AuthScreen onLogin={handleLogin} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/game" element={
         !player ? (
-          <AuthScreen onLogin={handleLogin} />
+          // No session in memory. Either the saved one is still restoring, in
+          // which case `checking` held us back above, or there is none and the
+          // home page is where this belongs.
+          <Navigate to="/" replace />
         ) : (
           <>
             {(playerData?.player?.is_guest || player?.is_guest || tokenSaysGuest()) && (
@@ -441,8 +391,6 @@ function App() {
                 onUpgraded={handleUpgraded}
                 expired={guestExpired}
                 onDismissExpired={() => setGuestExpired(false)}
-                nudge={nudge}
-                onDismissNudge={() => setNudge(null)}
               />
             )}
             {claimedName && (

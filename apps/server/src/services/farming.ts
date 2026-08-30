@@ -30,7 +30,7 @@ const CARPENTRY_REQ = 1;
 // is bench kit and only needs to be carried.
 const BUILD_TOOLS = [BUILD_MALLET.itemName, BUILD_SAW.itemName];
 
-const ESTABLISH_COST = [
+export const FARM_ESTABLISH_COST = [
     { itemName: 'Lanai Planks', qty: 500 },
     { itemName: 'Granite Block', qty: 500 },
     { itemName: 'Ambren Nails', qty: 1000 },
@@ -247,7 +247,7 @@ export async function getFarmState(playerId: number) {
     }
 
     if (!property) {
-        const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
+        const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
         return {
             hasFarmstead: false,
             atNovita,
@@ -255,7 +255,7 @@ export async function getFarmState(playerId: number) {
             hasHoe: !!hoe,
             build: {
                 carpentryReq: CARPENTRY_REQ,
-                cost: ESTABLISH_COST,
+                cost: FARM_ESTABLISH_COST,
                 canAfford: matCheck.ok,
                 missing: matCheck.missing,
                 plotsGranted: 1,
@@ -340,7 +340,7 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
     const missingTool = await missingBuildTool(playerId);
     if (missingTool) return { ok: false, error: missingTool.message };
 
-    const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
+    const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
     if (!matCheck.ok) {
         const m = matCheck.missing.map(x => `${x.need}x ${x.itemName} (have ${x.have})`).join(', ');
         return { ok: false, error: `You need: ${m}.` };
@@ -612,9 +612,9 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         const missingTool = await missingBuildTool(playerId);
         if (missingTool) return { success: false, error: missingTool.message };
 
-        const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
+        const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
         if (!matCheck.ok) return { success: false, error: 'You no longer have the materials.' };
-        await consumeMaterials(playerId, ESTABLISH_COST);
+        await consumeMaterials(playerId, FARM_ESTABLISH_COST);
 
         const [row] = await db('player_properties').insert({
             player_id: playerId, location_id: novita.id, type: 'farmstead', tier: 1, plot_slots: 1,

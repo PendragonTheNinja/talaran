@@ -23,6 +23,22 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     throw new Error('Session expired. Please log in again.')
   }
 
+  if (res.status === 423) {
+    const data = await res.json().catch(() => ({}))
+    // Locked pending a bot check. The question comes back with the refusal, so
+    // this works even when the socket is down, which is the case that left a
+    // player unable to do anything at all.
+    if (data.botCheck && typeof data.a === 'number' && typeof data.b === 'number') {
+      window.dispatchEvent(new CustomEvent('talaran:bot-check', {
+        detail: { a: data.a as number, b: data.b as number },
+      }))
+    }
+    const error: any = new Error(data.error || 'Bot check required.')
+    error.status = 423
+    error.body = data
+    throw error
+  }
+
   if (res.status === 403) {
     const data = await res.json().catch(() => ({}))
     // A lapsed guest still holds a valid token, so the 401 path above would be

@@ -40,4 +40,12 @@ And it teaches the habit that makes every other trade cheaper, which is the habi
 Everything the trade opens as you climb, and where to find it:
 
 {{data:training-path:Foraging}}
+
+The habitats themselves, and how quickly each gives up its finds:
+
+{{data:foraging-speed}}
+
+And here is the part I was told not to write down. Every habitat's whole table, every weight, every seasonal row and every one that wants gloves. I am aware this removes a discovery some people treasure. Those people may close the ledger.
+
+{{data:foraging-habitats}}
 {{/details}}

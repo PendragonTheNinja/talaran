@@ -42,5 +42,7 @@ If you take up only one gathering trade, take Woodcutting. More things are made 
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb, and where to find it:
 
-{{data:training-path:Woodcutting}}
+Every tree, what it asks of you, and what comes off it:
+
+{{data:trees}}
 {{/details}}

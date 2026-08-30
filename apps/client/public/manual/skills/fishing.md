@@ -76,4 +76,8 @@ Talk to him first. He is also, I am fairly sure, not telling us everything.
 Every fish in both waters, what draws it, and when it runs:
 
 {{data:training-path:Fishing}}
+
+And what the bait is worth, which decides most of the rest:
+
+{{data:bait}}
 {{/details}}
