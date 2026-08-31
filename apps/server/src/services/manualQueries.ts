@@ -93,8 +93,11 @@ export const extraQueries: Record<string, QueryHandler> = {
         scaling('Shop', `Carpentry ${SHOP_CARPENTRY_REQ}`, SHOP_TOWN, SHOP_COST, null);
         scaling('Homestead', 'Carpentry 1', 'Your own land', FARM_ESTABLISH_COST, null);
         scaling('Farm plot', 'Carpentry 1', 'On your homestead', plotCost(1), plotCost(2));
-        scaling('Coop', 'Husbandry 1', 'On your homestead', PEN_COST.coop(1), PEN_COST.coop(2));
-        scaling('Paddock', 'Husbandry 1', 'On your homestead', PEN_COST.paddock(1), PEN_COST.paddock(2));
+        // Raising a pen is carpentry and pays Carpentry, whatever the animals in
+        // it are worth later. Husbandry decides how MANY you may own, not
+        // whether you may build one, and those are different questions.
+        scaling('Coop', 'Carpentry 1', 'On your homestead', PEN_COST.coop(1), PEN_COST.coop(2));
+        scaling('Paddock', 'Carpentry 1', 'On your homestead', PEN_COST.paddock(1), PEN_COST.paddock(2));
 
         return {
             title: 'Everything you can raise',
@@ -105,7 +108,7 @@ export const extraQueries: Record<string, QueryHandler> = {
                 { key: 'cost', label: 'Costs' },
             ],
             rows,
-            note: 'A figure marked with a plus is what each further one costs on top of the last, so the second coop is dearer than the first and the tenth is dearer again. Nothing here is refundable, and nothing here moves once built.',
+            note: 'Every structure here is carpentry and pays Carpentry, whatever trade uses it afterwards. A figure marked with a plus is what each further one costs on top of the last, so the second coop is dearer than the first and the tenth is dearer again. Pens are the exception to the level column: anyone may build one, but you may only keep one pen for every three levels of Husbandry, to a ceiling of twelve. Nothing here is refundable, and nothing here moves once built.',
         };
     },
 
@@ -473,12 +476,19 @@ export const extraQueries: Record<string, QueryHandler> = {
             return hit ? hit.name : '';
         };
 
-        // Rock does not come in grades. Woodcutting does, and the two skills
-        // share this table's shape, so the grade columns are added only when
-        // some row actually varies. Granite is granite, and three columns
-        // reading 100 / 0 / 0 told the reader nothing except that a column
-        // existed. Anything added later that does vary gets them back.
-        const graded = nodes.some((r: any) => Number(r.fine || 0) > 0 || Number(r.excellent || 0) > 0);
+        // Grades are shown when graded ITEMS exist, not when the node happens to
+        // carry grade percentages.
+        //
+        // Mining nodes still hold fine_chance 35 and excellent_chance 5, left
+        // over from when mining was modelled on woodcutting. There is no Fine
+        // Ambren Ore for them to produce and never has been, so those numbers
+        // cannot do anything and printing them told the reader a story about
+        // ore grades that does not exist in the game.
+        //
+        // Woodcutting is unaffected: Poor, Fine and Excellent logs are real
+        // items, so trees keep their columns. Add graded ore items later and
+        // mining gets them back with no change here.
+        const graded = nodes.some((r: any) => oreFor(r.ore, 'fine') || oreFor(r.ore, 'excellent'));
 
         const columns: ManualTable['columns'] = [
             { key: 'where', label: 'Where' },
