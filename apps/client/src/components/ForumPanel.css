@@ -584,3 +584,26 @@
     text-transform: uppercase;
     vertical-align: 1px;
 }
+
+/* Share, beside the thread title in the breadcrumb. Deliberately quiet: it is
+   an occasional action sitting next to the page's own name, not a call to it. */
+.forum-share-btn {
+    margin-left: var(--space-sm, 8px);
+    padding: 1px 8px;
+    background: none;
+    border: 1px solid var(--color-border-mid, #4a3820);
+    border-radius: var(--radius-sm, 3px);
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #9a8060);
+    vertical-align: 1px;
+    white-space: nowrap;
+}
+
+.forum-share-btn:hover {
+    color: var(--color-gold-bright, #e8b84b);
+    border-color: var(--color-gold, #c8922a);
+    background: var(--color-bg-raised, #332818);
+}

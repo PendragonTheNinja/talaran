@@ -509,12 +509,39 @@
 
 /* Mobile: the inventory is a full-width sheet, so a side drawer makes no sense.
    Drop down under the button at full panel width instead. */
+/* Mobile: a sheet across the bottom of the screen.
+   It used to be absolutely positioned with left/right 0, which resolved
+   against a narrow ancestor rather than the panel, so the menu rendered as a
+   column barely wider than the Sort button. Every option wrapped after two
+   words and the whole thing sat on top of the inventory it was meant to sort.
+   Fixed positioning cannot be clipped by .left-panel's overflow rule and gives
+   the options the full width they need. */
 .sort-popover.mobile {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
-  right: 0;
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 200;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 8px;
+  gap: 4px;
   animation: sort-drop-down 0.18s ease;
+}
+
+/* Room for a thumb. 6px of padding is a mouse target, not a finger. */
+.sort-popover.mobile .sort-option {
+  padding: 11px 12px;
+  font-size: 15px;
+}
+
+.sort-popover.mobile .sort-option-label {
+  font-size: 16px;
+}
+
+.sort-popover.mobile .sort-filter-input {
+  font-size: 16px;
+  padding: 10px 12px;
 }
 
 @keyframes sort-drop-down {

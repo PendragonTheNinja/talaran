@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import ManualRenderer from './ManualRenderer'
 import ManualItem from './ManualItem'
 import ManualItemIndex from './ManualItemIndex'
+import ManualSearch from './ManualSearch'
 import { supportsReference, toReference, parseManual } from '../lib/manual'
 import { apiFetch } from '../lib/api'
 import {
@@ -238,6 +239,13 @@ export default function ManualBrowser({
                             not a page of the manual, it is the way into every
                             item in the game. */}
                         <button
+                            className={`manual-nav-home ${section === 'search' ? 'active' : ''}`}
+                            onClick={() => go('search', 'all')}
+                        >
+                            Search
+                        </button>
+
+                        <button
                             className={`manual-nav-home ${section === 'item' ? 'active' : ''}`}
                             onClick={() => go('item', null)}
                         >
@@ -271,6 +279,21 @@ export default function ManualBrowser({
                     <div className="manual-message">
                         <p>{error}</p>
                     </div>
+                ) : section === 'search' ? (
+                    <article className="manual-article">
+                        <div className="manual-article-head">
+                            {history.length > 0 && (
+                                <button className="manual-back" onClick={goBack}>
+                                    ‹ Back
+                                </button>
+                            )}
+                            <p className="manual-breadcrumb">Search</p>
+                        </div>
+                        <ManualSearch
+                            onOpenPage={(sec, sl) => go(sec, sl)}
+                            onOpenItem={openItem}
+                        />
+                    </article>
                 ) : section === 'item' && !slug ? (
                     <article className="manual-article">
                         <div className="manual-article-head">

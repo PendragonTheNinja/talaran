@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './HuntingMenu.css'
 
@@ -70,6 +71,44 @@ const BAIT_LABELS: Record<string, string> = {
     egg: 'Egg',
     spawn: 'Spawn',
     meat: 'Meat',
+}
+
+/**
+ * The picture of what the snare caught.
+ *
+ * Most targets have a portrait in the bestiary. Two do not: a Nesting Hen and a
+ * Wild Sow are caught for what they are carrying, and the thing worth showing is
+ * the Chick or the Piglet rather than the mother. Both exist as item art.
+ *
+ * So the portrait is tried first, and the notable drop stands in when there is
+ * none. A target added later with no portrait shows whatever it yielded instead
+ * of quietly showing nothing, which is what happened here.
+ */
+function RevealImage({ species, fallbackItem }: { species: string; fallbackItem?: string }) {
+    const portrait = `/images/bestiary/${species.replace(/ /g, '_')}.png`
+    const [src, setSrc] = useState(portrait)
+    const [hidden, setHidden] = useState(false)
+
+    // A new catch resets the attempt, or the previous failure would stick.
+    useEffect(() => {
+        setSrc(portrait)
+        setHidden(false)
+    }, [portrait])
+
+    if (hidden) return null
+
+    return (
+        <img
+            className="trapline-reveal-img"
+            src={src}
+            alt={species}
+            onError={() => {
+                const item = fallbackItem && getItemIcon(fallbackItem)
+                if (item && src !== item) setSrc(item)
+                else setHidden(true)
+            }}
+        />
+    )
 }
 
 export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, onTrapsChanged }: HuntingMenuProps) {
@@ -164,11 +203,9 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
             return (
                 <div className="trapline-reveal">
                     {reveal.species && (
-                        <img
-                            className="trapline-reveal-img"
-                            src={`/images/bestiary/${reveal.species.replace(/ /g, '_')}.png`}
-                            alt={reveal.species}
-                            onError={e => { e.currentTarget.style.display = 'none' }}
+                        <RevealImage
+                            species={reveal.species}
+                            fallbackItem={reveal.drops?.find(d => d.notable)?.itemName}
                         />
                     )}
                     <p className="trapline-reveal-title gold-text">Your snare caught a {reveal.species}!</p>

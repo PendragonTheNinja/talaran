@@ -359,7 +359,31 @@ async function main(): Promise<void> {
     // one list. Iteration instead of a topological sort: chains are shallow
     // (<6 deep), so a few passes converge without cycle analysis.
     const pseudo: PseudoRecipe[] = [];
-    for (const r of await readTable('recipes')) {
+    const recipeRows = await readTable('recipes');
+
+    // Recipe byproducts, priced the same way secondary drops are: a free bonus
+    // on an action already paid for. Threshing is the case this exists for.
+    // Straw used to be a product with its own craft and its own price; now it
+    // falls off the grain whether you wanted it or not, and something you
+    // cannot avoid receiving should not be priced like something you chose to
+    // make. Costed at a fifth of the parent action, spread over the amount.
+    for (const r of recipeRows) {
+        if (!r.byproduct_item_name || !Number(r.byproduct_qty)) continue;
+        if (r.is_active === false) continue;
+        const actionValue = Number(r.xp) / VALUE_DIVISOR;
+        propose(String(r.byproduct_item_name), {
+            value: (actionValue * 0.2) / Number(r.byproduct_qty),
+            method: 'byproduct',
+            level: Number(r.required_level) || 1,
+            basis: `byproduct of ${r.name}`,
+        });
+    }
+
+    for (const r of recipeRows) {
+        // A retired recipe must not keep setting a price. Gather Straw is
+        // deactivated rather than deleted, and reading it here would have gone
+        // on pricing straw as a product long after it stopped being one.
+        if (r.is_active === false) continue;
         let inputs: Array<{ itemName: string; qty: number }>;
         try { inputs = typeof r.inputs === 'string' ? JSON.parse(r.inputs) : r.inputs; }
         catch { continue; }

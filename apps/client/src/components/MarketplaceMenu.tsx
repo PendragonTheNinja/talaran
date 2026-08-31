@@ -70,7 +70,7 @@ interface MarketplaceMenuProps {
 
 const fmt = (n: number) => n.toLocaleString('en-US')
 
-type SortKey = 'name' | 'unit' | 'total'
+type SortKey = 'name' | 'unit' | 'total' | 'held'
 type SortDir = 'asc' | 'desc'
 
 /**
@@ -78,12 +78,26 @@ type SortDir = 'asc' | 'desc'
  * ordering a player can predict; the value sorts are for deciding what to dump.
  * Ties fall back to name so the order never jitters between renders.
  */
-function sortRows<T>(rows: T[], key: SortKey, dir: SortDir, pick: (row: T) => { name: string; unit: number; total: number }): T[] {
+/**
+ * `total` is what the stack is WORTH, and `held` is how many you have. They are
+ * easy to confuse and sort very differently: six rabbits' feet outrank three
+ * hundred strawberries by value while being nowhere near them by count. A
+ * player looking for what is filling their pack wants the count, so both are
+ * offered rather than one standing in for the other.
+ */
+function sortRows<T>(
+    rows: T[],
+    key: SortKey,
+    dir: SortDir,
+    pick: (row: T) => { name: string; unit: number; total: number; held?: number },
+): T[] {
     const sign = dir === 'asc' ? 1 : -1
     return [...rows].sort((a, b) => {
         const A = pick(a), B = pick(b)
         if (key === 'name') return sign * A.name.localeCompare(B.name)
-        const diff = key === 'unit' ? A.unit - B.unit : A.total - B.total
+        const diff = key === 'unit' ? A.unit - B.unit
+            : key === 'held' ? (A.held ?? 0) - (B.held ?? 0)
+            : A.total - B.total
         return diff !== 0 ? sign * diff : A.name.localeCompare(B.name)
     })
 }
@@ -468,14 +482,15 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
                                         options={[
                                             { key: 'name', label: 'Name' },
                                             { key: 'unit', label: 'Each' },
-                                            { key: 'total', label: 'Stack' },
+                                            { key: 'total', label: 'Stack value' },
+                                            { key: 'held', label: 'Amount' },
                                         ]}
                                         sortKey={sortKey}
                                         sortDir={sortDir}
                                         onChange={(k, d) => { setSortKey(k); setSortDir(d) }}
                                     />
                                     <ul className="mkt-list">
-                                        {sortRows(sellable, sortKey, sortDir, i => ({ name: i.name, unit: i.unitAtFullRate, total: i.stackTotal })).map(item => (
+                                        {sortRows(sellable, sortKey, sortDir, i => ({ name: i.name, unit: i.unitAtFullRate, total: i.stackTotal, held: i.held })).map(item => (
                                             <li key={item.itemId} className="mkt-row">
                                                 <ItemIcon name={item.name} />
                                                 <div className="mkt-row-main">

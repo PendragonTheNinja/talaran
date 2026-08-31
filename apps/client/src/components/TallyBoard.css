@@ -296,3 +296,32 @@
     font-size: 12px;
     margin-top: 4px;
 }
+
+/* ── Board licences ───────────────────────────────────────
+   Only rendered when the player is at their limit, so this
+   is an answer rather than an advertisement.
+   ──────────────────────────────────────────────────────── */
+
+.tally-licence {
+    margin-top: var(--space-md, 12px);
+    padding-top: var(--space-md, 12px);
+    border-top: 1px solid var(--color-border-dark, #2e2418);
+}
+
+.tally-licence-line {
+    margin: 0 0 var(--space-sm, 8px);
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--color-text-base, #c8a96e);
+}
+
+.tally-licence-why {
+    margin: 0;
+    font-size: 15px;
+}
+
+.tally-licence-error {
+    margin: var(--space-sm, 8px) 0 0;
+    font-size: 15px;
+    color: var(--color-red-bright, #d46a6a);
+}

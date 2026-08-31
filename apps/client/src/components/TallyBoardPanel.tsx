@@ -26,6 +26,15 @@ interface TallyReport {
     boardCap: number
     entries: TallyEntry[]
     readyCount: number
+    licence?: {
+        boardNumber: number
+        cost: number
+        totalLevelRequired: number
+        totalLevel: number
+        gold: number
+        canBuy: boolean
+        reason?: string
+    }
     build?: {
         carpentryRequired: number
         seconds: number
@@ -37,6 +46,63 @@ interface TallyReport {
     }
 }
 
+
+/**
+ * Buying room for another board.
+ *
+ * Shown only when the player is already at their limit, because that is the
+ * only moment the offer answers a question they are asking. A price list
+ * hanging over someone with spare room is noise.
+ *
+ * The refusal states the actual shortfall — the level they need against the
+ * level they have, or the price against their purse — since "you cannot buy
+ * this" without a number is the kind of message players write forum posts
+ * about.
+ */
+function Licence({ report, busy, onBought }: {
+    report: TallyReport
+    busy: boolean
+    onBought: () => void
+}) {
+    const [buying, setBuying] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const licence = report.licence
+    if (!licence) return null
+    // Room to spare: nothing to sell them yet.
+    if (report.boards.length < report.boardCap) return null
+
+    const buy = async () => {
+        setBuying(true)
+        setError(null)
+        try {
+            await apiFetch('/api/tally/licence', { method: 'POST' })
+            onBought()
+        } catch (err: any) {
+            setError(err.message || 'Could not buy that licence.')
+        } finally {
+            setBuying(false)
+        }
+    }
+
+    return (
+        <div className="tally-licence">
+            <p className="tally-licence-line">
+                Room for {licence.boardNumber === 2 ? 'a second' : `a ${licence.boardNumber}th`} board
+                costs <span className="gold-text">{licence.cost.toLocaleString()} gold</span>
+                {' '}and total level {licence.totalLevelRequired}.
+            </p>
+            {licence.canBuy ? (
+                <button className="btn btn-gold" onClick={buy} disabled={buying || busy}>
+                    {buying ? 'Buying…' : `Buy licence (${licence.cost.toLocaleString()}g)`}
+                </button>
+            ) : (
+                <p className="muted-text tally-licence-why">{licence.reason}</p>
+            )}
+            {error && <p className="tally-licence-error">{error}</p>}
+        </div>
+    )
+}
 const KIND_MARK: Record<TallyEntry['kind'], string> = {
     field: '❧',
     vat: '◍',
@@ -127,6 +193,7 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                                 ? ' — you have room for another.'
                                 : ' — raising one here would move your oldest.'}
                         </p>
+                        <Licence report={report} busy={busy} onBought={load} />
                         <Raise
                             report={report}
                             busy={busy}

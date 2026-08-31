@@ -1,6 +1,7 @@
 import db from '../db';
 import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
+import { getGold, debitGoldWithin } from './gold';
 import { husbandryTallyEntries } from './husbandry';
 
 // The Tally Board (see 20260726060000_tally_board for the design rationale).
@@ -10,15 +11,133 @@ import { husbandryTallyEntries } from './husbandry';
 // nobody watching it, and trapping's scavenger penalty is a designed mechanic
 // rather than an inconvenience to be engineered away.
 
-const CARPENTRY_REQ = 5;
+export const CARPENTRY_REQ = 5;
 const BUILD_SECONDS = 60;
 
 /**
- * How many boards a player may keep: the first, plus one per ten Carpentry
- * levels. 5 (the build requirement) allows 1, 10 allows 2, 20 allows 3.
+ * Licences, not Carpentry levels.
+ *
+ * The cap used to be 1 + floor(carpentry / 10), which meant ten levels of an
+ * unrelated trade per board of pure information. It is now bought: gold for the
+ * licence, total level for the right to buy it.
+ *
+ * Total level is the gate because breadth is what a tally board serves. Someone
+ * with a coop at Novita, crops at their homestead and a kiln at Emberra has
+ * something to watch; someone who has spent three hundred hours on one skill in
+ * one place does not. Spreading evenly across the twelve skills reaches total 60
+ * in roughly sixty hours, while one skill at 50 takes three hundred and sixty
+ * hours to reach total 61, so the two playstyles separate sharply.
+ *
+ *   board 2:  total  40,    250g
+ *   board 3:  total  75,  1,000g
+ *   board 4:  total 120,  2,250g
+ *   board 5:  total 175,  4,000g
+ *   board 6:  total 240,  6,250g
+ *
+ * Both curves are quadratic, so the second board is nearly free and arrives in
+ * an evening, and the tenth is a genuine undertaking. The level gate self-caps
+ * at fourteen boards when total level maxes at 1,200, so no ceiling is needed.
  */
-export function boardCapForLevel(level: number): number {
-    return 1 + Math.floor(level / 10);
+export function licenceTotalLevel(boardNumber: number): number {
+    return 5 * boardNumber * boardNumber + 10 * boardNumber;
+}
+
+export function licenceCost(boardNumber: number): number {
+    return 250 * Math.pow(boardNumber - 1, 2);
+}
+
+/** The board a purchase would grant, given how many are already licensed. */
+export function nextBoardNumber(licences: number): number {
+    return licences + 1;
+}
+
+export async function boardCapFor(playerId: number): Promise<number> {
+    const row = await db('players').where({ id: playerId }).select('tally_licences').first();
+    return Math.max(1, Number(row?.tally_licences ?? 1));
+}
+
+/** Sum of every skill level. The breadth measure the licence gate reads. */
+export async function totalLevel(playerId: number): Promise<number> {
+    const rows = await db('player_skills as ps')
+        .join('skills as s', 's.id', 'ps.skill_id')
+        .where('ps.player_id', playerId)
+        .andWhere('s.is_implemented', true)
+        .select('ps.xp');
+    return rows.reduce((sum: number, r: { xp: string | number }) => sum + levelFromXp(Number(r.xp || 0)), 0);
+}
+
+export interface LicenceOffer {
+    boardNumber: number;
+    cost: number;
+    totalLevelRequired: number;
+    totalLevel: number;
+    gold: number;
+    canBuy: boolean;
+    reason?: string;
+}
+
+export async function licenceOffer(playerId: number): Promise<LicenceOffer> {
+    const licences = await boardCapFor(playerId);
+    const boardNumber = nextBoardNumber(licences);
+    const cost = licenceCost(boardNumber);
+    const need = licenceTotalLevel(boardNumber);
+    const [have, gold] = await Promise.all([totalLevel(playerId), getGold(playerId)]);
+
+    let reason: string | undefined;
+    if (have < need) reason = `A licence for a ${ordinal(boardNumber)} board wants total level ${need}. Yours is ${have}.`;
+    else if (gold < cost) reason = `That licence costs ${cost} gold. You have ${gold}.`;
+
+    return {
+        boardNumber, cost, totalLevelRequired: need,
+        totalLevel: have, gold, canBuy: !reason, reason,
+    };
+}
+
+function ordinal(n: number): string {
+    const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th'
+        : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';
+    return `${n}${suffix}`;
+}
+
+/**
+ * Buys the right to keep one more board. The licence is permanent and the
+ * board still has to be built with materials afterwards.
+ */
+export async function buyLicence(playerId: number): Promise<{ success: boolean; error?: string; licences?: number; gold?: number }> {
+    const offer = await licenceOffer(playerId);
+    if (!offer.canBuy) return { success: false, error: offer.reason };
+
+    // Re-checked inside the transaction: the offer above was read outside it,
+    // and gold can move between the two.
+    let licences = 0;
+    let gold = 0;
+    try {
+        await db.transaction(async (trx) => {
+            const row = await trx('players').where({ id: playerId }).forUpdate().first();
+            const current = Math.max(1, Number(row?.tally_licences ?? 1));
+            if (current !== offer.boardNumber - 1) throw new Error('RACE');
+
+            const paid = await debitGoldWithin(trx, {
+                playerId,
+                amount: offer.cost,
+                reason: 'tally_licence',
+                refType: 'tally',
+                refId: offer.boardNumber,
+            });
+            if (!paid.ok) throw new Error('SHORT_GOLD');
+
+            licences = current + 1;
+            gold = paid.balance;
+            await trx('players').where({ id: playerId }).update({ tally_licences: licences });
+        });
+    } catch (err) {
+        const msg = String(err);
+        if (msg.includes('SHORT_GOLD')) return { success: false, error: 'You cannot afford that licence.' };
+        if (msg.includes('RACE')) return { success: false, error: 'Try that again.' };
+        throw err;
+    }
+
+    return { success: true, licences, gold };
 }
 
 // Modest against the farmstead's 500/500/1000. This is a noticeboard, not a barn.
@@ -47,6 +166,7 @@ export interface TallyReport {
     /** Every board this player keeps, for the "your boards" list. */
     boards: { locationId: number; locationName: string; island: string; here: boolean }[];
     boardCap: number;
+    licence: LicenceOffer;
     entries: TallyEntry[];
     readyCount: number;
     /** Present when the player has no board yet. */
@@ -229,7 +349,7 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
         if (have < c.qty) missing.push({ itemName: c.itemName, qty: c.qty, have });
     }
 
-    const cap = boardCapForLevel(level);
+    const cap = await boardCapFor(playerId);
     const atCapacity = boards.length >= cap;
 
     return {
@@ -239,6 +359,7 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
         atBoard,
         boards,
         boardCap: cap,
+        licence: await licenceOffer(playerId),
         entries,
         readyCount: entries.filter((e) => e.status === 'ready').length,
         build: {
@@ -318,7 +439,7 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
 
         // Under the cap this is a new board; at the cap the oldest one comes down
         // to pay for it, which is the original one-board behaviour preserved.
-        const cap = boardCapForLevel(level);
+        const cap = await boardCapFor(playerId);
         const relocating = boards.length >= cap;
         const displaced = relocating ? boards[0] : null;
 

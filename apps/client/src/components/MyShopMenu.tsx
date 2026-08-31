@@ -60,6 +60,8 @@ interface StorageState {
     used: number
     items: StoredItem[]
     carried: StoredItem[]
+    /** What already has a shelf, so storage can offer to top it up. */
+    listed?: { itemId: number; quantity: number; unitPrice: number }[]
 }
 
 interface MyShopMenuProps {
@@ -250,17 +252,41 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                         <p className="msh-section">In storage</p>
                         <div className="store-grid panel-inset">
                             {storage.items.length === 0 && <p className="store-empty">Nothing back here yet.</p>}
-                            {storage.items.map(item => (
-                                <div
-                                    key={item.itemId}
-                                    className="inventory-slot occupied store-slot"
-                                    title={`${item.name}: tap to take ${fmt(Math.min(moveAmount, item.quantity))}`}
-                                    onClick={() => shop.atShop && !busy && move('withdraw', item)}
-                                >
-                                    <img src={getItemIcon(item.name)} alt={item.name} className="inventory-item-icon" />
-                                    <span className="inventory-item-qty">{fmt(item.quantity)}</span>
-                                </div>
-                            ))}
+                            {storage.items.map(item => {
+                                // Already on a shelf, so this can go straight back out
+                                // at the price it is already selling for. That is the
+                                // whole of the restock complaint: adding stock meant
+                                // withdrawing the listing and re-typing a price that
+                                // had not changed.
+                                const shelf = storage.listed?.find(l => l.itemId === item.itemId)
+                                const take = Math.min(moveAmount, item.quantity)
+                                return (
+                                    <div key={item.itemId} className="store-cell">
+                                        <div
+                                            className="inventory-slot occupied store-slot"
+                                            title={`${item.name}: tap to take ${fmt(take)}`}
+                                            onClick={() => shop.atShop && !busy && move('withdraw', item)}
+                                        >
+                                            <img src={getItemIcon(item.name)} alt={item.name} className="inventory-item-icon" />
+                                            <span className="inventory-item-qty">{fmt(item.quantity)}</span>
+                                        </div>
+                                        {shelf && (
+                                            <button
+                                                className="msh-restock"
+                                                disabled={busy || !shop.atShop}
+                                                title={`Put ${fmt(take)} on the shelf at ${fmt(shelf.unitPrice)}g, alongside the ${fmt(shelf.quantity)} already there`}
+                                                onClick={() => act('/api/shops/mine/listings', {
+                                                    // No price: the shelf keeps the one it has.
+                                                    itemId: item.itemId,
+                                                    quantity: take,
+                                                })}
+                                            >
+                                                Restock {fmt(take)}
+                                            </button>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
 
                         <p className="msh-section">Carrying</p>

@@ -623,3 +623,41 @@
         padding: 6px 13px;
     }
 }
+
+/* ── Restock from storage ─────────────────────────────────
+   Shown under a stored item only when it already has a
+   shelf. Without a shelf there is no price to inherit, and
+   the listing has to be opened from Manage as before.
+   ──────────────────────────────────────────────────────── */
+
+.store-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.msh-restock {
+    width: 100%;
+    padding: 2px 4px;
+    background: var(--color-bg-raised, #332818);
+    border: 1px solid var(--color-border-gold, #6b5030);
+    border-radius: var(--radius-sm, 3px);
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: var(--color-text-bright, #e8d5a3);
+    white-space: nowrap;
+}
+
+.msh-restock:hover:not(:disabled) {
+    color: var(--color-gold-bright, #e8b84b);
+    border-color: var(--color-gold, #c8922a);
+    background: var(--color-bg-hover, #3d3020);
+}
+
+.msh-restock:disabled {
+    opacity: 0.45;
+    cursor: default;
+}

@@ -56,6 +56,40 @@ async function ensureEquipmentRow(playerId: number) {
   return db('player_equipment').where({ player_id: playerId }).first();
 }
 
+/**
+ * The authoritative slot map for a player.
+ *
+ * Shared by the GET and by both mutations. Equip and unequip used to answer
+ * with a message and leave the client to re-fetch equipment and inventory as
+ * two separate un-awaited calls, which is a race: if either landed late or out
+ * of order, the screen kept showing the item that used to be in the slot.
+ *
+ * That is the shape of the bug where a Feed Pail "vanished". The pail was in
+ * the pack the whole time and the slot really did hold what the server said;
+ * the screen was simply describing a moment that had passed. Returning the new
+ * state with the write removes the window entirely.
+ */
+async function loadEquipment(playerId: number): Promise<Record<string, unknown>> {
+  const equipment = await ensureEquipmentRow(playerId);
+
+  const equippedIds = VALID_SLOTS
+    .map((slot) => equipment[`${slot}_item_id`])
+    .filter((id): id is number => !!id);
+
+  const items = equippedIds.length
+    ? await db('items').whereIn('id', equippedIds)
+    : [];
+
+  const byId = new Map(items.map((item) => [item.id, item]));
+
+  const equipped: Record<string, unknown> = {};
+  for (const slot of VALID_SLOTS) {
+    const itemId = equipment[`${slot}_item_id`];
+    equipped[slot] = itemId ? byId.get(itemId) ?? null : null;
+  }
+  return equipped;
+}
+
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
 
@@ -170,7 +204,12 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
     // There is no dual-wielding: a slot holds one item. So the correct answer is
     // to change nothing at all.
     if (currentItemId === itemId) {
-      res.json({ message: `${item.name} is already equipped`, slot: item.slot, unchanged: true });
+      res.json({
+        message: `${item.name} is already equipped`,
+        slot: item.slot,
+        unchanged: true,
+        equipment: await loadEquipment(playerId),
+      });
       return;
     }
 
@@ -224,7 +263,11 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
     });
 
     logger.info(`Player ${playerId} equipped ${item.name} in ${item.slot}`);
-    res.json({ message: `${item.name} equipped`, slot: item.slot });
+    res.json({
+      message: `${item.name} equipped`,
+      slot: item.slot,
+      equipment: await loadEquipment(playerId),
+    });
 
   } catch (err) {
     logger.error(`Equip error: ${err}`);
@@ -291,7 +334,11 @@ router.post('/unequip', requireAuth, async (req: AuthRequest, res: Response) => 
     });
 
     logger.info(`Player ${playerId} unequipped ${item.name} from ${slot}`);
-    res.json({ message: `${item.name} unequipped`, slot });
+    res.json({
+      message: `${item.name} unequipped`,
+      slot,
+      equipment: await loadEquipment(playerId),
+    });
 
   } catch (err) {
     logger.error(`Unequip error: ${err}`);

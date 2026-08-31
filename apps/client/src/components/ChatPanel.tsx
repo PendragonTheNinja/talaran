@@ -352,15 +352,34 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
       </div>
 
       <div className="chat-input-row">
+        {/* Chrome decides what a field is for by guessing from its name,
+            placeholder and neighbours, and with none of those set it had
+            decided this was a username box: it offered saved logins over the
+            chat, which looks like the game is asking for a password.
+
+            autoComplete="off" alone is ignored on fields Chrome believes it has
+            identified. A value it does not recognise is not, so an unknown
+            token is what actually turns the suggestions off. The name and id
+            say plainly what the field is, and the remaining attributes stop
+            mobile keyboards capitalising and correcting chat as though it were
+            prose. */}
         <input
           ref={inputRef}
           className="chat-input"
           type="text"
+          name="talaran-chat-message"
+          id="talaran-chat-message"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
           placeholder={`[${channelLabel(activeChannel)}] Type a message...`}
           maxLength={500}
+          autoComplete="new-chat-message"
+          autoCorrect="off"
+          autoCapitalize="sentences"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
         />
         <button className="btn chat-send-btn" onClick={handleSend}>Send</button>
       </div>

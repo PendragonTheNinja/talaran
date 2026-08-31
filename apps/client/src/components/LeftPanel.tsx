@@ -227,12 +227,17 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
       return
     }
     try {
+      // Awaited, and in order. These were fired without awaiting, so a slow
+      // equipment read could land after a fast inventory read and leave the
+      // panel describing the slot as it was before the swap. That is what makes
+      // an item look as though it has vanished: the pack says gone, the slot
+      // says something else is there, and both are stale in different ways.
       await apiFetch('/api/equipment/equip', {
         method: 'POST',
         body: JSON.stringify({ itemId: item.item_id }),
       })
-      onEquipmentUpdate()
-      onInventoryUpdate()
+      await onEquipmentUpdate()
+      await onInventoryUpdate()
     } catch (err: any) {
       setError(err.message || 'Could not equip item')
       setTimeout(() => setError(null), 3000)

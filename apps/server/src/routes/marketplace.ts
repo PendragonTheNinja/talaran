@@ -295,6 +295,16 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
                 }
             }
 
+            // Worth less than a coin all together. Refused rather than paid
+            // nothing, and refused with the reason, because "sell more at once"
+            // is something the player can act on.
+            if (quote.total <= 0) {
+                return {
+                    ok: false as const,
+                    error: `${item.name} is worth less than a coin each here. Sell more at once.`,
+                };
+            }
+
             const took = await removeItemFromInventoryWithin(trx, playerId, item.id, quantity);
             if (!took) return { ok: false as const, error: 'You no longer have that many.' };
 

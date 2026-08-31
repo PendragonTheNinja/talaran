@@ -43,12 +43,15 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
     const handleUnequip = async (slot: string) => {
         try {
+            // Awaited and ordered, for the same reason as equipping: two
+            // un-awaited refreshes can resolve out of order and leave the panel
+            // and the pack disagreeing about where an item is.
             await apiFetch('/api/equipment/unequip', {
                 method: 'POST',
                 body: JSON.stringify({ slot }),
             })
-            onEquipmentUpdate()
-            onInventoryUpdate()
+            await onEquipmentUpdate()
+            await onInventoryUpdate()
         } catch (err: any) {
             setError(err.message || 'Could not unequip item')
             setTimeout(() => setError(null), 3000)

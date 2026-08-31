@@ -184,7 +184,11 @@ export async function startEstablishShop(playerId: number): Promise<{ ok: boolea
     if (!player || player.current_location_id !== town.id) {
         return { ok: false, error: `You must be in ${SHOP_TOWN} to raise a shop.` };
     }
-    if (await shopPropertyFor(playerId)) return { ok: false, error: 'You already have a shop.' };
+    // shopFor, not shopPropertyFor. The build panel already asked shopFor, so
+    // guarding on the property alone meant the two disagreed: a property row
+    // with no shopfront behind it showed the build UI and then refused to
+    // build, with no way for the player to reconcile the two.
+    if (await shopFor(playerId)) return { ok: false, error: 'You already have a shop.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const carp = await skillLevel(playerId, 'Carpentry');
@@ -207,7 +211,7 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
     try {
         const town = await db('locations').where({ name: SHOP_TOWN }).first();
         if (!town) return { success: false, error: `${SHOP_TOWN} not found.` };
-        if (await shopPropertyFor(playerId)) return { success: false, error: 'You already have a shop.' };
+        if (await shopFor(playerId)) return { success: false, error: 'You already have a shop.' };
 
         const missingTool = await missingBuildTool(playerId);
         if (missingTool) return { success: false, error: missingTool.message };
@@ -221,15 +225,31 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
         const tier = SHOP_TIERS[1];
 
         await db.transaction(async (trx) => {
-            const [row] = await trx('player_properties').insert({
-                player_id: playerId,
-                location_id: town.id,
-                type: 'shop',
-                tier: 1,
-                plot_slots: 0,
-                storage_slots: tier.storageSlots,
-            }).returning('id');
-            const propertyId = typeof row === 'object' ? row.id : row;
+            // A property with no shopfront is a half-built shop. Reuse it
+            // rather than inserting a second: this establish is transactional
+            // so it cannot create that state itself, but anything that removed
+            // a shopfront row leaves one behind, and the player is then stuck
+            // between a panel offering to build and a guard refusing to. Repair
+            // is the only outcome that gets them moving again.
+            const dangling = await trx('player_properties')
+                .where({ player_id: playerId, type: 'shop' })
+                .first();
+
+            let propertyId: number;
+            if (dangling) {
+                propertyId = dangling.id;
+                logger.warn(`Player ${playerId} had a shop property with no shopfront; completing it`);
+            } else {
+                const [row] = await trx('player_properties').insert({
+                    player_id: playerId,
+                    location_id: town.id,
+                    type: 'shop',
+                    tier: 1,
+                    plot_slots: 0,
+                    storage_slots: tier.storageSlots,
+                }).returning('id');
+                propertyId = typeof row === 'object' ? row.id : row;
+            }
 
             await trx('player_shops').insert({
                 property_id: propertyId,
@@ -305,17 +325,33 @@ export async function buyFundAvailable(trxOrDb: any, shopId: number): Promise<{ 
  * Move a stack out of storage and onto the shelf. Goods for sale are not also
  * in the back room, so a listing can never promise more than exists.
  */
+/**
+ * Puts stock on the shelf, and tops up what is already there.
+ *
+ * The price is optional when a listing exists. Restocking used to demand one,
+ * which meant the only way to add to a shelf was to withdraw the listing and
+ * build it again from scratch, re-typing a price that had not changed. Omitting
+ * it now keeps whatever the shelf was already priced at, so restocking is
+ * moving goods rather than re-doing the decision.
+ *
+ * A price is still required to open a NEW listing, because there is nothing to
+ * inherit and a shelf without one cannot be sold from.
+ */
 export async function createListing(
-    playerId: number, itemId: number, quantity: number, unitPrice: number,
+    playerId: number, itemId: number, quantity: number, unitPrice?: number | null,
 ): Promise<ShopResult> {
     const found = await shopFor(playerId);
     if (!found) return { success: false, error: 'You have no shop.' };
     if (!(await isAtOwnShop(playerId))) return { success: false, error: 'You must be at your shop.' };
 
     const qty = Math.floor(Number(quantity));
-    const price = Math.floor(Number(unitPrice));
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'Invalid quantity.' };
-    if (!Number.isFinite(price) || price <= 0) return { success: false, error: 'Set a price of at least 1g.' };
+
+    const priceGiven = unitPrice !== undefined && unitPrice !== null && String(unitPrice) !== '';
+    const price = priceGiven ? Math.floor(Number(unitPrice)) : null;
+    if (priceGiven && (!Number.isFinite(price!) || price! <= 0)) {
+        return { success: false, error: 'Set a price of at least 1g.' };
+    }
 
     try {
         return await db.transaction(async (trx) => {
@@ -328,6 +364,11 @@ export async function createListing(
 
             const existing = await trx('shop_listings')
                 .where({ shop_id: found.shop.id, item_id: itemId }).forUpdate().first();
+
+            // Opening a shelf needs a price; topping one up inherits it.
+            if (!existing && price === null) {
+                return { success: false, error: 'Set a price for this shelf.' };
+            }
 
             if (!existing) {
                 const count = await trx('shop_listings').where({ shop_id: found.shop.id }).count('* as c').first();
@@ -343,18 +384,26 @@ export async function createListing(
             }
 
             if (existing) {
-                // Adding to a listing re-prices the whole stack. Two prices for
-                // one item would just be an order book where nobody ever buys
-                // the dearer row.
-                await trx('shop_listings').where({ id: existing.id })
-                    .update({ quantity: Number(existing.quantity) + qty, unit_price: price, updated_at: new Date() });
+                // Naming a price re-prices the whole stack. Two prices for one
+                // item would just be an order book where nobody ever buys the
+                // dearer row. Naming none leaves the shelf as it was.
+                await trx('shop_listings').where({ id: existing.id }).update({
+                    quantity: Number(existing.quantity) + qty,
+                    unit_price: price ?? existing.unit_price,
+                    updated_at: new Date(),
+                });
             } else {
                 await trx('shop_listings').insert({
-                    shop_id: found.shop.id, item_id: itemId, quantity: qty, unit_price: price,
+                    shop_id: found.shop.id, item_id: itemId, quantity: qty, unit_price: price!,
                 });
             }
 
-            return { success: true, message: 'Listed for sale.' };
+            return {
+                success: true,
+                message: existing
+                    ? `Restocked. ${Number(existing.quantity) + qty} on the shelf at ${price ?? existing.unit_price}g.`
+                    : 'Listed for sale.',
+            };
         });
     } catch (err) {
         logger.error(`createListing error: ${err}`);

@@ -6,6 +6,7 @@ import { plotCost, plotCapForLevel, FARMSTEAD_TOWN } from '../services/farming';
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
 import { extraQueries } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
+import { searchManual } from '../services/manualSearch';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
 //
@@ -655,6 +656,25 @@ router.get('/data/:query/:param', handleData);
 
 /** Published overrides, without content, so the client can merge the manifest. */
 /**
+ * Search across the manual: the writing, the tables, and every item.
+ *
+ * Results are kept in three lists rather than ranked together. A reader
+ * searching "boarhide" wants an item, one searching "vein" wants a paragraph,
+ * one searching "Grundagr" wants table rows. Ranking them into one list buries
+ * whichever they meant.
+ */
+router.get('/search', async (req: Request, res: Response) => {
+    const raw = req.query.q;
+    const q = typeof raw === 'string' ? raw : '';
+    try {
+        res.json(await searchManual(q));
+    } catch (err) {
+        logger.error(`Manual search error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/**
  * The item index. Active items only, and that is not a filter to be relaxed:
  * a retired item is content the player can no longer obtain, and listing it
  * sends someone hunting for something that is not there any more.
@@ -736,5 +756,20 @@ router.get('/page/:section/:slug', async (req: Request, res: Response) => {
 router.get('/queries', (_req: Request, res: Response) => {
     res.json({ queries: Object.keys(registry) });
 });
+
+/**
+ * The registry, for anything that needs to read every table rather than serve
+ * one. Search uses these to index the data blocks; exposing the two functions
+ * keeps `registry` itself private, so nobody can reach in and mutate it.
+ */
+export function listManualQueries(): { key: string; label: string }[] {
+    return Object.keys(registry).map(key => ({ key, label: key.replace(/-/g, ' ') }));
+}
+
+export async function runManualQuery(key: string, param?: string): Promise<ManualTable | null> {
+    const handler = registry[key];
+    if (!handler) return null;
+    return handler(param);
+}
 
 export default router;

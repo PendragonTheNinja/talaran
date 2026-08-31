@@ -106,10 +106,20 @@ export function quoteSale(params: {
         position += take;
     }
 
-    // A sale never pays nothing. Rounding can zero out a tiny lot of cheap
-    // items, and handing back 0g for real goods reads as theft.
-    const rawTotal = bands.reduce((sum, b) => sum + b.gold, 0);
-    const total = quantity > 0 ? Math.max(1, rawTotal) : 0;
+    // No floor of one coin. There used to be one, on the reasoning that paying
+    // 0g for real goods reads as theft, and it was exploitable: the floor
+    // applied to the SALE, not to the unit, so anything worth under a coin paid
+    // a full coin as long as you sold it singly. Reeds worth 0.375g each paid
+    // 3g for a lot of eight and 8g sold one at a time, and the gap widened the
+    // cheaper the item. Sawdust would have become the best money in the game
+    // for anyone willing to click enough.
+    //
+    // Flooring the honest total instead makes small lots strictly worse than
+    // large ones, which is the only shape that cannot be gamed. A lot that
+    // works out to nothing is refused by the caller with an explanation rather
+    // than silently paid nothing, so the original concern is answered without
+    // inventing value that is not there.
+    const total = bands.reduce((sum, b) => sum + b.gold, 0);
 
     return {
         total,

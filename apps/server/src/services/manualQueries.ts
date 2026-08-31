@@ -12,6 +12,10 @@
 // weight becomes a percentage and a seed count becomes yield per plot.
 
 import db from '../db';
+import { PEN_COST } from './husbandry';
+import { FARM_ESTABLISH_COST, plotCost } from './farming';
+import { ESTABLISH_COST as SHOP_COST, SHOP_TOWN, CARPENTRY_REQ as SHOP_CARPENTRY_REQ } from './shops';
+import { BUILD_COST as TALLY_COST, CARPENTRY_REQ as TALLY_CARPENTRY_REQ } from './tally';
 import type { ManualTable } from '../routes/manual';
 
 type QueryHandler = (param?: string) => Promise<ManualTable | null>;
@@ -53,6 +57,57 @@ function seconds(s: number): string {
 }
 
 export const extraQueries: Record<string, QueryHandler> = {
+
+    // ── What carpentry builds ───────────────────────────────────────────────
+    //
+    // Buildings are not recipes and never appear in training-path, so a carpenter
+    // reading the manual could see every plank they might saw and nothing they
+    // might raise. The costs live in service constants, which are imported here
+    // rather than restated: a table of numbers copied into the manual is wrong
+    // the first time somebody retunes the real one.
+    //
+    // Several scale with how many you already own. The first is quoted and the
+    // step is stated, because a reader wants to know what the next one costs,
+    // not to read forty rows of arithmetic they could have done themselves.
+    'buildings': async () => {
+        const rows: Record<string, string | number>[] = [];
+
+        const scaling = (
+            what: string,
+            level: string,
+            where: string,
+            first: { itemName: string; qty: number }[],
+            second: { itemName: string; qty: number }[] | null,
+        ) => {
+            const cost = first.map((c) => {
+                const next = second?.find(x => x.itemName === c.itemName)?.qty ?? c.qty;
+                const step = next - c.qty;
+                return step > 0
+                    ? `${c.qty} x ${c.itemName} (+${step} each after)`
+                    : `${c.qty} x ${c.itemName}`;
+            });
+            rows.push({ what, level, where, cost: cost.join(', ') });
+        };
+
+        scaling('Tally board', `Carpentry ${TALLY_CARPENTRY_REQ}`, 'Anywhere you may build', TALLY_COST, null);
+        scaling('Shop', `Carpentry ${SHOP_CARPENTRY_REQ}`, SHOP_TOWN, SHOP_COST, null);
+        scaling('Homestead', 'Carpentry 1', 'Your own land', FARM_ESTABLISH_COST, null);
+        scaling('Farm plot', 'Carpentry 1', 'On your homestead', plotCost(1), plotCost(2));
+        scaling('Coop', 'Husbandry 1', 'On your homestead', PEN_COST.coop(1), PEN_COST.coop(2));
+        scaling('Paddock', 'Husbandry 1', 'On your homestead', PEN_COST.paddock(1), PEN_COST.paddock(2));
+
+        return {
+            title: 'Everything you can raise',
+            columns: [
+                { key: 'what', label: 'Building' },
+                { key: 'where', label: 'Where' },
+                { key: 'level', label: 'Asks' },
+                { key: 'cost', label: 'Costs' },
+            ],
+            rows,
+            note: 'A figure marked with a plus is what each further one costs on top of the last, so the second coop is dearer than the first and the tenth is dearer again. Nothing here is refundable, and nothing here moves once built.',
+        };
+    },
 
     // ── Foraging ────────────────────────────────────────────────────────────
     // The habitat's whole drop table, weights resolved to percentages.

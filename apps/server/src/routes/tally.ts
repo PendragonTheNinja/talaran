@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { tallyReport, buildTallyBoard, shouldShowLocationLink } from '../services/tally';
+import { tallyReport, buildTallyBoard, shouldShowLocationLink , buyLicence } from '../services/tally';
 import { logger } from '../lib/logger';
 
 // Tally board (see services/tally.ts). Full path is routes/tally.ts; the service
@@ -33,6 +33,24 @@ router.get('/link', requireAuth, async (req: AuthRequest, res: Response) => {
         logger.error(`Tally link check error: ${err}`);
         // Fail open: a broken check should not remove a working button.
         res.json({ show: true });
+    }
+});
+
+/**
+ * Buy the right to keep one more tally board. Permanent, and separate from
+ * building: the licence says how many you MAY have, the materials build one.
+ */
+router.post('/licence', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const result = await buyLicence(req.player!.playerId);
+        if (!result.success) {
+            res.status(400).json({ error: result.error });
+            return;
+        }
+        res.json(result);
+    } catch (err) {
+        logger.error(`Tally licence error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 

@@ -177,6 +177,23 @@ export default function GameLayout({
   // Remembers an action blocked by a bot check, so it auto-runs once the check passes.
   const pendingActionRef = useRef<(() => void) | null>(null)
   const rememberPendingAction = (fn: () => void) => { pendingActionRef.current = fn }
+
+  /**
+   * A blocked action always has to land somewhere visible.
+   *
+   * A 423 means a bot check is waiting, and the check is drawn inside the
+   * action pane. On mobile the map is a separate tab, so tapping a road while
+   * a check was pending stored the action, returned quietly, and left the
+   * player looking at the same map with nothing to suggest the game had
+   * noticed. They tap again, and again, and conclude it is broken.
+   *
+   * Sending them to the action pane makes the check the thing they see, which
+   * is the whole point of raising one.
+   */
+  const blockedByBotCheck = (retry: () => void) => {
+    rememberPendingAction(retry)
+    setFocusAction(n => n + 1)
+  }
   const runPendingAction = () => {
     const fn = pendingActionRef.current
     pendingActionRef.current = null
@@ -251,6 +268,22 @@ export default function GameLayout({
   const [showFishingMenu, setShowFishingMenu] = useState(false)
   const [showFarmPanel, setShowFarmPanel] = useState(false)
 
+  /**
+   * Deposit mode ends with the window that offers it.
+   *
+   * It used to survive the homestead closing, and since the only sign it was on
+   * lived inside that window, a player who closed it and carried on tapping
+   * their inventory was silently posting things into storage. One reported
+   * watching two horses vanish one after another and believed he had destroyed
+   * them; they were in the store the whole time.
+   *
+   * A mode with no visible state is a trap, so it is cleared here rather than
+   * at each of the several places the window can close.
+   */
+  useEffect(() => {
+    if (!showFarmPanel && storeMode) setStoreMode(false)
+  }, [showFarmPanel, storeMode])
+
   const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
     try {
       const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
@@ -263,7 +296,7 @@ export default function GameLayout({
       // Send them to where the journey is actually visible.
       setFocusAction(n => n + 1)
     } catch (err: any) {
-      if (err.status === 423) { rememberPendingAction(() => handleTravel(toLocationId, toLocationName, _travelTime)); return }
+      if (err.status === 423) { blockedByBotCheck(() => handleTravel(toLocationId, toLocationName, _travelTime)); return }
       setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
     }
   }
@@ -276,7 +309,7 @@ export default function GameLayout({
       setExternalMessage({ text: 'Collecting Charc...', type: 'info' })
       setGameViewAction({ type: 'kiln_collecting', id: res.timerSeconds })
     } catch (err: any) {
-      if (err.status === 423) { rememberPendingAction(() => handleKilnCollect()); return }
+      if (err.status === 423) { blockedByBotCheck(() => handleKilnCollect()); return }
       setExternalMessage({ text: err.message || 'Could not collect Charc.', type: 'error' })
     }
   }
@@ -590,7 +623,7 @@ export default function GameLayout({
       onTrapsChanged={() => setSmithingStatusKey(k => k + 1)}
       onActionLimitChange={setActionLimit}
       onInventoryUpdate={onInventoryUpdate}
-      rememberPendingAction={rememberPendingAction}
+      rememberPendingAction={blockedByBotCheck}
       runPendingAction={runPendingAction}
       onShareToChat={(text: string) => setChatDraft(text)}
       onLocationDataUpdate={onLocationDataUpdate}
@@ -1055,6 +1088,7 @@ export default function GameLayout({
       {showForum && (
         <ForumPanel
           onClose={() => closePanel(setForumClosing, setShowForum, 400)}
+          onShareToChat={(text: string) => setChatDraft(text)}
           playerUsername={player.username}
           isAdmin={playerData?.player?.is_admin || false}
           isMod={playerData?.player?.is_mod || false}

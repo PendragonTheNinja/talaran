@@ -30,6 +30,7 @@ import {
     notifyOwnerOfTrade,
     buyFromShop,
     sellToShop,
+    shopFor,
 } from '../services/shops';
 
 const router = Router();
@@ -196,8 +197,11 @@ router.post('/mine/listings', requireAuth, requireTrusted, async (req: AuthReque
     try {
         const itemId = asInt(req.body?.itemId);
         const quantity = asInt(req.body?.quantity);
+        // Absent on purpose when restocking: the shelf keeps its own price.
+        // createListing still refuses a NEW listing without one, so the check
+        // is only relaxed here, not removed.
         const unitPrice = asInt(req.body?.unitPrice);
-        if (itemId === null || quantity === null || unitPrice === null) {
+        if (itemId === null || quantity === null) {
             res.status(400).json({ error: 'Invalid request.' });
             return;
         }
@@ -286,11 +290,31 @@ router.post('/mine/fund', requireAuth, requireTrusted, async (req: AuthRequest, 
 router.get('/mine/storage', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
-        const [storage, carried] = await Promise.all([
+        const [storage, carried, found] = await Promise.all([
             getStorage(playerId, 'shop'),
             getCarried(playerId),
+            shopFor(playerId),
         ]);
-        res.json({ ...storage, carried });
+
+        // What is already on a shelf, so the storage tab can offer to top it up
+        // rather than making the player go and look. This is the whole friction
+        // the restock request was about: the information needed to decide lived
+        // on a different tab from the goods.
+        const listed = found
+            ? await db('shop_listings')
+                .where({ shop_id: found.shop.id })
+                .select('item_id', 'quantity', 'unit_price')
+            : [];
+
+        res.json({
+            ...storage,
+            carried,
+            listed: listed.map((l: { item_id: number; quantity: number; unit_price: number }) => ({
+                itemId: l.item_id,
+                quantity: Number(l.quantity),
+                unitPrice: Number(l.unit_price),
+            })),
+        });
     } catch (err) {
         logger.error(`Shop storage error: ${err}`);
         res.status(500).json({ error: 'Server error' });

@@ -79,7 +79,7 @@ interface RecentThread {
 
 type ForumView = 'home' | 'category' | 'thread' | 'new_thread'
 
-export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile, openThreadId, onThreadOpened }: {
+export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile, openThreadId, onThreadOpened, onShareToChat }: {
     onClose: () => void
     playerUsername: string
     isAdmin: boolean
@@ -88,6 +88,8 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     onViewProfile?: (playerId: number) => void
     openThreadId?: number | null
     onThreadOpened?: () => void
+    /** Drops a link to the open thread into the chat box, unsent. */
+    onShareToChat?: (text: string) => void
 }) {
     const [view, setView] = useState<ForumView>('home')
     const [categories, setCategories] = useState<ForumCategory[]>([])
@@ -338,6 +340,32 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             </span>
                             <span className="muted-text"> › </span>
                             <span className="forum-breadcrumb-item muted-text">{currentThread.title}</span>
+                            {onShareToChat && (
+                                <button
+                                    className="forum-share-btn"
+                                    title="Put a link to this thread in your chat box"
+                                    aria-label="Share this thread in chat"
+                                    onClick={() => {
+                                        // The breadcrumb, exactly as it reads above.
+                                        //
+                                        // resolveForumBreadcrumbs on the server already turns
+                                        // "Forum > Category > Title" into a clickable link, which
+                                        // is why pasting one by hand has always worked. __FORUM__
+                                        // is a different thing entirely: the server uses it for
+                                        // its own notifications and never parses it from a player,
+                                        // so sending one produced the raw text and no link.
+                                        //
+                                        // Filled in, not sent. Which channel it goes to, what is
+                                        // said alongside it, and whether it is sent at all stay
+                                        // the player's decision.
+                                        onShareToChat(
+                                            `Forum › ${currentThread.category_name} › ${currentThread.title}`,
+                                        )
+                                    }}
+                                >
+                                    Share
+                                </button>
+                            )}
                         </>
                     )}
                     {view === 'new_thread' && (

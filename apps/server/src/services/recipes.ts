@@ -19,6 +19,17 @@ export interface RecipeResult {
     skillName?: string
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
+    /**
+     * A second output the recipe leaves behind, such as straw from threshing.
+     *
+     * Also pushed onto `drops`, which is the channel every other action already
+     * uses: gameTick reads it for the pickup flourish and the loot log, and the
+     * client reads it for the extra "You gained…" line. Reporting it only in a
+     * field of its own meant the straw really did arrive and nothing anywhere
+     * said so, which is indistinguishable from a bug.
+     */
+    byproduct?: { itemName: string; quantity: number } | null
+    drops?: { name: string; quantity: number; notable?: boolean }[]
 }
 
 interface RecipeInput { itemName: string; qty: number }
@@ -180,6 +191,27 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             }
         }
 
+        // Award the byproduct, if the recipe has one.
+        //
+        // Threshing is the case this exists for: beating grain off the stalk
+        // leaves straw, and it was previously a separate craft because the
+        // schema could not express two outputs. Anything else that drops a
+        // remainder gets it for free now.
+        let byproduct: { itemName: string; quantity: number } | null = null
+        if (recipe.byproduct_item_name && recipe.byproduct_qty > 0) {
+            const byItem = await db('items').where({ name: recipe.byproduct_item_name }).first()
+            if (byItem) {
+                const existingBy = await db('player_inventory')
+                    .where({ player_id: playerId, item_id: byItem.id }).first()
+                if (existingBy) {
+                    await db('player_inventory').where({ id: existingBy.id }).increment('quantity', recipe.byproduct_qty)
+                } else {
+                    await db('player_inventory').insert({ player_id: playerId, item_id: byItem.id, quantity: recipe.byproduct_qty })
+                }
+                byproduct = { itemName: recipe.byproduct_item_name, quantity: recipe.byproduct_qty }
+            }
+        }
+
         // Award XP — creating the player_skills row if it doesn't exist yet
         // (Crafting XP banks against the hidden skill until it launches)
         if (skillId) {
@@ -209,6 +241,10 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             skillName: recipe.skill,
             ingredientsRemaining: remaining,
             outputTotal: totalRow ? totalRow.quantity : recipe.output_qty,
+            byproduct,
+            drops: byproduct
+                ? [{ name: byproduct.itemName, quantity: byproduct.quantity }]
+                : undefined,
         }
     } catch (err) {
         logger.error(`resolveRecipe error: ${err}`)
