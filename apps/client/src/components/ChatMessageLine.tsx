@@ -5,11 +5,15 @@
 // LOOKS belongs here; anything about fetching, sending, or channel state stays in
 // the panels.
 
+import Badge from './Badge'
+
 export interface ChatMessage {
     id: number
     channel: string
     playerName: string
     guildTag: string | null
+    badge?: string | null
+    badgeKey?: string | null
     message: string
     timestamp: string      // display format HH:MM
     rawTimestamp: number   // unix ms for sorting
@@ -121,6 +125,10 @@ export default function ChatMessageLine({ msg, onOpenForum, onPlayerClick }: Cha
                         )}
                     </span>
                 ))}
+                {/* Against the name, before the guild tag, matching the players
+                    list. A title would push the message off the line, which is
+                    why only the badge appears here. */}
+                <Badge badgeKey={msg.badgeKey} glyph={msg.badge} size={13} title="A feat badge" />
                 {msg.guildTag && <span className="chat-guild-tag">[{msg.guildTag}]</span>}
             </span>
             <span className="chat-colon muted-text">: </span>

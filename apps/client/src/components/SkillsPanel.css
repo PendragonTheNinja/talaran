@@ -164,3 +164,12 @@
     font-size: 13px;
     color: var(--color-text-muted);
 }
+
+/* A worn title. Its own line under the name, in italic gold, because it is a
+   phrase and not a statistic. */
+.skills-identity-title {
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-gold-dim);
+}

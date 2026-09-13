@@ -76,7 +76,42 @@ Strip line/column before comparing, or every shifted line reads as a new error. 
 
 ### Migrations are not type-checked either
 
+### Type-checking a migration is NOT verifying it
+
+`tsc` cannot see a single runtime SQL error. Three consecutive cooking migrations shipped broken because a clean compile was mistaken for a working migration: a hardcoded location id, then `text[]` given a JSON string, then `jsonb` given a JS array. Each was "fixed" by inference and failed again.
+
+**Run it against a real Postgres before handing it over.** A throwaway harness that creates only the tables the migration touches, with the same column types the repo declares, is enough and takes a minute:
+
+```
+apt-get install -y postgresql && pg_ctlcluster 16 main start
+su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'postgres';\" -c 'CREATE DATABASE talaran_test;'"
+```
+
+Then run `up`, `up` again (idempotency), `down`, and `up` once more. The full migration chain cannot be replayed from scratch because it needs seeds interleaved, so build the subset.
+
+**Column types that bite, in the same table:**
+- `npc_dialogues.text_lines` is `specificType('text[]')` and needs a **plain JS array**.
+- `npc_dialogues.options` is `jsonb` and needs **`JSON.stringify`**, because the pg driver turns a JS array into a Postgres array literal, not JSON.
+
+Guard schema alters with `hasColumn` so a migration that failed halfway can simply be re-run.
+
 `apps/server/tsconfig.json` **excludes** `src/db/seeds` and `src/db/migrations`, so `npx tsc --noEmit` in `apps/server` reports 0 while a migration is broken. `npm run migrate` compiles them through ts-node and fails at the terminal, which is the worst place to find out.
+
+### The client typecheck is vacuous by default
+
+`apps/client/tsconfig.json` is `{ "files": [], "references": [...] }`, so **`npx tsc --noEmit` in `apps/client` checks zero files and always exits 0.** It looks like a passing check and means nothing. Use the referenced project:
+
+```
+cd apps/client && npx tsc -p tsconfig.app.json --noEmit
+```
+
+That reports ~21 pre-existing errors on clean `main` (`is_admin`/`is_mod` missing from `Player`, two competing `Skill` types, and others). So the check is "does my change move the count", not "is it zero". Get the baseline first:
+
+```
+git stash && npx tsc -p tsconfig.app.json --noEmit 2>&1 | grep -c "error TS" && git stash pop
+```
+
+Also: piping tsc into `head` makes `$?` report **head's** status, not tsc's. Redirect to a file and read the exit code before looking at the output.
 
 Before handing over any migration, check it:
 
@@ -220,7 +255,10 @@ These rules exist because generic prose is bad worldbuilding, not because of AI-
 
 ## 3. Migrations — hard-won rules
 
-- **`migrate:make`, paste contents, THEN run.** Running `npm run migrate` before saving the file **burns the filename** — knex records it as complete and the real contents *never execute*. This happened (`tannery_all_timber`) and cost an hour of confusion.
+- **`npc_dialogues.text_lines` is `text[]`, not text.** Pass a real JS array; `JSON.stringify` produces a string Postgres rejects with "malformed array literal". `options` is `jsonb` and takes a plain array too. Same care for any `specificType(..., 'text[]')` column.
+- **Never hardcode ids from `content-snapshots/`.** That export is a point-in-time dump and its ids do not match a live or dev database. Look rows up by name inside the migration and throw a clear error if missing. Hardcoding Phoenwick's id as 10 killed the cooking migration on an `npcs_location_id_foreign` violation.
+- **Save the file, THEN run `npm run migrate`.** Running the migration before the file's real contents are on disk **burns the filename** — knex records it as complete and the contents *never execute*. This happened (`tannery_all_timber`) and cost an hour of confusion. The file must be complete before `migrate` is run, not after.
+- **There is no `migrate:make` script.** `apps/server/package.json` has exactly one migration script: `npm run migrate` (`knex migrate:latest`). Migration files are written directly with a hand-picked `YYYYMMDDHHMMSS_name.ts` filename, later than every file already in `src/db/migrations/`. Always hand over the file already named; never tell Nathan to generate one first.
 - **An already-run migration is frozen.** Knex tracks by filename, not contents. Editing does nothing. If it's the latest: `migrate:down` → edit → `migrate`. If it's buried: **write a new forward-fix migration** (see `merge_tanners_scraps_into_leather_strips`, `tannery_timber_only`). **Once a migration is delivered to Nathan, treat it as applied unless he says otherwise — ask before editing it.** Editing `20260721040000` after delivery silently lost a `scene_text` column *and* a gloves-recipe deletion, each needing its own repair migration.
 - **`migrate:down` reverts one migration; `migrate:rollback` reverts the whole batch.** Use `down`.
 - **Honest `down()` functions are load-bearing** — they're what makes the edit-and-re-run loop possible at all.
@@ -229,10 +267,21 @@ These rules exist because generic prose is bad worldbuilding, not because of AI-
 
 ## 4. Economy governance
 
-- **`docs/xp-rebalance.md` is law.** `xpPerLevel(i) = round(0.081 × (i+30)³ × (1.33^(1/12))^(i−1))`. One formula, no branches. Anchors: ~2,920 optimal hours to 100; 2,000 xp/hr at L1; tier grid at 12/25/37/50/62/75/87/100.
+- **`docs/xp-rebalance.md` is law.** `xpPerLevel(i) = round(0.081 × (i+30)³ × (1.33^(1/12))^(i−1))`. One formula, no branches. Anchors: ~2,920 optimal hours to 100; 2,000 xp/hr at L1; tier rungs at 1/13/25/37/50/62/75/87/100.
 - **Placing new content = the 4-step recipe** (§8 there): unlock level → ladder target × policy → pick timer → `xp = target × timer / 3600`. **Sim-validate anything novel.** Trapping XP was 4–8% of its policy band until a sim caught it, and the arrow economy was feather-starved at 30% of demand because the spec checked crafting *time* and never checked *supply*.
 - **Policies:** gathering ×1.0 · mining rocks ×0.5 / ores ×1.3 · crafting finished goods ×1.8 · intermediates ×0.6 of the crafting band · **passive ×0.30** (trapping) · kiln-tier (~2%) for tanning · unlock dip ×1.10.
-- **`items.tier` is DERIVED, never chosen.** It is the band of the **lowest level at which the item can be obtained**, in twelves: **tier 1 = below level 13 · tier 2 = 13–24 · tier 3 = 25–36**, and so on. It is not a judgement about how impressive or valuable the thing is. A Conger Eel weighing 133 lb is tier 1 because it is catchable at Fishing 6; Sloth Meat is tier 2 because the Ground Sloth is level 17. Taiar hosts nothing above tier 2. Existing items are not all correct, so **do not infer the rule from neighbouring rows** — that is how ten of the eighteen fish shipped as tier 2 and 3 (`20260807200500` fixes them).
+- **`items.tier` is DERIVED, never chosen.** It is the band of the **lowest level at which the item can be obtained**. The nine bands, aligned to the content rungs in `docs/xp-rebalance.md` (1 · 13 · 25 · 37 · 50 · 62 · 75 · 87 · 100):
+
+  | Tier | Levels | Tier | Levels | Tier | Levels |
+  |---|---|---|---|---|---|
+  | 1 | 1–12 | 4 | 37–49 | 7 | 75–86 |
+  | 2 | 13–24 | 5 | 50–61 | 8 | 87–99 |
+  | 3 | 25–36 | 6 | 62–74 | 9 | 100 |
+
+  Bands are not all exactly twelve long: tiers 4, 6 and 8 run thirteen because the rung ladder does. **A level that starts a rung opens the new tier** — an item obtainable at 37 is tier 4, not the top of tier 3.
+
+  Tier is not a judgement about how impressive, rare or valuable a thing is, and never about how hard it was to make. A Conger Eel weighing 133 lb is tier 1 because it is catchable at Fishing 6; Sloth Meat is tier 2 because the Ground Sloth is level 17. Taiar hosts nothing above tier 2. Existing items are not all correct, so **do not infer the rule from neighbouring rows** — that is how ten of the eighteen fish shipped as tier 2 and 3 (`20260807200500` fixes them).
+- **Tool, weapon and armour durability scales with tier**: higher tiers get a larger guaranteed use count before the break roll begins, and a lower break chance once it does. Noticeable, not dramatic. The guaranteed count is tracked per player per item name, so it applies identically whether the item is carried, worn, or socketed into a workstation.
 - Trophy rates scale to event frequency: ~0.33%/kill (hunting), ~5%/catch (trapping) — comparable per-hour.
 - Skill build order: Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fishing → Cooking → Combat. **But its position understates Foraging — see the circularity rule.**
 

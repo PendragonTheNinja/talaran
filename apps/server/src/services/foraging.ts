@@ -176,6 +176,10 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         // Stats — every gather, matching mining/woodcutting (outside the discovery guard).
         await incrementStats(playerId, {
             total_items_foraged: qty,
+            // Searches, not items. A rummage that turns up four berries is one
+            // search, and counting attempts separately from yield is the only
+            // way to say "searched a thousand hedgerows".
+            total_habitats_searched: 1,
             total_actions_completed: 1,
             total_xp_earned: pick.xp,
         });

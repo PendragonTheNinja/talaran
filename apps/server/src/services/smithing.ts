@@ -27,57 +27,6 @@ export async function getWorkstation(playerId: number, locationId: number): Prom
     .first();
 }
 
-export async function setupWorkstation(playerId: number, locationId: number): Promise<{ success: boolean; error?: string }> {
-  try {
-    const existing = await getWorkstation(playerId, locationId);
-    if (existing) return { success: false, error: 'You already have a workstation here.' };
-
-    // Check player has the required items in inventory
-    const required = ['Ambren Anvil', 'Ambren Hammer', 'Ambren Tongs'];
-    for (const itemName of required) {
-      const item = await db('items').where({ name: itemName }).first();
-      if (!item) continue;
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (!inv || inv.quantity < 1) {
-        return { success: false, error: `You need a ${itemName} to set up your workstation.` };
-      }
-    }
-
-    // Remove tools from inventory and create workstation
-    for (const itemName of required) {
-      const item = await db('items').where({ name: itemName }).first();
-      if (!item) continue;
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (inv.quantity <= 1) {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
-      } else {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).decrement('quantity', 1);
-      }
-    }
-
-    await db('workstations').insert({
-      player_id: playerId,
-      location_id: locationId,
-      type: 'smithing',
-      tier: 1,
-      has_anvil: true,
-      has_hammer: true,
-      has_tongs: true,
-      is_active: true,
-    });
-
-    logger.info(`Player ${playerId} set up smithing workstation at location ${locationId}`);
-    return { success: true };
-  } catch (err) {
-    logger.error(`Setup workstation error: ${err}`);
-    return { success: false, error: 'Server error' };
-  }
-}
-
 async function ingredientsRemaining(playerId: number, ingredients: { name: string; quantity: number }[]) {
   const out: { name: string; quantity: number }[] = [];
   for (const ing of ingredients) {
@@ -271,25 +220,34 @@ export async function getLogCountsByQuality(playerId: number): Promise<Record<st
 
 // ── Smelting ──────────────────────────────────────────────────────
 
+/**
+ * Smelting access, now answered by the shared workstation rules rather than a
+ * second opinion of its own.
+ *
+ * This used to read only workstations.is_active, which meant an incomplete
+ * bench of your own was reported as "using the blacksmith's forge" and, worse,
+ * disagreed with the tool-aware answer that recipes.ts was giving for forging.
+ * One player could smelt without an anvil and not forge without one, from the
+ * same rack.
+ *
+ * usingBlacksmith now means exactly what it says: you are at his bench, not
+ * yours.
+ */
 export async function canSmithHere(
   playerId: number,
   locationId: number
 ): Promise<{ allowed: boolean; error?: string; usingBlacksmith?: boolean }> {
+  // Smelting needs no tools, only a fire, so any forge of your own serves at
+  // full speed. Testing is_active here was the old bug: it demanded a full tool
+  // rack for work that uses none of it.
   const workstation = await getWorkstation(playerId, locationId);
-  if (workstation?.is_active) {
+  if (workstation) {
     return { allowed: true, usingBlacksmith: false };
   }
 
-  // Check if player has started or completed The Blacksmith's Bargain
-  const quest = await db('quests').where({ name: "The Blacksmith's Bargain" }).first();
-  if (quest) {
-    const playerQuest = await db('player_quests')
-      .where({ player_id: playerId, quest_id: quest.id })
-      .whereIn('status', ['active', 'completed'])
-      .first();
-    if (playerQuest) {
-      return { allowed: true, usingBlacksmith: true };
-    }
+  const { locationHasPublicStation } = await import('./workstations');
+  if (await locationHasPublicStation(playerId, locationId, 'smithing')) {
+    return { allowed: true, usingBlacksmith: true };
   }
 
   return { allowed: false, error: 'Speak to Geoffrey the blacksmith to gain access to the forge.' };
@@ -372,6 +330,7 @@ export async function smeltIngots(
 
     await incrementStats(playerId, {
       total_actions_completed: 1,
+      total_ingots_smelted: 1,
       total_xp_earned: recipe.xp,
     });
 
@@ -468,6 +427,7 @@ export async function smithPart(
 
     await incrementStats(playerId, {
       total_actions_completed: 1,
+      total_items_forged: 1,
       total_xp_earned: recipe.xp,
     });
 

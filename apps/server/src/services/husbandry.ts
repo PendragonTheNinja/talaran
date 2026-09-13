@@ -3,7 +3,8 @@ import db from '../db';
 import { logger } from '../index';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
-import { notifyInventoryChanged } from './inventory';
+import { notifyInventoryChanged, addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
+import { getSeason } from '../lib/gameTime';
 import { activeXpForSeconds } from './farming';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { isLiquid, canFill, addLiquid, liquidState } from './liquids';
@@ -28,6 +29,23 @@ export const HUSBANDRY_TOWN = 'Novita';
 const PEN_MAX = 12;                       // hard ceiling (reached around level 33)
 const COOP_CAPACITY = 6;                  // small stock
 const PADDOCK_CAPACITY = 3;               // large stock
+const APIARY_CAPACITY = 3;                // hives; see the beekeeping migration
+
+// One place to say what a pen type is, so adding a fourth does not mean hunting
+// down six hardcoded coop/paddock ternaries again.
+const PEN_TYPES: Record<string, { label: string; capacity: number }> = {
+    coop: { label: 'Coop', capacity: COOP_CAPACITY },
+    paddock: { label: 'Paddock', capacity: PADDOCK_CAPACITY },
+    apiary: { label: 'Apiary', capacity: APIARY_CAPACITY },
+};
+
+export function penCapacity(penType: string): number {
+    return PEN_TYPES[penType]?.capacity ?? PADDOCK_CAPACITY;
+}
+
+export function penLabel(penType: string): string {
+    return PEN_TYPES[penType]?.label ?? 'Pen';
+}
 
 // Feeding fills a pen for this long; every animal inside accrues while it lasts.
 const FED_SECONDS = 12 * H;
@@ -75,6 +93,13 @@ export const PEN_COST: Record<string, (n: number) => { itemName: string; qty: nu
         { itemName: 'Fence Panel', qty: 12 + (n - 1) * 6 },
         { itemName: 'Lanai Planks', qty: 15 + (n - 1) * 6 },
         { itemName: 'Ambren Nails', qty: 20 + (n - 1) * 8 },
+    ],
+    // A stand of hives is the cheapest thing on the farmstead: a few boards to
+    // keep the skeps off the wet ground. The bees are the expensive part, and
+    // they only come off a tree.
+    apiary: (n) => [
+        { itemName: 'Lanai Planks', qty: 8 + (n - 1) * 4 },
+        { itemName: 'Ambren Nails', qty: 10 + (n - 1) * 4 },
     ],
 };
 
@@ -237,6 +262,14 @@ export function penCapForLevel(level: number): number {
     return Math.min(PEN_MAX, 1 + Math.floor(level / 3));
 }
 
+/** What the player is told when a pen finishes. One per type, or an apiary
+ *  reads as a paddock, which is how a stand of skeps came to have a gate. */
+const PEN_BUILT_TEXT: Record<string, string> = {
+    coop: 'The coop is finished \u2014 boarded tight, with a door that latches. Something ought to live in it.',
+    paddock: 'Posts sunk, panels hung, gate swinging true. The paddock stands empty and waiting.',
+    apiary: 'A low bench under a shingle roof, set back from the path and out of the wind. Nothing to do now but find some bees.',
+};
+
 export function penCost(penType: string, penNumber: number): { itemName: string; qty: number }[] {
     return (PEN_COST[penType] ?? PEN_COST.paddock)(penNumber);
 }
@@ -245,7 +278,36 @@ export function penCost(penType: string, penNumber: number): { itemName: string;
 // Everything about an animal's state is derived from two accrued totals, folded
 // forward on read. A pen contributes time only while it is BOTH fed and clean.
 
+/**
+ * An apiary is not a pen full of livestock.
+ *
+ * Bees feed themselves and do not foul their own hive, so an apiary has no
+ * feeding and no mucking. Without this it inherits the livestock clock, which
+ * gates on fed_until, which is never set for a hive, so the bees would sit
+ * "paused, needs feeding" forever and never make a thing.
+ */
+/** Does butchering this animal actually yield anything? */
+function hasSlaughterYield(species: any): boolean {
+    try {
+        const table = species.slaughter_table
+            ? (typeof species.slaughter_table === 'string'
+                ? JSON.parse(species.slaughter_table)
+                : species.slaughter_table)
+            : [];
+        return Array.isArray(table) && table.length > 0;
+    } catch {
+        return false;
+    }
+}
+
+export function isApiary(penType: string): boolean {
+    return penType === 'apiary';
+}
+
 function penRunningUntil(pen: any, now: number): number {
+    // Hives run continuously. The only thing that slows them is the season and
+    // how much is in bloom nearby.
+    if (isApiary(pen.pen_type)) return now;
     const fed = pen.fed_until ? new Date(pen.fed_until).getTime() : 0;
     const muckDue = pen.muck_due_at ? new Date(pen.muck_due_at).getTime() : Infinity;
     return Math.min(fed, muckDue, now);
@@ -275,19 +337,113 @@ async function accrue(animal: any, pen: any, now = Date.now(), x: Ex = db) {
 }
 
 function stageOf(animal: any, species: any): 'juvenile' | 'adult' | 'elder' {
+    // A caught colony is already a working hive. There is no such thing as a
+    // young bee you wait on, and grow_seconds of 0 makes that literal rather
+    // than a special case downstream.
+    if (!species.grow_seconds) return 'adult';
     const g = animal.grow_seconds_accrued;
     if (g < species.grow_seconds) return 'juvenile';
     if (g < species.grow_seconds + species.elder_seconds) return 'adult';
     return 'elder';
 }
 
+/**
+ * Seasonal yield, as a multiplier on the wait between products.
+ *
+ * species.season_yield is a percentage per season, null for anything that does
+ * not care what month it is, which is every animal except bees. Expressed as a
+ * longer interval rather than a smaller yield so a lean season still produces
+ * whole items: a hive at 33% takes three times as long per comb rather than
+ * handing over a third of one.
+ *
+ * Production never reaches zero. A recipe that needs honey must not become
+ * unmakeable for three months of the year.
+ */
+function seasonMultiplier(species: any): number {
+    if (!species.season_yield) return 1;
+    let map: Record<string, number>;
+    try {
+        map = typeof species.season_yield === 'string'
+            ? JSON.parse(species.season_yield)
+            : species.season_yield;
+    } catch {
+        return 1;
+    }
+    const pct = Number(map?.[getSeason()]);
+    if (!isFinite(pct) || pct <= 0) return 1;
+    return 100 / pct;
+}
+
+export const APIARY_FLOWER_SLOTS = 10;
+
+
+/**
+ * Flowers slow or speed a hive, expressed as a multiplier on the wait.
+ *
+ * An empty apiary runs at FLOWER_FLOOR and a full one at full rate, sliding
+ * linearly between. Bees with nothing flowering nearby still make honey, just
+ * slowly: production must never reach zero or a recipe becomes unmakeable.
+ *
+ * Only apiaries care. Every other pen passes 0 flowers and gets 1.
+ */
+const FLOWER_FLOOR = 0.4;
+
+/** What is in an apiary right now, ordered by slot. */
+export async function penFlowers(penId: number, trx?: Knex.Transaction): Promise<{ slotIndex: number; itemName: string }[]> {
+    const q = (trx ?? db)('pen_flowers').where({ pen_id: penId }).orderBy('slot_index', 'asc');
+    const rows = await q;
+    return rows.map((r: any) => ({ slotIndex: r.slot_index, itemName: r.item_name }));
+}
+
+export async function penFlowerCount(penId: number, trx?: Knex.Transaction): Promise<number> {
+    const row = await (trx ?? db)('pen_flowers').where({ pen_id: penId }).count({ c: '*' }).first();
+    return Number(row?.c ?? 0);
+}
+
+/**
+ * A hive's working rate as a percentage, for showing the player.
+ *
+ * The two multipliers are intervals (how much LONGER a comb takes), which is the
+ * right shape for the clock and the wrong shape for a person. Inverted here into
+ * "this hive is working at 67%", which is the sentence a keeper actually wants.
+ */
+export function hiveRate(species: any, flowerCount: number): {
+    seasonPct: number; flowerPct: number; totalPct: number;
+} {
+    const seasonPct = Math.round(100 / seasonMultiplier(species));
+    const flowerPct = Math.round(100 / flowerMultiplier('apiary', flowerCount));
+    return { seasonPct, flowerPct, totalPct: Math.round(seasonPct * flowerPct / 100) };
+}
+
+export function flowerMultiplier(penType: string, flowerCount: number): number {
+    if (penType !== 'apiary') return 1;
+    const filled = Math.max(0, Math.min(APIARY_FLOWER_SLOTS, flowerCount));
+    const rate = FLOWER_FLOOR + (1 - FLOWER_FLOOR) * (filled / APIARY_FLOWER_SLOTS);
+    return 1 / rate;
+}
+
+/**
+ * Carry the pen's flower count on the species row.
+ *
+ * The species object is what flows through a dozen helpers that never see the
+ * pen, so threading a pen argument through all of them would mean touching
+ * thirteen call sites to serve one animal. Set this once wherever a pen and its
+ * species are loaded together; everything downstream picks it up.
+ */
+export function withPenContext(species: any, pen: any, flowerCount: number): any {
+    if (!species) return species;
+    return { ...species, __penType: pen?.pen_type ?? '', __flowerCount: flowerCount };
+}
+
 // Elders take longer between products. They do NOT butcher out any smaller —
 // only the repeating yield slows with age.
 function productInterval(species: any, stage: string): number {
     if (!species.product_seconds) return Infinity;
-    return stage === 'elder'
+    const base = stage === 'elder'
         ? Math.round(species.product_seconds * Number(species.elder_time_multiplier))
         : species.product_seconds;
+    const flowers = flowerMultiplier(species.__penType ?? '', species.__flowerCount ?? 0);
+    return Math.round(base * seasonMultiplier(species) * flowers);
 }
 
 /**
@@ -344,6 +500,18 @@ async function payMaturityXp(playerId: number, animal: any, species: any): Promi
     if (animal.mature_xp_paid) return 0;
     if (stageOf(animal, species) === 'juvenile') return 0;
     await db('player_animals').where({ id: animal.id }).update({ mature_xp_paid: true });
+
+    // Counted here rather than on an action, because raising something is not
+    // a thing you click: it is a thing that happens because you kept a pen fed
+    // for a fortnight. The mature_xp_paid guard above fires once per animal.
+    //
+    // Anything with no grow time is skipped. Bees are adult the moment they go
+    // in the skep, so the juvenile guard above does not catch them, and calling
+    // a caught colony "raised" would make the counter mean two things.
+    if (species.grow_seconds > 0) {
+        await incrementStats(playerId, { total_animals_raised: 1 });
+    }
+
     if (species.xp_mature > 0) {
         await awardXp(playerId, 'Husbandry', species.xp_mature);
         await incrementStats(playerId, { total_xp_earned: species.xp_mature });
@@ -378,7 +546,7 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
     const out = [];
 
     for (const pen of pens) {
-        const label = `${pen.pen_type === 'coop' ? 'Coop' : 'Paddock'} ${pen.slot_index + 1}`;
+        const label = `Pen ${pen.slot_index + 1} (${penLabel(pen.pen_type).toLowerCase()})`;
         const base = {
             what: label,
             where: pen.location_name || 'Unknown',
@@ -391,7 +559,11 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
             continue;
         }
 
-        const species = await db('animal_species').where({ id: pen.species_id }).first();
+        const species = withPenContext(
+            await db('animal_species').where({ id: pen.species_id }).first(),
+            pen,
+            pen.pen_type === 'apiary' ? await penFlowerCount(pen.id) : 0,
+        );
         const fed = pen.fed_until && new Date(pen.fed_until).getTime() > now;
         const needsMuck = pen.muck_due_at && new Date(pen.muck_due_at).getTime() <= now;
         const head = `${animals.length} ${species.name}${animals.length === 1 ? '' : 's'}`;
@@ -478,6 +650,25 @@ export async function getHusbandryState(playerId: number) {
         atNovita, town: HUSBANDRY_TOWN, husbandryLevel: husbandryLvl,
         penCap: penCapForLevel(husbandryLvl), penMax: PEN_MAX,
         coopCapacity: COOP_CAPACITY, paddockCapacity: PADDOCK_CAPACITY,
+        apiaryCapacity: APIARY_CAPACITY,
+        season: getSeason(),
+        // So the demolish prompt can offer "coax into a skep" only when there is
+        // one to coax into, rather than offering it and failing afterwards.
+        hasEmptySkep: !!(await db('player_inventory as pi')
+            .join('items as i', 'i.id', 'pi.item_id')
+            .where('pi.player_id', playerId)
+            .where('i.name', 'Straw Skep')
+            .where('pi.quantity', '>', 0)
+            .first()),
+        // Whatever flowers are in the pack, so an apiary can offer them without
+        // the client having to know what counts as a flower.
+        flowerStock: await db('player_inventory as pi')
+            .join('items as i', 'i.id', 'pi.item_id')
+            .where('pi.player_id', playerId)
+            .where('i.subtype', 'flower')
+            .where('pi.quantity', '>', 0)
+            .orderBy('i.name', 'asc')
+            .select('i.name as itemName', 'pi.quantity as quantity'),
         fedHours: FED_SECONDS / H, muckHours: MUCK_INTERVAL / H,
         species: speciesList,
         hasPail: !!(await equippedTool(playerId, 'pail')),
@@ -516,13 +707,16 @@ export async function getHusbandryState(playerId: number) {
 
     for (const pen of penRows) {
         const animals = await accrueAllInPen(pen);
-        const species = pen.species_id
+        const flowerCount = pen.pen_type === 'apiary' ? await penFlowerCount(pen.id) : 0;
+        const speciesRaw = pen.species_id
             ? await db('animal_species').where({ id: pen.species_id }).first()
             : null;
+        const species = withPenContext(speciesRaw, pen, flowerCount);
 
         const animalList = [];
         for (const a of animals) {
-            const sp = species ?? await db('animal_species').where({ id: a.species_id }).first();
+            const sp = species ?? withPenContext(
+                await db('animal_species').where({ id: a.species_id }).first(), pen, flowerCount);
             const stage = stageOf(a, sp);
             await payMaturityXp(playerId, a, sp);
             const interval = productInterval(sp, stage);
@@ -544,7 +738,12 @@ export async function getHusbandryState(playerId: number) {
                 // "grown in about 3h" rather than a bare bar.
                 secondsToAdult: Math.max(0, sp.grow_seconds - a.grow_seconds_accrued),
                 secondsToElder: Math.max(0, (sp.grow_seconds + sp.elder_seconds) - a.grow_seconds_accrued),
-                canSlaughter: stage !== 'juvenile' && !sp.mount_item_name,
+                // An empty slaughter table means there is nothing to take, which
+                // is the honest test rather than naming bees. A mount is spared
+                // for its own reason.
+                canSlaughter: stage !== 'juvenile'
+                    && !sp.mount_item_name
+                    && hasSlaughterYield(sp),
                 canTame: stage !== 'juvenile' && !!sp.mount_item_name,
             });
         }
@@ -553,12 +752,26 @@ export async function getHusbandryState(playerId: number) {
         const muckDue = pen.muck_due_at ? new Date(pen.muck_due_at).getTime() : 0;
         pens.push({
             id: pen.id, slotIndex: pen.slot_index, penType: pen.pen_type,
+            // Apiaries only. Everything else reports an empty list and the
+            // client never draws the strip.
+            flowers: pen.pen_type === 'apiary' ? await penFlowers(pen.id) : [],
+            flowerSlots: pen.pen_type === 'apiary' ? APIARY_FLOWER_SLOTS : 0,
+            // Why this hive is slow, split into its two causes. A keeper can act
+            // on the flowers and can only wait out the season, so telling them
+            // apart is the difference between a chore and a grievance.
+            hiveRate: pen.pen_type === 'apiary' && species ? hiveRate(species, flowerCount) : null,
             species: species?.name ?? null, speciesId: pen.species_id,
             capacity: pen.capacity, headCount: animals.length,
-            fed: fedUntil > now, fedUntil: pen.fed_until,
-            canFeed: fedUntil <= now && animals.length > 0,
-            needsMucking: muckDue > 0 && muckDue <= now, muckDueAt: pen.muck_due_at,
-            canMuck: animals.length > 0 && (muckDue === 0 || muckDue <= now),
+            // An apiary reports no upkeep at all rather than "fed" or "clean".
+            // The client hides the buttons on this, so a greyed-out Feed never
+            // appears on something that does not eat.
+            hasUpkeep: !isApiary(pen.pen_type),
+            fed: isApiary(pen.pen_type) ? true : fedUntil > now,
+            fedUntil: isApiary(pen.pen_type) ? null : pen.fed_until,
+            canFeed: !isApiary(pen.pen_type) && fedUntil <= now && animals.length > 0,
+            needsMucking: !isApiary(pen.pen_type) && muckDue > 0 && muckDue <= now,
+            muckDueAt: isApiary(pen.pen_type) ? null : pen.muck_due_at,
+            canMuck: !isApiary(pen.pen_type) && animals.length > 0 && (muckDue === 0 || muckDue <= now),
             beddingCost: animals.length * BEDDING.perHead,
             beddingItem: BEDDING.itemName,
             readyUnits: animalList.reduce((n, a) => n + (a.productUnits ?? 0), 0),
@@ -578,13 +791,14 @@ export async function getHusbandryState(playerId: number) {
         nextPenCost: {
             coop: penCost('coop', nextPen),
             paddock: penCost('paddock', nextPen),
+            apiary: penCost('apiary', nextPen),
         },
     };
 }
 
 // ── build a pen ─────────────────────────────────────────────────────────────
 export async function startBuildPen(playerId: number, penType: string): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
-    if (penType !== 'coop' && penType !== 'paddock') return { ok: false, error: 'Unknown pen type.' };
+    if (!PEN_TYPES[penType]) return { ok: false, error: 'Unknown pen type.' };
 
     const { novita, property } = await playerProperty(playerId);
     if (!property) return { ok: false, error: 'You need a farmstead before you can keep animals.' };
@@ -616,7 +830,7 @@ export async function startBuildPen(playerId: number, penType: string): Promise<
 
 export async function resolveBuildPen(playerId: number, penTypeRaw: string | null): Promise<HusbandryActionResult> {
     try {
-        const penType = penTypeRaw === 'coop' ? 'coop' : 'paddock';
+        const penType = penTypeRaw && PEN_TYPES[penTypeRaw] ? penTypeRaw : 'paddock';
         let xp = 0;
 
         await db.transaction(async (trx) => {
@@ -638,7 +852,7 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
                 slot_index: nextIndex,
                 pen_type: penType,
                 species_id: null,
-                capacity: penType === 'coop' ? COOP_CAPACITY : PADDOCK_CAPACITY,
+                capacity: penCapacity(penType),
                 fed_until: null,
                 muck_due_at: null,
             });
@@ -658,9 +872,7 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
         await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
         return {
             success: true, xp, skillName: 'Carpentry',
-            message: penType === 'coop'
-                ? 'The coop is finished \u2014 boarded tight, with a door that latches. Something ought to live in it.'
-                : 'Posts sunk, panels hung, gate swinging true. The paddock stands empty and waiting.',
+            message: PEN_BUILT_TEXT[penType] ?? PEN_BUILT_TEXT.paddock,
         };
     } catch (err: any) {
         if (err?.message === 'NO_FARMSTEAD') return { success: false, error: 'No farmstead.' };
@@ -683,13 +895,49 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
 
 const DEMOLISH_SECONDS = Math.round(BUILD_PEN_SECONDS / 2);
 
-export async function startDemolishPen(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+/**
+ * Pulling down an apiary, with the bees still in it.
+ *
+ * Livestock has to be moved out first, because a cow has somewhere to go. A
+ * colony does not: there is no way to take bees out of a hive and hold them,
+ * so an apiary with bees in it would be permanently undemolishable.
+ *
+ *   'recapture' spends a Straw Skep and gives back a Skep of Bees.
+ *   'release'   lets them go. The colony is gone for good.
+ *
+ * Encoded into action_data alongside the pen id, since player_actions carries
+ * one string and this has to survive the tick.
+ */
+export type BeeDisposition = 'recapture' | 'release';
+
+export async function startDemolishPen(
+    playerId: number,
+    penId: number,
+    disposition?: BeeDisposition,
+): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     const pen = await ownedPen(playerId, penId);
     if (!pen) return { ok: false, error: 'That is not your pen.' };
 
     const head = await db('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
-    if (Number(head?.c ?? 0) > 0) {
+    const occupied = Number(head?.c ?? 0) > 0;
+
+    if (occupied && !isApiary(pen.pen_type)) {
         return { ok: false, error: 'Move the animals out before you pull it down.' };
+    }
+
+    if (occupied && isApiary(pen.pen_type)) {
+        if (disposition !== 'recapture' && disposition !== 'release') {
+            return { ok: false, error: 'Say what should become of the bees first.' };
+        }
+        if (disposition === 'recapture') {
+            const skep = await db('items').where({ name: 'Straw Skep' }).first();
+            const held = skep ? await db('player_inventory')
+                .where({ player_id: playerId, item_id: skep.id })
+                .where('quantity', '>', 0).first() : null;
+            if (!held) {
+                return { ok: false, error: 'You have no empty skep to coax them into.' };
+            }
+        }
     }
 
     const toolProblem = await missingBuildTool(playerId);
@@ -697,7 +945,8 @@ export async function startDemolishPen(playerId: number, penId: number): Promise
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, String(penId), novita?.id ?? null);
+    const data = occupied && isApiary(pen.pen_type) ? `${penId}:${disposition}` : String(penId);
+    await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, data, novita?.id ?? null);
     return { ok: true, timerSeconds: DEMOLISH_SECONDS };
 }
 
@@ -705,16 +954,55 @@ export async function resolveDemolishPen(playerId: number, penIdRaw: string | nu
     try {
         let refund: { itemName: string; qty: number }[] = [];
         let penLabel = 'pen';
+        let beeNote = '';
+
+        // action_data is "penId" for a normal pen and "penId:disposition" when
+        // an apiary is coming down with bees still in it.
+        const [idPart, disposition] = String(penIdRaw ?? '').split(':');
 
         await db.transaction(async (trx) => {
-            const pen = await ownedPen(playerId, penIdRaw ? parseInt(penIdRaw) : 0, trx);
+            const pen = await ownedPen(playerId, idPart ? parseInt(idPart) : 0, trx);
             if (!pen) throw new Error('NOT_YOURS');
             await trx('player_pens').where({ id: pen.id }).forUpdate().first();
 
             const head = await trx('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
-            if (Number(head?.c ?? 0) > 0) throw new Error('OCCUPIED');
+            const occupied = Number(head?.c ?? 0) > 0;
 
-            penLabel = pen.pen_type === 'coop' ? 'coop' : 'paddock';
+            if (occupied && !isApiary(pen.pen_type)) throw new Error('OCCUPIED');
+
+            if (occupied && isApiary(pen.pen_type)) {
+                // Bees cannot be moved out first, so they are dealt with here.
+                if (disposition === 'recapture') {
+                    const skep = await trx('items').where({ name: 'Straw Skep' }).first();
+                    const full = await trx('items').where({ name: 'Skep of Bees' }).first();
+                    const held = skep ? await trx('player_inventory')
+                        .where({ player_id: playerId, item_id: skep.id })
+                        .where('quantity', '>', 0).forUpdate().first() : null;
+                    if (!held || !full) throw new Error('NO_SKEP');
+
+                    if (held.quantity > 1) {
+                        await trx('player_inventory').where({ id: held.id }).decrement('quantity', 1);
+                    } else {
+                        await trx('player_inventory').where({ id: held.id }).delete();
+                    }
+                    await addItemToInventoryWithin(trx, playerId, full.id, 1);
+                    beeNote = ' The colony is coaxed back into a skep and comes with you.';
+                } else {
+                    beeNote = ' The bees lift off in a slow spiral and are gone over the trees.';
+                }
+                // Either way the hive leaves with the stand.
+                await trx('player_animals').where({ pen_id: pen.id }).delete();
+            }
+
+            // Flowers come back whole; they were only ever standing there.
+            const flowers = await trx('pen_flowers').where({ pen_id: pen.id });
+            for (const f of flowers) {
+                const item = await trx('items').where({ name: f.item_name }).first();
+                if (item) await addItemToInventoryWithin(trx, playerId, item.id, 1);
+            }
+            await trx('pen_flowers').where({ pen_id: pen.id }).delete();
+
+            penLabel = (PEN_TYPES[pen.pen_type]?.label ?? 'pen').toLowerCase();
 
             // Refund what the pen at THIS position cost. Pen cost scales with how
             // many you have, and slot_index is not the same as position once
@@ -737,12 +1025,13 @@ export async function resolveDemolishPen(playerId: number, penIdRaw: string | nu
             itemName: refund[0]?.itemName,
             quantity: refund[0]?.qty,
             drops: refund.map((r) => ({ name: r.itemName, quantity: r.qty })),
-            message: `You draw the nails and stack the timber. The ${penLabel} comes down, and everything that went into it comes back.`,
+            message: `You draw the nails and stack the timber. The ${penLabel} comes down, and everything that went into it comes back.${beeNote}`,
         };
     } catch (err: any) {
         const m: string = err?.message ?? '';
         if (m === 'NOT_YOURS') return { success: false, error: 'That is not your pen.' };
         if (m === 'OCCUPIED') return { success: false, error: 'Move the animals out before you pull it down.' };
+        if (m === 'NO_SKEP') return { success: false, error: 'You have no empty skep to coax them into.' };
         logger.error(`resolveDemolishPen error: ${err}`);
         return { success: false, error: 'Server error' };
     }
@@ -1173,7 +1462,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
             await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', muckedPens);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1, total_xp_earned: xp });
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: 'Manure', quantity: manure,
@@ -1262,7 +1551,7 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
             await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1, total_xp_earned: xp });
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: 'Manure', quantity: qty,
@@ -1279,13 +1568,94 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
     }
 }
 
+// ── flowers in the apiary ───────────────────────────────────────────────────
+//
+// Instant, like equipping. There is no timer and no XP: setting a pot of
+// lavender beside a hive is not a feat of husbandry, it is the upkeep that
+// replaces the feed bees do not eat.
+
+export async function addPenFlower(
+    playerId: number,
+    penId: number,
+    itemName: string,
+): Promise<{ ok: boolean; error?: string }> {
+    try {
+        const pen = await ownedPen(playerId, penId);
+        if (!pen) return { ok: false, error: 'That is not your pen.' };
+        if (pen.pen_type !== 'apiary') return { ok: false, error: 'Only an apiary wants flowers.' };
+
+        const item = await db('items').where({ name: itemName }).first();
+        if (!item) return { ok: false, error: 'Unknown item.' };
+        if (item.subtype !== 'flower') return { ok: false, error: `A ${itemName.toLowerCase()} is not a flower.` };
+
+        await db.transaction(async (trx) => {
+            const used = await trx('pen_flowers').where({ pen_id: penId }).forUpdate();
+            if (used.length >= APIARY_FLOWER_SLOTS) throw new Error('FULL');
+
+            const taken = await removeItemFromInventoryWithin(trx, playerId, item.id, 1);
+            if (!taken) throw new Error('NONE');
+
+            const usedIndexes = new Set(used.map((u: any) => u.slot_index));
+            let index = 0;
+            while (usedIndexes.has(index)) index++;
+
+            await trx('pen_flowers').insert({ pen_id: penId, slot_index: index, item_name: itemName });
+        });
+
+        notifyInventoryChanged(playerId);
+        return { ok: true };
+    } catch (err: any) {
+        const m = String(err?.message ?? err);
+        if (m === 'FULL') return { ok: false, error: 'That apiary has all the flowers it can hold.' };
+        if (m === 'NONE') return { ok: false, error: `You have no ${itemName.toLowerCase()}.` };
+        logger.error(`addPenFlower error: ${err}`);
+        return { ok: false, error: 'Server error' };
+    }
+}
+
+/** Flowers come back whole. Nothing is consumed by standing in a pot. */
+export async function removePenFlower(
+    playerId: number,
+    penId: number,
+    slotIndex: number,
+): Promise<{ ok: boolean; error?: string }> {
+    try {
+        const pen = await ownedPen(playerId, penId);
+        if (!pen) return { ok: false, error: 'That is not your pen.' };
+
+        await db.transaction(async (trx) => {
+            const row = await trx('pen_flowers')
+                .where({ pen_id: penId, slot_index: slotIndex }).forUpdate().first();
+            if (!row) throw new Error('EMPTY');
+
+            const item = await trx('items').where({ name: row.item_name }).first();
+            if (!item) throw new Error('EMPTY');
+
+            await trx('pen_flowers').where({ id: row.id }).delete();
+            await addItemToInventoryWithin(trx, playerId, item.id, 1);
+        });
+
+        notifyInventoryChanged(playerId);
+        return { ok: true };
+    } catch (err: any) {
+        const m = String(err?.message ?? err);
+        if (m === 'EMPTY') return { ok: false, error: 'There is nothing in that spot.' };
+        logger.error(`removePenFlower error: ${err}`);
+        return { ok: false, error: 'Server error' };
+    }
+}
+
 // ── collect (eggs, milk, truffles) ──────────────────────────────────────────
 export async function startCollect(playerId: number, animalId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     const animal = await db('player_animals').where({ id: animalId, player_id: playerId }).first();
     if (!animal) return { ok: false, error: 'That is not your animal.' };
 
     const pen = await db('player_pens').where({ id: animal.pen_id }).first();
-    const species = await db('animal_species').where({ id: animal.species_id }).first();
+    const species = withPenContext(
+        await db('animal_species').where({ id: animal.species_id }).first(),
+        pen,
+        pen?.pen_type === 'apiary' ? await penFlowerCount(pen.id) : 0,
+    );
     if (!species?.product_item_name) return { ok: false, error: 'There is nothing to collect from it.' };
 
     const fresh = await accrue(animal, pen);
@@ -1318,6 +1688,10 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
         let productItem = '';
         let animalName = '';
         let stage = 'adult';
+        // Hoisted out of the transaction: the messages are built after it closes.
+        let collectText: string | null = null;
+        let emptyText: string | null = null;
+        let elderNote: string | null = null;
 
         await db.transaction(async (trx) => {
             const animal = await trx('player_animals')
@@ -1328,6 +1702,9 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
             const pen = await trx('player_pens').where({ id: animal.pen_id }).first();
             const species = await trx('animal_species').where({ id: animal.species_id }).first();
             if (!species?.product_item_name) throw new Error('NO_PRODUCT');
+            collectText = species.collect_text ?? null;
+            emptyText = species.collect_empty_text ?? null;
+            elderNote = species.elder_note ?? null;
 
             const fresh = await accrue(animal, pen, Date.now(), trx);
             stage = stageOf(fresh, species);
@@ -1373,25 +1750,27 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
             await updateQuestObjectiveProgress(playerId, 'collect', productItem, qty);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1, total_xp_earned: xp });
+
+        // Text comes off the species row. It used to be a ternary on the
+        // product name that fell through to the pig's line, so bees collected
+        // honey by "rooting at the earth for something dark and knuckled".
+        const fill = (t: string) => t.replace(/\{name\}/g, animalName);
 
         if (!found) {
             return {
                 success: true, xp, skillName: 'Husbandry',
-                message: `${animalName} snuffles the ground over and turns up nothing today.`,
+                message: fill(emptyText ?? '{name} has nothing to give today.'),
             };
         }
 
-        const verb = productItem === 'Milk'
-            ? `You settle beside ${animalName} and milk her out.`
-            : productItem === 'Egg'
-                ? `You lift ${animalName} aside and find what she has been sitting on.`
-                : `${animalName} roots at the earth and turns up something dark and knuckled.`;
+        const verb = fill(collectText ?? 'You collect what {name} has produced.');
+        const note = stage === 'elder' && elderNote ? ' ' + fill(elderNote) : '';
 
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: productItem, quantity: qty,
-            message: verb + (stage === 'elder' ? ' She is slower about it than she used to be.' : ''),
+            message: verb + note,
         };
     } catch (err: any) {
         const m: string = err?.message ?? '';
@@ -1412,7 +1791,11 @@ export async function startCollectAll(playerId: number, penId: number): Promise<
     const pen = await ownedPen(playerId, penId);
     if (!pen || !pen.species_id) return { ok: false, error: 'There is nothing in that pen.' };
 
-    const species = await db('animal_species').where({ id: pen.species_id }).first();
+    const species = withPenContext(
+        await db('animal_species').where({ id: pen.species_id }).first(),
+        pen,
+        pen.pen_type === 'apiary' ? await penFlowerCount(pen.id) : 0,
+    );
     if (!species?.product_item_name) return { ok: false, error: 'There is nothing to collect from them.' };
 
     const animals = await accrueAllInPen(pen);
@@ -1502,7 +1885,7 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
             await awardXp(playerId, 'Husbandry', xp, trx);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1, total_xp_earned: xp });
 
         if (qty < 1) {
             return {
@@ -1591,7 +1974,7 @@ export async function resolveSlaughter(playerId: number, animalIdRaw: string | n
             await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1, total_xp_earned: xp });
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: firstItem, quantity: firstQty, drops,
@@ -1689,7 +2072,7 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
             await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, killed);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1, total_xp_earned: xp });
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: firstItem, quantity: firstQty, drops,

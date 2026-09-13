@@ -124,6 +124,10 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
             channel: m.channel,
             playerName: m.player_name,
             guildTag: m.guild_tag,
+            // Joined in by the history query. ChatPanel rebuilds every message
+            // field by field, so anything not copied here is simply lost.
+            badgeKey: m.badgeKey ?? null,
+            badge: m.badge ?? null,
             message: m.message,
             timestamp: formatTime(new Date(m.sent_at)),
             rawTimestamp: new Date(m.sent_at).getTime(),
@@ -191,6 +195,8 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           channel: data.channel,
           playerName: data.playerName || data.player_name,
           guildTag: data.guildTag || data.guild_tag || null,
+          badgeKey: data.badgeKey ?? null,
+          badge: data.badge ?? null,
           message: data.message,
           timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
@@ -210,6 +216,8 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           channel: 'whisper',
           playerName: data.from,
           guildTag: data.guildTag,
+          badgeKey: data.badgeKey ?? null,
+          badge: data.badge ?? null,
           message: data.message,
           timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),

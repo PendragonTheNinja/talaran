@@ -12,15 +12,17 @@
 
 .equipment-grid {
   display: grid;
-  grid-template-columns: repeat(3, 64px);
+  /* 58px, down from 64. The bars either side need the width, and the doll can
+     spare it: the panel is the narrowest column in the layout. */
+  grid-template-columns: repeat(3, 58px);
   gap: 3px;
   padding: var(--space-xs);
   justify-content: center;
 }
 
 .equipment-slot {
-  width: 64px;
-  height: 64px;
+  width: 58px;
+  height: 58px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-color 0.15s;
@@ -300,7 +302,7 @@
 
 .item-tooltip-name {
   font-family: var(--font-heading);
-  font-size: 15px;
+  font-size: 16px;
   margin: 0 0 4px;
 }
 
@@ -312,7 +314,7 @@
 }
 
 .item-tooltip-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-base);
   margin: 0 0 8px;
   line-height: 1.4;
@@ -650,3 +652,160 @@
     /* iOS zooms the page on focus below 16px */
   }
 }
+
+/* Vitals beside the doll rather than stacked above it.
+
+   Two full-width horizontal bars cost more vertical height than the doll
+   itself, and everything below (combat stats, buffs) was being pushed off the
+   fold. Vertical bars use width the panel already has and height it was
+   wasting. */
+.doll-row {
+  display: flex;
+  align-items: stretch;
+  /* space-evenly, so the gaps at the panel edges match the gaps beside the
+     doll. With centre alignment the bars crowded the doll and left a wide
+     empty margin outside them. */
+  justify-content: space-evenly;
+  padding: var(--space-xs) 0;
+}
+
+.doll-row .equipment-grid {
+  padding: 0;
+}
+
+.vital-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+/* A recessed channel rather than a flat rectangle: an inner shadow at the top
+   and a lighter lip at the bottom reads as something cut into the panel, which
+   is what the rest of the frame is doing. */
+/* The empty part of the channel carries a trace of its own colour, so a bar at
+   zero still says which bar it is. Set per type below. */
+.vital-track {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--color-border-dark);
+  border-radius: 11px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Faint rungs up the channel, so a half-empty bar can be read at a glance
+   instead of estimated. Sits above the fill and is barely there. */
+.vital-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Quarter marks only, and faint. At 10% steps and 0.32 alpha these read as
+     stacked blocks rather than a gauge. */
+  background: repeating-linear-gradient(180deg,
+      rgba(0, 0, 0, 0.28) 0 1px,
+      transparent 1px 25%);
+}
+
+.vital-fill {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  transition: height 0.4s ease;
+  /* A vertical sheen down the middle, so the fill reads as a rounded column of
+     liquid rather than a flat block of colour. */
+  background-image: linear-gradient(90deg,
+      rgba(0, 0, 0, 0.28) 0%,
+      rgba(255, 255, 255, 0.22) 42%,
+      rgba(255, 255, 255, 0.08) 60%,
+      rgba(0, 0, 0, 0.3) 100%);
+}
+
+/* A highlight at the top edge, suggesting a surface.
+   Softened and inset: at 0.55 alpha across the full width it sat flush against
+   the rounded cap and read as a stray white line rather than a meniscus. Now it
+   fades out at both ends and never touches the edge. */
+.vital-fill::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  right: 3px;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3) 40%,
+      rgba(255, 255, 255, 0.3) 60%,
+      transparent);
+}
+
+.vital-fill.health {
+  background-color: #940c00;
+  box-shadow: 0 0 6px rgba(192, 57, 43, 0.45);
+}
+
+.vital-fill.mana {
+  background-color: #210c7e;
+  box-shadow: 0 0 6px rgba(93, 75, 171, 0.45);
+}
+
+.vital-bar.hp .vital-track {
+  background:
+    linear-gradient(180deg, rgba(70, 20, 16, 0.75), rgba(40, 12, 10, 0.4));
+}
+
+.vital-bar.tal .vital-track {
+  background:
+    linear-gradient(180deg, rgba(38, 30, 74, 0.75), rgba(22, 18, 44, 0.4));
+}
+
+.vital-label {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--color-gold-dim);
+}
+
+/* Hovering a bar is how you read the exact figure now that the column is too
+   narrow for "100 / 100". Kept as a real element rather than a title attribute
+   so it appears instantly instead of after the browser's delay. */
+.vital-bar {
+  position: relative;
+}
+
+.vital-readout {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 2px 6px;
+  background: var(--color-bg-deepest);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-bright);
+  font-size: 11px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+  z-index: 5;
+}
+
+.vital-bar:hover .vital-readout {
+  opacity: 1;
+}
+
+/* Slots are 44px on mobile, so the row is already narrow. The bars keep their
+   width there: legibility matters more than the few pixels saved, and
+   space-evenly handles the rest. */

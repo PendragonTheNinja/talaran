@@ -691,7 +691,7 @@ export async function resolveTill(playerId: number, plotIdRaw: string | null): P
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, TILL_SECONDS);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_plots_tilled: 1, total_xp_earned: xp });
 
         await updateQuestObjectiveProgress(playerId, 'till', 'Field', 1);
 
@@ -727,7 +727,7 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, count * SOW_SECONDS_PER_SEED);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_seeds_sown: 1, total_xp_earned: xp });
 
         await updateQuestObjectiveProgress(playerId, 'sow', crop.name, count);
 
@@ -757,7 +757,7 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
 
         await giveItem(playerId, crop.produce_item_name, yieldQty);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_crops_harvested: 1, total_xp_earned: xp });
 
         // Hungry crops take from the soil, legumes give back, bushes are neutral.
         const dir = crop.soil_effect === 'restore' ? 1 : crop.soil_effect === 'neutral' ? 0 : -1;

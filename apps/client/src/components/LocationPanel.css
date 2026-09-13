@@ -217,6 +217,7 @@
 .location-panel--columns .panel-title {
   font-size: 11px;
 }
+
 /* NPCs sit at the head of the player list with a tag instead of an emoji, so a
    glance separates people you can talk to from people who can talk back. */
 .location-player.location-npc {
@@ -246,22 +247,60 @@
 /* Unseen trades at your shop. Quiet on purpose: it is a nudge to go and look,
    not an alarm, and it disappears the moment History is opened. */
 .location-badge {
-    display: inline-block;
-    margin-left: 6px;
-    padding: 0 6px;
-    border-radius: 9px;
-    background: var(--color-gold);
-    color: var(--color-bg-dark);
-    font-family: var(--font-heading);
-    font-size: 11px;
-    line-height: 16px;
-    vertical-align: middle;
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--color-gold);
+  color: var(--color-bg-dark);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  line-height: 16px;
+  vertical-align: middle;
 }
 
 /* Guild tag after a name in Players Here. Muted and slightly smaller than the
    name, matching .chat-guild-tag: the tag is context, the name is the subject. */
 .location-guild-tag {
-    margin-left: 4px;
-    color: var(--color-text-muted);
-    font-size: 13px;
+  margin-left: 4px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* A workstation you have not been granted yet. It still renders, because a town
+   with no visible work reads as broken rather than as locked, but it looks
+   inert and says who to ask when clicked. */
+.location-action-btn.locked {
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
+.location-action-btn.locked:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+}
+
+/* Feat badges in the players list.
+   Drawn larger than the text around them, but pulled back with negative
+   vertical margins so the badge does not stretch the row. The row height stays
+   whatever the name needs; the badge simply overhangs it slightly. */
+.location-player .name-badge-img {
+  width: 24px;
+  height: 24px;
+  margin-left: 4px;
+  margin-top: -7px;
+  margin-bottom: -7px;
+  vertical-align: middle;
+}
+
+/* Same treatment for the character fallback, so a badge with no art yet sits at
+   the same size and does not make the row jump when the image lands. */
+.location-player .name-badge {
+  font-size: 19px;
+  line-height: 1;
+  margin-left: 3px;
+  margin-top: -7px;
+  margin-bottom: -7px;
+  vertical-align: middle;
+  display: inline-block;
 }

@@ -565,3 +565,56 @@
     color: var(--color-text-dim);
     font-size: 11px;
 }
+
+/* Row delete. Sits beside the duplicate control and stays quiet until hovered:
+   a column of red crosses down the table would read as errors. */
+.admin-cell-delete {
+  width: 30px;
+  text-align: center;
+  color: var(--color-border-mid);
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-cell-delete:hover {
+  color: var(--color-red-bright);
+}
+
+.admin-delete-confirm {
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-red-dark);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--color-text-bright);
+}
+
+/* Bulk edit: tick rows, set one column on all of them. */
+.admin-cell-tick {
+  width: 26px;
+  text-align: center;
+}
+
+.admin-row-picked {
+  background: var(--color-bg-raised);
+}
+
+.admin-bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--color-text-bright);
+}
+
+.admin-snapshot-warn {
+  color: var(--color-gold);
+  font-style: italic;
+}

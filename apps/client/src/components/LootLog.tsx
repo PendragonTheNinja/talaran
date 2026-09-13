@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 
 // Loot log content. The shell (launcher, tabs, close) lives in LogPanel.tsx.
@@ -203,7 +204,7 @@ export default function LootLog({ refreshKey }: LootLogProps) {
                                     {s.items.map(it => (
                                         <Tile
                                             key={`i-${it.name}`}
-                                            src={`/images/items/${it.name.replace(/ /g, '_')}.png`}
+                                            src={getItemIcon(it.name)}
                                             label={it.name}
                                             amount={it.amount}
                                             title={it.value !== null

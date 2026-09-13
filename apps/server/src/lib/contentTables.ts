@@ -60,6 +60,13 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     quests:                      { label: 'Quests',                group: 'Quests',     snapshot: true, editable: true },
     quest_objectives:            { label: 'Quest Objectives',      group: 'Quests',     snapshot: true, editable: true },
 
+    // ---- Feats ----
+    // Authored content, so snapshotted: a new feat is a row, and adding one
+    // should not need a migration. criterion_target must name a real
+    // player_stats column or a real skill, and a typo there does not error, it
+    // just makes the feat permanently unearnable.
+    feats:                       { label: 'Feats',                 group: 'Feats',      snapshot: true, editable: true },
+
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },
     ore_veins:                   { label: 'Ore Veins',             group: 'World State' },
@@ -82,6 +89,13 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     player_exploration:          { label: 'Player Exploration',    group: 'Progress',   editable: true },
     player_quests:               { label: 'Player Quests',         group: 'Progress',   editable: true },
     player_quest_objectives:     { label: 'Player Quest Progress', group: 'Progress',   editable: true },
+
+    // Earned feats and the world records. Editable so a wrongly granted feat
+    // can be revoked and a donator badge can be handed out by hand. NEVER
+    // snapshotted: these are per-player facts, and importing a dev snapshot
+    // over live would hand everyone somebody else's achievements.
+    player_feats:                { label: 'Player Feats',          group: 'Progress',   editable: true },
+    // item_firsts is already registered under Records further down.
     skill_snapshots:             { label: 'Skill Snapshots',       group: 'Progress' },
 
     // ---- Player holdings ----
@@ -106,6 +120,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     player_foraging_discoveries: { label: 'Foraging Discoveries',  group: 'Records',    editable: true },
     player_item_firsts:          { label: 'Player Item Firsts',    group: 'Records',    editable: true },
     item_firsts:                 { label: 'Server Item Firsts',    group: 'Records',    editable: true },
+    skill_milestone_firsts:      { label: 'Milestone Records',     group: 'Records',    editable: true },
     loot_log_sources:            { label: 'Loot Log Sources',      group: 'Records' },
     loot_log_entries:            { label: 'Loot Log Entries',      group: 'Records' },
     travel_log:                  { label: 'Travel Log',            group: 'Records' },

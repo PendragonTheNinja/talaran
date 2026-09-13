@@ -23,6 +23,22 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     throw new Error('Session expired. Please log in again.')
   }
 
+  if (res.status === 429) {
+    const data = await res.json().catch(() => ({}))
+    // Rate limited. Announced globally rather than only thrown, because the
+    // callers that hit this hardest are the background refreshes on page load:
+    // they catch quietly and render defaults, which left a throttled player
+    // staring at an empty "you stand ready" page with no idea why.
+    const retryAfter = Number(res.headers.get('retry-after')) || 0
+    window.dispatchEvent(new CustomEvent('talaran:rate-limited', {
+      detail: { message: data.error || 'Too many requests. Please slow down.', retryAfter },
+    }))
+    const error: any = new Error(data.error || 'Too many requests. Please slow down.')
+    error.status = 429
+    error.retryAfter = retryAfter
+    throw error
+  }
+
   if (res.status === 423) {
     const data = await res.json().catch(() => ({}))
     // Locked pending a bot check. The question comes back with the refusal, so

@@ -87,6 +87,41 @@ There is no breeding. This is the constraint the whole skill is built around, an
 
 I find there is something fitting in that. The tame animals of Talaran all begin as wild ones, and the stockman's craft is not making animals. It is bringing them in, and then getting up in the morning.
 
+## Bees
+
+Bees are not livestock, and the apiary is not a pen (whatever the farmstead calls it).
+
+They eat nothing. You will not feed them, you will not muck them out, and there is no young bee to stand about waiting on. What you place in an apiary is a working colony that was doing perfectly well without you a fortnight ago.
+
+- **Weave a skep** from straw. A dome of coiled straw, and the whole of the equipment.
+- **Carry it while chopping.** A wild hive turns up in a hollow trunk now and then.
+- **With a skep**, the colony goes in and comes home with you.
+- **Without one**, you rob the nest for a single comb and leave the bees.
+
+That last is worth reading twice, because most people meet their first hive without a skep and lose it. It is also what everybody actually did. Keeping bees means catching them; robbing a nest is just theft with better manners.
+
+There is no breeding here either, and no swarming. Every hive on the island came off a tree, and there will never be another way.
+
+### Flowers, and why the hives are slow
+
+An apiary with nothing in bloom nearby still makes honey. It makes very little.
+
+Set flowers into the stand and the hives quicken. Any flower will do, including the ones you pick up walking the roads on foot, which is the only use those have ever had.
+
+- **Ten flowers** to a stand, and a full one works at its best
+- An empty stand runs at something over a third
+- The **season** matters as much: full in spring and summer, two thirds in autumn, a third in winter
+
+Winter never stops them entirely. A lean month is not a dead one, and a hive that gave you nothing for a quarter of the year would simply not be worth the stand it stood on.
+
+### What comes off a hive
+
+**Honeycomb**, every four hours, and that is all. Press it and it parts into honey and beeswax.
+
+The honey is the sweetener that the whole preserve and pastry line of Cooking waits on. Without it there is no conserve, no cordial, no tart worth the name.
+
+I will be plain about the experience: keeping bees pays very little of it. That is the bargain. No feeding, no mucking, no growing to wait through, and in exchange the ledger stays thin. You keep bees for the honey.
+
 {{details:The Geographer's ledgers}}
 Every animal you may keep, what it eats, and how long it makes you wait:
 

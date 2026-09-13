@@ -1,0 +1,231 @@
+/* Workstation paper doll.
+   Uses only existing tokens so it inherits the theme with the rest of the app. */
+
+.workstation-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: var(--space-sm);
+}
+
+.workstation-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.workstation-close:hover {
+    color: var(--color-gold);
+}
+
+
+.workstation-panel {
+    width: 100%;
+    max-width: 460px;
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.workstation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    border-bottom: 1px solid var(--color-border-dark);
+    padding-bottom: var(--space-xs);
+}
+
+.workstation-header h3 {
+    font-family: var(--font-heading);
+    color: var(--color-gold);
+    margin: 0;
+}
+
+
+
+
+.workstation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 64px);
+    gap: 4px;
+    justify-content: center;
+    padding: var(--space-xs) 0;
+}
+
+/* Same 64px cell as the player's paper doll, so the two read as one idea. */
+.workstation-cell {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    overflow: hidden;
+}
+
+/* A required slot reads as load-bearing while empty, so the gap stopping the
+   bench working is visible without a sentence explaining it. */
+.workstation-cell.required {
+    border-color: var(--color-border-gold);
+}
+
+.workstation-cell:hover:not(:disabled) {
+    border-color: var(--color-gold);
+}
+
+.workstation-cell.occupied {
+    border-color: var(--color-gold-dim);
+    background: var(--color-bg-mid);
+}
+
+.workstation-cell.occupied:hover:not(:disabled) {
+    border-color: var(--color-red-bright);
+}
+
+.workstation-cell:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.workstation-cell-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2px;
+}
+
+.workstation-cell-text {
+    font-size: 9px;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 2px;
+}
+
+.workstation-cell-label {
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 2px;
+}
+
+.workstation-picker-title {
+    font-family: var(--font-heading);
+    color: var(--color-text-bright);
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.workstation-pick-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.workstation-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border-dark);
+}
+
+.workstation-pick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 5px 8px;
+    background: var(--color-bg-deep);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-base);
+    font-family: var(--font-body);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.workstation-pick:hover:not(:disabled) {
+    border-color: var(--color-gold);
+    background: var(--color-bg-hover);
+}
+
+.workstation-pick .tool-name {
+    flex: 1;
+}
+
+.tool-tier,
+.tool-qty {
+    color: var(--color-text-muted);
+    font-size: 12px;
+}
+
+.workstation-hint {
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Mobile: the picker is the part that needs room, so slots stack and tap
+   targets grow rather than the whole panel shrinking. */
+@media (max-width: 640px) {
+    .workstation-pick {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+}
+
+/* The panel renders its own errors: the class is not defined globally. */
+.workstation-panel .error-message {
+    color: var(--color-red-bright);
+    background: var(--color-bg-deepest);
+    border: 1px solid var(--color-red-dark);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    font-size: 13px;
+}
+
+.workstation-panel .muted {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+.workstation-retry {
+    align-self: flex-start;
+    padding: 5px 10px;
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-base);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.workstation-retry:hover {
+    border-color: var(--color-gold);
+}

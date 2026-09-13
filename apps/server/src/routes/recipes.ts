@@ -3,6 +3,7 @@ import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { botCheckGate } from '../services/botCheck'
 import { getActiveRecipes, canStartRecipe, recipeTimerFor } from '../services/recipes'
+import { checkStation } from '../services/workstations'
 import { logger } from '../index';
 
 const router = Router()
@@ -11,7 +12,28 @@ const router = Router()
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const recipes = await getActiveRecipes()
-        res.json({ recipes })
+
+        // Whose bench each recipe would run at, answered by the server rather
+        // than guessed from is_active. The client used to infer "slow" from an
+        // inactive workstation, which is wrong for tool-less work: smelting at
+        // your own half-finished forge is full speed, not the smith's.
+        const playerId = req.player!.playerId
+        const annotated = await Promise.all(recipes.map(async (r: any) => {
+            const check = await checkStation(playerId, r)
+            return {
+                ...r,
+                available: check.ok,
+                usingPublic: check.usingPublic,
+                speedMultiplier: check.multiplier,
+                stationError: check.ok ? null : check.error,
+                // Named so the card can say WHICH tool is wanted rather than a
+                // flat "you cannot do this". A cook with an empty rack should be
+                // able to read the menu as a shopping list.
+                missingTools: check.missingTools ?? [],
+            }
+        }))
+
+        res.json({ recipes: annotated })
     } catch (err) {
         logger.error('Recipe list error: ' + err)
         res.status(500).json({ error: 'Server error' })

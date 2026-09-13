@@ -101,73 +101,27 @@ export async function getCarpentryWorkstation(playerId: number, locationId: numb
         .first();
 }
 
-export async function setupCarpentryWorkstation(
-    playerId: number,
-    locationId: number
-): Promise<{ success: boolean; error?: string }> {
-    try {
-        const existing = await getCarpentryWorkstation(playerId, locationId);
-        if (existing) return { success: false, error: 'You already have a Carpentry workstation here.' };
-
-        const required = ['Lanai Sawhorse', 'Ambren Saw', 'Ambren Plane'];
-        for (const itemName of required) {
-            const item = await db('items').where({ name: itemName }).first();
-            if (!item) return { success: false, error: `Required item not found: ${itemName}` };
-            const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-            if (!inv || inv.quantity < 1) {
-                return { success: false, error: `You need a ${itemName} to set up your workstation.` };
-            }
-        }
-
-        for (const itemName of required) {
-            const item = await db('items').where({ name: itemName }).first();
-            const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-            if (inv.quantity <= 1) {
-                await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
-            } else {
-                await db('player_inventory').where({ player_id: playerId, item_id: item.id }).decrement('quantity', 1);
-            }
-        }
-
-        await db('workstations').insert({
-            player_id: playerId,
-            location_id: locationId,
-            type: 'carpentry',
-            tier: 1,
-            is_active: true,
-        });
-
-        logger.info(`Player ${playerId} set up carpentry workstation at location ${locationId}`);
-        return { success: true };
-    } catch (err) {
-        logger.error(`Setup carpentry workstation error: ${err}`);
-        return { success: false, error: 'Server error' };
-    }
-}
-
 // ── Access gate (mirrors canSmithHere) ────────────────────────────
 
 export async function canSawHere(
     playerId: number,
     locationId: number
 ): Promise<{ allowed: boolean; error?: string; usingBench?: boolean }> {
+    // Sawing needs the bench itself, not the full rack, so any workshop of
+    // your own serves at full speed.
     const workstation = await getCarpentryWorkstation(playerId, locationId);
-    if (workstation?.is_active) {
+    if (workstation) {
         return { allowed: true, usingBench: false };
     }
 
-    const quest = await db('quests').where({ name: INTRO_QUEST }).first();
-    if (quest) {
-        const playerQuest = await db('player_quests')
-            .where({ player_id: playerId, quest_id: quest.id })
-            .whereIn('status', ['active', 'completed'])
-            .first();
-        if (playerQuest) {
-            return { allowed: true, usingBench: true };
-        }
+    // Same rule as the forge: his bench is a fallback, not a penalty for having
+    // an unfinished one of your own.
+    const { locationHasPublicStation } = await import('./workstations');
+    if (await locationHasPublicStation(playerId, locationId, 'carpentry')) {
+        return { allowed: true, usingBench: true };
     }
 
-    return { allowed: false, error: 'Speak to the Carpenter at Verdale to use the workshop.' };
+    return { allowed: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
 }
 
 // ── Shared consume/award helpers ──────────────────────────────────
@@ -257,10 +211,10 @@ export async function sawPlanks(
         await updateQuestObjectiveProgress(playerId, 'saw', recipe.output, 1);
 
         await db('player_skills').where({ player_id: playerId, skill_id: skillId }).increment('xp', recipe.xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: recipe.xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_planks_sawn: 1, total_xp_earned: recipe.xp });
 
         const [wood, quality] = sawKey.split('_');
-        const drops = await rollSecondaryDrops(playerId, `carpentry:saw:${wood}:${quality}`);
+        const drops = await rollSecondaryDrops(playerId, `carpentry:saw:${wood}:${quality}`, 'Carpentry');
 
         logger.info(`Player ${playerId} sawed ${recipe.outputQuantity}x ${recipe.output}`);
         const sawRemaining = await ingredientsRemaining(playerId, recipe.ingredients);
@@ -299,7 +253,7 @@ export async function woodwork(
         await updateQuestObjectiveProgress(playerId, 'woodwork', recipe.output, 1);
 
         await db('player_skills').where({ player_id: playerId, skill_id: skillId }).increment('xp', recipe.xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: recipe.xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_items_built: 1, total_xp_earned: recipe.xp });
 
         logger.info(`Player ${playerId} crafted ${recipe.outputQuantity}x ${recipe.output}`);
         const wwRemaining = await ingredientsRemaining(playerId, recipe.ingredients);

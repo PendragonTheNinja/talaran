@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { startOfGameDay, nextGameMidnight } from '../lib/gameTime';
 import { io } from '../index';
 import { logger } from '../lib/logger';
+import { badgeGlyph } from '../services/feats';
 import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 
 // Channels a guest may post in.
@@ -72,16 +73,22 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
     // Today only. Yesterday's chat remains readable in the history view.
     const cutoff = startOfGameDay();
 
-    let query = db('chat_messages')
-      .where('channel', channel)
-      .where('sent_at', '>=', cutoff)
-      .orderBy('sent_at', 'asc')
-      .limit(200);
+    // Badges are joined in rather than stored on the message, so history shows
+    // what a player wears NOW. Storing it would freeze whatever they had on the
+    // day they typed, and chat_messages has no column for it anyway.
+    let query = db('chat_messages as cm')
+      .leftJoin('players as p', 'p.id', 'cm.player_id')
+      .leftJoin('feats as bf', 'bf.badge_key', 'p.worn_badge')
+      .where('cm.channel', channel)
+      .where('cm.sent_at', '>=', cutoff)
+      .orderBy('cm.sent_at', 'asc')
+      .limit(200)
+      .select('cm.*', 'p.worn_badge as badgeKey', 'bf.badge as badge');
 
     if (channel === 'region') {
       const location = await db('locations').where({ id: player.current_location_id }).first();
       const region = location?.region || 'Unknown';
-      query = query.where('region', region);
+      query = query.where('cm.region', region);
     }
 
   if (channel === 'guild') {
@@ -89,14 +96,33 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
         res.json({ messages: [], resetAt: nextGameMidnight().toISOString() })
         return
       }
-      query = query.where('guild_id', player.guild_id);
+      query = query.where('cm.guild_id', player.guild_id);
     }
 
     if (channel === 'whisper') {
-      query = query.where('player_id', playerId);
+      query = query.where('cm.player_id', playerId);
     }
 
     const messages = await query;
+
+    // Badges are resolved at read time from whoever sent the line, not stored
+    // on it. A stored badge would freeze whatever the player wore that day, and
+    // chat_messages has no column for one anyway. One lookup per distinct
+    // sender, not per message.
+    const senders = [...new Set(messages.map((m: any) => m.player_name).filter(Boolean))];
+    const worn = senders.length
+        ? await db('players as p')
+            .leftJoin('feats as bf', 'bf.badge_key', 'p.worn_badge')
+            .whereIn('p.username', senders)
+            .select('p.username', 'p.worn_badge as badgeKey', 'bf.badge as badge')
+        : [];
+    const byName = new Map(worn.map((w: any) => [w.username, w]));
+    for (const m of messages as any[]) {
+        const w = byName.get(m.player_name);
+        m.badgeKey = w?.badgeKey ?? null;
+        m.badge = w?.badge ?? null;
+    }
+
     res.json({ messages, resetAt: nextGameMidnight().toISOString() });
   } catch (err) {
     logger.error(`Chat history error: ${err}`);
@@ -305,6 +331,10 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       message: processedMessage,
       player_name: player.username,
       guild_tag: player.guild_tag || null,
+      // No badge columns here. chat_messages has none, and adding them to the
+      // insert made every send fail with "Server error". The badge rides on the
+      // EMITTED payload below instead, resolved fresh each time, which is also
+      // correct: a stored badge would freeze whatever you wore that day.
       sent_at: now,
     }).returning('*');
 
@@ -313,6 +343,8 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       channel,
       playerName: player.username,
       guildTag: player.guild_tag || null,
+      badgeKey: player.worn_badge || null,
+      badge: await badgeGlyph(player.worn_badge || null),
       message: processedMessage,
       timestamp,
       sentAt: now.toISOString(),

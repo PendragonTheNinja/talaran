@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getItemIcon } from '../lib/items'
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
 
@@ -47,7 +48,7 @@ export default function CarpentryMenu({ onClose, onStartSawing, onStartRecipe, p
                             return (
                                 <div key={w.type} className={`smithing-recipe-card ${locked ? 'locked' : ''}`}>
                                     <div className="smithing-recipe-image">
-                                        <img src={`/images/items/${w.planks.replace(/ /g, '_')}.png`} alt={w.planks}
+                                        <img src={getItemIcon(w.planks)} alt={w.planks}
                                             onError={(e) => { e.currentTarget.style.display = 'none' }} />
                                         <span className="smithing-recipe-name">{w.planks}</span>
                                     </div>

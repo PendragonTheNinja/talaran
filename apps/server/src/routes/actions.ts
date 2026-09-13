@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { canChopHere, calculateTimer } from '../services/woodcutting';
+import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../index';
 import { botCheckGate, issueBotCheck } from '../services/botCheck';
@@ -46,7 +47,8 @@ router.post('/woodcutting/start', requireAuth, botCheckGate, async (req: AuthReq
       playerLevel,
       node.required_level,
       toolTier!,
-      node.required_tool_tier
+      node.required_tool_tier,
+      await buffTimerBonus(playerId, 'Woodcutting'),
     );
 
     const now = new Date();

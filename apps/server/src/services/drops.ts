@@ -1,4 +1,5 @@
 import db from '../db';
+import { buffRareBonus, buffDoubleChance } from './buffs';
 import { logger } from '../lib/logger';
 import { recordItemFirst } from './inventory';
 
@@ -29,8 +30,27 @@ async function awardItemById(playerId: number, itemId: number, qty: number): Pro
  * PROVENANCE: call this ONLY from inside an action resolver at roll time —
  * never from a generic inventory-add path.
  */
-export async function rollSecondaryDrops(playerId: number, sourceKey: string): Promise<SecondaryDrop[]> {
+export async function rollSecondaryDrops(
+    playerId: number,
+    sourceKey: string,
+    /**
+     * The skill this roll belongs to, so a Foraging provision only helps
+     * foraging. Optional: a caller that does not pass it simply gets no buff,
+     * which is the safe default rather than a buff leaking across skills.
+     */
+    skill?: string,
+): Promise<SecondaryDrop[]> {
     try {
+        // A PROPORTIONAL bonus, not percentage points.
+        //
+        // Adding points warps rare drops beyond recognition: +1.5 points takes a
+        // 1-in-650 wild hive from 0.15% to 1.65%, which is eleven times as
+        // likely, while doing almost nothing to a 1-in-4 common. A multiplier
+        // treats every entry alike, so a 10% buff is a 10% better chance whether
+        // the drop is common or the rarest thing in the game.
+        const rareBonus = skill ? await buffRareBonus(playerId, skill) : 0;
+        const rareMult = 1 + Math.max(0, rareBonus) / 100;
+        const doubleChance = skill ? await buffDoubleChance(playerId, skill) : 0;
         const entries = await db('drop_table_entries')
             .join('items', 'drop_table_entries.item_id', 'items.id')
             .where({ 'drop_table_entries.source_key': sourceKey, 'drop_table_entries.is_active': true })
@@ -41,15 +61,20 @@ export async function rollSecondaryDrops(playerId: number, sourceKey: string): P
         for (const entry of entries) {
             let hit: boolean;
             if (entry.chance_percent !== null && entry.chance_percent !== undefined) {
-                hit = Math.random() * 100 < Number(entry.chance_percent);
+                hit = Math.random() * 100 < Number(entry.chance_percent) * rareMult;
             } else {
-                hit = entry.chance_one_in <= 1 || Math.floor(Math.random() * entry.chance_one_in) === 0;
+                // Converted to a percentage so the multiplier applies in the same
+                // units as the other branch.
+                const pct = (100 / Math.max(1, entry.chance_one_in)) * rareMult;
+                hit = entry.chance_one_in <= 1 || Math.random() * 100 < pct;
             }
             if (!hit) continue;
 
-            const qty = entry.max_qty > entry.min_qty
+            let qty = entry.max_qty > entry.min_qty
                 ? entry.min_qty + Math.floor(Math.random() * (entry.max_qty - entry.min_qty + 1))
                 : entry.min_qty;
+
+            if (doubleChance > 0 && Math.random() * 100 < doubleChance) qty *= 2;
 
             // "notable" earns a sparkle, so it has to mean RARE, not merely
             // "not guaranteed". Lanai Bark comes off sawing at 50-75% depending

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './FishingMenu.css'
 
@@ -99,7 +100,7 @@ function SpeciesIcon({ name, discovered }: { name: string | null; discovered: bo
                 // missing file is a normal state, not a broken one.
                 ? <span className="fishing-species-icon-fallback">🐟</span>
                 : <img
-                    src={`/images/items/${name.replace(/ /g, '_')}.png`}
+                    src={getItemIcon(name)}
                     alt=""
                     onError={() => setFailed(true)}
                 />}

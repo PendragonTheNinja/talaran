@@ -81,6 +81,11 @@
           "slug": "crafting",
           "title": "Crafting",
           "blurb": "The trade that catches everything the other trades drop."
+        },
+        {
+          "slug": "cooking",
+          "title": "Cooking",
+          "blurb": "Fire, fuel, and the trade that makes every other trade worth something."
         }
       ]
     },

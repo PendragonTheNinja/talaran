@@ -3,7 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
 import {
-    getCarpentryWorkstation, setupCarpentryWorkstation, canSawHere,
+    getCarpentryWorkstation, canSawHere,
     SAW_RECIPES, WOODWORK_RECIPES,
 } from '../services/carpentry';
 import { levelFromXp } from '../services/xp';
@@ -48,21 +48,8 @@ router.get('/recipes', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-// Setup workstation
-router.post('/workstation/setup', requireAuth, async (req: AuthRequest, res: Response) => {
-    const playerId = req.player!.playerId;
-    try {
-        const player = await db('players').where({ id: playerId }).first();
-        const result = await setupCarpentryWorkstation(playerId, player.current_location_id);
-        if (!result.success) {
-            res.status(400).json({ error: result.error });
-            return;
-        }
-        res.json({ message: 'Carpentry workstation set up successfully!' });
-    } catch (err) {
-        res.status(500).json({ error: 'Server error' });
-    }
-});
+// Workstation setup lives at /api/workstations now: fitting the first tool is
+// what creates the bench, so there is no separate setup call.
 
 // Start sawing logs -> planks
 router.post('/saw/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {

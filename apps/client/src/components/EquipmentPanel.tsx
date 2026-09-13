@@ -62,30 +62,24 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
         <div className="equipment-panel">
             {error && <div className="equipment-error">{error}</div>}
 
-            <div className="stat-bars">
-                <div className="stat-bar-wrapper">
-                    <div className="stat-bar-label">
-                        <span>Health</span>
-                        <span>100 / 100</span>
-                    </div>
-                    <div className="stat-bar-track">
-                        <div className="stat-bar-fill health" style={{ width: '100%' }} />
-                    </div>
-                </div>
-                <div className="stat-bar-wrapper">
-                    <div className="stat-bar-label">
-                        <span>Mana</span>
-                        <span>50 / 50</span>
-                    </div>
-                    <div className="stat-bar-track">
-                        <div className="stat-bar-fill mana" style={{ width: '100%' }} />
-                    </div>
-                </div>
-            </div>
+            {/* Bars flank the doll rather than stacking above it. Two full-width
+                bars cost more vertical space than the doll itself, and the panel
+                is the tightest column in the layout.
 
-            <div className="divider" />
+                Both are still placeholders: there is no health column on players
+                and Talar is not implemented, so these read 100/100 and 50/50
+                until combat lands. The shape is here so wiring them later is a
+                value change rather than a layout change. */}
+            <div className="doll-row">
+                <div className="vital-bar hp">
+                    <span className="vital-readout">Health 100 / 100</span>
+                    <div className="vital-track">
+                        <div className="vital-fill health" style={{ height: '100%' }} />
+                    </div>
+                    <span className="vital-label">HP</span>
+                </div>
 
-            <div className="equipment-grid">
+                <div className="equipment-grid">
                 {SLOTS.map(({ key, label }) => {
                     const equipped = equipmentData?.[key as keyof EquipmentData]
                     const slotIcon = getSlotIcon(key)
@@ -116,6 +110,15 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                         </div>
                     )
                 })}
+                </div>
+
+                <div className="vital-bar tal">
+                    <span className="vital-readout">Talar 50 / 50</span>
+                    <div className="vital-track">
+                        <div className="vital-fill mana" style={{ height: '100%' }} />
+                    </div>
+                    <span className="vital-label">TAL</span>
+                </div>
             </div>
 
             <div className="divider" />

@@ -122,6 +122,10 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
           'players.guild_role',
           'players.forum_post_count',
           'players.created_at',
+          // Worn title and badge. Public by nature: the whole point of earning
+          // one is that other people see it.
+          'players.worn_title',
+          'players.worn_badge',
           // failed_bot_checks is self-only. It is a joke, and a joke about
           // yourself lands differently from one somebody else can point at.
           ...(isSelf ? ['players.last_login', 'players.total_seconds_played', 'players.failed_bot_checks'] : []),
@@ -132,6 +136,12 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         res.status(404).json({ error: 'Player not found.' });
         return;
       }
+
+      // The fallback glyph for whatever badge they wear.
+      const badge = player.worn_badge
+        ? await db('feats').where({ badge_key: player.worn_badge }).first()
+        : null;
+      player.badge_glyph = badge?.badge ?? null;
 
       const skills = await db('player_skills')
         .where({ player_id: targetId })

@@ -1,5 +1,6 @@
 import db from '../db'
-import { levelFromXp } from './xp'
+import { levelFromXp } from './xp'
+import { buffTravelBonus } from './buffs'
 
 // ── The travel curve ────────────────────────────────────────────────────────
 // Every mode approaches a floor asymptotically rather than subtracting a flat
@@ -99,6 +100,16 @@ export async function computeTravelTime(playerId: number, baseTime: number): Pro
             const gearPct = gear.reduce((sum, g) => sum + Number(g.agility_reduction || 0), 0)
             fraction = FOOT_FLOOR + (fraction - FOOT_FLOOR) * (1 - Math.min(gearPct, 1))
         }
+    }
+
+    // A travel provision closes a share of whatever gap is still open, the same
+    // way on-foot gear does, rather than cutting off the base. A flat cut would
+    // push a well-equipped rider past the floor and make the buff worth more the
+    // better your mount, which is backwards.
+    const travelBuff = await buffTravelBonus(playerId)
+    if (travelBuff > 0) {
+        const floor = mounted ? DEFAULT_MOUNT_FLOOR : FOOT_FLOOR
+        fraction = floor + (fraction - floor) * (1 - Math.min(travelBuff / 100, 1))
     }
 
     return { travelTime: Math.max(MIN_TRAVEL_SECONDS, Math.round(baseTime * fraction)), mounted }

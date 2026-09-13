@@ -32,6 +32,20 @@ const REF_ID_COLUMNS: Record<string, string> = {
     resource_node_id: 'resource_nodes',
 };
 
+/**
+ * Columns whose valid values are another table's COLUMN NAMES, not its rows.
+ *
+ * feats.criterion_target is the case that needed this: for a 'stat' feat it
+ * must name a player_stats column, and a typo does not error. It reads as
+ * undefined and the feat becomes permanently unearnable, which is exactly how
+ * three feats shipped dead.
+ *
+ * The panel offers these as a dropdown so the name cannot be mistyped at all.
+ */
+const COLUMN_NAME_REFS: Record<string, { table: string; exclude?: string[] }> = {
+    criterion_target: { table: 'player_stats', exclude: ['id', 'player_id', 'created_at', 'updated_at'] },
+};
+
 // Sentinel column_name values in content_changes for whole-row operations
 const CREATED = '(created)';
 const DELETED = '(deleted)';
@@ -242,8 +256,22 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
         // options so category strings can't silently fork ("weapon" vs "Weapon").
         // Reference columns are excluded — they already have real dropdowns.
         const enumOptions: Record<string, string[]> = {};
+
+        // Soft references to another table's column names, offered as options
+        // alongside whatever values the column already holds. Both are useful:
+        // a skill feat wants a skill name, a stat feat wants a stat column, and
+        // the same field carries either.
+        for (const [c, ref] of Object.entries(COLUMN_NAME_REFS)) {
+            if (!columns.includes(c)) continue;
+            const info = await db(ref.table).columnInfo();
+            const names = Object.keys(info).filter(k => !(ref.exclude ?? []).includes(k));
+            const existing = (await db(name).distinct(c).whereNotNull(c)).map(r => String(r[c]));
+            enumOptions[c] = [...new Set([...names, ...existing])].sort();
+        }
+
         for (const c of columns) {
             if (columnKinds[c] !== 'string') continue;
+            if (enumOptions[c]) continue;
             if (c === 'name' || REF_COLUMNS[c] || REF_ID_COLUMNS[c]) continue;
             const distinct = await db(name).distinct(c).whereNotNull(c).orderBy(c, 'asc').limit(21);
             const values = distinct.map(r => String(r[c]));
@@ -256,6 +284,10 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
             columns,
             rows,
             editable,
+            // So the panel can warn that a deleted row lives on in
+            // content-snapshots/ until the next export, and would come back on
+            // the next import.
+            snapshot: !!meta.snapshot,
             columnKinds,
             enumOptions,
             truncated: rows.length === ROW_LIMIT,
@@ -267,6 +299,113 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Edit one cell. Transactional: row lock → update → audit log, or nothing.
+/**
+ * DELETE /table/:name/:id - remove a row.
+ *
+ * The last gap in the panel. Editing and creating were both here, so anything
+ * added by mistake had to be removed with psql, which is exactly the thing the
+ * panel exists to avoid.
+ *
+ * The whole row is stored in content_changes before it goes, and the revert
+ * path already knows how to resurrect a DELETED entry, so this is undoable from
+ * the change log rather than final.
+ *
+ * Foreign keys are left to the database. A row another table points at will
+ * fail its constraint, and that refusal is more trustworthy than a list of
+ * dependencies maintained by hand here.
+ */
+/**
+ * PATCH /table/:name/bulk - set one column on many rows at once.
+ *
+ * Twenty rows needing is_active = false was twenty clicks, which is the kind of
+ * chore that makes people reach for psql instead.
+ *
+ * Every row is logged individually rather than as one bulk entry, so the change
+ * log stays row-shaped and the existing revert endpoint works on each one
+ * without knowing bulk edits exist.
+ *
+ * DECLARED BEFORE /table/:name/:id ON PURPOSE. Express matches in order, so
+ * below that route 'bulk' would be read as an id and parse to NaN. Do not
+ * reorder these.
+ */
+router.patch('/table/:name/bulk', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const name = String(req.params.name);
+    const { ids, column, value } = req.body as { ids: number[]; column: string; value: unknown };
+    try {
+        if (!await requireAdmin(playerId)) {
+            res.status(403).json({ error: 'Admins only.' });
+            return;
+        }
+        const meta = CONTENT_TABLES[name];
+        if (!meta || !meta.editable) {
+            res.status(400).json({ error: 'That table cannot be edited from the panel.' });
+            return;
+        }
+        if (!Array.isArray(ids) || ids.length === 0) {
+            res.status(400).json({ error: 'No rows selected.' });
+            return;
+        }
+        // A cap, because a mistyped selection covering every row would produce
+        // one change-log entry per row and there is no bulk revert.
+        if (ids.length > 200) {
+            res.status(400).json({ error: 'Too many rows at once. Two hundred is the limit.' });
+            return;
+        }
+        if (!column || ['id', 'created_at', 'updated_at'].includes(column)) {
+            res.status(400).json({ error: 'That column cannot be set.' });
+            return;
+        }
+        if (isSecretColumn(name, column)) {
+            res.status(400).json({ error: `${column} cannot be set from the panel.` });
+            return;
+        }
+
+        const info = await db(name).columnInfo();
+        const colInfo = (info as any)[column];
+        if (!colInfo) {
+            res.status(400).json({ error: `No such column: ${column}` });
+            return;
+        }
+        const kind = kindOf(String(colInfo.type));
+        const prepared = await prepareValue(
+            name, column, kind, !!colInfo.nullable,
+            colInfo.maxLength ? Number(colInfo.maxLength) : null, value,
+        );
+        if (!prepared.ok) {
+            res.status(400).json({ error: `${column}: ${prepared.error}` });
+            return;
+        }
+
+        const changed = await db.transaction(async (trx) => {
+            const rows = await trx(name).whereIn('id', ids).forUpdate().select('id', column);
+            for (const row of rows as any[]) {
+                if (String(row[column] ?? '') === String(prepared.write ?? '')) continue;
+                await trx(name).where({ id: row.id }).update({ [column]: prepared.write });
+                await trx('content_changes').insert({
+                    player_id: playerId,
+                    table_name: name,
+                    row_id: row.id,
+                    column_name: column,
+                    old_value: row[column] === null ? null : String(row[column]),
+                    new_value: prepared.write === null ? null : String(prepared.write),
+                });
+            }
+            return rows.length;
+        });
+
+        logger.info(`Admin ${playerId} bulk set ${name}.${column} on ${changed} rows`);
+        res.json({ success: true, changed });
+    } catch (err: any) {
+        if (err?.code === '23503') {
+            res.status(400).json({ error: 'That value refers to something that does not exist.' });
+            return;
+        }
+        logger.error(`Bulk edit error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.patch('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const name = String(req.params.name);
@@ -370,6 +509,61 @@ router.get('/refs', requireAuth, async (req: AuthRequest, res: Response) => {
 // a new row IS its name, and FKs are how it attaches to the world. Blank
 // fields are omitted so DB defaults apply; missing required columns fail
 // loudly at insert.
+router.delete('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const name = String(req.params.name);
+    const id = parseInt(String(req.params.id), 10);
+    try {
+        if (!await requireAdmin(playerId)) {
+            res.status(403).json({ error: 'Admins only.' });
+            return;
+        }
+        const meta = CONTENT_TABLES[name];
+        if (!meta || !meta.editable) {
+            res.status(400).json({ error: 'Rows cannot be deleted from that table in the panel.' });
+            return;
+        }
+        if (!Number.isFinite(id)) {
+            res.status(400).json({ error: 'Bad row id.' });
+            return;
+        }
+
+        const result = await db.transaction(async (trx) => {
+            // Locked so two admins cannot both delete it and both log a revert.
+            const row = await trx(name).where({ id }).forUpdate().first();
+            if (!row) return { status: 404 as const, error: 'No such row.' };
+
+            await trx(name).where({ id }).del();
+            await trx('content_changes').insert({
+                player_id: playerId,
+                table_name: name,
+                row_id: id,
+                column_name: DELETED,
+                // The entire row, so revert can put it back exactly.
+                old_value: JSON.stringify(row),
+                new_value: null,
+            });
+            return { status: 200 as const, row };
+        });
+
+        if (result.status !== 200) {
+            res.status(result.status).json({ error: result.error });
+            return;
+        }
+
+        logger.info(`Admin ${playerId} deleted ${name} row ${id}`);
+        res.json({ success: true });
+    } catch (err: any) {
+        // 23503 is a foreign key violation: something still points at this row.
+        if (err?.code === '23503') {
+            res.status(400).json({ error: 'Something else still refers to that row. Remove those first.' });
+            return;
+        }
+        logger.error(`Delete row error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const name = String(req.params.name);

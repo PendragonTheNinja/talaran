@@ -53,6 +53,10 @@ const ACTION_LABELS: Record<string, string> = {
     husbandry_slaughter: 'Slaughtering',
     husbandry_slaughter_all: 'Slaughtering',
     husbandry_tame: 'Taming',
+    // 'recipe' is one action type serving every bench, so it cannot name a
+    // skill. Cooking a fish logged as "Crafting at Phoenwick". The result's own
+    // skillName is preferred below, and this is only the fallback for a recipe
+    // that somehow reports none.
     recipe: 'Crafting',
     traveling: 'Travelling',
 };
@@ -74,7 +78,11 @@ export interface LootAward {
 export async function buildSourceLabel(
     playerId: number, actionType: string, locationId: number | null, skillName?: string,
 ): Promise<string> {
-    const verb = ACTION_LABELS[actionType] || skillName || 'Adventuring';
+    // A recipe knows its own skill, and one action type covers Cooking,
+    // Crafting, Smithing and Carpentry alike, so the result wins over the map.
+    const verb = actionType === 'recipe'
+        ? (skillName || ACTION_LABELS.recipe)
+        : (ACTION_LABELS[actionType] || skillName || 'Adventuring');
 
     // Farming and husbandry never stamp location_id on their action rows, so
     // without this fallback every farmstead job would log as a bare verb with no

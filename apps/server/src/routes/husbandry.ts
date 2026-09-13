@@ -4,7 +4,7 @@ import { botCheckGate } from '../services/botCheck';
 import { logger } from '../index';
 import {
     getHusbandryState,
-    startBuildPen,
+    startBuildPen, addPenFlower, removePenFlower,
     startDemolishPen,
     startFeed,
     startFeedAll,
@@ -57,6 +57,30 @@ router.get('/state', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
+// Flowers are instant, like equipping, so they do not go through startHandler:
+// there is no timer for the tick to resolve.
+router.post('/pen-flower/add', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const result = await addPenFlower(req.player!.playerId, Number(req.body.penId), String(req.body.itemName));
+        if (!result.ok) return res.status(400).json({ error: result.error });
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Add pen flower error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/pen-flower/remove', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const result = await removePenFlower(req.player!.playerId, Number(req.body.penId), Number(req.body.slotIndex));
+        if (!result.ok) return res.status(400).json({ error: result.error });
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Remove pen flower error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Timed actions — the game tick resolves each one.
 router.post('/build-pen', requireAuth, botCheckGate,
     startHandler(startBuildPen, 'Building begun', (req) => [req.body.penType]));
@@ -65,7 +89,8 @@ router.post('/feed', requireAuth, botCheckGate,
     startHandler(startFeed, 'Feeding', (req) => [req.body.penId]));
 
 router.post('/demolish-pen', requireAuth, botCheckGate,
-    startHandler(startDemolishPen, 'Pulling it down', (req) => [req.body.penId]));
+    // disposition is only read when an apiary still has bees in it.
+    startHandler(startDemolishPen, 'Pulling it down', (req) => [req.body.penId, req.body.disposition]));
 
 router.post('/feed-all', requireAuth, botCheckGate,
     startHandler(startFeedAll, 'Feeding'));

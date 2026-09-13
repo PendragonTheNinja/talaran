@@ -115,3 +115,13 @@
     width: 100%;
     aspect-ratio: 1;
 }
+
+/* A worn title. Its own line under the name, italic, because it is a phrase
+   rather than a statistic. */
+.profile-title {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--color-gold-dim);
+  margin-top: 2px;
+}

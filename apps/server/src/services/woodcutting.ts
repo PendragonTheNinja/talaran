@@ -3,6 +3,8 @@ import { levelFromXp } from './xp';
 import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 import { rollSecondaryDrops, SecondaryDrop } from './drops';
+import { addItemToInventoryWithin } from './inventory';
+import { timerCut } from './buffs';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -23,7 +25,18 @@ export function calculateTimer(
   playerLevel: number,
   requiredLevel: number,
   playerToolTier: number,
-  requiredToolTier: number
+  requiredToolTier: number,
+  /**
+   * PERCENT off from an active provision, already looked up by the caller.
+   *
+   * Passed in rather than fetched here because this is a pure function called
+   * from three places, two of them inside the tick loop where an extra query
+   * per action would be a real cost.
+   *
+   * Applied AFTER the level and tool reductions and BEFORE the floor, so a buff
+   * can shorten a job but never take it below its minimum.
+   */
+  buffPercent = 0,
 ): number {
   const levelsOver = Math.max(0, playerLevel - requiredLevel)
   const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION)
@@ -37,7 +50,8 @@ export function calculateTimer(
     timer = timer * (1 - bonusPercent)
   }
 
-  return Math.max(minTimer, Math.round(timer))
+  const rounded = Math.round(timer)
+  return Math.max(minTimer, rounded - timerCut(rounded, buffPercent))
 }
 
 export function determineLogQuality(
@@ -99,6 +113,53 @@ export async function canChopHere(
   }
 
   return { allowed: true, toolTier: equippedAxe.tier };
+}
+
+/**
+ * Turn a dropped Wild Hive into whatever the player was equipped to take.
+ *
+ * The hive item never stays in the pack: it is a moment, not an object. Either
+ * it becomes a Skep of Bees or it becomes a Honeycomb.
+ */
+async function resolveWildHive(playerId: number): Promise<{ name: string; notable: boolean }> {
+    const hive = await db('items').where({ name: 'Wild Hive' }).first();
+    const skep = await db('items').where({ name: 'Straw Skep' }).first();
+    const full = await db('items').where({ name: 'Skep of Bees' }).first();
+    const comb = await db('items').where({ name: 'Honeycomb' }).first();
+    if (!hive) return { name: 'Wild Hive', notable: true };
+
+    return await db.transaction(async trx => {
+        // The hive is never kept, whichever way this goes.
+        const hiveRow = await trx('player_inventory')
+            .where({ player_id: playerId, item_id: hive.id }).forUpdate().first();
+        if (hiveRow) {
+            if (hiveRow.quantity > 1) {
+                await trx('player_inventory').where({ id: hiveRow.id }).decrement('quantity', 1);
+            } else {
+                await trx('player_inventory').where({ id: hiveRow.id }).delete();
+            }
+        }
+
+        const skepRow = skep ? await trx('player_inventory')
+            .where({ player_id: playerId, item_id: skep.id })
+            .where('quantity', '>', 0).forUpdate().first() : null;
+
+        if (skepRow && full) {
+            if (skepRow.quantity > 1) {
+                await trx('player_inventory').where({ id: skepRow.id }).decrement('quantity', 1);
+            } else {
+                await trx('player_inventory').where({ id: skepRow.id }).delete();
+            }
+            await addItemToInventoryWithin(trx, playerId, full.id, 1);
+            return { name: 'Skep of Bees', notable: true };
+        }
+
+        if (comb) {
+            await addItemToInventoryWithin(trx, playerId, comb.id, 1);
+            return { name: 'Honeycomb', notable: false };
+        }
+        return { name: 'Wild Hive', notable: true };
+    });
 }
 
 export async function processWoodcuttingAction(
@@ -206,7 +267,28 @@ export async function processWoodcuttingAction(
       logger.info(`Player ${playerId} discovered ${node.name} — awarded ${explorationXp} Exploration XP`);
     }
 
-    const drops = await rollSecondaryDrops(playerId, `woodcutting:${subtype}`);
+    // Two keys, rolled independently. The wood key carries anything that comes
+    // off a species of tree regardless of where it grows; the node key carries
+    // what belongs to a particular stand. Keeping both means the existing lanai
+    // entries keep working untouched while a wild hive can be rarer in one wood
+    // than another.
+    const drops = [
+        ...await rollSecondaryDrops(playerId, `woodcutting:${subtype}`, 'Woodcutting'),
+        ...await rollSecondaryDrops(playerId, `woodcutting:node:${node.id}`, 'Woodcutting'),
+    ];
+
+    // A wild hive is decided the moment it drops, by whether you were carrying a
+    // skep. With one, the colony transfers and you keep the bees. Without, you
+    // rob the nest for a single comb and the colony is lost, which is what most
+    // people actually did.
+    //
+    // Resolved here rather than as a later "use" action so the choice sits at
+    // the point it matters: the skep has to already be in your pack.
+    const hiveIndex = drops.findIndex(d => d.name === 'Wild Hive');
+    if (hiveIndex !== -1) {
+        const resolved = await resolveWildHive(playerId);
+        drops[hiveIndex] = { ...drops[hiveIndex], ...resolved };
+    }
 
     logger.info(`Player ${playerId} chopped ${logItem.name} from ${node.name}`);
     return { success: true, itemName: logItem.name, xpAwarded: node.xp_reward, drops };

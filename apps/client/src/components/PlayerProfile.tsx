@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Badge from './Badge'
 import { formatGameDateLong } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import { getItemIcon, getSlotIcon } from '../lib/items'
@@ -18,6 +19,9 @@ interface ProfileData {
         id: number
         username: string
         guild_tag: string | null
+        worn_title: string | null
+        worn_badge: string | null
+        badge_glyph: string | null
         forum_post_count: number
         created_at: string
     }
@@ -86,7 +90,19 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                 {profile.player.guild_tag && (
                                     <span className="muted-text" style={{ fontSize: '16px' }}>[{profile.player.guild_tag}]</span>
                                 )}
+                                <Badge
+                                    badgeKey={profile.player.worn_badge}
+                                    glyph={profile.player.badge_glyph}
+                                    size={20}
+                                    title="A feat badge"
+                                />
                             </div>
+
+                            {/* The full title, which chat has no room for. A
+                                profile is exactly where a phrase belongs. */}
+                            {profile.player.worn_title && (
+                                <div className="profile-title">{profile.player.worn_title}</div>
+                            )}
                             <div className="profile-meta">
                                 <span className="muted-text" style={{ fontSize: '13px' }}>Joined {formatDate(profile.player.created_at)}</span>
                                 <span className="muted-text" style={{ fontSize: '13px' }}>{profile.player.forum_post_count} forum posts</span>

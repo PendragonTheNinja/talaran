@@ -122,12 +122,19 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
 
     const onlineIds = [...connectedPlayers, playerId];
 
+    // Every column qualified. Joining feats brought a second `id` into scope,
+    // and the unqualified filters below silently started resolving against it,
+    // which is why this list stopped showing anybody.
     const players = await db('players')
-      .where({ current_location_id: player.current_location_id })
-      .whereIn('id', onlineIds)
+      .leftJoin('feats as bf', 'bf.badge_key', 'players.worn_badge')
+      .where('players.current_location_id', player.current_location_id)
+      .whereIn('players.id', onlineIds)
       // guild_tag is the same column chat reads, so a player's tag is identical
-      // wherever their name appears.
-      .select('id', 'username', 'guild_tag');
+      // wherever their name appears. worn_badge rides alongside it, with the
+      // glyph joined in as the fallback for art that does not exist yet.
+      .select('players.id', 'players.username', 'players.guild_tag',
+              'players.worn_badge as badge_key', 'bf.badge as badge',
+              'players.worn_title as title');
 
     res.json({ players });
   } catch (err) {

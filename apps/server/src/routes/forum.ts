@@ -174,6 +174,9 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
         const posts = await db('forum_posts')
             .where({ thread_id: threadId, is_deleted: false })
             .join('players', 'forum_posts.author_id', 'players.id')
+            // Joined for the badge's fallback glyph, so a badge with no art yet
+            // still draws something.
+            .leftJoin('feats as bf', 'bf.badge_key', 'players.worn_badge')
             .orderBy('forum_posts.created_at', 'asc')
             .limit(limit)
             .offset(offset)
@@ -184,6 +187,12 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
                 'players.forum_signature',
                 'players.forum_post_count',
                 'players.guild_tag',
+                // Worn title and badge. The author block already has room for a
+                // phrase, which chat does not, so the forum is the natural place
+                // for a title to be seen.
+                'players.worn_title',
+                'players.worn_badge as badge_key',
+                'bf.badge as badge',
                 'players.created_at as player_joined',
                 'players.is_admin',
                 'players.is_mod',

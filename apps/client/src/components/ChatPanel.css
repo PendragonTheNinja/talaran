@@ -124,31 +124,55 @@
   color: var(--color-gold-bright);
   font-weight: 600;
 }
+
 /* Opens the full two-day history. Quiet by design: it sits at the end of the tab
    row rather than competing with the channel tabs. */
 .chat-history-btn {
-    background: none;
-    border: 1px solid var(--color-border-mid, #4a3820);
-    border-radius: var(--radius-sm, 3px);
-    color: var(--color-text-muted, #9a8060);
-    font-family: var(--font-heading);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    margin-left: auto;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+  background: none;
+  border: 1px solid var(--color-border-mid, #4a3820);
+  border-radius: var(--radius-sm, 3px);
+  color: var(--color-text-muted, #9a8060);
+  font-family: var(--font-heading);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  margin-left: auto;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
 }
 
 .chat-history-btn:hover {
-    color: var(--color-gold-bright, #e8b84b);
-    border-color: var(--color-border-bright, #9a7840);
+  color: var(--color-gold-bright, #e8b84b);
+  border-color: var(--color-border-bright, #9a7840);
 }
 
 /* The channel tag must never wrap mid-bracket. A four-character tag once broke
    as "[P" / "M]" across two lines in the narrow chat column. */
 .chat-timestamp,
 .chat-channel-tag {
-    white-space: nowrap;
+  white-space: nowrap;
+}
+
+/* Feat badges in chat.
+   Chat is the tightest line in the game: 13px text on a 1.1 line-height, which
+   is about 14px a row. A badge at its default size plus margins was taller than
+   the line and pushed every message apart.
+   Drawn at 13px and pulled back so it contributes nothing to the line box, the
+   same trick the players list uses but with less to give away. */
+.chat-message .name-badge-img {
+  width: 14px;
+  height: 14px;
+  margin-left: 1px;
+  margin-right: 1px;
+  margin-top: -6px;
+  margin-bottom: -4px;
+  vertical-align: middle;
+}
+
+.chat-message .name-badge {
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 2px;
+  vertical-align: middle;
 }

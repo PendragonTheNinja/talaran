@@ -1,5 +1,6 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request } from 'express';
+import jwt from 'jsonwebtoken';
 
 // Behind Cloudflare, req.ip depends on the trust-proxy hop count being right.
 // CF-Connecting-IP is set by the edge on every request and is the one value
@@ -12,19 +13,56 @@ function clientKey(req: Request): string {
     return ipKeyGenerator(ip);
 }
 
-// General API limit — 200 requests per minute
+/**
+ * Key a logged-in player by their id, falling back to the client address only
+ * when there is no usable token.
+ *
+ * Keying gameplay by address is wrong twice over. A household, campus or office
+ * shares one bucket, so one active player throttles everyone beside them. And
+ * if the trust-proxy hop count is ever off, req.ip becomes Cloudflare's edge
+ * address and the entire playerbase shares a single allowance, which is the
+ * likeliest reason the limit was so easy to trip.
+ *
+ * The token is decoded without verifying: a forged one only selects a different
+ * bucket, and every route behind this still authenticates properly. Verifying
+ * here would add a signature check to every request to gain nothing.
+ */
+function playerKey(req: Request): string {
+    const auth = req.headers.authorization;
+    if (auth?.startsWith('Bearer ')) {
+        try {
+            const decoded = jwt.decode(auth.slice(7)) as { playerId?: number } | null;
+            if (decoded?.playerId) return `player:${decoded.playerId}`;
+        } catch {
+            // fall through to the address
+        }
+    }
+    return clientKey(req);
+}
+
+/**
+ * General API limit.
+ *
+ * Raised from 200 because one click fans out into several calls: starting an
+ * action also refreshes inventory, location, skills and player state. Someone
+ * moving briskly through the UI could hit 200/min without doing anything
+ * unusual, and then wore a full minute of lockout for it.
+ */
 export const generalLimit = rateLimit({
     windowMs: 60 * 1000,
-    max: 200,
+    max: 600,
+    keyGenerator: playerKey,
     message: { error: 'Too many requests. Please slow down.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-// Auth limit — 10 attempts per 15 minutes
+// Auth limit, 10 attempts per 15 minutes. Address-keyed on purpose: there is
+// no trustworthy player id before a successful login.
 export const authLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
+    keyGenerator: clientKey,
     message: { error: 'Too many login attempts. Please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -34,6 +72,7 @@ export const authLimit = rateLimit({
 export const chatLimit = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
+    keyGenerator: playerKey,
     message: { error: 'You are sending messages too quickly.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -42,7 +81,8 @@ export const chatLimit = rateLimit({
 // Chat history read limit — generous, just for history fetching
 export const chatReadLimit = rateLimit({
     windowMs: 60 * 1000,
-    max: 120,
+    max: 240,
+    keyGenerator: playerKey,
     message: { error: 'Too many requests.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -52,6 +92,7 @@ export const chatReadLimit = rateLimit({
 export const forumLimit = rateLimit({
     windowMs: 60 * 1000,
     max: 120,
+    keyGenerator: playerKey,
     message: { error: 'You are posting too quickly.' },
     standardHeaders: true,
     legacyHeaders: false,

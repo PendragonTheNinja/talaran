@@ -378,6 +378,7 @@ body {
   overflow-y: auto !important;
   height: auto !important;
 }
+
 /* ============================================
    PREMIUM THEMES (Support Us, Phase C)
    Ownership enforced server-side; CSS is just presentation.
@@ -523,4 +524,49 @@ body {
 
 :root[data-theme='scriptorium'] .top-nav {
   border-bottom: 1px solid var(--color-border-gold);
+}
+
+/* Station tags: the small parenthesised notes beside workstation links.
+   Colour carries the meaning so it reads without parsing the words. Red is
+   "you cannot do this yet", amber is "you can, but slower or on someone
+   else's bench". Lives here because index.css is the only stylesheet
+   main.tsx imports; App.css is a stub nothing loads. */
+.station-tag {
+  font-size: 11px;
+  margin-left: 4px;
+  font-weight: normal;
+}
+
+.station-tag.locked {
+  color: var(--color-red-bright);
+}
+
+.station-tag.warn {
+  /* --color-gold rather than -dim: the dim tone reads brown against the panel,
+     and every theme redefines both, so this stays correct when the theme changes. */
+  color: var(--color-gold);
+}
+
+/* A feat badge: one character beside a name, in chat and the location list.
+   Gold, so it reads as earned rather than as punctuation, and given a fixed
+   left margin so a name without one does not shift. */
+/* Spacing matches the guild tag in the location list (4px). If you would rather
+   the badge sit tight against the name, this margin and the one on
+   .name-badge-img below are the only two places to change. */
+.name-badge {
+  margin-left: 4px;
+  color: var(--color-gold);
+  cursor: help;
+  font-size: 20px;
+}
+
+/* A badge image. Same footprint as the glyph it replaces, so a line does not
+   shift when art lands for one badge and not another. */
+.name-badge-img {
+  margin-left: 4px;
+  vertical-align: -2px;
+  object-fit: contain;
+  cursor: help;
+  width: 24px;
+  height: 24px;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
@@ -34,11 +35,17 @@ export default function ForgeMenu({
 }: ForgeMenuProps) {
   const [tab, setTab] = useState<'smeltery' | 'anvil'>('smeltery')
   const [smeltRecipes, setSmeltRecipes] = useState<SmeltRecipe[]>([])
+  // Whose forge, straight from the server. is_active is the wrong test for
+  // smelting: it needs no tools, so a bare forge of your own is still yours.
+  const [usingBlacksmith, setUsingBlacksmith] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    apiFetch<{ recipes: { smelt: SmeltRecipe[] } }>('/api/smithing/recipes')
-      .then(d => setSmeltRecipes(d.recipes?.smelt || []))
+    apiFetch<{ recipes: { smelt: SmeltRecipe[] }; usingBlacksmith?: boolean }>('/api/smithing/recipes')
+      .then(d => {
+        setSmeltRecipes(d.recipes?.smelt || [])
+        setUsingBlacksmith(!!d.usingBlacksmith)
+      })
       .catch(() => setSmeltRecipes([]))
       .finally(() => setLoading(false))
   }, [])
@@ -92,14 +99,14 @@ export default function ForgeMenu({
                   >
                     <div className="smithing-recipe-image">
                       <img
-                        src={`/images/items/${r.name.replace(/ /g, '_')}.png`}
+                        src={getItemIcon(r.name)}
                         alt={r.name}
                         onError={e => { e.currentTarget.style.display = 'none' }}
                       />
                       <span className="smithing-recipe-name">
                         {r.name}{r.outputQuantity > 1 ? ` ×${r.outputQuantity}` : ''}
-                        {!stationActive && (
-                          <span className="muted-text" style={{ fontSize: '11px' }}> (slow)</span>
+                        {usingBlacksmith && (
+                          <span className="station-tag warn"> (smith's forge)</span>
                         )}
                       </span>
                     </div>

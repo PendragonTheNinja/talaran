@@ -81,7 +81,11 @@ interface LogEntry {
 // shared executor runs — Caliwen crafting, and the Farming and Husbandry
 // processing tabs — which already send actionLimit but had nowhere to set it.
 const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking', 'recipe']
-const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita']
+// Every town with a bench in it. Phoenwick was missed when Cooking shipped,
+// which is the same per-location opt-in the loot log warns about: the next
+// skill to arrive always forgets one of these lists. Anywhere a workstation can
+// stand belongs here.
+const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita', 'Phoenwick']
 
 const FISHING_SCENE_TEXT: Record<string, string> = {
   fishing_rod: 'You cast out, and settle in to wait.',
@@ -681,6 +685,54 @@ export default function GameView({
     return () => window.removeEventListener('talaran:bot-check', onBotCheck)
   }, [])
 
+  // Rate limiting, raised by apiFetch on any 429.
+  //
+  // Worth surfacing loudly because the requests that trip it are mostly the
+  // background refreshes on load, which catch quietly and render defaults. A
+  // throttled player was left on an empty "you stand ready" page with nothing
+  // explaining it, and refreshing only spent more of the budget.
+  const rateLimitShownRef = useRef(0)
+  useEffect(() => {
+    const onLimited = (e: Event) => {
+      const d = (e as CustomEvent<{ message: string; retryAfter: number }>).detail
+      if (!d) return
+      // One notice per few seconds: a single page load can trip this many times
+      // over and the log should not fill with the same line.
+      const now = Date.now()
+      if (now - rateLimitShownRef.current < 5000) return
+      rateLimitShownRef.current = now
+      const wait = d.retryAfter > 0 ? ` Try again in about ${d.retryAfter}s.` : ''
+      addLog(`${d.message}${wait}`, 'error')
+    }
+    // Generic notice channel, so a panel deep in the tree can put a line in the
+    // log without threading a callback down to it.
+    const onNotice = (e: Event) => {
+      const d = (e as CustomEvent<{ message: string; type?: 'info' | 'error' }>).detail
+      if (d?.message) addLog(d.message, d.type === 'error' ? 'error' : 'info')
+    }
+    // A feat is worth a line in the log and nothing more intrusive. It is not
+    // an interruption, it is a note that something you were already doing
+    // turned out to be worth recording.
+    const onFeat = (feat: { name: string; title: string | null }) => {
+      addLog(`Feat earned: ${feat.name}.${feat.title ? ` You may now be called ${feat.title}.` : ''}`, 'success')
+      window.dispatchEvent(new CustomEvent('talaran:feat-earned'))
+    }
+    const socket = getSocket()
+    socket?.on('feat_earned', onFeat)
+
+    window.addEventListener('talaran:notice', onNotice)
+
+    window.addEventListener('talaran:rate-limited', onLimited)
+    return () => {
+      socket?.off('feat_earned', onFeat)
+      window.removeEventListener('talaran:notice', onNotice)
+      window.removeEventListener('talaran:rate-limited', onLimited)
+    }
+    // addLog is recreated every render but only closes over stable setters, so
+    // depending on it would re-register this listener constantly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // ── Travel timer ──────────────────────────────────────────────────
   useEffect(() => {
     if (!travelStatus?.seconds) return
@@ -740,6 +792,15 @@ export default function GameView({
 
       case 'smelting':
         setCurrentAction('smelting')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
+      // Restored on load like everything else. Without this entry the action
+      // kept running server-side while the client showed the idle town, which
+      // is the exact bug the first skill in the game had.
+      case 'cooking_build_hearth':
+        setCurrentAction('build_hearth')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break
@@ -885,6 +946,21 @@ export default function GameView({
 
       setCurrentAction('husbandry')
       setHusbandryKind(externalAction.text || 'feed')
+      setTimerMax(externalAction.id as number)
+      startCountdown(externalAction.id as number)
+    } else if (externalAction.type === 'build_hearth') {
+      // The POST already happened in LocationPanel, same as husbandry work.
+      // This only starts the countdown so the player can see it running.
+      setLastResult(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      // Its own action type, not borrowed from 'crafting'. Scene text and the
+      // cancel button are both keyed on currentAction, so reusing another
+      // skill's name meant the build ran with neither.
+      setCurrentAction('build_hearth')
       setTimerMax(externalAction.id as number)
       startCountdown(externalAction.id as number)
     } else if (externalAction.type === 'kiln_collecting') {
@@ -1575,6 +1651,9 @@ export default function GameView({
                   {FISHING_SCENE_TEXT[currentAction] || FISHING_SCENE_TEXT.fishing_rod}
                 </p>
               )}
+              {currentAction === 'build_hearth' && (
+                <p className="scene-action-text gold-text">You are setting granite in mortar and drawing the flue straight.</p>
+              )}
               {currentAction === 'recipe' && (
                 <p className="scene-action-text gold-text">
                   {recipeLabel?.flavorText
@@ -1610,6 +1689,9 @@ export default function GameView({
               )}
               {(currentAction === 'sawing' || currentAction === 'woodworking') && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Carpentry</button>
+              )}
+              {currentAction === 'build_hearth' && (
+                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Building</button>
               )}
               {currentAction === 'hunting' && (
                 <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Hunting</button>

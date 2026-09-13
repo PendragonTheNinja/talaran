@@ -6,8 +6,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  width: 480px;
-  max-height: 80vh;
+  /* Wider, and fluid rather than fixed. At 480px a name like "Cooked Black
+     Bream" wrapped onto three lines in a three-column grid, which is what made
+     the cookhouse look cramped. */
+  width: min(760px, 94vw);
+  max-height: 85vh;
   overflow-y: auto;
 }
 
@@ -63,7 +66,9 @@
 
 .smithing-recipe-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* auto-fill rather than a fixed three: the grid gains columns as the modal
+     widens instead of stretching three cards to fill it. */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: var(--space-sm);
 }
 
@@ -107,10 +112,14 @@
 }
 
 .smithing-recipe-name {
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.25;
   color: var(--color-gold-bright);
   display: block;
   margin-top: 4px;
+  /* Now a sibling of the image rather than a child of it, so it gets the full
+     card width and stops wrapping after one or two words. */
+  width: 100%;
 }
 
 .smithing-recipe-ingredients {
@@ -163,4 +172,13 @@
 .forge-tab-blurb {
     font-size: 12px;
     margin-bottom: var(--space-md, 12px);
+}
+
+/* The reason a dish is greyed out, on the card itself. The global .station-tag
+   carries a left margin for sitting beside a label; here it is its own line. */
+.smithing-recipe-card .station-tag {
+  margin-left: 0;
+  margin-top: 3px;
+  text-align: center;
+  line-height: 1.2;
 }

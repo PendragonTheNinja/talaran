@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Badge from './Badge'
 import { formatGameDate, formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './ForumPanel.css'
@@ -44,11 +45,16 @@ interface ForumThread {
 interface ForumPost {
     id: number
     content: string
+    // Was missing, so onViewProfile(post.author_id) had no type behind it.
+    author_id: number
     author_name: string
     avatar_url: string | null
     forum_signature: string | null
     forum_post_count: number
     guild_tag: string | null
+    worn_title: string | null
+    badge_key: string | null
+    badge: string | null
     player_joined: string
     is_admin: boolean
     is_mod: boolean
@@ -610,8 +616,16 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                             onClick={() => onViewProfile?.(post.author_id)}
                                         >
                                             {post.author_name}
+                                            {/* Against the name, like the location list. */}
+                                            <Badge badgeKey={post.badge_key} glyph={post.badge} size={18} title="A feat badge" />
                                             {post.guild_tag && <span className="chat-guild-tag">[{post.guild_tag}]</span>}
                                         </span>
+                                        {/* The forum author block has room for a
+                                            phrase, so the title shows in full here
+                                            the way it does on a profile. */}
+                                        {post.worn_title && (
+                                            <span className="forum-post-title">{post.worn_title}</span>
+                                        )}
                                         {post.is_admin && <span className="forum-post-badge admin">Admin</span>}
                                         {post.is_mod && !post.is_admin && <span className="forum-post-badge mod">Mod</span>}
                                         <span className="muted-text" style={{ fontSize: '14px' }}>Posts: {post.forum_post_count}</span>

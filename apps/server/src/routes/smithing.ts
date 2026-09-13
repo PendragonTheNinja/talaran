@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
-  getWorkstation, setupWorkstation,
+  getWorkstation,
   loadKiln, collectKiln, getKilnStatus, getLogCountsByQuality,
   smeltIngots, smithPart, getSmithingCost,
   canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
@@ -42,21 +42,8 @@ router.get('/status', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Setup workstation
-router.post('/workstation/setup', requireAuth, async (req: AuthRequest, res: Response) => {
-  const playerId = req.player!.playerId;
-  try {
-    const player = await db('players').where({ id: playerId }).first();
-    const result = await setupWorkstation(playerId, player.current_location_id);
-    if (!result.success) {
-      res.status(400).json({ error: result.error });
-      return;
-    }
-    res.json({ message: 'Workstation set up successfully!' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// Workstation setup lives at /api/workstations now: fitting the first tool is
+// what creates the bench, so there is no separate setup call.
 
 // Load kiln
 router.post('/kiln/load', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -321,7 +308,11 @@ router.get('/recipes', requireAuth, async (req: AuthRequest, res: Response) => {
       ],
     };
 
-    res.json({ recipes, playerLevel });
+    // Whose forge the smeltery would use. The client cannot infer this from
+    // is_active, because smelting needs no tools and so runs at full speed on
+    // a forge of your own however bare its tool rack is.
+    const access = await canSmithHere(playerId, player.current_location_id);
+    res.json({ recipes, playerLevel, usingBlacksmith: access.usingBlacksmith || false });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

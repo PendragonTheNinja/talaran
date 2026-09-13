@@ -14,8 +14,13 @@ interface AnimalCard {
     secondsToAdult: number; secondsToElder: number
     canSlaughter: boolean; canTame: boolean
 }
+interface PenFlower { slotIndex: number; itemName: string }
 interface Pen {
     id: number; slotIndex: number; penType: string
+    /** Apiaries only; every other pen sends an empty list. */
+    flowers?: PenFlower[]; flowerSlots?: number
+    hiveRate?: { seasonPct: number; flowerPct: number; totalPct: number } | null
+    hasUpkeep?: boolean
     species: string | null; speciesId: number | null
     capacity: number; headCount: number
     fed: boolean; fedUntil: string | null; canFeed: boolean
@@ -37,7 +42,10 @@ interface SpeciesDef {
 export interface HusbandryState {
     hasFarmstead: boolean; atNovita: boolean; town: string
     husbandryLevel: number; penCap: number; penMax: number
-    coopCapacity: number; paddockCapacity: number
+    coopCapacity: number; paddockCapacity: number; apiaryCapacity?: number
+    flowerStock?: { itemName: string; quantity: number }[]
+    season?: 'spring' | 'summer' | 'autumn' | 'winter'
+    hasEmptySkep?: boolean
     fedHours: number; muckHours: number
     species: SpeciesDef[]
     hasPail: boolean; hasFork: boolean; hasHalter: boolean; hasKnife: boolean
@@ -57,7 +65,11 @@ export interface HusbandryState {
     } | null
     pens: Pen[]
     canBuildPen?: boolean
-    nextPenCost?: { coop: { itemName: string; qty: number }[]; paddock: { itemName: string; qty: number }[] } | null
+    nextPenCost?: {
+        coop: { itemName: string; qty: number }[]
+        paddock: { itemName: string; qty: number }[]
+        apiary?: { itemName: string; qty: number }[]
+    } | null
 }
 
 function fmtDuration(s: number): string {
@@ -113,12 +125,18 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
     const [busy, setBusy] = useState(false)
     const [place, setPlace] = useState<Record<number, number>>({})
     const [renaming, setRenaming] = useState<number | null>(null)
+    // Which flower to set next, per apiary. Mirrors `place` for animals.
+    const [flowerChoice, setFlowerChoice] = useState<Record<number, string>>({})
     const [newName, setNewName] = useState('')
     const [confirmKill, setConfirmKill] = useState<AnimalCard | null>(null)
     const [confirmKillAll, setConfirmKillAll] = useState<Pen | null>(null)
     // Demolishing refunds in full, but it is still a build being undone.
     const [confirmDemolish, setConfirmDemolish] = useState<Pen | null>(null)
-    const [penType, setPenType] = useState<'coop' | 'paddock'>('coop')
+    type PenType = 'coop' | 'paddock' | 'apiary'
+    // One label map instead of ternaries in five places, which is what made
+    // adding a third pen type a hunt rather than an edit.
+    const PEN_LABEL: Record<string, string> = { coop: 'Coop', paddock: 'Paddock', apiary: 'Apiary' }
+    const [penType, setPenType] = useState<PenType>('coop')
     // Pens collapse so a farm with several of them stays scannable; a full coop
     // is six animals and would otherwise be most of a screen on its own.
     const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
@@ -144,7 +162,15 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
             // bot_check_required, so GameView's overlay is about to appear on top
             // of this panel — showing a red error underneath it just reads as a
             // failure the player has to go and fix somewhere else.
-            if (e?.status !== 423) setError(e.message || 'That did not work.')
+            // Also to the log. The panel's error line sits at the top, so a
+            // refusal on a pen further down was invisible: clicking Coax Into
+            // Skep without one looked like nothing happened at all.
+            if (e?.status !== 423) {
+                setError(e.message || 'That did not work.')
+                window.dispatchEvent(new CustomEvent('talaran:notice', {
+                    detail: { message: e.message || 'That did not work.', type: 'error' },
+                }))
+            }
             setBusy(false)
         }
     }
@@ -164,6 +190,13 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
 
     if (loading) return <p className="farm-empty">Walking out to the pens…</p>
     if (!data) return <p className="farm-error">{error || 'Could not reach your pens.'}</p>
+
+    const SEASON_NOTE: Record<string, string> = {
+        spring: 'Everything is in flower. The hives are working flat out.',
+        summer: 'High summer. The hives are working flat out.',
+        autumn: 'The flowers are going over. Hives are slowing.',
+        winter: 'Little is in bloom. Hives tick along, barely.',
+    }
 
     const canPlaceIn = (pen: Pen) => data.species.filter(s =>
         s.unlocked && s.penType === pen.penType && s.babiesHeld > 0 &&
@@ -185,6 +218,11 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                     </span>
                 )}
                 <span>Pens {data.pens.length} / {data.penCap}</span>
+                {data.season && (
+                    <span className={`season-tag season-${data.season}`} title={SEASON_NOTE[data.season]}>
+                        {data.season.charAt(0).toUpperCase() + data.season.slice(1)}
+                    </span>
+                )}
             </div>
 
             {!data.atNovita && <p className="farm-note">Travel to {data.town} to work your pens.</p>}
@@ -219,7 +257,7 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
             )}
 
             <div className="animal-pens">
-                {data.pens.map(pen => (
+                {data.pens.map((pen, penOrdinal) => (
                     <div key={pen.id} className={`animal-pen ${pen.fed ? '' : 'unfed'}`}>
                         <button
                             className="animal-pen-head"
@@ -229,11 +267,17 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                         >
                             <span>
                                 <span className="animal-pen-caret">{collapsed[pen.id] ? '▸' : '▾'}</span>
-                                {pen.penType === 'coop' ? 'Coop' : 'Paddock'} {pen.slotIndex + 1}
+                                {/* Position in the list, not slotIndex. slotIndex is a
+                                    max+1 counter that never reuses gaps, so after any
+                                    demolition it drifts: a first pen could read "Pen 2". */}
+                                Pen {penOrdinal + 1}: {PEN_LABEL[pen.penType] ?? 'Pen'}
                                 {pen.species && <span className="animal-pen-species"> · {pen.species}</span>}
                             </span>
                             <span className="animal-pen-count">
-                                {pen.headCount === 0 && (
+                                {/* Bees cannot be moved out first, so an occupied
+                                    apiary is demolishable; the modal asks what
+                                    becomes of them. */}
+                                {(pen.headCount === 0 || pen.penType === 'apiary') && (
                                     <span
                                         className="animal-pen-demolish"
                                         title="Pull this pen down and get the materials back"
@@ -258,15 +302,97 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                         {!collapsed[pen.id] && pen.headCount > 0 && (
                             <div className="animal-pen-status">
                                 <span className={pen.fed ? 'pen-ok' : 'pen-warn'}>
-                                    {pen.fed ? 'Fed' : pen.fedUntil ? 'Hungry — nothing is growing' : 'Not fed yet'}
+                                    {pen.hasUpkeep === false
+                                        ? null
+                                        : pen.fed ? 'Fed' : pen.fedUntil ? 'Hungry—nothing is growing' : 'Not fed yet'}
                                 </span>
                                 {pen.needsMucking && <span className="pen-warn">Needs mucking out</span>}
                             </div>
                         )}
 
+                        {/* Flowers. Shown for an apiary even when empty, because
+                            an empty stand is the thing the player most needs to
+                            see: bees with nothing flowering nearby crawl along at
+                            the floor rate. */}
+                        {!collapsed[pen.id] && pen.penType === 'apiary' && (
+                            <div className="pen-flowers">
+                                {pen.hiveRate && (
+                                    <div className="hive-rate">
+                                        <span className={pen.hiveRate.totalPct >= 100 ? 'rate-full' : 'rate-part'}>
+                                            Working at {pen.hiveRate.totalPct}%
+                                        </span>
+                                        <span className="hive-rate-why">
+                                            {pen.hiveRate.seasonPct}% season · {pen.hiveRate.flowerPct}% flowers
+                                        </span>
+                                    </div>
+                                )}
+
+                                <div className="pen-flowers-label">
+                                    Flowers {(pen.flowers?.length ?? 0)} / {pen.flowerSlots ?? 10}
+                                </div>
+                                <p className="farm-note">
+                                    Bees work whatever is in bloom nearby. A full stand of flowers keeps
+                                    the hives at their best; an empty one leaves them flying farther to find pollen.
+                                </p>
+                                <div className="pen-flower-strip">
+                                    {Array.from({ length: pen.flowerSlots ?? 10 }).map((_, i) => {
+                                        const flower = pen.flowers?.find(f => f.slotIndex === i)
+                                        // getItemIcon also strips apostrophes; building the path
+                                        // by hand gave Tal's_Hope.png, which does not exist.
+                                        return flower ? (
+                                            <button
+                                                key={i}
+                                                className="pen-flower filled"
+                                                title={`${flower.itemName}. Click to take it back.`}
+                                                disabled={busy || !data.atNovita}
+                                                onClick={() => instant('/api/husbandry/pen-flower/remove',
+                                                    { penId: pen.id, slotIndex: i })}
+                                            >
+                                                <img
+                                                    src={getItemIcon(flower.itemName)}
+                                                    alt={flower.itemName}
+                                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                                                />
+                                            </button>
+                                        ) : (
+                                            <span key={i} className="pen-flower empty" title="Empty" />
+                                        )
+                                    })}
+                                </div>
+
+                                {(pen.flowers?.length ?? 0) < (pen.flowerSlots ?? 10) && (
+                                    (data.flowerStock?.length ?? 0) > 0 ? (
+                                        <div className="pen-flower-add">
+                                            <select
+                                                value={flowerChoice[pen.id] ?? data.flowerStock![0].itemName}
+                                                onChange={e => setFlowerChoice(f => ({ ...f, [pen.id]: e.target.value }))}
+                                            >
+                                                {data.flowerStock!.map(f => (
+                                                    <option key={f.itemName} value={f.itemName}>
+                                                        {f.itemName} ({f.quantity})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button className="farm-btn" disabled={busy || !data.atNovita}
+                                                onClick={() => instant('/api/husbandry/pen-flower/add', {
+                                                    penId: pen.id,
+                                                    itemName: flowerChoice[pen.id] ?? data.flowerStock![0].itemName,
+                                                })}>Set Flower</button>
+                                        </div>
+                                    ) : (
+                                        <p className="farm-note">
+                                            You have no flowers. They turn up along the road when you walk it on foot.
+                                        </p>
+                                    )
+                                )}
+                            </div>
+                        )}
+
                         {!collapsed[pen.id] && pen.headCount > 0 && (
                             <div className="animal-pen-actions">
-                                <button className="farm-btn"
+                                {/* Hidden, not greyed out: a disabled Feed on
+                                    something that does not eat reads as broken. */}
+                                {pen.hasUpkeep !== false && <button className="farm-btn"
                                     disabled={busy || !data.atNovita || !data.hasPail || !pen.canFeed}
                                     title={!data.hasPail ? 'You need a Feed Pail equipped'
                                         : !pen.canFeed ? 'They have been fed — wait until the trough runs dry'
@@ -275,7 +401,7 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                                     {pen.canFeed
                                         ? `Feed All${pen.feedItem ? ` (${pen.feedCost} ${pen.feedItem})` : ''}`
                                         : 'Fed'}
-                                </button>
+                                </button>}
                                 {pen.readyUnits > 0 && (
                                     <button className="farm-btn primary"
                                         disabled={busy || !data.atNovita}
@@ -293,14 +419,16 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                                         Slaughter All ({pen.slaughterable})
                                     </button>
                                 )}
-                                <button className="farm-btn"
+                                {/* Hidden, not greyed out: a disabled Feed on
+                                    something that does not eat reads as broken. */}
+                                {pen.hasUpkeep !== false && <button className="farm-btn"
                                     disabled={busy || !data.atNovita || !data.hasFork || !pen.canMuck}
                                     title={!data.hasFork ? 'You need a Mucking Fork equipped'
                                         : !pen.canMuck ? 'The bedding is still clean'
                                             : `Lays ${pen.beddingCost} ${pen.beddingItem} as fresh bedding`}
                                     onClick={() => act('/api/husbandry/muck', 'muck', { penId: pen.id })}>
                                     {pen.canMuck ? `Muck Out (${pen.beddingCost} ${pen.beddingItem})` : 'Clean'}
-                                </button>
+                                </button>}
                             </div>
                         )}
 
@@ -433,9 +561,11 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                                     </>
                                 ) : (
                                     <p className="farm-note">
-                                        {pen.species
-                                            ? `No young ${pen.species.toLowerCase()}s to hand.`
-                                            : 'Bring back young animals from the wild to stock this pen.'}
+                                        {pen.penType === 'apiary'
+                                            ? 'No skeps of bees to hand. Carry a straw skep while chopping and you may catch a wild colony.'
+                                            : pen.species
+                                                ? `No young ${pen.species.toLowerCase()}s to hand.`
+                                                : 'Bring back young animals from the wild to stock this pen.'}
                                     </p>
                                 )}
                             </div>
@@ -452,9 +582,14 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                             onClick={() => setPenType('coop')}>Coop ({data.coopCapacity} birds)</button>
                         <button className={`farm-tab ${penType === 'paddock' ? 'active' : ''}`}
                             onClick={() => setPenType('paddock')}>Paddock ({data.paddockCapacity} beasts)</button>
+                        <button className={`farm-tab ${penType === 'apiary' ? 'active' : ''}`}
+                            onClick={() => setPenType('apiary')}>Apiary ({data.apiaryCapacity ?? 3} hives)</button>
                     </div>
                     <div className="farm-cost">
-                        {data.nextPenCost[penType].map(c => (
+                        {/* apiary is optional on the payload, so an older server
+                            that predates it renders an empty cost rather than
+                            throwing on undefined.map */}
+                        {(data.nextPenCost[penType] ?? []).map(c => (
                             <div key={c.itemName} className="farm-cost-row">
                                 <span>{c.itemName}</span>
                                 <span>{c.qty.toLocaleString()}</span>
@@ -465,7 +600,7 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                     <button className="farm-btn primary"
                         disabled={busy || !data.atNovita || !!data.missingBuildTool}
                         onClick={() => act('/api/husbandry/build-pen', 'build_pen', { penType })}>
-                        Raise {penType === 'coop' ? 'Coop' : 'Paddock'}
+                        Raise {PEN_LABEL[penType]}
                     </button>
                 </div>
             )}
@@ -479,17 +614,46 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                     <div key={s.id} className={`farm-crop-row ${s.unlocked ? '' : 'locked'}`}>
                         <span>{s.name}{s.isMount ? ' 🐎' : ''}</span>
                         <span className="farm-crop-meta">
+                            {/* Bees are caught, not bred: no young and no growing. */}
                             {s.unlocked
-                                ? `${s.babiesHeld} young · grows in ${fmtDuration(s.growSeconds)}${s.productItem ? ` · ${s.productItem}` : ''}`
-                                : `Lv ${s.level} · ${s.babiesHeld} young`}
+                                ? s.penType === 'apiary'
+                                    ? `${s.babiesHeld} skep${s.babiesHeld === 1 ? '' : 's'}${s.productItem ? ` · ${s.productItem}` : ''}`
+                                    : `${s.babiesHeld} young · grows in ${fmtDuration(s.growSeconds)}${s.productItem ? ` · ${s.productItem}` : ''}`
+                                : s.penType === 'apiary'
+                                    ? `Lv ${s.level} · ${s.babiesHeld} skeps`
+                                    : `Lv ${s.level} · ${s.babiesHeld} young`}
                         </span>
                     </div>
                 ))}
             </div>
 
-            {confirmDemolish && (
+            {/* An apiary with bees in it needs a decision, not a confirmation:
+                there is nowhere to move a colony to, so the choice is made here
+                or the stand can never come down. */}
+            {confirmDemolish && confirmDemolish.penType === 'apiary' && confirmDemolish.headCount > 0 ? (
                 <ConfirmModal
-                    message={`Pull down ${confirmDemolish.penType === 'coop' ? 'Coop' : 'Paddock'} ${confirmDemolish.slotIndex + 1}? Every material goes back into your pack, and the slot is freed for a different kind of pen.`}
+                    message={data.hasEmptySkep
+                        ? 'There are still bees in this apiary. Coax them into an empty skep and take them with you, or let them go?'
+                        : 'There are still bees in this apiary, and you have no empty skep to coax them into. Weave one from straw if you want to keep them. Otherwise they can be released.'}
+                    confirmLabel={data.hasEmptySkep ? 'Coax Into Skep' : 'Release Them'}
+                    secondaryLabel={data.hasEmptySkep ? 'Release Them' : undefined}
+                    cancelLabel="Leave It Standing"
+                    onConfirm={() => {
+                        const pen = confirmDemolish
+                        setConfirmDemolish(null)
+                        act('/api/husbandry/demolish-pen', 'demolish_pen',
+                            { penId: pen.id, disposition: data.hasEmptySkep ? 'recapture' : 'release' })
+                    }}
+                    onSecondary={data.hasEmptySkep ? () => {
+                        const pen = confirmDemolish
+                        setConfirmDemolish(null)
+                        act('/api/husbandry/demolish-pen', 'demolish_pen', { penId: pen.id, disposition: 'release' })
+                    } : undefined}
+                    onCancel={() => setConfirmDemolish(null)}
+                />
+            ) : confirmDemolish && (
+                <ConfirmModal
+                    message={`Pull down this ${(PEN_LABEL[confirmDemolish.penType] ?? 'pen').toLowerCase()}? Every material goes back into your pack, and the slot is freed for a different kind of pen.`}
                     onConfirm={() => {
                         const pen = confirmDemolish
                         setConfirmDemolish(null)

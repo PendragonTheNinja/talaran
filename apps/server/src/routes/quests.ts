@@ -289,8 +289,12 @@ export async function updateQuestObjectiveProgress(
             .where({ player_id: playerId, status: 'active' });
 
         for (const pq of activeQuests) {
+            // A null target_item is a wildcard: "cook 6 fish" rather than
+            // "cook 6 perch". Matching it exactly meant such an objective could
+            // never progress, since callers always pass a concrete item name.
             const objectives = await db('quest_objectives')
-                .where({ quest_id: pq.quest_id, type: objectiveType, target_item: targetItem })
+                .where({ quest_id: pq.quest_id, type: objectiveType })
+                .andWhere(b => b.where('target_item', targetItem).orWhereNull('target_item'))
                 .orderBy('order', 'asc');
 
             for (const obj of objectives) {

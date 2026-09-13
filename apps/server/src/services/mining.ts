@@ -231,7 +231,7 @@ export async function processMiningRock(
       total_xp_earned: node.xp_reward,
     });
 
-    const drops = rockSubtype ? await rollSecondaryDrops(playerId, `mining:rock:${rockSubtype}`) : [];
+    const drops = rockSubtype ? await rollSecondaryDrops(playerId, `mining:rock:${rockSubtype}`, 'Mining') : [];
 
     logger.info(`Player ${playerId} mined ${rockItem?.name || 'rock'} at node ${nodeId}`);
     return {

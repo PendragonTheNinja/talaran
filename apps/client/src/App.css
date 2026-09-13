@@ -1,1 +1,19 @@
 /* App-level layout — see index.css for design system */
+
+/* Station tags.
+   Colour carries the meaning so it reads at a glance without the words:
+   red is "you cannot do this yet", amber is "you can, but slower or on
+   someone else's bench". Defined globally because LocationPanel, RecipeList
+   and ForgeMenu all show the same tags. */
+.station-tag {
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.station-tag.locked {
+  color: var(--color-red-bright);
+}
+
+.station-tag.warn {
+  color: var(--color-gold-dim);
+}

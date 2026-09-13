@@ -31,6 +31,7 @@ import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import HuntingMenu from './HuntingMenu'
 import ForagingMenu from './ForagingMenu'
+import WorkstationPanel from './WorkstationPanel'
 import FishingMenu from './FishingMenu'
 import FarmPanel from './FarmPanel'
 import { syncThemeFromServer } from '../lib/theme'
@@ -209,6 +210,8 @@ export default function GameLayout({
 
   const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
   const [showCraftingMenu, setShowCraftingMenu] = useState(false)
+  const [showCookingMenu, setShowCookingMenu] = useState(false)
+  const [cookingAtFire, setCookingAtFire] = useState(false)
   const [carpentryStationActive, setCarpentryStationActive] = useState(false)
   const [smithingStationActive, setSmithingStationActive] = useState(false)
   const [showTanningModal, setShowTanningModal] = useState(false)
@@ -265,6 +268,9 @@ export default function GameLayout({
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
   const [showForagingMenu, setShowForagingMenu] = useState(false)
+  // Which workstation's tool rack is open, or null. One piece of state serves
+  // the forge, the carpentry bench, the cookhouse and the apiary.
+  const [openWorkstation, setOpenWorkstation] = useState<{ type: string; title: string } | null>(null)
   const [showFishingMenu, setShowFishingMenu] = useState(false)
   const [showFarmPanel, setShowFarmPanel] = useState(false)
 
@@ -311,35 +317,6 @@ export default function GameLayout({
     } catch (err: any) {
       if (err.status === 423) { blockedByBotCheck(() => handleKilnCollect()); return }
       setExternalMessage({ text: err.message || 'Could not collect Charc.', type: 'error' })
-    }
-  }
-
-  const handleSmithingSetup = async () => {
-    try {
-      await apiFetch('/api/smithing/workstation/setup', { method: 'POST' })
-      setExternalMessage({ text: 'Workstation set up! Timers are now at full speed.', type: 'success' })
-      onInventoryUpdate()
-      setSmithingStatusKey(k => k + 1)
-    } catch (err: any) {
-      console.error('Workstation setup error:', err.message)
-      setExternalMessage({
-        text: `${err.message || 'Could not set up workstation.'} Required: Ambren Anvil, Ambren Hammer, Ambren Tongs.`,
-        type: 'error'
-      })
-    }
-  }
-
-  const handleCarpentrySetup = async () => {
-    try {
-      await apiFetch('/api/carpentry/workstation/setup', { method: 'POST' })
-      setExternalMessage({ text: 'Carpentry workstation set up! Timers are now at full speed.', type: 'success' })
-      onInventoryUpdate()
-      setSmithingStatusKey(k => k + 1)
-    } catch (err: any) {
-      setExternalMessage({
-        text: `${err.message || 'Could not set up workstation.'} Required: Lanai Sawhorse, Ambren Saw, Ambren Plane.`,
-        type: 'error'
-      })
     }
   }
 
@@ -405,15 +382,17 @@ export default function GameLayout({
       setShowKilnModal(true)
     } else if (type === 'kiln_collect') {
       handleKilnCollect()
-    } else if (type === 'smithing_setup') {
-      handleSmithingSetup()
+    } else if (type === 'workstation_smithing') {
+      setOpenWorkstation({ type: 'smithing', title: 'Forge Tool Rack' })
+    } else if (type === 'workstation_carpentry') {
+      setOpenWorkstation({ type: 'carpentry', title: 'Carpentry Tool Rack' })
+    } else if (type === 'workstation_cooking') {
+      setOpenWorkstation({ type: 'cooking', title: 'Cookhouse Tool Rack' })
     } else if (type === 'forge_menu') {
       apiFetch<any>('/api/smithing/status')
         .then(st => setSmithingStationActive(!!st?.workstation?.is_active))
         .catch(() => setSmithingStationActive(false))
       setShowForgeMenu(true)
-    } else if (type === 'carpentry_setup') {
-      handleCarpentrySetup()
     } else if (type === 'carpentry_menu') {
       apiFetch<any>('/api/carpentry/status')
         .then(st => setCarpentryStationActive(!!st?.workstation?.is_active))
@@ -452,6 +431,17 @@ export default function GameLayout({
         setTanningRecipeId(first ? first.id : null)
       }).catch(() => { })
       setShowTanningModal(true)
+    } else if (type === 'build_hearth') {
+      // id carries the timer length the server just handed back.
+      setGameViewAction({ type: 'build_hearth', id })
+    } else if (type === 'cooking_menu') {
+      setCookingAtFire(false)
+      setShowCookingMenu(true)
+    } else if (type === 'campfire_menu') {
+      // Same menu, different name at the top: "Pendragon's Cookhouse" while
+      // stood at a fire in the woods reads as the wrong building.
+      setCookingAtFire(true)
+      setShowCookingMenu(true)
     } else if (type === 'crafting_menu') {
       setShowCraftingMenu(true)
     } else if (type === 'shop_build') {
@@ -687,6 +677,9 @@ export default function GameLayout({
     />
   )
 
+  // BuffPanel lives inside LeftPanel, which serves desktop AND the mobile Items
+  // tab. Adding it here as well would draw it twice on mobile, since
+  // MobileShell takes leftPanelEl and equipmentPanelEl as separate tabs.
   const equipmentPanelEl = (
     <EquipmentPanel
       equipmentData={equipmentData}
@@ -898,6 +891,23 @@ export default function GameLayout({
         />
       )}
 
+      {showCookingMenu && (
+        <CraftingMenu
+          onClose={() => setShowCookingMenu(false)}
+          onStartRecipe={(recipeId) => {
+            setShowCookingMenu(false)
+            setGameViewAction({ type: 'recipe', id: recipeId })
+          }}
+          skill="Cooking"
+          title={cookingAtFire ? 'Campfire' : 'Cookhouse'}
+          groupBy="tool"
+          stationType="cooking"
+          keeperName={cookingAtFire ? undefined : 'Geomima'}
+          ownerName={cookingAtFire ? undefined : (player?.username || 'Your')}
+          playerLevel={playerData?.skills?.find((s: any) => s.name === 'Cooking')?.level || 1}
+        />
+      )}
+
       {showCraftingMenu && (
         <CraftingMenu
           onClose={() => setShowCraftingMenu(false)}
@@ -999,6 +1009,21 @@ export default function GameLayout({
           }}
           playerHuntingLevel={playerData?.skills?.find((s: any) => s.name === 'Hunting')?.level || 1}
           onTrapsChanged={() => setSmithingStatusKey(k => k + 1)}
+        />
+      )}
+
+      {openWorkstation && (
+        <WorkstationPanel
+          stationType={openWorkstation.type}
+          title={openWorkstation.title}
+          onClose={() => {
+            setOpenWorkstation(null)
+            // The Forge and Workshop links show whether the bench is complete,
+            // and that comes from the smithing/carpentry status endpoints.
+            // Without this the tag stays stale until something else refetches.
+            setSmithingStatusKey(k => k + 1)
+          }}
+          onInventoryUpdate={onInventoryUpdate}
         />
       )}
 

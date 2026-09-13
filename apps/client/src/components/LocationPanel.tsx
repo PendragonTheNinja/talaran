@@ -4,6 +4,8 @@ import { apiFetch } from '../lib/api'
 import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
 import NPCDialogue from './NPCDialogue'
+import Badge from './Badge'
+import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
@@ -26,6 +28,8 @@ interface PlayerAtLocation {
   username: string
   /** Same column chat reads, so a tag looks identical wherever a name appears. */
   guild_tag?: string | null
+  badge_key?: string | null
+  badge?: string | null
   combat_level?: number
   onRequestTrade?: (playerId: number) => void
 }
@@ -75,7 +79,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [smithingStatus, setSmithingStatus] = useState<any>(null)
 
   const [carpentryStatus, setCarpentryStatus] = useState<any>(null)
+  // The cookhouse uses the generic workstation endpoint rather than a bespoke
+  // status route, since that already reports whether the rack is complete.
+  const [cookingStation, setCookingStation] = useState<any>(null)
+  const [cookQuestStatus, setCookQuestStatus] = useState<string | null>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
+  const [cookhouseOpen, setCookhouseOpen] = useState(false)
   const [farmsteadOpen, setFarmsteadOpen] = useState(false)
 
   const [tanningStatus, setTanningStatus] = useState<any>(null)
@@ -89,6 +98,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const isEmberra = location?.name === 'Emberra'
   const isVerdale = location?.name === 'Verdale'
   const isCaliwen = location?.name === 'Caliwen'
+  const isPhoenwick = location?.name === 'Phoenwick'
   const isNovita = location?.name === 'Novita'
   const isTalador = location?.name === 'Talador'
 
@@ -119,21 +129,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       .then(data => setPlayersHere(data.players))
       .catch(() => setPlayersHere([]))
 
-    if (isEmberra) {
-      apiFetch<any>('/api/smithing/status').then(data => {
-        setSmithingStatus(data)
-      })
-      apiFetch<any>('/api/quests').then(data => {
-        const blacksmithQuest = data.quests?.find((q: any) => q.name === "The Blacksmith's Bargain")
-        if (blacksmithQuest) setQuestStatus(blacksmithQuest.status)
-      })
-    }
-
-    if (isVerdale) {
-      apiFetch<any>('/api/carpentry/status').then(data => {
-        setCarpentryStatus(data)
-      })
-    }
+    refreshStations()
 
     if (isCaliwen) {
       apiFetch<any>('/api/tanning/status').then(data => {
@@ -172,12 +168,132 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     }
   }
 
-  const [showTallyLink, setShowTallyLink] = useState(true)
+  /**
+   * A workstation you have not been given the run of yet.
+   *
+   * The submenu still renders, because a town with no visible work reads as
+   * broken rather than as locked. Clicking says who to ask instead of doing
+   * nothing.
+   */
+  /**
+   * Re-read whichever station this location has.
+   *
+   * Called on arrival and again after any NPC interaction, so accepting a quest
+   * flips the links from (locked) to (her hearth) without a page refresh. This
+   * used to refresh smithing only, which is why Verdale and Phoenwick sat stale
+   * until you reloaded.
+   */
+  /**
+   * A campfire burns for half an hour, so the link has to appear the moment it
+   * is lit and go the moment it goes out. Counted down locally; the server is
+   * the authority and sweeps the row on read, so this only has to look right.
+   */
+  const [fireLeft, setFireLeft] = useState<number | null>(null)
 
   useEffect(() => {
+    setFireLeft(cookingStation?.isTemporary ? cookingStation.secondsLeft : null)
+  }, [cookingStation?.isTemporary, cookingStation?.secondsLeft])
+
+  useEffect(() => {
+    if (fireLeft === null) return
+    const t = setInterval(() => {
+      setFireLeft(v => {
+        if (v === null) return null
+        if (v <= 1) { setCookingStation(null); return null }
+        return v - 1
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [fireLeft === null])
+
+  useEffect(() => {
+    const onLit = () => {
+      apiFetch<any>('/api/workstations/cooking').then(setCookingStation).catch(() => {})
+    }
+    window.addEventListener('talaran:campfire-lit', onLit)
+    return () => window.removeEventListener('talaran:campfire-lit', onLit)
+  }, [])
+
+  /**
+   * Build a hearth. Asks the server for the cost first so the prompt names real
+   * materials rather than the client keeping its own copy of the list.
+   */
+  const [confirmHearth, setConfirmHearth] = useState<
+    { cost: { itemName: string; qty: number }[]; seconds: number; tool?: string } | null
+  >(null)
+
+  const buildHearth = async () => {
+    try {
+      const q = await apiFetch<{ cost: { itemName: string; qty: number }[]; seconds: number; tool?: string }>(
+        '/api/workstations/hearth/cost',
+      )
+      setConfirmHearth(q)
+    } catch (err: any) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: err.message || 'That did not work.', type: 'error' },
+      }))
+    }
+  }
+
+  const refreshStations = () => {
+    if (isEmberra) {
+      apiFetch<any>('/api/smithing/status').then(setSmithingStatus).catch(() => {})
+      apiFetch<any>('/api/quests').then(data => {
+        const q = data.quests?.find((x: any) => x.name === "The Blacksmith's Bargain")
+        if (q) setQuestStatus(q.status)
+      }).catch(() => {})
+    }
+    if (isVerdale) {
+      apiFetch<any>('/api/carpentry/status').then(setCarpentryStatus).catch(() => {})
+    }
+    // Fetched everywhere, not just Phoenwick: a campfire can be lit anywhere,
+    // and it is the same cooking station row.
+    apiFetch<any>('/api/workstations/cooking').then(setCookingStation).catch(() => setCookingStation(null))
+
+    if (isPhoenwick) {
+      apiFetch<any>('/api/quests').then(data => {
+        const q = data.quests?.find((x: any) => x.name === "The Cook's Conundrum")
+        if (q) setCookQuestStatus(q.status)
+      }).catch(() => {})
+    }
+  }
+
+  /**
+   * A hearth is a PERMANENT station. Not merely a row.
+   *
+   * `exists` is true for any cooking workstation, and two things create one
+   * that is not a hearth: socketing a tool back when the hearth was a slot, and
+   * lighting a campfire, which is a cooking row with an expiry on it. Gating
+   * the build button on `exists` alone therefore hid it from exactly the people
+   * who needed it.
+   */
+  const hasHearth = !!cookingStation?.exists && !cookingStation?.isTemporary
+
+  const cookUnlocked = cookQuestStatus === 'active' || cookQuestStatus === 'completed' || !!cookingStation?.exists
+
+  const locked = (npcName: string) => () => {
+    window.dispatchEvent(new CustomEvent('talaran:notice', {
+      detail: { message: `Speak to ${npcName} for the use of this place.`, type: 'error' },
+    }))
+  }
+
+  // null means "not answered yet", and nothing renders until it is.
+  //
+  // This used to start at true, so the link painted on the first frame and then
+  // vanished once the server said to hide it. A player who had turned it off
+  // saw it flash on every refresh, which is worse than a slightly late link.
+  // Failure still opens the link, just after the request settles rather than
+  // before it is sent.
+  const [showTallyLink, setShowTallyLink] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
     apiFetch<{ show: boolean }>('/api/tally/link')
-      .then(d => setShowTallyLink(d.show))
-      .catch(() => setShowTallyLink(true))   // fail open
+      .then(d => { if (!cancelled) setShowTallyLink(d.show) })
+      .catch(() => { if (!cancelled) setShowTallyLink(true) })   // fail open
+    // Travelling remounts this with a new location before the old request
+    // lands; without the guard the stale answer wins and the flash returns.
+    return () => { cancelled = true }
   }, [location?.id])
 
   return (
@@ -254,7 +370,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {/* Tally board. Top level and unconditional: it reports work from
             everywhere, so it must be reachable everywhere, and it doubles as
             the prompt to raise one. */}
-        {showTallyLink && (
+        {showTallyLink === true && (
           <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
             Tally Board →
           </button>
@@ -310,13 +426,23 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
               <div className="submenu-items">
 
                 {/* NPCs in forge submenu */}
-                {/* Workstation setup */}
-                {smithingStatus && !smithingStatus.workstation && questStatus === 'completed' && (
+                {/* Your own bench. Opens the tool rack whether or not anything
+                    is on it: fitting the first tool is what sets it up, so
+                    there is no separate "set up workstation" step any more. */}
+                {questStatus === 'completed' ? (
                   <button
                     className="location-action-btn sub"
-                    onClick={() => onStartAction('smithing_setup', 0)}
+                    onClick={() => onStartAction('workstation_smithing', 0)}
                   >
-                    Set Up Workstation
+                    Your Tool Rack
+                    {!smithingStatus?.workstation?.is_active && (
+                      <span className="station-tag warn">(incomplete)</span>
+                    )}
+                  </button>
+                ) : (
+                  <button className="location-action-btn sub locked" onClick={locked('Geoffrey')}>
+                    Your Tool Rack
+                    <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
 
@@ -348,18 +474,102 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                 {/* One bench, two halves. Smelting needs only the quest started;
                     the anvil needs it finished, so the menu opens either way and
                     the Anvil tab is simply empty until the player qualifies. */}
-                {(questStatus === 'active' || questStatus === 'completed' || smithingStatus?.workstation?.is_active) && (
+                {(questStatus === 'active' || questStatus === 'completed' || smithingStatus?.workstation?.is_active) ? (
                   <button
                     className={`location-action-btn sub ${(currentAction === 'smelting' || currentAction === 'smithing' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('forge_menu', 0)}
                   >
                     Work the Forge →
                     {!smithingStatus?.workstation?.is_active && (
-                      <span className="muted-text" style={{ fontSize: '11px', marginLeft: '4px' }}>(slow)</span>
+                      <span className="station-tag warn">(smith's forge)</span>
                     )}
+                  </button>
+                ) : (
+                  <button className="location-action-btn sub locked" onClick={locked('Geoffrey')}>
+                    Work the Forge →
+                    <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
 
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* A campfire, wherever it was lit. Temporary by nature, so it sits on
+            its own rather than inside a town's submenu, and it reuses the same
+            cookhouse menu: only the plain roasting recipes will run on it. */}
+        {fireLeft !== null && (
+          <button
+            className={`location-action-btn ${currentAction === 'crafting' ? 'active' : ''}`}
+            onClick={() => onStartAction('campfire_menu', 0)}
+          >
+            Your Campfire →
+            <span className="station-tag warn">
+              ({Math.floor(fireLeft / 60)}m {String(fireLeft % 60).padStart(2, '0')}s)
+            </span>
+          </button>
+        )}
+
+        {/* Cooking — Phoenwick only. Gated on Geomima's quest the same way the
+            forge and workshop are gated on theirs: her hearth is a favour, not
+            a public amenity. */}
+        {isPhoenwick && (
+          <div className="location-submenu">
+            <button
+              className={`location-action-btn submenu-toggle ${cookhouseOpen ? 'open' : ''}`}
+              onClick={() => setCookhouseOpen(!cookhouseOpen)}
+            >
+              {cookhouseOpen ? '▼' : '▶'} Cookhouse
+            </button>
+            {cookhouseOpen && (
+              <div className="submenu-items">
+                {/* A hearth is mortared stone, so it is built once and never
+                    carried. Until it exists there is no rack to open. */}
+                {cookUnlocked && !hasHearth && (
+                  <button
+                    className="location-action-btn sub"
+                    onClick={() => buildHearth()}
+                  >
+                    Build Your Hearth
+                  </button>
+                )}
+
+                {cookUnlocked && hasHearth ? (
+                  <button
+                    className="location-action-btn sub"
+                    onClick={() => onStartAction('workstation_cooking', 0)}
+                  >
+                    Your Tool Rack
+                    {!cookingStation?.isActive && (
+                      <span className="station-tag warn">(incomplete)</span>
+                    )}
+                  </button>
+                ) : cookUnlocked ? null : (
+                  <button className="location-action-btn sub locked" onClick={locked('Geomima')}>
+                    Your Tool Rack
+                    <span className="station-tag locked">(locked)</span>
+                  </button>
+                )}
+
+                {cookUnlocked ? (
+                  <button
+                    className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
+                    onClick={() => onStartAction('cooking_menu', 0)}
+                  >
+                    Cook →
+                    {/* No hearth of your own means you are on hers, whatever
+                        stray workstation row may exist. */}
+                    {!hasHearth && (
+                      <span className="station-tag warn">(her hearth)</span>
+                    )}
+                  </button>
+                ) : (
+                  <button className="location-action-btn sub locked" onClick={locked('Geomima')}>
+                    Cook →
+                    <span className="station-tag locked">(locked)</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -377,24 +587,37 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {workshopOpen && (
               <div className="submenu-items">
 
-                {carpentryStatus?.questStatus === 'completed' && !carpentryStatus.workstation && (
+                {carpentryStatus?.questStatus === 'completed' ? (
                   <button
                     className="location-action-btn sub"
-                    onClick={() => onStartAction('carpentry_setup', 0)}
+                    onClick={() => onStartAction('workstation_carpentry', 0)}
                   >
-                    Set Up Workstation
+                    Your Tool Rack
+                    {!carpentryStatus?.workstation?.is_active && (
+                      <span className="station-tag warn">(incomplete)</span>
+                    )}
+                  </button>
+                ) : (
+                  <button className="location-action-btn sub locked" onClick={locked('Geossica')}>
+                    Your Tool Rack
+                    <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
 
-                {carpentryStatus?.canSaw && (
+                {carpentryStatus?.canSaw ? (
                   <button
                     className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'woodworking' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('carpentry_menu', 0)}
                   >
                     Carpentry Workshop →
                     {!carpentryStatus?.workstation?.is_active && (
-                      <span className="muted-text" style={{ fontSize: '11px', marginLeft: '4px' }}>(slow)</span>
+                      <span className="station-tag warn">(carpenter's bench)</span>
                     )}
+                  </button>
+                ) : (
+                  <button className="location-action-btn sub locked" onClick={locked('Geossica')}>
+                    Carpentry Workshop →
+                    <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
 
@@ -509,6 +732,11 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                 onClick={() => onViewProfile?.(p.id)}
               >
                 {p.username}
+                {/* Inside the name span, so it sits against the last letter.
+                    The guild tag is pushed to the far right by its own margin,
+                    and a badge out there reads as another tag rather than as
+                    part of who you are. */}
+                <Badge badgeKey={p.badge_key} glyph={p.badge} size={20} title="A feat badge" />
               </span>
               {/* Trails the name, matching chat and the highscores. Outside the
                   clickable name so it does not read as part of the profile
@@ -564,18 +792,35 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </div>
         )}
       </div>
+      {confirmHearth && (
+        <ConfirmModal
+          message={`Build a hearth here? It takes ${confirmHearth.cost.map(c => `${c.qty} ${c.itemName.toLowerCase()}`).join(', ')}${confirmHearth.tool ? `, a ${confirmHearth.tool.toLowerCase()} in hand` : ''}, and about ${Math.round(confirmHearth.seconds / 60)} minutes. Once it is set it stays here for good.`}
+          confirmLabel="Build It"
+          onConfirm={async () => {
+            setConfirmHearth(null)
+            try {
+              const res = await apiFetch<{ message: string; timerSeconds: number }>(
+                '/api/workstations/hearth', { method: 'POST' },
+              )
+              // The action exists server-side now, but nothing on screen knows
+              // it. Hand the timer up the same way husbandry does, or the
+              // player sees nothing happen and tries again.
+              onStartAction('build_hearth', res.timerSeconds)
+            } catch (err: any) {
+              window.dispatchEvent(new CustomEvent('talaran:notice', {
+                detail: { message: err.message || 'That did not work.', type: 'error' },
+              }))
+            }
+          }}
+          onCancel={() => setConfirmHearth(null)}
+        />
+      )}
+
       {activeNpcId && (
         <NPCDialogue
           npcId={activeNpcId}
           onClose={() => setActiveNpcId(null)}
-          onInteraction={() => {
-            // Refresh quest status and smithing status
-            apiFetch<any>('/api/smithing/status').then(data => setSmithingStatus(data))
-            apiFetch<any>('/api/quests').then(data => {
-              const blacksmithQuest = data.quests?.find((q: any) => q.name === "The Blacksmith's Bargain")
-              if (blacksmithQuest) setQuestStatus(blacksmithQuest.status)
-            })
-          }}
+          onInteraction={refreshStations}
         />
       )}
 

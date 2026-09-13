@@ -107,11 +107,54 @@ const RECIPE_TOWNS: Record<string, string> = {
     carpentry: 'Verdale',
     crafting: 'Caliwen',
     farming: FARMSTEAD_TOWN,
+    cooking: 'Phoenwick',
+};
+
+/**
+ * The town a bench of a given STATION type stands in.
+ *
+ * Keyed on the station rather than the skill, because that is what the recipe
+ * row actually carries. A per-skill map has to be remembered every time a skill
+ * ships, and Cooking proved the point: every one of its recipes read "Unknown"
+ * because nobody added a line here.
+ */
+const STATION_TOWNS: Record<string, string> = {
+    smithing: 'Emberra',
+    carpentry: 'Verdale',
+    tanning: 'Caliwen',
+    cooking: 'Phoenwick',
 };
 
 /** The town a skill's recipe work belongs to, or null if the skill has none. */
 function recipeTown(skill: string): string | null {
     return RECIPE_TOWNS[skill.toLowerCase()] ?? null;
+}
+
+/**
+ * Where one recipe is made.
+ *
+ * Station first, since it is the truth on the row; the skill map is the
+ * fallback. A station-less recipe is done anywhere, which is worth saying
+ * rather than leaving blank.
+ */
+function recipeWhere(skill: string, station: string | null, requiredTools: string | null): string {
+    // A station-less recipe still belongs to its skill's town. Cut Granite Block
+    // names no bench and is Caliwen work all the same, so the skill map is the
+    // right answer here rather than "Anywhere".
+    if (!station) return recipeTown(skill) ?? 'Unknown';
+
+    const town = STATION_TOWNS[String(station).toLowerCase()] ?? recipeTown(skill);
+    if (!town) return 'Unknown';
+
+    // A cooking recipe that names no tool needs only a fire, and a campfire is
+    // a fire. Worth saying: it is the difference between walking to Phoenwick
+    // and cooking where you stand.
+    if (String(station).toLowerCase() === 'cooking') {
+        let tools: string[] = [];
+        try { tools = requiredTools ? JSON.parse(requiredTools) : []; } catch { tools = []; }
+        if (tools.length === 0) return `${town} or a campfire`;
+    }
+    return town;
 }
 
 // ── registry ────────────────────────────────────────────────────────────────
@@ -156,6 +199,7 @@ const registry: Record<string, QueryHandler> = {
                 'timer_seconds',
                 'xp',
                 'station',
+                'required_tools',
             );
 
         // Farming's real progression is neither a node nor a recipe: what you can
@@ -264,9 +308,7 @@ const registry: Record<string, QueryHandler> = {
                 level: r.required_level,
                 unlock: r.name,
                 island: '',
-                // Falls back to the station only while a skill's town is unfilled,
-                // so an unmapped skill degrades to old behaviour rather than lying.
-                where: recipeTown(skill) || 'Unknown',
+                where: recipeWhere(skill, r.station, r.required_tools),
                 iconName: r.output_item_name,
                 details:
                     `Make ${r.output_qty > 1 ? `${r.output_qty}× ` : ''}${r.output_item_name}`

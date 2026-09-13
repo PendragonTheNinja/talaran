@@ -607,3 +607,29 @@
     border-color: var(--color-gold, #c8922a);
     background: var(--color-bg-raised, #332818);
 }
+
+/* A worn title in the author block, italic and quiet so it reads as a label
+   beside the name rather than competing with it. */
+.forum-post-title {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-gold-dim);
+}
+
+/* Larger than the text, pulled back so it does not stretch the author line. */
+.forum-post-author .name-badge-img {
+  width: 18px;
+  height: 18px;
+  margin-left: 3px;
+  margin-top: -5px;
+  margin-bottom: -5px;
+  vertical-align: middle;
+}
+
+.forum-post-author .name-badge {
+  font-size: 16px;
+  line-height: 1;
+  margin-left: 3px;
+  vertical-align: middle;
+}

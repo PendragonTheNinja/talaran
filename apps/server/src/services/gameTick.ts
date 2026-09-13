@@ -8,6 +8,7 @@ import {
   rodTimer, netTimer, cutBaitTimer, equippedToolTier, getBaitPouch,
 } from './fishing';
 import { recordItemFirstByName } from './inventory';
+import { incrementStats } from './stats';
 import { isLiquid, liquidTotal } from './liquids';
 import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend, resolveUproot } from './farming';
 import { resolveEstablishShop } from './shops';
@@ -15,6 +16,7 @@ import {
   resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
 } from './husbandry';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
+import { buffTimerBonus } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
@@ -87,6 +89,47 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
   }
 
   io.to(`player_${action.player_id}`).emit('action_complete', payload);
+
+  // World firsts, on SECONDARY DROPS only.
+  //
+  // result.itemName is what the player set out to get: a log, an ore, a fish.
+  // Announcing the first of those would fill the channel on a fresh server and
+  // mean nothing, because anyone can walk to the tree. result.drops is the
+  // other kind, the things that turn up, and those are worth telling people
+  // about. The distinction lives here because this is the only place that has
+  // both and knows which is which.
+  if (result?.drops?.length) {
+    const { announceWorldFirstDrop } = await import('./records');
+    for (const drop of result.drops) {
+      if (!drop?.name) continue;
+      const { firstInWorld } = await recordItemFirstByName(action.player_id, drop.name, action.action_type);
+      if (firstInWorld) await announceWorldFirstDrop(action.player_id, drop.name);
+    }
+  }
+
+  // Feats, only on a level up.
+  //
+  // This is the one choke point every action passes through, so it is the right
+  // place, but running the evaluator on every completed action would mean
+  // hundreds of pointless passes an hour. A feat can only be crossed when a
+  // number moves meaningfully, and a level is the cheapest reliable signal that
+  // one did. Stat-counter feats therefore land at the next level up or when the
+  // player opens the panel, whichever comes first, which is soon enough for
+  // something nobody is watching a clock for.
+  if (payload?.xpInfo?.leveledUp) {
+    const { evaluateFeats } = await import('./feats');
+    const fresh = await evaluateFeats(action.player_id);
+    for (const feat of fresh) {
+      io.to(`player_${action.player_id}`).emit('feat_earned', feat);
+    }
+
+    // First in Talaran to this rung. Claimed by unique index inside, so a tie
+    // resolves to exactly one winner rather than two announcements.
+    if (result?.skillName && payload.xpInfo.level) {
+      const { claimSkillMilestone } = await import('./records');
+      await claimSkillMilestone(action.player_id, result.skillName, payload.xpInfo.level);
+    }
+  }
 
   if (!result) return;
   await recordLoot(action.player_id, action.action_type, action.location_id ?? null, {
@@ -360,6 +403,15 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
         return;
       }
+      case 'cooking_build_hearth': {
+        // One-shot, same shape as the husbandry block below. The service owns
+        // its own transaction and takes the materials on completion, so an
+        // abandoned build costs nothing.
+        await db('player_actions').where({ id: action.id }).delete();
+        const { resolveBuildHearth } = await import('./workstations');
+        result = await resolveBuildHearth(action.player_id);
+        break;
+      }
       case 'husbandry_build_pen':
       case 'husbandry_demolish_pen':
       case 'husbandry_feed':
@@ -468,6 +520,38 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         await db('player_skills')
           .where({ player_id: action.player_id, skill_id: travelSkill.id })
           .increment('xp', travelXp);
+      }
+
+      // Both travel counters were declared in April and never written to, so
+      // every feat resting on them could not be earned. Filled in here, which
+      // is the only place a journey actually finishes.
+      //
+      // baseTime is the honest yardstick: it is the untravelled time for the
+      // road, so a rider and a walker cover the same distance on the same
+      // route. Recording the shortened time would mean a good mount made the
+      // world smaller.
+      // Distance, plus which way you got there. Agility and Equitation had no
+      // counter of any kind before this, so neither could carry a feat.
+      await incrementStats(action.player_id, {
+        total_distance_traveled: baseTime,
+        ...(hasMountEquipped ? { total_journeys_mounted: 1 } : { total_journeys_on_foot: 1 }),
+      });
+
+      // Distinct arrivals, counted from the discovery table rather than a
+      // running total, so walking the same road twice does not inflate it.
+      if (action.location_id) {
+        const key = `location:${action.location_id}`;
+        const seen = await db('player_exploration')
+          .where({ player_id: action.player_id, discovery_type: 'location', discovery_key: key })
+          .first();
+        if (!seen) {
+          await db('player_exploration').insert({
+            player_id: action.player_id,
+            discovery_type: 'location',
+            discovery_key: key,
+          });
+          await incrementStats(action.player_id, { total_locations_visited: 1 });
+        }
       }
 
       // Build a result for the arrival screen (mirrors action_complete shape)
@@ -922,13 +1006,16 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             ? await db('items').where({ id: equipment.mainhand_item_id }).first()
             : null;
 
+          // Re-read each lap rather than caching: a provision can be eaten or
+          // run out mid-repeat, and the next timer should reflect that.
           const nextTimer = calculateTimer(
             rockNode.base_timer,
             rockNode.min_timer,
             playerLevel,
             rockNode.required_level,
             tool ? tool.tier : 1,
-            rockNode.required_tool_tier
+            rockNode.required_tool_tier,
+            await buffTimerBonus(action.player_id, 'Mining'),
           );
 
           const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
@@ -1160,6 +1247,35 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
+      // Tools, same as inputs. The repeat loop re-checked ingredients but not
+      // the bench, so unsocketing a hammer or walking away from the forge left
+      // a craft running on tools the player no longer had.
+      if (recipe) {
+        const { checkStation } = await import('./workstations');
+        const station = await checkStation(action.player_id, recipe);
+        if (!station.ok) {
+          await db('player_actions').where({ id: action.id }).delete();
+          const craftSkill = await db('skills').where({ name: skillName }).first();
+          const lastSkill = craftSkill ? await db('player_skills')
+            .where({ player_id: action.player_id, skill_id: craftSkill.id }).first() : null;
+          const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
+          const lastLevel = levelFromXp(lastXp);
+          await emitActionComplete(io, action, {
+            firstEver,
+            actionType: action.action_type,
+            result,
+            nextCompletes: null,
+            timerSeconds: 0,
+            xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
+          });
+          io.to(`player_${action.player_id}`).emit('action_failed', {
+            error: `${station.error} ${skillName} stopped.`,
+            info: true,
+          });
+          return;
+        }
+      }
+
       const { recipeTimerFor } = await import('./recipes');
       const timerSeconds = recipe ? await recipeTimerFor(action.player_id, recipe) : 30;
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
@@ -1309,7 +1425,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         playerLevel,
         node.required_level,
         tool ? tool.tier : 1,
-        node.required_tool_tier
+        node.required_tool_tier,
+        await buffTimerBonus(action.player_id, 'Woodcutting'),
       );
 
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);

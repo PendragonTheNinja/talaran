@@ -18,6 +18,7 @@ interface TableData {
     columns: string[]
     rows: Record<string, unknown>[]
     editable: string[]
+    snapshot?: boolean
     columnKinds: Record<string, ColumnKind>
     enumOptions: Record<string, string[]>
     truncated: boolean
@@ -86,6 +87,11 @@ export default function AdminContentBrowser() {
     const [overlay, setOverlay] = useState<{ rowId: number; column: string; kind: ColumnKind } | null>(null)
     const [overlayValue, setOverlayValue] = useState('')
     const [creating, setCreating] = useState<{ prefill?: Record<string, string> } | null>(null)
+    const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+    /** Ticked rows, for a bulk edit. `selected` above is the chosen TABLE. */
+    const [picked, setPicked] = useState<Set<number>>(new Set())
+    const [bulkColumn, setBulkColumn] = useState('')
+    const [bulkValue, setBulkValue] = useState('')
     const [filter, setFilter] = useState('')
 
     const [flash, setFlash] = useState<string | null>(null)
@@ -301,6 +307,52 @@ export default function AdminContentBrowser() {
     }
 
     // Pre-fill the creation form from an existing row (name blanked)
+    /**
+     * Delete a row.
+     *
+     * The whole row goes into content_changes first, and the revert endpoint
+     * already knows how to resurrect a deleted entry, so this is recoverable
+     * from the change log rather than final. That is why it asks once and not
+     * twice.
+     */
+    /** Apply one column to every ticked row. */
+    const applyBulk = async () => {
+        if (!data || !bulkColumn || picked.size === 0) return
+        try {
+            const res = await apiFetch<{ changed: number }>(
+                `/api/admin/content/table/${data.table}/bulk`,
+                { method: 'PATCH', body: JSON.stringify({ ids: [...picked], column: bulkColumn, value: bulkValue }) },
+            )
+            setPicked(new Set())
+            setBulkColumn('')
+            setBulkValue('')
+            await loadTable(data.table)
+            setError(`Set ${bulkColumn} on ${res.changed} rows.`)
+        } catch (err: any) {
+            setError(err.message || 'Bulk edit failed.')
+        }
+    }
+
+    const togglePicked = (rowId: number) => {
+        setPicked(prev => {
+            const next = new Set(prev)
+            if (next.has(rowId)) next.delete(rowId)
+            else next.add(rowId)
+            return next
+        })
+    }
+
+    const deleteRow = async (rowId: number) => {
+        try {
+            await apiFetch(`/api/admin/content/table/${data?.table}/${rowId}`, { method: 'DELETE' })
+            setData(d => d ? { ...d, rows: d.rows.filter(r => r.id !== rowId) } : d)
+            setConfirmDelete(null)
+        } catch (err: any) {
+            setError(err.message || 'Could not delete that row.')
+            setConfirmDelete(null)
+        }
+    }
+
     const duplicateRow = (row: Record<string, unknown>) => {
         if (!data) return
         const prefill: Record<string, string> = {}
@@ -609,6 +661,23 @@ export default function AdminContentBrowser() {
                             <p className="muted-text">No content edits logged yet.</p>
                         ) : (
                             <div className="admin-content-scroll">
+                                {confirmDelete !== null && (
+                                    <div className="admin-delete-confirm">
+                                        Delete row {confirmDelete}? It goes into the change log and can be
+                                        reverted from there.
+                                        {data.snapshot && (
+                                            <span className="admin-snapshot-warn">
+                                                {' '}This table is snapshotted, so run content:export
+                                                afterwards or the row returns on the next import.
+                                            </span>
+                                        )}
+                                        <button className="btn btn-red" style={{ marginLeft: '8px', fontSize: '12px', padding: '2px 10px' }}
+                                            onClick={() => deleteRow(confirmDelete)}>Delete</button>
+                                        <button className="btn" style={{ marginLeft: '4px', fontSize: '12px', padding: '2px 10px' }}
+                                            onClick={() => setConfirmDelete(null)}>Cancel</button>
+                                    </div>
+                                )}
+
                                 <table className="admin-content-table">
                                     <thead>
                                         <tr>
@@ -693,6 +762,8 @@ export default function AdminContentBrowser() {
                                 <table className="admin-content-table">
                                     <thead>
                                         <tr>
+                                            {data.editable.length > 0 && <th style={{ width: '26px' }} />}
+                                            {data.editable.length > 0 && <th style={{ width: '30px' }} />}
                                             {data.editable.length > 0 && <th style={{ width: '30px' }} />}
                                             {data.columns.map(c => (
                                                 <th
@@ -710,7 +781,16 @@ export default function AdminContentBrowser() {
                                         {sortedRows.map((row, i) => {
                                             const rowId = row.id as number
                                             return (
-                                                <tr key={rowId ?? i}>
+                                                <tr key={rowId ?? i} className={picked.has(rowId) ? 'admin-row-picked' : ''}>
+                                                    {data.editable.length > 0 && (
+                                                        <td className="admin-cell-tick">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={picked.has(rowId)}
+                                                                onChange={() => togglePicked(rowId)}
+                                                            />
+                                                        </td>
+                                                    )}
                                                     {data.editable.length > 0 && (
                                                         <td
                                                             className="admin-cell-duplicate"
@@ -718,6 +798,16 @@ export default function AdminContentBrowser() {
                                                             onClick={() => duplicateRow(row)}
                                                         >
                                                             ⧉
+                                                        </td>
+                                                    )}
+                                                    {/* Recoverable from the change log, so one confirm. */}
+                                                    {data.editable.length > 0 && (
+                                                        <td
+                                                            className="admin-cell-delete"
+                                                            title="Delete this row"
+                                                            onClick={() => setConfirmDelete(rowId)}
+                                                        >
+                                                            ✕
                                                         </td>
                                                     )}
                                                     {data.columns.map(c => {

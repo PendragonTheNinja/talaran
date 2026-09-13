@@ -4,6 +4,8 @@ import { getItemIcon, getQualityColor } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './LeftPanel.css'
 import EquipmentPanel from './EquipmentPanel'
+import ConfirmModal from './ConfirmModal'
+import BuffPanel from './BuffPanel'
 
 interface InventoryItem {
   id: number
@@ -115,6 +117,10 @@ function sortInventory(items: InventoryItem[], mode: SortMode, dir: SortDir, fil
 export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
+  // Set when eating would replace a running buff, so the player is warned first.
+  const [confirmEat, setConfirmEat] = useState<{ item: string; running: string } | null>(null)
+  // Set when a log is clicked with a tinderbox in hand.
+  const [confirmFire, setConfirmFire] = useState<{ item: string; cost: number } | null>(null)
   const [dropQuantity, setDropQuantity] = useState(1)
   const [tradeAmount, setTradeAmount] = useState(1)
   const [showDropQuantity, setShowDropQuantity] = useState(false)
@@ -244,6 +250,96 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     }
   }
 
+  /**
+   * Eat a provision, warning first if one is already running.
+   *
+   * The warning fires even when it is the same dish: a second Miner's Pasty
+   * restarts the four hours rather than adding to them, and a player topping up
+   * would otherwise assume the timer stacked.
+   */
+  const eatProvision = async (itemName: string) => {
+    try {
+      const { buff } = await apiFetch<{ buff: { sourceItem: string } | null }>('/api/buffs')
+      if (buff) {
+        setConfirmEat({ item: itemName, running: buff.sourceItem })
+        return
+      }
+    } catch {
+      // If the check fails, fall through and let the server decide.
+    }
+    await doEat(itemName)
+  }
+
+  /**
+   * Set a campfire down where you stand.
+   *
+   * Instant, like eating: building a bench is a timed job because it is a
+   * building, but setting light to a bundle of kindling is not.
+   */
+  /**
+   * Anything with a wood quality is firewood. Checking the quality rather than
+   * the name means a new tree species burns without a code change.
+   */
+  const isFirewood = (item: InventoryItem) =>
+    !!item.quality && ['poor', 'fine', 'excellent'].includes(item.quality) && item.name.endsWith('Log')
+
+  /**
+   * Ask the server what it costs before offering the choice, rather than the
+   * client keeping its own copy of the quality table and drifting from it.
+   */
+  const askLightCampfire = async (itemName: string) => {
+    try {
+      const { cost } = await apiFetch<{ cost: number | null }>(
+        `/api/workstations/campfire/cost?itemName=${encodeURIComponent(itemName)}`,
+      )
+      if (!cost) {
+        window.dispatchEvent(new CustomEvent('talaran:notice', {
+          detail: { message: 'That will not burn.', type: 'error' },
+        }))
+        return
+      }
+      setConfirmFire({ item: itemName, cost })
+    } catch (err: any) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: err.message || 'It will not light.', type: 'error' },
+      }))
+    }
+  }
+
+  const lightCampfire = async (itemName: string) => {
+    try {
+      const res = await apiFetch<{ message: string }>('/api/workstations/campfire', {
+        method: 'POST',
+        body: JSON.stringify({ itemName }),
+      })
+      window.dispatchEvent(new CustomEvent('talaran:notice', { detail: { message: res.message } }))
+      // The location menu shows the fire while it burns, and it is a different
+      // component in a different column, so tell it directly rather than
+      // waiting for whatever refresh happens to come next.
+      window.dispatchEvent(new CustomEvent('talaran:campfire-lit'))
+      onInventoryUpdate()
+    } catch (err: any) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: err.message || 'It will not light.', type: 'error' },
+      }))
+    }
+  }
+
+  const doEat = async (itemName: string) => {
+    try {
+      const res = await apiFetch<{ message: string }>('/api/buffs/eat', {
+        method: 'POST',
+        body: JSON.stringify({ itemName }),
+      })
+      window.dispatchEvent(new CustomEvent('talaran:notice', { detail: { message: res.message } }))
+      onInventoryUpdate()
+    } catch (err: any) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: err.message || 'You cannot eat that.', type: 'error' },
+      }))
+    }
+  }
+
   const handleContextMenu = (e: React.MouseEvent, item: InventoryItem) => {
     e.preventDefault()
     setContextMenu({ x: e.clientX, y: e.clientY, item })
@@ -289,6 +385,13 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               if (dropMode) {
                 const qty = Math.min(dropAmount || 1, item.quantity)
                 onDropItem(item.item_id, qty)
+              } else if (isFirewood(item)) {
+                askLightCampfire(item.name)
+              } else if (item.subtype === 'provision') {
+                // Provisions are eaten, not worn. Falling through to handleEquip
+                // told the player a pasty "cannot be equipped", which is true and
+                // useless.
+                eatProvision(item.name)
               } else {
                 handleEquip(item)
               }
@@ -442,7 +545,37 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         onInventoryUpdate={onInventoryUpdate}
       />
 
+      <BuffPanel onInventoryUpdate={onInventoryUpdate} />
+
       <div className="divider" />
+
+      {confirmFire && (
+        <ConfirmModal
+          message={`Light a campfire here? It will take ${confirmFire.cost} ${confirmFire.item.toLowerCase()}${confirmFire.cost === 1 ? '' : 's'} and burn for about half an hour. Only plain roasting can be done on it.`}
+          confirmLabel="Light It"
+          onConfirm={() => {
+            const it = confirmFire.item
+            setConfirmFire(null)
+            lightCampfire(it)
+          }}
+          onCancel={() => setConfirmFire(null)}
+        />
+      )}
+
+      {confirmEat && (
+        <ConfirmModal
+          message={confirmEat.item === confirmEat.running
+            ? `You already have a ${confirmEat.running.toLowerCase()} working. Eating another restarts it rather than adding to the time. Go ahead?`
+            : `You already have a ${confirmEat.running.toLowerCase()} working. Eating a ${confirmEat.item.toLowerCase()} will replace it, and the old one is lost. Go ahead?`}
+          confirmLabel="Eat It"
+          onConfirm={() => {
+            const item = confirmEat.item
+            setConfirmEat(null)
+            doEat(item)
+          }}
+          onCancel={() => setConfirmEat(null)}
+        />
+      )}
 
       {/* Context Menu */}
       {
@@ -458,6 +591,27 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
             >
               <div className="context-menu-title">{contextMenu.item.name}</div>
               <div className="context-menu-divider" />
+              {/* Provisions are the only edible thing for now. Cooked food
+                  carries a heal_amount but there is no health to restore until
+                  combat exists, so offering Eat on a fish would do nothing. */}
+              {isFirewood(contextMenu.item) && (
+                <button className="context-menu-item" onClick={() => {
+                  const name = contextMenu.item.name
+                  setContextMenu(null)
+                  askLightCampfire(name)
+                }}>
+                  Light a Campfire
+                </button>
+              )}
+              {contextMenu.item.subtype === 'provision' && (
+                <button className="context-menu-item" onClick={() => {
+                  const name = contextMenu.item.name
+                  setContextMenu(null)
+                  eatProvision(name)
+                }}>
+                  Eat
+                </button>
+              )}
               {contextMenu.item.slot && (
                 <button className="context-menu-item" onClick={() => {
                   handleEquip(contextMenu.item)
