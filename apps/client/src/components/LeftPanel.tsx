@@ -16,6 +16,10 @@ interface InventoryItem {
   quality: string | null
   tier: number
   description: string
+  buff_effect?: string | null
+  buff_skill?: string | null
+  buff_magnitude?: number | null
+  buff_seconds?: number | null
   quantity: number
   slot?: string
   /** Open liquid containers are not real inventory rows — see routes/inventory. */
@@ -338,6 +342,32 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         detail: { message: err.message || 'You cannot eat that.', type: 'error' },
       }))
     }
+  }
+
+  /**
+   * The effect in words. The stored magnitude means something different per
+   * effect, so a bare number would say nothing: seconds are a percentage off a
+   * timer, rare is a percentage better chance, double is a percentage of
+   * actions, travel is a percentage off the road.
+   */
+  const describeBuff = (item: InventoryItem): string => {
+    const where = item.buff_skill || 'every skill'
+    const n = item.buff_magnitude ?? 0
+    switch (item.buff_effect) {
+      case 'timer': return `${n}% faster at ${where}`
+      case 'rare': return `${n}% better rare finds at ${where}`
+      case 'double': return `${n}% chance of a double yield at ${where}`
+      case 'travel': return `${n}% faster travel`
+      default: return `A boon to ${where}`
+    }
+  }
+
+  const fmtBuffTime = (seconds: number): string => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.round((seconds % 3600) / 60)
+    if (h > 0 && m > 0) return `${h}h ${m}m`
+    if (h > 0) return h === 1 ? 'an hour' : `${h} hours`
+    return m === 1 ? 'a minute' : `${m} minutes`
   }
 
   const handleContextMenu = (e: React.MouseEvent, item: InventoryItem) => {
@@ -684,6 +714,14 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               <p className="item-tooltip-quality">{tooltip.item.quality.charAt(0).toUpperCase() + tooltip.item.quality.slice(1)}</p>
             )}
             <p className="item-tooltip-desc">{tooltip.item.description}</p>
+            {/* What a provision actually does. The flavour text says "steadies
+                the hands", which is the right voice and tells nobody what they
+                are eating. */}
+            {tooltip.item.buff_effect && (
+              <p className="item-tooltip-buff">
+                {describeBuff(tooltip.item)} for {fmtBuffTime(tooltip.item.buff_seconds ?? 0)}
+              </p>
+            )}
             {tooltip.item.slot && (
               <p className="item-tooltip-hint">Left-click to equip · Right-click for options</p>
             )}

@@ -23,7 +23,14 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   'items.tier',
   'items.slot',
   'items.level_required',
-  'items.description'
+  'items.description',
+  // So the tooltip can say what a provision actually does. Read live rather
+  // than written into the description, which would go stale the moment a
+  // magnitude is tuned in the admin panel.
+  'items.buff_effect',
+  'items.buff_skill',
+  'items.buff_magnitude',
+  'items.buff_seconds'
 );
 
     // The open container has no player_inventory row — it is a bucket in use, not

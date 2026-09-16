@@ -105,13 +105,14 @@ async function skillInfo(playerId: number, skillName: string): Promise<{ skillId
  * speed on its second lap.
  */
 export async function stationMultiplier(playerId: number, recipe: any): Promise<number> {
-    const check = await checkStation(playerId, recipe)
+    const check = await checkStation(playerId, recipe, false)
     return check.multiplier
 }
 
 /** Effective timer for a recipe, station and tool tier included. */
 export async function recipeTimerFor(playerId: number, recipe: any): Promise<number> {
-    const check = await checkStation(playerId, recipe)
+    // Read only. canStartRecipe already lit the fire if it needed lighting.
+    const check = await checkStation(playerId, recipe, false)
     // Applied to the station-adjusted timer, not the base one. Borrowing
     // Geoffrey's slow forge doubles the job, and a percentage buff should come
     // off what you are actually standing there for.
@@ -202,6 +203,10 @@ export async function getActiveRecipes() {
         // Whether the output carries a buff, so the cookhouse can give
         // provisions their own tab rather than burying them among the heals.
         isProvision: !!r.output_buff_effect,
+        // So a refresh can recover the scene text for a running craft. The
+        // start endpoint returns it; the list did not, which left a reloaded
+        // cook with a generic line and no fire.
+        flavorText: r.flavor_text ?? null,
     }))
 }
 

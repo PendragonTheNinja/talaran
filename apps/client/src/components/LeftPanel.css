@@ -302,7 +302,7 @@
 
 .item-tooltip-name {
   font-family: var(--font-heading);
-  font-size: 16px;
+  font-size: 15px;
   margin: 0 0 4px;
 }
 
@@ -314,7 +314,7 @@
 }
 
 .item-tooltip-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-base);
   margin: 0 0 8px;
   line-height: 1.4;
@@ -712,9 +712,11 @@
   pointer-events: none;
   /* Quarter marks only, and faint. At 10% steps and 0.32 alpha these read as
      stacked blocks rather than a gauge. */
-  background: repeating-linear-gradient(180deg,
-      rgba(0, 0, 0, 0.28) 0 1px,
-      transparent 1px 25%);
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.28) 0 1px,
+    transparent 1px 25%
+  );
 }
 
 .vital-fill {
@@ -724,11 +726,13 @@
   transition: height 0.4s ease;
   /* A vertical sheen down the middle, so the fill reads as a rounded column of
      liquid rather than a flat block of colour. */
-  background-image: linear-gradient(90deg,
-      rgba(0, 0, 0, 0.28) 0%,
-      rgba(255, 255, 255, 0.22) 42%,
-      rgba(255, 255, 255, 0.08) 60%,
-      rgba(0, 0, 0, 0.3) 100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.28) 0%,
+    rgba(255, 255, 255, 0.22) 42%,
+    rgba(255, 255, 255, 0.08) 60%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
 }
 
 /* A highlight at the top edge, suggesting a surface.
@@ -743,20 +747,22 @@
   right: 3px;
   height: 1px;
   border-radius: 1px;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3) 40%,
-      rgba(255, 255, 255, 0.3) 60%,
-      transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3) 40%,
+    rgba(255, 255, 255, 0.3) 60%,
+    transparent
+  );
 }
 
 .vital-fill.health {
-  background-color: #940c00;
+  background-color: #b3372c;
   box-shadow: 0 0 6px rgba(192, 57, 43, 0.45);
 }
 
 .vital-fill.mana {
-  background-color: #210c7e;
+  background-color: #5d4bab;
   box-shadow: 0 0 6px rgba(93, 75, 171, 0.45);
 }
 
@@ -772,7 +778,7 @@
 
 .vital-label {
   font-family: var(--font-heading);
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 1px;
   color: var(--color-gold-dim);
 }
@@ -809,3 +815,11 @@
 /* Slots are 44px on mobile, so the row is already narrow. The bars keep their
    width there: legibility matters more than the few pixels saved, and
    space-evenly handles the rest. */
+
+/* What a provision does, under its flavour text. Gold, so it reads as a game
+   fact rather than as more prose. */
+.item-tooltip-buff {
+  color: var(--color-gold);
+  font-size: 12px;
+  margin: 2px 0 0;
+}

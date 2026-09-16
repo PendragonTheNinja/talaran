@@ -1,0 +1,75 @@
+/* The fire, beside the cooking scene.
+   A small horizontal strip: the flame, how long it has left, and the wood that
+   goes on next. Sized so it sits under the action text without competing with
+   it. */
+
+.fire-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 10px;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-sm);
+}
+
+.fire-art {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* Drawn only when the art is missing, so a fire still reads before the images
+   land. */
+.fire-glyph {
+  font-size: 48px;
+  line-height: 1;
+  width: 48px;
+  text-align: center;
+  color: var(--color-gold);
+}
+
+.fire-glyph.fire-out {
+  color: var(--color-text-dim);
+}
+
+.fire-lines {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.fire-left {
+  font-size: 14px;
+  color: var(--color-gold-bright);
+}
+
+.fire-next {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.fire-next img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* Out of wood is the one state worth colouring, because it is the one that
+   stops the cooking. */
+.fire-none {
+  color: var(--color-red-bright);
+}
+
+/* Cooking on a public hearth. Quieter than your own fire, because there is
+   nothing here for the player to manage. */
+.fire-borrowed {
+  opacity: 0.75;
+}
+
+.fire-borrowed .fire-left {
+  color: var(--color-text-muted);
+}

@@ -29,6 +29,7 @@ import SkillsPanel from './SkillsPanel'
 import MiniMap from './MiniMap'
 import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
+import FeatsPanel from './FeatsPanel'
 import HuntingMenu from './HuntingMenu'
 import ForagingMenu from './ForagingMenu'
 import WorkstationPanel from './WorkstationPanel'
@@ -533,6 +534,7 @@ export default function GameLayout({
   const [chatDraft, setChatDraft] = useState<string | null>(null)
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [showQuestsModal, setShowQuestsModal] = useState(false)
+  const [showFeatsModal, setShowFeatsModal] = useState(false)
 
   useEffect(() => {
     const loadCount = () => {
@@ -730,6 +732,9 @@ export default function GameLayout({
     { label: 'Store', onClick: () => { closeAllPanels(); setShowSupport(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
     { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
+    // Feats shipped as a fourth tab on the desktop panel, and the mobile drawer
+    // never got an entry, so the whole feature was unreachable on a phone.
+    { label: 'Feats', onClick: () => { closeAllPanels(); setShowFeatsModal(true) } },
     ...(playerData?.player?.is_admin || playerData?.player?.is_mod
       ? [{ label: 'Admin', onClick: () => { closeAllPanels(); setShowAdmin(true) } }]
       : []),
@@ -1176,6 +1181,15 @@ export default function GameLayout({
           <div className="quests-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowQuestsModal(false)}>✕</button>
             <QuestsView />
+          </div>
+        </div>
+      )}
+
+      {showFeatsModal && (
+        <div className="modal-overlay" onClick={() => setShowFeatsModal(false)}>
+          <div className="quests-popup" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowFeatsModal(false)}>✕</button>
+            <FeatsPanel />
           </div>
         </div>
       )}

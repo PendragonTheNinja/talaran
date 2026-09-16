@@ -19,7 +19,9 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         // your own half-finished forge is full speed, not the smith's.
         const playerId = req.player!.playerId
         const annotated = await Promise.all(recipes.map(async (r: any) => {
-            const check = await checkStation(playerId, r)
+            // false: listing recipes must never spend the player's wood. With
+            // this left on, opening the cookhouse bought a fire once per recipe.
+            const check = await checkStation(playerId, r, false)
             return {
                 ...r,
                 available: check.ok,

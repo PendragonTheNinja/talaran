@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import FireIndicator from './FireIndicator'
 import { apiFetch } from '../lib/api'
 import { flyItemToPack, setItemAnimationEnabled } from '../lib/itemFly'
 import { getSocket } from '../lib/socket'
@@ -167,6 +168,8 @@ export default function GameView({
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
     ended?: 'limit' | 'materials' | 'unavailable'
+    /** The server's own sentence for why it stopped, shown instead of a guess. */
+    endedReason?: string
     drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[]
     notable?: boolean
     firstDiscovery?: boolean
@@ -576,7 +579,15 @@ export default function GameView({
 
       socket.on('action_failed', (data: { error: string; info?: boolean }) => {
         addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
-        if (data.info) setLastResult(prev => prev ? { ...prev, ended: 'materials' } : prev)
+        // Carry the server's own sentence. Every informational stop used to be
+        // labelled "Out of materials", so a hearth going cold, a tool being
+        // unsocketed and a campfire burning out all read as running out of
+        // ingredients.
+        if (data.info) {
+          setLastResult(prev => prev
+            ? { ...prev, ended: 'materials', endedReason: data.error }
+            : prev)
+        }
         setCurrentAction(null)
         setActiveNodeId(null)
         setTimerSeconds(0)
@@ -899,6 +910,18 @@ export default function GameView({
         setCurrentAction('recipe')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
+        // recipeLabel is only set by startRecipe, so after a refresh the scene
+        // had no idea WHICH recipe was running: no flavour text, a generic
+        // "Stop Crafting", and no fire for a cook. Recovered from the action's
+        // own data, which is the recipe id.
+        if (action.action_data) {
+          apiFetch<{ recipes: { id: number; name: string; skill: string; flavorText: string | null }[] }>('/api/recipes')
+            .then(d => {
+              const r = d.recipes.find(x => x.id === Number(action.action_data))
+              if (r) setRecipeLabel({ name: r.name, skill: r.skill, flavorText: r.flavorText })
+            })
+            .catch(() => { /* the scene still works without a label */ })
+        }
         break
 
       case 'traveling':
@@ -1567,7 +1590,9 @@ export default function GameView({
               {lastResult?.ended && (
                 <div className="scene-last-result action-ended-summary">
                   <p className="last-result-ended-title gold-text">
-                    {lastResult.ended === 'limit' ? 'Action limit reached' : 'Out of materials'}
+                    {lastResult.ended === 'limit'
+                      ? 'Action limit reached'
+                      : lastResult.endedReason || 'Out of materials'}
                   </p>
                   {renderResultDetails(lastResult)}
                 </div>
@@ -1653,6 +1678,12 @@ export default function GameView({
               )}
               {currentAction === 'build_hearth' && (
                 <p className="scene-action-text gold-text">You are setting granite in mortar and drawing the flue straight.</p>
+              )}
+              {/* The fire, while a cook is running. It is the one thing that can
+                  stop a cook without the player doing anything, so it belongs in
+                  sight. No other bench burns wood, so no other bench shows it. */}
+              {currentAction === 'recipe' && recipeLabel?.skill === 'Cooking' && (
+                <FireIndicator />
               )}
               {currentAction === 'recipe' && (
                 <p className="scene-action-text gold-text">

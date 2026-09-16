@@ -54,7 +54,27 @@ async function snapshot(playerId: number) {
         totalLevel += level
     }
 
-    return { stats, levels, totalLevel }
+    // How many trades Talaran currently has. Read rather than hardcoded, so a
+    // feat asking for "every trade" raises itself when a skill ships instead of
+    // needing a migration and a player noticing the number is stale.
+    const tradeRow = await db('skills')
+        .where({ is_active: true, is_implemented: true })
+        .count({ c: '*' })
+        .first()
+    const tradeCount = Number(tradeRow?.c ?? 0)
+
+    return { stats, levels, totalLevel, tradeCount }
+}
+
+/**
+ * What a feat is asking for.
+ *
+ * Usually the stored number. For 'breadth_all' it is however many trades exist
+ * right now, which is the whole point of that kind.
+ */
+function targetOf(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number {
+    if (feat.criterion_kind === 'breadth_all') return snap.tradeCount
+    return Number(feat.criterion_value)
 }
 
 /** How far along a player is, in the feat's own units. */
@@ -68,9 +88,11 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
             return snap.levels.get(feat.criterion_target) ?? 0
         case 'total_level':
             return snap.totalLevel
-        case 'breadth': {
-            // criterion_target holds the level each skill must reach, and
-            // criterion_value how many skills must reach it.
+        // Both count skills at or above a bar. They differ only in what they
+        // are measured against: 'breadth' wants a fixed number of trades,
+        // 'breadth_all' wants all of them, whatever that is today.
+        case 'breadth':
+        case 'breadth_all': {
             const bar = Number(feat.criterion_target) || 1
             let count = 0
             for (const level of snap.levels.values()) if (level >= bar) count++
@@ -100,7 +122,7 @@ export async function evaluateFeats(playerId: number): Promise<{ slug: string; n
         const fresh: { slug: string; name: string; title: string | null }[] = []
         for (const feat of all as any[]) {
             if (earned.has(feat.id)) continue
-            if (measure(feat, snap) < Number(feat.criterion_value)) continue
+            if (measure(feat, snap) < targetOf(feat, snap)) continue
 
             const inserted = await db('player_feats')
                 .insert({ player_id: playerId, feat_id: feat.id })
@@ -165,8 +187,8 @@ export async function listFeats(playerId: number): Promise<{
             category: feat.category,
             isHidden: !!feat.is_hidden,
             earnedAt: earnedAt ? new Date(earnedAt).toISOString() : null,
-            progress: Math.min(measure(feat, snap), Number(feat.criterion_value)),
-            target: Number(feat.criterion_value),
+            progress: Math.min(measure(feat, snap), targetOf(feat, snap)),
+            target: targetOf(feat, snap),
         })
     }
 

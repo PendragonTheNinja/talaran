@@ -189,6 +189,14 @@ export async function describeStation(playerId: number, locationId: number, type
         // vanish when it does not, so the client needs both the flag and the
         // time left rather than inferring either.
         isTemporary: isTemporary(station),
+        // The fire, for the indicator: when it goes out, and what is in the
+        // pack to feed it. Both read-only.
+        fuelUntil: station?.fuel_until ? new Date(station.fuel_until).toISOString() : null,
+        fuelSecondsLeft: station?.fuel_until
+            ? Math.max(0, Math.round((new Date(station.fuel_until).getTime() - Date.now()) / 1000))
+            : 0,
+        fuelMaxSeconds: isTemporary(station) ? CAMPFIRE_SECONDS : HEARTH_FUEL_SECONDS,
+        nextFuel: await nextFuelFor(playerId),
         secondsLeft: station?.expires_at
             ? Math.max(0, Math.round((new Date(station.expires_at).getTime() - Date.now()) / 1000))
             : null,
@@ -532,6 +540,22 @@ async function awardCraftingXp(playerId: number, xp: number): Promise<void> {
     }
 }
 
+/**
+ * The wood that would go on the fire next, and how much of it is left.
+ *
+ * Worst first, matching what the refuel actually burns, so the count beside the
+ * fire is the count that is about to go down.
+ */
+export async function nextFuelFor(playerId: number): Promise<{ itemName: string; held: number; cost: number } | null> {
+    for (const stack of await burnableLogs(playerId)) {
+        const cost = LOG_COST[stack.quality]
+        if (cost && stack.quantity >= cost) {
+            return { itemName: stack.name, held: stack.quantity, cost }
+        }
+    }
+    return null
+}
+
 /** What lighting this log would cost, or null if it is not firewood. */
 export async function fuelCostFor(itemName: string): Promise<number | null> {
     const item = await db('items').where({ name: itemName }).first()
@@ -614,13 +638,33 @@ export async function lightCampfire(
  *
  * Returns false only when the fire is out AND there is nothing to burn.
  */
-async function ensureHearthFuel(playerId: number, station: any): Promise<'lit' | 'no-wood' | 'no-tinderbox'> {
+async function ensureHearthFuel(
+    playerId: number,
+    station: any,
+    spend = true,
+): Promise<'lit' | 'no-wood' | 'no-tinderbox'> {
     if (isTemporary(station)) {
         // A campfire's fuel and its lifetime are the same thing.
         return 'lit'
     }
     const lit = station.fuel_until && new Date(station.fuel_until).getTime() > Date.now()
     if (lit) return 'lit'
+
+    // A read asks "could you cook here", not "is it burning". Answering the
+    // second blocked every recipe the moment a fire went out, because the list
+    // marked them unavailable and the player could never reach the code that
+    // would light one.
+    //
+    // So a read looks ahead: hold a tinderbox and carry wood you can afford to
+    // burn, and the answer is yes. Starting the job lights it for real.
+    if (!spend) {
+        if (!(await heldTinderbox(playerId))) return 'no-tinderbox'
+        for (const stack of await burnableLogs(playerId)) {
+            const cost = LOG_COST[stack.quality]
+            if (cost && stack.quantity >= cost) return 'lit'
+        }
+        return 'no-wood'
+    }
 
     // Relighting a cold hearth is lighting a fire, and that wants the same
     // tinderbox a campfire does. Once it is going you may put your hatchet back
@@ -629,6 +673,14 @@ async function ensureHearthFuel(playerId: number, station: any): Promise<'lit' |
 
     let fed = false
     await db.transaction(async trx => {
+        // Re-read the row INSIDE the transaction, locked. Two jobs starting at
+        // once would otherwise both see a cold hearth and both pay for it.
+        const fresh = await trx('workstations').where({ id: station.id }).forUpdate().first()
+        if (fresh?.fuel_until && new Date(fresh.fuel_until).getTime() > Date.now()) {
+            fed = true
+            return
+        }
+
         const logs = await burnableLogs(playerId, trx)
         for (const stack of logs) {
             const cost = LOG_COST[stack.quality]
@@ -717,7 +769,17 @@ export interface StationCheck {
  * The lowest tier is what counts: a gold anvil does not compensate for a
  * rusted hammer.
  */
-export async function checkStation(playerId: number, recipe: any): Promise<StationCheck> {
+/**
+ * Can this player make this recipe here, and how fast?
+ *
+ * `spend` decides whether a cold hearth is allowed to BUY fuel. The recipe list
+ * annotates every recipe with this, so with spend left on, opening the cookhouse
+ * bought a fire once per recipe: seventy-eight concurrent calls, each seeing an
+ * unlit hearth, each paying. One player lost 220 logs opening a menu.
+ *
+ * Reads pass false. Only actually starting a job passes true.
+ */
+export async function checkStation(playerId: number, recipe: any, spend = true): Promise<StationCheck> {
     const rawNeeded = parseRequiredTools(recipe)
 
     /**
@@ -798,7 +860,7 @@ export async function checkStation(playerId: number, recipe: any): Promise<Stati
         // A cold hearth cooks nothing. Refuelled from the pack if it can be,
         // so this only ever refuses a cook who has run out of wood.
         if (recipe.station === 'cooking') {
-            const fire = await ensureHearthFuel(playerId, station)
+            const fire = await ensureHearthFuel(playerId, station, spend)
             if (fire !== 'lit') {
                 return {
                     ok: false,
@@ -911,6 +973,7 @@ export async function locationHasPublicStation(playerId: number, locationId: num
 
 /** Effective timer for a recipe, station and tool tier included. */
 export async function recipeTimerWithTools(playerId: number, recipe: any): Promise<number> {
-    const check = await checkStation(playerId, recipe)
+    // A timer calculation, not a decision to cook. Never buys fuel.
+    const check = await checkStation(playerId, recipe, false)
     return Math.max(1, Math.round(recipe.timer_seconds * check.multiplier))
 }
