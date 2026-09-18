@@ -162,24 +162,33 @@ const TYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     mount: 'provisioner',
 };
 
+// The merchant who SELLS a thing is the one who buys it back, and a tool's
+// merchant is the trade that MAKES it, not the skill that swings it. Merrick
+// sells the hoe, the foraging knife and the butchering knife because he forges
+// them, and they serve three skills that are not his.
+//
+// So the test for a line here is the recipe's `skill`, not its `for_skill`.
+// Reading it the other way put four tools on the wrong shelf for months: the
+// mucking fork is planks and nails (Carpentry), while the snare, the foraging
+// basket, the fishing net, the skep and the mortar and pestle are all Crafting.
+//
+// The hearth is deliberately absent: 20260905210000 deleted the item and made
+// it a built structure, so there is nothing to shelve or buy back.
 const TOOL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     pickaxe: 'smith', axe: 'smith', hammer: 'smith', tongs: 'smith', anvil: 'smith',
-    saw: 'smith', plane: 'smith', hoe: 'smith', fork: 'smith', butcher_knife: 'smith',
+    saw: 'smith', plane: 'smith', hoe: 'smith', butcher_knife: 'smith',
     foraging_knife: 'smith',
-    // Cooking gear. All of it is forged or dressed from stone, and the smith
-    // already buys rock and ore, so the hearth and mortar sit with him rather
-    // than with the cook who uses them.
+    // Cooking's irons, all forged at the anvil.
     cauldron: 'smith', skillet: 'smith', cooking_knife: 'smith', meat_cleaver: 'smith',
-    ladle: 'smith', flesh_hook: 'smith', tinderbox: 'smith',
-    hearth: 'smith', mortar_pestle: 'smith',
-    hook: 'smith',
+    ladle: 'smith', flesh_hook: 'smith', tinderbox: 'smith', hook: 'smith',
     mallet: 'carpenter', sawhorse: 'carpenter', staff: 'carpenter', bow: 'carpenter',
-    bucket: 'carpenter', pail: 'carpenter', trap: 'carpenter',
-    tanning_rack: 'carpenter', tanning_barrel: 'carpenter', foraging_basket: 'carpenter',
-    // A skep is a woven container, the same as the foraging basket beside it.
-    // Filled, it is a colony of bees and stops being carpentry at all.
-    skep: 'carpenter', fishing_rod: 'carpenter',
+    bucket: 'carpenter', pail: 'carpenter', fork: 'carpenter',
+    tanning_rack: 'carpenter', tanning_barrel: 'carpenter', fishing_rod: 'carpenter',
+    // Crafting's bench: leather, cordage, weaving and dressed stone.
     halter: 'leatherworker', foraging_gloves: 'leatherworker', fishing_net: 'leatherworker',
+    trap: 'leatherworker', foraging_basket: 'leatherworker', skep: 'leatherworker',
+    mortar_pestle: 'leatherworker',
+    // A filled skep is a colony, not a bench product.
     skep_full: 'provisioner',
 };
 
@@ -267,9 +276,48 @@ export async function unmappedItems(): Promise<UnmappedItem[]> {
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// Daily stock rotation
-// ---------------------------------------------------------------------------
+/**
+ * Every shelf line whose item belongs to a different trade.
+ *
+ * A merchant who sells a thing must buy it back, or a player ends up holding
+ * something the shop that sold it will not take. Nothing enforced that, so the
+ * mucking fork sat on the smith's shelf while the carpenter's domain claimed
+ * it, and the snare and foraging basket did the same. All three read fine in
+ * review: the seed lists names, and the domain map lists subtypes, and the two
+ * are never compared.
+ *
+ * Empty is the correct result. Surfaced in admin beside the wall check.
+ */
+export async function validateShelves(): Promise<string[]> {
+    const rows = await db('merchant_stock')
+        .join('items', 'items.id', 'merchant_stock.item_id')
+        .join('merchants', 'merchants.id', 'merchant_stock.merchant_id')
+        .where('merchant_stock.is_active', true)
+        .where('items.is_active', true)
+        .select(
+            'merchants.key as merchantKey',
+            'merchants.name as merchantName',
+            'items.name as itemName',
+            'items.type as type',
+            'items.subtype as subtype',
+        );
+
+    const problems: string[] = [];
+    for (const r of rows as any[]) {
+        const domain = merchantForItem(r);
+        if (domain !== r.merchantKey) {
+            problems.push(
+                `${r.merchantName} (${r.merchantKey}) stocks ${r.itemName}, which belongs to ${domain}. `
+                + `He sells it and will not buy it back.`,
+            );
+        }
+    }
+
+    if (problems.length) logger.warn(`[marketplace] shelf validation found ${problems.length} problems`);
+    return problems;
+}
+
+
 
 /**
  * Deterministic PRNG seeded from a string. The seed is the Eastern day key plus
