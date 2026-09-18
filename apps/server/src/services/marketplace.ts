@@ -157,16 +157,30 @@ const TYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     armor: 'leatherworker',
     food: 'provisioner',
     animal: 'provisioner',
+    // A mount is livestock raised in a pen, so it belongs to the same trade
+    // that buys the calf it came from.
+    mount: 'provisioner',
 };
 
 const TOOL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     pickaxe: 'smith', axe: 'smith', hammer: 'smith', tongs: 'smith', anvil: 'smith',
     saw: 'smith', plane: 'smith', hoe: 'smith', fork: 'smith', butcher_knife: 'smith',
     foraging_knife: 'smith',
+    // Cooking gear. All of it is forged or dressed from stone, and the smith
+    // already buys rock and ore, so the hearth and mortar sit with him rather
+    // than with the cook who uses them.
+    cauldron: 'smith', skillet: 'smith', cooking_knife: 'smith', meat_cleaver: 'smith',
+    ladle: 'smith', flesh_hook: 'smith', tinderbox: 'smith',
+    hearth: 'smith', mortar_pestle: 'smith',
+    hook: 'smith',
     mallet: 'carpenter', sawhorse: 'carpenter', staff: 'carpenter', bow: 'carpenter',
     bucket: 'carpenter', pail: 'carpenter', trap: 'carpenter',
     tanning_rack: 'carpenter', tanning_barrel: 'carpenter', foraging_basket: 'carpenter',
-    halter: 'leatherworker', foraging_gloves: 'leatherworker',
+    // A skep is a woven container, the same as the foraging basket beside it.
+    // Filled, it is a colony of bees and stops being carpentry at all.
+    skep: 'carpenter', fishing_rod: 'carpenter',
+    halter: 'leatherworker', foraging_gloves: 'leatherworker', fishing_net: 'leatherworker',
+    skep_full: 'provisioner',
 };
 
 const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
@@ -179,6 +193,10 @@ const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     grain: 'provisioner', produce: 'provisioner', foodstuff: 'provisioner',
     fodder: 'provisioner', fertiliser: 'provisioner', reagent: 'provisioner',
     liquid: 'provisioner',
+    // The bee chain. Honeycomb is pressed into honey and beeswax falls out of
+    // the same press, so both follow the food chain that produces them rather
+    // than any use they might find later.
+    hive: 'provisioner', wax: 'provisioner',
     // 'trophy' is deliberately absent: trophies are 1/300 keepsakes and belong
     // to the pawnbroker, who at least gives them a floor without a themed
     // merchant implying they are ordinary stock.
@@ -200,18 +218,53 @@ export function buyRateFor(merchantKey: MerchantKey, itemMerchant: MerchantKey):
     return merchantKey === itemMerchant ? WALLS.BUY_RATE : null;  // null = "not my trade"
 }
 
-/**
- * Every priced item that no themed merchant claims. Should be short and
- * intentional (trophies, curios). If a whole new skill's output appears here,
- * the domain map needs a line. Surfaced in admin.
- */
-export async function unmappedItems(): Promise<Array<{ id: number; name: string; type: string; subtype: string | null }>> {
-    const items = await db('items')
-        .whereNotNull('value')
-        .where({ is_active: true })
-        .select('id', 'name', 'type', 'subtype');
+export interface UnmappedItem {
+    id: number;
+    name: string;
+    type: string;
+    subtype: string | null;
+    /** What the domain map claims. 'pawnbroker' means nothing claimed it. */
+    domain: MerchantKey;
+    reason: 'no themed merchant' | 'merchant inactive';
+}
 
-    return items.filter((i: any) => merchantForItem(i) === 'pawnbroker');
+/**
+ * Every priced item that will not get a themed merchant's 45%. Should be short
+ * and intentional (trophies, curios). If a whole new skill's output appears
+ * here, the domain map needs a line. Surfaced in admin.
+ *
+ * Two ways to land here, and for one patch this only caught the first. Cooking
+ * shipped ~40 items of `type: 'food'`, which the map DOES claim, for a
+ * provisioner who is seeded inactive. Every one of them fell to the
+ * pawnbroker's 35% while this check reported clean, because a claim on a
+ * merchant nobody can trade with is not a claim. A domain is only real if the
+ * merchant holding it is active.
+ */
+export async function unmappedItems(): Promise<UnmappedItem[]> {
+    const [items, merchants] = await Promise.all([
+        db('items')
+            .whereNotNull('value')
+            .where({ is_active: true })
+            .select('id', 'name', 'type', 'subtype'),
+        db('merchants').select('key', 'is_active'),
+    ]);
+
+    const trading = new Set<string>(
+        merchants.filter((m: any) => m.is_active).map((m: any) => String(m.key)),
+    );
+
+    const out: UnmappedItem[] = [];
+    for (const i of items as any[]) {
+        const domain = merchantForItem(i);
+        const row = { id: i.id, name: i.name, type: i.type, subtype: i.subtype ?? null, domain };
+
+        if (domain === 'pawnbroker') {
+            out.push({ ...row, reason: 'no themed merchant' });
+        } else if (!trading.has(domain)) {
+            out.push({ ...row, reason: 'merchant inactive' });
+        }
+    }
+    return out;
 }
 
 // ---------------------------------------------------------------------------

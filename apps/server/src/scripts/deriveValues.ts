@@ -116,6 +116,15 @@ const OVERRIDES: Record<string, { value: number; why: string }> = {
     // The peg prices the sawing action, and the plank already carries that
     // value. The dust is what is left on the floor.
     'Sawdust': { value: 1, why: 'Byproduct nobody would pay real coin for' },
+
+    // Burnt food is a failed cook, not a product. No recipe outputs it, so the
+    // derivation reaches it as a tier-1 leaf and prices it like an ordinary
+    // minute of work, which would make burning a fish worth nearly as much as
+    // cooking one. A single ruined meal is worth a coin at most.
+    'Burnt Fish': { value: 1, why: 'A failed cook, not a product' },
+    'Burnt Meat': { value: 1, why: 'A failed cook, not a product' },
+    'Burnt Pottage': { value: 1, why: 'A failed cook, not a product' },
+    'Burnt Pastry': { value: 1, why: 'A failed cook, not a product' },
 };
 
 const best = new Map<string, Derived>();
@@ -127,11 +136,25 @@ function propose(name: unknown, d: Derived): void {
     if (!prev || v < prev.value) best.set(name, { ...d, value: v });
 }
 
+/**
+ * A recipe input is either a named item or a subtype wildcard, exactly as
+ * services/recipes.ts reads it: Fish Stew takes ANY cooked fish, so its input
+ * is `{ subtype: 'cooked_fish', qty: 2, label: 'Any Cooked Fish' }` with no
+ * itemName at all. Reading only itemName left those inputs undefined, the
+ * recipe never satisfied its cost check, and every composite dish came out of a
+ * --write run with a null value and so unsellable at any merchant.
+ */
+interface RecipeInput {
+    itemName?: string;
+    subtype?: string;
+    qty: number;
+}
+
 interface PseudoRecipe {
     name: string;
     output: string;
     outputQty: number;
-    inputs: Array<{ itemName: string; qty: number }>;
+    inputs: RecipeInput[];
     level: number;
     timer: number;
     method: Method;
@@ -164,8 +187,10 @@ async function readTable(name: string, activeOnly = true): Promise<any[]> {
 
 async function main(): Promise<void> {
     const write = process.argv.includes('--write');
-    const items: Array<{ id: number; name: string; tier: number | null; value_locked?: boolean }> =
-        await db('items').select('id', 'name', 'tier', 'value_locked');
+    const items: Array<{
+        id: number; name: string; subtype: string | null;
+        tier: number | null; value_locked?: boolean;
+    }> = await db('items').select('id', 'name', 'subtype', 'tier', 'value_locked');
     const lockedNames = new Set(items.filter((i) => i.value_locked).map((i) => i.name));
     const itemNames = new Set(items.map((i) => i.name));
     const itemById = new Map(items.map((i) => [i.id, i.name]));
@@ -384,14 +409,20 @@ async function main(): Promise<void> {
         // deactivated rather than deleted, and reading it here would have gone
         // on pricing straw as a product long after it stopped being one.
         if (r.is_active === false) continue;
-        let inputs: Array<{ itemName: string; qty: number }>;
+        let inputs: Array<{ itemName?: string; subtype?: string; qty: number }>;
         try { inputs = typeof r.inputs === 'string' ? JSON.parse(r.inputs) : r.inputs; }
         catch { continue; }
         if (!Array.isArray(inputs)) continue;
         pseudo.push({
             name: r.name, output: r.output_item_name,
             outputQty: Math.max(1, Number(r.output_qty)),
-            inputs: inputs.map((i) => ({ itemName: i.itemName, qty: Number(i.qty) || 1 })),
+            // A wildcard carries no itemName. Keep the subtype so it can be
+            // resolved against the cheapest member below.
+            inputs: inputs.map((i) => (
+                i.itemName
+                    ? { itemName: i.itemName, qty: Number(i.qty) || 1 }
+                    : { subtype: i.subtype, qty: Number(i.qty) || 1 }
+            )),
             level: Number(r.required_level) || 1,
             timer: Number(r.timer_seconds) || 0,
             method: 'recipe',
@@ -437,12 +468,61 @@ async function main(): Promise<void> {
         });
     }
 
+    // ---- 9b. Wildcard input resolution ------------------------------------
+    //
+    // A subtype wildcard costs what the cheapest member of that subtype costs,
+    // which is the same rule the rest of this script already follows: value is
+    // a floor, so the cheapest honest acquisition wins. A player making Fish
+    // Stew will reach for whatever cooked fish is most abundant, not the
+    // dearest one, and pricing the stew off the dearest would put a floor under
+    // it that no player has to pay.
+    //
+    // Resolved fresh on every pass rather than once: members of a subtype are
+    // themselves recipe outputs (cooked fish are priced in this same loop), so
+    // a wildcard that resolves to nothing on pass one resolves on pass two.
+    const namesBySubtype = new Map<string, string[]>();
+    for (const i of items) {
+        if (!i.subtype) continue;
+        const list = namesBySubtype.get(i.subtype) ?? [];
+        list.push(i.name);
+        namesBySubtype.set(i.subtype, list);
+    }
+
+    /**
+     * What one input costs in total, or null while it cannot be priced yet.
+     *
+     * `exclude` is the recipe's own output: a recipe whose wildcard could match
+     * what it produces would otherwise price itself against itself. Nothing
+     * does that today, and the guard costs one comparison.
+     */
+    const inputCostOf = (i: RecipeInput, exclude: string): number | null => {
+        if (i.itemName) {
+            const d = best.get(i.itemName);
+            return d ? d.value * i.qty : null;
+        }
+        if (!i.subtype) return null;
+
+        let cheapest: number | null = null;
+        for (const name of namesBySubtype.get(i.subtype) ?? []) {
+            if (name === exclude) continue;
+            const d = best.get(name);
+            if (!d) continue;
+            if (cheapest === null || d.value < cheapest) cheapest = d.value;
+        }
+        return cheapest === null ? null : cheapest * i.qty;
+    };
+
     for (let pass = 0; pass < 10; pass++) {
         let changed = false;
         for (const r of pseudo) {
-            if (!r.inputs.every((i) => best.has(i.itemName))) continue;
-            const inputCost = r.inputs.reduce(
-                (s, i) => s + (best.get(i.itemName)!.value * i.qty), 0);
+            let inputCost = 0;
+            let priceable = true;
+            for (const i of r.inputs) {
+                const cost = inputCostOf(i, r.output);
+                if (cost === null) { priceable = false; break; }
+                inputCost += cost;
+            }
+            if (!priceable) continue;
             // PASSIVE recipes are the third instance of the same trap (after
             // husbandry products and crops): a 6-hour tanning soak is elapsed
             // time, not player time, and the vat works while the player fishes.
@@ -480,6 +560,53 @@ async function main(): Promise<void> {
             method: 'tier-estimate', level: unlock,
             basis: `tier ${tier} nominal ${TIER_ESTIMATE_SECONDS}s action at L${unlock} (HAND-TUNE)`,
         });
+    }
+
+    // ---- Rules that need every value settled first ------------------------
+    //
+    // These run BEFORE the report, and must. They used to run after it, so the
+    // markdown and the CSV showed the derivation's number while --write put a
+    // different one in the database: Sawdust read 6g in the committed CSV and
+    // 1g in items.value, and the override section the report claims to lead
+    // with was always empty. A report that disagrees with the write is worse
+    // than no report.
+    //
+    // Dense ore is proposed at a flat multiple of its base, but propose() keeps
+    // the CHEAPEST path, so a recipe that happens to use dense ore could drag it
+    // below the plain version. A dense rock being worth less than an ordinary
+    // one is nonsense in a way no player would forgive, so it is enforced here
+    // rather than hoped for.
+    for (const [name, d] of best) {
+        if (!name.startsWith('Dense ')) continue;
+        const baseName = name.slice('Dense '.length);
+        const base = best.get(baseName);
+        if (!base) continue;
+        const floor = base.value + 1;
+        if (d.value < floor) {
+            best.set(name, {
+                ...d,
+                value: floor,
+                basis: `${d.basis}; raised to stay above ${baseName} (${base.value}g)`,
+            });
+        }
+    }
+
+    // ---- Overrides win over everything ------------------------------------
+    for (const [name, o] of Object.entries(OVERRIDES)) {
+        if (!itemNames.has(name)) {
+            console.warn(`  (override for "${name}" ignored: no such item)`);
+            continue;
+        }
+        const prev = best.get(name);
+        best.set(name, {
+            value: Math.max(1, Math.round(o.value)),
+            method: 'override',
+            level: prev?.level ?? 1,
+            basis: `${o.why}${prev ? ` (derivation said ${prev.value}g)` : ''}`,
+        });
+    }
+    if (Object.keys(OVERRIDES).length) {
+        console.log(`applied ${Object.keys(OVERRIDES).length} hand-set override(s)`);
     }
 
     // ---- Output -------------------------------------------------------------
@@ -527,46 +654,6 @@ async function main(): Promise<void> {
             .map(([n, d]) => `"${n}",${d.value},${d.method},"${d.basis.replace(/"/g, "'")}"`).join('\n'));
     console.log(`priced ${[...best.keys()].filter((n) => itemNames.has(n)).length}/${items.length} items; `
         + `${unpriced.length} unpriced; ${orphanRefs.length} orphan refs. Report: /tmp/derived-values.md`);
-
-    // ---- Rules that need every value settled first ------------------------
-    //
-    // Dense ore is proposed at a flat multiple of its base, but propose() keeps
-    // the CHEAPEST path, so a recipe that happens to use dense ore could drag it
-    // below the plain version. A dense rock being worth less than an ordinary
-    // one is nonsense in a way no player would forgive, so it is enforced here
-    // rather than hoped for.
-    for (const [name, d] of best) {
-        if (!name.startsWith('Dense ')) continue;
-        const baseName = name.slice('Dense '.length);
-        const base = best.get(baseName);
-        if (!base) continue;
-        const floor = base.value + 1;
-        if (d.value < floor) {
-            best.set(name, {
-                ...d,
-                value: floor,
-                basis: `${d.basis}; raised to stay above ${baseName} (${base.value}g)`,
-            });
-        }
-    }
-
-    // ---- Overrides win over everything ------------------------------------
-    for (const [name, o] of Object.entries(OVERRIDES)) {
-        if (!itemNames.has(name)) {
-            console.warn(`  (override for "${name}" ignored: no such item)`);
-            continue;
-        }
-        const prev = best.get(name);
-        best.set(name, {
-            value: Math.max(1, Math.round(o.value)),
-            method: 'override',
-            level: prev?.level ?? 1,
-            basis: `${o.why}${prev ? ` (derivation said ${prev.value}g)` : ''}`,
-        });
-    }
-    if (Object.keys(OVERRIDES).length) {
-        console.log(`applied ${Object.keys(OVERRIDES).length} hand-set override(s)`);
-    }
 
     if (write) {
         let n = 0;

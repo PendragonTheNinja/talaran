@@ -102,13 +102,17 @@ const MERCHANTS: MerchantSeed[] = [
         ],
     },
     {
-        // DISABLED. Nothing to sell yet: fishing needs no bait, seeds come from
-        // foraging, and there is no cooked food line. While this is inactive,
-        // every fish, crop, herb and berry falls to the pawnbroker at 35%
-        // instead of 45%.
+        // BUYER ONLY: active, with nothing on the shelf. Cooking shipped the
+        // food line she was waiting on, and everything she claims (fish, crops,
+        // herbs, berries, cooked food, honey, livestock) was falling to the
+        // pawnbroker's 35% while she sat inactive.
         //
-        // To make him a buyer only, set is_active true and leave sells false.
-        // That restores the 45% floor on all of it without needing a shelf.
+        // No stock yet, on purpose. A merchant who sells a thing had better buy
+        // it back, and the gear for getting food is forged or woven by other
+        // trades: rods and skeps are the carpenter's, hooks and cauldrons the
+        // smith's, nets the leatherworker's. Putting their goods on her shelf
+        // would either break that rule or drag them into her domain. Her stock
+        // waits for something her own chain makes: seed, salt, flour, bait.
         key: 'provisioner',
         name: 'Hettie',
         title: 'Provisioner of Talador',
@@ -116,7 +120,7 @@ const MERCHANTS: MerchantSeed[] = [
         buy_rate: 0.45,
         buys_anything: false,
         sells: false,
-        is_active: false,
+        is_active: true,
         display_order: 4,
         core: [],
     },
