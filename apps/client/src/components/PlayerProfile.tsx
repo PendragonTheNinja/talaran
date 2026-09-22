@@ -6,12 +6,18 @@ import { getItemIcon, getSlotIcon } from '../lib/items'
 import PaletteGallery from './PaletteGallery'
 import { apiFetch as apiFetchPalettes } from '../lib/api'
 import './PlayerProfile.css'
+import { useSkillTooltip } from './SkillTooltip'
 
 interface ProfileSkill {
     name: string
     type: string
     xp: number
     level: number
+    /** Added so another player's skills show the same tooltip as your own. */
+    description?: string
+    progress?: number
+    xpIntoLevel?: number
+    xpLevelSpan?: number
 }
 
 interface ProfileData {
@@ -61,6 +67,9 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
     const [profile, setProfile] = useState<ProfileData | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'skills' | 'equipment'>('equipment')
+    // The same skill tooltip the player's own panel uses, named for whose
+    // skills these are.
+    const { hoverProps, tooltipEl } = useSkillTooltip(profile?.player?.username ?? null)
 
     useEffect(() => {
         apiFetch<ProfileData>(`/api/player/${playerId}/profile`)
@@ -132,7 +141,7 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                     <div
                                         key={skill.name}
                                         className="profile-skill-item"
-                                        title={`${skill.name} — Level ${skill.level}\n${skill.xp.toLocaleString()} XP`}
+                                        {...hoverProps(skill)}
                                     >
                                         <div className="skill-icon-wrap">
                                             <img
@@ -189,6 +198,7 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                     </>
                 )}
             </div>
+            {tooltipEl}
         </div>
     )
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './MyShopMenu.css'
+import { useItemTooltip } from './ItemTooltip'
 
 // The owner's side of a player shop (docs/marketplace-spec.md §4).
 //
@@ -71,13 +72,15 @@ interface MyShopMenuProps {
 
 const fmt = (n: number) => n.toLocaleString('en-US')
 
-function ItemIcon({ name }: { name: string }) {
+function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknown> }) {
     const [failed, setFailed] = useState(false)
-    if (failed) return <span className="msh-icon msh-icon-blank" aria-hidden="true" />
-    return <img className="msh-icon" src={getItemIcon(name)} alt="" title={name} onError={() => setFailed(true)} />
+    if (failed) return <span className="msh-icon msh-icon-blank" aria-hidden="true" {...hover} />
+    return <img className="msh-icon" src={getItemIcon(name)} alt="" onError={() => setFailed(true)} {...hover} />
 }
 
 export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [tab, setTab] = useState<'storage' | 'manage' | 'history'>('storage')
     const [history, setHistory] = useState<HistoryData | null>(null)
     const [shop, setShop] = useState<MyShop | null>(null)
@@ -264,7 +267,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                     <div key={item.itemId} className="store-cell">
                                         <div
                                             className="inventory-slot occupied store-slot"
-                                            title={`${item.name}: tap to take ${fmt(take)}`}
+                                            {...hoverProps(item, `Left-click to take ${fmt(take)}`)}
                                             onClick={() => shop.atShop && !busy && move('withdraw', item)}
                                         >
                                             <img src={getItemIcon(item.name)} alt={item.name} className="inventory-item-icon" />
@@ -296,7 +299,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                 <div
                                     key={item.itemId}
                                     className="inventory-slot occupied store-slot"
-                                    title={`${item.name}: tap to store ${fmt(Math.min(moveAmount, item.quantity))}`}
+                                    {...hoverProps(item, `Left-click to store ${fmt(Math.min(moveAmount, item.quantity))}`)}
                                     onClick={() => shop.atShop && !busy && move('deposit', item)}
                                 >
                                     <img src={getItemIcon(item.name)} alt={item.name} className="inventory-item-icon" />
@@ -475,7 +478,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                 <ul className="msh-list">
                                     {shop.listings.map(l => (
                                         <li key={l.id} className="msh-row">
-                                            <ItemIcon name={l.name} />
+                                            <ItemIcon name={l.name} hover={hoverProps({ name: l.name })} />
                                             <div className="msh-row-main">
                                                 <span className="msh-row-name">{l.name}</span>
                                                 <span className="msh-row-sub">{fmt(l.quantity)} on the shelf</span>
@@ -567,7 +570,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                 <ul className="msh-list">
                                     {shop.buyOrders.map(o => (
                                         <li key={o.id} className="msh-row">
-                                            <ItemIcon name={o.name} />
+                                            <ItemIcon name={o.name} hover={hoverProps({ name: o.name })} />
                                             <div className="msh-row-main">
                                                 <span className="msh-row-name">{o.name}</span>
                                                 <span className="msh-row-sub">
@@ -644,6 +647,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                     </>
                 )}
             </div>
+            {tooltipEl}
         </div>
     )
 }

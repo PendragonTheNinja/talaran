@@ -134,4 +134,8 @@ What each gives you for the trouble of keeping it alive:
 And what comes off one at the end:
 
 {{data:animal-slaughter}}
+
+The churn and the cheese press, and everything the trade opens as you climb:
+
+{{data:training-path:Husbandry}}
 {{/details}}

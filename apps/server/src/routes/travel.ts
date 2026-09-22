@@ -1,10 +1,10 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { logger } from '../index';
-import { io } from '../index';
+import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
 import { computeTravelTime } from '../services/travel'
+import { pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -69,7 +69,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     if (activeTrade) {
       await db('trades').where({ id: activeTrade.id }).update({ status: 'cancelled' });
       const otherId = activeTrade.player1_id === playerId ? activeTrade.player2_id : activeTrade.player1_id;
-      io.to(`player_${otherId}`).emit('trade_cancelled', { reason: 'The other player left the area.' });
+      pushToPlayer(otherId, 'trade_cancelled', { reason: 'The other player left the area.' });
     }
 
     // Start travel action

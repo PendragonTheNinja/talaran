@@ -2,7 +2,7 @@ import { Router, Response, Request } from 'express';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { getWeekStart } from '../services/weeklySnapshot';
-import { levelFromXp } from '../services/xp';
+import { levelFromXp, countedSkillIds } from '../services/xp';
 
 const router = Router();
 
@@ -77,8 +77,17 @@ router.get('/', async (req: Request, res: Response) => {
                     'player_skills.xp',
                 );
 
+            // Totals count only shipped skills, the same as the Skills tab and
+            // the Feats snapshot. This query never joined skills at all, so a
+            // player's banked XP in an unshipped trade inflated their rank.
+            const counted = await countedSkillIds();
+
             const byPlayer = new Map<number, Computed & { skills: { skill_id: number; xp: number }[] }>();
             for (const r of rows) {
+                // Skip the row outright, not just its level: total XP and
+                // total level must count the same set of skills or the board
+                // disagrees with itself.
+                if (!counted.has(Number(r.skill_id))) continue;
                 const xp = parseInt(r.xp);
                 let p = byPlayer.get(r.id);
                 if (!p) {

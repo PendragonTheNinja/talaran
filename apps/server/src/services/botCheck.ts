@@ -1,7 +1,8 @@
 import { Response, NextFunction } from 'express';
 import db from '../db';
-import { io, logger } from '../index';
+import { logger } from '../lib/logger';
 import { AuthRequest } from '../middleware/auth';
+import { pushToPlayer } from '../lib/realtime';
 
 export const BOT_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
@@ -29,7 +30,7 @@ export async function issueBotCheck(playerId: number): Promise<{ a: number; b: n
     const a = Math.floor(Math.random() * BOT_CHECK_MAX_ADDEND) + 1;
     const b = Math.floor(Math.random() * BOT_CHECK_MAX_ADDEND) + 1;
     await db('players').where({ id: playerId }).update({ bot_check_answer: a + b });
-    io.to(`player_${playerId}`).emit('bot_check_required', { a, b });
+    pushToPlayer(playerId, 'bot_check_required', { a, b });
     logger.info(`Bot check issued for player ${playerId}`);
     // Returned as well as emitted. The socket is one delivery route and it can
     // fail: a dropped connection, a sleeping tab, a blocked origin. When the

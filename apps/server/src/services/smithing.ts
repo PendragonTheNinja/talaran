@@ -3,6 +3,7 @@ import { levelFromXp, xpToNextLevel } from './xp';
 import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
+import { awardXp } from './xp';
 
 const KILN_LOGS_PER_BATCH = 20;
 const KILN_CHARC_PER_BATCH: Record<string, number> = { poor: 60, fine: 80, excellent: 100 };
@@ -165,10 +166,13 @@ export async function collectKiln(playerId: number, locationId: number): Promise
     }
 
     // Award XP
-    const smithingSkill = await db('skills').where({ name: 'Smithing' }).first();
-    await db('player_skills')
-      .where({ player_id: playerId, skill_id: smithingSkill.id })
-      .increment('xp', job.xp_reward);
+    await awardXp(playerId, 'Smithing', job.xp_reward);
+
+    // The kiln was the one collect that counted nothing. A charc burn is a
+    // Smithing action like any other, so it counts like one.
+    await incrementStats(playerId, {
+      total_actions_completed: 1,
+    });
 
     await db('kiln_jobs').where({ id: job.id }).update({ is_collected: true });
 
@@ -324,14 +328,11 @@ export async function smeltIngots(
     await updateQuestObjectiveProgress(playerId, 'smelt', 'Ambren Ingot', 1);
 
     // Award XP
-    await db('player_skills')
-      .where({ player_id: playerId, skill_id: smithingSkill.id })
-      .increment('xp', recipe.xp);
+    await awardXp(playerId, smithingSkill.id, recipe.xp);
 
     await incrementStats(playerId, {
       total_actions_completed: 1,
       total_ingots_smelted: 1,
-      total_xp_earned: recipe.xp,
     });
 
     logger.info(`Player ${playerId} smelted ${recipe.outputQuantity}x ${recipe.output}`);
@@ -421,14 +422,11 @@ export async function smithPart(
     }
 
     // Award XP
-    await db('player_skills')
-      .where({ player_id: playerId, skill_id: smithingSkill.id })
-      .increment('xp', recipe.xp);
+    await awardXp(playerId, smithingSkill.id, recipe.xp);
 
     await incrementStats(playerId, {
       total_actions_completed: 1,
       total_items_forged: 1,
-      total_xp_earned: recipe.xp,
     });
 
     logger.info(`Player ${playerId} smithed ${recipe.output}`);

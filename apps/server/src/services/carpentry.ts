@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { rollSecondaryDrops } from './drops';
+import { awardXp } from './xp';
 
 // Quest that grants public-bench access at Verdale (created in Step 5).
 const INTRO_QUEST = "The Carpenter's Commission";
@@ -210,8 +211,8 @@ export async function sawPlanks(
 
         await updateQuestObjectiveProgress(playerId, 'saw', recipe.output, 1);
 
-        await db('player_skills').where({ player_id: playerId, skill_id: skillId }).increment('xp', recipe.xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_planks_sawn: 1, total_xp_earned: recipe.xp });
+        await awardXp(playerId, skillId, recipe.xp);
+        await incrementStats(playerId, { total_actions_completed: 1, total_planks_sawn: 1});
 
         const [wood, quality] = sawKey.split('_');
         const drops = await rollSecondaryDrops(playerId, `carpentry:saw:${wood}:${quality}`, 'Carpentry');
@@ -252,8 +253,8 @@ export async function woodwork(
 
         await updateQuestObjectiveProgress(playerId, 'woodwork', recipe.output, 1);
 
-        await db('player_skills').where({ player_id: playerId, skill_id: skillId }).increment('xp', recipe.xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_items_built: 1, total_xp_earned: recipe.xp });
+        await awardXp(playerId, skillId, recipe.xp);
+        await incrementStats(playerId, { total_actions_completed: 1, total_items_built: 1});
 
         logger.info(`Player ${playerId} crafted ${recipe.outputQuantity}x ${recipe.output}`);
         const wwRemaining = await ingredientsRemaining(playerId, recipe.ingredients);

@@ -2,10 +2,10 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { startOfGameDay, nextGameMidnight } from '../lib/gameTime';
-import { io } from '../index';
 import { logger } from '../lib/logger';
 import { badgeGlyph } from '../services/feats';
 import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
+import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
 
 // Channels a guest may post in.
 const GUEST_CHAT_CHANNELS = ['help'];
@@ -311,9 +311,9 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       });
 
       // Send to target
-      io.to(`player_${targetPlayer.id}`).emit('whisper', whisperData);
+      pushToPlayer(targetPlayer.id, 'whisper', whisperData);
       // Send back to sender
-      io.to(`player_${playerId}`).emit('whisper_sent', whisperData);
+      pushToPlayer(playerId, 'whisper_sent', whisperData);
 
       res.json({ success: true });
       return;
@@ -353,16 +353,16 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
 
     // Emit to appropriate room
     if (channel === 'world' || channel === 'trade' || channel === 'help') {
-      io.emit(`chat_${channel}`, messageData);
+      pushToAll(`chat_${channel}`, messageData);
     } else if (channel === 'region') {
-      io.to(`region_${region.replace(/ /g, '_')}`).emit('chat_region', messageData);
-      io.to(`player_${playerId}`).emit('chat_region', messageData);
+      pushToRoom(`region_${region.replace(/ /g, '_')}`, 'chat_region', messageData);
+      pushToPlayer(playerId, 'chat_region', messageData);
     } else if (channel === 'guild') {
       if (!player.guild_id) {
         res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
         return;
       }
-      io.to(`guild_${player.guild_id}`).emit('chat_guild', messageData);
+      pushToRoom(`guild_${player.guild_id}`, 'chat_guild', messageData);
     }
 
     logger.info(`[${channel}] ${player.username}: ${message.trim()}`);

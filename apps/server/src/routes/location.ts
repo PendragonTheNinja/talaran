@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { connectedPlayers } from '../index';
+import { onlinePlayers } from '../lib/realtime';
 
 const router = Router();
 
@@ -120,7 +120,7 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
       return;
     }
 
-    const onlineIds = [...connectedPlayers, playerId];
+    const onlineIds = [...onlinePlayers(), playerId];
 
     // Every column qualified. Joining feats brought a second `id` into scope,
     // and the unqualified filters below silently started resolving against it,

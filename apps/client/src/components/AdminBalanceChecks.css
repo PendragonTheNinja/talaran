@@ -1,0 +1,134 @@
+/* The economy self-checks. Clean is the expected state, so a clean card is
+   quiet gold-on-dark rather than a celebration; a problem card earns the red. */
+
+/* The checks keep their natural height and no more: flex-shrink 0 so they are
+   not squeezed, no flex-grow so they do not steal the calculator's room. */
+.balance-checks {
+    padding: var(--space-lg);
+    flex: 0 0 auto;
+}
+
+/* The expanded detail scrolls inside itself rather than pushing the rest of
+   the tab down. Half the viewport is plenty to read a list of problems. */
+.balance-checks-body {
+    max-height: 45vh;
+    overflow-y: auto;
+}
+
+/* Collapsed view: one chip per check. */
+.balance-checks-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.balance-chip {
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-raised);
+    padding: 3px 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.balance-chip.bad {
+    border-color: var(--color-health);
+    color: var(--color-health);
+}
+
+.balance-chip.errored {
+    border-style: dashed;
+    border-color: var(--color-border-gold);
+}
+
+.balance-checks-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.balance-checks-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.balance-checks-good {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    color: var(--color-gold);
+}
+
+.balance-checks-bad {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    color: var(--color-health);
+}
+
+.balance-check-card {
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-raised);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.balance-check-card.has-problems {
+    border-color: var(--color-health);
+}
+
+.balance-check-card.errored {
+    border-color: var(--color-border-gold);
+    border-style: dashed;
+}
+
+.balance-check-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-heading);
+    color: var(--color-gold);
+    margin-bottom: var(--space-sm);
+}
+
+.balance-check-count {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.balance-check-card.has-problems .balance-check-count {
+    color: var(--color-health);
+}
+
+.balance-check-clean,
+.balance-checks-note,
+.balance-check-note,
+.balance-check-error {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.balance-checks-note {
+    padding: var(--space-md) 0 0;
+}
+
+.balance-check-list {
+    margin: 0;
+    padding-left: var(--space-lg);
+    font-size: 13px;
+    color: var(--color-text-base);
+    line-height: 1.5;
+}
+
+.balance-check-list li + li {
+    margin-top: 4px;
+}
+
+/* A deliberate exception. Italic and set in from the result above it, so it
+   reads as a footnote and not as a finding. */
+.balance-check-note {
+    font-style: italic;
+    padding-top: var(--space-sm);
+}

@@ -1,4 +1,4 @@
-import { logger } from '../index';
+import { logger } from './logger';
 
 // Transactional email via Resend (https://resend.com). Kept deliberately small
 // and dependency-free (uses fetch), so swapping providers later means editing

@@ -77,18 +77,59 @@ export function calculateArrowRecovery(success: boolean, playerLevel: number, re
     return Math.min(RECOVERY_CAP, RECOVERY_BASE + Math.floor(levelsOver / 2) * RECOVERY_PER_2_LEVELS)
 }
 
-/** Roll the drop table on a successful hunt → list of { itemName, quantity }. */
-export function rollDrops(dropTableJson: string): { itemName: string; quantity: number; notable: boolean }[] {
+/**
+ * Roll the drop table on a successful hunt → list of { itemName, quantity }.
+ *
+ * `multipliers` scales individual entries by item name, as a proportion of
+ * their stored chance. Used for live young: see babyFindMultiplier below.
+ * Proportional rather than additive, so a rarer young animal stays rarer than
+ * a common one however high the bonus goes.
+ */
+export function rollDrops(
+    dropTableJson: string,
+    multipliers?: Map<string, number>,
+): { itemName: string; quantity: number; notable: boolean }[] {
     let table: DropEntry[]
     try { table = JSON.parse(dropTableJson) } catch { return [] }
     const drops: { itemName: string; quantity: number; notable: boolean }[] = []
     for (const d of table) {
-        if (Math.random() * 100 < d.chance) {
+        const chance = d.chance * (multipliers?.get(d.itemName) ?? 1)
+        if (Math.random() * 100 < chance) {
             const qty = d.min + Math.floor(Math.random() * (d.max - d.min + 1))
             if (qty > 0) drops.push({ itemName: d.itemName, quantity: qty, notable: d.notable === true })
         }
     }
     return drops
+}
+
+// Finding a calf gets easier as a stockman learns his trade.
+//
+// A calf was a flat 1.5% per hunt, which is roughly 67 hunts expected for one
+// and 200 for a full paddock, and a coin flip with a tail that long is variance
+// rather than difficulty: two players with identical play can differ by a
+// hundred hunts. Milk sits behind it, and butter and cheese behind that, so the
+// whole dairy chain was gated on a roll nothing could improve.
+//
+// Husbandry now helps, because knowing cattle is exactly the skill that would
+// help you spot a strayed calf. Only CALVES scale: foals are meant to stay rare.
+const BABY_SCALING: Record<string, { fromLevel: number; perLevel: number; cap: number }> = {
+    Calf: { fromLevel: 9, perLevel: 0.03, cap: 2 },
+};
+
+/** Per-item chance multipliers for the live young in a hunt table. */
+async function babyFindMultiplier(playerId: number): Promise<Map<string, number>> {
+    const out = new Map<string, number>()
+    const skill = await db('skills').where({ name: 'Husbandry' }).first()
+    if (!skill) return out
+    const ps = await db('player_skills')
+        .where({ player_id: playerId, skill_id: skill.id }).first()
+    const level = ps ? levelFromXp(parseInt(ps.xp)) : 1
+
+    for (const [itemName, rule] of Object.entries(BABY_SCALING)) {
+        const over = Math.max(0, level - rule.fromLevel)
+        out.set(itemName, Math.min(rule.cap, 1 + over * rule.perLevel))
+    }
+    return out
 }
 
 /**
@@ -123,7 +164,7 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     const success = Math.random() * 100 < catchChance
 
     const xp = success ? animal.xp_success : animal.xp_failure
-    const drops = success ? rollDrops(animal.drop_table) : []
+    const drops = success ? rollDrops(animal.drop_table, await babyFindMultiplier(playerId)) : []
 
     // Arrow consumed; maybe recovered
     const recoveryChance = calculateArrowRecovery(success, level, animal.required_level)

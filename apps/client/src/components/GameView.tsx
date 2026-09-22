@@ -7,6 +7,7 @@ import './GameView.css'
 import LogPanel from './LogPanel'
 import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
+import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 
 interface Node {
   id: number
@@ -88,37 +89,10 @@ const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking', 're
 // stand belongs here.
 const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita', 'Phoenwick']
 
-const FISHING_SCENE_TEXT: Record<string, string> = {
-  fishing_rod: 'You cast out, and settle in to wait.',
-  fishing_net: 'You pay the net out across the shallows and begin the long haul.',
-  fishing_cut_bait: 'You work the knife along the flank, cutting the fish down for bait.',
-}
-
-const FARM_SCENE_TEXT: Record<string, string> = {
-  establish: 'You raise your farmstead, post and beam, stone and nail.',
-  build_plot: 'You set posts and rails, fencing in a new field.',
-  build_shop: 'You raise a shopfront, post and beam, stone and nail.',
-  till: 'You break the soil, turning it over ready for seed.',
-  sow: 'You work down the rows, pressing seed into the earth.',
-  harvest: 'You lift the crop from the earth, filling your baskets.',
-  manure: 'You barrow muck onto the field and turn it into the soil.',
-  tend: 'You carry water down the rows, pulling weeds as you go.',
-  uproot: 'You break the roots and turn the crop back into the soil.',
-}
-
-const HUSBANDRY_SCENE_TEXT: Record<string, string> = {
-  build_pen: 'You sink posts and hang panels, closing in a new pen.',
-  demolish_pen: 'You draw the nails and stack the timber where it stood.',
-  feed: 'You go along the troughs with the pail, feeding and watering.',
-  feed_all: 'You work the whole farm with the pail, trough by trough.',
-  muck_all: 'You work through every pen in turn, forking out and laying fresh straw.',
-  muck: 'You fork out the soiled bedding and lay down fresh straw.',
-  collect: 'You work among the animals, gathering what they have given.',
-  collect_all: 'You go along the pen with a basket, clearing it as you pass.',
-  slaughter: 'You do the work out behind the barn, quickly and without fuss.',
-  slaughter_all: 'You work through the pen, one after another, and do not dawdle.',
-  tame: 'You work the halter on gently, letting it get used to the weight.',
-}
+// Scene text and cancel labels used to live here as three maps and two
+// `currentAction === '...'` chains with no default branch, so a new action type
+// rendered no flavour text and no cancel button and failed silently. They are
+// rows now: see lib/actionPresentation.ts and the action_presentation table.
 
 export default function GameView({
   locationData,
@@ -852,6 +826,7 @@ export default function GameView({
       case 'farm_till':
       case 'farm_sow':
       case 'farm_harvest':
+      case 'farm_harvest_all':
       case 'farm_uproot':
       case 'farm_manure':
       case 'farm_tend':
@@ -1402,6 +1377,22 @@ export default function GameView({
   const startCutBait = (species: string) =>
     startFishingAction('/api/fishing/cut', { species }, 'fishing_cut_bait', 'Could not cut bait.')
 
+  // What the scene says and what the stop button reads, from the server.
+  // Empty until it arrives, which is safe: the helpers fall back to a plain
+  // sentence and a working Stop.
+  const [presentation, setPresentation] = useState<PresentationMap>({})
+  useEffect(() => { loadActionPresentation().then(setPresentation) }, [])
+
+  /**
+   * The sub-kind of the action in flight, where there is one.
+   *
+   * farming and husbandry each send a single action_type with a dozen kinds
+   * behind it, and the kind is what decides the wording.
+   */
+  const actionKind = currentAction === 'farming' ? farmKind
+    : currentAction === 'husbandry' ? husbandryKind
+    : null
+
   // ── Derived values ────────────────────────────────────────────────
   const woodcuttingNodes = locationData?.nodes.filter(n => n.skill === 'woodcutting') || []
   const miningNodes = locationData?.nodes.filter(n => n.skill === 'mining') || []
@@ -1418,6 +1409,28 @@ export default function GameView({
     if (progress < 1 / 3) return `You pick up a ${name}'s trail...`
     if (progress < 2 / 3) return `You stalk the ${name}, keeping downwind...`
     return `You draw your bow on the ${name}...`
+  })()
+
+  /**
+   * Scene text that is computed rather than stored, and so wins over the row.
+   *
+   * Four cases, and only four: the live travel message, the hunt's phase, the
+   * habitat's own line, and a recipe's flavour_text. Everything else reads from
+   * action_presentation.
+   */
+  const liveSceneText: string | null = (() => {
+    if (currentAction === 'traveling') return travelStatus?.message || null
+    if (currentAction === 'hunting') return huntPhaseText
+    if (currentAction === 'foraging') {
+      return (locationData as any)?.foragingHabitats
+        ?.find((h: any) => h.id === activeNodeId)?.scene_text || null
+    }
+    if (currentAction === 'recipe') {
+      return recipeLabel?.flavorText
+        || (recipeLabel && RECIPE_FLAVOR_BY_SKILL[recipeLabel.skill])
+        || 'You are working at the bench.'
+    }
+    return null
   })()
 
   // ── Render ────────────────────────────────────────────────────────
@@ -1630,68 +1643,15 @@ export default function GameView({
 
           {currentAction && !botCheckPending && (
             <div className="scene-action-overlay">
-              {currentAction === 'traveling' && (
-                <p className="scene-action-text gold-text">{travelStatus?.message}</p>
-              )}
-              {currentAction === 'woodcutting' && (
-                <p className="scene-action-text gold-text">You are chopping a Lanai Tree.</p>
-              )}
-              {currentAction === 'mining_rock' && (
-                <p className="scene-action-text gold-text">You are mining rocks.</p>
-              )}
-              {currentAction === 'mining_vein' && (
-                <p className="scene-action-text gold-text">You are mining an ore vein.</p>
-              )}
-              {currentAction === 'smelting' && (
-                <p className="scene-action-text gold-text">You are smelting ingots.</p>
-              )}
-              {currentAction === 'smithing' && (
-                <p className="scene-action-text gold-text">You are working the forge.</p>
-              )}
-              {currentAction === 'kiln_collect' && (
-                <p className="scene-action-text gold-text">Collecting Charc from the kiln...</p>
-              )}
-              {currentAction === 'sawing' && (
-                <p className="scene-action-text gold-text">You are sawing planks.</p>
-              )}
-              {currentAction === 'woodworking' && (
-                <p className="scene-action-text gold-text">You are working at the sawhorse.</p>
-              )}
-              {currentAction === 'hunting' && (
-                <p className="scene-action-text gold-text">{huntPhaseText}</p>
-              )}
-              {currentAction === 'farming' && (
-                <p className="scene-action-text gold-text">{FARM_SCENE_TEXT[farmKind] || FARM_SCENE_TEXT.till}</p>
-              )}
-              {currentAction === 'husbandry' && (
-                <p className="scene-action-text gold-text">{HUSBANDRY_SCENE_TEXT[husbandryKind] || HUSBANDRY_SCENE_TEXT.feed}</p>
-              )}
-              {currentAction === 'foraging' && (
-                <p className="scene-action-text gold-text">
-                  {(locationData as any)?.foragingHabitats?.find((h: any) => h.id === activeNodeId)?.scene_text || 'You gather among the wild growth.'}
-                </p>
-              )}
-              {currentAction.startsWith('fishing_') && (
-                <p className="scene-action-text gold-text">
-                  {FISHING_SCENE_TEXT[currentAction] || FISHING_SCENE_TEXT.fishing_rod}
-                </p>
-              )}
-              {currentAction === 'build_hearth' && (
-                <p className="scene-action-text gold-text">You are setting granite in mortar and drawing the flue straight.</p>
-              )}
               {/* The fire, while a cook is running. It is the one thing that can
                   stop a cook without the player doing anything, so it belongs in
                   sight. No other bench burns wood, so no other bench shows it. */}
               {currentAction === 'recipe' && recipeLabel?.skill === 'Cooking' && (
                 <FireIndicator />
               )}
-              {currentAction === 'recipe' && (
-                <p className="scene-action-text gold-text">
-                  {recipeLabel?.flavorText
-                    || (recipeLabel && RECIPE_FLAVOR_BY_SKILL[recipeLabel.skill])
-                    || 'You are working at the bench.'}
-                </p>
-              )}
+              <p className="scene-action-text gold-text">
+                {sceneTextFor(presentation, currentAction, actionKind, liveSceneText)}
+              </p>
               <div className="scene-timer">
                 <div className="scene-timer-bar">
                   <div
@@ -1703,53 +1663,14 @@ export default function GameView({
                 <span className="scene-timer-label">{timerSeconds}s</span>
               </div>
 
-              {currentAction === 'traveling' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Cancel Travel</button>
-              )}
-              {currentAction === 'woodcutting' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Chopping</button>
-              )}
-              {(currentAction === 'mining_rock' || currentAction === 'mining_vein') && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Mining</button>
-              )}
-              {(currentAction === 'smelting' || currentAction === 'smithing') && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Smithing</button>
-              )}
-              {currentAction === 'kiln_collect' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop</button>
-              )}
-              {(currentAction === 'sawing' || currentAction === 'woodworking') && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Carpentry</button>
-              )}
-              {currentAction === 'build_hearth' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Building</button>
-              )}
-              {currentAction === 'hunting' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Hunting</button>
-              )}
-              {currentAction === 'foraging' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Foraging</button>
-              )}
-              {currentAction === 'farming' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Working</button>
-              )}
-              {currentAction === 'husbandry' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Tending</button>
-              )}
-              {currentAction === 'fishing_rod' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Fishing</button>
-              )}
-              {currentAction === 'fishing_net' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Netting</button>
-              )}
-              {currentAction === 'fishing_cut_bait' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>Stop Cutting</button>
-              )}
-              {currentAction === 'recipe' && (
-                <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>
-                  Stop {recipeLabel ? recipeLabel.skill : 'Crafting'}
-                </button>
-              )}
+              {/* One button for every action type, including the ones that do
+                  not exist yet. The recipe executor names its skill, since
+                  "Stop Cooking" beats "Stop Crafting" at a hearth. */}
+              <button className="btn btn-red scene-cancel-btn" onClick={stopAction}>
+                {currentAction === 'recipe' && recipeLabel
+                  ? `Stop ${recipeLabel.skill}`
+                  : cancelLabelFor(presentation, currentAction, actionKind)}
+              </button>
               {lastResult && (
                 <div className="scene-last-result">
                   {renderResultDetails(lastResult)}

@@ -98,6 +98,16 @@
   /* Fonts */
   --font-heading: 'Dumbledor', serif;
   --font-body: 'EB Garamond', Georgia, serif;
+  /*
+   * Numbers that sit in a column or tick upward.
+   *
+   * Proportional figures are narrower on a 1 than an 8, so a quantity counting
+   * 8 -> 9 -> 10 visibly jitters, a stack of 11 reads narrower than a stack of
+   * 88, and two prices in a list never line up. Tabular figures are all one
+   * width. EB Garamond carries them, so this stays the body face and only
+   * changes which figures it draws.
+   */
+  --font-num: var(--font-body);
 
   /* Spacing */
   --space-xs: 4px;
@@ -569,4 +579,51 @@ body {
   cursor: help;
   width: 24px;
   height: 24px;
+}
+
+/* ============================================
+   TABULAR FIGURES
+   ============================================
+
+   One list, one token. Anything that shows a count, a price, a level, a weight
+   or a countdown belongs here, so numbers stop shifting width as they change.
+   Add `tabular-num` to anything new rather than restating the properties. */
+
+.tabular-num,
+/* Quantities and counters */
+.inventory-item-qty,
+.tool-qty,
+.trap-bait-count,
+.open-container-qty,
+.modal-count,
+.modal-counter,
+.shp-qty,
+.shp-qty-all,
+.shp-qty-step,
+.mkt-qty-step,
+.context-menu-qty-input,
+/* Coin */
+.gold-text,
+.gold,
+.skills-identity-gold,
+.trade-gold-row,
+.trade-gold-input,
+.shp-row-price,
+.mkt-row-price,
+.settings-theme-price,
+.support-tier-price,
+.supportus-tier-price,
+/* Levels, XP and progress */
+.skill-level,
+.skill-tooltip-level,
+.last-result-xp,
+.trapline-reveal-xp,
+.feat-progress-text,
+.feats-group-count,
+/* Clocks */
+.scene-timer-label,
+.fishing-timer {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }

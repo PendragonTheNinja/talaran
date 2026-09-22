@@ -1,7 +1,12 @@
 import db from '../db';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
+import { awardXp } from './xp';
+
+// Exploration XP for the first time a player pulls a given item from a given
+// habitat. Flat, because the discovery is the achievement, not the item.
+const FORAGING_DISCOVERY_XP = 10;
 
 // Foraging (docs/foraging-spec.md). A habitat is a gatherable patch; each cycle
 // is a WEIGHTED PICK of one find from its drop_table. Gloves gate the prickly
@@ -169,9 +174,7 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
             await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
         }
 
-        await db('player_skills')
-            .where({ player_id: playerId, skill_id: foragingSkill.id })
-            .increment('xp', pick.xp);
+        await awardXp(playerId, foragingSkill.id, pick.xp);
 
         // Stats — every gather, matching mining/woodcutting (outside the discovery guard).
         await incrementStats(playerId, {
@@ -181,7 +184,6 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
             // way to say "searched a thousand hedgerows".
             total_habitats_searched: 1,
             total_actions_completed: 1,
-            total_xp_earned: pick.xp,
         });
 
         // Discovery — first time this player pulls this item from this habitat.
@@ -192,12 +194,7 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
             await db('player_foraging_discoveries')
                 .insert({ player_id: playerId, habitat_id: habitatId, item_name: pick.itemName });
             firstDiscovery = true;
-            const exploration = await db('skills').where({ name: 'Exploration' }).first();
-            if (exploration) {
-                await db('player_skills')
-                    .where({ player_id: playerId, skill_id: exploration.id })
-                    .increment('xp', 10);
-            }
+            await awardXp(playerId, 'Exploration', FORAGING_DISCOVERY_XP);
         }
 
         return { success: true, itemName: pick.itemName, quantity: qty, xp: pick.xp, notable: !!pick.notable, firstDiscovery };

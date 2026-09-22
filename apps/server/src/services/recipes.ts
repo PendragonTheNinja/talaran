@@ -6,6 +6,7 @@ import { incrementStats } from './stats'
 import { updateQuestObjectiveProgress } from '../routes/quests'
 import { checkStation, parseRequiredTools } from './workstations'
 import { buffTimerBonus, timerCut } from './buffs'
+import { awardXp } from './xp';
 
 // ── Generic recipe executor (docs/trapping-spec.md §4) ────────────
 // Recipes are rows in the `recipes` table; this service runs any of them.
@@ -81,8 +82,28 @@ async function wildcardStacks(playerId: number, subtype: string) {
 // { itemName: 'Milk', qty: 3 } and knows nothing about buckets; these three
 // helpers route it through services/liquids so partial containers work for every
 // skill — Husbandry now, Cooking later — without either one being aware.
-function parseInputs(inputsJson: string): RecipeInput[] {
-    try { return JSON.parse(inputsJson) } catch { return [] }
+/**
+ * Recipe inputs, from either shape they arrive in.
+ *
+ * The column is JSON, so a row read straight from the database gives a string
+ * — but getActiveRecipes() parses it before handing recipes on, so anything
+ * working from that list already holds an array. Calling JSON.parse on the
+ * array coerces it to "[object Object]", throws, and returns an empty list,
+ * which reads as "this recipe needs nothing". That is exactly how the new
+ * affordability check came out saying every dish was affordable.
+ *
+ * Accepting both is the honest fix: the function's job is "give me the inputs",
+ * and there is no version of that job where silently returning none is right.
+ */
+function parseInputs(inputs: unknown): RecipeInput[] {
+    if (Array.isArray(inputs)) return inputs as RecipeInput[]
+    if (typeof inputs === 'string') {
+        try {
+            const parsed = JSON.parse(inputs)
+            return Array.isArray(parsed) ? parsed : []
+        } catch { return [] }
+    }
+    return []
 }
 
 async function skillInfo(playerId: number, skillName: string): Promise<{ skillId: number | null; level: number }> {
@@ -121,7 +142,16 @@ export async function recipeTimerFor(playerId: number, recipe: any): Promise<num
     return Math.max(1, base - timerCut(base, buff))
 }
 
-async function hasInputs(playerId: number, inputs: RecipeInput[]): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Does the player hold everything this recipe needs?
+ *
+ * Exported because the tick's repeat check MUST ask this and nothing else. It
+ * used to carry its own copy that read `input.itemName` directly, which is
+ * undefined for a wildcard input, so `where({ name: undefined })` threw
+ * "Undefined binding(s)" every time a Fish Stew finished — see the note in
+ * gameTick's recipe restart block for what that cost.
+ */
+export async function hasInputs(playerId: number, inputs: RecipeInput[]): Promise<{ ok: boolean; error?: string }> {
     for (const input of inputs) {
         if (input.subtype) {
             const stacks = await wildcardStacks(playerId, input.subtype)
@@ -170,6 +200,69 @@ async function inputsRemaining(playerId: number, inputs: RecipeInput[]): Promise
         remaining.push({ name: input.itemName!, quantity: inv ? inv.quantity : 0 })
     }
     return remaining
+}
+
+/**
+ * Which recipes the player can actually make right now, and what is short.
+ *
+ * The cookhouse listed every recipe identically, so a player read the menu,
+ * got excited, and only found out what they were missing by clicking each one.
+ * The station side of that was already answered per recipe by the route; this
+ * is the materials side.
+ *
+ * Done as ONE pass over the pack rather than a check per recipe. hasInputs is
+ * the right function for a single recipe and the wrong one for a hundred:
+ * three queries each would be three hundred round trips to draw one list.
+ * Liquids are volume rather than inventory rows, so the few liquid names that
+ * appear across the whole list are totalled once each.
+ */
+export async function affordability(
+    playerId: number,
+    recipes: any[],
+): Promise<Map<number, { canAfford: boolean; missingInputs: { name: string; need: number; have: number }[] }>> {
+    // The pack, once: by item name and by subtype, for wildcard inputs.
+    const rows = await db('player_inventory as pi')
+        .join('items as i', 'i.id', 'pi.item_id')
+        .where('pi.player_id', playerId)
+        .where('pi.quantity', '>', 0)
+        .select('i.name as name', 'i.subtype as subtype', 'pi.quantity as quantity')
+
+    const byName = new Map<string, number>()
+    const bySubtype = new Map<string, number>()
+    for (const r of rows as any[]) {
+        const qty = Number(r.quantity)
+        byName.set(r.name, (byName.get(r.name) ?? 0) + qty)
+        if (r.subtype) bySubtype.set(r.subtype, (bySubtype.get(r.subtype) ?? 0) + qty)
+    }
+
+    // Liquid volumes, once per distinct liquid across the whole list.
+    const liquidNames = new Set<string>()
+    for (const recipe of recipes) {
+        for (const input of parseInputs(recipe.inputs)) {
+            if (input.itemName && isLiquid(input.itemName)) liquidNames.add(input.itemName)
+        }
+    }
+    const liquids = new Map<string, number>()
+    for (const name of liquidNames) liquids.set(name, await liquidTotal(playerId, name))
+
+    const out = new Map<number, { canAfford: boolean; missingInputs: { name: string; need: number; have: number }[] }>()
+    for (const recipe of recipes) {
+        const missingInputs: { name: string; need: number; have: number }[] = []
+        for (const input of parseInputs(recipe.inputs)) {
+            const need = input.qty
+            let have: number
+            if (input.subtype) {
+                have = bySubtype.get(input.subtype) ?? 0
+            } else if (isLiquid(input.itemName!)) {
+                have = liquids.get(input.itemName!) ?? 0
+            } else {
+                have = byName.get(input.itemName!) ?? 0
+            }
+            if (have < need) missingInputs.push({ name: inputLabel(input), need, have })
+        }
+        out.set(recipe.id, { canAfford: missingInputs.length === 0, missingInputs })
+    }
+    return out
 }
 
 export async function getActiveRecipes() {
@@ -372,15 +465,9 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
         // expected payout at the recipe's own level still lands on band.
         const xpAwarded = burnt ? Math.max(1, Math.round(recipe.xp / 2)) : recipe.xp
 
-        // Award XP — creating the player_skills row if it doesn't exist yet
-        // (Crafting XP banks against the hidden skill until it launches)
+        // Award XP (Crafting XP banks against the hidden skill until it launches)
         if (skillId) {
-            const ps = await db('player_skills').where({ player_id: playerId, skill_id: skillId }).first()
-            if (ps) {
-                await db('player_skills').where({ player_id: playerId, skill_id: skillId }).increment('xp', xpAwarded)
-            } else {
-                await db('player_skills').insert({ player_id: playerId, skill_id: skillId, xp: xpAwarded })
-            }
+            await awardXp(playerId, skillId, xpAwarded)
         }
 
         // A ruined dish does not count. Geomima asked for six cooked properly.
@@ -395,7 +482,7 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
         // Per-skill counters, so Cooking and Crafting have something to build
         // feats on. Burns count separately: ruining a hundred dinners is its own
         // kind of achievement.
-        const tally: Record<string, number> = { total_actions_completed: 1, total_xp_earned: xpAwarded }
+        const tally: Record<string, number> = { total_actions_completed: 1}
         if (recipe.skill === 'Cooking') {
             if (burnt) tally.total_meals_burnt = 1
             else tally.total_meals_cooked = 1

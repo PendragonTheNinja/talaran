@@ -10,6 +10,12 @@ interface CropDef {
     id: number; name: string; seedItem: string; produceItem: string
     plantLevel: number; growSeconds: number; yieldPerSeed: number
     cropType: string; isPerennial: boolean; unlocked: boolean; seedsHeld: number
+    /** XP per seed at this player's level, from the harvest's own maths. */
+    xpPerSeed?: number | null
+    /** A perennial's per-seed XP once established. */
+    regrowthXpPerSeed?: number | null
+    /** How much this crop still teaches, as a percentage. Under 100 once outgrown. */
+    teachesPercent?: number | null
 }
 interface Plot {
     id: number; slotIndex: number; state: string; soilState: string
@@ -28,6 +34,8 @@ interface FarmState {
     plotCapacity?: number
     plots?: Plot[]
     crops: CropDef[]
+    /** Every plantable crop is below full teaching. */
+    outgrownCrops?: boolean
     plotCap?: number
     plotMax?: number
     nextPlot?: {
@@ -38,6 +46,8 @@ interface FarmState {
         seconds: number
     } | null
     timers?: { till: number; sowPerSeed: number; harvestPerSeed: number; buildPlot: number; manure: number }
+    /** Fields needed before harvest-all unlocks. From the server, never hard-coded here. */
+    harvestAllMinPlots?: number
     manure?: { held: number; cost: number }
     tend?: { hasBucket: boolean; plots: number; secondsPerPlot: number; speedup: number }
 }
@@ -197,6 +207,32 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                             <span>Fields {data.plots?.length ?? 0} / {data.plotCap ?? 1}</span>
                         </div>
 
+                        {/* Every ripe field in one go, once the farm is big enough
+                            for one-by-one to be the chore. It saves clicks, not
+                            time: the timer is the sum of each field's harvest. */}
+                        {(() => {
+                            const minPlots = data.harvestAllMinPlots ?? 4
+                            const plots = data.plots ?? []
+                            if (plots.length < minPlots) return null
+                            const ripe = plots.filter(p =>
+                                p.state === 'growing' && p.crop && (p.secondsRemaining ?? 1) <= 0)
+                            if (ripe.length === 0) return null
+                            const perSeed = data.timers?.harvestPerSeed ?? 8
+                            const seconds = ripe.reduce((s, p) => s + Math.max(1, p.seedCount) * perSeed, 0)
+                            return (
+                                <div className="farm-tend-bar">
+                                    <span>{ripe.length} field{ripe.length === 1 ? ' is' : 's are'} ready</span>
+                                    <button
+                                        className="farm-btn primary"
+                                        disabled={busy}
+                                        onClick={() => act('/api/farming/harvest-all')}
+                                    >
+                                        Harvest All ({fmtDuration(seconds)})
+                                    </button>
+                                </div>
+                            )
+                        })()}
+
                         {data.tend && data.tend.plots > 0 && (
                             <div className="farm-tend-bar">
                                 <span>
@@ -252,7 +288,11 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                                 value={sow[p.id]?.cropId ?? unlockedCrops[0]?.id ?? 0}
                                                 onChange={e => setSow(s => ({ ...s, [p.id]: { cropId: +e.target.value, count: s[p.id]?.count ?? 10 } }))}
                                             >
-                                                {unlockedCrops.map(c => <option key={c.id} value={c.id}>{c.name} ({c.seedsHeld})</option>)}
+                                                {unlockedCrops.map(c => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.name} ({c.seedsHeld}){c.xpPerSeed ? ` · ${c.xpPerSeed} XP/seed` : ''}
+                                                    </option>
+                                                ))}
                                             </select>
                                             <input type="number" min={1} max={data.plotCapacity ?? 10}
                                                 value={sow[p.id]?.count ?? 10}
@@ -325,14 +365,29 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
 
                         <div className="farm-crops">
                             <div className="farm-crops-title">Crops</div>
+                            {/* The level taper, said out loud. Easy crops teach less
+                                once you have outgrown them, and a player should be
+                                able to see that rather than wonder where the XP went. */}
+                            {data.outgrownCrops && (
+                                <p className="farm-note">
+                                    You've outgrown the crops you know. They still grow, but they teach you less.
+                                </p>
+                            )}
                             {data.crops.map(c => (
                                 <div key={c.id} className={`farm-crop-row ${c.unlocked ? '' : 'locked'}`}>
                                     <span>{c.name}{c.isPerennial ? ' 🌳' : ''}</span>
-                                    <span className="farm-crop-meta">
+                                    <span className="farm-crop-meta tabular-num">
                                         {c.unlocked
                                             ? `${c.seedsHeld} seed${c.seedsHeld === 1 ? '' : 's'} · ${fmtDuration(c.growSeconds)} · ${c.yieldPerSeed}×`
                                             : `Lv ${c.plantLevel} · ${c.seedsHeld} seed${c.seedsHeld === 1 ? '' : 's'}`}
                                     </span>
+                                    {c.unlocked && c.xpPerSeed != null && (
+                                        <span className={`farm-crop-xp tabular-num${(c.teachesPercent ?? 100) < 100 ? ' tapered' : ''}`}>
+                                            {c.xpPerSeed} XP/seed
+                                            {c.regrowthXpPerSeed != null && `, then ${c.regrowthXpPerSeed}`}
+                                            {(c.teachesPercent ?? 100) < 100 && ` · ${c.teachesPercent}% at your level`}
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>

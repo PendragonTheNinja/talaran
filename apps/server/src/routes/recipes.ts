@@ -2,9 +2,9 @@ import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { botCheckGate } from '../services/botCheck'
-import { getActiveRecipes, canStartRecipe, recipeTimerFor } from '../services/recipes'
+import { affordability, getActiveRecipes, canStartRecipe, recipeTimerFor } from '../services/recipes'
 import { checkStation } from '../services/workstations'
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 
 const router = Router()
 
@@ -18,6 +18,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         // inactive workstation, which is wrong for tool-less work: smelting at
         // your own half-finished forge is full speed, not the smith's.
         const playerId = req.player!.playerId
+
+        // What the player can actually make, in one pass over the pack.
+        const afford = await affordability(playerId, recipes)
+
         const annotated = await Promise.all(recipes.map(async (r: any) => {
             // false: listing recipes must never spend the player's wood. With
             // this left on, opening the cookhouse bought a fire once per recipe.
@@ -32,6 +36,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
                 // flat "you cannot do this". A cook with an empty rack should be
                 // able to read the menu as a shopping list.
                 missingTools: check.missingTools ?? [],
+                // Materials, so the card can grey itself out and say what is
+                // short rather than making the player click to find out.
+                canAfford: afford.get(r.id)?.canAfford ?? true,
+                missingInputs: afford.get(r.id)?.missingInputs ?? [],
             }
         }))
 

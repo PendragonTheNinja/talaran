@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getItemIcon, getSlotIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
+import { useItemTooltip } from './ItemTooltip'
 
 interface EquipmentData {
     head: any | null
@@ -40,6 +41,8 @@ const SLOTS = [
 
 export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
 
     const handleUnequip = async (slot: string) => {
         try {
@@ -88,7 +91,8 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                         <div
                             key={key}
                             className={`equipment-slot panel-inset ${equipped ? 'occupied' : ''}`}
-                            title={equipped ? `${equipped.name}\nClick to unequip` : label}
+                            title={equipped ? undefined : label}
+                            {...hoverProps(equipped, 'Left-click to unequip')}
                             onClick={() => equipped && handleUnequip(key)}
                         >
                             {equipped ? (
@@ -129,6 +133,7 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 <div className="stat-row"><span>Accuracy</span><span>0</span></div>
                 <div className="stat-row"><span>Power</span><span>0</span></div>
             </div>
+            {tooltipEl}
         </div>
     )
 }

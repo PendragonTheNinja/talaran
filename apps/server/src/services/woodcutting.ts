@@ -5,6 +5,7 @@ import { incrementStats } from './stats';
 import { rollSecondaryDrops, SecondaryDrop } from './drops';
 import { addItemToInventoryWithin } from './inventory';
 import { timerCut } from './buffs';
+import { awardXp } from './xp';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -229,15 +230,27 @@ export async function processWoodcuttingAction(
     }
 
     // Award XP
-    await db('player_skills')
-      .where({ player_id: playerId, skill_id: woodcuttingSkill.id })
-      .increment('xp', node.xp_reward);
+    await awardXp(playerId, woodcuttingSkill.id, node.xp_reward);
 
     // Check exploration
     const discoveryKey = `woodcutting_node_${nodeId}`;
     const alreadyDiscovered = await db('player_exploration')
       .where({ player_id: playerId, discovery_type: 'resource_node', discovery_key: discoveryKey })
       .first();
+
+    // Stats for EVERY chop. These sat inside the discovery guard below, so a
+    // node counted once, the first time it was ever found, and every later chop
+    // recorded nothing: logs chopped, actions completed, XP earned and both the
+    // quality and species keys all stalled. Mining and foraging always counted
+    // out here; woodcutting was the odd one out.
+    const qualityKey = `${quality}_logs_chopped` as string;
+    const subtypeKey = `${subtype}_logs_chopped` as string;
+    await incrementStats(playerId, {
+      total_logs_chopped: 1,
+      total_actions_completed: 1,
+      [qualityKey]: 1,
+      [subtypeKey]: 1,
+    });
 
     if (!alreadyDiscovered) {
       const explorationXp = node.required_level * 5;
@@ -248,21 +261,7 @@ export async function processWoodcuttingAction(
         xp_awarded: explorationXp,
       });
 
-      // Track stats
-      const qualityKey = `${quality}_logs_chopped` as string;
-      const subtypeKey = `${subtype}_logs_chopped` as string;
-      await incrementStats(playerId, {
-        total_logs_chopped: 1,
-        total_actions_completed: 1,
-        total_xp_earned: node.xp_reward,
-        [qualityKey]: 1,
-        [subtypeKey]: 1,
-      });
-
-      const explorationSkill = await db('skills').where({ name: 'Exploration' }).first();
-      await db('player_skills')
-        .where({ player_id: playerId, skill_id: explorationSkill.id })
-        .increment('xp', explorationXp);
+      await awardXp(playerId, 'Exploration', explorationXp);
 
       logger.info(`Player ${playerId} discovered ${node.name} — awarded ${explorationXp} Exploration XP`);
     }

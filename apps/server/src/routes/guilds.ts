@@ -2,9 +2,9 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { connectedPlayers } from '../index';
 import { sendSystemMessage } from './messages';
 import { levelFromXp } from '../services/xp';
+import { isOnline, pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.get('/my', requireAuth, async (req: AuthRequest, res: Response) => {
 
         const membersWithStatus = members.map(m => ({
             ...m,
-            online: connectedPlayers.has(m.id),
+            online: isOnline(m.id),
         }));
 
         const founder = await db('players').where({ id: guild.founder_id }).select('username').first();
@@ -220,7 +220,7 @@ router.post('/invite', requireAuth, async (req: AuthRequest, res: Response) => {
 
         // Socket notification if online
         const { io } = await import('../index');
-        io.to(`player_${target.id}`).emit('guild_invite', {
+        pushToPlayer(target.id, 'guild_invite', {
             guildName: guild.name,
             guildTag: guild.tag,
             inviterName: inviter.username,

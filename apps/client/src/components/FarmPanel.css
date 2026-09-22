@@ -218,6 +218,7 @@
 
 .farm-crop-row {
   display: flex;
+  flex-wrap: wrap;   /* the XP line sits on its own row beneath */
   justify-content: space-between;
   font-size: 13px;
   padding: 3px 0;
@@ -229,6 +230,18 @@
 }
 
 .farm-crop-meta {
+  color: var(--color-text-muted);
+}
+
+/* What a crop teaches at the player's level. Gold when it teaches in full;
+   muted once outgrown, so the eye goes to the crops still worth planting. */
+.farm-crop-xp {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--color-gold);
+}
+
+.farm-crop-xp.tapered {
   color: var(--color-text-muted);
 }
 

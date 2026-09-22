@@ -1,0 +1,33 @@
+/* Rows inside the skill tooltip. The box itself is TooltipShell, shared with
+   the item tooltip, so only the skill-specific lines live here. */
+
+.skill-tooltip-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.skill-tooltip-level {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.skill-tooltip-bar {
+    height: 4px;
+    background: var(--color-bg-deepest);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 6px 0 2px;
+}
+
+.skill-tooltip-bar-fill {
+    height: 100%;
+    background: var(--color-xp);
+}
+
+.skill-tooltip-progress {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}

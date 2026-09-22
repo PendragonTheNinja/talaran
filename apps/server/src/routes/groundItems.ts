@@ -3,7 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
-import { io } from '../index';
+import { pushToPlayer, pushToRoom } from '../lib/realtime';
 
 const router = Router();
 const PRIVATE_WINDOW_SECONDS = 15;
@@ -50,50 +50,66 @@ router.post('/drop', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         const player = await db('players').where({ id: playerId }).first();
         const locationId = player.current_location_id;
 
-        // Check player has the item
-        const invItem = await db('player_inventory')
-            .where({ player_id: playerId, item_id: itemId })
-            .first();
-
-        if (!invItem) {
-            res.status(400).json({ error: 'You do not have that item.' });
-            return;
-        }
-
-        const dropQty = Math.min(quantity || 1, invItem.quantity);
-
-        if (dropQty <= 0) {
-            res.status(400).json({ error: 'Invalid quantity.' });
-            return;
-        }
-
         const now = new Date();
         const visibleAt = new Date(now.getTime() + PRIVATE_WINDOW_SECONDS * 1000);
 
-        // Remove from inventory
-        if (invItem.quantity <= dropQty) {
-            await db('player_inventory').where({ player_id: playerId, item_id: itemId }).delete();
-        } else {
-            await db('player_inventory')
+        // One transaction, with the inventory row locked for the whole of it.
+        //
+        // Pickup was fixed by making the delete the gate, but the drop kept the
+        // read-then-write shape: it read the stack, then deleted or
+        // decremented, then inserted the ground row. Two drops landing together
+        // (double-tap, two tabs) both read the same quantity and both pass the
+        // check. Dropping a full stack of five twice put ten on the ground and
+        // left nothing in the bag, because the second delete matched no rows
+        // and nobody looked at the count. A partial drop went the other way and
+        // decremented the stack below zero.
+        //
+        // forUpdate() makes the second request wait for the first to commit, so
+        // it reads the quantity that is actually left.
+        const dropped = await db.transaction(async (trx) => {
+            const invItem = await trx('player_inventory')
                 .where({ player_id: playerId, item_id: itemId })
-                .decrement('quantity', dropQty);
+                .forUpdate()
+                .first();
+
+            if (!invItem) return { error: 'You do not have that item.' as string };
+
+            const dropQty = Math.min(quantity || 1, invItem.quantity);
+            if (dropQty <= 0) return { error: 'Invalid quantity.' as string };
+
+            if (invItem.quantity <= dropQty) {
+                await trx('player_inventory')
+                    .where({ player_id: playerId, item_id: itemId })
+                    .delete();
+            } else {
+                await trx('player_inventory')
+                    .where({ player_id: playerId, item_id: itemId })
+                    .decrement('quantity', dropQty);
+            }
+
+            const [groundItem] = await trx('ground_items').insert({
+                item_id: itemId,
+                quantity: dropQty,
+                location_id: locationId,
+                dropped_by_player_id: playerId,
+                dropped_at: now,
+                visible_to_all_at: visibleAt,
+            }).returning('*');
+
+            return { groundItem, dropQty };
+        });
+
+        if ('error' in dropped) {
+            res.status(400).json({ error: dropped.error });
+            return;
         }
 
-        // Add to ground
-        const [groundItem] = await db('ground_items').insert({
-            item_id: itemId,
-            quantity: dropQty,
-            location_id: locationId,
-            dropped_by_player_id: playerId,
-            dropped_at: now,
-            visible_to_all_at: visibleAt,
-        }).returning('*');
-
+        const { groundItem, dropQty } = dropped;
         const item = await db('items').where({ id: itemId }).first();
         logger.info(`Player ${playerId} dropped ${dropQty}x ${item.name} at location ${locationId}`);
 
         // Notify the dropper immediately
-        io.to(`player_${playerId}`).emit('ground_item_dropped', {
+        pushToPlayer(playerId, 'ground_item_dropped', {
             groundItemId: groundItem.id,
             itemName: item.name,
             quantity: dropQty,
@@ -102,7 +118,7 @@ router.post('/drop', requireAuth, requireTrusted, async (req: AuthRequest, res: 
 
         // Schedule public visibility notification
         setTimeout(async () => {
-            io.to(`location_${locationId}`).emit('ground_item_visible', {
+            pushToRoom(`location_${locationId}`, 'ground_item_visible', {
                 groundItemId: groundItem.id,
                 itemName: item.name,
                 quantity: dropQty,
@@ -168,13 +184,13 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Remove from ground
-        await db('ground_items').where({ id: groundItemId }).delete();
+        // The claim above already deleted the row; this is where the old
+        // read-then-delete used to happen.
 
         const item = await db('items').where({ id: groundItem.item_id }).first();
 
         // Notify all players at location that item was picked up
-        io.to(`location_${groundItem.location_id}`).emit('ground_item_picked_up', {
+        pushToRoom(`location_${groundItem.location_id}`, 'ground_item_picked_up', {
             groundItemId,
         });
 

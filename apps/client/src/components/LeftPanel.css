@@ -288,47 +288,6 @@
   width: 100%;
 }
 
-.item-tooltip {
-  position: fixed;
-  z-index: 2000;
-  background: var(--color-bg-raised);
-  border: 1px solid var(--color-border-gold);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  max-width: 220px;
-  pointer-events: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-}
-
-.item-tooltip-name {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  margin: 0 0 4px;
-}
-
-.item-tooltip-quality {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  margin: 0 0 6px;
-  font-style: italic;
-}
-
-.item-tooltip-desc {
-  font-size: 13px;
-  color: var(--color-text-base);
-  margin: 0 0 8px;
-  line-height: 1.4;
-}
-
-.item-tooltip-hint {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin: 0;
-  border-top: 1px solid var(--color-border-dark);
-  padding-top: 6px;
-  font-style: italic;
-}
-
 .inventory-grid.trade-mode-active {
   border: 2px solid var(--color-gold-bright);
   box-shadow: 0 0 8px rgba(200, 146, 42, 0.3);
@@ -816,10 +775,3 @@
    width there: legibility matters more than the few pixels saved, and
    space-evenly handles the rest. */
 
-/* What a provision does, under its flavour text. Gold, so it reads as a game
-   fact rather than as more prose. */
-.item-tooltip-buff {
-  color: var(--color-gold);
-  font-size: 12px;
-  margin: 2px 0 0;
-}

@@ -9,6 +9,7 @@ import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
+import { useItemTooltip } from './ItemTooltip'
 
 interface GroundItem {
   id: number
@@ -57,6 +58,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // Self-contained: the panel fetches its own state, so no props to thread.
   const [tallyOpen, setTallyOpen] = useState(false)
   const [marketplaceOpen, setMarketplaceOpen] = useState(false)
+  // Ground items get the same tooltip the pack does.
+  const { hoverProps, tooltipEl } = useItemTooltip()
   const [shopsOpen, setShopsOpen] = useState(false)
   const [shopUnseen, setShopUnseen] = useState(0)
   const [myShopOpen, setMyShopOpen] = useState(false)
@@ -771,7 +774,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
               <div
                 key={item.id}
                 className="ground-item-slot"
-                title={`${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}\nClick to pick up`}
+                {...hoverProps(item, 'Left-click to pick up')}
                 onClick={() => handlePickup(item.id)}
               >
                 <img
@@ -849,6 +852,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         />
       )}
 
+      {tooltipEl}
     </aside>
   )
 }

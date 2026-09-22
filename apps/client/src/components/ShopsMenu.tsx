@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './ShopsMenu.css'
+import { useItemTooltip } from './ItemTooltip'
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -80,13 +81,15 @@ const fmt = (n: number) => n.toLocaleString('en-US')
 type SortKey = 'name' | 'price' | 'stock'
 type SortDir = 'asc' | 'desc'
 
-function ItemIcon({ name }: { name: string }) {
+function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknown> }) {
     const [failed, setFailed] = useState(false)
-    if (failed) return <span className="shp-icon shp-icon-blank" aria-hidden="true" />
-    return <img className="shp-icon" src={getItemIcon(name)} alt="" title={name} onError={() => setFailed(true)} />
+    if (failed) return <span className="shp-icon shp-icon-blank" aria-hidden="true" {...hover} />
+    return <img className="shp-icon" src={getItemIcon(name)} alt="" onError={() => setFailed(true)} {...hover} />
 }
 
 export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarted }: ShopsMenuProps) {
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [shops, setShops] = useState<ShopSummary[]>([])
     const [build, setBuild] = useState<BuildInfo | null>(null)
     const [hasShop, setHasShop] = useState(false)
@@ -342,7 +345,7 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                                 <ul className="shp-list">
                                     {applyView(openShop.listings, l => l.quantity).map(l => (
                                         <li key={l.id} className="shp-row">
-                                            <ItemIcon name={l.name} />
+                                            <ItemIcon name={l.name} hover={hoverProps({ name: l.name }, 'Left-click to buy')} />
                                             <div className="shp-row-main">
                                                 <span className="shp-row-name">{l.name}</span>
                                                 <span className="shp-row-sub">{fmt(l.quantity)} in stock</span>
@@ -366,7 +369,7 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                                 <ul className="shp-list">
                                     {applyView(openShop.buyOrders, o => o.wanted).map(o => (
                                         <li key={o.id} className="shp-row">
-                                            <ItemIcon name={o.name} />
+                                            <ItemIcon name={o.name} hover={hoverProps({ name: o.name }, 'Left-click to sell')} />
                                             <div className="shp-row-main">
                                                 <span className="shp-row-name">{o.name}</span>
                                                 <span className="shp-row-sub">
@@ -434,6 +437,7 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                     </div>
                 )}
             </div>
+            {tooltipEl}
         </div>
     )
 }

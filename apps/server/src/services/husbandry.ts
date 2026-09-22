@@ -1,7 +1,7 @@
 import type { Knex } from 'knex';
 import db from '../db';
-import { logger } from '../index';
-import { levelFromXp } from './xp';
+import { logger } from '../lib/logger';
+import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { notifyInventoryChanged, addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
 import { getSeason } from '../lib/gameTime';
@@ -9,6 +9,7 @@ import { activeXpForSeconds } from './farming';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { isLiquid, canFill, addLiquid, liquidState } from './liquids';
 import { missingBuildTool as sharedMissingBuildTool } from './construction';
+import { awardXp as awardSkillXp } from './xp';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
 // beside the fields, then stocked with animals found in the wild: feed → collect
@@ -197,12 +198,10 @@ async function equippedTool(playerId: number, subtype: string, x: Ex = db) {
     return x('items').where({ id, subtype }).first();
 }
 
+// Kept as a thin local name so the call sites below read unchanged; the write
+// itself lives in services/xp.ts with every other skill's.
 async function awardXp(playerId: number, skillName: string, xp: number, x: Ex = db): Promise<void> {
-    const skill = await x('skills').where({ name: skillName }).first();
-    if (!skill) return;
-    const existing = await x('player_skills').where({ player_id: playerId, skill_id: skill.id }).first();
-    if (existing) await x('player_skills').where({ player_id: playerId, skill_id: skill.id }).increment('xp', xp);
-    else await x('player_skills').insert({ player_id: playerId, skill_id: skill.id, xp });
+    await awardSkillXp(playerId, skillName, xp, x);
 }
 
 /**
@@ -278,14 +277,6 @@ export function penCost(penType: string, penNumber: number): { itemName: string;
 // Everything about an animal's state is derived from two accrued totals, folded
 // forward on read. A pen contributes time only while it is BOTH fed and clean.
 
-/**
- * An apiary is not a pen full of livestock.
- *
- * Bees feed themselves and do not foul their own hive, so an apiary has no
- * feeding and no mucking. Without this it inherits the livestock clock, which
- * gates on fed_until, which is never set for a hive, so the bees would sit
- * "paused, needs feeding" forever and never make a thing.
- */
 /** Does butchering this animal actually yield anything? */
 function hasSlaughterYield(species: any): boolean {
     try {
@@ -300,6 +291,21 @@ function hasSlaughterYield(species: any): boolean {
     }
 }
 
+/**
+ * An apiary is not a pen full of livestock.
+ *
+ * Bees feed themselves and do not foul their own hive, so an apiary has no
+ * feeding and no mucking. Without this it inherits the livestock clock, which
+ * gates on fed_until, which is never set for a hive, so the bees would sit
+ * "paused, needs feeding" forever and never make a thing.
+ *
+ * Every per-pen path checked this and both ROUND paths did not, which is what
+ * broke Feed All the moment a skep went into an apiary: `pensNeedingFeed`
+ * counted the hive as unfed forever (its fed_until is never set), then
+ * `roundCost` read the bee species' `feed_item_name`, which is deliberately
+ * NULL, and put a null into the cost. Hence a button reading "1 - 0 null" and
+ * a Server Error on every round, including the pens that did need feeding.
+ */
 export function isApiary(penType: string): boolean {
     return penType === 'apiary';
 }
@@ -479,6 +485,36 @@ function accruedAfterCollect(animal: any, species: any, stage: string, units: nu
  * animal matured paid up to 6.4x the intended rate, because the milestones all
  * land at or before adulthood and only the product XP requires waiting.
  */
+/**
+ * The stored XP for a husbandry action, tapered by how far below the player
+ * the animal sits.
+ *
+ * Husbandry is a processing skill, like Farming. A cull consumes a young
+ * animal — a calf from a hunt, a piglet or chick from a trap — and a collect is
+ * paid for by the feed eaten to produce it. So the stored figures in
+ * xp_product, xp_mature and xp_slaughter are the price of those inputs, and
+ * they stand as set.
+ *
+ * An earlier revision of this file replaced them with an attention-based rule
+ * (K x band x the seconds an action takes), on the reasoning that slaughtering
+ * a pig paid 4,267 XP for 45 seconds — about forty bands an hour. That figure
+ * assumed an unlimited supply of piglets. With the real supply, one or two a
+ * day from four traps at a 4% share of catches, the cull loop runs at roughly
+ * 0.8x band per hunting-hour for calves and under 0.2x for trapped young. The
+ * input was already the gate, the same way seeds gate annual crops, and the
+ * attention rule cut a loop that was never out of band. It is gone.
+ *
+ * What does need a check is the KEEP loop, since an adult is not consumed: it
+ * produces until it ages, like a perennial. The level taper handles that,
+ * shared with Farming (services/xp.ts), so a paddock of level 9 cows teaches in
+ * full to Husbandry 24 and less after.
+ */
+function taperedXp(level: number, species: any, column: 'xp_product' | 'xp_mature' | 'xp_slaughter'): number {
+    const stored = Number(species[column] ?? 0);
+    if (stored <= 0) return 0;
+    return Math.max(1, Math.round(stored * levelTaper(Number(species.husbandry_level) || 1, level)));
+}
+
 function lifeFraction(animal: any, species: any): number {
     const full = species.grow_seconds + species.elder_seconds;
     return Math.min(1, animal.grow_seconds_accrued / Math.max(1, full));
@@ -513,10 +549,14 @@ async function payMaturityXp(playerId: number, animal: any, species: any): Promi
     }
 
     if (species.xp_mature > 0) {
-        await awardXp(playerId, 'Husbandry', species.xp_mature);
-        await incrementStats(playerId, { total_xp_earned: species.xp_mature });
+        // Anchored to the taming that began this animal's cycle. awardXp counts
+        // the lifetime total itself.
+        const lvl = await skillLevel(playerId, 'Husbandry');
+        const matureXp = taperedXp(lvl, species, 'xp_mature');
+        await awardXp(playerId, 'Husbandry', matureXp);
+        return matureXp;
     }
-    return species.xp_mature;
+    return 0;
 }
 
 /**
@@ -869,7 +909,7 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
             await updateQuestObjectiveProgress(playerId, 'build', penType === 'coop' ? 'Coop' : 'Paddock', 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
         return {
             success: true, xp, skillName: 'Carpentry',
             message: PEN_BUILT_TEXT[penType] ?? PEN_BUILT_TEXT.paddock,
@@ -1200,7 +1240,7 @@ export async function resolveFeed(playerId: number, penIdRaw: string | null): Pr
             await updateQuestObjectiveProgress(playerId, 'feed', species.name, 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             message: `You tip out the feed and top up the water. ${head === 1 ? 'It eats' : 'They eat'} like nothing else is coming.`,
@@ -1234,6 +1274,8 @@ async function pensNeedingFeed(playerId: number, x: Ex = db) {
     const now = Date.now();
     const out = [];
     for (const pen of pens) {
+        // Hives are never in a feed round: they feed themselves.
+        if (isApiary(pen.pen_type)) continue;
         if (pen.fed_until && new Date(pen.fed_until).getTime() > now) continue;
         const head = await x('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
         if (Number(head?.c ?? 0) > 0) out.push(pen);
@@ -1251,6 +1293,9 @@ async function pensNeedingMuck(playerId: number, x: Ex = db) {
     const now = Date.now();
     const out = [];
     for (const pen of pens) {
+        // Same as the feed round: bees do not foul their own hive, and an
+        // apiary's muck_due_at is never set, so it would be permanently due.
+        if (isApiary(pen.pen_type)) continue;
         if (pen.muck_due_at && new Date(pen.muck_due_at).getTime() > now) continue;
         const head = await x('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
         if (Number(head?.c ?? 0) > 0) out.push(pen);
@@ -1280,6 +1325,10 @@ async function roundCost(
         }
         const species = await x('animal_species').where({ id: pen.species_id }).first();
         if (!species) continue;
+        // A species that feeds itself has a NULL feed item on purpose. Letting
+        // that into the totals map produces a cost line for "null", which the
+        // material check cannot look up and the UI renders as the word null.
+        if (!species.feed_item_name || species.feed_qty < 1) continue;
         totals.set(species.feed_item_name, (totals.get(species.feed_item_name) ?? 0) + species.feed_qty * n);
     }
 
@@ -1379,7 +1428,7 @@ export async function resolveFeedAll(playerId: number): Promise<HusbandryActionR
             await awardXp(playerId, 'Husbandry', xp, trx);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             message: ranShort
@@ -1462,7 +1511,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
             await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', muckedPens);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: 'Manure', quantity: manure,
@@ -1551,7 +1600,7 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
             await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: 'Manure', quantity: qty,
@@ -1745,12 +1794,14 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
             } else {
                 await giveItem(playerId, productItem, qty, trx);
             }
-            xp = species.xp_product * hits + activeXp;
+            const collectLvl = await skillLevel(playerId, 'Husbandry', trx);
+            xp = taperedXp(collectLvl, species, 'xp_product') * hits
+                + activeXp;
             await awardXp(playerId, 'Husbandry', xp, trx);
             await updateQuestObjectiveProgress(playerId, 'collect', productItem, qty);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1});
 
         // Text comes off the species row. It used to be a ternary on the
         // product name that fell through to the pig's line, so bees collected
@@ -1868,7 +1919,8 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
             if (totalUnits < 1) throw new Error('NOT_READY');
 
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
-            xp = species.xp_product * hits + activeXpForSeconds(lvl, collectAllSeconds(totalUnits));
+            xp = taperedXp(lvl, species, 'xp_product') * hits
+                + activeXpForSeconds(lvl, collectAllSeconds(totalUnits));
 
             if (hits > 0) {
                 qty = hits * species.product_qty;
@@ -1885,7 +1937,7 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
             await awardXp(playerId, 'Husbandry', xp, trx);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1});
 
         if (qty < 1) {
             return {
@@ -1963,9 +2015,12 @@ export async function resolveSlaughter(playerId: number, animalIdRaw: string | n
                 if (!firstItem) { firstItem = drop.itemName; firstQty = q; }
             }
 
+            // lifeFraction still applies: an animal taken young is worth less
+            // than one that lived its span.
             const fraction = lifeFraction(fresh, species);
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
-            xp = Math.max(1, Math.round(species.xp_slaughter * fraction))
+            const slaughterXp = taperedXp(lvl, species, 'xp_slaughter');
+            xp = Math.max(1, Math.round(slaughterXp * fraction))
                 + activeXpForSeconds(lvl, SLAUGHTER_SECONDS);
 
             await trx('player_animals').where({ id: fresh.id }).delete();
@@ -1974,7 +2029,7 @@ export async function resolveSlaughter(playerId: number, animalIdRaw: string | n
             await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: firstItem, quantity: firstQty, drops,
@@ -2041,6 +2096,10 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
             const tally = new Map<string, number>();
             let speciesXp = 0;
 
+            // One lookup for the whole pen; lifeFraction still varies per head.
+            const allLvl = await skillLevel(playerId, 'Husbandry', trx);
+            const perHeadSlaughterXp = taperedXp(allLvl, species, 'xp_slaughter');
+
             for (const a of animals) {
                 if (stageOf(a, species) === 'juvenile') continue;   // the young are spared
                 killed++;
@@ -2052,7 +2111,7 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
                     tally.set(drop.itemName, (tally.get(drop.itemName) ?? 0) + q);
                 }
 
-                speciesXp += Math.max(1, Math.round(species.xp_slaughter * lifeFraction(a, species)));
+                speciesXp += Math.max(1, Math.round(perHeadSlaughterXp * lifeFraction(a, species)));
                 await trx('player_animals').where({ id: a.id }).delete();
             }
 
@@ -2072,7 +2131,7 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
             await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, killed);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: firstItem, quantity: firstQty, drops,
@@ -2136,12 +2195,13 @@ export async function resolveTame(playerId: number, animalIdRaw: string | null):
             await clearPenIfEmpty(pen, trx);
 
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
-            xp = species.xp_slaughter + activeXpForSeconds(lvl, TAME_SECONDS);
+            xp = taperedXp(lvl, species, 'xp_slaughter')
+                + activeXpForSeconds(lvl, TAME_SECONDS);
             await awardXp(playerId, 'Husbandry', xp, trx);
             await updateQuestObjectiveProgress(playerId, 'tame', species.name, 1);
         });
 
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
         return {
             success: true, xp, skillName: 'Husbandry',
             itemName: mountItem, quantity: 1,

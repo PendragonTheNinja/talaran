@@ -182,3 +182,23 @@
   text-align: center;
   line-height: 1.2;
 }
+
+/* Short of materials.
+   A different state from locked, and deliberately gentler: the recipe is
+   available, the bench is right, the pack is just missing something. Locked
+   means "you cannot", short means "not yet", so the card stays clickable and
+   readable rather than dimmed to 0.5 like a level gate. */
+.smithing-recipe-card.short {
+  opacity: 0.85;
+  border-color: var(--color-border-dark);
+}
+
+.smithing-recipe-card.short .smithing-recipe-name {
+  color: var(--color-text-muted);
+}
+
+/* The specific ingredient that is missing, in the ingredient strip. Red rather
+   than dimmed: it is the one thing on the card the player came to find out. */
+.smithing-ingredient.short {
+  color: var(--color-health);
+}

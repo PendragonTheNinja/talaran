@@ -1,18 +1,8 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
-import { logger } from '../index';
-import {
-    getFarmState,
-    startEstablish,
-    startBuildPlot,
-    startTill,
-    startSow,
-    startHarvest,
-    startUproot,
-    startManure,
-    startTend,
-} from '../services/farming';
+import { logger } from '../lib/logger';
+import { getFarmState, startEstablish, startBuildPlot, startTill, startSow, startHarvest, startUproot, startManure, startTend, startHarvestAll } from '../services/farming';
 
 const router = Router();
 
@@ -80,6 +70,13 @@ router.post('/tend', requireAuth, botCheckGate, async (req: AuthRequest, res: Re
     const r = await startTend(req.player!.playerId);
     if (!r.ok) { res.status(400).json({ error: r.error }); return; }
     res.json({ message: 'Tending', timerSeconds: r.timerSeconds });
+});
+
+// Every ripe field at once, from HARVEST_ALL_MIN_PLOTS fields up.
+router.post('/harvest-all', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    const r = await startHarvestAll(req.player!.playerId);
+    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    res.json({ message: 'Bringing in the harvest', timerSeconds: r.timerSeconds });
 });
 
 export default router;

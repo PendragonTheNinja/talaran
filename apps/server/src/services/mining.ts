@@ -1,9 +1,10 @@
 import db from '../db';
 import { levelFromXp } from './xp';
 import { logger } from '../lib/logger';
-import { io } from '../index';
 import { incrementStats } from './stats';
 import { rollSecondaryDrops } from './drops';
+import { awardXp } from './xp';
+import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
@@ -188,9 +189,7 @@ export async function processMiningRock(
       }
     }
 
-    await db('player_skills')
-      .where({ player_id: playerId, skill_id: miningSkill.id })
-      .increment('xp', node.xp_reward);
+    await awardXp(playerId, miningSkill.id, node.xp_reward);
 
     let veinFound = false;
     let veinOreName: string | undefined;
@@ -219,16 +218,12 @@ export async function processMiningRock(
         discovery_key: discoveryKey,
         xp_awarded: explorationXp,
       });
-      const explorationSkill = await db('skills').where({ name: 'Exploration' }).first();
-      await db('player_skills')
-        .where({ player_id: playerId, skill_id: explorationSkill.id })
-        .increment('xp', explorationXp);
+      await awardXp(playerId, 'Exploration', explorationXp);
     }
 
     await incrementStats(playerId, {
       total_rocks_mined: 1,
       total_actions_completed: 1,
-      total_xp_earned: node.xp_reward,
     });
 
     const drops = rockSubtype ? await rollSecondaryDrops(playerId, `mining:rock:${rockSubtype}`, 'Mining') : [];
@@ -304,9 +299,7 @@ export async function processMiningVein(
     }
 
     const oreXp = Math.floor(ore.level_required * 2.5) + 30;
-    await db('player_skills')
-      .where({ player_id: playerId, skill_id: miningSkill.id })
-      .increment('xp', oreXp);
+    await awardXp(playerId, miningSkill.id, oreXp);
 
     const newRemaining = vein.remaining_quantity - 1;
     if (newRemaining <= 0) {
@@ -314,7 +307,7 @@ export async function processMiningVein(
         remaining_quantity: 0,
         is_depleted: true,
       });
-      io.to(`location_${vein.location_id}`).emit('vein_depleted', {
+      pushToRoom(`location_${vein.location_id}`, 'vein_depleted', {
         veinId,
         oreName: ore.name,
         locationId: vein.location_id,
@@ -337,17 +330,13 @@ export async function processMiningVein(
         discovery_key: discoveryKey,
         xp_awarded: explorationXp,
       });
-      const explorationSkill = await db('skills').where({ name: 'Exploration' }).first();
-      await db('player_skills')
-        .where({ player_id: playerId, skill_id: explorationSkill.id })
-        .increment('xp', explorationXp);
+      await awardXp(playerId, 'Exploration', explorationXp);
     }
 
     await incrementStats(playerId, {
       total_ores_mined: 1,
       total_dense_ores_mined: isDense ? 1 : 0,
       total_actions_completed: 1,
-      total_xp_earned: oreXp,
       [`${ore.subtype}_ore_mined`]: 1,
     });
 
@@ -420,7 +409,7 @@ async function discoverVein(
 
     await incrementStats(playerId, { veins_discovered: 1 });
 
-    io.to(`player_${playerId}`).emit('vein_discovered', {
+    pushToPlayer(playerId, 'vein_discovered', {
       oreName: ore.name,
       quantity,
       privateWindow: VEIN_ANNOUNCE_DELAY / 1000 / 60,
@@ -448,14 +437,14 @@ export async function checkVeinAnnouncements(): Promise<void> {
     const ore = await db('items').where({ id: vein.ore_item_id }).first();
     const location = await db('locations').where({ id: vein.location_id }).first();
 
-    io.to(`location_${vein.location_id}`).emit('vein_announced', {
+    pushToRoom(`location_${vein.location_id}`, 'vein_announced', {
       veinId: vein.id,
       oreName: ore.name,
       remainingQuantity: vein.remaining_quantity,
       locationName: location.name,
     });
 
-    io.emit('region_event', {
+    pushToAll('region_event', {
       message: `A ${ore.name} vein has been discovered at ${location.name}!`,
       type: 'mining',
     });

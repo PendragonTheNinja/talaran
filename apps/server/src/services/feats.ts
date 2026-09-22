@@ -29,6 +29,18 @@ export interface FeatRow {
     /** Where they are now, against what the feat wants. Null when hidden and unearned. */
     progress: number | null
     target: number
+    /**
+     * What this feat watches, so the client can move the bar itself.
+     *
+     * The panel is fed a delta ('total_logs_chopped' went up by one) rather
+     * than a fresh page of feats, and needs to know which rows that touches.
+     * 'stat' carries the player_stats column; 'skill' carries the skill name.
+     * The kinds that depend on every skill at once ('total_level', 'breadth')
+     * are not live-updatable from one delta, and do not need to be: they only
+     * move on a level up, which triggers a re-read anyway.
+     */
+    criterionKind: string
+    criterionTarget: string | null
 }
 
 /**
@@ -41,9 +53,14 @@ export interface FeatRow {
 async function snapshot(playerId: number) {
     const stats = await db('player_stats').where({ player_id: playerId }).first()
 
+    // Only skills that count: see countedSkillIds in services/xp.ts. Without
+    // this filter the total level here included XP banked in unshipped skills,
+    // so the Feats tab read higher than the Skills tab for the same player.
     const skillRows = await db('player_skills as ps')
         .join('skills as s', 's.id', 'ps.skill_id')
         .where('ps.player_id', playerId)
+        .where('s.is_active', true)
+        .where('s.is_implemented', true)
         .select('s.name as name', 'ps.xp as xp')
 
     const levels = new Map<string, number>()
@@ -189,6 +206,8 @@ export async function listFeats(playerId: number): Promise<{
             earnedAt: earnedAt ? new Date(earnedAt).toISOString() : null,
             progress: Math.min(measure(feat, snap), targetOf(feat, snap)),
             target: targetOf(feat, snap),
+            criterionKind: feat.criterion_kind,
+            criterionTarget: feat.criterion_target ?? null,
         })
     }
 

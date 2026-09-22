@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './WorkstationPanel.css'
+import { useItemTooltip } from './ItemTooltip'
 
 interface EligibleItem {
     itemId: number
@@ -56,6 +57,8 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
     const [openSlot, setOpenSlot] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [loadFailed, setLoadFailed] = useState<string | null>(null)
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [busy, setBusy] = useState(false)
 
     const flash = (msg: string) => {
@@ -161,9 +164,11 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
                         <button
                             key={`${slot.slot}-${i}`}
                             className={`workstation-cell${tool ? ' occupied' : ''}${slot.isRequired ? ' required' : ''}`}
-                            title={tool
-                                ? `${tool.itemName} (tier ${tool.tier})\nClick to take it back`
-                                : `${slot.label}\nClick to fit a tool`}
+                            title={tool ? undefined : `${slot.label}\nClick to fit a tool`}
+                            {...hoverProps(
+                                tool ? { name: tool.itemName } : null,
+                                'Left-click to take it back',
+                            )}
                             disabled={busy || (!tool && !hasRoom)}
                             onClick={() => tool
                                 ? handleUnsocket(slot.slot, tool.index)
@@ -229,6 +234,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
                 and a tool more than two tiers behind the work will not manage it at all.
             </p>
         </div>
+        {tooltipEl}
         </div>
     )
 }

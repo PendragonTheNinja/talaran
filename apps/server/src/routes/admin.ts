@@ -1,13 +1,13 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { io } from '../index';
 import { logger } from '../lib/logger';
 import { xpForLevel, levelFromXp } from '../services/xp';
 import { sendSystemMessage } from './messages';
-import { connectedPlayers } from '../index';
 import { creditGold, debitGold } from '../services/gold';
 import { adminAdjustTalers } from '../services/talers';
+import { runBalanceChecks } from '../services/balanceChecks';
+import { onlinePlayers, pushToAll, pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -22,6 +22,30 @@ async function hasPermission(playerId: number, permission: string): Promise<bool
 }
 
 // Get online players
+/**
+ * GET /api/admin/balance/checks - the economy self-checks.
+ *
+ * `?gold=1` adds the ledger reconciliation, which walks every player's ledger
+ * and so is not run just because a tab opened.
+ *
+ * Gated on can_view_players: it reveals item prices and, with gold, usernames
+ * and balances, so it is admin/mod territory rather than open.
+ */
+router.get('/balance/checks', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        if (!await hasPermission(playerId, 'can_view_players')) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        const includeGold = req.query.gold === '1' || req.query.gold === 'true';
+        res.json(await runBalanceChecks(includeGold));
+    } catch (err) {
+        logger.error(`Balance checks error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.get('/players/online', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
@@ -31,7 +55,7 @@ router.get('/players/online', requireAuth, async (req: AuthRequest, res: Respons
         }
 
         const players = await db('players')
-            .whereIn('players.id', [...connectedPlayers])
+            .whereIn('players.id', [...onlinePlayers()])
             .join('locations', 'players.current_location_id', 'locations.id')
             .select(
                 'players.id',
@@ -188,9 +212,9 @@ router.post('/announce', requireAuth, async (req: AuthRequest, res: Response) =>
             sent_at: now,
         });
 
-        io.emit('chat_world', announcementData);
+        pushToAll('chat_world', announcementData);
         // Also emit as a banner
-        io.emit('server_announcement', { message: message.trim() });
+        pushToAll('server_announcement', { message: message.trim() });
 
         logger.info(`Server announcement by ${player.username}: ${message.trim()}`);
         res.json({ success: true });
@@ -233,7 +257,7 @@ router.post('/warn', requireAuth, async (req: AuthRequest, res: Response) => {
 
         if (type === 'chat') {
             // Send red warning in chat visible only to target
-            io.to(`player_${targetId}`).emit('chat_warning', {
+            pushToPlayer(targetId, 'chat_warning', {
                 message: `⚠ Warning from staff: ${reason?.trim() || 'No reason given.'} (Strike ${strikeNumber})`,
             });
         } else {
@@ -297,7 +321,7 @@ router.post('/teleport', requireAuth, async (req: AuthRequest, res: Response) =>
         await db('players').where({ id: targetId }).update({ current_location_id: locationId });
 
         // Tell their client to reload into the new location.
-        io.to(`player_${targetId}`).emit('force_refresh');
+        pushToPlayer(targetId, 'force_refresh');
 
         logger.info(`${staff.username} teleported ${target.username} to ${location.name}`);
         res.json({ success: true, message: `Moved ${target.username} to ${location.name}.` });
@@ -545,7 +569,7 @@ router.post('/mute', requireAuth, async (req: AuthRequest, res: Response) => {
                 is_chat_muted: true,
                 chat_muted_until: expiresAt,
             });
-            io.to(`player_${targetId}`).emit('chat_muted', {
+            pushToPlayer(targetId, 'chat_muted', {
                 message: durationHours
                     ? `You have been muted in chat for ${formatDuration(durationHours)}. Reason: ${reason || 'No reason given.'}`
                     : `You have been permanently muted in chat. Reason: ${reason || 'No reason given.'}`,
@@ -555,7 +579,7 @@ router.post('/mute', requireAuth, async (req: AuthRequest, res: Response) => {
                 is_forum_banned: true,
                 forum_banned_until: expiresAt,
             });
-            io.to(`player_${targetId}`).emit('chat_muted', {
+            pushToPlayer(targetId, 'chat_muted', {
                 message: durationHours
                     ? `You have been banned from the forum for ${formatDuration(durationHours)}. Reason: ${reason || 'No reason given.'}`
                     : `You have been permanently banned from the forum. Reason: ${reason || 'No reason given.'}`,
@@ -619,7 +643,7 @@ router.post('/ban', requireAuth, async (req: AuthRequest, res: Response) => {
         });
 
         // Disconnect the player
-        io.to(`player_${targetId}`).emit('force_logout', {
+        pushToPlayer(targetId, 'force_logout', {
             message: durationHours
                 ? `You have been banned for ${formatHours(durationHours)}. Reason: ${reason || 'No reason given.'}`
                 : `You have been permanently banned. Reason: ${reason || 'No reason given.'}`,

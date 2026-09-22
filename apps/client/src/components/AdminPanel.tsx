@@ -3,6 +3,7 @@ import { formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import AdminContentBrowser from './AdminContentBrowser'
 import AdminBalanceCalculator from './AdminBalanceCalculator'
+import AdminBalanceChecks from './AdminBalanceChecks'
 import AdminManualEditor from './AdminManualEditor'
 import './AdminPanel.css'
 
@@ -60,6 +61,22 @@ interface AdminPanelProps {
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
     const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual'>('players')
+
+    /**
+     * Problem count on the Balance label.
+     *
+     * A tab somebody has to remember to open is barely better than a check
+     * nobody calls, which is what these were. The three cheap checks run once
+     * when the panel opens, so "Balance (3)" is visible while you are in here
+     * for something else entirely. The ledger walk is not included; it is
+     * behind its own button inside the tab.
+     */
+    const [balanceProblems, setBalanceProblems] = useState(0)
+    useEffect(() => {
+        apiFetch<{ problemCount: number }>('/api/admin/balance/checks')
+            .then(r => setBalanceProblems(r.problemCount))
+            .catch(() => { /* the tab itself reports the failure */ })
+    }, [])
     const [view, setView] = useState<'online' | 'search' | 'player'>('online')
     const [onlinePlayers, setOnlinePlayers] = useState<PlayerInfo[]>([])
     const [searchQuery, setSearchQuery] = useState('')
@@ -379,7 +396,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                 className={`admin-tab ${mainTab === 'balance' ? 'active' : ''}`}
                                 onClick={() => setMainTab('balance')}
                             >
-                                Balance
+                                Balance{balanceProblems ? ` (${balanceProblems})` : ''}
                             </button>
                             <button
                                 className={`admin-tab ${mainTab === 'manual' ? 'active' : ''}`}
@@ -397,7 +414,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             {mainTab === 'content' ? <AdminContentBrowser /> :
-            mainTab === 'balance' ? <AdminBalanceCalculator /> :
+            mainTab === 'balance' ? (
+                <div className="admin-balance-tab">
+                    <AdminBalanceChecks />
+                    <AdminBalanceCalculator />
+                </div>
+            ) :
             mainTab === 'manual' ? <AdminManualEditor /> : (
             <div className="admin-body">
                 {/* Sidebar */}

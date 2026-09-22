@@ -1,10 +1,10 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { levelFromXp, xpToNextLevel, xpProgressInLevel } from '../services/xp';
+import { levelFromXp, skillProgress } from '../services/xp';
 import { Request } from 'express';
-import { connectedPlayers } from '../index';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
+import { onlinePlayers } from '../lib/realtime';
 
 const router = Router();
 
@@ -16,10 +16,10 @@ router.get('/stats', async (req: Request, res: Response) => {
       .where({ is_guest: false })
       .count('id as count')
       .first();
-    const onlinePlayers = connectedPlayers.size;
+    const onlineCount = onlinePlayers().size;
     res.json({
       totalPlayers: parseInt(totalPlayers?.count as string) || 0,
-      onlinePlayers,
+      onlinePlayers: onlineCount,
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -63,15 +63,15 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
 
     const skillsWithLevels = skills.map((skill: any) => {
       const xp = parseInt(skill.xp) || 0;
-      const level = levelFromXp(xp);
       return {
         id: skill.id,
         name: skill.name,
         type: skill.type,
         xp,
-        level,
-        xpToNext: xpToNextLevel(xp),
-        progress: xpProgressInLevel(xp),
+        // Level, progress and the XP into this level all come from one place:
+        // the curve lives in services/xp.ts and the client should never carry
+        // a second copy of it to divide two numbers.
+        ...skillProgress(xp),
       };
     });
 
@@ -147,7 +147,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         .where({ player_id: targetId })
         .join('skills', 'player_skills.skill_id', 'skills.id')
         .where('skills.is_implemented', true)
-        .select('skills.name', 'skills.type', 'player_skills.xp');
+        .select('skills.name', 'skills.type', 'skills.description', 'player_skills.xp');
 
       const equipment = await db('player_equipment')
         .where({ player_id: targetId })
@@ -171,14 +171,18 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         )
         .first();
 
-      // Calculate levels and totals
-      const { levelFromXp } = await import('../services/xp');
-      const skillsWithLevels = skills.map(s => ({
-        name: s.name,
-        type: s.type,
-        xp: parseInt(s.xp),
-        level: levelFromXp(parseInt(s.xp)),
-      }));
+      // Same shape as a player's own skills, so another player's profile can
+      // show the same tooltip rather than a thinner one.
+      const skillsWithLevels = skills.map(s => {
+        const xp = parseInt(s.xp);
+        return {
+          name: s.name,
+          type: s.type,
+          description: s.description,
+          xp,
+          ...skillProgress(xp),
+        };
+      });
 
       const totalLevel = skillsWithLevels.reduce((sum, s) => sum + s.level, 0);
       const totalXp = skillsWithLevels.reduce((sum, s) => sum + s.xp, 0);

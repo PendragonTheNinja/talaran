@@ -1,11 +1,12 @@
 import db from '../db';
-import { connectedPlayers, logger } from '../index';
+import { logger } from '../lib/logger';
+import { onlinePlayers } from '../lib/realtime';
 
 const FLUSH_INTERVAL_MS = 60_000; // credit playtime once a minute
 
 export function startPlaytimeTracking() {
     setInterval(async () => {
-        const ids = Array.from(connectedPlayers);
+        const ids = Array.from(onlinePlayers());
         if (ids.length === 0) return;
         const seconds = Math.round(FLUSH_INTERVAL_MS / 1000);
         try {

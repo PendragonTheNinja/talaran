@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
+import { useItemTooltip } from './ItemTooltip'
 
 export interface TableRecipe {
     id: number
@@ -24,6 +25,9 @@ export interface TableRecipe {
     isProvision?: boolean
     /** Slots this recipe wants that the bench does not have. */
     missingTools?: string[]
+    /** Whether the pack holds every ingredient, answered by the server. */
+    canAfford?: boolean
+    missingInputs?: { name: string; need: number; have: number }[]
     /** Server-computed: whose bench this would run at and how fast. The client
         cannot work this out from is_active, because a tool-less recipe like
         smelting runs at full speed on a half-finished bench of your own. */
@@ -82,6 +86,8 @@ function toolTabFor(r: TableRecipe): string {
 }
 
 export default function RecipeList({ skill, playerLevel, onStartRecipe, stationActive = true, groupBy = 'skill' }: RecipeListProps) {
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [recipes, setRecipes] = useState<TableRecipe[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState<string | null>(null)
@@ -146,6 +152,13 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                     // Prefer the server's answer; fall back to the old guess
                     // only for callers that have not been updated.
                     const blocked = r.available === false
+                    // Short of materials is its own state, and a softer one:
+                    // the bench is fine, the pack is not. It needs no label of
+                    // its own — the missing ingredient goes red in the strip
+                    // below, which is the same answer in less vertical space.
+                    const short = r.canAfford === false
+                    const missing = r.missingInputs ?? []
+                    const shortNames = new Set(missing.map(m => m.name))
                     // The station error says you cannot; this says what to go
                     // and get. A rack with nothing in it should read as a
                     // shopping list rather than a wall of refusals.
@@ -161,11 +174,16 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                     return (
                         <div
                             key={r.id}
-                            className={`smithing-recipe-card ${locked || blocked ? 'locked' : ''}`}
-                            title={tip}
+                            className={`smithing-recipe-card ${locked || blocked ? 'locked' : ''}${short && !locked && !blocked ? ' short' : ''}`}
+                            title={tip ?? (short
+                                ? `Short of ${missing.map(m => `${m.name} (${m.have}/${m.need})`).join(', ')}.`
+                                : undefined)}
                             onClick={() => { if (!locked && !blocked) onStartRecipe(r.id, null) }}
                         >
-                            <div className="smithing-recipe-image">
+                            <div
+                                className="smithing-recipe-image"
+                                {...hoverProps({ name: r.outputItemName })}
+                            >
                                 <img
                                     src={getItemIcon(r.outputItemName)}
                                     alt={r.outputItemName}
@@ -188,17 +206,24 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                             )}
 
                             <div className="smithing-recipe-ingredients">
-                                {r.inputs.map((ing, i) => (
-                                    <span key={i} className="smithing-ingredient">
-                                        {ing.qty}× {ing.itemName ?? ing.label ?? ing.subtype ?? '?'}
+                                {r.inputs.map((ing, i) => {
+                                    const label = ing.itemName ?? ing.label ?? ing.subtype ?? '?'
+                                    return (
+                                    <span
+                                        key={i}
+                                        className={`smithing-ingredient${shortNames.has(label) ? ' short' : ''}`}
+                                    >
+                                        {ing.qty}× {label}
                                     </span>
-                                ))}
+                                    )
+                                })}
                             </div>
                             {locked && <div className="smithing-locked-label">Level {r.requiredLevel}</div>}
                         </div>
                     )
                 })}
             </div>
+            {tooltipEl}
         </>
     )
 }

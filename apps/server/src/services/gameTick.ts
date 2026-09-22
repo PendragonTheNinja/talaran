@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import db from '../db';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
 import {
@@ -9,8 +9,7 @@ import {
 } from './fishing';
 import { recordItemFirstByName } from './inventory';
 import { incrementStats } from './stats';
-import { isLiquid, liquidTotal } from './liquids';
-import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveManure, resolveTend, resolveUproot } from './farming';
+import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestAll, resolveManure, resolveTend, resolveUproot } from './farming';
 import { resolveEstablishShop } from './shops';
 import {
   resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
@@ -26,6 +25,7 @@ import { shouldCancelForAbsence } from '../lib/presence';
 import { recordLoot } from './lootLog';
 import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
 import { rollTravelEvents } from './travelEvents'
+import { awardXp } from './xp';
 
 const TICK_INTERVAL = 2000;
 let lastTrapSweep = 0;
@@ -65,6 +65,7 @@ const GOLD_FIND_ACTIONS: Record<string, string> = {
   // its own and must never pay coin for elapsed time.
   farm_till: 'farming',
   farm_harvest: 'farming',
+  farm_harvest_all: 'farming',
   hunting: 'hunting',
 };
 
@@ -76,8 +77,14 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
   if (result && result.xpAwarded > 0) {
     const flavourKey = GOLD_FIND_ACTIONS[action.action_type];
     if (flavourKey) {
-      const { rollGoldFind, GOLD_DROP_NAME } = await import('./goldFinds');
-      const find = await rollGoldFind(action.player_id, flavourKey, result.xpAwarded);
+      const { rollGoldFinds, GOLD_DROP_NAME } = await import('./goldFinds');
+      // A result may say what each unit of its work should price a find from
+      // (one entry per field of a harvest). Otherwise the action is one unit,
+      // priced from all the XP it paid.
+      const basis: number[] = Array.isArray(result.goldBasisXp) && result.goldBasisXp.length
+        ? result.goldBasisXp
+        : [result.xpAwarded];
+      const find = await rollGoldFinds(action.player_id, flavourKey, basis);
       if (find) {
         // The flavour replaces the main line above the timer for this one
         // action. The player knows what they were doing; once in forty actions
@@ -87,6 +94,9 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
       }
     }
   }
+
+  // Server-side bookkeeping, not something the client needs to see.
+  if (result) delete result.goldBasisXp;
 
   io.to(`player_${action.player_id}`).emit('action_complete', payload);
 
@@ -203,7 +213,6 @@ async function processHunt(playerId: number, animalId: number): Promise<any> {
     // Hunting previously tracked no stats at all, unlike every other gather skill.
     const stats: Record<string, number> = {
       total_actions_completed: 1,
-      total_xp_earned: outcome.xp || 0,
     };
     if (outcome.success) stats.total_animals_hunted = 1;
     await incrementStats(playerId, stats);
@@ -220,6 +229,31 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     let result: any;
 
     const now = new Date();
+
+    /**
+     * The row was read a moment ago, in a batch. Confirm it is still the row.
+     *
+     * The tick selects every due action, then works through them one at a time,
+     * and each one is dozens of awaits long. A player can do anything in that
+     * window — and travelling DELETES their action row and inserts a new one
+     * (routes/travel.ts). Processing the copy held in memory then resolved a
+     * cook that no longer existed, at the destination the player had just
+     * reached, which failed the station re-check and produced "Speak to Gemima
+     * for the use of the hearth here" out of nowhere while they were doing
+     * something else entirely. The message was right; the action should never
+     * have been processed at all.
+     *
+     * Matching on completes_at as well as id catches the row being restarted
+     * rather than deleted.
+     */
+    const live = await db('player_actions').where({ id: action.id }).first();
+    if (!live
+      || live.action_type !== action.action_type
+      || live.action_data !== action.action_data
+      || new Date(live.completes_at).getTime() !== new Date(action.completes_at).getTime()) {
+      return;
+    }
+
     const player = await db('players').where({ id: action.player_id }).first();
 
     // Nobody home: stop rather than resolve. Actions are not meant to run for a
@@ -308,6 +342,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'farm_tend':
       case 'farm_manure':
       case 'farm_harvest':
+      case 'farm_harvest_all':
       case 'farm_uproot': {
         // One-shot farm work: clear the action, resolve it, report.
         await db('player_actions').where({ id: action.id }).delete();
@@ -323,6 +358,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         // "anything left is a harvest", so a new farm action would silently
         // resolve as one.
         else if (action.action_type === 'farm_uproot') farmResult = await resolveUproot(action.player_id, action.action_data);
+        else if (action.action_type === 'farm_harvest_all') farmResult = await resolveHarvestAll(action.player_id, action.action_data);
         else farmResult = await resolveHarvest(action.player_id, action.action_data);
 
         if (!farmResult.success) {
@@ -352,6 +388,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             skillName: farmResult.skillName,
             message: farmResult.message,
             drops: [],
+            goldBasisXp: farmResult.goldBasisXp,
           },
           xpInfo: {
             totalXp: farmXpTotal,
@@ -515,12 +552,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const rate = hasMountEquipped ? EQUITATION_XP_RATE : AGILITY_XP_RATE;
       const travelXp = Math.round(baseTime * rate);
 
+      // The row is still read below for the arrival screen's level display.
       const travelSkill = await db('skills').where({ name: skillName }).first();
-      if (travelSkill) {
-        await db('player_skills')
-          .where({ player_id: action.player_id, skill_id: travelSkill.id })
-          .increment('xp', travelXp);
-      }
+      await awardXp(action.player_id, skillName, travelXp);
 
       // Both travel counters were declared in April and never written to, so
       // every feat resting on them could not be earned. Filled in here, which
@@ -657,11 +691,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const huntingSkill = await db('skills').where({ name: 'Hunting' }).first();
 
       // ── Award XP (full on success, reduced on miss) ──
-      if (huntingSkill) {
-        await db('player_skills')
-          .where({ player_id: action.player_id, skill_id: huntingSkill.id })
-          .increment('xp', hunt.xp);
-      }
+      await awardXp(action.player_id, 'Hunting', hunt.xp);
 
       // ── Consume one arrow; recover it on the roll ──
       const arrowItem = await db('items').where({ name: 'Ambren Arrow' }).first();
@@ -1206,44 +1236,55 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const recipe = await db('recipes').where({ id: parseInt(action.action_data) }).first();
       const skillName = recipe?.skill || result.skillName || 'Crafting';
 
+      // Moved away from the bench? Say so, rather than letting the station
+      // check phrase it as a permission problem. Recipe actions record where
+      // they were started, and nothing legitimately changes a player's
+      // location mid-craft, so this is the honest sentence for the case.
+      if (action.location_id && player.current_location_id !== action.location_id) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: `You left the bench, so the ${skillName.toLowerCase()} stopped.`,
+          info: true,
+        });
+        return;
+      }
+
       if (recipe) {
-        const inputs: { itemName: string; qty: number }[] = JSON.parse(recipe.inputs);
-        for (const input of inputs) {
-          // Liquids are volume held in buckets, not an inventory row — asking
-          // player_inventory for 'Milk' always finds nothing and stops the loop
-          // after one craft. services/recipes.ts hooks the other three checks;
-          // this repeat check is its own and has to hook too.
-          let enough: boolean;
-          if (isLiquid(input.itemName)) {
-            enough = (await liquidTotal(action.player_id, input.itemName)) >= input.qty;
-          } else {
-            const item = await db('items').where({ name: input.itemName }).first();
-            const inv = item ? await db('player_inventory')
-              .where({ player_id: action.player_id, item_id: item.id })
-              .first() : null;
-            enough = !!inv && inv.quantity >= input.qty;
-          }
-          if (!enough) {
-            await db('player_actions').where({ id: action.id }).delete();
-            const craftSkill = await db('skills').where({ name: skillName }).first();
-            const lastSkill = craftSkill ? await db('player_skills')
-              .where({ player_id: action.player_id, skill_id: craftSkill.id }).first() : null;
-            const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
-            const lastLevel = levelFromXp(lastXp);
-            await emitActionComplete(io, action, {
-          firstEver,
-              actionType: action.action_type,
-              result,
-              nextCompletes: null,
-              timerSeconds: 0,
-              xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
-            });
-            io.to(`player_${action.player_id}`).emit('action_failed', {
-              error: `Out of ${input.itemName}. ${skillName} stopped.`,
-              info: true,
-            });
-            return;
-          }
+        // ONE check, the recipe service's own. This block used to carry a
+        // second copy that read `input.itemName` directly. A wildcard input
+        // ("2 any cooked fish") has no itemName, so `where({ name: undefined })`
+        // threw "Undefined binding(s)" — AFTER the craft had already consumed
+        // and paid out, and BEFORE completes_at was advanced. The row stayed
+        // past-due, so the next tick crafted again, and the next, silently
+        // draining a player's fish into 36 stews at one per second while the
+        // client sat on a 0s timer. The action limit never applied either,
+        // because that code is further down this same function.
+        //
+        // Liquids, wildcards and plain items all resolve correctly in
+        // hasInputs. Do not reimplement it here.
+        const { hasInputs } = await import('./recipes');
+        const inputs = JSON.parse(recipe.inputs);
+        const repeatCheck = await hasInputs(action.player_id, inputs);
+        if (!repeatCheck.ok) {
+          await db('player_actions').where({ id: action.id }).delete();
+          const craftSkill = await db('skills').where({ name: skillName }).first();
+          const lastSkill = craftSkill ? await db('player_skills')
+            .where({ player_id: action.player_id, skill_id: craftSkill.id }).first() : null;
+          const lastXp = lastSkill ? parseInt(lastSkill.xp.toString()) : 0;
+          const lastLevel = levelFromXp(lastXp);
+          await emitActionComplete(io, action, {
+            firstEver,
+            actionType: action.action_type,
+            result,
+            nextCompletes: null,
+            timerSeconds: 0,
+            xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
+          });
+          io.to(`player_${action.player_id}`).emit('action_failed', {
+            error: `${repeatCheck.error || 'Out of materials.'} ${skillName} stopped.`,
+            info: true,
+          });
+          return;
         }
       }
 
@@ -1490,5 +1531,23 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
   } catch (err) {
     logger.error(`Error processing action ${action.id}: ${err}`);
+
+    // A throw anywhere above leaves this row with a completes_at in the past,
+    // and the tick picks up every past-due row a second later. The payout has
+    // usually already happened by then, so the bug does not merely fail — it
+    // repeats, once per tick, until the player's materials are gone. That is
+    // exactly what the Fish Stew wildcard crash did.
+    //
+    // So a failed action stops. The player is told, and loses at most the one
+    // cycle in flight rather than an inventory.
+    try {
+      await db('player_actions').where({ id: action.id }).delete();
+      io.to(`player_${action.player_id}`).emit('action_failed', {
+        error: 'Something went wrong with that action, so it has been stopped.',
+        info: true,
+      });
+    } catch (cleanupErr) {
+      logger.error(`Could not stop failed action ${action.id}: ${cleanupErr}`);
+    }
   }
 }

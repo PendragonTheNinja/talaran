@@ -227,6 +227,20 @@ export function buyRateFor(merchantKey: MerchantKey, itemMerchant: MerchantKey):
     return merchantKey === itemMerchant ? WALLS.BUY_RATE : null;  // null = "not my trade"
 }
 
+/**
+ * Deliberately pawnbroker-only. Trophies and curios have no trade behind them:
+ * nobody forges a Squonk Tear, so no themed merchant should claim it.
+ *
+ * This list exists so the audit can tell "we meant this" from "a skill shipped
+ * unmapped". Without it the check reports a permanent nonzero count, and a
+ * count that is never zero is one nobody reads — which is how these checks got
+ * ignored in the first place.
+ */
+const PAWN_ONLY_TYPES = new Set(['collectible']);
+const PAWN_ONLY_SUBTYPES = new Set([
+    'trophy', 'curio', 'gem', 'container', 'container_locked',
+]);
+
 export interface UnmappedItem {
     id: number;
     name: string;
@@ -235,6 +249,8 @@ export interface UnmappedItem {
     /** What the domain map claims. 'pawnbroker' means nothing claimed it. */
     domain: MerchantKey;
     reason: 'no themed merchant' | 'merchant inactive';
+    /** True when being pawnbroker-only is the intended outcome, not drift. */
+    intentional: boolean;
 }
 
 /**
@@ -267,10 +283,14 @@ export async function unmappedItems(): Promise<UnmappedItem[]> {
         const domain = merchantForItem(i);
         const row = { id: i.id, name: i.name, type: i.type, subtype: i.subtype ?? null, domain };
 
+        const intentional = PAWN_ONLY_TYPES.has(i.type)
+            || (i.subtype ? PAWN_ONLY_SUBTYPES.has(i.subtype) : false);
+
         if (domain === 'pawnbroker') {
-            out.push({ ...row, reason: 'no themed merchant' });
+            out.push({ ...row, reason: 'no themed merchant', intentional });
         } else if (!trading.has(domain)) {
-            out.push({ ...row, reason: 'merchant inactive' });
+            // An inactive merchant is never intended, whatever the item is.
+            out.push({ ...row, reason: 'merchant inactive', intentional: false });
         }
     }
     return out;

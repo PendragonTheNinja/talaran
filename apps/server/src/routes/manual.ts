@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { xpForLevel } from '../services/xp';
-import { plotCost, plotCapForLevel, FARMSTEAD_TOWN } from '../services/farming';
+import { plotCost, plotCapForLevel, FARMSTEAD_TOWN, PERENNIAL_REGROWTH_SHARE } from '../services/farming';
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
 import { extraQueries } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
@@ -107,6 +107,11 @@ const RECIPE_TOWNS: Record<string, string> = {
     carpentry: 'Verdale',
     crafting: 'Caliwen',
     farming: FARMSTEAD_TOWN,
+    // Churning and pressing happen at the farmstead, the same as tilling.
+    // Missing this line is why Churn Butter and Press Cheese both read
+    // "Where: Unknown" — exactly the failure the note below warns about, one
+    // skill later.
+    husbandry: FARMSTEAD_TOWN,
     cooking: 'Phoenwick',
 };
 
@@ -131,6 +136,22 @@ function recipeTown(skill: string): string | null {
 }
 
 /**
+ * The town, or a complaint in the log.
+ *
+ * "Unknown" printed to a player is indistinguishable from a broken page, and it
+ * has now happened twice for the same reason: a skill shipped and nobody added
+ * a line to the maps above. Cooking did it, then Husbandry did it. The word
+ * still appears, because inventing a town would be worse, but it no longer
+ * appears silently.
+ */
+function townOrComplain(skill: string): string {
+    const town = recipeTown(skill);
+    if (town) return town;
+    logger.warn(`[manual] no town mapped for skill "${skill}" — its recipes will read "Unknown"`);
+    return 'Unknown';
+}
+
+/**
  * Where one recipe is made.
  *
  * Station first, since it is the truth on the row; the skill map is the
@@ -141,10 +162,10 @@ function recipeWhere(skill: string, station: string | null, requiredTools: strin
     // A station-less recipe still belongs to its skill's town. Cut Granite Block
     // names no bench and is Caliwen work all the same, so the skill map is the
     // right answer here rather than "Anywhere".
-    if (!station) return recipeTown(skill) ?? 'Unknown';
+    if (!station) return townOrComplain(skill);
 
     const town = STATION_TOWNS[String(station).toLowerCase()] ?? recipeTown(skill);
-    if (!town) return 'Unknown';
+    if (!town) return townOrComplain(skill);
 
     // A cooking recipe that names no tool needs only a fire, and a campfire is
     // a fire. Worth saying: it is the difference between walking to Phoenwick
@@ -273,7 +294,12 @@ const registry: Record<string, QueryHandler> = {
                 const notes = [
                     `Sow · ${fmtSeconds(c.grow_seconds)} to grow`,
                     `${c.yield_per_seed} per seed`,
-                    `${c.xp_per_seed} XP`,
+                    // Per seed, which is how it is paid. A perennial pays that in
+                    // full on its first harvest and a fifth of it on every
+                    // regrowth, since it only ever used one seed.
+                    c.is_perennial
+                        ? `${c.xp_per_seed} XP per seed first harvest, ${Math.round(c.xp_per_seed * PERENNIAL_REGROWTH_SHARE)} after`
+                        : `${c.xp_per_seed} XP per seed`,
                 ];
                 if (c.soil_effect === 'restore') notes.push('restores soil');
                 else if (c.soil_effect === 'neutral') notes.push('leaves soil be');

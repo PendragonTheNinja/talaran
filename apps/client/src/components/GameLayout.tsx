@@ -492,7 +492,7 @@ export default function GameLayout({
 
   const [actionLimit, setActionLimit] = useState<number | null>(null)
 
-  const [showGuildModal, setShowGuildModal] = useState(false)
+  const [showGuildPanel, setShowGuildPanel] = useState(false)
   const [guildClosing, setGuildClosing] = useState(false)
 
   const [showMessages, setShowMessages] = useState(false)
@@ -577,7 +577,7 @@ export default function GameLayout({
     if (showManual) closePanel(setManualClosing, setShowManual)
     if (showForum) closePanel(setForumClosing, setShowForum, 400)
     if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
-    if (showGuildModal) closePanel(setGuildClosing, setShowGuildModal)
+    if (showGuildPanel) closePanel(setGuildClosing, setShowGuildPanel)
     if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
     if (showSettings) closePanel(setSettingsClosing, setShowSettings)
     if (showSupport) setShowSupport(false)
@@ -722,7 +722,7 @@ export default function GameLayout({
   const mobileMenuItems = [
     { label: 'Messages', onClick: () => { closeAllPanels(); setShowMessages(true) }, badge: unreadMessages },
     { label: 'Forum', onClick: () => { closeAllPanels(); setShowForum(true) } },
-    { label: 'Guild', onClick: () => { closeAllPanels(); setShowGuildModal(true) } },
+    { label: 'Guild', onClick: () => { closeAllPanels(); setShowGuildPanel(true) } },
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
     // Was desktop-only: the top nav has a Manual button and the mobile drawer
@@ -1081,9 +1081,9 @@ export default function GameLayout({
         />
       )}
 
-      {showGuildModal && (
+      {showGuildPanel && (
         <GuildPanel
-          onClose={() => closePanel(setGuildClosing, setShowGuildModal)}
+          onClose={() => closePanel(setGuildClosing, setShowGuildPanel)}
           closing={guildClosing}
           playerUsername={player.username}
           onViewProfile={(id) => setProfilePlayerId(id)}
@@ -1222,7 +1222,7 @@ export default function GameLayout({
         player={player}
         onLogout={onLogout}
         unreadMessages={unreadMessages}
-        onGuildClick={() => { closeAllPanels(); setShowGuildModal(true) }}
+        onGuildClick={() => { closeAllPanels(); setShowGuildPanel(true) }}
         onMessagesClick={() => {
           if (showMessages) closePanel(setMessagesClosing, setShowMessages)
           else { closeAllPanels(); setShowMessages(true) }

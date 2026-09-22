@@ -6,6 +6,7 @@ import './LeftPanel.css'
 import EquipmentPanel from './EquipmentPanel'
 import ConfirmModal from './ConfirmModal'
 import BuffPanel from './BuffPanel'
+import { useItemTooltip } from './ItemTooltip'
 
 interface InventoryItem {
   id: number
@@ -228,7 +229,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   const pinnedItems = inventoryData.filter(i => i.synthetic)
   const INVENTORY_SLOTS = Math.max(16, realItems.length)
 
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; item: InventoryItem } | null>(null)
+  // The tooltip itself is shared with every other surface that shows an item.
+  const { hoverProps, tooltipEl, hideTooltip } = useItemTooltip()
 
   const handleEquip = async (item: InventoryItem) => {
     if (!item.slot) {
@@ -350,26 +352,6 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
    * timer, rare is a percentage better chance, double is a percentage of
    * actions, travel is a percentage off the road.
    */
-  const describeBuff = (item: InventoryItem): string => {
-    const where = item.buff_skill || 'every skill'
-    const n = item.buff_magnitude ?? 0
-    switch (item.buff_effect) {
-      case 'timer': return `${n}% faster at ${where}`
-      case 'rare': return `${n}% better rare finds at ${where}`
-      case 'double': return `${n}% chance of a double yield at ${where}`
-      case 'travel': return `${n}% faster travel`
-      default: return `A boon to ${where}`
-    }
-  }
-
-  const fmtBuffTime = (seconds: number): string => {
-    const h = Math.floor(seconds / 3600)
-    const m = Math.round((seconds % 3600) / 60)
-    if (h > 0 && m > 0) return `${h}h ${m}m`
-    if (h > 0) return h === 1 ? 'an hour' : `${h} hours`
-    return m === 1 ? 'a minute' : `${m} minutes`
-  }
-
   const handleContextMenu = (e: React.MouseEvent, item: InventoryItem) => {
     e.preventDefault()
     setContextMenu({ x: e.clientX, y: e.clientY, item })
@@ -427,9 +409,9 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               }
             }}
             onContextMenu={e => item && !item.synthetic && handleContextMenu(e, item)}
-            onMouseEnter={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
-            onMouseLeave={() => setTooltip(null)}
-            onMouseMove={e => { if (item) setTooltip({ x: e.clientX, y: e.clientY, item }) }}
+            {...hoverProps(item, item?.slot
+              ? 'Left-click to equip · Right-click for options'
+              : 'Right-click for options')}
           >
             {item && (
               <>
@@ -465,7 +447,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         <div
           key={item.id}
           className="inventory-slot occupied open-container"
-          title={item.description || item.name}
+          {...hoverProps(item)}
         >
           <img
             src={getItemIcon(item.iconName || item.name)}
@@ -698,39 +680,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         )
       }
 
-      {
-        tooltip && (
-          <div
-            className="item-tooltip"
-            style={{
-              left: Math.min(tooltip.x + 12, window.innerWidth - 220),
-              top: Math.min(tooltip.y + 12, window.innerHeight - 150),
-            }}
-          >
-            <p className="item-tooltip-name" style={{ color: getQualityColor(tooltip.item.quality) || 'var(--color-gold-bright)' }}>
-              {tooltip.item.name}
-            </p>
-            {tooltip.item.quality && (
-              <p className="item-tooltip-quality">{tooltip.item.quality.charAt(0).toUpperCase() + tooltip.item.quality.slice(1)}</p>
-            )}
-            <p className="item-tooltip-desc">{tooltip.item.description}</p>
-            {/* What a provision actually does. The flavour text says "steadies
-                the hands", which is the right voice and tells nobody what they
-                are eating. */}
-            {tooltip.item.buff_effect && (
-              <p className="item-tooltip-buff">
-                {describeBuff(tooltip.item)} for {fmtBuffTime(tooltip.item.buff_seconds ?? 0)}
-              </p>
-            )}
-            {tooltip.item.slot && (
-              <p className="item-tooltip-hint">Left-click to equip · Right-click for options</p>
-            )}
-            {!tooltip.item.slot && (
-              <p className="item-tooltip-hint">Right-click for options</p>
-            )}
-          </div>
-        )
-      }
+      {tooltipEl}
 
       {
         tradeMode && (

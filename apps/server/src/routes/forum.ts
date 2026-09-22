@@ -3,7 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
-import { io } from '../index';
+import { pushToAll } from '../lib/realtime';
 
 const router = Router();
 
@@ -343,7 +343,7 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
                 sent_at: now,
             });
 
-            io.emit('forum_thread_created', {
+            pushToAll('forum_thread_created', {
                 threadId: thread.id,
                 title: thread.title,
                 authorName: forumPlayer.username,

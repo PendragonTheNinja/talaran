@@ -1,8 +1,9 @@
 import db from '../db';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { getTimeWindow, getSeason, nextWindowChange, TimeWindow, Season } from '../lib/gameTime';
+import { awardXp } from './xp';
 
 // Fishing (docs/fishing-spec.md). Closest sibling is services/foraging.ts: a
 // weighted pick over a pool, with per-player "??? until caught" discovery. The
@@ -368,29 +369,14 @@ export async function spendBait(trx: any, playerId: number, category: string): P
 // --- Records and discovery ------------------------------------------------
 
 /**
- * Award XP, creating the player_skills row if it does not exist.
+ * Award XP inside this action's transaction.
  *
- * `.where(...).increment(...)` on a missing row updates nothing and reports no
- * error, so a skill the player has never trained silently swallows the award.
- * Registration only seeds rows for skills that existed at the time, so any skill
- * added later (Crafting, and Fishing for old accounts) can be missing one.
- * Same upsert shape as services/recipes.ts.
+ * The upsert that makes this safe now lives in services/xp.ts, shared by every
+ * skill. This wrapper only exists to keep the trx-first argument order the call
+ * sites below already use.
  */
 async function awardSkillXp(trx: any, playerId: number, skillName: string, xp: number): Promise<void> {
-    if (xp <= 0) return;
-    const skill = await trx('skills').where({ name: skillName }).first();
-    if (!skill) {
-        logger.error(`Fishing: no such skill "${skillName}"`);
-        return;
-    }
-    const existing = await trx('player_skills')
-        .where({ player_id: playerId, skill_id: skill.id }).first();
-    if (existing) {
-        await trx('player_skills')
-            .where({ player_id: playerId, skill_id: skill.id }).increment('xp', xp);
-    } else {
-        await trx('player_skills').insert({ player_id: playerId, skill_id: skill.id, xp });
-    }
+    await awardXp(playerId, skillName, xp, trx);
 }
 
 async function recordCatch(
@@ -706,7 +692,6 @@ export async function processFishingCast(
             await incrementStats(playerId, {
                 total_fish_caught: 1,
                 total_actions_completed: 1,
-                total_xp_earned: out.xp || 0,
             });
         } else if (out.success) {
             await incrementStats(playerId, { total_actions_completed: 1 });
@@ -811,7 +796,6 @@ export async function processNetHaul(playerId: number, locationId: number): Prom
             await incrementStats(playerId, {
                 total_fish_caught: hauled,
                 total_actions_completed: 1,
-                total_xp_earned: out.xp || 0,
             });
         }
 
@@ -909,7 +893,6 @@ export async function processCutBait(playerId: number, speciesName: string): Pro
         if (out.success) {
             await incrementStats(playerId, {
                 total_actions_completed: 1,
-                total_xp_earned: (out.xp || 0) + (out.craftingXp || 0),
             });
         }
 

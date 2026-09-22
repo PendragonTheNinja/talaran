@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../index';
+import { awardXp } from '../services/xp';
 
 const router = Router();
 
@@ -172,20 +173,7 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
             rewardSummaryItems = granted;
 
             if (quest.reward_xp && quest.skill) {
-                const skill = await db('skills').where({ name: quest.skill }).first();
-                if (skill) {
-                    const ps = await db('player_skills')
-                        .where({ player_id: playerId, skill_id: skill.id }).first();
-                    if (ps) {
-                        await db('player_skills')
-                            .where({ player_id: playerId, skill_id: skill.id })
-                            .increment('xp', quest.reward_xp);
-                    } else {
-                        await db('player_skills').insert({
-                            player_id: playerId, skill_id: skill.id, xp: quest.reward_xp,
-                        });
-                    }
-                }
+                await awardXp(playerId, quest.skill, quest.reward_xp);
             }
 
             const goldReward = Number(quest.reward_gold ?? 0);

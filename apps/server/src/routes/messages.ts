@@ -2,8 +2,8 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
-import { io } from '../index';
 import { logger } from '../lib/logger';
+import { pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -114,7 +114,7 @@ router.post('/send', requireAuth, requireTrusted, async (req: AuthRequest, res: 
     }).returning('*');
 
     // Notify recipient if online
-    io.to(`player_${recipient.id}`).emit('new_message', {
+    pushToPlayer(recipient.id, 'new_message', {
       id: message.id,
       senderName: sender.username,
       subject: message.subject,
@@ -176,7 +176,7 @@ export async function sendSystemMessage(
     sent_at: new Date(),
   });
 
-  io.to(`player_${recipientId}`).emit('new_message', {
+  pushToPlayer(recipientId, 'new_message', {
     senderName: 'Talaran',
     subject,
   });

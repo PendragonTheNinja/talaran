@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './MarketplaceMenu.css'
+import { useItemTooltip } from './ItemTooltip'
 
 // Taiar Marketplace. Same modal shape and tokens as FishingMenu.
 //
@@ -136,16 +137,22 @@ function SortBar({ options, sortKey, sortDir, onChange }: {
  * Not every item has art yet, so a failed load collapses to the blank slot
  * rather than leaving a broken-image glyph in the row.
  */
-function ItemIcon({ name }: { name: string }) {
+/**
+ * A shelf or sell-list icon.
+ *
+ * `hover` comes from the menu's own useItemTooltip, so a merchant's goods get
+ * the same tooltip as the pack instead of the browser's `title` attribute.
+ */
+function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknown> }) {
     const [failed, setFailed] = useState(false)
-    if (failed) return <span className="mkt-icon mkt-icon-blank" aria-hidden="true" />
+    if (failed) return <span className="mkt-icon mkt-icon-blank" aria-hidden="true" {...hover} />
     return (
         <img
             className="mkt-icon"
             src={getItemIcon(name)}
             alt=""
-            title={name}
             onError={() => setFailed(true)}
+            {...hover}
         />
     )
 }
@@ -175,6 +182,8 @@ function QtyPicker({ value, max, onChange }: { value: number; max: number; onCha
 }
 
 export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceMenuProps) {
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [merchants, setMerchants] = useState<Merchant[]>([])
     const [activeId, setActiveId] = useState<number | null>(null)
     const [tab, setTab] = useState<'buy' | 'sell'>('buy')
@@ -428,7 +437,7 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
                                     <ul className="mkt-list">
                                         {sortRows(stock, sortKey, sortDir, l => ({ name: l.name, unit: l.price, total: l.price })).map(line => (
                                             <li key={line.itemId} className="mkt-row">
-                                                <ItemIcon name={line.name} />
+                                                <ItemIcon name={line.name} hover={hoverProps({ name: line.name }, 'Left-click to buy')} />
                                                 <div className="mkt-row-main">
                                                     <span className="mkt-row-name">{line.name}</span>
                                                     <span className="mkt-row-sub">
@@ -492,7 +501,7 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
                                     <ul className="mkt-list">
                                         {sortRows(sellable, sortKey, sortDir, i => ({ name: i.name, unit: i.unitAtFullRate, total: i.stackTotal, held: i.held })).map(item => (
                                             <li key={item.itemId} className="mkt-row">
-                                                <ItemIcon name={item.name} />
+                                                <ItemIcon name={item.name} hover={hoverProps({ name: item.name }, 'Left-click to sell')} />
                                                 <div className="mkt-row-main">
                                                     <span className="mkt-row-name">{item.name}</span>
                                                     <span className="mkt-row-sub">
@@ -575,6 +584,7 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
                     </>
                 )}
             </div>
+            {tooltipEl}
         </div>
     )
 }

@@ -1,11 +1,12 @@
 import db from '../db';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { activeXpForSeconds } from './farming';
 import { missingBuildTool } from './construction';
 import { creditGoldWithin, debitGoldWithin, lockPlayersInOrder } from './gold';
 import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
+import { awardXp as awardSkillXp } from './xp';
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -98,12 +99,9 @@ async function consumeMaterials(playerId: number, cost: { itemName: string; qty:
     }
 }
 
+// Thin local name over the shared writer in services/xp.ts.
 async function awardXp(playerId: number, skillName: string, xp: number): Promise<void> {
-    const skill = await db('skills').where({ name: skillName }).first();
-    if (!skill) return;
-    const existing = await db('player_skills').where({ player_id: playerId, skill_id: skill.id }).first();
-    if (existing) await db('player_skills').where({ player_id: playerId, skill_id: skill.id }).increment('xp', xp);
-    else await db('player_skills').insert({ player_id: playerId, skill_id: skill.id, xp });
+    await awardSkillXp(playerId, skillName, xp);
 }
 
 async function busy(playerId: number): Promise<boolean> {
@@ -265,7 +263,7 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = Math.round(activeXpForSeconds(carpLvl, ESTABLISH_SECONDS) * ESTABLISH_XP_BONUS);
         await awardXp(playerId, 'Carpentry', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
 
         logger.info(`Player ${playerId} raised a shop at ${SHOP_TOWN}`);
         return {

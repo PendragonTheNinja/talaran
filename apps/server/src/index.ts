@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
+import { setRealtimeServer, markConnected, markDisconnected } from './lib/realtime';
 import authRoutes from './routes/auth';
 import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
@@ -12,6 +13,7 @@ import equipmentRoutes from './routes/equipment';
 import workstationRoutes from './routes/workstations';
 import buffRoutes from './routes/buffs';
 import featRoutes from './routes/feats';
+import itemRoutes from './routes/items';
 import recordRoutes from './routes/records';
 import miningRoutes from './routes/mining';
 import smithingRoutes from './routes/smithing';
@@ -75,7 +77,11 @@ export const logger = createLogger({
   transports: [new transports.Console()],
 });
 
-export const connectedPlayers = new Set<number>();
+// Who is online now lives in lib/realtime.ts (isOnline / onlinePlayers), so
+// asking the question no longer drags a game server into the asker. There is
+// deliberately no re-export here: nothing imports one, and a top-level call out
+// to another module is what made this file's load order matter in the first
+// place.
 
 const app = express();
 // Capture the raw body alongside parsed JSON — Paddle webhook signatures are
@@ -92,6 +98,7 @@ app.use('/api', (req, res, next) => {
 })
 
 import cors from 'express';
+import { logBalanceChecksAtStartup } from './services/balanceChecks';
 
 // Audit finding 5: this reflected whatever origin asked, making every website
 // an allowed origin. Mirrors the allow-list the socket server already uses.
@@ -135,6 +142,16 @@ export const io = new Server(server, {
   },
 });
 
+// Hand the server to lib/realtime so services can push without importing this
+// file. See the note there: the old `import { io } from '../index'` cycle boots
+// a second game server when a CLI script reaches a service that pushes.
+setRealtimeServer(io);
+
+// Economy self-checks, once, at boot. A tab is only as good as somebody
+// remembering to open it; this way a deploy that leaves items unmapped or a
+// shelf mis-stocked says so in the pm2 log. Never throws, never blocks boot.
+void logBalanceChecksAtStartup();
+
 // Routes
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', game: 'Talaran' });
@@ -164,6 +181,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/workstations', workstationRoutes);
 app.use('/api/buffs', buffRoutes);
 app.use('/api/feats', featRoutes);
+app.use('/api/items', itemRoutes);
 app.use('/api/records', recordRoutes);
 app.use('/api/mining', miningRoutes);
 app.use('/api/smithing', smithingRoutes);
@@ -237,7 +255,7 @@ io.on('connection', (socket) => {
     if (!playerId) return;
 
     socket.join(`player_${playerId}`);
-    connectedPlayers.add(playerId);
+    markConnected(playerId);
     markOnline(playerId);   // second presence signal; see lib/presence.ts
     logger.info(`Player ${playerId} joined their socket room`);
 
@@ -265,7 +283,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     if (!socket.data.playerId) return;
-    connectedPlayers.delete(socket.data.playerId);
+    markDisconnected(socket.data.playerId);
     // Stamp the departure so the tick can stop resolving this player's action.
     // See lib/presence.ts: the cancellation itself happens at resolution time,
     // not here, so a reconnect inside the grace window costs them nothing.

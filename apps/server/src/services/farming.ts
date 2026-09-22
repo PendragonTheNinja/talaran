@@ -1,9 +1,10 @@
 import db from '../db';
-import { logger } from '../index';
-import { levelFromXp } from './xp';
+import { logger } from '../lib/logger';
+import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
+import { awardXp as awardSkillXp } from './xp';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -14,15 +15,16 @@ import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
 // (ready_at, checked on read — the tanning-job pattern).
 //
 // XP: the timed steps pay the ACTIVE rate for the seconds spent. Harvesting pays
-// that on top of the crop's passive yield (xp_per_seed), which is tuned so a plot
-// produces 0.12x the active reference over its grow cycle.
+// that on top of the crop's per-seed XP, which is where the bulk of the skill's
+// experience lands — see harvestSeedXp below for the two rules that keep it in
+// check: a level taper, and perennials paying in full only on the first harvest.
 
 // The only town where a farmstead may be raised (see startEstablish). Exported
 // so the manual's training-path can name the town rather than guessing, and so
 // a second farming town later means changing one line.
 export const FARMSTEAD_TOWN = 'Novita';
 const NOVITA = FARMSTEAD_TOWN;
-const PLOT_CAPACITY = 10;                 // seeds per plot
+export const PLOT_CAPACITY = 10;          // seeds per plot
 const PLOT_MAX = 20;                      // hard ceiling (end-game)
 const CARPENTRY_REQ = 1;
 // Building is joinery. Tools are held, not consumed. The mallet is the tool in
@@ -42,7 +44,7 @@ const ESTABLISH_XP_BONUS = 1.25;          // pays a little over normal carpentry
 const BUILD_PLOT_SECONDS = 180;           // fencing a field
 const TILL_SECONDS = 90;                  // rare, but real work
 const SOW_SECONDS_PER_SEED = 6;           // 60s for a full 10-seed plot
-const HARVEST_SECONDS_PER_SEED = 8;       // 80s for a full plot
+export const HARVEST_SECONDS_PER_SEED = 8; // 80s for a full plot
 
 // ── soil (M2) ───────────────────────────────────────────────────────────────
 // Three states. A hungry crop drops the soil a step when harvested; legumes lift
@@ -117,11 +119,94 @@ export interface FarmActionResult {
     itemName?: string;
     quantity?: number;
     message?: string;
+    /**
+     * The XP each unit of work should price a gold find from: one entry per
+     * field harvested. It is the ACTIVE part only — the seconds of digging —
+     * because a harvest's total is mostly per-seed XP for the growing wait, and
+     * gold is priced from attention, never elapsed time (services/goldFinds.ts).
+     */
+    goldBasisXp?: number[];
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
 async function itemByName(name: string) {
     return db('items').where({ name }).first();
+}
+
+/**
+ * The per-seed XP a harvest pays. Farming is a processing skill.
+ *
+ * The seed is the input, the plot is a slow furnace, the crop is the output.
+ * Every seed in the game comes from foraging — no harvest or recipe makes one —
+ * so each annual harvest is paid for by a seed somebody went and found, and
+ * paying per seed is the same bargain smelting makes per ore.
+ *
+ * That model was always right. Two things went wrong around it, and this
+ * function carries one rule for each.
+ *
+ * PERENNIALS. A perennial is sown once and then fruits indefinitely, so paying
+ * full per-seed XP on every regrowth paid, forever, for a seed nobody replaced.
+ * Strawberry and Raspberry are tier 1 crops, and that is how a player reached
+ * Farming 57 on tier 1 crops while their next best skill sat thirteen levels
+ * back. Now the first harvest after sowing pays in full, since that one used a
+ * seed, and every regrowth pays PERENNIAL_REGROWTH_SHARE of it. A perennial is
+ * a low-effort trickle; an annual is the full rate for the work of re-sowing.
+ *
+ * THE LEVEL GAP. Plots multiply twenty-fold between Farming 1 and 57 while the
+ * XP band grows about fourfold, so a per-seed model left alone lets a full farm
+ * of an early crop outrun the band late on. The fix players already understand
+ * from every MMO: a crop far below you teaches less. It teaches in full until
+ * it is TAPER_GRACE_LEVELS (services/xp.ts) below you, then in proportion to the gap. Nothing is
+ * capped and nothing is taken away — more fields are always more XP — but a
+ * level 7 crop cannot carry anyone to level 57. The taper also says, plainly,
+ * when a player has outgrown their crops, which is the signal for the next rung
+ * of the crop ladder rather than a wall.
+ *
+ * Considered and rejected on the way here, so nobody has to re-derive it: a
+ * band-anchored payout divided by plot count (correct maths, but it has to pay
+ * "less per field as you build more" and reads as dishonest); a daily XP
+ * allowance (it works, and players hate a cap); pricing the wait against work
+ * seconds (makes a 20-hour crop pay less per hour waited than a 12-hour one).
+ */
+// The taper itself lives in services/xp.ts, shared with Husbandry.
+export const PERENNIAL_REGROWTH_SHARE = 0.2;
+
+/**
+ * A new farmer learns faster, for the first few levels.
+ *
+ * A level 1 farm is one plot, so however fair the per-seed price, the skill
+ * opens at about 0.17x the band — slow enough that a player trying it out has
+ * no reason to stay. This multiplies the per-seed XP by 1 + NOVICE_BONUS at
+ * level 1, fading in a straight line to nothing at NOVICE_UNTIL_LEVEL, so the
+ * first harvests feel like progress and the bonus is gone well before the
+ * mid-game, where the plot count carries the rate on its own.
+ *
+ * It fades out at 10 rather than 8 on purpose: at 8 the bonus ends while the
+ * farm is still three plots, and the rate would drop from 0.9x to 0.7x for no
+ * reason a player could see.
+ */
+export const NOVICE_BONUS = 1.5;
+export const NOVICE_UNTIL_LEVEL = 10;
+
+function noviceMultiplier(level: number): number {
+    const remaining = Math.max(0, (NOVICE_UNTIL_LEVEL - level) / (NOVICE_UNTIL_LEVEL - 1));
+    return 1 + NOVICE_BONUS * remaining;
+}
+
+export function harvestSeedXp(
+    level: number,
+    crop: { xp_per_seed: number; plant_level: number; is_perennial?: boolean },
+    seedCount: number,
+    harvestsSinceSow: number,
+): number {
+    if (seedCount < 1) return 0;
+
+    const taper = levelTaper(crop.plant_level, level);
+    const regrowth = crop.is_perennial && harvestsSinceSow > 0 ? PERENNIAL_REGROWTH_SHARE : 1;
+
+    return Math.max(1, Math.round(
+        seedCount * crop.xp_per_seed * taper * regrowth * noviceMultiplier(level),
+    ));
 }
 
 async function skillLevel(playerId: number, skillName: string): Promise<number> {
@@ -178,12 +263,9 @@ async function equippedTool(playerId: number, subtype: string) {
     return db('items').where({ id, subtype }).first();
 }
 
+// Thin local name over the shared writer in services/xp.ts.
 async function awardXp(playerId: number, skillName: string, xp: number): Promise<void> {
-    const skill = await db('skills').where({ name: skillName }).first();
-    if (!skill) return;
-    const existing = await db('player_skills').where({ player_id: playerId, skill_id: skill.id }).first();
-    if (existing) await db('player_skills').where({ player_id: playerId, skill_id: skill.id }).increment('xp', xp);
-    else await db('player_skills').insert({ player_id: playerId, skill_id: skill.id, xp });
+    await awardSkillXp(playerId, skillName, xp);
 }
 
 async function playerProperty(playerId: number) {
@@ -235,16 +317,31 @@ export async function getFarmState(playerId: number) {
 
     // Crops, with how many seeds the player is actually holding.
     const crops = await db('crops').where({ is_active: true }).orderBy('plant_level', 'asc');
+    // What each crop actually teaches THIS player, from the same functions the
+    // harvest pays through. Without it the level taper is invisible: a level 40
+    // farmer planting Flax just earns less and has no way to know why, which
+    // reads as a bug. Shown, it reads as advice — "you've outgrown this".
     const cropList = [];
     for (const c of crops) {
+        const unlocked = farmingLvl >= c.plant_level;
         cropList.push({
             id: c.id, name: c.name, seedItem: c.seed_item_name, produceItem: c.produce_item_name,
             plantLevel: c.plant_level, growSeconds: c.grow_seconds, yieldPerSeed: c.yield_per_seed,
             cropType: c.crop_type, isPerennial: !!c.is_perennial,
-            unlocked: farmingLvl >= c.plant_level,
+            unlocked,
             seedsHeld: await inventoryQty(playerId, c.seed_item_name),
+            // Per seed, on a first harvest (which is every harvest of an annual).
+            xpPerSeed: unlocked ? harvestSeedXp(farmingLvl, c, 1, 0) : null,
+            // A perennial's rate once it is established.
+            regrowthXpPerSeed: unlocked && c.is_perennial ? harvestSeedXp(farmingLvl, c, 1, 1) : null,
+            teachesPercent: unlocked ? Math.round(levelTaper(c.plant_level, farmingLvl) * 100) : null,
         });
     }
+    // True once every crop the player can plant is below full teaching: the
+    // plain-language signal that they have outgrown what they know.
+    const unlockedCrops = cropList.filter((c) => c.unlocked);
+    const outgrownCrops = unlockedCrops.length > 0
+        && unlockedCrops.every((c) => (c.teachesPercent ?? 100) < 100);
 
     if (!property) {
         const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
@@ -309,9 +406,13 @@ export async function getFarmState(playerId: number) {
         plotCapacity: PLOT_CAPACITY,
         plots: plotView,
         crops: cropList,
+        outgrownCrops,
         plotCap: cap,
         plotMax: PLOT_MAX,
         timers: { till: TILL_SECONDS, sowPerSeed: SOW_SECONDS_PER_SEED, harvestPerSeed: HARVEST_SECONDS_PER_SEED, buildPlot: BUILD_PLOT_SECONDS, manure: MANURE_SECONDS },
+        // Sent rather than repeated in the client, so the button and the server
+        // can never disagree about when harvest-all unlocks.
+        harvestAllMinPlots: HARVEST_ALL_MIN_PLOTS,
         manure: { held: manureHeld, cost: MANURE_COST },
         tend: {
             hasBucket: bucketHeld > 0,
@@ -552,7 +653,7 @@ export async function resolveTend(playerId: number): Promise<FarmActionResult> {
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, plots.length * TEND_SECONDS_PER_PLOT);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
 
         return {
             success: true, xp, skillName: 'Farming',
@@ -593,7 +694,7 @@ export async function resolveManure(playerId: number, plotIdRaw: string | null):
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, MANURE_SECONDS);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
 
         return { success: true, xp, skillName: 'Farming', message: 'You spread the muck and turn it in. The field will thank you.' };
     } catch (err) {
@@ -628,7 +729,7 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = Math.round(activeXpForSeconds(carpLvl, ESTABLISH_SECONDS) * ESTABLISH_XP_BONUS);
         await awardXp(playerId, 'Carpentry', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
 
         await updateQuestObjectiveProgress(playerId, 'build', 'Farmstead', 1);
 
@@ -668,7 +769,7 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = activeXpForSeconds(carpLvl, BUILD_PLOT_SECONDS);
         await awardXp(playerId, 'Carpentry', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1});
 
         return { success: true, xp, skillName: 'Carpentry', message: 'The new field is fenced and ready to break.' };
     } catch (err) {
@@ -691,7 +792,7 @@ export async function resolveTill(playerId: number, plotIdRaw: string | null): P
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, TILL_SECONDS);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_plots_tilled: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_plots_tilled: 1});
 
         await updateQuestObjectiveProgress(playerId, 'till', 'Field', 1);
 
@@ -722,12 +823,14 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
             state: 'growing', crop_id: crop.id, seed_count: count,
             planted_at: now, ready_at: new Date(now.getTime() + crop.grow_seconds * 1000),
             rested_since: null, tended: false,
+            // Fresh seed in the ground, so the next harvest pays in full.
+            harvests_since_sow: 0,
         });
 
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, count * SOW_SECONDS_PER_SEED);
         await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_seeds_sown: 1, total_xp_earned: xp });
+        await incrementStats(playerId, { total_actions_completed: 1, total_seeds_sown: 1});
 
         await updateQuestObjectiveProgress(playerId, 'sow', crop.name, count);
 
@@ -738,60 +841,200 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
     }
 }
 
+/**
+ * One plot's harvest: the produce, the plot's next state, and what it paid.
+ *
+ * The single harvest and harvest-all both come through here, so there is one
+ * set of harvest rules — the per-seed XP, the perennial regrowth rule, soil,
+ * quest progress — and the bulk action cannot drift from the single one. It
+ * gives the produce and moves the plot on, but deliberately does NOT award XP
+ * or bump stats: the caller does that once, so a harvest-all of twenty fields
+ * is one award and one socket push rather than twenty.
+ */
+async function harvestPlot(playerId: number, plot: any, level: number): Promise<{
+    xp: number;
+    /** The digging alone, which is what gold is priced from. */
+    activeXp: number;
+    crop: any;
+    yieldQty: number;
+    soilChange: -1 | 0 | 1;
+} | null> {
+    if (plot.state !== 'growing' || !plot.crop_id) return null;
+    const crop = await db('crops').where({ id: plot.crop_id }).first();
+    if (!crop) return null;
+
+    const soilBefore = plot.soil_state || 'normal';
+    const yieldQty = Math.max(1, Math.round(plot.seed_count * crop.yield_per_seed * (SOIL_YIELD[soilBefore] ?? 1)));
+
+    // Per-seed XP for the crop, plus active pay for the digging.
+    const activeXp = activeXpForSeconds(level, plot.seed_count * HARVEST_SECONDS_PER_SEED);
+    const xp = harvestSeedXp(level, crop, plot.seed_count, Number(plot.harvests_since_sow) || 0)
+        + activeXp;
+
+    await giveItem(playerId, crop.produce_item_name, yieldQty);
+
+    // Hungry crops take from the soil, legumes give back, bushes are neutral.
+    const dir: -1 | 0 | 1 = crop.soil_effect === 'restore' ? 1 : crop.soil_effect === 'neutral' ? 0 : -1;
+    const soilAfter = dir === 0 ? soilBefore : shiftSoil(soilBefore, dir);
+
+    if (crop.is_perennial && crop.regrow_seconds) {
+        // Regrowth: the next harvest will not have used a seed.
+        await db('farm_plots').where({ id: plot.id }).update({
+            state: 'growing', planted_at: new Date(),
+            ready_at: new Date(Date.now() + crop.regrow_seconds * 1000),
+            soil_state: soilAfter, tended: false,
+            harvests_since_sow: (Number(plot.harvests_since_sow) || 0) + 1,
+        });
+    } else {
+        await db('farm_plots').where({ id: plot.id }).update({
+            state: 'tilled', crop_id: null, seed_count: 0, planted_at: null, ready_at: null,
+            soil_state: soilAfter, rested_since: new Date(), harvests_since_sow: 0,
+        });
+    }
+
+    await updateQuestObjectiveProgress(playerId, 'harvest', crop.produce_item_name, 1);
+
+    return { xp, activeXp, crop, yieldQty, soilChange: soilAfter === soilBefore ? 0 : dir };
+}
+
 export async function resolveHarvest(playerId: number, plotIdRaw: string | null): Promise<FarmActionResult> {
     try {
         const plotId = plotIdRaw ? parseInt(plotIdRaw) : 0;
         const plot = await ownedPlot(playerId, plotId);
         if (!plot || plot.state !== 'growing' || !plot.crop_id) return { success: false, error: 'Nothing to harvest here.' };
 
-        const crop = await db('crops').where({ id: plot.crop_id }).first();
-        if (!crop) return { success: false, error: 'Crop definition missing.' };
-
-        const soilBefore = plot.soil_state || 'normal';
-        const yieldQty = Math.max(1, Math.round(plot.seed_count * crop.yield_per_seed * (SOIL_YIELD[soilBefore] ?? 1)));
-        // Passive yield for the grow, plus active pay for the digging.
-        const passiveXp = plot.seed_count * crop.xp_per_seed;
         const lvl = await skillLevel(playerId, 'Farming');
-        const activeXp = activeXpForSeconds(lvl, plot.seed_count * HARVEST_SECONDS_PER_SEED);
-        const xp = passiveXp + activeXp;
+        const done = await harvestPlot(playerId, plot, lvl);
+        if (!done) return { success: false, error: 'Crop definition missing.' };
 
-        await giveItem(playerId, crop.produce_item_name, yieldQty);
-        await awardXp(playerId, 'Farming', xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_crops_harvested: 1, total_xp_earned: xp });
+        await awardXp(playerId, 'Farming', done.xp);
+        // Count the CROPS, not the harvest. "Bring in a thousand crops" read
+        // one per lift of a whole field, so a 50-sheaf harvest counted as 1 and
+        // the feat silently meant a thousand harvests.
+        await incrementStats(playerId, {
+            total_actions_completed: 1,
+            total_crops_harvested: done.yieldQty,
+        });
 
-        // Hungry crops take from the soil, legumes give back, bushes are neutral.
-        const dir = crop.soil_effect === 'restore' ? 1 : crop.soil_effect === 'neutral' ? 0 : -1;
-        const soilAfter = dir === 0 ? soilBefore : shiftSoil(soilBefore, dir);
-
-        if (crop.is_perennial && crop.regrow_seconds) {
-            await db('farm_plots').where({ id: plotId }).update({
-                state: 'growing', planted_at: new Date(),
-                ready_at: new Date(Date.now() + crop.regrow_seconds * 1000),
-                soil_state: soilAfter, tended: false,
-            });
-        } else {
-            await db('farm_plots').where({ id: plotId }).update({
-                state: 'tilled', crop_id: null, seed_count: 0, planted_at: null, ready_at: null,
-                soil_state: soilAfter, rested_since: new Date(),
-            });
-        }
-
-        await updateQuestObjectiveProgress(playerId, 'harvest', crop.produce_item_name, 1);
-
+        const { crop } = done;
         return {
-            success: true, xp, skillName: 'Farming',
-            itemName: crop.produce_item_name, quantity: yieldQty,
+            success: true, xp: done.xp, skillName: 'Farming',
+            itemName: crop.produce_item_name, quantity: done.yieldQty,
+            goldBasisXp: [done.activeXp],
             message: (crop.is_perennial
                 ? `You strip the ${crop.name.toLowerCase()} canes clean. They will bear again.`
                 : `You lift the ${crop.name.toLowerCase()} crop from the earth.`)
-                + (soilAfter !== soilBefore
-                    ? dir > 0
-                        ? ' The ground is the better for having held it.'
-                        : ' The soil is poorer for the taking.'
-                    : ''),
+                + (done.soilChange > 0
+                    ? ' The ground is the better for having held it.'
+                    : done.soilChange < 0
+                        ? ' The soil is poorer for the taking.'
+                        : ''),
         };
     } catch (err) {
         logger.error(`resolveHarvest error: ${err}`);
+        return { success: false, error: 'Server error' };
+    }
+}
+
+// ── harvest all ─────────────────────────────────────────────────────────────
+// Every ripe field in one go, once a farm is big enough that doing them one by
+// one is the chore. Husbandry has had feed-all, muck-all, collect-all and
+// slaughter-all from the start; farming was the odd one out, and a twenty-plot
+// farmer was clicking twenty separate harvests.
+//
+// It saves CLICKS, not time. The timer is the sum of every field's own harvest,
+// and each field pays exactly what harvesting it alone would — same per-seed XP,
+// same perennial rule, same soil — because it goes through harvestPlot above.
+
+export const HARVEST_ALL_MIN_PLOTS = 4;
+
+/** Ripe plots on a farmstead, in slot order. */
+async function ripePlots(propertyId: number) {
+    const now = Date.now();
+    const growing = await db('farm_plots')
+        .where({ property_id: propertyId, state: 'growing' })
+        .whereNotNull('crop_id')
+        .orderBy('slot_index', 'asc');
+    return growing.filter((p: any) => p.ready_at && new Date(p.ready_at).getTime() <= now);
+}
+
+export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const { novita, property } = await playerProperty(playerId);
+    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+
+    const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+    if (!player || player.current_location_id !== novita.id) {
+        return { ok: false, error: 'You must be at your farmstead to bring in the harvest.' };
+    }
+
+    const plotCount = Number((await db('farm_plots')
+        .where({ property_id: property.id }).count({ c: '*' }).first())?.c ?? 0);
+    if (plotCount < HARVEST_ALL_MIN_PLOTS) {
+        return { ok: false, error: `You need ${HARVEST_ALL_MIN_PLOTS} fields before you can bring them in together.` };
+    }
+
+    const ripe = await ripePlots(property.id);
+    if (ripe.length === 0) return { ok: false, error: 'Nothing is ready to harvest yet.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const seconds = ripe.reduce(
+        (s: number, p: any) => s + Math.max(1, p.seed_count) * HARVEST_SECONDS_PER_SEED, 0);
+
+    // The fields are fixed when the work BEGINS. Otherwise a crop that ripened
+    // while the timer ran would be harvested at the end of it without its own
+    // seconds ever having been spent — free fields for waiting inside the action.
+    const plotIds = ripe.map((p: any) => p.id).join(',');
+    await startAction(playerId, 'farm_harvest_all', seconds, plotIds, novita.id);
+    return { ok: true, timerSeconds: seconds };
+}
+
+export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | null): Promise<FarmActionResult> {
+    try {
+        const ids = (plotIdsRaw || '').split(',').map((s) => parseInt(s)).filter((n) => n > 0);
+        if (ids.length === 0) return { success: false, error: 'There was nothing to bring in.' };
+
+        const lvl = await skillLevel(playerId, 'Farming');
+        let totalXp = 0;
+        let totalYield = 0;
+        const brought = new Map<string, number>();
+        const goldBasisXp: number[] = [];
+
+        for (const id of ids) {
+            // Re-read each plot: it may have been uprooted, or harvested one by
+            // one, while the bulk timer ran. ownedPlot also refuses a plot that
+            // is no longer this player's.
+            const plot = await ownedPlot(playerId, id);
+            if (!plot) continue;
+            const done = await harvestPlot(playerId, plot, lvl);
+            if (!done) continue;
+            totalXp += done.xp;
+            totalYield += done.yieldQty;
+            goldBasisXp.push(done.activeXp);
+            const name = done.crop.produce_item_name;
+            brought.set(name, (brought.get(name) ?? 0) + done.yieldQty);
+        }
+
+        if (brought.size === 0) return { success: false, error: 'The fields had nothing left to give.' };
+
+        await awardXp(playerId, 'Farming', totalXp);
+        await incrementStats(playerId, {
+            total_actions_completed: 1,
+            total_crops_harvested: totalYield,
+        });
+
+        // The result card shows one item; the largest haul takes it, and the
+        // message names the rest.
+        const sorted = [...brought.entries()].sort((a, b) => b[1] - a[1]);
+        const fields = ids.length;
+        return {
+            success: true, xp: totalXp, skillName: 'Farming',
+            itemName: sorted[0][0], quantity: sorted[0][1],
+            goldBasisXp,
+            message: `You bring in ${fields} field${fields === 1 ? '' : 's'}: `
+                + sorted.map(([n, q]) => `${q} ${n}`).join(', ') + '.',
+        };
+    } catch (err) {
+        logger.error(`resolveHarvestAll error: ${err}`);
         return { success: false, error: 'Server error' };
     }
 }

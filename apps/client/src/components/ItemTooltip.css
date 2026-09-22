@@ -1,0 +1,55 @@
+/* The item tooltip, shared by every surface that shows an item: the pack, the
+   ground, building storage, shop listings, merchant shelves and the trade
+   window. Lifted out of LeftPanel.css unchanged, class names and all, so the
+   pack looks exactly as it did and everywhere else now matches it. */
+
+.item-tooltip {
+  position: fixed;
+  z-index: 2000;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  /* Width is set per tooltip by TooltipShell, which needs the real number to
+     decide which side of the cursor to sit on. */
+  box-sizing: border-box;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.item-tooltip-name {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+
+.item-tooltip-quality {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 6px;
+  font-style: italic;
+}
+
+.item-tooltip-desc {
+  font-size: 13px;
+  color: var(--color-text-base);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.item-tooltip-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+  border-top: 1px solid var(--color-border-dark);
+  padding-top: 6px;
+  font-style: italic;
+}
+
+/* What a provision does, under its flavour text. Gold, so it reads as a game
+   fact rather than as more prose. */
+.item-tooltip-buff {
+  color: var(--color-gold);
+  font-size: 12px;
+  margin: 2px 0 0;
+}

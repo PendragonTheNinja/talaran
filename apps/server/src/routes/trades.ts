@@ -2,9 +2,9 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
-import { logger } from '../index';
-import { io } from '../index';
+import { logger } from '../lib/logger';
 import { getGold, lockPlayersInOrder, transferGoldWithin } from '../services/gold';
+import { pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -14,8 +14,8 @@ async function cancelTrade(tradeId: number, reason: string) {
     await db('trades').where({ id: tradeId }).update({ status: 'cancelled' });
     const trade = await db('trades').where({ id: tradeId }).first();
     if (!trade) return;
-    io.to(`player_${trade.player1_id}`).emit('trade_cancelled', { reason });
-    io.to(`player_${trade.player2_id}`).emit('trade_cancelled', { reason });
+    pushToPlayer(trade.player1_id, 'trade_cancelled', { reason });
+    pushToPlayer(trade.player2_id, 'trade_cancelled', { reason });
     logger.info(`Trade ${tradeId} cancelled: ${reason}`);
 }
 
@@ -117,7 +117,7 @@ router.post('/request', requireAuth, requireTrusted, async (req: AuthRequest, re
             { trade_id: trade.id, player_id: targetPlayerId, gold_amount: 0 },
         ]);
 
-        io.to(`player_${targetPlayerId}`).emit('trade_requested', {
+        pushToPlayer(targetPlayerId, 'trade_requested', {
             tradeId: trade.id,
             fromPlayer: { id: playerId, username: player.username },
         });
@@ -153,7 +153,7 @@ router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, re
         const player = await db('players').where({ id: playerId }).first();
         const otherPlayer = await db('players').where({ id: trade.player1_id }).first();
 
-        io.to(`player_${trade.player1_id}`).emit('trade_started', {
+        pushToPlayer(trade.player1_id, 'trade_started', {
             tradeId,
             otherPlayer: { id: playerId, username: player.username },
             offers,
@@ -161,7 +161,7 @@ router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, re
             isPlayer1: true,
         });
 
-        io.to(`player_${playerId}`).emit('trade_started', {
+        pushToPlayer(playerId, 'trade_started', {
             tradeId,
             otherPlayer: { id: trade.player1_id, username: otherPlayer.username },
             offers,
@@ -216,8 +216,8 @@ router.post('/offer/item', requireAuth, requireTrusted, async (req: AuthRequest,
         await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
 
         const { offers, gold } = await getTradeData(tradeId);
-        io.to(`player_${trade.player1_id}`).emit('trade_offer_updated', { offers, gold });
-        io.to(`player_${trade.player2_id}`).emit('trade_offer_updated', { offers, gold });
+        pushToPlayer(trade.player1_id, 'trade_offer_updated', { offers, gold });
+        pushToPlayer(trade.player2_id, 'trade_offer_updated', { offers, gold });
 
         res.json({ success: true });
     } catch (err) {
@@ -241,8 +241,8 @@ router.post('/offer/item/remove', requireAuth, requireTrusted, async (req: AuthR
         await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
 
         const { offers, gold } = await getTradeData(tradeId);
-        io.to(`player_${trade.player1_id}`).emit('trade_offer_updated', { offers, gold });
-        io.to(`player_${trade.player2_id}`).emit('trade_offer_updated', { offers, gold });
+        pushToPlayer(trade.player1_id, 'trade_offer_updated', { offers, gold });
+        pushToPlayer(trade.player2_id, 'trade_offer_updated', { offers, gold });
 
         res.json({ success: true });
     } catch (err) {
@@ -287,8 +287,8 @@ router.post('/offer/gold', requireAuth, requireTrusted, async (req: AuthRequest,
         await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
 
         const { offers, gold } = await getTradeData(tradeId);
-        io.to(`player_${trade.player1_id}`).emit('trade_offer_updated', { offers, gold });
-        io.to(`player_${trade.player2_id}`).emit('trade_offer_updated', { offers, gold });
+        pushToPlayer(trade.player1_id, 'trade_offer_updated', { offers, gold });
+        pushToPlayer(trade.player2_id, 'trade_offer_updated', { offers, gold });
 
         res.json({ success: true });
     } catch (err) {
@@ -463,18 +463,18 @@ router.post('/accept', requireAuth, requireTrusted, async (req: AuthRequest, res
         });
 
         // ── Committed. Safe to tell anyone. ─────────────────────────────────
-        io.to(`player_${player1Id}`).emit('trade_acceptance_updated', {
+        pushToPlayer(player1Id, 'trade_acceptance_updated', {
             player1Accepted: p1Accepted,
             player2Accepted: p2Accepted,
         });
-        io.to(`player_${player2Id}`).emit('trade_acceptance_updated', {
+        pushToPlayer(player2Id, 'trade_acceptance_updated', {
             player1Accepted: p1Accepted,
             player2Accepted: p2Accepted,
         });
 
         if (completed) {
-            io.to(`player_${player1Id}`).emit('trade_completed', {});
-            io.to(`player_${player2Id}`).emit('trade_completed', {});
+            pushToPlayer(player1Id, 'trade_completed', {});
+            pushToPlayer(player2Id, 'trade_completed', {});
             logger.info(`Trade ${tradeId} completed between ${player1Id} and ${player2Id}`);
         }
 

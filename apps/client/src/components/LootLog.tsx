@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
+import { useItemTooltip } from './ItemTooltip'
 
 // Loot log content. The shell (launcher, tabs, close) lives in LogPanel.tsx.
 //
@@ -67,12 +68,14 @@ function initials(name: string): string {
  * and every new skill ships before its art, so missing art is a permanent state
  * that has to look deliberate rather than broken.
  */
-function Tile({ src, label, amount, title }: {
-    src: string; label: string; amount: number; title: string
+function Tile({ src, label, amount, title, hover }: {
+    src: string; label: string; amount: number; title?: string
+    /** Item tiles get the shared tooltip; the XP tiles are not items. */
+    hover?: Record<string, unknown>
 }) {
     const [failed, setFailed] = useState(false)
     return (
-        <div className="loot-tile" title={title}>
+        <div className="loot-tile" title={title} {...hover}>
             {failed
                 ? <span className="loot-tile-fallback">{initials(label)}</span>
                 : <img src={src} alt="" className="loot-tile-img" onError={() => setFailed(true)} />}
@@ -82,6 +85,8 @@ function Tile({ src, label, amount, title }: {
 }
 
 export default function LootLog({ refreshKey }: LootLogProps) {
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [data, setData] = useState<LootLogData | null>(null)
     const [error, setError] = useState('')
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -207,9 +212,12 @@ export default function LootLog({ refreshKey }: LootLogProps) {
                                             src={getItemIcon(it.name)}
                                             label={it.name}
                                             amount={it.amount}
-                                            title={it.value !== null
-                                                ? `${it.name} ×${it.amount.toLocaleString()} — worth ${it.value.toLocaleString()}g`
-                                                : `${it.name} ×${it.amount.toLocaleString()}`}
+                                            hover={hoverProps(
+                                                { name: it.name },
+                                                it.value !== null
+                                                    ? `×${it.amount.toLocaleString()} · worth ${it.value.toLocaleString()}g`
+                                                    : `×${it.amount.toLocaleString()}`,
+                                            )}
                                         />
                                     ))}
                                     {s.xp.map(x => (
@@ -234,6 +242,7 @@ export default function LootLog({ refreshKey }: LootLogProps) {
                     </div>
                 )
             })}
+            {tooltipEl}
         </div>
     )
 }

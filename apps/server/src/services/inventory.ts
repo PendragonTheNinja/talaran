@@ -1,5 +1,6 @@
 import db from '../db';
-import { logger, io } from '../index';
+import { logger } from '../lib/logger';
+import { pushToPlayer } from '../lib/realtime';
 
 // The one place items are EARNED.
 //
@@ -31,7 +32,7 @@ export interface GrantResult {
  */
 export function notifyInventoryChanged(playerId: number): void {
     try {
-        io.to(`player_${playerId}`).emit('inventory_changed');
+        pushToPlayer(playerId, 'inventory_changed');
     } catch {
         // Socket may not be up (scripts, migrations); a missed refresh is harmless.
     }

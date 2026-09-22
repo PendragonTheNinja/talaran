@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import { getItemIcon } from '../lib/items'
@@ -88,15 +88,49 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
         return () => { socket.off('inventory_changed', load) }
     }, [load])
 
-    // Count down locally rather than polling. The server is the authority on
-    // expiry and sweeps the row on read, so this only has to look right.
+    /**
+     * Count down against a DEADLINE, not by subtracting a second per tick.
+     *
+     * Subtracting assumed the interval fires once a second, and a background
+     * tab does not: browsers throttle a hidden tab's timers to roughly once a
+     * minute. Fifteen minutes away meant about fifteen decrements instead of
+     * nine hundred, so a 29m buff still read 29m on return and a buff that had
+     * long since expired sat there until a refresh emptied the slot.
+     *
+     * The deadline is fixed when the server's number arrives, and every tick
+     * just reads the clock, so a throttled tab catches up in one frame.
+     */
+    const expiresAtRef = useRef<number | null>(null)
+    useEffect(() => {
+        expiresAtRef.current = buff ? Date.now() + buff.secondsLeft * 1000 : null
+        // Keyed on the source item, so re-reading the same buff does not
+        // restart the clock and eating a new dish does.
+    }, [buff?.sourceItem])
+
     useEffect(() => {
         if (!buff) return
         const t = setInterval(() => {
-            setBuff(b => (b && b.secondsLeft > 1 ? { ...b, secondsLeft: b.secondsLeft - 1 } : null))
+            const deadline = expiresAtRef.current
+            if (!deadline) return
+            const left = Math.ceil((deadline - Date.now()) / 1000)
+            setBuff(b => (b && left > 0 ? { ...b, secondsLeft: left } : null))
         }, 1000)
         return () => clearInterval(t)
     }, [buff?.sourceItem])
+
+    /**
+     * Re-read on return to the tab.
+     *
+     * The deadline maths above keeps the number honest, but the server is the
+     * authority on whether the buff still exists at all, and the provision
+     * list may have changed while the tab was hidden. GameView resyncs its
+     * action timer the same way.
+     */
+    useEffect(() => {
+        const onVisible = () => { if (document.visibilityState === 'visible') load() }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
+    }, [load])
 
     const askEat = (itemName: string) => {
         if (buff) { setConfirmEat(itemName); return }

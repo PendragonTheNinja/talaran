@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './TradeWindow.css'
+import { useItemTooltip } from './ItemTooltip'
 
 interface TradeItem {
     player_id: number
@@ -37,6 +38,8 @@ export default function TradeWindow({
     onClose,
     onInventoryClick,
 }: TradeWindowProps) {
+    // Item tooltips, shared with the pack.
+    const { hoverProps, tooltipEl } = useItemTooltip()
     const [offers, setOffers] = useState<TradeItem[]>(initialOffers)
     const [gold, setGold] = useState<TradeGold[]>(initialGold)
     const [myGold, setMyGold] = useState(0)
@@ -191,7 +194,7 @@ export default function TradeWindow({
                                 <p className="muted-text" style={{ fontSize: '13px', fontStyle: 'italic' }}>No items offered</p>
                             ) : (
                                 myOffers.map(item => (
-                                    <div key={item.item_id} className="trade-item">
+                                    <div key={item.item_id} className="trade-item" {...hoverProps(item)}>
                                         <img
                                             src={getItemIcon(item.name)}
                                             alt={item.name}
@@ -236,7 +239,7 @@ export default function TradeWindow({
                                 <p className="muted-text" style={{ fontSize: '13px', fontStyle: 'italic' }}>No items offered</p>
                             ) : (
                                 theirOffers.map(item => (
-                                    <div key={item.item_id} className="trade-item">
+                                    <div key={item.item_id} className="trade-item" {...hoverProps(item)}>
                                         <img
                                             src={getItemIcon(item.name)}
                                             alt={item.name}
@@ -271,6 +274,7 @@ export default function TradeWindow({
                     <button className="btn btn-red" onClick={handleCancel}>Cancel</button>
                 </div>
             </div>
+            {tooltipEl}
         </div>
     )
 }

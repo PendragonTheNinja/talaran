@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { applyBuffFromItem, activeBuff } from '../services/buffs';
 
 const router = Router();
@@ -15,7 +15,11 @@ const router = Router();
 function describeBuff(buff: { effectType: string; skill: string | null; magnitude: number }): string {
     const where = buff.skill ? buff.skill : 'every skill';
     switch (buff.effectType) {
-        case 'timer': return `${buff.magnitude}% off every ${where} action`;
+        // Not `every ${where}`: an all-skill buff has `where` = "every skill",
+        // so the Tisane's pop-up read "off every every skill action".
+        case 'timer': return buff.skill
+            ? `${buff.magnitude}% off every ${buff.skill} action`
+            : `${buff.magnitude}% off every action`;
         case 'rare': return `${buff.magnitude}% better rare finds at ${where}`;
         case 'double': return `${buff.magnitude}% chance of a double yield at ${where}`;
         case 'travel': return `${buff.magnitude}% faster travel`;

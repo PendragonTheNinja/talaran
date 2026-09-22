@@ -116,20 +116,55 @@ export function canFindGold(actionKey: string): boolean {
  * report a find it did not actually pay out. Never throws: a failed coin drop
  * must not take an otherwise good action down with it.
  */
+/**
+ * Roll a find for one action, priced from the XP it paid.
+ *
+ * A thin call into rollGoldFinds, so there is one rule for the chance and the
+ * amount however many units an action covers.
+ */
 export async function rollGoldFind(
     playerId: number,
     actionKey: string,
     xpAwarded: number,
 ): Promise<GoldFind | null> {
+    return rollGoldFinds(playerId, actionKey, [xpAwarded]);
+}
+
+/**
+ * Roll a find for each UNIT of work in an action, and pay the total once.
+ *
+ * A bulk action covers many units — Harvest All brings in twenty fields in one
+ * action. Rolled once, it got a single 2.5% chance where twenty separate
+ * harvests got twenty, and one MAX_COINS ceiling where they got twenty: about a
+ * twentieth of the gold, for pressing the convenient button. Rolled per unit it
+ * pays exactly what doing the units one by one would, in expectation, which is
+ * the whole guarantee the maths above makes.
+ *
+ * Each entry of unitXps is the XP ONE unit should price its roll from, and it
+ * must be the ATTENTION that unit cost, not everything it paid — see the note on
+ * passive skills above. A farm harvest's total XP is mostly per-seed XP for the
+ * growing wait; pricing gold from that would be gold for elapsed time.
+ *
+ * The finds are credited as one ledger entry, and the player sees one message.
+ */
+export async function rollGoldFinds(
+    playerId: number,
+    actionKey: string,
+    unitXps: number[],
+): Promise<GoldFind | null> {
     try {
         const lines = FLAVOUR[actionKey];
         if (!lines || !lines.length) return null;
-        if (!xpAwarded || xpAwarded <= 0) return null;
-        if (Math.random() >= DROP_CHANCE) return null;
 
-        const unitValue = Math.max(1, Math.round(xpAwarded / 5));
-        const multiplier = 1 + Math.floor(Math.random() * MAX_MULTIPLIER);
-        const amount = Math.min(MAX_COINS, unitValue * multiplier);
+        let amount = 0;
+        for (const xp of unitXps) {
+            if (!xp || xp <= 0) continue;
+            if (Math.random() >= DROP_CHANCE) continue;
+            const unitValue = Math.max(1, Math.round(xp / 5));
+            const multiplier = 1 + Math.floor(Math.random() * MAX_MULTIPLIER);
+            amount += Math.min(MAX_COINS, unitValue * multiplier);
+        }
+        if (amount <= 0) return null;
 
         await creditGold({
             playerId,
@@ -141,7 +176,7 @@ export async function rollGoldFind(
 
         return { amount, message: lines[Math.floor(Math.random() * lines.length)] };
     } catch (err) {
-        logger.error(`rollGoldFind error (${actionKey}): ${err}`);
+        logger.error(`rollGoldFinds error (${actionKey}): ${err}`);
         return null;
     }
 }

@@ -2,6 +2,7 @@ import db from '../db'
 import { levelFromXp } from './xp'
 import { logger } from '../lib/logger'
 import { incrementStats } from './stats'
+import { awardXp } from './xp';
 
 // ── Tanning (docs/crafting-launch-spec.md) ────────────────────────
 // Crafting's passive tempo. Mirrors the kiln: load a batch, fixed soak, collect.
@@ -215,20 +216,7 @@ export async function collectRack(playerId: number, jobId: number): Promise<{
                 }
             }
 
-            const craftingSkill = await trx('skills').where({ name: 'Crafting' }).first()
-            if (craftingSkill) {
-                const ps = await trx('player_skills')
-                    .where({ player_id: playerId, skill_id: craftingSkill.id }).first()
-                if (ps) {
-                    await trx('player_skills')
-                        .where({ player_id: playerId, skill_id: craftingSkill.id })
-                        .increment('xp', job.xp_reward)
-                } else {
-                    await trx('player_skills').insert({
-                        player_id: playerId, skill_id: craftingSkill.id, xp: job.xp_reward,
-                    })
-                }
-            }
+            await awardXp(playerId, 'Crafting', job.xp_reward, trx)
 
             await trx('tanning_jobs').where({ id: job.id }).update({ is_collected: true })
 
@@ -241,7 +229,12 @@ export async function collectRack(playerId: number, jobId: number): Promise<{
         })
 
         if (result) {
-            await incrementStats(playerId, { total_xp_earned: result.xpAwarded })
+            // The collect counted XP but not the action itself, so a tanner's
+            // work never showed up in actions completed or items crafted.
+            await incrementStats(playerId, {
+                total_actions_completed: 1,
+                total_items_crafted: 1,
+            })
             logger.info(`Player ${playerId} collected ${result.quantity}x ${result.itemName} from the rack`)
         }
         return result

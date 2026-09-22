@@ -2,6 +2,8 @@ import db from '../db'
 import { levelFromXp } from './xp'
 import { logger } from '../lib/logger'
 import { spendBait } from './fishing'
+import { awardXp } from './xp';
+import { incrementStats } from './stats'
 
 // ── Trapping (docs/trapping-spec.md) ──────────────────────────────
 // Passive hunting mode. Traps are independent of player_actions: they run
@@ -209,12 +211,14 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
                 }
             }
 
-            const huntingSkill = await trx('skills').where({ name: 'Hunting' }).first()
-            if (huntingSkill) {
-                await trx('player_skills')
-                    .where({ player_id: playerId, skill_id: huntingSkill.id })
-                    .increment('xp', target.xp)
-            }
+            await awardXp(playerId, 'Hunting', target.xp, trx)
+
+            // A trap catch is a hunt. It counted nothing before, so a trapper
+            // could take a thousand rabbits and show no animals hunted.
+            await incrementStats(playerId, {
+                total_animals_hunted: 1,
+                total_actions_completed: 1,
+            })
 
             const broke = Math.random() * 100 < trapType.break_chance
             const wasBaited = trap.bait_category as string | null

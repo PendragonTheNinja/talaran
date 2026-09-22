@@ -618,3 +618,21 @@
   color: var(--color-gold);
   font-style: italic;
 }
+
+/* The Balance tab stacks the self-checks above the XP band calculator, so the
+   thing that can be WRONG is what you see first. */
+.admin-balance-tab {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+}
+
+/* The calculator takes what the checks leave and scrolls on its own. Without
+   this it was handed whatever was left after a long problem list and became
+   too squashed to use, which is worse than not having the checks here. */
+.admin-balance-tab > :last-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}

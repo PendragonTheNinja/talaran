@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
+import { getSocket } from '../lib/socket'
 import Badge from './Badge'
 import './FeatsPanel.css'
 
@@ -15,6 +16,8 @@ interface Feat {
     earnedAt: string | null
     progress: number
     target: number
+    criterionKind: string
+    criterionTarget: string | null
 }
 
 interface FeatsData {
@@ -58,6 +61,74 @@ export default function FeatsPanel() {
         const onEarned = () => load()
         window.addEventListener('talaran:feat-earned', onEarned)
         return () => window.removeEventListener('talaran:feat-earned', onEarned)
+    }, [load])
+
+    /**
+     * Live counters.
+     *
+     * The server pushes the delta it just wrote, not a fresh page of feats, so
+     * chopping a log moves First Timber here and now without a request. Two
+     * cases send us back to the server, and only those two:
+     *
+     *   - a bar reaching its target, because a feat is EARNED by evaluation on
+     *     the server and never by the client deciding it has been. The re-read
+     *     is what performs that evaluation.
+     *   - a level up, which moves the kinds no single delta can describe
+     *     (total level, breadth across trades).
+     *
+     * Everything else is arithmetic on numbers we already have.
+     */
+    useEffect(() => {
+        const socket = getSocket()
+        if (!socket) return
+
+        /** Apply a change to matching feats; re-read if one of them just arrived. */
+        const bump = (
+            matches: (feat: Feat) => boolean,
+            next: (feat: Feat) => number,
+        ) => {
+            let reachedTarget = false
+            setData(current => {
+                if (!current) return current
+                const feats = current.feats.map(feat => {
+                    if (feat.earnedAt || !matches(feat)) return feat
+                    const progress = Math.min(next(feat), feat.target)
+                    if (progress === feat.progress) return feat
+                    if (progress >= feat.target) reachedTarget = true
+                    return { ...feat, progress }
+                })
+                return { ...current, feats }
+            })
+            if (reachedTarget) load()
+        }
+
+        const onStats = (payload: { stats: Record<string, number> }) => {
+            const deltas = payload?.stats
+            if (!deltas) return
+            bump(
+                feat => feat.criterionKind === 'stat'
+                    && !!feat.criterionTarget
+                    && deltas[feat.criterionTarget] !== undefined,
+                feat => feat.progress + Number(deltas[feat.criterionTarget as string] || 0),
+            )
+        }
+
+        const onSkillXp = (payload: { skillName: string; level: number; leveledUp: boolean }) => {
+            if (!payload?.skillName) return
+            // A skill feat's progress IS the level, so it is set rather than added to.
+            bump(
+                feat => feat.criterionKind === 'skill' && feat.criterionTarget === payload.skillName,
+                () => payload.level,
+            )
+            if (payload.leveledUp) load()
+        }
+
+        socket.on('stats_changed', onStats)
+        socket.on('skill_xp_changed', onSkillXp)
+        return () => {
+            socket.off('stats_changed', onStats)
+            socket.off('skill_xp_changed', onSkillXp)
+        }
     }, [load])
 
     const wear = async (what: 'title' | 'badge', value: string | null) => {

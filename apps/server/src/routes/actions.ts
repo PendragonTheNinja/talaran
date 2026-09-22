@@ -9,6 +9,30 @@ import { botCheckGate, issueBotCheck } from '../services/botCheck';
 
 const router = Router();
 
+/**
+ * GET /api/actions/presentation - what the scene says, and what stops it.
+ *
+ * Read once per session and cached by the client. Static content, no player in
+ * it, so it is cached in process too: thirty-odd rows that change when someone
+ * ships a migration, not when someone swings an axe.
+ */
+let presentationCache: { rows: any[]; at: number } | null = null;
+const PRESENTATION_TTL_MS = 5 * 60 * 1000;
+
+router.get('/presentation', requireAuth, async (_req: AuthRequest, res: Response) => {
+    try {
+        if (!presentationCache || Date.now() - presentationCache.at > PRESENTATION_TTL_MS) {
+            const rows = await db('action_presentation')
+                .select('action_type', 'kind', 'scene_text', 'cancel_label');
+            presentationCache = { rows, at: Date.now() };
+        }
+        res.json({ presentation: presentationCache.rows });
+    } catch (err) {
+        logger.error(`Action presentation error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Start a woodcutting action
 router.post('/woodcutting/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;

@@ -6,6 +6,8 @@ import {
     removeItemFromInventoryWithin,
     notifyInventoryChanged,
 } from './inventory'
+import { awardXp } from './xp'
+import { incrementStats } from './stats'
 
 // ── Workstations ──────────────────────────────────────────────────
 //
@@ -529,15 +531,16 @@ export async function resolveBuildHearth(playerId: number): Promise<any> {
     }
 }
 
+/**
+ * Building a workstation is a Crafting action, and it counted as none: no XP
+ * total, no action tallied. The XP write is the shared one in services/xp.ts.
+ */
 async function awardCraftingXp(playerId: number, xp: number): Promise<void> {
-    const skill = await db('skills').where({ name: 'Crafting' }).first()
-    if (!skill) return
-    const row = await db('player_skills').where({ player_id: playerId, skill_id: skill.id }).first()
-    if (row) {
-        await db('player_skills').where({ player_id: playerId, skill_id: skill.id }).increment('xp', xp)
-    } else {
-        await db('player_skills').insert({ player_id: playerId, skill_id: skill.id, xp })
-    }
+    await awardXp(playerId, 'Crafting', xp)
+    await incrementStats(playerId, {
+        total_actions_completed: 1,
+        total_items_crafted: 1,
+    })
 }
 
 /**
