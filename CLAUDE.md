@@ -1,6 +1,6 @@
 # CLAUDE.md — Talaran
 
-*Read top to bottom at session start. Last rewritten 2026-09-22 at `6e0afa6`.*
+*Read top to bottom at session start. Last rewritten 2026-09-22; current as of `263afaf`.*
 
 Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), built solo by Nathan (`PendragonTheNinja`). Live at talaran.net · repo `PendragonTheNinja/talaran`, branch `main`.
 
@@ -98,7 +98,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - The open container follows the **player**, not a workstation.
 - Partials cannot be traded, stored or dropped, enforced by having no inventory row. `routes/inventory.ts` appends a `synthetic` tile.
 - `Milk` exists as an item row because recipes name it; it must never appear in an inventory. Do not "fix" this.
-- **Four places read `recipe.inputs` against inventory** (`hasInputs`, `inputsRemaining`, the consume loop in `resolveRecipe`, and the repeat check in `gameTick.ts`). **All must call `isLiquid()` first.** Any new code that reads `recipe.inputs` and queries `player_inventory` is this bug again.
+- **Code that reads `recipe.inputs` against inventory must handle liquids** (`isLiquid()` first). Current sites: `hasInputs` (the tick's repeat check calls it; never re-implement that check), `inputsRemaining`, `affordability`, and the consume loop in `resolveRecipe`. Use `parseInputs`, which accepts the column as a string or an already-parsed array. Any new code that reads `recipe.inputs` and queries `player_inventory` directly is this bug again.
 
 ### Materials & the circularity rule (locked)
 - **Leather** (Husbandry, cattle) is the mainline, five tiers. **Buckskin** (Hunting) is one item, yield-scaled by animal size, and cuts into tier-1 strips only.
@@ -113,7 +113,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 
 **Server type-check:** `cd apps/server && npx tsc --noEmit`. Baseline 0. Note: `tsconfig.json` **excludes** `src/db/migrations` and `src/db/seeds`, so this says nothing about them.
 
-**Client type-check:** `cd apps/client && npx tsc --noEmit -p tsconfig.app.json`. **Plain `npx tsc --noEmit` in `apps/client` checks zero files and always exits 0.** Baseline **20 errors at `6e0afa6`**. Vite does not type-check, so a green build proves nothing. The bar is **no NEW errors**; compare error *sets* with line/column stripped:
+**Client type-check:** `cd apps/client && npx tsc --noEmit -p tsconfig.app.json`. **Plain `npx tsc --noEmit` in `apps/client` checks zero files and always exits 0.** Baseline **20 errors at `263afaf`** (same set as `6e0afa6`). Vite does not type-check, so a green build proves nothing. The bar is **no NEW errors**; compare error *sets* with line/column stripped:
 ```
 npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | sed -E 's/\([0-9]+,[0-9]+\)//' | sort > /tmp/now.txt
 git stash -q && npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | sed -E 's/\([0-9]+,[0-9]+\)//' | sort > /tmp/base.txt && git stash pop -q
@@ -155,9 +155,9 @@ These are the rules the 2026-09-22 audit found broken. Each one produced a live 
 5. **Make completion the gate.** A reward path must flip state with a conditional update (`WHERE status = 'active'`) and pay only if exactly one row changed. Checking, then writing, then paying pays once per parallel request.
 6. **Two players' gold: lock both rows up front in ASCENDING id order.** `lockPlayersInOrder()` / `transferGoldWithin()` in `services/gold.ts` do this. Trades and shop sales share these rows; opposite orders deadlock under load.
 7. **`gold_ledger` deltas must always sum to `players.gold`.** Shop takings go to the TILL, not the owner, so a sale writes no ledger row; the owner's row happens at `shop_till_withdraw`. The tithe is a column on `shop_transactions`.
-8. **XP is always upserted.** `.where().increment('xp')` on `player_skills` silently drops the award when the row is missing, and rows ARE missing for skills added after a player registered. Use `first()` then `increment` or `insert`, as `services/recipes.ts` does. Fourteen raw sites remain (audit M2).
+8. **XP goes through `awardXp()` in `services/xp.ts`, the only writer to `player_skills`.** It upserts in one statement (a bare `.increment('xp')` silently drops the award when the row is missing, and rows ARE missing for skills added after a player registered), counts `total_xp_earned`, and pushes `skill_xp_changed`. Never pass `total_xp_earned` to `incrementStats` yourself. Inside a transaction pass `trx`, but know that its stats write and push still escape the transaction today (audit N-1).
 9. **Validate client numbers on the server:** `Math.floor(Number(x))`, finite, > 0. A negative trade quantity reverses the direction of the move.
-10. **Emit sockets after commit, never inside a transaction.** A rollback would un-happen what you announced.
+10. **Emit sockets after commit, never inside a transaction.** A rollback would un-happen what you announced. Push through `lib/realtime.ts` (`pushToPlayer`, `pushToRoom`, `pushToAll`), never `io` from `index.ts`.
 
 ---
 
@@ -183,7 +183,8 @@ The tick is a 2-second `setInterval` that resolves every row with `completes_at 
 15. **Buff lookups pass the action's real skill name.** The shared woodcutting/mining restart branch hard-codes `'Woodcutting'` (audit M1).
 
 ### Other tick facts
-- **Absence cancels.** `lib/presence.ts` deletes an action at resolution time if the player has had no socket for 90 seconds (with a grace window after boot). Read presence through `isPlayerOnline`, never the `connectedPlayers` Set in `index.ts`, which the first closed tab empties.
+- **Absence cancels.** `lib/presence.ts` deletes an action at resolution time if the player has had no socket for 90 seconds (with a grace window after boot). **Two presence answers exist:** `isPlayerOnline` in `lib/presence.ts` (room-counted, correct with several tabs) and `onlinePlayers()`/`isOnline` in `lib/realtime.ts` (a Set the first closed tab empties; used for playtime, online lists and guild dots). Prefer `isPlayerOnline` until they are merged (audit M10).
+- **The tick re-reads each row before resolving** and skips it if the type, data or `completes_at` changed (travel deletes and replaces rows mid-batch). That is not a claim: overlapping ticks both pass it (audit H2).
 - **Travel start deletes any existing action unconditionally** (`routes/travel.ts`). It is the universal escape hatch when reasoning about stuck states.
 - The bot check freezes a completed action (`bot_check_pending`) and resumes it on a correct answer.
 
@@ -247,7 +248,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 ## 9. Known landmines
 
 ### Server
-- **Modules import `logger`/`io` from `index.ts`** (37 of them). It works only because `index.ts` is always the entry point; any other entry (a script, a harness) hits a circular import and gets `undefined` routers. New code imports `logger` from `lib/logger.ts`. `dotenv` loads in time only because `db/index.ts` happens to call it first.
+- **22 modules still import `logger` from `index.ts`.** It works only because `index.ts` is always the entry point; any other entry (a script, a harness) hits a circular import and gets `undefined` routers. New code imports `logger` from `lib/logger.ts` and pushes through `lib/realtime.ts`. `dotenv` loads in time only because `db/index.ts` happens to call it first.
 - **Express 5 removed `:param?`.** It is a boot-time parse error. Register two routes against one handler.
 - **Express matches in registration order: `/:id` goes LAST.** `/:shopId` above `/mine/state` swallowed every owner endpoint.
 - **pg returns `numeric`/`bigint` as strings.** Use integer columns or parse explicitly. `players.gold` is bigint; normalise with `Number()`.
