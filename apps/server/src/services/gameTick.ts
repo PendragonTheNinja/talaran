@@ -313,13 +313,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
     const player = await db('players').where({ id: action.player_id }).first();
 
-    // Nobody home: stop rather than resolve. Actions are not meant to run for a
-    // logged-out player, and until this existed the only thing that eventually
-    // halted one was the 30 minute bot check, which made a captcha the de facto
-    // AFK limiter. Travel is included deliberately: a cancelled journey simply
+    // Nobody home for too long: stop rather than resolve. A closed tab keeps the
+    // current action running for OFFLINE_GRACE_MS (30 minutes, lib/presence.ts)
+    // and no longer. Until this existed the only thing that eventually halted an
+    // absent player was the 30 minute bot check, which made a captcha the de
+    // facto AFK limiter. Travel is included deliberately: a cancelled journey simply
     // leaves the player where they set off from, which is harmless, and travel
     // grants XP and find-events like any other action.
-    if (shouldCancelForAbsence(io, action.player_id)) {
+    if (shouldCancelForAbsence(io, action.player_id, player?.last_seen)) {
       await db('player_actions').where({ id: action.id }).delete();
       logger.info(`Cancelled ${action.action_type} for absent player ${action.player_id}`);
       // Tell them, even though we think nobody is listening. A delete with no
@@ -328,7 +329,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // If presence is ever wrong, this turns a silent stall into a sentence
       // that says what happened.
       io.to(`player_${action.player_id}`).emit('action_failed', {
-        error: 'Your action stopped because the connection dropped.',
+        error: 'Your work stopped while you were away.',
         info: true,
       });
       return;

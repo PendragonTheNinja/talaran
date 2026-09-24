@@ -51,7 +51,7 @@ import tradeRoutes from './routes/trades';
 import questRoutes from './routes/quests';
 import npcRoutes from './routes/npcs';
 import { issueBotCheck } from './services/botCheck';
-import { markSeen, markOnline } from './lib/presence';
+import { markOffline, markOnline, recordSeen } from './lib/presence';
 import huntingRoutes from './routes/hunting';
 import foragingRoutes from './routes/foraging';
 import farmingRoutes from './routes/farming';
@@ -268,6 +268,7 @@ io.on('connection', (socket) => {
 
     socket.join(`player_${playerId}`);
     markOnline(playerId);   // second presence signal; see lib/presence.ts
+    void recordSeen(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
 
     // Re-send bot check if one is still outstanding for this player.
@@ -294,10 +295,12 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     if (!socket.data.playerId) return;
-    // Stamp the departure so the tick can stop resolving this player's action.
-    // See lib/presence.ts: the cancellation itself happens at resolution time,
-    // not here, so a reconnect inside the grace window costs them nothing.
-    markSeen(socket.data.playerId);
+    // Stamp the departure: players.last_seen starts the offline allowance. See
+    // lib/presence.ts. The cancellation itself happens at resolution time, not
+    // here, so a reconnect inside the allowance costs them nothing. Stamping
+    // when another tab is still open is harmless; they were seen now.
+    markOffline(socket.data.playerId);
+    await recordSeen(socket.data.playerId);
 
     // Cancel any active trades
     try {
