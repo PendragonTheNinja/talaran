@@ -1,4 +1,6 @@
+import type { Knex } from 'knex'
 import db from '../db'
+import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory'
 import { isLiquid, liquidTotal, consumeLiquid } from './liquids'
 import { levelFromXp } from './xp'
 import { logger } from '../lib/logger'
@@ -68,14 +70,17 @@ function inputLabel(input: RecipeInput): string {
  * Ordering by heal_amount then tier means the player is never quietly charged
  * their best ingredient for a dish that could not tell the difference.
  */
-async function wildcardStacks(playerId: number, subtype: string) {
-    return db('player_inventory as pi')
+async function wildcardStacks(playerId: number, subtype: string, x: Knex | Knex.Transaction = db) {
+    const q = x('player_inventory as pi')
         .join('items as i', 'i.id', 'pi.item_id')
         .where('pi.player_id', playerId)
         .where('i.subtype', subtype)
         .where('pi.quantity', '>', 0)
         .orderBy([{ column: 'i.heal_amount', order: 'asc' }, { column: 'i.tier', order: 'asc' }])
         .select('pi.id as invId', 'pi.quantity as quantity', 'i.id as itemId', 'i.name as name')
+    // Inside a transaction, lock the stacks about to be spent. FOR UPDATE OF the
+    // inventory rows only, never the shared items rows.
+    return (x as { isTransaction?: boolean }).isTransaction ? q.forUpdate('pi') : q
 }
 
 // Liquid inputs are volume, not inventory rows. A recipe still writes
@@ -364,6 +369,12 @@ function burntNameFor(recipe: any, outputSubtype: string | null): string | null 
     }
 }
 
+/**
+ * A refusal from inside the craft transaction. Thrown, never returned: once an
+ * input has been taken, returning would commit the loss.
+ */
+class RecipeAbort extends Error {}
+
 export async function resolveRecipe(playerId: number, recipeId: number): Promise<RecipeResult> {
     try {
         const recipe = await db('recipes').where({ id: recipeId, is_active: true }).first()
@@ -379,98 +390,112 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
         const check = await hasInputs(playerId, inputs)
         if (!check.ok) return { success: false, error: check.error }
 
-        // Consume inputs
-        for (const input of inputs) {
-            if (input.subtype) {
-                // Cheapest stacks first, so a stew eats the tiddles and leaves
-                // the sabreling alone. Spans stacks when one is not enough.
-                let owed = input.qty
-                for (const stack of await wildcardStacks(playerId, input.subtype)) {
-                    if (owed <= 0) break
-                    const take = Math.min(owed, stack.quantity)
-                    if (take >= stack.quantity) {
-                        await db('player_inventory').where({ id: stack.invId }).delete()
-                    } else {
-                        await db('player_inventory').where({ id: stack.invId })
-                            .update({ quantity: stack.quantity - take })
-                    }
-                    owed -= take
-                }
-                if (owed > 0) return { success: false, error: `You need ${input.qty} ${inputLabel(input)}.` }
-                continue
-            }
-            if (isLiquid(input.itemName!)) {
-                // Draws from the open container first, cracks a sealed bucket if
-                // it runs dry, and hands back the empty when one is drained.
-                if (!(await consumeLiquid(playerId, input.itemName!, input.qty))) {
-                    return { success: false, error: `You need ${input.qty} ${input.itemName!.toLowerCase()}.` }
-                }
-                continue
-            }
-            const item = await db('items').where({ name: input.itemName }).first()
-            if (!item) return { success: false, error: `Required item not found: ${input.itemName}` }
-            const inv = await db('player_inventory')
-                .where({ player_id: playerId, item_id: item.id }).first()
-            if (!inv || inv.quantity < input.qty) return { success: false, error: `You need ${input.qty}x ${input.itemName}.` }
-            if (inv.quantity === input.qty) {
-                await db('player_inventory').where({ id: inv.id }).delete()
-            } else {
-                await db('player_inventory').where({ id: inv.id }).update({ quantity: inv.quantity - input.qty })
-            }
-        }
-
-        // Burn roll. Inputs are already gone by this point, which is the whole
-        // cost of a burn: you keep the time and lose the fish.
-        const intendedItem = await db('items').where({ name: recipe.output_item_name }).first()
-        const burntName = burntNameFor(recipe, intendedItem?.subtype ?? null)
-        const burnt = !!burntName && Math.random() * 100 < burnChance(recipe, level)
-
-        // Award output
-        const outputItem = burnt
-            ? await db('items').where({ name: burntName }).first()
-            : intendedItem
-        if (outputItem) {
-            const existing = await db('player_inventory')
-                .where({ player_id: playerId, item_id: outputItem.id }).first()
-            const awardedQty = burnt ? 1 : recipe.output_qty
-            if (existing) {
-                await db('player_inventory').where({ id: existing.id }).increment('quantity', awardedQty)
-            } else {
-                await db('player_inventory').insert({ player_id: playerId, item_id: outputItem.id, quantity: awardedQty })
-            }
-        }
-
-        // Award the byproduct, if the recipe has one.
+        // Consume the inputs and pay the outputs as ONE unit of work (audit M3).
         //
-        // Threshing is the case this exists for: beating grain off the stalk
-        // leaves straw, and it was previously a separate craft because the
-        // schema could not express two outputs. Anything else that drops a
-        // remainder gets it for free now.
-        let byproduct: { itemName: string; quantity: number } | null = null
-        if (recipe.byproduct_item_name && recipe.byproduct_qty > 0) {
-            const byItem = await db('items').where({ name: recipe.byproduct_item_name }).first()
-            if (byItem) {
-                const existingBy = await db('player_inventory')
-                    .where({ player_id: playerId, item_id: byItem.id }).first()
-                if (existingBy) {
-                    await db('player_inventory').where({ id: existingBy.id }).increment('quantity', recipe.byproduct_qty)
-                } else {
-                    await db('player_inventory').insert({ player_id: playerId, item_id: byItem.id, quantity: recipe.byproduct_qty })
+        // This was a sequence of separate statements with no transaction, and
+        // it could refuse partway: a multi-input dish consumed its first input,
+        // then found the second gone (spent in another tab, moved to storage)
+        // and returned — leaving the first input destroyed and nothing made.
+        // The writes were also absolute (`quantity: inv.quantity - qty`) from
+        // an unlocked read, so a storage move landing in the same moment was a
+        // lost update in either direction. It is the most-used write path in
+        // the game.
+        //
+        // Now the player row is locked first, which serialises this player's
+        // crafting against their other inventory changes (the same reason as
+        // the kiln), every stack is locked and written relatively, and any
+        // refusal after a write throws so the whole craft rolls back.
+        const outcome = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forUpdate().first()
+
+            for (const input of inputs) {
+                if (input.subtype) {
+                    // Cheapest stacks first, so a stew eats the tiddles and
+                    // leaves the sabreling alone. Spans stacks when one is not
+                    // enough.
+                    let owed = input.qty
+                    for (const stack of await wildcardStacks(playerId, input.subtype, trx)) {
+                        if (owed <= 0) break
+                        const take = Math.min(owed, Number(stack.quantity))
+                        if (take >= Number(stack.quantity)) {
+                            await trx('player_inventory').where({ id: stack.invId }).delete()
+                        } else {
+                            await trx('player_inventory').where({ id: stack.invId }).decrement('quantity', take)
+                        }
+                        owed -= take
+                    }
+                    if (owed > 0) throw new RecipeAbort(`You need ${input.qty} ${inputLabel(input)}.`)
+                    continue
                 }
-                byproduct = { itemName: recipe.byproduct_item_name, quantity: recipe.byproduct_qty }
+                if (isLiquid(input.itemName!)) {
+                    // Draws from the open container first, cracks a sealed
+                    // bucket if it runs dry, and hands back the empty when one
+                    // is drained.
+                    if (!(await consumeLiquid(playerId, input.itemName!, input.qty, trx))) {
+                        throw new RecipeAbort(`You need ${input.qty} ${input.itemName!.toLowerCase()}.`)
+                    }
+                    continue
+                }
+                const item = await trx('items').where({ name: input.itemName }).first()
+                if (!item) throw new RecipeAbort(`Required item not found: ${input.itemName}`)
+                const took = await removeItemFromInventoryWithin(trx, playerId, item.id, input.qty)
+                if (!took) throw new RecipeAbort(`You need ${input.qty}x ${input.itemName}.`)
             }
-        }
 
-        // Half XP on a burn. recipes.xp is already set expecting this, so the
-        // expected payout at the recipe's own level still lands on band.
-        const xpAwarded = burnt ? Math.max(1, Math.round(recipe.xp / 2)) : recipe.xp
+            // Burn roll. Inputs are already gone by this point, which is the
+            // whole cost of a burn: you keep the time and lose the fish.
+            const intendedItem = await trx('items').where({ name: recipe.output_item_name }).first()
+            const burntName = burntNameFor(recipe, intendedItem?.subtype ?? null)
+            const burnt = !!burntName && Math.random() * 100 < burnChance(recipe, level)
 
-        // Award XP (Crafting XP banks against the hidden skill until it launches)
-        if (skillId) {
-            await awardXp(playerId, skillId, xpAwarded)
-        }
+            const outputItem = burnt
+                ? await trx('items').where({ name: burntName }).first()
+                : intendedItem
+            if (outputItem) {
+                await addItemToInventoryWithin(trx, playerId, outputItem.id, burnt ? 1 : recipe.output_qty)
+            }
 
-        // A ruined dish does not count. Geomima asked for six cooked properly.
+            // Award the byproduct, if the recipe has one.
+            //
+            // Threshing is the case this exists for: beating grain off the
+            // stalk leaves straw, and it was previously a separate craft
+            // because the schema could not express two outputs.
+            let byproduct: { itemName: string; quantity: number } | null = null
+            if (recipe.byproduct_item_name && recipe.byproduct_qty > 0) {
+                const byItem = await trx('items').where({ name: recipe.byproduct_item_name }).first()
+                if (byItem) {
+                    await addItemToInventoryWithin(trx, playerId, byItem.id, recipe.byproduct_qty)
+                    byproduct = { itemName: recipe.byproduct_item_name, quantity: recipe.byproduct_qty }
+                }
+            }
+
+            // Half XP on a burn. recipes.xp is already set expecting this, so
+            // the expected payout at the recipe's own level still lands on band.
+            const xpAwarded = burnt ? Math.max(1, Math.round(recipe.xp / 2)) : recipe.xp
+
+            // Crafting XP banks against the hidden skill until it launches.
+            if (skillId) await awardXp(playerId, skillId, xpAwarded, trx)
+
+            // Per-skill counters, so Cooking and Crafting have something to
+            // build feats on. Burns count separately: ruining a hundred dinners
+            // is its own kind of achievement.
+            const tally: Record<string, number> = { total_actions_completed: 1 }
+            if (recipe.skill === 'Cooking') {
+                if (burnt) tally.total_meals_burnt = 1
+                else tally.total_meals_cooked = 1
+            } else if (recipe.skill === 'Crafting') {
+                tally.total_items_crafted = 1
+            }
+            await incrementStats(playerId, tally, trx)
+
+            return { burnt, burntName, outputItem, byproduct, xpAwarded }
+        })
+
+        const { burnt, burntName, outputItem, byproduct, xpAwarded } = outcome
+
+        // After the commit: quest progress writes through the global connection
+        // and pushes to the client. A ruined dish does not count; Geomima asked
+        // for six cooked properly.
         if (!burnt) {
             await updateQuestObjectiveProgress(playerId, 'craft', recipe.output_item_name, 1)
             // Also a skill-specific type, so a quest can ask for cooking or
@@ -479,17 +504,6 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
                 await updateQuestObjectiveProgress(playerId, String(recipe.skill).toLowerCase(), recipe.output_item_name, 1)
             }
         }
-        // Per-skill counters, so Cooking and Crafting have something to build
-        // feats on. Burns count separately: ruining a hundred dinners is its own
-        // kind of achievement.
-        const tally: Record<string, number> = { total_actions_completed: 1}
-        if (recipe.skill === 'Cooking') {
-            if (burnt) tally.total_meals_burnt = 1
-            else tally.total_meals_cooked = 1
-        } else if (recipe.skill === 'Crafting') {
-            tally.total_items_crafted = 1
-        }
-        await incrementStats(playerId, tally)
 
         logger.info(burnt
             ? `Player ${playerId} burnt ${recipe.output_item_name} (${recipe.name})`
@@ -515,6 +529,7 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
                 : undefined,
         }
     } catch (err) {
+        if (err instanceof RecipeAbort) return { success: false, error: err.message }
         logger.error(`resolveRecipe error: ${err}`)
         return { success: false, error: 'Server error' }
     }

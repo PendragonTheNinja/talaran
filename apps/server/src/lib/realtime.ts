@@ -73,29 +73,31 @@ export function pushToAll(event: string, payload?: unknown): void {
 }
 
 /**
- * Who is currently connected.
+ * Who is connected, read from socket.io room membership (audit M10).
  *
- * The set lives here rather than in index.ts for the same reason the server
- * does: five routes and a service want to know who is online, and reaching
- * into index.ts for it drags the whole server into anything that imports them.
- * index.ts maintains it from the socket handlers.
+ * This used to be a Set, added to on join and deleted from on disconnect. A Set
+ * cannot count: with two tabs open both add the same id, and the first tab to
+ * close deletes it, so a player still playing in the other tab read as
+ * offline. Playtime stopped accruing, the admin online list and guild dots lost
+ * them, and "Players here" dropped them. The player's own room is a real count
+ * of their sockets and is always right, which is why lib/presence.ts already
+ * used it.
  */
-const connected = new Set<number>();
-
-export function markConnected(playerId: number): void {
-    connected.add(playerId);
-}
-
-export function markDisconnected(playerId: number): void {
-    connected.delete(playerId);
-}
-
 export function isOnline(playerId: number): boolean {
-    return connected.has(playerId);
+    const room = io?.sockets.adapter.rooms.get(`player_${playerId}`);
+    return !!room && room.size > 0;
 }
 
+/** Every player with at least one connected socket. */
 export function onlinePlayers(): ReadonlySet<number> {
-    return connected;
+    const out = new Set<number>();
+    if (!io) return out;
+    for (const [name, sockets] of io.sockets.adapter.rooms) {
+        if (!name.startsWith('player_') || sockets.size === 0) continue;
+        const id = Number(name.slice('player_'.length));
+        if (Number.isInteger(id)) out.add(id);
+    }
+    return out;
 }
 
 /**
