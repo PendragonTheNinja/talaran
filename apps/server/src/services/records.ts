@@ -1,5 +1,6 @@
 import db from '../db'
 import { logger } from '../lib/logger'
+import { pushToAll } from '../lib/realtime'
 
 // ── Records ───────────────────────────────────────────────────────
 //
@@ -46,8 +47,7 @@ async function announce(playerId: number, message: string): Promise<void> {
             sent_at: now,
         })
 
-        const { io } = await import('../index')
-        io.emit('chat_world', {
+        pushToAll('chat_world', {
             id: Date.now(),
             channel: 'server',
             playerName: '[SERVER]',

@@ -273,6 +273,18 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         }
 
         const outcome = await db.transaction(async (trx) => {
+            // The PLAYER row is locked first, and it has to be (audit H7).
+            //
+            // The day's counter is locked below, but on the first sale of the
+            // day that row does not exist yet, and forUpdate() on a row that
+            // does not exist locks nothing. Parallel first sales all read zero,
+            // all priced at the full rate and all skipped the step-down. The
+            // player row always exists, so locking it serialises one player's
+            // trading with merchants, and the second request waits and then
+            // sees the first one's counter. It is also the row the gold credit
+            // locks, so the lock order stays the same everywhere.
+            await trx('players').where({ id: playerId }).forUpdate().first();
+
             // Re-read the day's counter inside the transaction. Two tabs selling
             // the same item at once would otherwise both price against the same
             // stale figure and both get the full rate.
@@ -374,6 +386,13 @@ router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: R
         }
 
         const outcome = await db.transaction(async (trx) => {
+            // Player row first, for the same reason as the sell above: the
+            // day's purchase counter does not exist before the first purchase,
+            // so there is nothing to lock, and parallel buys of a limited daily
+            // line each saw the whole allowance and bought it several times
+            // over (audit H7).
+            await trx('players').where({ id: playerId }).forUpdate().first();
+
             const counter = await trx('npc_purchase_daily')
                 .where({ player_id: playerId, item_id: line.itemId, purchase_date: gameDayKey() })
                 .forUpdate()

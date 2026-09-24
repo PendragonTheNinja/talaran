@@ -3,7 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
-import { setRealtimeServer, markConnected, markDisconnected } from './lib/realtime';
+import { setRealtimeServer } from './lib/realtime';
 import authRoutes from './routes/auth';
 import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
@@ -22,6 +22,7 @@ import hintsRoutes from './routes/hints';
 import chatRoutes from './routes/chat';
 import db from './db';
 import { verifyToken } from './config/jwt';
+import { checkSession } from './lib/sessions';
 import guildRoutes from './routes/guilds';
 import guildForumRoutes from './routes/guildForum';
 import messagesRoutes from './routes/messages';
@@ -234,14 +235,25 @@ io.use((socket, next) => {
     return next(new Error('unauthorized'));
   }
 
+  let payload;
   try {
-    const payload = verifyToken(token);
-    if (!payload?.playerId) return next(new Error('unauthorized'));
-    socket.data.playerId = payload.playerId;   // authoritative
-    next();
+    payload = verifyToken(token);
   } catch {
-    next(new Error('unauthorized'));
+    return next(new Error('unauthorized'));
   }
+  if (!payload?.playerId) return next(new Error('unauthorized'));
+
+  // The same check every HTTP request gets (audit H1). A banned player, or a
+  // session ended by a password reset, used to keep a live socket and keep
+  // receiving pushes; the ban's force_logout emit only worked on a client that
+  // chose to honour it.
+  checkSession(payload)
+    .then((verdict) => {
+      if (!verdict.ok) return next(new Error('unauthorized'));
+      socket.data.playerId = payload.playerId;   // authoritative
+      next();
+    })
+    .catch(() => next(new Error('unauthorized')));
 });
 
 // Put each player in their own room for targeted messages
@@ -255,7 +267,6 @@ io.on('connection', (socket) => {
     if (!playerId) return;
 
     socket.join(`player_${playerId}`);
-    markConnected(playerId);
     markOnline(playerId);   // second presence signal; see lib/presence.ts
     logger.info(`Player ${playerId} joined their socket room`);
 
@@ -283,7 +294,6 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     if (!socket.data.playerId) return;
-    markDisconnected(socket.data.playerId);
     // Stamp the departure so the tick can stop resolving this player's action.
     // See lib/presence.ts: the cancellation itself happens at resolution time,
     // not here, so a reconnect inside the grace window costs them nothing.
@@ -308,21 +318,35 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('join_location', async (locationId: number) => {
-    socket.rooms.forEach(room => {
-      if (room.startsWith('location_') || room.startsWith('region_')) {
-        socket.leave(room);
-      }
-    });
-    socket.join(`location_${locationId}`);
+  // The argument is ignored (audit M6). This joined whatever location id the
+  // client sent, and that location's region, so anyone could sit in any room
+  // and read another island's region chat and every "Players here" push. The
+  // client emits this after arriving somewhere, by which point travel has
+  // already written the new location, so the server reads where the player
+  // actually is. The old client keeps sending an id; it simply no longer
+  // decides anything.
+  socket.on('join_location', async () => {
+    const playerId: number = socket.data.playerId;
+    if (!playerId) return;
 
     try {
+      const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+      const locationId = player?.current_location_id;
+
+      socket.rooms.forEach(room => {
+        if (room.startsWith('location_') || room.startsWith('region_')) {
+          socket.leave(room);
+        }
+      });
+      if (!locationId) return;
+
+      socket.join(`location_${locationId}`);
       const location = await db('locations').where({ id: locationId }).first();
       if (location?.region) {
         socket.join(`region_${location.region.replace(/ /g, '_')}`);
       }
     } catch (err) {
-      logger.error(`Region join error: ${err}`);
+      logger.error(`Location join error: ${err}`);
     }
   });
 });

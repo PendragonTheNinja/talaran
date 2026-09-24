@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { getStorage, getCarried, depositItem, withdrawItem } from '../services/property';
 
 const router = Router();

@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import {
     getHusbandryState,
     startBuildPen, addPenFlower, removePenFlower,

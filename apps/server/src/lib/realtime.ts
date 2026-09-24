@@ -1,5 +1,6 @@
 import type { Server } from 'socket.io';
 import { logger } from './logger';
+import { afterCommit } from './afterCommit';
 
 /**
  * One place to reach the socket server from anywhere.
@@ -46,6 +47,19 @@ export function pushToRoom(room: string, event: string, payload?: unknown): void
     } catch (err) {
         logger.warn(`pushToRoom(${event}) failed for ${room}: ${err}`);
     }
+}
+
+/**
+ * Push to a player once the work that caused it has COMMITTED. A rolled-back
+ * award is never announced (audit N-1). See lib/afterCommit.ts.
+ */
+export function pushToPlayerAfterCommit(
+    x: unknown,
+    playerId: number,
+    event: string,
+    payload?: unknown,
+): void {
+    afterCommit(x, () => pushToPlayer(playerId, event, payload));
 }
 
 /** Send one event to everyone connected. Region events, world announcements. */

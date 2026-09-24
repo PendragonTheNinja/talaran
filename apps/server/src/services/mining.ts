@@ -10,8 +10,6 @@ const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
 const DENSE_ORE_GUARANTEED_LEVELS = 45;
 const MAX_TIER_DIFFERENCE = 3;
-const TOOL_TIER_PENALTY = 0.4;
-const LEVEL_TIMER_REDUCTION = 0.005;
 
 export interface MiningResult {
   success: boolean;
@@ -23,30 +21,12 @@ export interface MiningResult {
   drops?: { name: string; quantity: number }[];
 }
 
-export function calculateMiningTimer(
-  baseTimer: number,
-  minTimer: number,
-  playerLevel: number,
-  requiredLevel: number,
-  playerToolTier: number,
-  requiredToolTier: number
-): number {
-  const levelsOver = Math.max(0, playerLevel - requiredLevel);
-  const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION);
-  let timer = baseTimer * (1 - levelReduction);
-
-  const tierDifference = playerToolTier - requiredToolTier;
-  if (tierDifference < 0) {
-    // Penalty for lower tier tool
-    timer = timer * (1 + Math.abs(tierDifference) * TOOL_TIER_PENALTY);
-  } else if (tierDifference > 0) {
-    // Bonus for higher tier tool
-    const bonusPercent = Math.min(0.30, tierDifference * 0.10);
-    timer = timer * (1 - bonusPercent);
-  }
-
-  return Math.max(minTimer, Math.round(timer));
-}
+// The mining timer is calculateTimer in services/woodcutting.ts, shared with
+// Woodcutting. There used to be a second copy here, calculateMiningTimer,
+// identical line for line except that it had no buff step. Provisions were
+// added to the shared function and the copy was never updated, so a Mining
+// provision did nothing on the first swing at a rock and nothing at all for
+// vein mining (audit M1). One function, one place to change it.
 
 export async function canMineHere(
   playerId: number,

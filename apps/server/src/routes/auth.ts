@@ -1,14 +1,13 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import db from '../db';
-import { signToken } from '../config/jwt';
 import { Player } from '../types';
-import { logger } from '../index';
-import jwt from 'jsonwebtoken';
+import { logger } from '../lib/logger';
 import crypto from 'crypto';
 import { sendEmail, passwordResetEmail } from '../lib/email';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { createGuest, GuestCapacityError, GUEST_SUFFIX, GUEST_SESSION_MINUTES } from '../services/guest';
+import { issueSession, endSessions } from '../lib/sessions';
 
 const router = Router();
 const SALT_ROUNDS = 12;
@@ -112,11 +111,7 @@ router.post('/register', async (req: Request, res: Response) => {
     // Bow + arrows are handed over by Geonsen in "The Huntsman's Lesson" at Eld
     // Grove — a tutorial that teaches the loop beats a silent inventory grant.
 
-    const token = jwt.sign(
-      { playerId: player.id },
-      process.env.JWT_SECRET!,
-      { expiresIn: 60 * 60 * 24 * 30 } // 30 days in seconds
-    )
+    const token = await issueSession(player.id)
 
     logger.info(`New player registered: ${username}`);
     res.status(201).json({ token, player });
@@ -147,6 +142,20 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
+    // Password FIRST, then the ban (audit M9).
+    //
+    // The ban checks used to come first, so anyone who knew a username could
+    // learn whether that account was banned, until when, and the moderator's
+    // reason, without knowing the password. A ban and its reason are the
+    // account holder's business: they are told only once they have proven it
+    // is theirs, and everyone else gets the same answer as a wrong password.
+    const valid = await bcrypt.compare(password, player.password_hash);
+
+    if (!valid) {
+      res.status(401).json({ error: 'Invalid username or password' });
+      return;
+    }
+
     if (player.is_banned) {
       res.status(403).json({ error: 'This account has been permanently banned.' });
       return;
@@ -158,22 +167,11 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const valid = await bcrypt.compare(password, player.password_hash);
-
-    if (!valid) {
-      res.status(401).json({ error: 'Invalid username or password' });
-      return;
-    }
-
     await db('players')
       .where({ id: player.id })
       .update({ last_login: new Date() });
 
-    const token = jwt.sign(
-      { playerId: player.id },
-      process.env.JWT_SECRET!,
-      { expiresIn: 60 * 60 * 24 * 30 } // 30 days in seconds
-    )
+    const token = await issueSession(player.id)
 
     logger.info(`Player logged in: ${username}`);
     res.json({ token, player: { id: player.id, username: player.username, email: player.email } });
@@ -259,6 +257,10 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       reset_token: null,
       reset_token_expires: null,
     });
+    // A reset is what the owner does when someone else has the account. Every
+    // session issued before it ends now, sockets included, or the person who
+    // took it stays logged in with the token they already hold (audit H1).
+    await endSessions(player.id, db, { disconnect: true });
     logger.info(`[auth] password reset completed for player ${player.id}`);
     res.json({ success: true, message: 'Your password has been reset. You can now log in.' });
   } catch (err) {
@@ -280,11 +282,8 @@ router.post('/guest', async (req: Request, res: Response) => {
       return;
     }
 
-    const token = jwt.sign(
-      { playerId: guest.id, isGuest: true },
-      process.env.JWT_SECRET!,
-      { expiresIn: 60 * 60 * 24 }, // a day; the session deadline is the real limit
-    );
+    // A day; the guest deadline column is the real limit.
+    const token = await issueSession(guest.id, { isGuest: true });
 
     res.status(201).json({
       token,
@@ -391,11 +390,7 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
       + `${converted}/${started} guests claimed to date`,
     );
 
-    const token = jwt.sign(
-      { playerId },
-      process.env.JWT_SECRET!,
-      { expiresIn: 60 * 60 * 24 * 30 },
-    );
+    const token = await issueSession(playerId);
 
     res.json({ token, player: { id: playerId, username, email, is_guest: false } });
   } catch (err) {

@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 
 const router = Router();
 

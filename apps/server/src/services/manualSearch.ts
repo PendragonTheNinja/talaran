@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import db from '../db';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { runManualQuery, listManualQueries } from '../routes/manual';
 
 // Manual search.

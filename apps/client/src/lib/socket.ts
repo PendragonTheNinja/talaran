@@ -7,7 +7,11 @@ let socket: Socket | null = null
 export function connectSocket(playerId: number): Socket {
   if (socket) socket.disconnect()
   socket = io(SERVER_URL, {
-    auth: { token: localStorage.getItem('talaran_token') }
+    // A callback, not an object: socket.io calls it on every (re)connection,
+    // so a reconnect presents the token the player holds NOW. Read once, the
+    // socket kept presenting the token it started with, and after a password
+    // change issued a fresh one it could never reconnect.
+    auth: (cb) => cb({ token: localStorage.getItem('talaran_token') }),
   })
   socket.on('connect', () => {
     socket!.emit('join', playerId)

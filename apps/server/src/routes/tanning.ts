@@ -2,7 +2,7 @@ import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { setupRack, loadRack, collectRack, getRackStatus } from '../services/tanning'
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 
 const router = Router()
 

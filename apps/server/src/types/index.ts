@@ -14,9 +14,15 @@ export interface Player {
 
 export interface JwtPayload {
   playerId: number;
-  username: string;
-  // Present only on guest tokens. Lets requireAuth skip the guest session
-  // check entirely for real accounts, which are and always will be nearly
-  // every request. Upgrading issues a fresh token without it.
+  // Never actually put in a token: no sign-in route ever included it, and
+  // nothing reads it. Optional so the type matches what is issued.
+  username?: string;
+  // Present only on guest tokens. Upgrading issues a fresh token without it.
+  // Every token, guest or not, is checked by lib/sessions.ts.
   isGuest?: boolean;
+  // The player's token_version when this token was issued. Compared on every
+  // request and socket connection (lib/sessions.ts); bumping the column ends
+  // every session issued before. Absent on tokens from before it existed,
+  // which read as 0.
+  tv?: number;
 }

@@ -155,15 +155,16 @@ These are the rules the 2026-09-22 audit found broken. Each one produced a live 
 5. **Make completion the gate.** A reward path must flip state with a conditional update (`WHERE status = 'active'`) and pay only if exactly one row changed. Checking, then writing, then paying pays once per parallel request.
 6. **Two players' gold: lock both rows up front in ASCENDING id order.** `lockPlayersInOrder()` / `transferGoldWithin()` in `services/gold.ts` do this. Trades and shop sales share these rows; opposite orders deadlock under load.
 7. **`gold_ledger` deltas must always sum to `players.gold`.** Shop takings go to the TILL, not the owner, so a sale writes no ledger row; the owner's row happens at `shop_till_withdraw`. The tithe is a column on `shop_transactions`.
-8. **XP goes through `awardXp()` in `services/xp.ts`, the only writer to `player_skills`.** It upserts in one statement (a bare `.increment('xp')` silently drops the award when the row is missing, and rows ARE missing for skills added after a player registered), counts `total_xp_earned`, and pushes `skill_xp_changed`. Never pass `total_xp_earned` to `incrementStats` yourself. Inside a transaction pass `trx`, but know that its stats write and push still escape the transaction today (audit N-1).
+8. **XP goes through `awardXp()` in `services/xp.ts`, the only writer to `player_skills`.** It upserts in one statement (a bare `.increment('xp')` silently drops the award when the row is missing, and rows ARE missing for skills added after a player registered), counts `total_xp_earned`, and pushes `skill_xp_changed`. Never pass `total_xp_earned` to `incrementStats` yourself. Inside a transaction pass `trx`: its stats write runs on the same transaction and its push waits for the commit (audit N-1, fixed).
 9. **Validate client numbers on the server:** `Math.floor(Number(x))`, finite, > 0. A negative trade quantity reverses the direction of the move.
-10. **Emit sockets after commit, never inside a transaction.** A rollback would un-happen what you announced. Push through `lib/realtime.ts` (`pushToPlayer`, `pushToRoom`, `pushToAll`), never `io` from `index.ts`.
+10a. **Tokens are issued by `issueSession()` and checked by `checkSession()` in `lib/sessions.ts`, and nowhere else.** Every token carries `tv` (the player's `token_version`); `requireAuth` and the socket handshake compare it and check the ban and guest columns, cached 30s per player. `endSessions(playerId, x, { disconnect })` ends every session issued before it: bans and password resets pass `disconnect: true`, a player ending their own other sessions does not. Never call `jwt.sign` directly (audit H1).
+10. **Emit sockets after commit, never inside a transaction.** A rollback would un-happen what you announced. Push through `lib/realtime.ts` (`pushToPlayer`, `pushToRoom`, `pushToAll`), never `io` from `index.ts`. Inside a transaction use `pushToPlayerAfterCommit(trx, …)`, or `afterCommit(trx, fn)` from `lib/afterCommit.ts` for any other side effect (bookkeeping through the global connection included). Both run immediately when handed the plain `db`.
 
 ---
 
 ## 5. Timed actions (`player_actions` + `services/gameTick.ts`)
 
-The tick is a 2-second `setInterval` that resolves every row with `completes_at <= now`, one branch per action type. **Until it claims rows atomically (audit H2), it must stay one PM2 fork-mode process and every resolve path must avoid throwing after it grants.**
+The tick is a 2-second `setInterval`, one branch per action type. **It claims before it resolves** (`claimDueActions`, audit H2): one `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) RETURNING *` takes up to 200 due rows and pushes each `completes_at` five minutes out as a lease, so two ticks or two processes never take the same row, and a process that dies mid-resolve retries the action once, five minutes later. Every normal outcome replaces the lease (a repeat writes the next completion, a finish deletes the row), so a resolve path that returns WITHOUT doing either leaves the action waiting five minutes; that is deliberate, and better than the old retry every two seconds. A `ticking` flag skips a tick that finds the previous one still running. The server still runs as one fork-mode PM2 process (`ecosystem.config.cjs`) for the session cache and presence, not for the tick.
 
 ### New action type checklist (every item is a bug that shipped)
 1. `last_timer_seconds` set on the **initial insert**, not just restarts.
@@ -172,7 +173,7 @@ The tick is a 2-second `setInterval` that resolves every row with `completes_at 
 4. `last_bot_check` + `bot_check_pending: false` on insert.
 5. The resolve path **deletes or restarts on every exit branch**, and **re-validates preconditions each cycle** (equipped items, `is_active` flags, bench tools, `kind` filters).
 6. Socket listeners registered **and** added to the `socket.off` cleanup.
-7. **Scene text and cancel button are still hard-coded `currentAction === '…'` chains with no default.** A new type renders no flavor text and no cancel button, silently. Add a `*_SCENE_TEXT` map beside `FARM_SCENE_TEXT`/`HUSBANDRY_SCENE_TEXT` and a cancel entry near the bottom of `GameView.tsx`.
+7. **Scene text and cancel labels are rows in `action_presentation`**, keyed `(action_type, kind)`, looked up through `lib/actionPresentation.ts`. A new type works with a plain sentence and a Stop button and no client change; add a row in a migration for proper wording. Do not add a `*_SCENE_TEXT` map; those were deleted.
 8. **Clear `lastResult` on start:** every `startX` in `GameView.tsx` does `setLastResult(null)` plus timer/travel cleanup. Mirror `startForage`.
 9. **The result card has THREE render branches** (hunting / message-carrying / generic). XP-only results (till, build, tend) fall through the generic branch's `itemName` gate and render nothing: send a `message`.
 10. **The action limiter is copied per repeating block**, not central. Copy the `action.action_limit` block into any new looping branch. (Only processing skills set a limit at start today.)
@@ -180,11 +181,11 @@ The tick is a 2-second `setInterval` that resolves every row with `completes_at 
 12. **Multiple yields go in `drops: [{name, quantity}]`**, passed through the tick and animated per item. Canonical: `rollSecondaryDrops` in `services/carpentry.ts` and the hunting block in `gameTick.ts`.
 13. **Grep the FILE's vocabulary, not yours.** Diff `grep "currentAction ==="` and `grep "case '"` against your action types to find render sites nobody thinks to search for.
 14. **Coins:** add the type to `GOLD_FIND_ACTIONS` only if a person is actively doing something. Passive work never finds gold.
-15. **Buff lookups pass the action's real skill name.** The shared woodcutting/mining restart branch hard-codes `'Woodcutting'` (audit M1).
+15. **Buff lookups pass the action's real skill name, and gathering timers go through `calculateTimer` in `services/woodcutting.ts`.** Mining had its own copy, `calculateMiningTimer`, identical except it had no buff step, so a Mining provision never applied to vein mining or a first swing at a rock (audit M1, fixed; the copy is deleted).
 
 ### Other tick facts
 - **Absence cancels.** `lib/presence.ts` deletes an action at resolution time if the player has had no socket for 90 seconds (with a grace window after boot). **Two presence answers exist:** `isPlayerOnline` in `lib/presence.ts` (room-counted, correct with several tabs) and `onlinePlayers()`/`isOnline` in `lib/realtime.ts` (a Set the first closed tab empties; used for playtime, online lists and guild dots). Prefer `isPlayerOnline` until they are merged (audit M10).
-- **The tick re-reads each row before resolving** and skips it if the type, data or `completes_at` changed (travel deletes and replaces rows mid-batch). That is not a claim: overlapping ticks both pass it (audit H2).
+- **The tick re-reads each row before resolving** and skips it if the type, data or `completes_at` changed (travel deletes and replaces rows mid-batch). Since the claim, this guards against the player acting between the claim and the resolve, not against another tick.
 - **Travel start deletes any existing action unconditionally** (`routes/travel.ts`). It is the universal escape hatch when reasoning about stuck states.
 - The bot check freezes a completed action (`bot_check_pending`) and resumes it on a correct answer.
 
@@ -248,7 +249,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 ## 9. Known landmines
 
 ### Server
-- **22 modules still import `logger` from `index.ts`.** It works only because `index.ts` is always the entry point; any other entry (a script, a harness) hits a circular import and gets `undefined` routers. New code imports `logger` from `lib/logger.ts` and pushes through `lib/realtime.ts`. `dotenv` loads in time only because `db/index.ts` happens to call it first.
+- **Nothing in `services/`, `routes/` or `lib/` imports from `index.ts`, statically or dynamically (2026-09-24).** Keep it that way: importing `index.ts` boots a whole game server (listener, tick, startup checks), so a script that reached a module importing it started a second one. `logger` comes from `lib/logger.ts`; pushes go through `lib/realtime.ts`. A harness can now mount any router directly without importing `index.ts` first. `dotenv` loads in time only because `db/index.ts` happens to call it first.
 - **Express 5 removed `:param?`.** It is a boot-time parse error. Register two routes against one handler.
 - **Express matches in registration order: `/:id` goes LAST.** `/:shopId` above `/mine/state` swallowed every owner endpoint.
 - **pg returns `numeric`/`bigint` as strings.** Use integer columns or parse explicitly. `players.gold` is bigint; normalise with `Number()`.
@@ -303,7 +304,7 @@ Applies to everything a player reads: item and habitat descriptions, NPC dialogu
 On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run migrate` → build → `pm2 restart`. One-line commit message, fresh markdown patch notes.
 
 - **Before a deploy carrying many migrations, do a fresh-order dry run.** Local ran them piecemeal in authoring order; prod runs them all at once in filename order.
-- **The tick must run as exactly one fork-mode PM2 process** (§5). Commit an `ecosystem.config.cjs` that pins it.
+- **The server runs from `ecosystem.config.cjs` at the repo root**: one fork-mode process named `talaran-server`. Restart it by that name. Never `pm2 start` it a second time under another name, and never switch to cluster mode: the session cache and presence live in process memory.
 - **Box hygiene:** a kernel reboot has been pending since June. Before rebooting, confirm `pm2 startup` is registered and `pm2 save` has snapshotted the process list.
 
 ---

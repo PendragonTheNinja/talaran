@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { awardXp } from './xp';
+import { addItemToInventoryWithin } from './inventory';
 
 const KILN_LOGS_PER_BATCH = 20;
 const KILN_CHARC_PER_BATCH: Record<string, number> = { poor: 60, fine: 80, excellent: 100 };
@@ -47,6 +48,14 @@ async function itemTotal(playerId: number, name: string): Promise<number> {
 
 // ── Kiln ──────────────────────────────────────────────────────────
 
+/**
+ * A refusal from inside a kiln transaction.
+ *
+ * Returning from a db.transaction callback COMMITS it; only a throw rolls back.
+ * Once logs have been taken, a refusal must throw or the logs stay spent.
+ */
+class KilnAbort extends Error {}
+
 export async function loadKiln(playerId: number, locationId: number, logCount: number, quality: string): Promise<{ success: boolean; readyAt?: Date; error?: string; maxLogs?: number }> {
   try {
     if (!KILN_CHARC_PER_BATCH[quality]) {
@@ -75,59 +84,74 @@ export async function loadKiln(playerId: number, locationId: number, logCount: n
       return { success: false, error: `Your Smithing level only allows ${maxBatches} batch${maxBatches > 1 ? 'es' : ''} (${maxLogs} logs maximum).`, maxLogs };
     }
 
-    // Check for existing active kiln job
-    const existing = await db('kiln_jobs')
-      .where({ player_id: playerId, location_id: locationId, is_collected: false })
-      .first();
-    if (existing) {
-      return { success: false, error: 'Your kiln is already burning. Collect the Charc first.' };
-    }
-
-    // Gather all log stacks of the chosen quality (any wood type)
-    const logStacks = await db('player_inventory')
-      .join('items', 'player_inventory.item_id', 'items.id')
-      .where({ 'player_inventory.player_id': playerId, 'items.type': 'log', 'items.quality': quality })
-      .select('player_inventory.*')
-      .orderBy('items.tier', 'asc');
-
-    const totalLogs = logStacks.reduce((sum, s) => sum + s.quantity, 0);
-    if (totalLogs < logCount) {
-      return { success: false, error: `You need ${logCount} ${quality} logs to load the kiln.` };
-    }
-
-    // Consume across stacks, lowest tier first
-    let toConsume = logCount;
-    for (const stack of logStacks) {
-      if (toConsume <= 0) break;
-      const take = Math.min(stack.quantity, toConsume);
-      if (take >= stack.quantity) {
-        await db('player_inventory').where({ id: stack.id }).delete();
-      } else {
-        await db('player_inventory').where({ id: stack.id }).decrement('quantity', take);
-      }
-      toConsume -= take;
-    }
-
+    // One transaction from the "already burning" check to the job insert.
+    //
+    // These used to be separate statements. Two loads sent together both passed
+    // the check (no job yet), both consumed from the same stale read of the log
+    // stacks (a full-stack delete is a harmless no-op the second time, and a
+    // partial decrement went NEGATIVE), and both inserted a job. Each job was
+    // collected in turn, so one set of logs burned twice (audit C5).
+    //
+    // There is no job row to lock on a first load, and forUpdate() on a row
+    // that does not exist locks nothing. So the PLAYER row is locked first:
+    // that serialises this player's kiln loads, and the second one waits, then
+    // finds the first one's job and refuses.
     const batches = logCount / KILN_LOGS_PER_BATCH;
     const charcYield = batches * KILN_CHARC_PER_BATCH[quality];
     const xpReward = batches * CHARC_XP_PER_BATCH;
     const now = new Date();
     const readyAt = new Date(now.getTime() + KILN_DURATION_MS);
 
-    await db('kiln_jobs').insert({
-      player_id: playerId,
-      location_id: locationId,
-      logs_added: logCount,
-      charc_yield: charcYield,
-      xp_reward: xpReward,
-      started_at: now,
-      ready_at: readyAt,
-      is_collected: false,
+    await db.transaction(async (trx) => {
+      await trx('players').where({ id: playerId }).forUpdate().first();
+
+      const existing = await trx('kiln_jobs')
+        .where({ player_id: playerId, location_id: locationId, is_collected: false })
+        .first();
+      if (existing) throw new KilnAbort('Your kiln is already burning. Collect the Charc first.');
+
+      // Every log stack of the chosen quality, any wood type, locked. FOR UPDATE
+      // OF the inventory rows only: locking the joined items rows would make
+      // every player's kiln load queue behind every other's.
+      const logStacks = await trx('player_inventory')
+        .join('items', 'player_inventory.item_id', 'items.id')
+        .where({ 'player_inventory.player_id': playerId, 'items.type': 'log', 'items.quality': quality })
+        .select('player_inventory.*')
+        .orderBy('items.tier', 'asc')
+        .forUpdate('player_inventory');
+
+      const totalLogs = logStacks.reduce((sum: number, s: any) => sum + Number(s.quantity), 0);
+      if (totalLogs < logCount) throw new KilnAbort(`You need ${logCount} ${quality} logs to load the kiln.`);
+
+      // Consume across stacks, lowest tier first, relative to the locked values.
+      let toConsume = logCount;
+      for (const stack of logStacks) {
+        if (toConsume <= 0) break;
+        const take = Math.min(Number(stack.quantity), toConsume);
+        if (take >= Number(stack.quantity)) {
+          await trx('player_inventory').where({ id: stack.id }).delete();
+        } else {
+          await trx('player_inventory').where({ id: stack.id }).decrement('quantity', take);
+        }
+        toConsume -= take;
+      }
+
+      await trx('kiln_jobs').insert({
+        player_id: playerId,
+        location_id: locationId,
+        logs_added: logCount,
+        charc_yield: charcYield,
+        xp_reward: xpReward,
+        started_at: now,
+        ready_at: readyAt,
+        is_collected: false,
+      });
     });
 
     logger.info(`Player ${playerId} loaded kiln with ${logCount} logs, ${charcYield} Charc ready at ${readyAt}`);
     return { success: true, readyAt };
   } catch (err) {
+    if (err instanceof KilnAbort) return { success: false, error: err.message };
     logger.error(`Load kiln error: ${err}`);
     return { success: false, error: 'Server error' };
   }
@@ -135,46 +159,40 @@ export async function loadKiln(playerId: number, locationId: number, logCount: n
 
 export async function collectKiln(playerId: number, locationId: number): Promise<SmithingResult> {
   try {
-    const job = await db('kiln_jobs')
-      .where({ player_id: playerId, location_id: locationId, is_collected: false })
-      .first();
+    // Completion is the gate. This used to pay the Charc and the XP first and
+    // mark the job collected last, so two collects resolving together both got
+    // paid — the same class as the quest-reward race (audit H3). Now the job is
+    // flipped with a conditional update and paid only if exactly one row
+    // changed, inside the transaction that pays it.
+    const job = await db.transaction(async (trx) => {
+      const found = await trx('kiln_jobs')
+        .where({ player_id: playerId, location_id: locationId, is_collected: false })
+        .forUpdate()
+        .first();
+      if (!found) throw new KilnAbort('You have no active kiln job here.');
 
-    if (!job) return { success: false, error: 'You have no active kiln job here.' };
+      const now = new Date();
+      if (now < new Date(found.ready_at)) {
+        const remaining = Math.ceil((new Date(found.ready_at).getTime() - now.getTime()) / 60000);
+        throw new KilnAbort(`Your Charc is not ready yet. ${remaining} minutes remaining.`);
+      }
 
-    const now = new Date();
-    if (now < new Date(job.ready_at)) {
-      const remaining = Math.ceil((new Date(job.ready_at).getTime() - now.getTime()) / 60000);
-      return { success: false, error: `Your Charc is not ready yet. ${remaining} minutes remaining.` };
-    }
+      const flipped = await trx('kiln_jobs')
+        .where({ id: found.id, is_collected: false })
+        .update({ is_collected: true });
+      if (flipped !== 1) throw new KilnAbort('That Charc has already been collected.');
 
-    // Award Charc
-    const charc = await db('items').where({ name: 'Charc' }).first();
-    const existing = await db('player_inventory')
-      .where({ player_id: playerId, item_id: charc.id })
-      .first();
+      const charc = await trx('items').where({ name: 'Charc' }).first();
+      if (!charc) throw new Error('Charc item row is missing');
+      await addItemToInventoryWithin(trx, playerId, charc.id, found.charc_yield);
 
-    if (existing) {
-      await db('player_inventory')
-        .where({ player_id: playerId, item_id: charc.id })
-        .increment('quantity', job.charc_yield);
-    } else {
-      await db('player_inventory').insert({
-        player_id: playerId,
-        item_id: charc.id,
-        quantity: job.charc_yield,
-      });
-    }
+      await awardXp(playerId, 'Smithing', found.xp_reward, trx);
+      // The kiln was the one collect that counted nothing. A charc burn is a
+      // Smithing action like any other, so it counts like one.
+      await incrementStats(playerId, { total_actions_completed: 1 }, trx);
 
-    // Award XP
-    await awardXp(playerId, 'Smithing', job.xp_reward);
-
-    // The kiln was the one collect that counted nothing. A charc burn is a
-    // Smithing action like any other, so it counts like one.
-    await incrementStats(playerId, {
-      total_actions_completed: 1,
+      return found;
     });
-
-    await db('kiln_jobs').where({ id: job.id }).update({ is_collected: true });
 
     logger.info(`Player ${playerId} collected ${job.charc_yield} Charc from kiln`);
     return {
@@ -184,6 +202,7 @@ export async function collectKiln(playerId: number, locationId: number): Promise
       xpAwarded: job.xp_reward,
     };
   } catch (err) {
+    if (err instanceof KilnAbort) return { success: false, error: err.message };
     logger.error(`Collect kiln error: ${err}`);
     return { success: false, error: 'Server error' };
   }

@@ -99,6 +99,8 @@ function App() {
     offers: any[]
     gold: any[]
     isPlayer1: boolean
+    /** The version of the offer on screen; sent back with Accept. */
+    offerVersion: number
   } | null>(null)
   const [tradeMode, setTradeMode] = useState(false)
 
@@ -227,6 +229,7 @@ function App() {
           offers: data.offers,
           gold: data.gold,
           isPlayer1: data.isPlayer1,
+          offerVersion: Number(data.offerVersion ?? 0),
         })
       })
 
@@ -265,6 +268,7 @@ function App() {
             offers: tradeData.offers,
             gold: tradeData.gold,
             isPlayer1: tradeData.trade.player1_id === player.id,
+            offerVersion: Number(tradeData.trade.offer_version ?? 0),
           })
         }
       } catch (err) { }
@@ -481,6 +485,7 @@ function App() {
                 initialOffers={activeTrade.offers}
                 initialGold={activeTrade.gold}
                 isPlayer1={activeTrade.isPlayer1}
+                initialOfferVersion={activeTrade.offerVersion}
                 onClose={() => setActiveTrade(null)}
                 onInventoryClick={(enabled) => setTradeMode(enabled)}
               />

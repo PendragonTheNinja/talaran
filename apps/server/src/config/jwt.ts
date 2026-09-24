@@ -31,10 +31,13 @@ function requireSecret(): string {
 }
 
 const JWT_SECRET: string = requireSecret();
-const JWT_EXPIRES_IN = '7d';
 
-export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+/**
+ * Sign a token. Called only by lib/sessions.ts, which puts the session version
+ * in every payload; sign-in routes use issueSession, never this directly.
+ */
+export function signToken(payload: JwtPayload, expiresInSeconds: number): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresInSeconds });
 }
 
 export function verifyToken(token: string): JwtPayload {

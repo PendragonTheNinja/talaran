@@ -20,6 +20,10 @@ export interface WoodcuttingResult {
   drops?: SecondaryDrop[];
 }
 
+/**
+ * The gathering timer for Woodcutting AND Mining: level reduction, tool tier,
+ * then any provision. Mining imports it from here; do not copy it into mining.
+ */
 export function calculateTimer(
   baseTimer: number,
   minTimer: number,

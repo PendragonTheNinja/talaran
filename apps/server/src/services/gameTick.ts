@@ -19,7 +19,7 @@ import { buffTimerBonus } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
-import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
+import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
 import { shouldCancelForAbsence } from '../lib/presence';
 import { recordLoot } from './lootLog';
@@ -158,10 +158,67 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
 let lastGuestSweep = 0;
 const GUEST_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
+/**
+ * How long a claimed action is held before another tick may take it again.
+ *
+ * Claiming pushes completes_at this far out; every normal outcome replaces it
+ * at once (a repeat writes the next completion time, a finish deletes the row).
+ * It only ever runs out if the process dies mid-resolve, and then the action is
+ * retried once, five minutes later, instead of never or every two seconds.
+ */
+const CLAIM_LEASE = '5 minutes';
+
+/** At most this many actions per tick; the rest wait for the next one. */
+const CLAIM_BATCH = 200;
+
+/**
+ * True while a tick is running. setInterval does not wait for an async callback
+ * to finish, so a tick that ran long (a burst of completions, feat evaluation on
+ * level-ups, the guest sweep, a slow query) used to overlap the next one, and
+ * both worked the same due actions. A tick that finds the previous one still
+ * running now skips its turn.
+ */
+let ticking = false;
+
+/**
+ * Take ownership of every due action, atomically, before resolving any of them
+ * (audit H2).
+ *
+ * The tick used to SELECT due actions and resolve them in a loop, and nothing
+ * marked an action as taken. Overlapping ticks, a second process, or a throw
+ * after the payout but before the row moved on all resolved the same action
+ * twice or more: double items, double XP. The per-row re-read in
+ * processCompletedAction closed the case where the row changed underneath, but
+ * two ticks could both pass that before either wrote.
+ *
+ * FOR UPDATE SKIP LOCKED means two concurrent claims never take the same row:
+ * whichever gets there second simply does not see it. Setting completes_at to
+ * now + CLAIM_LEASE in the same statement is the lease: the rows returned are
+ * this tick's alone until they are rescheduled or deleted.
+ */
+export async function claimDueActions(): Promise<any[]> {
+  const result = await db.raw(
+    `UPDATE player_actions
+        SET completes_at = now() + interval '${CLAIM_LEASE}'
+      WHERE id IN (
+            SELECT id FROM player_actions
+             WHERE completes_at <= now()
+               AND bot_check_pending = false
+             ORDER BY completes_at
+             LIMIT ?
+             FOR UPDATE SKIP LOCKED)
+      RETURNING *`,
+    [CLAIM_BATCH],
+  );
+  return result.rows ?? [];
+}
+
 export function startGameTick(io: Server): void {
   logger.info('Game tick started');
 
   setInterval(async () => {
+    if (ticking) return;
+    ticking = true;
     try {
       await checkVeinAnnouncements();
 
@@ -180,14 +237,14 @@ export function startGameTick(io: Server): void {
           io.to(`player_${e.playerId}`).emit('trap_sprung', { trapId: e.trapId });
         }
       }
-      const completedActions = await db('player_actions')
-        .where('completes_at', '<=', new Date())
-        .where('bot_check_pending', false);
+      const completedActions = await claimDueActions();
       for (const action of completedActions) {
         await processCompletedAction(io, action);
       }
     } catch (err) {
       logger.error(`Game tick error: ${err}`);
+    } finally {
+      ticking = false;
     }
   }, TICK_INTERVAL);
 }
@@ -1106,7 +1163,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       }
       const playerToolTier = playerTool.tier || 1;
 
-      const nextTimer = calculateMiningTimer(baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier);
+      const nextTimer = calculateTimer(
+        baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier,
+        await buffTimerBonus(action.player_id, 'Mining'),
+      );
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
       await db('player_actions').where({ id: action.id }).update({
@@ -1467,7 +1527,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         node.required_level,
         tool ? tool.tier : 1,
         node.required_tool_tier,
-        await buffTimerBonus(action.player_id, 'Woodcutting'),
+        // The skill this branch is actually running. It was hard-coded to
+        // 'Woodcutting', so a Mining provision sped up only the first swing at
+        // a rock and a Woodcutting one sped up every swing after (audit M1).
+        await buffTimerBonus(action.player_id, skillName),
       );
 
       const nextCompletion = new Date(now.getTime() + nextTimer * 1000);

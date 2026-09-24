@@ -8,7 +8,7 @@ import {
   canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
 } from '../services/smithing';
 import { levelFromXp } from '../services/xp';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
 
 const router = Router();

@@ -1,9 +1,11 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { canMineHere, canMineVein, getActiveVeins, calculateMiningTimer } from '../services/mining';
+import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
+import { calculateTimer } from '../services/woodcutting';
+import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
 
 const router = Router();
@@ -51,13 +53,14 @@ router.post('/rock/start', requireAuth, botCheckGate, async (req: AuthRequest, r
       .first();
 
     const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
-    const timerSeconds = calculateMiningTimer(
+    const timerSeconds = calculateTimer(
       node.base_timer,
       node.min_timer,
       playerLevel,
       node.required_level,
       toolTier!,
-      node.required_tool_tier
+      node.required_tool_tier,
+      await buffTimerBonus(playerId, 'Mining'),
     );
 
     const now = new Date();
@@ -126,7 +129,10 @@ router.post('/vein/start', requireAuth, botCheckGate, async (req: AuthRequest, r
     const requiredLevel = oreNode?.required_level || 1;
     const requiredToolTier = oreNode?.required_tool_tier || 1;
 
-    const timerSeconds = calculateMiningTimer(baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier);
+    const timerSeconds = calculateTimer(
+      baseTimer, minTimer, playerLevel, requiredLevel, playerToolTier, requiredToolTier,
+      await buffTimerBonus(playerId, 'Mining'),
+    );
 
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);

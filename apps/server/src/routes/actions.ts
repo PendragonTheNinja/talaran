@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { canChopHere, calculateTimer } from '../services/woodcutting';
 import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { botCheckGate, issueBotCheck } from '../services/botCheck';
 
 const router = Router();

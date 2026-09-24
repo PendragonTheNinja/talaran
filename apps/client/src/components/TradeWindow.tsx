@@ -24,6 +24,8 @@ interface TradeWindowProps {
     initialOffers: TradeItem[]
     initialGold: TradeGold[]
     isPlayer1: boolean
+    /** The offer version this window opened on. */
+    initialOfferVersion: number
     onClose: () => void
     onInventoryClick: (enabled: boolean) => void
 }
@@ -35,9 +37,19 @@ export default function TradeWindow({
     initialOffers,
     initialGold,
     isPlayer1,
+    initialOfferVersion,
     onClose,
     onInventoryClick,
 }: TradeWindowProps) {
+    /**
+     * Which version of the offer is on screen.
+     *
+     * Every change to either side's offer bumps it on the server, and Accept
+     * sends back the one being displayed. If the partner changed their offer in
+     * the instant before the click, the server refuses rather than completing a
+     * trade the player never saw (audit H5), and the fresh offer arrives here.
+     */
+    const [offerVersion, setOfferVersion] = useState(initialOfferVersion)
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [offers, setOffers] = useState<TradeItem[]>(initialOffers)
@@ -72,6 +84,7 @@ export default function TradeWindow({
         const handleUpdate = (e: any) => {
             setOffers(e.detail.offers)
             setGold(e.detail.gold)
+            if (typeof e.detail.offerVersion === 'number') setOfferVersion(e.detail.offerVersion)
             setMyAccepted(false)
             setTheirAccepted(false)
         }
@@ -126,7 +139,7 @@ export default function TradeWindow({
         try {
             await apiFetch('/api/trades/accept', {
                 method: 'POST',
-                body: JSON.stringify({ tradeId }),
+                body: JSON.stringify({ tradeId, offerVersion }),
             })
             setMyAccepted(true)
         } catch (err: any) {

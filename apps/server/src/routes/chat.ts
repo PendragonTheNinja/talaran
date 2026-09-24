@@ -199,7 +199,9 @@ router.get('/archive', chatReadLimit, requireAuth, async (req: AuthRequest, res:
 // Send a chat message
 router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
-  const { channel, message } = req.body;
+  const { channel } = req.body;
+  // A non-string here used to reach .trim() and 500.
+  const message: string = typeof req.body.message === 'string' ? req.body.message : '';
 
   if (!message || message.trim().length === 0) {
     res.status(400).json({ error: 'Message cannot be empty' });
@@ -211,15 +213,27 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
     return;
   }
 
+  // What kind of message this IS, decided before any rule is applied to it.
+  //
+  // A whisper is recognised by its content (`name@message`), not by the channel
+  // it arrives on. The guest and mute rules used to be applied to the `channel`
+  // field and the whisper parsed afterwards, so a guest could whisper anyone by
+  // posting on Help, and a muted guild member by posting on Guild (audit M7).
+  // A whisper is its own channel, and every rule below judges that one.
+  const whisperMatch = message.match(/^(\w+)@(.+)$/);
+  const effectiveChannel: string = whisperMatch ? 'whisper' : channel;
+
   // Guests get Help, and nothing that broadcasts to the whole island. Silencing
   // a trial player entirely makes the game feel dead, and Help is exactly where
   // someone on their first hour belongs anyway. Reading every channel stays
   // open: watching the world talk is a large part of what sells the game.
+  // Whispers are closed to guests too: a throwaway account that can message any
+  // player privately is the easiest harassment tool there is.
   const guestRow = await db('players')
     .select('is_guest')
     .where({ id: playerId })
     .first();
-  if (guestRow?.is_guest && !GUEST_CHAT_CHANNELS.includes(channel)) {
+  if (guestRow?.is_guest && !GUEST_CHAT_CHANNELS.includes(effectiveChannel)) {
     res.status(403).json({
       error: 'Guests can only post in Help. Claim your character to talk everywhere.',
       reason: 'guest',
@@ -227,7 +241,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
     return;
   }
 
-  if (channel === 'guild') {
+  if (effectiveChannel === 'guild') {
     const playerCheck = await db('players').where({ id: playerId }).first();
     if (!playerCheck.guild_id) {
       res.status(400).json({ error: 'You must be in a guild to use guild chat.' });
@@ -241,7 +255,9 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
     if (player.is_chat_muted) {
       const now = new Date();
       if (!player.chat_muted_until || new Date(player.chat_muted_until) > now) {
-        if (channel !== 'guild') {
+        // A mute still leaves guild chat open, and nothing else: in particular
+        // not a whisper that happens to have been posted on the guild channel.
+        if (effectiveChannel !== 'guild') {
           res.status(403).json({ error: 'You are muted and cannot send chat messages.' });
           return;
         }
@@ -249,12 +265,10 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         await db('players').where({ id: playerId }).update({ is_chat_muted: false, chat_muted_until: null });
       }
     }
-    console.log('Player guild_tag:', player.guild_tag);
     const location = await db('locations').where({ id: player.current_location_id }).first();
     const region = location?.region || 'Unknown';
 
-    // Check for whisper syntax: playername@message
-    const whisperMatch = message.match(/^(\w+)@(.+)$/);
+    // Whisper syntax (playername@message), matched once, above.
     if (whisperMatch) {
       const typedName = whisperMatch[1];
       const whisperMessage = whisperMatch[2].trim();

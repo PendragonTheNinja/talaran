@@ -219,7 +219,6 @@ router.post('/invite', requireAuth, async (req: AuthRequest, res: Response) => {
         );
 
         // Socket notification if online
-        const { io } = await import('../index');
         pushToPlayer(target.id, 'guild_invite', {
             guildName: guild.name,
             guildTag: guild.tag,

@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 import { updateQuestObjectiveProgress, checkQuestCompletion } from './quests';
 
 const router = Router();
@@ -122,6 +122,27 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
             return;
         }
 
+        // The action must be one this NPC is offering this player right now,
+        // and the player must be standing in front of them (audit H9).
+        //
+        // `action` comes from the request body. It used to be acted on as sent,
+        // so any NPC could start any quest, a talk objective could be handed in
+        // from anywhere on the island, and a hand-in could be sent before the
+        // other objectives were done. 'close' is always allowed: it changes
+        // nothing.
+        if (action && action !== 'close') {
+            const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+            if (!player || player.current_location_id !== npc.location_id) {
+                res.status(403).json({ error: `You need to be with ${npc.name} to do that.` });
+                return;
+            }
+            const allowed = await offeredActions(playerId, npc);
+            if (typeof action !== 'string' || !allowed.has(action)) {
+                res.status(403).json({ error: `${npc.name} is not offering that.` });
+                return;
+            }
+        }
+
         if (!action || action === 'close') {
             res.json({ success: true, action: 'close' });
             return;
@@ -135,36 +156,49 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 return;
             }
 
-            const existing = await db('player_quests')
-                .where({ player_id: playerId, quest_id: quest.id })
-                .first();
-            if (existing) {
+            // Starting a quest is one unit of work, and the insert is its gate.
+            //
+            // It was check-then-insert, with the objectives and the starting
+            // items written separately afterwards. The unique constraint on
+            // (player_id, quest_id) already stopped a double start from granting
+            // Geonsen's bow twice, but the losing request surfaced as a 500, and
+            // a failure after the insert left a started quest with no objectives
+            // or no bow. Now the row is inserted-or-ignored and everything else
+            // happens only if THIS request inserted it, all in one transaction.
+            const started = await db.transaction(async (trx) => {
+                const inserted = await trx('player_quests')
+                    .insert({ player_id: playerId, quest_id: quest.id, status: 'active' })
+                    .onConflict(['player_id', 'quest_id'])
+                    .ignore()
+                    .returning('id');
+                // Nothing written, so returning here commits nothing.
+                if (inserted.length === 0) return null;
+
+                const objectives = await trx('quest_objectives').where({ quest_id: quest.id });
+                for (const obj of objectives) {
+                    await trx('player_quest_objectives').insert({
+                        player_id: playerId,
+                        objective_id: obj.id,
+                        current_amount: 0,
+                        is_complete: false,
+                    });
+                }
+
+                // Items handed over on accept (Geonsen's bow, etc.)
+                const { grantQuestItems } = await import('./quests');
+                return grantQuestItems(playerId, quest.start_items, trx);
+            });
+
+            if (started === null) {
                 res.json({ success: true, action: 'next_stage' });
                 return;
             }
 
-            await db('player_quests').insert({
-                player_id: playerId,
-                quest_id: quest.id,
-                status: 'active',
-            });
-
-            const objectives = await db('quest_objectives').where({ quest_id: quest.id });
-            for (const obj of objectives) {
-                await db('player_quest_objectives').insert({
-                    player_id: playerId,
-                    objective_id: obj.id,
-                    current_amount: 0,
-                    is_complete: false,
-                });
-            }
-
+            // After the commit: the backfill reads through the global connection,
+            // which cannot see rows an open transaction has not committed yet.
             const { backfillQuestObjectives } = await import('./quests');
             await backfillQuestObjectives(playerId, quest.id);
-
-            // Items handed over on accept (Geonsen's bow, etc.)
-            const { grantQuestItems } = await import('./quests');
-            const granted = await grantQuestItems(playerId, quest.start_items);
+            const granted = started;
 
             logger.info(`Player ${playerId} started quest "${quest.name}" via NPC ${npcId}`);
             res.json({ success: true, action: 'next_stage', grantedItems: granted });
@@ -260,6 +294,47 @@ async function resolveActionQuest(payload: string, npcId: number) {
         + `${byName ? '' : ' and it did not resolve'}. Migrate this dialogue row.`,
     );
     return byName;
+}
+
+/**
+ * Every action this NPC is offering this player, right now.
+ *
+ * Stages link together through `next_stage` on their options: "I'll do it" on
+ * the intro leads to the offer, which holds the Accept button. So the answer is
+ * not only the options on the stage resolveStage returns, but on every stage
+ * reachable from it through those links. That lets a conversation move forward
+ * naturally while still refusing anything the server did not offer:
+ *
+ *   - another NPC's quest (its actions are on a different NPC's dialogue)
+ *   - handing in before the other objectives are done (the hand-in lives on
+ *     'ready', which resolveStage only returns once they are)
+ *   - starting a quest already under way (the resolved stage is 'progress',
+ *     and nothing reachable from it offers start_quest)
+ *
+ * The client's own `?stage=` override on the dialogue GET is display only; it
+ * never widens what this function accepts.
+ */
+async function offeredActions(playerId: number, npc: any): Promise<Set<string>> {
+    const rows = await db('npc_dialogues').where({ npc_id: npc.id });
+    const byStage = new Map<string, any[]>();
+    for (const r of rows) {
+        const opts = typeof r.options === 'string' ? JSON.parse(r.options) : (r.options || []);
+        byStage.set(r.stage_key, Array.isArray(opts) ? opts : []);
+    }
+
+    const allowed = new Set<string>();
+    const seen = new Set<string>();
+    const queue = [await resolveStage(playerId, npc.id)];
+    while (queue.length) {
+        const stage = queue.shift()!;
+        if (seen.has(stage)) continue;
+        seen.add(stage);
+        for (const opt of byStage.get(stage) ?? []) {
+            if (opt?.action) allowed.add(String(opt.action));
+            if (opt?.next_stage && !seen.has(opt.next_stage)) queue.push(String(opt.next_stage));
+        }
+    }
+    return allowed;
 }
 
 async function resolveStage(playerId: number, npcId: number): Promise<string> {

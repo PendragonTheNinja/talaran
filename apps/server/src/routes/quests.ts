@@ -1,8 +1,13 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { logger } from '../index';
+import type { Knex } from 'knex';
+import { logger } from '../lib/logger';
 import { awardXp } from '../services/xp';
+import { creditGoldWithin } from '../services/gold';
+import { addItemToInventoryWithin, recordItemFirst } from '../services/inventory';
+import { pushToPlayer } from '../lib/realtime';
+import { afterCommit } from '../lib/afterCommit';
 
 const router = Router();
 
@@ -95,7 +100,8 @@ router.post('/:id/start', requireAuth, async (req: AuthRequest, res: Response) =
  */
 export async function grantQuestItems(
     playerId: number,
-    itemsJson: string | null
+    itemsJson: string | null,
+    x: Knex | Knex.Transaction = db,
 ): Promise<{ itemName: string; quantity: number }[]> {
     if (!itemsJson) return [];
     let items: { itemName: string; qty: number }[];
@@ -108,22 +114,17 @@ export async function grantQuestItems(
 
     const granted: { itemName: string; quantity: number }[] = [];
     for (const entry of items) {
-        const item = await db('items').where({ name: entry.itemName }).first();
+        const item = await x('items').where({ name: entry.itemName }).first();
         if (!item) {
             logger.error(`grantQuestItems: item "${entry.itemName}" not found`);
             continue;
         }
-        const existing = await db('player_inventory')
-            .where({ player_id: playerId, item_id: item.id }).first();
-        if (existing) {
-            await db('player_inventory').where({ id: existing.id }).increment('quantity', entry.qty);
-        } else {
-            await db('player_inventory').insert({
-                player_id: playerId, item_id: item.id, quantity: entry.qty,
-            });
-        }
-        const { recordItemFirst } = await import('../services/inventory');
-        await recordItemFirst(playerId, item.id, 'quest');
+        // Locked and relative, on the caller's executor, so a quest reward
+        // commits or rolls back with the completion that earned it.
+        await addItemToInventoryWithin(x, playerId, item.id, entry.qty);
+        // Firsts are bookkeeping written through the global connection, so they
+        // wait for the commit rather than running mid-transaction.
+        afterCommit(x, () => recordItemFirst(playerId, item.id, 'quest'));
         granted.push({ itemName: entry.itemName, quantity: entry.qty });
     }
     return granted;
@@ -159,59 +160,62 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
 
     if (!allComplete) return null;
 
-    {
-        await db('player_quests')
-            .where({ player_id: playerId, quest_id: questId })
+    const quest = await db('quests').where({ id: questId }).first();
+
+    // Completion is the gate (audit H3).
+    //
+    // This used to set status 'completed' unconditionally and then pay, so fifty
+    // parallel hand-ins paid the gold, items and XP fifty times. Now the status
+    // flips only FROM 'active', and rewards are paid only if exactly one row
+    // changed, all inside the transaction that flipped it. Every caller becomes
+    // idempotent without knowing it: the second request finds nothing to flip
+    // and pays nothing.
+    const outcome = await db.transaction(async (trx) => {
+        const flipped = await trx('player_quests')
+            .where({ player_id: playerId, quest_id: questId, status: 'active' })
             .update({ status: 'completed', completed_at: new Date() });
+        // Nothing written yet, so returning here commits nothing.
+        if (flipped !== 1) return null;
+        if (!quest) return { granted: [], gold: 0 };
 
-        // Rewards
-        const quest = await db('quests').where({ id: questId }).first();
-        let rewardSummaryItems: Array<{ itemName: string; quantity: number }> = [];
-        let rewardSummaryGold = 0;
-        if (quest) {
-            const granted = await grantQuestItems(playerId, quest.reward_items);
-            rewardSummaryItems = granted;
+        const granted = await grantQuestItems(playerId, quest.reward_items, trx);
 
-            if (quest.reward_xp && quest.skill) {
-                await awardXp(playerId, quest.skill, quest.reward_xp);
-            }
-
-            const goldReward = Number(quest.reward_gold ?? 0);
-            rewardSummaryGold = goldReward;
-            if (goldReward > 0) {
-                const { creditGold } = await import('../services/gold');
-                await creditGold({
-                    playerId, amount: goldReward, reason: 'quest_reward',
-                    refType: 'quest', refId: questId,
-                });
-            }
-
-            if (granted.length > 0 || quest.reward_xp || goldReward > 0) {
-                const { io } = await import('../index');
-                io.to(`player_${playerId}`).emit('quest_rewards', {
-                    questName: quest.name,
-                    items: granted,
-                    xp: quest.reward_xp || 0,
-                    gold: goldReward,
-                    skill: quest.skill,
-                });
-            }
+        if (quest.reward_xp && quest.skill) {
+            await awardXp(playerId, quest.skill, quest.reward_xp, trx);
         }
 
-        logger.info(`Player ${playerId} completed quest ${questId}`);
-
-        if (quest) {
-            return {
-                questName: quest.name,
-                items: rewardSummaryItems,
-                xp: quest.reward_xp || 0,
-                skill: quest.skill ?? null,
-                gold: rewardSummaryGold,
-            };
+        const gold = Number(quest.reward_gold ?? 0);
+        if (gold > 0) {
+            await creditGoldWithin(trx, {
+                playerId, amount: gold, reason: 'quest_reward',
+                refType: 'quest', refId: questId,
+            });
         }
+
+        return { granted, gold };
+    });
+
+    if (!outcome || !quest) return null;
+
+    // After the commit, never inside it.
+    if (outcome.granted.length > 0 || quest.reward_xp || outcome.gold > 0) {
+        pushToPlayer(playerId, 'quest_rewards', {
+            questName: quest.name,
+            items: outcome.granted,
+            xp: quest.reward_xp || 0,
+            gold: outcome.gold,
+            skill: quest.skill,
+        });
     }
 
-    return null;
+    logger.info(`Player ${playerId} completed quest ${questId}`);
+    return {
+        questName: quest.name,
+        items: outcome.granted,
+        xp: quest.reward_xp || 0,
+        skill: quest.skill ?? null,
+        gold: outcome.gold,
+    };
 }
 
 
@@ -304,8 +308,7 @@ export async function updateQuestObjectiveProgress(
                 }
 
                 // Emit progress update via socket
-                const { io } = await import('../index');
-                io.to(`player_${playerId}`).emit('quest_progress', {
+                pushToPlayer(playerId, 'quest_progress', {
                     questId: pq.quest_id,
                     objectiveId: obj.id,
                     currentAmount: newAmount,

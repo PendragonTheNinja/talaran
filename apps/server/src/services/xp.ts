@@ -1,7 +1,7 @@
 import type { Knex } from 'knex';
 import db from '../db';
 import { logger } from '../lib/logger';
-import { pushToPlayer } from '../lib/realtime';
+import { pushToPlayerAfterCommit } from '../lib/realtime';
 import { incrementStats } from './stats';
 
 // XP curve — one formula, no branches. Derivation + rate ladder: docs/xp-rebalance.md
@@ -139,14 +139,14 @@ export async function awardXp(
     // counter drifted below the sum of the player's skills, and "The Million"
     // sat still while the Skills page climbed past it. Anything that awards XP
     // comes through this function, so anything that awards XP now counts.
-    await incrementStats(playerId, { total_xp_earned: xp });
+    await incrementStats(playerId, { total_xp_earned: xp }, x);
 
     if (!skillName) return;
 
     // The level BEFORE this award, derived rather than re-read: the award is
     // the only thing that changed the total.
     const leveledUp = levelFromXp(total - xp) < levelFromXp(total);
-    pushToPlayer(playerId, 'skill_xp_changed', {
+    pushToPlayerAfterCommit(x, playerId, 'skill_xp_changed', {
         skillName,
         xp: total,
         level: levelFromXp(total),

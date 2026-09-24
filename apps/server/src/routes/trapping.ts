@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { getPlayerTraps, placeTrap, collectTrap, dismantleTrap, trapSlotsForLevel, baitOptionsAt } from '../services/trapping'
 import { convertibleBait } from '../services/fishing'
 import { levelFromXp } from '../services/xp'
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 
 const router = Router()
 

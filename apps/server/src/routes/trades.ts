@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import type { Knex } from 'knex';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
@@ -159,6 +160,7 @@ router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, re
             offers,
             gold,
             isPlayer1: true,
+            offerVersion: 0,
         });
 
         pushToPlayer(playerId, 'trade_started', {
@@ -167,6 +169,7 @@ router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, re
             offers,
             gold,
             isPlayer1: false,
+            offerVersion: 0,
         });
 
         logger.info(`Trade ${tradeId} started between ${trade.player1_id} and ${playerId}`);
@@ -176,123 +179,164 @@ router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, re
     }
 });
 
+// ── Changing an offer ──────────────────────────────────────────────────────
+//
+// Every change to what is on the table goes through changeOffer (audit H5).
+//
+// The three offer routes used to read the trade without a lock, write their
+// change, and then reset both acceptances as separate statements. A partner who
+// swapped their offer at the moment you clicked Accept could therefore land in
+// between your accept's reads, and the trade completed on terms you never saw.
+// /offer/item/remove also never checked that the caller was in the trade at all.
+//
+// changeOffer does all of it in one transaction, with the trade row locked, in
+// the same order every time: lock, check the caller is a party, make the change,
+// reset both acceptances, bump offer_version. Accept takes the same lock and
+// refuses unless the client names the offer_version it was showing.
+
+/** A refusal from inside changeOffer. Thrown, so the change rolls back whole. */
+class OfferRefusal extends Error {
+    constructor(message: string, readonly status = 400) {
+        super(message);
+    }
+}
+
+async function changeOffer(
+    tradeId: number,
+    playerId: number,
+    change: (trx: Knex.Transaction, trade: any) => Promise<void>,
+): Promise<{ player1Id: number; player2Id: number; offerVersion: number }> {
+    return db.transaction(async (trx) => {
+        const trade = await trx('trades').where({ id: tradeId, status: 'active' }).forUpdate().first();
+        if (!trade || (trade.player1_id !== playerId && trade.player2_id !== playerId)) {
+            throw new OfferRefusal('Trade not found.', 404);
+        }
+
+        await change(trx, trade);
+
+        const offerVersion = Number(trade.offer_version ?? 0) + 1;
+        await trx('trades').where({ id: tradeId }).update({
+            player1_accepted: false,
+            player2_accepted: false,
+            offer_version: offerVersion,
+        });
+        return { player1Id: trade.player1_id, player2Id: trade.player2_id, offerVersion };
+    });
+}
+
+/** Tell both sides what is on the table now, after the change has committed. */
+async function announceOffer(tradeId: number, done: { player1Id: number; player2Id: number; offerVersion: number }) {
+    const { offers, gold } = await getTradeData(tradeId);
+    const payload = { offers, gold, offerVersion: done.offerVersion };
+    pushToPlayer(done.player1Id, 'trade_offer_updated', payload);
+    pushToPlayer(done.player2Id, 'trade_offer_updated', payload);
+}
+
+function refuse(res: Response, err: unknown, label: string) {
+    if (err instanceof OfferRefusal) {
+        res.status(err.status).json({ error: err.message });
+        return;
+    }
+    logger.error(`${label} error: ${err}`);
+    res.status(500).json({ error: 'Server error' });
+}
+
 // Add item to trade offer
 router.post('/offer/item', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
-    const { tradeId, itemId, quantity } = req.body;
+    const tradeId = Number(req.body.tradeId);
+    const itemId = Number(req.body.itemId);
+
+    // A whole number above zero, or nothing (audit H4).
+    //
+    // This went straight from the body to the column. An offer of -50 passed
+    // "do you have at least -50", and at accept the move ran in reverse:
+    // decrement(-50) ADDED fifty to the offerer and increment(-50) took fifty
+    // from the partner. Floats and numeric strings reached the column too, and
+    // `existing.quantity + "5"` concatenates rather than adds. Mirrors the
+    // sanitising /offer/gold does.
+    const quantity = Math.floor(Number(req.body.quantity));
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+        res.status(400).json({ error: 'Invalid quantity.' });
+        return;
+    }
 
     try {
-        const trade = await db('trades').where({ id: tradeId, status: 'active' }).first();
-        if (!trade || (trade.player1_id !== playerId && trade.player2_id !== playerId)) {
-            res.status(404).json({ error: 'Trade not found.' });
-            return;
-        }
-
-        // Verify player has item
-        const invItem = await db('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
-        if (!invItem || invItem.quantity < quantity) {
-            res.status(400).json({ error: 'You do not have enough of that item.' });
-            return;
-        }
-
-        // Check if already in offer
-        const existing = await db('trade_offers')
-            .where({ trade_id: tradeId, player_id: playerId, item_id: itemId })
-            .first();
-
-        if (existing) {
-            const newQty = existing.quantity + quantity;
-            // Make sure they actually have that many
-            if (invItem.quantity < newQty) {
-                res.status(400).json({ error: 'You do not have enough of that item.' });
-                return;
+        const done = await changeOffer(tradeId, playerId, async (trx) => {
+            // A courtesy check: the binding one is at accept, because the player
+            // can still spend the item elsewhere before then.
+            const invItem = await trx('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
+            const existing = await trx('trade_offers')
+                .where({ trade_id: tradeId, player_id: playerId, item_id: itemId })
+                .first();
+            const newQty = Number(existing?.quantity ?? 0) + quantity;
+            if (!invItem || Number(invItem.quantity) < newQty) {
+                throw new OfferRefusal('You do not have enough of that item.');
             }
-            await db('trade_offers').where({ id: existing.id }).update({ quantity: newQty });
-        } else {
-            await db('trade_offers').insert({ trade_id: tradeId, player_id: playerId, item_id: itemId, quantity });
-        }
 
-        // Reset acceptances
-        await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
+            if (existing) {
+                await trx('trade_offers').where({ id: existing.id }).update({ quantity: newQty });
+            } else {
+                await trx('trade_offers').insert({ trade_id: tradeId, player_id: playerId, item_id: itemId, quantity });
+            }
+        });
 
-        const { offers, gold } = await getTradeData(tradeId);
-        pushToPlayer(trade.player1_id, 'trade_offer_updated', { offers, gold });
-        pushToPlayer(trade.player2_id, 'trade_offer_updated', { offers, gold });
-
-        res.json({ success: true });
+        await announceOffer(tradeId, done);
+        res.json({ success: true, offerVersion: done.offerVersion });
     } catch (err) {
-        res.status(500).json({ error: 'Server error' });
+        refuse(res, err, 'Offer item');
     }
 });
 
 // Remove item from trade offer
 router.post('/offer/item/remove', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
-    const { tradeId, itemId } = req.body;
+    const tradeId = Number(req.body.tradeId);
+    const itemId = Number(req.body.itemId);
 
     try {
-        const trade = await db('trades').where({ id: tradeId, status: 'active' }).first();
-        if (!trade) {
-            res.status(404).json({ error: 'Trade not found.' });
-            return;
-        }
+        // changeOffer checks the caller is a party to the trade. This route used
+        // not to, so anyone holding a trade id could reset two strangers'
+        // acceptances at will.
+        const done = await changeOffer(tradeId, playerId, async (trx) => {
+            await trx('trade_offers').where({ trade_id: tradeId, player_id: playerId, item_id: itemId }).delete();
+        });
 
-        await db('trade_offers').where({ trade_id: tradeId, player_id: playerId, item_id: itemId }).delete();
-        await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
-
-        const { offers, gold } = await getTradeData(tradeId);
-        pushToPlayer(trade.player1_id, 'trade_offer_updated', { offers, gold });
-        pushToPlayer(trade.player2_id, 'trade_offer_updated', { offers, gold });
-
-        res.json({ success: true });
+        await announceOffer(tradeId, done);
+        res.json({ success: true, offerVersion: done.offerVersion });
     } catch (err) {
-        res.status(500).json({ error: 'Server error' });
+        refuse(res, err, 'Remove offer item');
     }
 });
 
 // Update gold offer
 router.post('/offer/gold', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
-    const { tradeId, goldAmount } = req.body;
+    const tradeId = Number(req.body.tradeId);
+
+    // Sanitise before it ever reaches the column: the old code passed the raw
+    // body value through Math.max, so a float or a numeric string went straight
+    // into trade_gold and became real money at accept time.
+    const amount = Math.floor(Number(req.body.goldAmount));
+    if (!Number.isFinite(amount) || amount < 0) {
+        res.status(400).json({ error: 'Invalid gold amount.' });
+        return;
+    }
 
     try {
-        // Party check. Without it, anyone holding a trade id could reset two
-        // other players' acceptance flags at will, which is a griefing lever
-        // even though it moves nothing. (/offer/item already checks this;
-        // /offer/item/remove still does not — separate fix.)
-        const trade = await db('trades').where({ id: tradeId, status: 'active' }).first();
-        if (!trade || (trade.player1_id !== playerId && trade.player2_id !== playerId)) {
-            res.status(404).json({ error: 'Trade not found.' });
-            return;
-        }
+        const done = await changeOffer(tradeId, playerId, async (trx) => {
+            // Courtesy check only. The binding check is at accept, because a
+            // player can spend this gold elsewhere between offering and accepting.
+            const balance = await getGold(playerId);
+            if (amount > balance) throw new OfferRefusal('You do not have that much gold.');
 
-        // Sanitise before it ever reaches the column: the old code passed the
-        // raw body value through Math.max, so a float or a numeric string went
-        // straight into trade_gold and became real money at accept time.
-        const amount = Math.floor(Number(goldAmount));
-        if (!Number.isFinite(amount) || amount < 0) {
-            res.status(400).json({ error: 'Invalid gold amount.' });
-            return;
-        }
+            await trx('trade_gold').where({ trade_id: tradeId, player_id: playerId }).update({ gold_amount: amount });
+        });
 
-        // Courtesy check only. The binding check is at accept, because a player
-        // can spend this gold elsewhere between offering and accepting.
-        const balance = await getGold(playerId);
-        if (amount > balance) {
-            res.status(400).json({ error: 'You do not have that much gold.' });
-            return;
-        }
-
-        await db('trade_gold').where({ trade_id: tradeId, player_id: playerId }).update({ gold_amount: amount });
-        await db('trades').where({ id: tradeId }).update({ player1_accepted: false, player2_accepted: false });
-
-        const { offers, gold } = await getTradeData(tradeId);
-        pushToPlayer(trade.player1_id, 'trade_offer_updated', { offers, gold });
-        pushToPlayer(trade.player2_id, 'trade_offer_updated', { offers, gold });
-
-        res.json({ success: true });
+        await announceOffer(tradeId, done);
+        res.json({ success: true, offerVersion: done.offerVersion });
     } catch (err) {
-        res.status(500).json({ error: 'Server error' });
+        refuse(res, err, 'Offer gold');
     }
 });
 
@@ -310,6 +354,8 @@ class TradeAbort extends Error {
 router.post('/accept', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { tradeId } = req.body;
+    // The offer the player was LOOKING AT when they clicked Accept.
+    const seenVersion = Number(req.body.offerVersion);
 
     try {
         // Everything the response and the socket emits need, collected inside the
@@ -333,6 +379,17 @@ router.post('/accept', requireAuth, requireTrusted, async (req: AuthRequest, res
 
             if (trade.player1_id !== playerId && trade.player2_id !== playerId) {
                 throw new TradeAbort('That is not your trade.', false);
+            }
+
+            // Accept what was seen, or nothing (audit H5). The row is locked, so
+            // no offer change can land between this check and the exchange. A
+            // client from before offer versions sends none, and is told to
+            // refresh rather than allowed to accept blind.
+            if (!Number.isInteger(seenVersion)) {
+                throw new TradeAbort('Please refresh the page to see the latest offer before accepting.', false);
+            }
+            if (seenVersion !== Number(trade.offer_version ?? 0)) {
+                throw new TradeAbort('The offer changed before you accepted. Check it and accept again.', false);
             }
 
             player1Id = trade.player1_id;
@@ -401,7 +458,15 @@ router.post('/accept', requireAuth, requireTrusted, async (req: AuthRequest, res
                     throw new TradeAbort('A traded item is no longer in that player\'s inventory.');
                 }
 
-                if (Number(invItem.quantity) < Number(offer.quantity)) {
+                // Checked again here, not just at offer time: rows written before
+                // /offer/item validated its input may still be sitting in open
+                // trades, and a non-positive quantity would run the move backwards.
+                const offered = Number(offer.quantity);
+                if (!Number.isInteger(offered) || offered <= 0) {
+                    throw new TradeAbort('A trade offer is invalid. Remove it and offer again.');
+                }
+
+                if (Number(invItem.quantity) < offered) {
                     throw new TradeAbort('Insufficient quantity of a traded item.');
                 }
 

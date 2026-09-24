@@ -7,6 +7,7 @@ import { missingBuildTool } from './construction';
 import { creditGoldWithin, debitGoldWithin, lockPlayersInOrder } from './gold';
 import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
 import { awardXp as awardSkillXp } from './xp';
+import { pushToPlayer } from '../lib/realtime';
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -769,28 +770,41 @@ export async function sellToShop(
 
             await lockPlayersInOrder(trx, [sellerId, order.ownerId]);
 
-            const gave = await removeItemFromInventoryWithin(trx, sellerId, locked.item_id, take);
-            if (!gave) return { success: false, error: 'You no longer have that many.' };
+            // EVERY refusal comes before anything moves (audit H6).
+            //
+            // Returning from a db.transaction callback COMMITS it. This used to
+            // take the seller's goods first and only then check that the shop
+            // could pay and had room to store them, so a shop with an empty fund
+            // or full storage (an ordinary state for a busy shop) kept the goods
+            // and paid nothing. With the checks first, each refusal returns
+            // before a single write, and a return then commits nothing.
 
-            // The fund must still cover it. A withdrawal cannot have taken this
-            // gold, but the check is cheap and the alternative is paying from
-            // nothing.
+            // The fund must cover it.
             const shop = await trx('player_shops').where({ id: order.shopId }).forUpdate().first();
             if (Number(shop.buy_fund_gold) < gross) {
                 return { success: false, error: 'That shop cannot cover the payment right now.' };
             }
 
-            // Goods land in the shop's storage. Full storage stops the sale
-            // rather than deleting anything.
+            // The goods need somewhere to go. Topping up a stack never needs a
+            // free slot; a new stack does.
             const stored = await trx('property_storage')
                 .where({ property_id: order.propertyId, item_id: locked.item_id }).forUpdate().first();
-            if (stored) {
-                await trx('property_storage').where({ id: stored.id }).increment('quantity', take);
-            } else {
+            if (!stored) {
                 const used = await trx('property_storage').where({ property_id: order.propertyId }).count('* as c').first();
                 if (Number(used?.c ?? 0) >= Number(order.storageSlots ?? 0)) {
                     return { success: false, error: 'That shop has no room to store these.' };
                 }
+            }
+
+            // Last check, and it has no side effects when it refuses.
+            const gave = await removeItemFromInventoryWithin(trx, sellerId, locked.item_id, take);
+            if (!gave) return { success: false, error: 'You no longer have that many.' };
+
+            // From here on everything is a write; any failure throws and rolls
+            // the whole sale back.
+            if (stored) {
+                await trx('property_storage').where({ id: stored.id }).increment('quantity', take);
+            } else {
                 await trx('property_storage').insert({
                     property_id: order.propertyId, item_id: locked.item_id, quantity: take,
                 });
@@ -1167,8 +1181,7 @@ export async function notifyOwnerOfTrade(shopId: number): Promise<void> {
 
         await db('player_shops').where({ id: shopId }).update({ last_notified_at: new Date() });
 
-        const { io } = await import('../index');
-        io.to(`player_${property.player_id}`).emit('shop_traded', {
+        pushToPlayer(property.player_id, 'shop_traded', {
             shopName: shop.name,
             message: 'Somebody has been trading at your shop.',
         });

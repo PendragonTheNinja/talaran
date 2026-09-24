@@ -3,6 +3,7 @@ import db from '../db';
 import bcrypt from 'bcrypt';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { endSessions, issueSession } from '../lib/sessions';
 
 const router = Router();
 
@@ -56,9 +57,33 @@ router.post('/password', requireAuth, async (req: AuthRequest, res: Response) =>
         }
         const hash = await bcrypt.hash(newPassword, 10);
         await db('players').where({ id: playerId }).update({ password_hash: hash });
+
+        // Changing a password ends every OTHER session (audit H1): if the
+        // player suspects someone has it, that someone is now logged out. This
+        // tab carries on with the fresh token in the response.
+        await endSessions(playerId);
+        const token = await issueSession(playerId);
+
         logger.info(`Player ${playerId} changed password`);
-        res.json({ success: true });
+        res.json({ success: true, token });
     } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Log out of every other device
+//
+// Ends every session this player has and hands the calling tab a fresh token,
+// so it carries on while the rest are signed out on their next request.
+router.post('/logout-others', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        await endSessions(playerId);
+        const token = await issueSession(playerId);
+        logger.info(`Player ${playerId} logged out of other devices`);
+        res.json({ success: true, token });
+    } catch (err) {
+        logger.error(`Logout others error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

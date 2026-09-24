@@ -1,5 +1,5 @@
 import db from '../db';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 
 // The loot log (docs/loot-log-spec.md).
 //

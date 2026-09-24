@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { levelFromXp } from '../services/xp';
-import { logger } from '../index';
+import { logger } from '../lib/logger';
+import { addItemToInventoryWithin, removeItemFromInventoryWithin } from '../services/inventory';
 
 const router = Router();
 
@@ -44,6 +45,20 @@ const SUBTYPE_SKILL: Record<string, string> = {
  * simultaneous requests from a brand-new player both see no row and both insert,
  * and one gets a unique violation. onConflict makes it idempotent.
  */
+/**
+ * A refusal from inside an equipment transaction.
+ *
+ * Returning from a db.transaction callback COMMITS it; only a throw rolls back.
+ * So a transaction that decides, partway through, that the move is not allowed
+ * throws this, and the route turns it into the right status. The same pattern
+ * as TradeAbort in routes/trades.ts.
+ */
+class EquipAbort extends Error {
+  constructor(message: string, public status = 400) {
+    super(message);
+  }
+}
+
 async function ensureEquipmentRow(playerId: number) {
   const existing = await db('player_equipment').where({ player_id: playerId }).first();
   if (existing) return existing;
@@ -189,21 +204,51 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // Get or create equipment row
-    const equipment = await ensureEquipmentRow(playerId);
-    const currentItemId = equipment[`${item.slot}_item_id`];
+    // The row must exist before it can be locked: forUpdate() on a missing row
+    // locks nothing.
+    await ensureEquipmentRow(playerId);
 
-    // Already wearing this exact item.
+    // Everything that decides the swap is read INSIDE the transaction, with the
+    // equipment row locked first.
     //
-    // This branch destroyed items before it existed. The swap-out below was
-    // skipped when currentItemId === itemId, but the inventory removal still
-    // ran, so a spare copy was decremented or deleted with nothing given back.
-    // Reported against Foraging Baskets; this handler is slot-agnostic, so it
-    // applied to every equippable in the game.
-    //
-    // There is no dual-wielding: a slot holds one item. So the correct answer is
-    // to change nothing at all.
-    if (currentItemId === itemId) {
+    // It used to read the worn item before the transaction began. Two equips
+    // sent together both saw the same item in the slot, both handed it back to
+    // the pack, and only one of the two incoming items ended up worn: wearing a
+    // hatchet and feeding it two cheap axes turned one hatchet into two, every
+    // time (audit C2, proven). Locking the equipment row serialises a player's
+    // equipment changes, so the second request waits and then sees the slot as
+    // the first one left it.
+    const outcome = await db.transaction(async (trx) => {
+      const equipment = await trx('player_equipment')
+        .where({ player_id: playerId })
+        .forUpdate()
+        .first();
+      const currentItemId = equipment?.[`${item.slot}_item_id`] ?? null;
+
+      // Already wearing this exact item. There is no dual-wielding, so the
+      // right answer is to change nothing. (This branch once destroyed a spare
+      // copy: the swap-out was skipped but the removal still ran.) No write has
+      // happened, so returning here commits nothing.
+      if (currentItemId === itemId) return { unchanged: true };
+
+      // Take the incoming item first. If it is no longer held (spent in another
+      // tab), refuse before anything has moved.
+      const took = await removeItemFromInventoryWithin(trx, playerId, itemId, 1);
+      if (!took) throw new EquipAbort('You do not have this item');
+
+      // Whatever was worn goes back to the pack.
+      if (currentItemId) {
+        await addItemToInventoryWithin(trx, playerId, currentItemId, 1);
+      }
+
+      await trx('player_equipment')
+        .where({ player_id: playerId })
+        .update({ [`${item.slot}_item_id`]: itemId });
+
+      return { unchanged: false };
+    });
+
+    if (outcome.unchanged) {
       res.json({
         message: `${item.name} is already equipped`,
         slot: item.slot,
@@ -213,55 +258,6 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Items move between inventory and equipment across several statements, so
-    // the whole swap is one transaction: a failure partway would otherwise leave
-    // an item in neither place.
-    await db.transaction(async (trx) => {
-      // Whatever was in the slot goes back to the pack.
-      if (currentItemId) {
-        const existingInInventory = await trx('player_inventory')
-          .where({ player_id: playerId, item_id: currentItemId })
-          .first();
-
-        if (existingInInventory) {
-          await trx('player_inventory')
-            .where({ player_id: playerId, item_id: currentItemId })
-            .increment('quantity', 1);
-        } else {
-          await trx('player_inventory').insert({
-            player_id: playerId,
-            item_id: currentItemId,
-            quantity: 1,
-          });
-        }
-      }
-
-      // Re-read under the transaction: the check above was outside it, and the
-      // quantity could have changed in between.
-      const held = await trx('player_inventory')
-        .where({ player_id: playerId, item_id: itemId })
-        .forUpdate()
-        .first();
-
-      if (!held || Number(held.quantity) < 1) {
-        throw new Error('item no longer held');
-      }
-
-      if (Number(held.quantity) > 1) {
-        await trx('player_inventory')
-          .where({ player_id: playerId, item_id: itemId })
-          .decrement('quantity', 1);
-      } else {
-        await trx('player_inventory')
-          .where({ player_id: playerId, item_id: itemId })
-          .delete();
-      }
-
-      await trx('player_equipment')
-        .where({ player_id: playerId })
-        .update({ [`${item.slot}_item_id`]: itemId });
-    });
-
     logger.info(`Player ${playerId} equipped ${item.name} in ${item.slot}`);
     res.json({
       message: `${item.name} equipped`,
@@ -270,6 +266,10 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
     });
 
   } catch (err) {
+    if (err instanceof EquipAbort) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
     logger.error(`Equip error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
@@ -292,46 +292,32 @@ router.post('/unequip', requireAuth, async (req: AuthRequest, res: Response) => 
   }
 
   try {
-    const equipment = await db('player_equipment').where({ player_id: playerId }).first();
-    if (!equipment) {
-      res.status(404).json({ error: 'No equipment found' });
-      return;
-    }
-
-    const itemId = equipment[`${slot}_item_id`];
-    if (!itemId) {
-      res.status(400).json({ error: 'Nothing equipped in that slot' });
-      return;
-    }
-
-    const item = await db('items').where({ id: itemId }).first();
-
-    // One transaction: giving the item back and clearing the slot were two
-    // separate writes, so a failure between them left the item in the pack AND
-    // still equipped — the mirror of the equip bug, duplicating instead of
-    // destroying.
-    await db.transaction(async (trx) => {
-      const existingInInventory = await trx('player_inventory')
-        .where({ player_id: playerId, item_id: itemId })
+    // Read the slot INSIDE the transaction, with the equipment row locked.
+    //
+    // It used to read the worn item first and open the transaction after, so two
+    // unequips sent together both found the hatchet in the slot and both put it
+    // in the pack: one worn hatchet became two (audit C1, proven). With the row
+    // locked, the second request waits, then finds the slot empty and refuses.
+    const itemId: number = await db.transaction(async (trx) => {
+      const equipment = await trx('player_equipment')
+        .where({ player_id: playerId })
         .forUpdate()
         .first();
+      if (!equipment) throw new EquipAbort('No equipment found', 404);
 
-      if (existingInInventory) {
-        await trx('player_inventory')
-          .where({ player_id: playerId, item_id: itemId })
-          .increment('quantity', 1);
-      } else {
-        await trx('player_inventory').insert({
-          player_id: playerId,
-          item_id: itemId,
-          quantity: 1,
-        });
-      }
+      const worn = equipment[`${slot}_item_id`];
+      if (!worn) throw new EquipAbort('Nothing equipped in that slot');
 
+      // Clear the slot and give the item back as one unit of work.
       await trx('player_equipment')
         .where({ player_id: playerId })
         .update({ [`${slot}_item_id`]: null });
+      await addItemToInventoryWithin(trx, playerId, worn, 1);
+
+      return worn;
     });
+
+    const item = await db('items').where({ id: itemId }).first();
 
     logger.info(`Player ${playerId} unequipped ${item.name} from ${slot}`);
     res.json({
@@ -341,6 +327,10 @@ router.post('/unequip', requireAuth, async (req: AuthRequest, res: Response) => 
     });
 
   } catch (err) {
+    if (err instanceof EquipAbort) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
     logger.error(`Unequip error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }

@@ -8,6 +8,7 @@ import { creditGold, debitGold } from '../services/gold';
 import { adminAdjustTalers } from '../services/talers';
 import { runBalanceChecks } from '../services/balanceChecks';
 import { onlinePlayers, pushToAll, pushToPlayer } from '../lib/realtime';
+import { endSessions, forgetSession } from '../lib/sessions';
 
 const router = Router();
 
@@ -633,6 +634,12 @@ router.post('/ban', requireAuth, async (req: AuthRequest, res: Response) => {
             ban_reason: reason?.trim() || null,
         });
 
+        // Ends every session and drops every socket, now (audit H1). The
+        // force_logout emit below stays for its message, but it is no longer
+        // what enforces the ban: it only ever reached a client that chose to
+        // honour it.
+        await endSessions(targetId, db, { disconnect: true });
+
         await db('mutes').insert({
             player_id: targetId,
             issued_by: staffId,
@@ -676,6 +683,8 @@ router.post('/unban', requireAuth, async (req: AuthRequest, res: Response) => {
             await db('players').where({ id: targetId }).update({ is_forum_banned: false, forum_banned_until: null });
         } else if (type === 'account') {
             await db('players').where({ id: targetId }).update({ is_banned: false, banned_until: null, ban_reason: null });
+            // The session check caches the ban for up to thirty seconds.
+            forgetSession(targetId);
         }
 
         logger.info(`${staff.username} unbanned ${targetId} (${type})`);

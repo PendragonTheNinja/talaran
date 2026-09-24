@@ -139,14 +139,34 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
             return
         }
         try {
-            await apiFetch('/api/settings/password', {
+            const result = await apiFetch<{ token?: string }>('/api/settings/password', {
                 method: 'POST',
                 body: JSON.stringify({ currentPassword, newPassword }),
             })
-            setSuccess('Password updated!')
+            // Changing the password ends every other session, this one's old
+            // token included; the response carries this tab's replacement.
+            if (result.token) localStorage.setItem('talaran_token', result.token)
+            setSuccess('Password updated! Any other devices have been logged out.')
             setCurrentPassword('')
             setNewPassword('')
             setConfirmPassword('')
+            setTimeout(() => setSuccess(null), 3000)
+        } catch (err: any) {
+            setError(err.message)
+        }
+    }
+
+    /**
+     * Sign out everywhere else: a phone left logged in, a shared computer, or an
+     * account the player suspects someone else is using. This tab carries on
+     * with the fresh token the server hands back.
+     */
+    const handleLogoutOthers = async () => {
+        setError(null)
+        try {
+            const result = await apiFetch<{ token?: string }>('/api/settings/logout-others', { method: 'POST' })
+            if (result.token) localStorage.setItem('talaran_token', result.token)
+            setSuccess('Every other device has been logged out.')
             setTimeout(() => setSuccess(null), 3000)
         } catch (err: any) {
             setError(err.message)
@@ -330,6 +350,19 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                             </div>
                             <button className="btn btn-gold" onClick={handlePasswordChange}>
                                 Update Password
+                            </button>
+                        </div>
+
+                        <div className="settings-divider" />
+
+                        <div className="settings-section">
+                            <h4 className="settings-section-title">Sessions</h4>
+                            <p className="settings-hint">
+                                Signed in somewhere you no longer use? This keeps you logged in here
+                                and signs you out everywhere else.
+                            </p>
+                            <button className="btn" onClick={handleLogoutOthers}>
+                                Log Out of Other Devices
                             </button>
                         </div>
 

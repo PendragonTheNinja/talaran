@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { botCheckGate } from '../services/botCheck'
 import { canHunt, calculateHuntTimer } from '../services/hunting'
 import { levelFromXp } from '../services/xp'
-import { logger } from '../index';
+import { logger } from '../lib/logger';
 
 const router = Router()
 
