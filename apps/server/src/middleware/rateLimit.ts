@@ -1,6 +1,6 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../config/jwt';
 
 // Behind Cloudflare, req.ip depends on the trust-proxy hop count being right.
 // CF-Connecting-IP is set by the edge on every request and is the one value
@@ -23,18 +23,26 @@ function clientKey(req: Request): string {
  * address and the entire playerbase shares a single allowance, which is the
  * likeliest reason the limit was so easy to trip.
  *
- * The token is decoded without verifying: a forged one only selects a different
- * bucket, and every route behind this still authenticates properly. Verifying
- * here would add a signature check to every request to gain nothing.
+ * The token is VERIFIED, not just decoded (audit H8). This used to decode
+ * without checking the signature, on the reasoning that a forged token only
+ * picks a different bucket. The bucket it picks is the victim's: anyone could
+ * mint { playerId: <victim> }, spend that player's allowance from their own
+ * machine, and the victim would get 429 on every request while it lasted.
+ * Verification is one HMAC over a few hundred bytes, microseconds per request.
+ *
+ * A token that fails (forged, expired, malformed) is keyed by the sender's
+ * address, so the sender spends their own allowance and nobody else's. The
+ * route behind still does full authentication, session version included; this
+ * only decides whose budget a request comes out of.
  */
 function playerKey(req: Request): string {
     const auth = req.headers.authorization;
     if (auth?.startsWith('Bearer ')) {
         try {
-            const decoded = jwt.decode(auth.slice(7)) as { playerId?: number } | null;
-            if (decoded?.playerId) return `player:${decoded.playerId}`;
+            const { playerId } = verifyToken(auth.slice(7));
+            if (Number.isInteger(playerId) && playerId > 0) return `player:${playerId}`;
         } catch {
-            // fall through to the address
+            // Not a token we signed, or no longer valid: the address pays.
         }
     }
     return clientKey(req);
