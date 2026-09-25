@@ -172,15 +172,29 @@ export async function createGuest(): Promise<CreatedGuest | null> {
 export async function sweepExpiredGuests(): Promise<number> {
     const cutoff = new Date(Date.now() - GUEST_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
-    const doomed = await db('players')
+    const expired = await db('players')
         .where({ is_guest: true })
         .andWhere('guest_expires_at', '<', cutoff)
         .select('id', 'username');
 
+    if (!expired.length) return 0;
+
+    // Money records outlive accounts: taler_purchases, taler_ledger and
+    // taler_adjustments refuse the delete (ON DELETE RESTRICT, audit M5). A
+    // guest holding one (a staff grant is the only way in) is kept and named in
+    // the log for a person to settle, rather than failing the whole sweep.
+    const held = new Set<number>(
+        (await db('taler_ledger').whereIn('player_id', expired.map((p: { id: number }) => p.id))
+            .distinct('player_id')).map((r: { player_id: number }) => r.player_id),
+    );
+    for (const p of expired) {
+        if (held.has(p.id)) logger.warn(`[guest] kept expired guest ${p.username} (${p.id}): it holds Taler records`);
+    }
+
+    const doomed = expired.filter((p: { id: number }) => !held.has(p.id));
     if (!doomed.length) return 0;
 
-    const ids = doomed.map((p: { id: number }) => p.id);
-    await db('players').whereIn('id', ids).del();
+    await db('players').whereIn('id', doomed.map((p: { id: number }) => p.id)).del();
 
     logger.info(`[guest] swept ${doomed.length} expired guest account(s)`);
     return doomed.length;

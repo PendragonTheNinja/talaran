@@ -385,6 +385,10 @@ function noServerErrors(statuses: number[]): string | null {
     return errors ? `${errors} request(s) hit a server error (statuses ${statuses.join(',')}): a race reached the database backstop` : null;
 }
 
+async function talersOf(ctx: Ctx, playerId: number): Promise<number> {
+    return Number((await ctx.db('taler_ledger').where({ player_id: playerId }).sum('delta as b').first())?.b ?? 0);
+}
+
 function changed(what: string, before: number, after: number): string | null {
     return before === after ? null : `${what} went ${before} -> ${after}`;
 }
@@ -750,6 +754,54 @@ const SCENARIOS: Scenario[] = [
                 ?? changed('nails', 0, await ctx.itemTotal(nail.id))
                 ?? (made === 1 ? null : `${made} crafts reported success`)
                 ?? (crashed ? `${crashed} craft(s) hit a server error` : null);
+        },
+    },
+    {
+        id: 'M5', name: 'one approved refund delivered five times at once', rounds: 10,
+        run: async (ctx) => {
+            // Paddle delivers at least once, so copies can land together. The
+            // refund must take the Talers back exactly once, and no copy may
+            // fail with a server error.
+            const w = await world(ctx);
+            const purchase = await ctx.seed.row('taler_purchases', {
+                player_id: w.player.id, paddle_transaction_id: 'txn_racecheck', usd_cents: 1000, talers: 1050,
+                status: 'completed', currency_code: 'USD', subtotal_minor: 1000,
+            });
+            await ctx.seed.row('taler_ledger', { player_id: w.player.id, delta: 1050, reason: 'purchase', ref_type: 'taler_purchase', ref_id: purchase.id });
+            const { applyPaddleAdjustment } = await import('../services/talers');
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => applyPaddleAdjustment({
+                paddleAdjustmentId: 'adj_racecheck', paddleTransactionId: 'txn_racecheck',
+                action: 'refund', type: 'full', subtotalMinor: 1000, currencyCode: 'USD' })));
+            const crashed = results.filter((r) => r.status === 'rejected').length;
+            const applied = results.filter((r) => r.status === 'fulfilled' && r.value.outcome === 'applied').length;
+            return changed('Talers', 0, await talersOf(ctx, w.player.id))
+                ?? (applied === 1 ? null : `${applied} copies applied`)
+                ?? (crashed ? `${crashed} cop${crashed === 1 ? 'y' : 'ies'} threw (would answer Paddle 500)` : null);
+        },
+    },
+    {
+        id: 'M5', name: 'a chargeback lands while the player spends five times', rounds: 10,
+        run: async (ctx) => {
+            // 500 Talers bought; five 200-Taler spends race a full chargeback.
+            // At most two spends fit in 500, and none once the chargeback has
+            // landed. Whatever the order, the ledger ends at the spends that
+            // went through plus the chargeback's -500, nothing lost or doubled.
+            const w = await world(ctx);
+            const purchase = await ctx.seed.row('taler_purchases', {
+                player_id: w.player.id, paddle_transaction_id: 'txn_racecheck2', usd_cents: 500, talers: 500,
+                status: 'completed', currency_code: 'USD', subtotal_minor: 500,
+            });
+            await ctx.seed.row('taler_ledger', { player_id: w.player.id, delta: 500, reason: 'purchase', ref_type: 'taler_purchase', ref_id: purchase.id });
+            const { applyPaddleAdjustment, spendTalers } = await import('../services/talers');
+            const [back, ...spends] = await Promise.all([
+                applyPaddleAdjustment({ paddleAdjustmentId: 'adj_racecheck2', paddleTransactionId: 'txn_racecheck2',
+                    action: 'chargeback', type: 'full', subtotalMinor: 500, currencyCode: 'USD' }),
+                ...Array.from({ length: 5 }, () => spendTalers({ playerId: w.player.id, amount: 200, reason: 'racecheck' })),
+            ]);
+            const spent = spends.filter((r) => r.ok).length;
+            return (spent <= 2 ? null : `${spent} spends of 200 went through on a 500 balance`)
+                ?? (back.outcome === 'applied' && back.talers === -500 ? null : `chargeback ${back.outcome} ${back.talers}`)
+                ?? changed('Talers', -200 * spent, await talersOf(ctx, w.player.id));
         },
     },
 ];
