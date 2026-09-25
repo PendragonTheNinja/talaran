@@ -1,11 +1,18 @@
 import { Router, Response } from 'express';
 import db from '../db';
-import bcrypt from 'bcrypt';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { endSessions, issueSession } from '../lib/sessions';
+import {
+    passwordProblem, hashPassword, passwordMatches, cleanEmail, EMAIL_PROBLEM, isUniqueViolation,
+} from '../lib/credentials';
+import { sendEmail, emailChangedEmail } from '../lib/email';
 
 const router = Router();
+
+// A guest has no password or email of their own yet. Claiming the character is
+// how they get both, so these routes point there instead of failing.
+const GUEST_ACCOUNT = 'Claim this character first to set a password and email.';
 
 // Get settings
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -45,17 +52,32 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Change password
+//
+// The same rules as registration (audit M12): the shared minimum length and
+// bcrypt cost from lib/credentials.ts.
 router.post('/password', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { currentPassword, newPassword } = req.body;
     try {
         const player = await db('players').where({ id: playerId }).first();
-        const valid = await bcrypt.compare(currentPassword, player.password_hash);
-        if (!valid) {
+        if (!player) {
+            res.status(404).json({ error: 'Account not found.' });
+            return;
+        }
+        if (player.is_guest || !player.password_hash) {
+            res.status(400).json({ error: GUEST_ACCOUNT });
+            return;
+        }
+        if (!(await passwordMatches(currentPassword, player.password_hash))) {
             res.status(400).json({ error: 'Current password is incorrect.' });
             return;
         }
-        const hash = await bcrypt.hash(newPassword, 10);
+        const weak = passwordProblem(newPassword);
+        if (weak) {
+            res.status(400).json({ error: `${weak}.` });
+            return;
+        }
+        const hash = await hashPassword(newPassword);
         await db('players').where({ id: playerId }).update({ password_hash: hash });
 
         // Changing a password ends every OTHER session (audit H1): if the
@@ -67,6 +89,7 @@ router.post('/password', requireAuth, async (req: AuthRequest, res: Response) =>
         logger.info(`Player ${playerId} changed password`);
         res.json({ success: true, token });
     } catch (err) {
+        logger.error(`Change password error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -89,25 +112,70 @@ router.post('/logout-others', requireAuth, async (req: AuthRequest, res: Respons
 });
 
 // Change email
+//
+// Held to the registration rules (audit M12): the address must look like one,
+// and "in use" is case-insensitive, matching players_email_lower_unique. The
+// new address starts unverified, because verification is proof of THAT
+// mailbox, and a notice goes to the old address, which is the only place a
+// hijacked owner would hear about it once resets start going elsewhere.
 router.post('/email', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
-    const { newEmail, password } = req.body;
+    const { password } = req.body;
     try {
         const player = await db('players').where({ id: playerId }).first();
-        const valid = await bcrypt.compare(password, player.password_hash);
-        if (!valid) {
+        if (!player) {
+            res.status(404).json({ error: 'Account not found.' });
+            return;
+        }
+        if (player.is_guest || !player.password_hash) {
+            res.status(400).json({ error: GUEST_ACCOUNT });
+            return;
+        }
+        if (!(await passwordMatches(password, player.password_hash))) {
             res.status(400).json({ error: 'Password is incorrect.' });
             return;
         }
-        const existing = await db('players').where({ email: newEmail }).whereNot({ id: playerId }).first();
-        if (existing) {
-            res.status(400).json({ error: 'That email is already in use.' });
+        const newEmail = cleanEmail(req.body.newEmail);
+        if (!newEmail) {
+            res.status(400).json({ error: `${EMAIL_PROBLEM}.` });
             return;
         }
-        await db('players').where({ id: playerId }).update({ email: newEmail });
+        const oldEmail: string | null = player.email ?? null;
+        if (oldEmail && oldEmail.toLowerCase() === newEmail.toLowerCase()) {
+            res.status(400).json({ error: 'That is already your email.' });
+            return;
+        }
+        const existing = await db('players')
+            .whereRaw('LOWER(email) = LOWER(?)', [newEmail])
+            .whereNot({ id: playerId })
+            .first();
+        if (existing) {
+            res.status(409).json({ error: 'That email is already in use.' });
+            return;
+        }
+
+        await db('players').where({ id: playerId }).update({ email: newEmail, email_verified_at: null });
         logger.info(`Player ${playerId} changed email`);
+
+        // After the write, and never allowed to fail the change: the address
+        // has already moved, and a mail outage must not make the player think
+        // it didn't.
+        if (oldEmail) {
+            const { subject, html, text } = emailChangedEmail(player.username, newEmail);
+            void sendEmail({ to: oldEmail, subject, html, text }).then(sent => {
+                if (!sent) logger.error(`[settings] email-change notice failed for player ${playerId}`);
+            });
+        }
+
         res.json({ success: true });
     } catch (err) {
+        // Two players claiming one address at once: the check above passed for
+        // both, and the unique index turned the second away.
+        if (isUniqueViolation(err)) {
+            res.status(409).json({ error: 'That email is already in use.' });
+            return;
+        }
+        logger.error(`Change email error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

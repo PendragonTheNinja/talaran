@@ -80,6 +80,43 @@ export function passwordResetEmail(username: string, resetLink: string): { subje
     return { subject, html, text };
 }
 
+/**
+ * Sent to the OLD address when an account's email changes (audit M12). Once
+ * the address changes, password resets go to the new one, so if this was not
+ * the owner the old mailbox is the only place they will hear about it.
+ *
+ * The new address is masked. If the change was genuine because the old
+ * mailbox is lost or shared, the full new address should not land in it.
+ */
+export function emailChangedEmail(username: string, newEmail: string): { subject: string; html: string; text: string } {
+    const masked = maskEmail(newEmail);
+    const subject = 'Your Talaran email address was changed';
+    const text =
+        `Hello ${username},\n\n` +
+        `The email address on your Talaran account was just changed to ${masked}. ` +
+        `Password resets will go there from now on.\n\n` +
+        `If you made this change, there is nothing more to do.\n\n` +
+        `If you did not, write to support@talaran.net from this address and we will help you get the account back.\n\n` +
+        `Talaran`;
+    const html = `
+    <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 520px; margin: 0 auto; color: #2a2118;">
+      <h1 style="color: #8a6a28; font-size: 24px;">Talaran</h1>
+      <p>Hello ${escapeHtml(username)},</p>
+      <p>The email address on your Talaran account was just changed to <strong>${escapeHtml(masked)}</strong>. Password resets will go there from now on.</p>
+      <p>If you made this change, there is nothing more to do.</p>
+      <p>If you did not, write to <a href="mailto:support@talaran.net" style="color: #8a6a28;">support@talaran.net</a> from this address and we will help you get the account back.</p>
+      <p style="font-size: 13px; color: #6f5d40;">Talaran</p>
+    </div>`;
+    return { subject, html, text };
+}
+
+/** "pendragon@example.com" becomes "p•••@example.com". */
+export function maskEmail(email: string): string {
+    const at = email.lastIndexOf('@');
+    if (at < 1) return '•••';
+    return `${email[0]}•••${email.slice(at)}`;
+}
+
 function escapeHtml(s: string): string {
     return s.replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string

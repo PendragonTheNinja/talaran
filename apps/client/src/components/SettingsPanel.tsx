@@ -134,8 +134,10 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
             setError('New passwords do not match.')
             return
         }
-        if (newPassword.length < 6) {
-            setError('Password must be at least 6 characters.')
+        // Mirrors PASSWORD_MIN_LENGTH in the server's lib/credentials.ts, which
+        // is the rule that counts; this only saves a round trip.
+        if (newPassword.length < 8) {
+            setError('Password must be at least 8 characters.')
             return
         }
         try {

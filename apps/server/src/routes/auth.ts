@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import bcrypt from 'bcrypt';
 import db from '../db';
 import { Player } from '../types';
 import { logger } from '../lib/logger';
@@ -8,15 +7,17 @@ import { sendEmail, passwordResetEmail } from '../lib/email';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { createGuest, GuestCapacityError, GUEST_SUFFIX, GUEST_SESSION_MINUTES } from '../services/guest';
 import { issueSession, endSessions } from '../lib/sessions';
+import {
+  passwordProblem, hashPassword, passwordMatches, cleanEmail, EMAIL_PROBLEM, isUniqueViolation,
+} from '../lib/credentials';
 
 const router = Router();
-const SALT_ROUNDS = 12;
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
+  const { username, password } = req.body;
 
-  if (!username || !email || !password) {
+  if (!username || !req.body.email || !password) {
     res.status(400).json({ error: 'Username, email and password are required' });
     return;
   }
@@ -26,8 +27,15 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  if (password.length < 8) {
-    res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const email = cleanEmail(req.body.email);
+  if (!email) {
+    res.status(400).json({ error: EMAIL_PROBLEM });
+    return;
+  }
+
+  const weak = passwordProblem(password);
+  if (weak) {
+    res.status(400).json({ error: weak });
     return;
   }
 
@@ -54,7 +62,7 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const password_hash = await hashPassword(password);
 
     const startingLocation = await db('locations').where({ name: 'Talador' }).first();
 
@@ -116,6 +124,12 @@ router.post('/register', async (req: Request, res: Response) => {
     logger.info(`New player registered: ${username}`);
     res.status(201).json({ token, player });
   } catch (err) {
+    // Two sign-ups racing for one name or address: the check above passed
+    // for both, and the unique index turned the second away.
+    if (isUniqueViolation(err)) {
+      res.status(409).json({ error: 'Username or email already taken' });
+      return;
+    }
     logger.error(`Registration error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
@@ -149,7 +163,9 @@ router.post('/login', async (req: Request, res: Response) => {
     // reason, without knowing the password. A ban and its reason are the
     // account holder's business: they are told only once they have proven it
     // is theirs, and everyone else gets the same answer as a wrong password.
-    const valid = await bcrypt.compare(password, player.password_hash);
+    // A guest has no password, so a guest's name gets the same answer as a
+    // wrong password rather than a 500.
+    const valid = await passwordMatches(password, player.password_hash);
 
     if (!valid) {
       res.status(401).json({ error: 'Invalid username or password' });
@@ -239,8 +255,9 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Invalid request.' });
       return;
     }
-    if (password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const weak = passwordProblem(password);
+    if (weak) {
+      res.status(400).json({ error: weak });
       return;
     }
     const player = await db('players')
@@ -251,7 +268,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
       return;
     }
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const password_hash = await hashPassword(password);
     await db('players').where({ id: player.id }).update({
       password_hash,
       reset_token: null,
@@ -318,9 +335,9 @@ router.post('/guest', async (req: Request, res: Response) => {
 // foreign keys change, nothing has to be copied across.
 router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
-  const { username, email, password } = req.body;
+  const { username, password } = req.body;
 
-  if (!username || !email || !password) {
+  if (!username || !req.body.email || !password) {
     res.status(400).json({ error: 'Username, email and password are required' });
     return;
   }
@@ -328,8 +345,14 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
     res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
     return;
   }
-  if (password.length < 8) {
-    res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const email = cleanEmail(req.body.email);
+  if (!email) {
+    res.status(400).json({ error: EMAIL_PROBLEM });
+    return;
+  }
+  const weak = passwordProblem(password);
+  if (weak) {
+    res.status(400).json({ error: weak });
     return;
   }
   if (username.toLowerCase().endsWith(GUEST_SUFFIX)) {
@@ -364,7 +387,7 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
       return;
     }
 
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const password_hash = await hashPassword(password);
 
     await db('players').where({ id: playerId }).update({
       username,
@@ -394,6 +417,10 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
 
     res.json({ token, player: { id: playerId, username, email, is_guest: false } });
   } catch (err) {
+    if (isUniqueViolation(err)) {
+      res.status(409).json({ error: 'Username or email already taken' });
+      return;
+    }
     logger.error(`Guest upgrade error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
