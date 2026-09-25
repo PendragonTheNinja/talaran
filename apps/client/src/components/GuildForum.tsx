@@ -6,6 +6,7 @@ import { formatGameDateTime, formatGameDate } from '../lib/time'
 // rather than merely similar to one.
 import './ForumPanel.css'
 import './GuildForum.css'
+import { TEXT_LIMITS } from '../lib/textLimits'
 
 // The guild's own forum, shown inside the guild page.
 //
@@ -404,6 +405,7 @@ function ThreadView({ threadId, onBack }: { threadId: number; onBack: () => void
                         value={reply}
                         onChange={e => setReply(e.target.value)}
                         placeholder="Write a reply…"
+                        maxLength={TEXT_LIMITS.guildForumPost}
                     />
                     <button className="btn btn-gold" onClick={send} disabled={busy || !reply.trim()}>
                         {busy ? 'Posting…' : 'Reply'}
@@ -460,6 +462,7 @@ function Compose({
                 value={title}
                 placeholder="Title"
                 onChange={e => setTitle(e.target.value)}
+                maxLength={TEXT_LIMITS.guildForumTitle}
             />
 
             <textarea
@@ -467,6 +470,7 @@ function Compose({
                 value={content}
                 placeholder="Say your piece…"
                 onChange={e => setContent(e.target.value)}
+                maxLength={TEXT_LIMITS.guildForumPost}
             />
 
             <button

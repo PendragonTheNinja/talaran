@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { pushToPlayer } from '../lib/realtime';
+import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
@@ -80,15 +81,19 @@ router.post('/send', requireAuth, requireTrusted, async (req: AuthRequest, res: 
   const { recipientName, subject, body, replyToId } = req.body;
 
   try {
-    if (!recipientName || !body) {
-      res.status(400).json({ error: 'Recipient and message body are required.' });
+    if (typeof recipientName !== 'string' || !recipientName.trim()) {
+      res.status(400).json({ error: 'Recipient is required.' });
       return;
     }
+    const cleanSubject = readText(subject, { label: 'Subject', max: TEXT_LIMITS.messageSubject, required: false, singleLine: true });
+    if (!cleanSubject.ok) { res.status(400).json({ error: cleanSubject.error }); return; }
+    const cleanBody = readText(body, { label: 'Message', max: TEXT_LIMITS.messageBody });
+    if (!cleanBody.ok) { res.status(400).json({ error: cleanBody.error }); return; }
 
     const sender = await db('players').where({ id: playerId }).first();
     // Case-insensitive, matching whispers, login and guild invites.
     const recipient = await db('players')
-      .whereRaw('LOWER(username) = LOWER(?)', [recipientName])
+      .whereRaw('LOWER(username) = LOWER(?)', [recipientName.trim()])
       .first();
 
     if (!recipient) {
@@ -105,8 +110,8 @@ router.post('/send', requireAuth, requireTrusted, async (req: AuthRequest, res: 
       sender_id: playerId,
       recipient_id: recipient.id,
       sender_name: sender.username,
-      subject: subject?.trim() || '(No Subject)',
-      body: body.trim(),
+      subject: cleanSubject.value ?? '(No Subject)',
+      body: cleanBody.value,
       is_read: false,
       is_system: false,
       reply_to_id: replyToId || null,

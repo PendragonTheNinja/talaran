@@ -22,7 +22,10 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  if (username.length < 3 || username.length > 32) {
+  // Checked as a string before anything calls .length or .toLowerCase() on
+  // it. These run outside the try below, so a number or an object here used
+  // to throw past the handler instead of getting an answer.
+  if (typeof username !== 'string' || username.length < 3 || username.length > 32) {
     res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
     return;
   }
@@ -341,7 +344,10 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
     res.status(400).json({ error: 'Username, email and password are required' });
     return;
   }
-  if (username.length < 3 || username.length > 32) {
+  // Checked as a string before anything calls .length or .toLowerCase() on
+  // it. These run outside the try below, so a number or an object here used
+  // to throw past the handler instead of getting an answer.
+  if (typeof username !== 'string' || username.length < 3 || username.length > 32) {
     res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
     return;
   }

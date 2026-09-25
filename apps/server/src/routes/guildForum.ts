@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 // Each guild's own forum, inside its own page.
 //
@@ -405,16 +406,16 @@ router.post('/threads', async (req: GuildRequest, res: Response) => {
             return;
         }
 
-        if (!title || !String(title).trim() || !content || !String(content).trim()) {
-            res.status(400).json({ error: 'A thread needs a title and a first post.' });
-            return;
-        }
+        const cleanTitle = readText(title, { label: 'Title', max: TEXT_LIMITS.guildForumTitle, singleLine: true });
+        if (!cleanTitle.ok) { res.status(400).json({ error: cleanTitle.error }); return; }
+        const cleanContent = readText(content, { label: 'Post', max: TEXT_LIMITS.guildForumPost });
+        if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
 
         const [thread] = await db('guild_forum_threads').insert({
             guild_id: guild.id,
             category_id: category.id,
             author_id: playerId,
-            title: String(title).trim().slice(0, 200),
+            title: cleanTitle.value,
             last_post_at: db.fn.now(),
             last_post_by: playerId,
         }).returning('*');
@@ -423,7 +424,7 @@ router.post('/threads', async (req: GuildRequest, res: Response) => {
             guild_id: guild.id,
             thread_id: thread.id,
             author_id: playerId,
-            content: String(content).trim(),
+            content: cleanContent.value,
         });
 
         res.json({ success: true, threadId: thread.id });
@@ -456,16 +457,14 @@ router.post('/threads/:id/reply', async (req: GuildRequest, res: Response) => {
             return;
         }
 
-        if (!content || !String(content).trim()) {
-            res.status(400).json({ error: 'A reply needs some content.' });
-            return;
-        }
+        const cleanContent = readText(content, { label: 'Reply', max: TEXT_LIMITS.guildForumPost });
+        if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
 
         await db('guild_forum_posts').insert({
             guild_id: guild.id,
             thread_id: threadId,
             author_id: playerId,
-            content: String(content).trim(),
+            content: cleanContent.value,
         });
 
         await db('guild_forum_threads').where({ id: threadId, guild_id: guild.id }).update({
@@ -585,13 +584,11 @@ router.put('/posts/:id', async (req: GuildRequest, res: Response) => {
             return;
         }
 
-        if (!content || !String(content).trim()) {
-            res.status(400).json({ error: 'A post needs some content.' });
-            return;
-        }
+        const cleanContent = readText(content, { label: 'Post', max: TEXT_LIMITS.guildForumPost });
+        if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
 
         await db('guild_forum_posts').where({ id: postId, guild_id: guild.id }).update({
-            content: String(content).trim(),
+            content: cleanContent.value,
             edited_at: db.fn.now(),
         });
 

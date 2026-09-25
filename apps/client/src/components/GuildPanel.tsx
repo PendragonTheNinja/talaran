@@ -7,6 +7,7 @@ import ConfirmModal from './ConfirmModal'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
+import { TEXT_LIMITS } from '../lib/textLimits'
 
 interface GuildMember {
     id: number
@@ -397,7 +398,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         <div className="guild-create">
                             <div className="guild-form-group">
                                 <label className="muted-text">Guild Name</label>
-                                <input className="chat-input" type="text" value={createName} onChange={e => setCreateName(e.target.value)} placeholder="Enter guild name..." maxLength={100} />
+                                <input className="chat-input" type="text" value={createName} onChange={e => setCreateName(e.target.value)} placeholder="Enter guild name..." maxLength={TEXT_LIMITS.guildName} />
                             </div>
                             <div className="guild-form-group">
                                 <label className="muted-text">Guild Tag (1–5 characters)</label>
@@ -405,7 +406,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                             </div>
                             <div className="guild-form-group">
                                 <label className="muted-text">Description (optional)</label>
-                                <input className="chat-input" type="text" value={createDesc} onChange={e => setCreateDesc(e.target.value)} placeholder="Enter guild description..." maxLength={200} />
+                                <input className="chat-input" type="text" value={createDesc} onChange={e => setCreateDesc(e.target.value)} placeholder="Enter guild description..." maxLength={TEXT_LIMITS.guildDescription} />
                             </div>
                             <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                 <button className="btn btn-gold" onClick={handleCreate}>Create Guild</button>
@@ -425,6 +426,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                         value={applyMessage}
                                         onChange={e => setApplyMessage(e.target.value)}
                                         placeholder="Optional message to the guild leader..."
+                                        maxLength={TEXT_LIMITS.guildApplication}
                                         rows={3}
                                         style={{ width: '100%', resize: 'none', fontSize: '14px' }}
                                     />
@@ -591,7 +593,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     type="text"
                                     value={settingsName}
                                     onChange={e => setSettingsName(e.target.value)}
-                                    maxLength={100}
+                                    maxLength={TEXT_LIMITS.guildName}
                                 />
                             </div>
 
@@ -621,7 +623,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     value={settingsDesc}
                                     onChange={e => setSettingsDesc(e.target.value)}
                                     rows={3}
-                                    maxLength={500}
+                                    maxLength={TEXT_LIMITS.guildDescription}
                                 />
                             </div>
 
@@ -632,7 +634,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     value={settingsRecruitMsg}
                                     onChange={e => setSettingsRecruitMsg(e.target.value)}
                                     rows={3}
-                                    maxLength={500}
+                                    maxLength={TEXT_LIMITS.guildRecruitment}
                                     placeholder="Shown to players browsing guild list..."
                                 />
                             </div>

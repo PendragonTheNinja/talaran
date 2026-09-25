@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { pushToAll } from '../lib/realtime';
+import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
@@ -277,9 +278,37 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
             return;
         }
 
-        if (!title?.trim() || !content?.trim()) {
-            res.status(400).json({ error: 'Title and content are required.' });
-            return;
+        // Everything is read and checked before the first insert, so a bad
+        // poll can no longer leave a thread behind without one.
+        const cleanTitle = readText(title, { label: 'Title', max: TEXT_LIMITS.forumTitle, singleLine: true });
+        if (!cleanTitle.ok) { res.status(400).json({ error: cleanTitle.error }); return; }
+        const cleanContent = readText(content, { label: 'Post', max: TEXT_LIMITS.forumPost });
+        if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
+
+        // A poll is asked for when either half of it is sent. Asking for one and
+        // then leaving it half-filled is refused rather than quietly dropped.
+        let poll: { question: string; options: string[] } | null = null;
+        if ((pollQuestion !== undefined && pollQuestion !== null) || (pollOptions !== undefined && pollOptions !== null)) {
+            const question = readText(pollQuestion, { label: 'Poll question', max: TEXT_LIMITS.pollQuestion, singleLine: true });
+            if (!question.ok) { res.status(400).json({ error: question.error }); return; }
+
+            if (!Array.isArray(pollOptions)) {
+                res.status(400).json({ error: 'Poll options are missing.' });
+                return;
+            }
+            const options: string[] = [];
+            for (const raw of pollOptions) {
+                const option = readText(raw, { label: 'A poll option', max: TEXT_LIMITS.pollOption, required: false, singleLine: true });
+                if (!option.ok) { res.status(400).json({ error: option.error }); return; }
+                if (option.value) options.push(option.value);
+            }
+            if (options.length < TEXT_LIMITS.pollOptionsMin || options.length > TEXT_LIMITS.pollOptionsMax) {
+                res.status(400).json({
+                    error: `A poll needs ${TEXT_LIMITS.pollOptionsMin} to ${TEXT_LIMITS.pollOptionsMax} options.`,
+                });
+                return;
+            }
+            poll = { question: question.value!, options };
         }
 
         const now = new Date();
@@ -287,7 +316,7 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
         const [thread] = await db('forum_threads').insert({
             category_id: categoryId,
             author_id: playerId,
-            title: title.trim(),
+            title: cleanTitle.value,
             is_pinned: false,
             is_locked: false,
             is_deleted: false,
@@ -300,7 +329,7 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
         await db('forum_posts').insert({
             thread_id: thread.id,
             author_id: playerId,
-            content: content.trim(),
+            content: cleanContent.value,
             is_first_post: true,
             is_deleted: false,
         });
@@ -308,18 +337,17 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
         // Increment post count
         await db('players').where({ id: playerId }).increment('forum_post_count', 1);
 
-        // Create poll if provided
-        if (pollQuestion && pollOptions && pollOptions.length >= 2) {
-            const [poll] = await db('forum_polls').insert({
+        if (poll) {
+            const [created] = await db('forum_polls').insert({
                 thread_id: thread.id,
-                question: pollQuestion.trim(),
+                question: poll.question,
                 is_closed: false,
             }).returning('*');
 
             await db('forum_poll_options').insert(
-                pollOptions.map((opt: string) => ({
-                    poll_id: poll.id,
-                    option_text: opt.trim(),
+                poll.options.map((text) => ({
+                    poll_id: created.id,
+                    option_text: text,
                     vote_count: 0,
                 }))
             );
@@ -376,10 +404,8 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
             return;
         }
 
-        if (!content?.trim()) {
-            res.status(400).json({ error: 'Reply content is required.' });
-            return;
-        }
+        const cleanContent = readText(content, { label: 'Reply', max: TEXT_LIMITS.forumPost });
+        if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
 
         const player = await db('players').where({ id: playerId }).first();
         if (player.is_forum_banned) {
@@ -395,7 +421,7 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
         await db('forum_posts').insert({
             thread_id: threadId,
             author_id: playerId,
-            content: content.trim(),
+            content: cleanContent.value,
             is_first_post: false,
             is_deleted: false,
         });
@@ -594,11 +620,17 @@ router.post('/threads/:id/lock', requireAuth, async (req: AuthRequest, res: Resp
         }
 
         const thread = await db('forum_threads').where({ id: threadId }).first();
+        if (!thread) {
+            res.status(404).json({ error: 'Thread not found.' });
+            return;
+        }
+        const cleanReason = readText(reason, { label: 'Reason', max: TEXT_LIMITS.lockReason, required: false, singleLine: true });
+        if (!cleanReason.ok) { res.status(400).json({ error: cleanReason.error }); return; }
         const nowLocked = !thread.is_locked;
         await db('forum_threads').where({ id: threadId }).update({
             is_locked: nowLocked,
             locked_at: nowLocked ? new Date() : null,
-            locked_reason: nowLocked ? (reason || null) : null,
+            locked_reason: nowLocked ? cleanReason.value : null,
         });
         res.json({ success: true, locked: nowLocked });
     } catch (err) {
@@ -610,10 +642,9 @@ router.post('/threads/:id/lock', requireAuth, async (req: AuthRequest, res: Resp
 router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const postId = parseInt(req.params.postId as string);
-    const { content } = req.body;
-
-    if (!content || content.trim().length === 0) {
-        res.status(400).json({ error: 'Content cannot be empty.' });
+    const cleanContent = readText(req.body?.content, { label: 'Post', max: TEXT_LIMITS.forumPost });
+    if (!cleanContent.ok) {
+        res.status(400).json({ error: cleanContent.error });
         return;
     }
 
@@ -633,7 +664,7 @@ router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response
         }
 
         await db('forum_posts').where({ id: postId }).update({
-            content: content.trim(),
+            content: cleanContent.value,
             edited_at: new Date(),
         });
 

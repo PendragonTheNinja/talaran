@@ -10,6 +10,7 @@ import { useMarkdownEditor } from '../lib/useMarkdownEditor'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
+import { TEXT_LIMITS } from '../lib/textLimits'
 
 interface ForumCategory {
     id: number
@@ -643,6 +644,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                     value={editContent}
                                                     onChange={e => setEditContent(e.target.value)}
                                                     rows={8}
+                                                    maxLength={TEXT_LIMITS.forumPost}
                                                 />
                                                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                                     <button className="btn btn-gold" style={{ fontSize: '13px' }} onClick={() => handleEditPost(post.id)}>
@@ -730,6 +732,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                             onChange={e => setReplyContent(e.target.value)}
                                             placeholder="Write your reply..."
                                             rows={6}
+                                            maxLength={TEXT_LIMITS.forumPost}
                                             style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                                         />
                                         <div className="guild-actions">
@@ -777,7 +780,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                 value={newTitle}
                                 onChange={e => setNewTitle(e.target.value)}
                                 placeholder="Thread title..."
-                                maxLength={200}
+                                maxLength={TEXT_LIMITS.forumTitle}
                             />
                         </div>
 
@@ -791,6 +794,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                 onChange={e => setNewContent(e.target.value)}
                                 placeholder="Write your post..."
                                 rows={8}
+                                maxLength={TEXT_LIMITS.forumPost}
                                 style={{ width: '100%', resize: 'vertical', fontSize: '16px', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                             />
                         </div>
@@ -810,6 +814,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                             value={pollQuestion}
                                             onChange={e => setPollQuestion(e.target.value)}
                                             placeholder="Poll question..."
+                                            maxLength={TEXT_LIMITS.pollQuestion}
                                         />
                                         {pollOptions.map((opt, i) => (
                                             <input
@@ -823,9 +828,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                     setPollOptions(next)
                                                 }}
                                                 placeholder={`Option ${i + 1}...`}
+                                                maxLength={TEXT_LIMITS.pollOption}
                                             />
                                         ))}
-                                        {pollOptions.length < 6 && (
+                                        {pollOptions.length < TEXT_LIMITS.pollOptionsMax && (
                                             <button className="btn" onClick={() => setPollOptions([...pollOptions, ''])}>
                                                 + Add Option
                                             </button>

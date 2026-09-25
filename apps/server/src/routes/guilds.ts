@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { sendSystemMessage } from './messages';
 import { levelFromXp } from '../services/xp';
 import { isOnline, pushToPlayer } from '../lib/realtime';
+import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
@@ -97,19 +98,19 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        if (!name || name.trim().length === 0) {
-            res.status(400).json({ error: 'Guild name is required.' });
-            return;
-        }
+        const cleanName = readText(name, { label: 'Guild name', max: TEXT_LIMITS.guildName, singleLine: true });
+        if (!cleanName.ok) { res.status(400).json({ error: cleanName.error }); return; }
+        const cleanDescription = readText(description, { label: 'Description', max: TEXT_LIMITS.guildDescription, required: false });
+        if (!cleanDescription.ok) { res.status(400).json({ error: cleanDescription.error }); return; }
 
-        if (!tag || tag.trim().length === 0 || tag.trim().length > 5) {
+        if (typeof tag !== 'string' || tag.trim().length === 0 || tag.trim().length > 5) {
             res.status(400).json({ error: 'Guild tag must be 1-5 characters.' });
             return;
         }
 
         // Check name and tag uniqueness
         const existing = await db('guilds')
-            .where({ name: name.trim() })
+            .where({ name: cleanName.value })
             .orWhere({ tag: tag.trim().toUpperCase() })
             .first();
 
@@ -119,11 +120,11 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
         }
 
         const [guild] = await db('guilds').insert({
-            name: name.trim(),
+            name: cleanName.value,
             tag: tag.trim().toUpperCase(),
             founder_id: playerId,
             leader_id: playerId,
-            description: description?.trim() || null,
+            description: cleanDescription.value,
             open_applications: true,
         }).returning('*');
 
@@ -437,6 +438,9 @@ router.post('/apply', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        const cleanMessage = readText(message, { label: 'Your message', max: TEXT_LIMITS.guildApplication, required: false });
+        if (!cleanMessage.ok) { res.status(400).json({ error: cleanMessage.error }); return; }
+
         const guild = await db('guilds').where({ id: guildId }).first();
         if (!guild) {
             res.status(404).json({ error: 'Guild not found.' });
@@ -463,7 +467,7 @@ router.post('/apply', requireAuth, async (req: AuthRequest, res: Response) => {
         await db('guild_applications').insert({
             guild_id: guildId,
             player_id: playerId,
-            message: message?.trim() || null,
+            message: cleanMessage.value,
             status: 'pending',
         }).onConflict(['guild_id', 'player_id']).ignore();
 
@@ -567,23 +571,35 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
 
         const updates: any = {};
 
-        if (description !== undefined) updates.description = description.trim();
+        if (description !== undefined) {
+            const clean = readText(description, { label: 'Description', max: TEXT_LIMITS.guildDescription, required: false });
+            if (!clean.ok) { res.status(400).json({ error: clean.error }); return; }
+            updates.description = clean.value;
+        }
         if (open_applications !== undefined) updates.open_applications = open_applications;
-        if (recruitment_message !== undefined) updates.recruitment_message = recruitment_message?.trim() || null;
+        if (recruitment_message !== undefined) {
+            const clean = readText(recruitment_message, { label: 'Recruitment message', max: TEXT_LIMITS.guildRecruitment, required: false });
+            if (!clean.ok) { res.status(400).json({ error: clean.error }); return; }
+            updates.recruitment_message = clean.value;
+        }
         if (min_level_requirement !== undefined) updates.min_level_requirement = Math.max(1, parseInt(min_level_requirement));
 
         // Handle name change
-        if (name !== undefined && name.trim() !== guild.name) {
-            const existing = await db('guilds').where({ name: name.trim() }).whereNot({ id: guild.id }).first();
-            if (existing) {
-                res.status(400).json({ error: 'That guild name is already taken.' });
-                return;
+        if (name !== undefined) {
+            const clean = readText(name, { label: 'Guild name', max: TEXT_LIMITS.guildName, singleLine: true });
+            if (!clean.ok) { res.status(400).json({ error: clean.error }); return; }
+            if (clean.value !== guild.name) {
+                const existing = await db('guilds').where({ name: clean.value }).whereNot({ id: guild.id }).first();
+                if (existing) {
+                    res.status(400).json({ error: 'That guild name is already taken.' });
+                    return;
+                }
+                updates.name = clean.value;
             }
-            updates.name = name.trim();
         }
 
         // Handle tag change with cooldown
-        if (tag !== undefined && tag.trim().toUpperCase() !== guild.tag) {
+        if (typeof tag === 'string' && tag.trim().toUpperCase() !== guild.tag) {
             const TAG_COOLDOWN_DAYS = 30;
             if (guild.tag_last_changed) {
                 const daysSince = (Date.now() - new Date(guild.tag_last_changed).getTime()) / (1000 * 60 * 60 * 24);

@@ -6,6 +6,7 @@ import ConfirmModal from './ConfirmModal'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
+import { TEXT_LIMITS } from '../lib/textLimits'
 
 interface MessageSummary {
     id: number
@@ -293,6 +294,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
                                     value={composeSubject}
                                     onChange={e => setComposeSubject(e.target.value)}
                                     placeholder="(No Subject)"
+                                    maxLength={TEXT_LIMITS.messageSubject}
                                 />
                             </div>
                             <div className="compose-field">
@@ -303,6 +305,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
                                     onChange={e => setComposeBody(e.target.value)}
                                     placeholder="Write your message..."
                                     rows={6}
+                                    maxLength={TEXT_LIMITS.messageBody}
                                     style={{ width: '100%', resize: 'vertical' }}
                                 />
                             </div>
