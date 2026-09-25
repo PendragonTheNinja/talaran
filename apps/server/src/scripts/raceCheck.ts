@@ -75,6 +75,8 @@ interface Ctx {
     db: Db;
     seed: Seeder;
     post: (playerId: number, path: string, body: unknown) => Promise<number>;
+    /** Issue the player's token and warm their session cache, so a later burst arrives together. */
+    warm: (playerId: number) => Promise<void>;
     /**
      * Fire n requests together for one player. The token is issued and the
      * session cache warmed FIRST, so every request reaches the route at the
@@ -191,14 +193,21 @@ async function main(): Promise<void> {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.get(playerId)}` },
                 body: JSON.stringify(body),
             });
-            await r.arrayBuffer();
-            return r.status;
+            // Several services catch an unexpected failure and return
+            // { error: 'Server error' }, which their route sends as a 400. It is
+            // still a server error, and in a burst it usually means a race hit
+            // the database's CHECK backstop, so it is reported as one.
+            const answer = await r.json().catch(() => null) as { error?: string } | null;
+            return answer?.error === 'Server error' ? 500 : r.status;
         },
-        burst: async (playerId, n, fn) => {
+        warm: async (playerId) => {
             if (!tokens.has(playerId)) tokens.set(playerId, await issueSession(playerId));
             await fetch(`http://127.0.0.1:${port}/api/equipment`, {
                 headers: { Authorization: `Bearer ${tokens.get(playerId)}` },
             }).then((r) => r.arrayBuffer());
+        },
+        burst: async (playerId, n, fn) => {
+            await ctx.warm(playerId);
             return Promise.all(Array.from({ length: n }, (_, i) => fn(i)));
         },
         itemTotal: (itemId) => itemTotal(db, itemId),
@@ -256,8 +265,13 @@ async function main(): Promise<void> {
         }
     };
 
+    // `pnpm race:check H6 C1` runs only those ids; no arguments runs them all.
+    const only = process.argv.slice(2).map((a) => a.toLowerCase());
+    const chosen = only.length ? SCENARIOS.filter((s) => only.includes(s.id.toLowerCase())) : SCENARIOS;
+    if (!chosen.length) refuse(`no scenario has the id ${only.join(' or ')}.`);
+
     let failed = 0;
-    for (const s of SCENARIOS) {
+    for (const s of chosen) {
         const problems: string[] = [];
         for (let round = 1; round <= s.rounds; round++) {
             await wipe();
@@ -276,8 +290,8 @@ async function main(): Promise<void> {
     }
 
     console.log(failed
-        ? `race:check: ${failed} of ${SCENARIOS.length} scenarios FAILED (${Date.now() - started} ms)`
-        : `race:check: all ${SCENARIOS.length} scenarios held (${Date.now() - started} ms)`);
+        ? `race:check: ${failed} of ${chosen.length} scenarios FAILED (${Date.now() - started} ms)`
+        : `race:check: all ${chosen.length} scenarios held (${Date.now() - started} ms)`);
 
     const { io } = await import('../index');
     io.close();
@@ -332,8 +346,42 @@ async function homestead(ctx: Ctx, playerId: number, locationId: number, slots =
     });
 }
 
+/** A shop in Talador owned by someone other than Pendragon, with the given storage room. */
+async function shopWorld(ctx: Ctx, w: Awaited<ReturnType<typeof world>>, storageSlots = 20) {
+    const owner = await ctx.seed.row('players', { username: 'Shopkeeper', email: 'keeper@racecheck.test', current_location_id: w.town.id });
+    const property = await ctx.seed.row('player_properties', {
+        player_id: owner.id, location_id: w.town.id, type: 'shop', storage_slots: storageSlots,
+    });
+    const shop = await ctx.seed.row('player_shops', { property_id: property.id, name: 'Racecheck Goods', is_open: true });
+    return { owner, property, shop };
+}
+
+async function storedIn(ctx: Ctx, propertyId: number, itemId: number): Promise<number> {
+    const row = await ctx.db('property_storage').where({ property_id: propertyId, item_id: itemId }).first();
+    return Number(row?.quantity ?? 0);
+}
+
 function changed(what: string, before: number, after: number): string | null {
     return before === after ? null : `${what} went ${before} -> ${after}`;
+}
+
+/** Gold is in two places that must agree: players.gold and the sum of each player's ledger rows. */
+async function ledgerProblem(ctx: Ctx): Promise<string | null> {
+    const { rows } = await ctx.db.raw(`
+        SELECT p.username, p.gold, coalesce(sum(l.delta), 0) AS ledger
+        FROM players p LEFT JOIN gold_ledger l ON l.player_id = p.id
+        GROUP BY p.id HAVING p.gold <> coalesce(sum(l.delta), 0)`);
+    return rows.length ? `gold and ledger disagree for ${rows[0].username}: ${rows[0].gold} vs ${rows[0].ledger}` : null;
+}
+
+async function goldOf(ctx: Ctx, playerId: number): Promise<number> {
+    return Number((await ctx.db('players').where({ id: playerId }).first()).gold);
+}
+
+/** Give a player gold through the ledger, the way the game does, so reconciliation holds. */
+async function fund(ctx: Ctx, playerId: number, amount: number) {
+    await ctx.db('players').where({ id: playerId }).update({ gold: amount });
+    await ctx.seed.row('gold_ledger', { player_id: playerId, delta: amount, balance_after: amount, reason: 'racecheck_seed' });
 }
 
 /**
@@ -342,6 +390,12 @@ function changed(what: string, before: number, after: number): string | null {
  * missing requirement) would "hold" while testing nothing.
  */
 function succeeded(statuses: number[], expected: number): string | null {
+    // A server error is a failure even when every total balances. With the
+    // non-negative CHECK constraints in place, a missing lock usually shows up
+    // as exactly this: the database refuses the write that would have minted
+    // items, and the player gets a 500 instead of a clean refusal.
+    const errors = statuses.filter((s) => s >= 500).length;
+    if (errors) return `${errors} request(s) hit a server error (statuses ${statuses.join(',')}): a race reached the database backstop`;
     const ok = statuses.filter((s) => s >= 200 && s < 300).length;
     return ok === expected ? null : `expected ${expected} to succeed, ${ok} did (statuses ${statuses.join(',')})`;
 }
@@ -455,6 +509,124 @@ const SCENARIOS: Scenario[] = [
             const paid = results.filter((r) => r.success).length;
             return changed('Charc', 60, await ctx.itemTotal(charc.id))
                 ?? (paid === 1 ? null : `${paid} collects succeeded`);
+        },
+    },
+    {
+        id: 'H3', name: 'hand in one finished quest twenty times at once', rounds: 10,
+        run: async (ctx) => {
+            // The completion every hand-in goes through. It must flip the quest
+            // once and pay 100 gold, two planks and 500 XP exactly once.
+            const w = await world(ctx);
+            const woodcutting = await ctx.seed.row('skills', { name: 'Woodcutting' });
+            const quest = await ctx.seed.row('quests', {
+                name: 'The Plank Run', description: 'Bring planks.', npc_name: 'Geonsen', location_id: w.town.id,
+                skill: 'Woodcutting', reward_xp: 500, reward_gold: 100,
+                reward_items: JSON.stringify([{ itemName: 'Oak Plank', qty: 2 }]),
+            });
+            const objective = await ctx.seed.row('quest_objectives', {
+                quest_id: quest.id, description: 'Talk to Geonsen', type: 'talk', required_amount: 1,
+            });
+            await ctx.seed.row('player_quests', { player_id: w.player.id, quest_id: quest.id, status: 'active' });
+            await ctx.seed.row('player_quest_objectives', {
+                player_id: w.player.id, objective_id: objective.id, current_amount: 1, is_complete: true,
+            });
+            const { checkQuestCompletion } = await import('../routes/quests');
+            // allSettled, not all: one hand-in throwing must not hide what the others paid.
+            const results = await Promise.allSettled(Array.from({ length: 20 }, () => checkQuestCompletion(w.player.id, quest.id)));
+            const paid = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+            const xp = await ctx.db('player_skills').where({ player_id: w.player.id, skill_id: woodcutting.id }).first();
+            return (paid === 1 ? null : `${paid} hand-ins were paid`)
+                ?? changed('gold', 100, await goldOf(ctx, w.player.id))
+                ?? changed('reward planks', 2, await ctx.itemTotal(w.plank.id))
+                ?? changed('Woodcutting XP', 500, Number(xp?.xp ?? 0))
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'H7', name: 'six buys against a merchant limit of two, at once', rounds: 10,
+        run: async (ctx) => {
+            const w = await world(ctx);
+            await ctx.db('items').where({ id: w.plank.id }).update({ value: 10, is_active: true });
+            const merchant = await ctx.seed.row('merchants', { key: 'rc_timber', name: 'Timber Merchant', location_id: w.town.id, sells: true });
+            await ctx.seed.row('merchant_stock', { merchant_id: merchant.id, item_id: w.plank.id, is_core: true, min_qty: 2, max_qty: 2 });
+            await fund(ctx, w.player.id, 10_000);
+            const st = await ctx.burst(w.player.id, 6, () =>
+                ctx.post(w.player.id, '/marketplace/buy', { merchantId: merchant.id, itemId: w.plank.id, quantity: 1 }));
+            const spent = 10_000 - await goldOf(ctx, w.player.id);
+            const bought = await ctx.itemTotal(w.plank.id);
+            return changed('planks bought', 2, bought)
+                ?? (spent > 0 && spent % 2 === 0 ? null : `charged ${spent}g for ${bought} planks`)
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 2);
+        },
+    },
+    {
+        id: 'shop', name: 'five buyers take three each from a shelf of five, at once', rounds: 10,
+        run: async (ctx) => {
+            // One shelf, five buyers. Exactly one purchase fits. Goods and gold
+            // must both balance: what buyers paid is what the till and the
+            // tithe received.
+            const w = await world(ctx);
+            const s = await shopWorld(ctx, w);
+            const listing = await ctx.seed.row('shop_listings', { shop_id: s.shop.id, item_id: w.plank.id, quantity: 5, unit_price: 10 });
+            const buyers = [];
+            for (let i = 0; i < 5; i++) {
+                const b = await ctx.seed.row('players', { username: `Buyer${i}`, email: `buyer${i}@racecheck.test`, current_location_id: w.town.id });
+                await fund(ctx, b.id, 1_000);
+                buyers.push(b);
+            }
+            await Promise.all(buyers.map((b) => ctx.warm(b.id)));
+            const st = await Promise.all(buyers.map((b) =>
+                ctx.post(b.id, '/shops/buy', { listingId: listing.id, quantity: 3, expectedUnitPrice: 10 })));
+            const paid = (await Promise.all(buyers.map((b) => goldOf(ctx, b.id)))).reduce((a, g) => a + (1_000 - g), 0);
+            const shop = await ctx.db('player_shops').where({ id: s.shop.id }).first();
+            const tax = Number((await ctx.db('shop_transactions').sum('tax as t').first())?.t ?? 0);
+            return changed('planks', 5, await ctx.itemTotal(w.plank.id))
+                ?? (paid === Number(shop.till_gold) + tax ? null : `buyers paid ${paid}g, till got ${shop.till_gold}g and tithe ${tax}g`)
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'H6', name: 'five sells of ten into an order wanting twenty, at once', rounds: 10,
+        run: async (ctx) => {
+            // Partial fills are normal: the first two fill it, the rest are told
+            // it is filled. Nothing may be lost or made on either side.
+            const w = await world(ctx);
+            const s = await shopWorld(ctx, w);
+            await ctx.db('player_shops').where({ id: s.shop.id }).update({ buy_fund_gold: 1_000 });
+            const buyOrder = await ctx.seed.row('shop_buy_orders', { shop_id: s.shop.id, item_id: w.plank.id, quantity_wanted: 20, quantity_filled: 0, unit_price: 10 });
+            await inPack(ctx, w.player.id, w.plank.id, 50);
+            const st = await ctx.burst(w.player.id, 5, () =>
+                ctx.post(w.player.id, '/shops/sell', { orderId: buyOrder.id, quantity: 10, expectedUnitPrice: 10 }));
+            const order = await ctx.db('shop_buy_orders').where({ id: buyOrder.id }).first();
+            const shop = await ctx.db('player_shops').where({ id: s.shop.id }).first();
+            const earned = await goldOf(ctx, w.player.id);
+            const tax = Number((await ctx.db('shop_transactions').sum('tax as t').first())?.t ?? 0);
+            return changed('planks', 50, await ctx.itemTotal(w.plank.id))
+                ?? changed('planks in shop storage', 20, await storedIn(ctx, s.property.id, w.plank.id))
+                ?? changed('planks filled', 20, Number(order.quantity_filled))
+                ?? (1_000 - Number(shop.buy_fund_gold) === earned + tax ? null : `fund paid ${1_000 - Number(shop.buy_fund_gold)}g, seller got ${earned}g, tithe ${tax}g`)
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 2);
+        },
+    },
+    {
+        id: 'H6', name: 'five sells into a shop with no room to store them, at once', rounds: 10,
+        run: async (ctx) => {
+            // The shop cannot take the goods. Every sale is refused and the
+            // seller keeps all of them (this once kept the goods and paid nothing).
+            const w = await world(ctx);
+            const s = await shopWorld(ctx, w, 0);
+            await ctx.db('player_shops').where({ id: s.shop.id }).update({ buy_fund_gold: 1_000 });
+            const buyOrder = await ctx.seed.row('shop_buy_orders', { shop_id: s.shop.id, item_id: w.plank.id, quantity_wanted: 20, quantity_filled: 0, unit_price: 10 });
+            await inPack(ctx, w.player.id, w.plank.id, 50);
+            const st = await ctx.burst(w.player.id, 5, () =>
+                ctx.post(w.player.id, '/shops/sell', { orderId: buyOrder.id, quantity: 10, expectedUnitPrice: 10 }));
+            const pack = await ctx.db('player_inventory').where({ player_id: w.player.id, item_id: w.plank.id }).first();
+            return changed('planks in the seller\'s pack', 50, Number(pack?.quantity ?? 0))
+                ?? changed('seller gold', 0, await goldOf(ctx, w.player.id))
+                ?? succeeded(st, 0);
         },
     },
 ];
