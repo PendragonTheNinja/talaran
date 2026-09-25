@@ -10,7 +10,8 @@
     "content:export": "ts-node src/scripts/exportContent.ts",
     "content:import": "ts-node src/scripts/importContent.ts",
     "values:derive": "ts-node --transpile-only src/scripts/deriveValues.ts",
-    "items:audit": "ts-node --transpile-only src/scripts/auditItemCoverage.ts"
+    "items:audit": "ts-node --transpile-only src/scripts/auditItemCoverage.ts",
+    "race:check": "ts-node --transpile-only src/scripts/raceCheck.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

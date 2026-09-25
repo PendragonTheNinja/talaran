@@ -142,6 +142,8 @@ Build only the tables the migration touches, with the column types the repo decl
 
 Other scripts: `pnpm items:audit` (item-page coverage gaps; should eventually gate deploys) · `pnpm values:derive` (writes `items.value`).
 
+**Race check before every deploy:** `RACECHECK_DATABASE_URL=postgres://…/talaran_racecheck pnpm race:check` (from `apps/server`). It copies the structure of `DATABASE_URL` into that throwaway database (name must contain `racecheck`; contents wiped every run; create it once with `createdb talaran_racecheck`), then fires parallel requests at the real app and fails if any item or gold total changes. Every audit dupe is a scenario in `src/scripts/raceCheck.ts`; a new write path that moves items or gold gets one too, and each new scenario must be shown to FAIL against the code before its fix, or it tests nothing.
+
 ---
 
 ## 4. Data integrity rules

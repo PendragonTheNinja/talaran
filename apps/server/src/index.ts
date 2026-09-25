@@ -84,7 +84,10 @@ export const logger = createLogger({
 // to another module is what made this file's load order matter in the first
 // place.
 
-const app = express();
+// Exported, with `server` below, so a script can drive the real app with its
+// real middleware order (scripts/raceCheck.ts does). Importing this file never
+// starts anything; see the require.main block at the bottom.
+export const app = express();
 // Capture the raw body alongside parsed JSON — Paddle webhook signatures are
 // HMAC'd over the exact bytes received, so verification needs the raw payload.
 app.use(express.json({
@@ -123,7 +126,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const server = http.createServer(app);
+export const server = http.createServer(app);
 
 // The socket server had its own origin list containing only localhost, so in
 // production it worked purely by accident: apex visitors are same-origin and
@@ -147,11 +150,6 @@ export const io = new Server(server, {
 // file. See the note there: the old `import { io } from '../index'` cycle boots
 // a second game server when a CLI script reaches a service that pushes.
 setRealtimeServer(io);
-
-// Economy self-checks, once, at boot. A tab is only as good as somebody
-// remembering to open it; this way a deploy that leaves items unmapped or a
-// shelf mis-stocked says so in the pm2 log. Never throws, never blocks boot.
-void logBalanceChecksAtStartup();
 
 // Routes
 app.get('/health', (req, res) => {
@@ -365,6 +363,13 @@ io.on('connection', (socket) => {
 // require.main is the module Node was started with, so this is true under
 // `node dist/index.js` and `ts-node src/index.ts`, and false on every import.
 if (require.main === module) {
+  // Economy self-checks, once, at boot. A tab is only as good as somebody
+  // remembering to open it; this way a deploy that leaves items unmapped or a
+  // shelf mis-stocked says so in the pm2 log. Never throws, never blocks boot.
+  // Inside this block because it reads the database: it used to run on every
+  // import of this file, so any script that imported `io` ran it too.
+  void logBalanceChecksAtStartup();
+
   // Start the game tick
   startGameTick(io);
   startPlaytimeTracking();
