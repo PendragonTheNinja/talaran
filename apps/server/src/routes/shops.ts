@@ -84,8 +84,13 @@ router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: R
             return;
         }
 
-        const result = await buyFromShop(playerId, listingId, quantity);
-        if (!result.success) { res.status(400).json({ error: result.error }); return; }
+        // The price the buyer was shown (audit M8). A shelf re-priced upward
+        // since then is refused with the new price rather than charged.
+        const result = await buyFromShop(playerId, listingId, quantity, asInt(req.body?.expectedUnitPrice));
+        if (!result.success) {
+            res.status(400).json({ error: result.error, unitPrice: result.unitPrice ?? null });
+            return;
+        }
 
         notifyInventoryChanged(playerId);
         // After the transaction, never inside it: a socket message sent from
@@ -108,8 +113,12 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
             return;
         }
 
-        const result = await sellToShop(playerId, orderId, quantity);
-        if (!result.success) { res.status(400).json({ error: result.error }); return; }
+        // The offer the seller was shown (audit M8); a lowered order is refused.
+        const result = await sellToShop(playerId, orderId, quantity, asInt(req.body?.expectedUnitPrice));
+        if (!result.success) {
+            res.status(400).json({ error: result.error, unitPrice: result.unitPrice ?? null });
+            return;
+        }
 
         notifyInventoryChanged(playerId);
         if (result.shopId) void notifyOwnerOfTrade(result.shopId);

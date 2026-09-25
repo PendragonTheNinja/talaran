@@ -152,14 +152,31 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
         try {
             const result = await apiFetch<{ message: string; gold: number }>('/api/shops/buy', {
                 method: 'POST',
-                body: JSON.stringify({ listingId: pendingBuy.listing.id, quantity: pendingBuy.qty }),
+                body: JSON.stringify({
+                    listingId: pendingBuy.listing.id,
+                    quantity: pendingBuy.qty,
+                    // The server refuses if the shelf now costs more than this,
+                    // and hands back the new price instead.
+                    expectedUnitPrice: pendingBuy.listing.unitPrice,
+                }),
             })
             setGold(result.gold)
             setNotice(result.message)
             setPendingBuy(null)
             await refreshShop()
         } catch (err: any) {
-            setError(err.message)
+            const newPrice = err.body?.unitPrice
+            if (typeof newPrice === 'number') {
+                // Keep the dialog open on the real price, and pull the quantity
+                // back to what the player can still afford at it.
+                if (openShop) await enterShop(openShop.id)
+                const listing = { ...pendingBuy.listing, unitPrice: newPrice }
+                const affordable = Math.max(1, Math.min(listing.quantity, Math.floor(gold / newPrice)))
+                setPendingBuy({ listing, qty: Math.min(pendingBuy.qty, affordable) })
+                setError('The price changed while you were deciding. This is the new price.')
+            } else {
+                setError(err.message)
+            }
         } finally {
             setBusy(false)
         }
@@ -171,14 +188,26 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
         try {
             const result = await apiFetch<{ message: string; gold: number }>('/api/shops/sell', {
                 method: 'POST',
-                body: JSON.stringify({ orderId: pendingSell.order.id, quantity: pendingSell.qty }),
+                body: JSON.stringify({
+                    orderId: pendingSell.order.id,
+                    quantity: pendingSell.qty,
+                    // Refused if the offer has dropped below this.
+                    expectedUnitPrice: pendingSell.order.unitPrice,
+                }),
             })
             setGold(result.gold)
             setNotice(result.message)
             setPendingSell(null)
             await refreshShop()
         } catch (err: any) {
-            setError(err.message)
+            const newPrice = err.body?.unitPrice
+            if (typeof newPrice === 'number') {
+                if (openShop) await enterShop(openShop.id)
+                setPendingSell({ ...pendingSell, order: { ...pendingSell.order, unitPrice: newPrice } })
+                setError('The offer changed while you were deciding. This is the new price.')
+            } else {
+                setError(err.message)
+            }
         } finally {
             setBusy(false)
         }

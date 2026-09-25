@@ -635,10 +635,25 @@ export async function cancelBuyOrder(playerId: number, orderId: number): Promise
 // orders deadlock under load, and the trade window shares these same rows. See
 // services/gold.ts.
 
-/** A visitor buys from a shop listing. */
+/**
+ * A price change is refused with the price as it now stands, so the client can
+ * show the real number instead of only saying something went wrong.
+ */
+type PriceChecked = { unitPrice?: number };
+
+/**
+ * A visitor buys from a shop listing.
+ *
+ * `expectedUnitPrice` is the price the buyer's screen showed (audit M8). The
+ * owner can re-price a shelf between the page rendering and the click, and the
+ * buyer used to pay whatever it had become. If the shelf now costs MORE than
+ * that, refuse and hand back the new price. Cheaper goes through: nobody minds
+ * paying less than they agreed to. Omitted means no check, which only a client
+ * that shows no price would do.
+ */
 export async function buyFromShop(
-    buyerId: number, listingId: number, quantity: number,
-): Promise<ShopResult & { spent?: number; itemName?: string; shopId?: number }> {
+    buyerId: number, listingId: number, quantity: number, expectedUnitPrice: number | null = null,
+): Promise<ShopResult & PriceChecked & { spent?: number; itemName?: string; shopId?: number }> {
     const qty = Math.floor(Number(quantity));
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'Invalid quantity.' };
 
@@ -675,9 +690,13 @@ export async function buyFromShop(
                 return { success: false, error: 'There are not that many left.' };
             }
 
+            const unitPrice = Number(locked.unit_price);
+            if (expectedUnitPrice !== null && unitPrice > expectedUnitPrice) {
+                return { success: false, error: 'The price changed. Check the new price.', unitPrice };
+            }
+
             await lockPlayersInOrder(trx, [buyerId, listing.ownerId]);
 
-            const unitPrice = Number(locked.unit_price);
             const gross = unitPrice * qty;
             const tax = taxOn(gross);
 
@@ -721,10 +740,17 @@ export async function buyFromShop(
     }
 }
 
-/** A visitor sells into a shop's standing buy order. Partial fills are normal. */
+/**
+ * A visitor sells into a shop's standing buy order. Partial fills are normal.
+ *
+ * `expectedUnitPrice` is the offer the seller's screen showed (audit M8). An
+ * owner can lower an order between render and click; if the offer is now LESS
+ * than that, refuse and hand back the new one. It is a unit price rather than
+ * a total because a partial fill changes the total legitimately.
+ */
 export async function sellToShop(
-    sellerId: number, orderId: number, quantity: number,
-): Promise<ShopResult & { earned?: number; itemName?: string; shopId?: number }> {
+    sellerId: number, orderId: number, quantity: number, expectedUnitPrice: number | null = null,
+): Promise<ShopResult & PriceChecked & { earned?: number; itemName?: string; shopId?: number }> {
     const qty = Math.floor(Number(quantity));
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'Invalid quantity.' };
 
@@ -765,6 +791,9 @@ export async function sellToShop(
             // Partial fills: sell what they want, not what you brought.
             const take = Math.min(qty, outstanding);
             const unitPrice = Number(locked.unit_price);
+            if (expectedUnitPrice !== null && unitPrice < expectedUnitPrice) {
+                return { success: false, error: 'The offer changed. Check the new price.', unitPrice };
+            }
             const gross = unitPrice * take;
             const tax = taxOn(gross);
 
