@@ -290,8 +290,8 @@ async function main(): Promise<void> {
     }
 
     console.log(failed
-        ? `race:check: ${failed} of ${chosen.length} scenarios FAILED (${Date.now() - started} ms)`
-        : `race:check: all ${chosen.length} scenarios held (${Date.now() - started} ms)`);
+        ? `race:check: ${failed} of ${chosen.length} scenario${chosen.length === 1 ? '' : 's'} FAILED (${Date.now() - started} ms)`
+        : `race:check: ${chosen.length === 1 ? 'the scenario' : `all ${chosen.length} scenarios`} held (${Date.now() - started} ms)`);
 
     const { io } = await import('../index');
     io.close();
@@ -359,6 +359,30 @@ async function shopWorld(ctx: Ctx, w: Awaited<ReturnType<typeof world>>, storage
 async function storedIn(ctx: Ctx, propertyId: number, itemId: number): Promise<number> {
     const row = await ctx.db('property_storage').where({ property_id: propertyId, item_id: itemId }).first();
     return Number(row?.quantity ?? 0);
+}
+
+/**
+ * An active trade in Talador: Pendragon offers 10 planks, a second player
+ * ("Trader", holding 100 gold) offers 100 gold. Neither has accepted yet and
+ * both are looking at offer version 1.
+ */
+async function tradeWorld(ctx: Ctx, w: Awaited<ReturnType<typeof world>>) {
+    const buyer = await ctx.seed.row('players', { username: 'Trader', email: 'trader@racecheck.test', current_location_id: w.town.id });
+    await fund(ctx, buyer.id, 100);
+    await inPack(ctx, w.player.id, w.plank.id, 10);
+    const trade = await ctx.seed.row('trades', {
+        player1_id: w.player.id, player2_id: buyer.id, location_id: w.town.id,
+        status: 'active', offer_version: 1, player1_accepted: false, player2_accepted: false,
+    });
+    await ctx.seed.row('trade_offers', { trade_id: trade.id, player_id: w.player.id, item_id: w.plank.id, quantity: 10 });
+    await ctx.seed.row('trade_gold', { trade_id: trade.id, player_id: buyer.id, gold_amount: 100 });
+    return { buyer, trade };
+}
+
+/** A burst where the number of successes legitimately varies: only server errors fail it. */
+function noServerErrors(statuses: number[]): string | null {
+    const errors = statuses.filter((s) => s >= 500).length;
+    return errors ? `${errors} request(s) hit a server error (statuses ${statuses.join(',')}): a race reached the database backstop` : null;
 }
 
 function changed(what: string, before: number, after: number): string | null {
@@ -627,6 +651,105 @@ const SCENARIOS: Scenario[] = [
             return changed('planks in the seller\'s pack', 50, Number(pack?.quantity ?? 0))
                 ?? changed('seller gold', 0, await goldOf(ctx, w.player.id))
                 ?? succeeded(st, 0);
+        },
+    },
+    {
+        id: 'H4', name: 'offer impossible quantities in a trade, at once', rounds: 5,
+        run: async (ctx) => {
+            // -50 once reversed the move at accept: the offerer GAINED fifty and
+            // the partner lost them. Every one of these must be refused and the
+            // table left exactly as it was.
+            const w = await world(ctx);
+            const t = await tradeWorld(ctx, w);
+            const bad: unknown[] = [-50, 0, 'abc', -1.5, '', null];
+            const st = await ctx.burst(w.player.id, bad.length, (i) =>
+                ctx.post(w.player.id, '/trades/offer/item', { tradeId: t.trade.id, itemId: w.plank.id, quantity: bad[i] }));
+            const offers = await ctx.db('trade_offers').where({ trade_id: t.trade.id });
+            const trade = await ctx.db('trades').where({ id: t.trade.id }).first();
+            return (offers.length === 1 && Number(offers[0].quantity) === 10 ? null : `the table changed: ${JSON.stringify(offers.map((o: any) => o.quantity))}`)
+                ?? changed('offer version', 1, Number(trade.offer_version))
+                ?? changed('planks', 10, await ctx.itemTotal(w.plank.id))
+                ?? succeeded(st, 0);
+        },
+    },
+    {
+        id: 'H5', name: 'both sides press accept five times each, at once', rounds: 10,
+        run: async (ctx) => {
+            // The trade must complete once: ten planks one way, a hundred gold
+            // the other, nothing made or lost.
+            const w = await world(ctx);
+            const t = await tradeWorld(ctx, w);
+            await Promise.all([ctx.warm(w.player.id), ctx.warm(t.buyer.id)]);
+            const st = await Promise.all(Array.from({ length: 10 }, (_, i) => {
+                const who = i % 2 === 0 ? w.player.id : t.buyer.id;
+                return ctx.post(who, '/trades/accept', { tradeId: t.trade.id, offerVersion: 1 });
+            }));
+            const trade = await ctx.db('trades').where({ id: t.trade.id }).first();
+            const buyerPlanks = await ctx.db('player_inventory').where({ player_id: t.buyer.id, item_id: w.plank.id }).first();
+            return (trade.status === 'completed' ? null : `trade ended ${trade.status}`)
+                ?? changed('planks', 10, await ctx.itemTotal(w.plank.id))
+                ?? changed('planks received', 10, Number(buyerPlanks?.quantity ?? 0))
+                ?? changed('seller gold', 100, await goldOf(ctx, w.player.id))
+                ?? changed('buyer gold', 0, await goldOf(ctx, t.buyer.id))
+                ?? await ledgerProblem(ctx)
+                ?? noServerErrors(st);
+        },
+    },
+    {
+        id: 'H5', name: 'the seller pulls the goods as the buyer accepts', rounds: 20,
+        run: async (ctx) => {
+            // The seller has accepted. The buyer accepts what they see (ten
+            // planks for a hundred gold) at the same moment the seller takes the
+            // planks off the table. Either the trade completes as the buyer saw
+            // it, or nothing moves. It must never take the gold for nothing.
+            const w = await world(ctx);
+            const t = await tradeWorld(ctx, w);
+            await ctx.db('trades').where({ id: t.trade.id }).update({ player1_accepted: true });
+            await Promise.all([ctx.warm(w.player.id), ctx.warm(t.buyer.id)]);
+            const st = await Promise.all([
+                ctx.post(t.buyer.id, '/trades/accept', { tradeId: t.trade.id, offerVersion: 1 }),
+                ctx.post(w.player.id, '/trades/offer/item/remove', { tradeId: t.trade.id, itemId: w.plank.id }),
+            ]);
+            const trade = await ctx.db('trades').where({ id: t.trade.id }).first();
+            const buyerGold = await goldOf(ctx, t.buyer.id);
+            const buyerPlanks = Number((await ctx.db('player_inventory').where({ player_id: t.buyer.id, item_id: w.plank.id }).first())?.quantity ?? 0);
+            const asSeen = trade.status === 'completed'
+                ? (buyerGold === 0 && buyerPlanks === 10 ? null : `completed, but the buyer has ${buyerPlanks} planks and ${buyerGold}g`)
+                : (buyerGold === 100 && buyerPlanks === 0 ? null : `not completed, but the buyer has ${buyerPlanks} planks and ${buyerGold}g`);
+            return asSeen
+                ?? changed('planks', 10, await ctx.itemTotal(w.plank.id))
+                ?? changed('gold in the world', 100, buyerGold + await goldOf(ctx, w.player.id))
+                ?? await ledgerProblem(ctx)
+                ?? noServerErrors(st);
+        },
+    },
+    {
+        id: 'M3', name: 'resolve a two-input craft ten times with inputs for one', rounds: 10,
+        run: async (ctx) => {
+            // A box is two planks and a nail. With ten planks and one nail,
+            // exactly one box may be made and exactly two planks spent. The old
+            // craft consumed the planks, then found the nail gone and returned,
+            // destroying them; and once made two boxes from one nail.
+            const w = await world(ctx);
+            const nail = await ctx.seed.row('items', { name: 'Iron Nail', type: 'material' });
+            const box = await ctx.seed.row('items', { name: 'Wooden Box', type: 'material' });
+            const recipe = await ctx.seed.row('recipes', {
+                skill: 'Carpentry', name: 'Wooden Box', output_item_name: 'Wooden Box', output_qty: 1,
+                inputs: JSON.stringify([{ itemName: 'Oak Plank', qty: 2 }, { itemName: 'Iron Nail', qty: 1 }]),
+                required_level: 1, timer_seconds: 30, xp: 10, mode: 'active', is_active: true,
+            });
+            await inPack(ctx, w.player.id, w.plank.id, 10);
+            await inPack(ctx, w.player.id, nail.id, 1);
+            const { resolveRecipe } = await import('../services/recipes');
+            const results = await Promise.allSettled(Array.from({ length: 10 }, () => resolveRecipe(w.player.id, recipe.id)));
+            const made = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+            const crashed = results.filter((r) => r.status === 'rejected'
+                || (r.status === 'fulfilled' && !r.value.success && r.value.error === 'Server error')).length;
+            return changed('boxes', 1, await ctx.itemTotal(box.id))
+                ?? changed('planks', 8, await ctx.itemTotal(w.plank.id))
+                ?? changed('nails', 0, await ctx.itemTotal(nail.id))
+                ?? (made === 1 ? null : `${made} crafts reported success`)
+                ?? (crashed ? `${crashed} craft(s) hit a server error` : null);
         },
     },
 ];
