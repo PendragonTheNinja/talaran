@@ -9,6 +9,7 @@ import { updateQuestObjectiveProgress } from '../routes/quests'
 import { checkStation, parseRequiredTools } from './workstations'
 import { buffTimerBonus, timerCut } from './buffs'
 import { awardXp } from './xp';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // ── Generic recipe executor (docs/trapping-spec.md §4) ────────────
 // Recipes are rows in the `recipes` table; this service runs any of them.
@@ -531,6 +532,6 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
     } catch (err) {
         if (err instanceof RecipeAbort) return { success: false, error: err.message }
         logger.error(`resolveRecipe error: ${err}`)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }

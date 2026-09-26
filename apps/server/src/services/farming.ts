@@ -5,6 +5,8 @@ import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
 import { awardXp as awardSkillXp } from './xp';
+import { takeItemsWithin } from './inventory';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -230,17 +232,6 @@ async function hasMaterials(playerId: number, cost: { itemName: string; qty: num
         if (have < c.qty) missing.push({ itemName: c.itemName, need: c.qty, have });
     }
     return { ok: missing.length === 0, missing };
-}
-
-async function consumeMaterials(playerId: number, cost: { itemName: string; qty: number }[]) {
-    for (const c of cost) {
-        const item = await itemByName(c.itemName);
-        if (!item) throw new Error(`consumeMaterials: missing item ${c.itemName}`);
-        const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-        if (!inv || inv.quantity < c.qty) throw new Error(`consumeMaterials: short on ${c.itemName}`);
-        if (inv.quantity === c.qty) await db('player_inventory').where({ id: inv.id }).delete();
-        else await db('player_inventory').where({ id: inv.id }).update({ quantity: inv.quantity - c.qty });
-    }
 }
 
 async function giveItem(playerId: number, itemName: string, qty: number) {
@@ -594,7 +585,7 @@ export async function resolveUproot(playerId: number, plotIdRaw: string | null):
         };
     } catch (err) {
         logger.error(`resolveUproot error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -661,7 +652,7 @@ export async function resolveTend(playerId: number): Promise<FarmActionResult> {
         };
     } catch (err) {
         logger.error(`resolveTend error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -685,11 +676,14 @@ export async function resolveManure(playerId: number, plotIdRaw: string | null):
         if (!plot) return { success: false, error: 'That is not your plot.' };
         if (plot.soil_state === 'rich') return { success: false, error: 'That ground is already in good heart.' };
 
-        const check = await hasMaterials(playerId, [{ itemName: 'Manure', qty: MANURE_COST }]);
-        if (!check.ok) return { success: false, error: 'You no longer have the manure.' };
-        await consumeMaterials(playerId, [{ itemName: 'Manure', qty: MANURE_COST }]);
-
-        await db('farm_plots').where({ id: plotId }).update({ soil_state: shiftSoil(plot.soil_state, 1) });
+        // Taken, locked, in the same transaction as the effect (audit §5.1).
+        const done = await db.transaction(async (trx) => {
+            const took = await takeItemsWithin(trx, playerId, [{ name: 'Manure', quantity: MANURE_COST }]);
+            if (!took.ok) return false;
+            await trx('farm_plots').where({ id: plotId }).update({ soil_state: shiftSoil(plot.soil_state, 1) });
+            return true;
+        });
+        if (!done) return { success: false, error: 'You no longer have the manure.' };
 
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, MANURE_SECONDS);
@@ -699,7 +693,7 @@ export async function resolveManure(playerId: number, plotIdRaw: string | null):
         return { success: true, xp, skillName: 'Farming', message: 'You spread the muck and turn it in. The field will thank you.' };
     } catch (err) {
         logger.error(`resolveManure error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -713,18 +707,23 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         const missingTool = await missingBuildTool(playerId);
         if (missingTool) return { success: false, error: missingTool.message };
 
-        const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
-        if (!matCheck.ok) return { success: false, error: 'You no longer have the materials.' };
-        await consumeMaterials(playerId, FARM_ESTABLISH_COST);
+        // The new property's id, or null when the materials were gone.
+        const propertyId = await db.transaction(async (trx) => {
+            const took = await takeItemsWithin(trx, playerId,
+                FARM_ESTABLISH_COST.map((c) => ({ name: c.itemName, quantity: c.qty })));
+            if (!took.ok) return null;
 
-        const [row] = await db('player_properties').insert({
-            player_id: playerId, location_id: novita.id, type: 'farmstead', tier: 1, plot_slots: 1,
-        }).returning('id');
-        const propertyId = typeof row === 'object' ? row.id : row;
+            const [row] = await trx('player_properties').insert({
+                player_id: playerId, location_id: novita.id, type: 'farmstead', tier: 1, plot_slots: 1,
+            }).returning('id');
+            const id: number = typeof row === 'object' ? row.id : row;
 
-        await db('farm_plots').insert({
-            property_id: propertyId, slot_index: 0, state: 'empty', soil_state: 'normal', seed_count: 0,
+            await trx('farm_plots').insert({
+                property_id: id, slot_index: 0, state: 'empty', soil_state: 'normal', seed_count: 0,
+            });
+            return id;
         });
+        if (propertyId === null) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = Math.round(activeXpForSeconds(carpLvl, ESTABLISH_SECONDS) * ESTABLISH_XP_BONUS);
@@ -737,7 +736,7 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         return { success: true, xp, skillName: 'Carpentry', message: 'Your farmstead stands at last. The first field is yours to work.' };
     } catch (err) {
         logger.error(`resolveEstablish error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -756,15 +755,18 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
         }
 
         const cost = plotCost(plots.length + 1);
-        const matCheck = await hasMaterials(playerId, cost);
-        if (!matCheck.ok) return { success: false, error: 'You no longer have the materials.' };
-        await consumeMaterials(playerId, cost);
+        const done = await db.transaction(async (trx) => {
+            const took = await takeItemsWithin(trx, playerId, cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
+            if (!took.ok) return false;
 
-        const nextIndex = plots.length ? Math.max(...plots.map(p => p.slot_index)) + 1 : 0;
-        await db('farm_plots').insert({
-            property_id: property.id, slot_index: nextIndex, state: 'empty', soil_state: 'normal', seed_count: 0,
+            const nextIndex = plots.length ? Math.max(...plots.map(p => p.slot_index)) + 1 : 0;
+            await trx('farm_plots').insert({
+                property_id: property.id, slot_index: nextIndex, state: 'empty', soil_state: 'normal', seed_count: 0,
+            });
+            await trx('player_properties').where({ id: property.id }).update({ plot_slots: plots.length + 1 });
+            return true;
         });
-        await db('player_properties').where({ id: property.id }).update({ plot_slots: plots.length + 1 });
+        if (!done) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = activeXpForSeconds(carpLvl, BUILD_PLOT_SECONDS);
@@ -774,7 +776,7 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
         return { success: true, xp, skillName: 'Carpentry', message: 'The new field is fenced and ready to break.' };
     } catch (err) {
         logger.error(`resolveBuildPlot error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -799,7 +801,7 @@ export async function resolveTill(playerId: number, plotIdRaw: string | null): P
         return { success: true, xp, skillName: 'Farming', message: 'The soil is broken and ready for seed.' };
     } catch (err) {
         logger.error(`resolveTill error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -814,18 +816,20 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
         if (!crop) return { success: false, error: 'Unknown crop.' };
 
         const count = Math.max(1, Math.min(PLOT_CAPACITY, data.n));
-        const matCheck = await hasMaterials(playerId, [{ itemName: crop.seed_item_name, qty: count }]);
-        if (!matCheck.ok) return { success: false, error: `You no longer have ${count}x ${crop.seed_item_name}.` };
-        await consumeMaterials(playerId, [{ itemName: crop.seed_item_name, qty: count }]);
-
         const now = new Date();
-        await db('farm_plots').where({ id: plot.id }).update({
-            state: 'growing', crop_id: crop.id, seed_count: count,
-            planted_at: now, ready_at: new Date(now.getTime() + crop.grow_seconds * 1000),
-            rested_since: null, tended: false,
-            // Fresh seed in the ground, so the next harvest pays in full.
-            harvests_since_sow: 0,
+        const done = await db.transaction(async (trx) => {
+            const took = await takeItemsWithin(trx, playerId, [{ name: crop.seed_item_name, quantity: count }]);
+            if (!took.ok) return false;
+            await trx('farm_plots').where({ id: plot.id }).update({
+                state: 'growing', crop_id: crop.id, seed_count: count,
+                planted_at: now, ready_at: new Date(now.getTime() + crop.grow_seconds * 1000),
+                rested_since: null, tended: false,
+                // Fresh seed in the ground, so the next harvest pays in full.
+                harvests_since_sow: 0,
+            });
+            return true;
         });
+        if (!done) return { success: false, error: `You no longer have ${count}x ${crop.seed_item_name}.` };
 
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, count * SOW_SECONDS_PER_SEED);
@@ -837,7 +841,7 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
         return { success: true, xp, skillName: 'Farming', message: `${count} ${crop.name} sown. Now it needs only time.` };
     } catch (err) {
         logger.error(`resolveSow error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -932,7 +936,7 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
         };
     } catch (err) {
         logger.error(`resolveHarvest error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1035,6 +1039,6 @@ export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | n
         };
     } catch (err) {
         logger.error(`resolveHarvestAll error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }

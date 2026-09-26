@@ -8,6 +8,7 @@ import {
 } from './inventory'
 import { awardXp } from './xp'
 import { incrementStats } from './stats'
+import { SERVER_ERROR } from '../lib/serviceResult'
 
 // ── Workstations ──────────────────────────────────────────────────
 //
@@ -335,7 +336,7 @@ export async function socketTool(
             return { success: false, error: msg }
         }
         logger.error(`socketTool error: ${err}`)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -377,7 +378,7 @@ export async function unsocketTool(
             return { success: false, error: msg }
         }
         logger.error(`unsocketTool error: ${err}`)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -441,7 +442,7 @@ export async function startBuildHearth(
 ): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     try {
         const player = await db('players').where({ id: playerId }).first()
-        if (!player) return { ok: false, error: 'Server error' }
+        if (!player) return { ok: false, error: SERVER_ERROR }
 
         const location = await db('locations').where({ id: player.current_location_id }).first()
         if (location?.name !== HEARTH_LOCATION) {
@@ -480,7 +481,7 @@ export async function startBuildHearth(
         return { ok: true, timerSeconds: HEARTH_BUILD_SECONDS }
     } catch (err) {
         logger.error(`startBuildHearth error: ${err}`)
-        return { ok: false, error: 'Server error' }
+        return { ok: false, error: SERVER_ERROR }
     }
 }
 
@@ -488,7 +489,7 @@ export async function startBuildHearth(
 export async function resolveBuildHearth(playerId: number): Promise<any> {
     try {
         const player = await db('players').where({ id: playerId }).first()
-        if (!player) return { success: false, error: 'Server error' }
+        if (!player) return { success: false, error: SERVER_ERROR }
 
         await db.transaction(async trx => {
             for (const need of HEARTH_COST) {
@@ -527,7 +528,7 @@ export async function resolveBuildHearth(playerId: number): Promise<any> {
             return { success: false, error: 'You are short of materials.' }
         }
         logger.error(`resolveBuildHearth error: ${err}`)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -628,7 +629,7 @@ export async function lightCampfire(
             return { ok: false, error: `You need ${n} of those to get a fire going.` }
         }
         logger.error(`lightCampfire error: ${err}`)
-        return { ok: false, error: 'Server error' }
+        return { ok: false, error: SERVER_ERROR }
     }
 }
 
@@ -804,7 +805,7 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
 
     const player = await db('players').where({ id: playerId }).first()
     if (!player) {
-        return { ok: false, error: 'Server error', multiplier: 1, missingTools: [], usingPublic: false }
+        return { ok: false, error: SERVER_ERROR, multiplier: 1, missingTools: [], usingPublic: false }
     }
 
     // Look for a campfire that has just gone out, BEFORE getWorkstation sweeps

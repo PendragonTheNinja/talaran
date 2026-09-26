@@ -1,6 +1,7 @@
 import db from '../db'
 import { logger } from '../lib/logger'
 import { levelFromXp } from './xp'
+import { SERVER_ERROR } from '../lib/serviceResult'
 
 // ── Feats ─────────────────────────────────────────────────────────
 //
@@ -270,7 +271,7 @@ export async function wearBadge(playerId: number, badge: string | null): Promise
         return { ok: true }
     } catch (err) {
         logger.error(`wearBadge error: ${err}`)
-        return { ok: false, error: 'Server error' }
+        return { ok: false, error: SERVER_ERROR }
     }
 }
 
@@ -295,6 +296,6 @@ export async function wearTitle(playerId: number, title: string | null): Promise
         return { ok: true }
     } catch (err) {
         logger.error(`wearTitle error: ${err}`)
-        return { ok: false, error: 'Server error' }
+        return { ok: false, error: SERVER_ERROR }
     }
 }

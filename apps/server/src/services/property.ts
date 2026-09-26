@@ -1,6 +1,7 @@
 import db from '../db';
 import { notifyInventoryChanged } from './inventory';
 import { logger } from '../lib/logger';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Property storage. One SLOT holds one unique item stack of any size, so 50 slots
 // means 50 different items, not 50 things. Stores are per-property: what you keep
@@ -94,7 +95,10 @@ export async function depositItem(playerId: number, itemId: number, qtyRaw: numb
         // whole stack both delete the row and both add to store, so five items
         // in the pack become ten in the chest. The slot check has the same
         // hole: two new stacks can both see the last free slot.
-        return db.transaction(async (trx) => {
+        // `return await`, not `return`: without the await this hands back the
+        // promise before it settles, so a failure inside the transaction
+        // skipped this function's catch and escaped to Express as an HTML 500.
+        return await db.transaction(async (trx) => {
             const inv = await trx('player_inventory')
                 .where({ player_id: playerId, item_id: itemId })
                 .forUpdate()
@@ -143,7 +147,7 @@ export async function depositItem(playerId: number, itemId: number, qtyRaw: numb
         });
     } catch (err) {
         logger.error(`depositItem error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -190,6 +194,6 @@ export async function withdrawItem(playerId: number, itemId: number, qtyRaw: num
         return result;
     } catch (err) {
         logger.error(`withdrawItem error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }

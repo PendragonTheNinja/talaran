@@ -10,6 +10,7 @@ import {
 import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.post('/kiln/load', requireAuth, async (req: AuthRequest, res: Response) =
     const player = await db('players').where({ id: playerId }).first();
     const result = await loadKiln(playerId, player.current_location_id, logCount, quality);
     if (!result.success) {
-      res.status(400).json({ error: result.error });
+      res.status(failureStatus(result.error)).json({ error: result.error });
       return;
     }
     res.json({ message: `Kiln loaded! Charc will be ready at ${result.readyAt}`, readyAt: result.readyAt });

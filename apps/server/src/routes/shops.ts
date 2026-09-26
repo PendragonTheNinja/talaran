@@ -32,6 +32,7 @@ import {
     sellToShop,
     shopFor,
 } from '../services/shops';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -88,7 +89,7 @@ router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: R
         // since then is refused with the new price rather than charged.
         const result = await buyFromShop(playerId, listingId, quantity, asInt(req.body?.expectedUnitPrice));
         if (!result.success) {
-            res.status(400).json({ error: result.error, unitPrice: result.unitPrice ?? null });
+            res.status(failureStatus(result.error)).json({ error: result.error, unitPrice: result.unitPrice ?? null });
             return;
         }
 
@@ -116,7 +117,7 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         // The offer the seller was shown (audit M8); a lowered order is refused.
         const result = await sellToShop(playerId, orderId, quantity, asInt(req.body?.expectedUnitPrice));
         if (!result.success) {
-            res.status(400).json({ error: result.error, unitPrice: result.unitPrice ?? null });
+            res.status(failureStatus(result.error)).json({ error: result.error, unitPrice: result.unitPrice ?? null });
             return;
         }
 
@@ -137,7 +138,7 @@ router.post('/build', requireAuth, requireTrusted, botCheckGate, async (req: Aut
     const playerId = req.player!.playerId;
     try {
         const result = await startEstablishShop(playerId);
-        if (!result.ok) { res.status(400).json({ error: result.error }); return; }
+        if (!result.ok) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
         res.json({ message: `You begin raising a shopfront in ${SHOP_TOWN}.`, timerSeconds: result.timerSeconds });
     } catch (err) {
         logger.error(`Shop build error: ${err}`);
@@ -174,7 +175,7 @@ async function respond(
     playerId: number,
     result: { success: boolean; error?: string; message?: string },
 ) {
-    if (!result.success) { res.status(400).json({ error: result.error }); return; }
+    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
     res.json({ message: result.message, gold: await getGold(playerId), mine: await myShop(playerId) });
 }
 
@@ -333,7 +334,7 @@ router.get('/mine/storage', requireAuth, async (req: AuthRequest, res: Response)
 router.post('/mine/storage/deposit', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const r = await depositItem(playerId, asInt(req.body?.itemId) ?? 0, asInt(req.body?.quantity) ?? 0, 'shop');
-    if (!r.success) { res.status(400).json({ error: r.error }); return; }
+    if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     notifyInventoryChanged(playerId);
     res.json({ ...r, mine: await myShop(playerId) });
 });
@@ -341,7 +342,7 @@ router.post('/mine/storage/deposit', requireAuth, requireTrusted, async (req: Au
 router.post('/mine/storage/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const r = await withdrawItem(playerId, asInt(req.body?.itemId) ?? 0, asInt(req.body?.quantity) ?? 0, 'shop');
-    if (!r.success) { res.status(400).json({ error: r.error }); return; }
+    if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     notifyInventoryChanged(playerId);
     res.json({ ...r, mine: await myShop(playerId) });
 });

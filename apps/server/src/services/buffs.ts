@@ -1,6 +1,7 @@
 import db from '../db'
 import { logger } from '../lib/logger'
 import { removeItemFromInventoryWithin, notifyInventoryChanged } from './inventory'
+import { SERVER_ERROR } from '../lib/serviceResult'
 
 // ── Buffs ─────────────────────────────────────────────────────────
 //
@@ -136,7 +137,7 @@ export async function applyBuffFromItem(
             return { ok: false, error: `You have no ${itemName.toLowerCase()}.` }
         }
         logger.error(`applyBuffFromItem error: ${err}`)
-        return { ok: false, error: 'Server error' }
+        return { ok: false, error: SERVER_ERROR }
     }
 }
 

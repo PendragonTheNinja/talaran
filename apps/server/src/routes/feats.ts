@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { listFeats, wearTitle, wearBadge } from '../services/feats';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -28,7 +29,7 @@ router.post('/title', requireAuth, async (req: AuthRequest, res: Response) => {
         const title = raw === null || raw === '' ? null : String(raw);
 
         const result = await wearTitle(req.player!.playerId, title);
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
 
         res.json({ success: true, wornTitle: title });
     } catch (err) {
@@ -44,7 +45,7 @@ router.post('/badge', requireAuth, async (req: AuthRequest, res: Response) => {
         const badge = raw === null || raw === '' ? null : String(raw);
 
         const result = await wearBadge(req.player!.playerId, badge);
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
 
         res.json({ success: true, wornBadge: badge });
     } catch (err) {

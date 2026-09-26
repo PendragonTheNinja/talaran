@@ -4,7 +4,8 @@ import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { awardXp } from './xp';
-import { addItemToInventoryWithin } from './inventory';
+import { addItemToInventoryWithin, craftItems } from './inventory';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 const KILN_LOGS_PER_BATCH = 20;
 const KILN_CHARC_PER_BATCH: Record<string, number> = { poor: 60, fine: 80, excellent: 100 };
@@ -153,7 +154,7 @@ export async function loadKiln(playerId: number, locationId: number, logCount: n
   } catch (err) {
     if (err instanceof KilnAbort) return { success: false, error: err.message };
     logger.error(`Load kiln error: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }
 
@@ -204,7 +205,7 @@ export async function collectKiln(playerId: number, locationId: number): Promise
   } catch (err) {
     if (err instanceof KilnAbort) return { success: false, error: err.message };
     logger.error(`Collect kiln error: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }
 
@@ -299,48 +300,9 @@ export async function smeltIngots(
       return { success: false, error: `You need Smithing level ${recipe.requiredLevel} to smelt ${metalType}.` };
     }
 
-    // Check ingredients
-    for (const ingredient of recipe.ingredients) {
-      const item = await db('items').where({ name: ingredient.name }).first();
-      if (!item) return { success: false, error: `Required item not found: ${ingredient.name}` };
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (!inv || inv.quantity < ingredient.quantity) {
-        return { success: false, error: `You need ${ingredient.quantity}x ${ingredient.name}.` };
-      }
-    }
-
-    // Remove ingredients
-    for (const ingredient of recipe.ingredients) {
-      const item = await db('items').where({ name: ingredient.name }).first();
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (inv.quantity <= ingredient.quantity) {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
-      } else {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).decrement('quantity', ingredient.quantity);
-      }
-    }
-
-    // Award ingots
-    const ingotItem = await db('items').where({ name: recipe.output }).first();
-    const existingIngot = await db('player_inventory')
-      .where({ player_id: playerId, item_id: ingotItem.id })
-      .first();
-
-    if (existingIngot) {
-      await db('player_inventory')
-        .where({ player_id: playerId, item_id: ingotItem.id })
-        .increment('quantity', recipe.outputQuantity);
-    } else {
-      await db('player_inventory').insert({
-        player_id: playerId,
-        item_id: ingotItem.id,
-        quantity: recipe.outputQuantity,
-      });
-    }
+    // Ingredients taken and ingots given as one locked unit (audit §5.1).
+    const made = await craftItems(playerId, recipe.ingredients, { name: recipe.output, quantity: recipe.outputQuantity });
+    if (!made.ok) return { success: false, error: made.error };
 
     // Track quest progress
     const { updateQuestObjectiveProgress } = await import('../routes/quests');
@@ -365,7 +327,7 @@ export async function smeltIngots(
     };
   } catch (err) {
     logger.error(`Smelt error: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }
 
@@ -394,51 +356,11 @@ export async function smithPart(
       return { success: false, error: `You need Smithing level ${recipe.requiredLevel}.` };
     }
 
-    // Check ingredients
-    for (const ingredient of recipe.ingredients) {
-      const item = await db('items').where({ name: ingredient.name }).first();
-      if (!item) return { success: false, error: `Required item not found: ${ingredient.name}` };
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (!inv || inv.quantity < ingredient.quantity) {
-        return { success: false, error: `You need ${ingredient.quantity}x ${ingredient.name}.` };
-      }
-    }
-
-    // Remove ingredients
-    for (const ingredient of recipe.ingredients) {
-      const item = await db('items').where({ name: ingredient.name }).first();
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (inv.quantity <= ingredient.quantity) {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
-      } else {
-        await db('player_inventory')
-          .where({ player_id: playerId, item_id: item.id })
-          .decrement('quantity', ingredient.quantity);
-      }
-    }
-
-    // Add finished item to inventory
-    const outputItem = await db('items').where({ name: recipe.output }).first();
-    if (!outputItem) return { success: false, error: `Output item not found: ${recipe.output}` };
-
-    const existing = await db('player_inventory')
-      .where({ player_id: playerId, item_id: outputItem.id })
-      .first();
-    if (existing) {
-      await db('player_inventory')
-        .where({ player_id: playerId, item_id: outputItem.id })
-        .increment('quantity', 1);
-    } else {
-      await db('player_inventory').insert({
-        player_id: playerId,
-        item_id: outputItem.id,
-        quantity: 1,
-      });
-    }
+    // Ingredients taken and the part given as one locked unit (audit §5.1).
+    // The output item is resolved BEFORE anything is taken: this used to look
+    // it up afterwards, so a missing output destroyed the bars.
+    const made = await craftItems(playerId, recipe.ingredients, { name: recipe.output, quantity: 1 });
+    if (!made.ok) return { success: false, error: made.error };
 
     // Award XP
     await awardXp(playerId, smithingSkill.id, recipe.xp);
@@ -459,7 +381,7 @@ export async function smithPart(
     };
   } catch (err) {
     logger.error(`Smith error: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }
 

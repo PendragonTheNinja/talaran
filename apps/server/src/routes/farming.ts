@@ -3,6 +3,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
 import { logger } from '../lib/logger';
 import { getFarmState, startEstablish, startBuildPlot, startTill, startSow, startHarvest, startUproot, startManure, startTend, startHarvestAll } from '../services/farming';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -19,39 +20,39 @@ router.get('/state', requireAuth, async (req: AuthRequest, res: Response) => {
 // All of these begin a TIMED action; the game tick resolves it.
 router.post('/establish', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startEstablish(req.player!.playerId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Construction begun', timerSeconds: r.timerSeconds });
 });
 
 router.post('/build-plot', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startBuildPlot(req.player!.playerId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Fencing begun', timerSeconds: r.timerSeconds });
 });
 
 router.post('/till', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startTill(req.player!.playerId, req.body.plotId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Tilling', timerSeconds: r.timerSeconds });
 });
 
 router.post('/sow', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const { plotId, cropId, seedCount } = req.body;
     const r = await startSow(req.player!.playerId, plotId, cropId, seedCount);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Sowing', timerSeconds: r.timerSeconds });
 });
 
 router.post('/harvest', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startHarvest(req.player!.playerId, req.body.plotId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Harvesting', timerSeconds: r.timerSeconds });
 });
 
 router.post('/uproot', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     try {
         const r = await startUproot(req.player!.playerId, req.body.plotId);
-        if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+        if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
         res.json({ message: 'Uprooting', timerSeconds: r.timerSeconds });
     } catch (err: any) {
         if (err?.code === '23505') { res.status(409).json({ error: 'You are already performing an action' }); return; }
@@ -62,20 +63,20 @@ router.post('/uproot', requireAuth, botCheckGate, async (req: AuthRequest, res: 
 
 router.post('/manure', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startManure(req.player!.playerId, req.body.plotId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Spreading manure', timerSeconds: r.timerSeconds });
 });
 
 router.post('/tend', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startTend(req.player!.playerId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Tending', timerSeconds: r.timerSeconds });
 });
 
 // Every ripe field at once, from HARVEST_ALL_MIN_PLOTS fields up.
 router.post('/harvest-all', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const r = await startHarvestAll(req.player!.playerId);
-    if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Bringing in the harvest', timerSeconds: r.timerSeconds });
 });
 

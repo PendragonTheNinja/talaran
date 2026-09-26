@@ -4,6 +4,7 @@ import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { STORE_ITEMS, getUnlocks, purchaseItem, effectivePrice } from '../services/store';
 import { getTalerBalance } from '../services/talers';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.post('/purchase', requireAuth, requireTrusted, async (req: AuthRequest, r
         }
         const result = await purchaseItem(playerId, key);
         if (!result.ok) {
-            res.status(400).json({ error: result.error, balance: result.balance });
+            res.status(failureStatus(result.error)).json({ error: result.error, balance: result.balance });
             return;
         }
         res.json({ success: true, balance: result.balance, granted: result.granted });

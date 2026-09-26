@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { pushToPlayer, pushToRoom } from '../lib/realtime';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 const PRIVATE_WINDOW_SECONDS = 15;
@@ -100,7 +101,7 @@ router.post('/drop', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         });
 
         if ('error' in dropped) {
-            res.status(400).json({ error: dropped.error });
+            res.status(failureStatus(dropped.error)).json({ error: dropped.error });
             return;
         }
 

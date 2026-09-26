@@ -193,10 +193,11 @@ async function main(): Promise<void> {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.get(playerId)}` },
                 body: JSON.stringify(body),
             });
-            // Several services catch an unexpected failure and return
-            // { error: 'Server error' }, which their route sends as a 400. It is
-            // still a server error, and in a burst it usually means a race hit
-            // the database's CHECK backstop, so it is reported as one.
+            // A service that fails unexpectedly returns { error: SERVER_ERROR }
+            // and its route answers 500 (lib/serviceResult.ts). Any route that
+            // still forwards that body under another status is counted as a
+            // 500 anyway: in a burst it usually means a race hit the database's
+            // CHECK backstop.
             const answer = await r.json().catch(() => null) as { error?: string } | null;
             return answer?.error === 'Server error' ? 500 : r.status;
         },
@@ -802,6 +803,98 @@ const SCENARIOS: Scenario[] = [
             return (spent <= 2 ? null : `${spent} spends of 200 went through on a 500 balance`)
                 ?? (back.outcome === 'applied' && back.talers === -500 ? null : `chargeback ${back.outcome} ${back.talers}`)
                 ?? changed('Talers', -200 * spent, await talersOf(ctx, w.player.id));
+        },
+    },
+    {
+        id: '5.1', name: 'saw five times at once with logs for two', rounds: 10,
+        run: async (ctx) => {
+            // The shared craft (craftItems): inputs taken and output given as
+            // one locked unit. Two saws fit; the other three must be refused
+            // cleanly, with no server error, and no plank made or lost.
+            const w = await world(ctx);
+            await ctx.seed.row('skills', { name: 'Carpentry' });
+            await ctx.seed.row('workstations', { player_id: w.player.id, location_id: w.town.id, type: 'carpentry' });
+            const logs = await ctx.seed.row('items', { name: 'Poor Lanai Log', type: 'log' });
+            const planks = await ctx.seed.row('items', { name: 'Lanai Planks', type: 'material' });
+            await inPack(ctx, w.player.id, logs.id, 2);
+            const { sawPlanks } = await import('../services/carpentry');
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => sawPlanks(w.player.id, w.town.id, 'lanai_poor')));
+            const ok = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+            const crashed = results.filter((r) => r.status === 'rejected'
+                || (r.status === 'fulfilled' && !r.value.success && r.value.error === 'Server error')).length;
+            return (crashed ? `${crashed} saw(s) hit a server error` : null)
+                ?? changed('logs', 0, await ctx.itemTotal(logs.id))
+                ?? changed('planks', 2, await ctx.itemTotal(planks.id))
+                ?? (ok === 2 ? null : `${ok} saws succeeded`);
+        },
+    },
+    {
+        id: '5.1', name: 'a shop is raised as its granite is dropped', rounds: 20,
+        run: async (ctx, round) => {
+            // Either the shop is built and every material is gone, or there is
+            // no shop and every material still exists. Never a shop with the
+            // materials left over (they used to be taken after the build, by a
+            // helper that skipped anything missing).
+            const w = await world(ctx);
+            await ctx.seed.row('skills', { name: 'Carpentry' });
+            const cost = { 'Lanai Planks': 350, 'Granite Block': 350, 'Ambren Nails': 700 } as Record<string, number>;
+            const ids: Record<string, number> = {};
+            for (const [name, qty] of Object.entries(cost)) {
+                const item = await ctx.seed.row('items', { name, type: 'material' });
+                ids[name] = item.id;
+                await inPack(ctx, w.player.id, item.id, qty);
+            }
+            const mallet = await ctx.seed.row('items', { name: 'Lanai Mallet', type: 'tool', subtype: 'mallet', slot: 'mainhand' });
+            const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand' });
+            await ctx.seed.row('player_equipment', { player_id: w.player.id, mainhand_item_id: mallet.id, offhand_item_id: saw.id });
+            await ctx.warm(w.player.id);
+            const { resolveEstablishShop } = await import('../services/shops');
+            // The build does several reads before it starts writing, so a drop
+            // sent at the same instant always wins. Each round sends it a
+            // little later, sweeping the window where the two overlap; both
+            // outcomes must occur for this to test anything.
+            const [built, dropped] = await Promise.all([
+                resolveEstablishShop(w.player.id),
+                new Promise((r) => setTimeout(r, (round - 1) * 3))
+                    .then(() => ctx.post(w.player.id, '/ground-items/drop', { itemId: ids['Granite Block'], quantity: 350 })),
+            ]);
+            const shop = await ctx.db('player_properties').where({ player_id: w.player.id, type: 'shop' }).first();
+            const left = {} as Record<string, number>;
+            for (const name of Object.keys(cost)) left[name] = await ctx.itemTotal(ids[name]);
+            const allGone = Object.values(left).every((q) => q === 0);
+            const allThere = Object.entries(cost).every(([n, q]) => left[n] === q);
+            return (built.success === !!shop ? null : `resolve said ${built.success} but a shop ${shop ? 'exists' : 'does not exist'}`)
+                ?? (shop ? (allGone ? null : `shop built with materials left: ${JSON.stringify(left)}`)
+                         : (allThere ? null : `no shop, but materials went missing: ${JSON.stringify(left)}`))
+                ?? (!built.success && built.error === 'Server error' ? 'the build hit a server error' : null)
+                ?? noServerErrors([dropped]);
+        },
+    },
+    {
+        id: '5.1', name: 'a field is sown as its seed is dropped', rounds: 20,
+        run: async (ctx) => {
+            // Either the field is growing and the seed is gone, or it is still
+            // tilled and the seed still exists. Never a crop for no seed.
+            const w = await world(ctx);
+            await ctx.seed.row('skills', { name: 'Farming' });
+            const seed = await ctx.seed.row('items', { name: 'Barley Seed', type: 'seed' });
+            const crop = await ctx.seed.row('crops', { name: 'Barley', seed_item_name: 'Barley Seed', grow_seconds: 600 });
+            const property = await ctx.seed.row('player_properties', { player_id: w.player.id, location_id: w.town.id, type: 'farmstead', plot_slots: 1 });
+            const plot = await ctx.seed.row('farm_plots', { property_id: property.id, slot_index: 0, state: 'tilled', soil_state: 'normal', seed_count: 0 });
+            await inPack(ctx, w.player.id, seed.id, 5);
+            await ctx.warm(w.player.id);
+            const { resolveSow } = await import('../services/farming');
+            const [sown, dropped] = await Promise.all([
+                resolveSow(w.player.id, JSON.stringify({ p: plot.id, c: crop.id, n: 5 })),
+                ctx.post(w.player.id, '/ground-items/drop', { itemId: seed.id, quantity: 5 }),
+            ]);
+            const field = await ctx.db('farm_plots').where({ id: plot.id }).first();
+            const seeds = await ctx.itemTotal(seed.id);
+            return (field.state === 'growing' ? (seeds === 0 ? null : `sown, but ${seeds} seed still exist`)
+                                              : (seeds === 5 ? null : `not sown, but only ${seeds} of 5 seed exist`))
+                ?? (sown.success === (field.state === 'growing') ? null : `resolve said ${sown.success}, field is ${field.state}`)
+                ?? (!sown.success && sown.error === 'Server error' ? 'the sow hit a server error' : null)
+                ?? noServerErrors([dropped]);
         },
     },
 ];

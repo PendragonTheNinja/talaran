@@ -5,9 +5,10 @@ import { incrementStats } from './stats';
 import { activeXpForSeconds } from './farming';
 import { missingBuildTool } from './construction';
 import { creditGoldWithin, debitGoldWithin, lockPlayersInOrder } from './gold';
-import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
+import { addItemToInventoryWithin, removeItemFromInventoryWithin, takeItemsWithin } from './inventory';
 import { awardXp as awardSkillXp } from './xp';
 import { pushToPlayer } from '../lib/realtime';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -83,21 +84,6 @@ async function hasMaterials(playerId: number, cost: { itemName: string; qty: num
         if (have < c.qty) missing.push({ itemName: c.itemName, need: c.qty, have });
     }
     return { ok: missing.length === 0, missing };
-}
-
-async function consumeMaterials(playerId: number, cost: { itemName: string; qty: number }[]) {
-    for (const c of cost) {
-        const item = await db('items').where({ name: c.itemName }).first();
-        if (!item) continue;
-        const row = await db('player_inventory')
-            .where({ player_id: playerId, item_id: item.id }).first();
-        if (!row) continue;
-        if (Number(row.quantity) <= c.qty) {
-            await db('player_inventory').where({ id: row.id }).delete();
-        } else {
-            await db('player_inventory').where({ id: row.id }).decrement('quantity', c.qty);
-        }
-    }
 }
 
 // Thin local name over the shared writer in services/xp.ts.
@@ -223,7 +209,15 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
         const player = await db('players').where({ id: playerId }).select('username').first();
         const tier = SHOP_TIERS[1];
 
-        await db.transaction(async (trx) => {
+        const built = await db.transaction(async (trx) => {
+            // The materials are taken FIRST, locked, in the same transaction
+            // that raises the shop (audit §5.1). They used to be taken after it
+            // committed, by a helper that skipped anything missing, so timber
+            // traded away at the wrong moment meant a shop for nothing.
+            const took = await takeItemsWithin(trx, playerId,
+                ESTABLISH_COST.map((c) => ({ name: c.itemName, quantity: c.qty })));
+            if (!took.ok) return false;   // nothing written
+
             // A property with no shopfront is a half-built shop. Reuse it
             // rather than inserting a second: this establish is transactional
             // so it cannot create that state itself, but anything that removed
@@ -257,9 +251,9 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
                 sell_slots: tier.sellSlots,
                 buy_slots: tier.buySlots,
             });
+            return true;
         });
-
-        await consumeMaterials(playerId, ESTABLISH_COST);
+        if (!built) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = Math.round(activeXpForSeconds(carpLvl, ESTABLISH_SECONDS) * ESTABLISH_XP_BONUS);
@@ -275,7 +269,7 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
         };
     } catch (err) {
         logger.error(`resolveEstablishShop error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -406,7 +400,7 @@ export async function createListing(
         });
     } catch (err) {
         logger.error(`createListing error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -469,7 +463,7 @@ export async function cancelListing(playerId: number, listingId: number, quantit
         });
     } catch (err) {
         logger.error(`cancelListing error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -496,7 +490,7 @@ export async function depositBuyFund(playerId: number, amount: number): Promise<
         });
     } catch (err) {
         logger.error(`depositBuyFund error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -528,7 +522,7 @@ export async function withdrawBuyFund(playerId: number, amount: number): Promise
         });
     } catch (err) {
         logger.error(`withdrawBuyFund error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -552,7 +546,7 @@ export async function collectTill(playerId: number): Promise<ShopResult> {
         });
     } catch (err) {
         logger.error(`collectTill error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -612,7 +606,7 @@ export async function createBuyOrder(
         });
     } catch (err) {
         logger.error(`createBuyOrder error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -736,7 +730,7 @@ export async function buyFromShop(
         });
     } catch (err) {
         logger.error(`buyFromShop error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -866,7 +860,7 @@ export async function sellToShop(
         });
     } catch (err) {
         logger.error(`sellToShop error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 

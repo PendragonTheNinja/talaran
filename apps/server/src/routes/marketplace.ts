@@ -26,6 +26,7 @@ import {
     notifyInventoryChanged,
 } from '../services/inventory';
 import { gameDayKey } from '../lib/gameTime';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -334,7 +335,7 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         });
 
         if (!outcome.ok) {
-            res.status(400).json({ error: outcome.error, requote: outcome.requote ?? null });
+            res.status(failureStatus(outcome.error)).json({ error: outcome.error, requote: outcome.requote ?? null });
             return;
         }
 
@@ -426,7 +427,7 @@ router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: R
         });
 
         if (!outcome.ok) {
-            res.status(400).json({ error: outcome.error });
+            res.status(failureStatus(outcome.error)).json({ error: outcome.error });
             return;
         }
 

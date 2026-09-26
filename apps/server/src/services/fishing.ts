@@ -4,6 +4,7 @@ import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { getTimeWindow, getSeason, nextWindowChange, TimeWindow, Season } from '../lib/gameTime';
 import { awardXp } from './xp';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Fishing (docs/fishing-spec.md). Closest sibling is services/foraging.ts: a
 // weighted pick over a pool, with per-player "??? until caught" discovery. The
@@ -323,7 +324,7 @@ export async function convertBaitItem(
         if (err.message === 'NOT_ENOUGH') return { success: false, error: 'You do not have that much to spare.' };
         if (err.message === 'NO_ITEM') return { success: false, error: 'That item does not exist.' };
         logger.error(`convertBaitItem error for player ${playerId}: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -704,7 +705,7 @@ export async function processFishingCast(
             return { success: false, error: 'That fish has no item row. Tell an admin.' };
         }
         logger.error(`Fishing cast error for player ${playerId}: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -806,7 +807,7 @@ export async function processNetHaul(playerId: number, locationId: number): Prom
             return { success: false, error: 'That fish has no item row. Tell an admin.' };
         }
         logger.error(`Net haul error for player ${playerId}: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -904,6 +905,6 @@ export async function processCutBait(playerId: number, speciesName: string): Pro
             return { success: false, error: 'That fish has no item row. Tell an admin.' };
         }
         logger.error(`Cut bait error for player ${playerId}: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }

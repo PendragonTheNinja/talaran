@@ -3,6 +3,7 @@ import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { awardXp } from './xp';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Exploration XP for the first time a player pulls a given item from a given
 // habitat. Flat, because the discovery is the achievement, not the item.
@@ -200,6 +201,6 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         return { success: true, itemName: pick.itemName, quantity: qty, xp: pick.xp, notable: !!pick.notable, firstDiscovery };
     } catch (err) {
         logger.error(`Foraging error for player ${playerId}: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }

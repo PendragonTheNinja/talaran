@@ -5,6 +5,7 @@ import { incrementStats } from './stats';
 import { rollSecondaryDrops } from './drops';
 import { awardXp } from './xp';
 import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
@@ -220,7 +221,7 @@ export async function processMiningRock(
 
   } catch (err) {
     logger.error(`Mining rock error for player ${playerId}: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }
 
@@ -329,7 +330,7 @@ export async function processMiningVein(
 
   } catch (err) {
     logger.error(`Mining vein error for player ${playerId}: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }
 

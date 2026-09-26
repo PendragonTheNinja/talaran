@@ -3,6 +3,7 @@ import { levelFromXp } from './xp'
 import { logger } from '../lib/logger'
 import { incrementStats } from './stats'
 import { awardXp } from './xp';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // ── Tanning (docs/crafting-launch-spec.md) ────────────────────────
 // Crafting's passive tempo. Mirrors the kiln: load a batch, fixed soak, collect.
@@ -86,7 +87,7 @@ export async function setupRack(playerId: number, locationId: number): Promise<{
             return { success: false, error: `You need a ${err.message.slice(8)} to set up a tannery.` }
         }
         logger.error('setupRack error: ' + err)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -173,7 +174,7 @@ export async function loadRack(playerId: number, locationId: number, recipeId: n
         if (err.message?.startsWith('NEED:')) return { success: false, error: `You need ${err.message.slice(5)}.` }
         if (err.message?.startsWith('MISSING_ITEM:')) return { success: false, error: `Required item not found: ${err.message.slice(13)}` }
         logger.error('loadRack error: ' + err)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -244,7 +245,7 @@ export async function collectRack(playerId: number, jobId: number): Promise<{
             return { success: false, error: `Your hides are still soaking. ${err.message.slice(10)} minutes remaining.` }
         }
         logger.error('collectRack error: ' + err)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 

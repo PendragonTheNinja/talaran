@@ -3,6 +3,7 @@ import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { setupRack, loadRack, collectRack, getRackStatus } from '../services/tanning'
 import { logger } from '../lib/logger';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router()
 
@@ -26,7 +27,7 @@ router.post('/setup', requireAuth, async (req: AuthRequest, res: Response) => {
         const player = await db('players').where({ id: playerId }).first()
         const result = await setupRack(playerId, player.current_location_id)
         if (!result.success) {
-            res.status(400).json({ error: result.error })
+            res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
         res.json({ message: 'Your tanning rack is ready.' })
@@ -49,7 +50,7 @@ router.post('/load', requireAuth, async (req: AuthRequest, res: Response) => {
         const player = await db('players').where({ id: playerId }).first()
         const result = await loadRack(playerId, player.current_location_id, recipeId, hideCount)
         if (!result.success) {
-            res.status(400).json({ error: result.error })
+            res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
         res.json({ message: 'Your hides are soaking.', readyAt: result.readyAt })
@@ -76,7 +77,7 @@ router.post('/collect', requireAuth, async (req: AuthRequest, res: Response) => 
         }
         const result = await collectRack(playerId, jobId)
         if (!result.success) {
-            res.status(400).json({ error: result.error })
+            res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
         res.json(result)

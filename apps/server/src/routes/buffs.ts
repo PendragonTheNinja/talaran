@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { applyBuffFromItem, activeBuff } from '../services/buffs';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -65,7 +66,7 @@ router.post('/eat', requireAuth, async (req: AuthRequest, res: Response) => {
         if (!itemName) return res.status(400).json({ error: 'Nothing named.' });
 
         const result = await applyBuffFromItem(playerId, itemName);
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
 
         const buff = await activeBuff(playerId);
 

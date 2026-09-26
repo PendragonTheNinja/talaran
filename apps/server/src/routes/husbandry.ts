@@ -18,6 +18,7 @@ import {
     placeAnimal,
     renameAnimal,
 } from '../services/husbandry';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ function startHandler(
     return async (req: AuthRequest, res: Response) => {
         try {
             const r = await start(req.player!.playerId, ...argsFrom(req));
-            if (!r.ok) { res.status(400).json({ error: r.error }); return; }
+            if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
             res.json({ message, timerSeconds: r.timerSeconds });
         } catch (err: any) {
             if (err?.code === '23505') {
@@ -62,7 +63,7 @@ router.get('/state', requireAuth, async (req: AuthRequest, res: Response) => {
 router.post('/pen-flower/add', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const result = await addPenFlower(req.player!.playerId, Number(req.body.penId), String(req.body.itemName));
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
         res.json({ success: true });
     } catch (err) {
         logger.error(`Add pen flower error: ${err}`);
@@ -73,7 +74,7 @@ router.post('/pen-flower/add', requireAuth, async (req: AuthRequest, res: Respon
 router.post('/pen-flower/remove', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const result = await removePenFlower(req.player!.playerId, Number(req.body.penId), Number(req.body.slotIndex));
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
         res.json({ success: true });
     } catch (err) {
         logger.error(`Remove pen flower error: ${err}`);
@@ -120,7 +121,7 @@ router.post('/tame', requireAuth, botCheckGate,
 router.post('/place', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const r = await placeAnimal(req.player!.playerId, req.body.penId, req.body.speciesId);
-        if (!r.success) { res.status(400).json({ error: r.error }); return; }
+        if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
         res.json({ message: r.message });
     } catch (err) {
         logger.error(`Husbandry place error: ${err}`);
@@ -131,7 +132,7 @@ router.post('/place', requireAuth, async (req: AuthRequest, res: Response) => {
 router.post('/rename', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const r = await renameAnimal(req.player!.playerId, req.body.animalId, req.body.name);
-        if (!r.success) { res.status(400).json({ error: r.error }); return; }
+        if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
         res.json({ message: r.message });
     } catch (err) {
         logger.error(`Husbandry rename error: ${err}`);

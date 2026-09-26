@@ -15,6 +15,7 @@ import {
     cutBaitTimer,
     BAIT_CATEGORIES,
 } from '../services/fishing';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -61,7 +62,7 @@ router.post('/bait/convert', requireAuth, async (req: AuthRequest, res: Response
         }
         const qty = Number.isFinite(Number(quantity)) ? Math.max(1, Math.floor(Number(quantity))) : 1;
         const result = await convertBaitItem(playerId, itemName, qty);
-        if (!result.success) { res.status(400).json({ error: result.error }); return; }
+        if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
         res.json({ ...result, pouch: await getBaitPouch(playerId) });
     } catch (err) {
         logger.error(`Convert bait error: ${err}`);

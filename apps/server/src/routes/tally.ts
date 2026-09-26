@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { tallyReport, buildTallyBoard, shouldShowLocationLink , buyLicence } from '../services/tally';
 import { logger } from '../lib/logger';
+import { failureStatus } from '../lib/serviceResult';
 
 // Tally board (see services/tally.ts). Full path is routes/tally.ts; the service
 // of the same name is services/tally.ts.
@@ -44,7 +45,7 @@ router.post('/licence', requireAuth, async (req: AuthRequest, res: Response) => 
     try {
         const result = await buyLicence(req.player!.playerId);
         if (!result.success) {
-            res.status(400).json({ error: result.error });
+            res.status(failureStatus(result.error)).json({ error: result.error });
             return;
         }
         res.json(result);
@@ -58,7 +59,7 @@ router.post('/build', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const result = await buildTallyBoard(req.player!.playerId);
         if (!result.success) {
-            res.status(400).json({ error: result.error });
+            res.status(failureStatus(result.error)).json({ error: result.error });
             return;
         }
         res.json(result);

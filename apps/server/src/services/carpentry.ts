@@ -5,6 +5,8 @@ import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { rollSecondaryDrops } from './drops';
 import { awardXp } from './xp';
+import { craftItems } from './inventory';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Quest that grants public-bench access at Verdale (created in Step 5).
 const INTRO_QUEST = "The Carpenter's Commission";
@@ -125,31 +127,7 @@ export async function canSawHere(
     return { allowed: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
 }
 
-// ── Shared consume/award helpers ──────────────────────────────────
-
-async function hasIngredients(playerId: number, ingredients: { name: string; quantity: number }[]) {
-    for (const ing of ingredients) {
-        const item = await db('items').where({ name: ing.name }).first();
-        if (!item) return { ok: false, error: `Required item not found: ${ing.name}` };
-        const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-        if (!inv || inv.quantity < ing.quantity) {
-            return { ok: false, error: `You need ${ing.quantity}x ${ing.name}.` };
-        }
-    }
-    return { ok: true as const };
-}
-
-async function consumeIngredients(playerId: number, ingredients: { name: string; quantity: number }[]) {
-    for (const ing of ingredients) {
-        const item = await db('items').where({ name: ing.name }).first();
-        const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-        if (inv.quantity <= ing.quantity) {
-            await db('player_inventory').where({ player_id: playerId, item_id: item.id }).delete();
-        } else {
-            await db('player_inventory').where({ player_id: playerId, item_id: item.id }).decrement('quantity', ing.quantity);
-        }
-    }
-}
+// ── Pack readers for the result (the craft itself is craftItems in inventory.ts) ──
 
 async function ingredientsRemaining(playerId: number, ingredients: { name: string; quantity: number }[]) {
     const out: { name: string; quantity: number }[] = [];
@@ -166,17 +144,6 @@ async function itemTotal(playerId: number, name: string): Promise<number> {
     if (!item) return 0;
     const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
     return inv ? inv.quantity : 0;
-}
-
-async function awardItem(playerId: number, name: string, qty: number) {
-    const item = await db('items').where({ name }).first();
-    if (!item) throw new Error(`awardItem: no item named "${name}"`);
-    const existing = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-    if (existing) {
-        await db('player_inventory').where({ player_id: playerId, item_id: item.id }).increment('quantity', qty);
-    } else {
-        await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
-    }
 }
 
 async function carpentryLevel(playerId: number): Promise<{ skillId: number; level: number }> {
@@ -204,10 +171,9 @@ export async function sawPlanks(
             return { success: false, error: `You need Carpentry level ${recipe.requiredLevel} to saw this wood.` };
         }
 
-        const check = await hasIngredients(playerId, recipe.ingredients);
-        if (!check.ok) return { success: false, error: check.error };
-        await consumeIngredients(playerId, recipe.ingredients);
-        await awardItem(playerId, recipe.output, recipe.outputQuantity);
+        // Inputs taken and output given as one locked unit (audit §5.1).
+        const made = await craftItems(playerId, recipe.ingredients, { name: recipe.output, quantity: recipe.outputQuantity });
+        if (!made.ok) return { success: false, error: made.error };
 
         await updateQuestObjectiveProgress(playerId, 'saw', recipe.output, 1);
 
@@ -223,7 +189,7 @@ export async function sawPlanks(
         return { success: true, itemName: recipe.output, quantity: recipe.outputQuantity, xpAwarded: recipe.xp, ingredientsRemaining: sawRemaining, outputTotal: sawTotal, drops };
     } catch (err) {
         logger.error(`Saw error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -246,10 +212,9 @@ export async function woodwork(
             return { success: false, error: `You need Carpentry level ${recipe.requiredLevel}.` };
         }
 
-        const check = await hasIngredients(playerId, recipe.ingredients);
-        if (!check.ok) return { success: false, error: check.error };
-        await consumeIngredients(playerId, recipe.ingredients);
-        await awardItem(playerId, recipe.output, recipe.outputQuantity);
+        // Inputs taken and output given as one locked unit (audit §5.1).
+        const made = await craftItems(playerId, recipe.ingredients, { name: recipe.output, quantity: recipe.outputQuantity });
+        if (!made.ok) return { success: false, error: made.error };
 
         await updateQuestObjectiveProgress(playerId, 'woodwork', recipe.output, 1);
 
@@ -262,6 +227,6 @@ export async function woodwork(
         return { success: true, itemName: recipe.output, quantity: recipe.outputQuantity, xpAwarded: recipe.xp, ingredientsRemaining: wwRemaining, outputTotal: wwTotal };
     } catch (err) {
         logger.error(`Woodwork error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }

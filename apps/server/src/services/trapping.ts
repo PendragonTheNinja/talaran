@@ -4,6 +4,7 @@ import { logger } from '../lib/logger'
 import { spendBait } from './fishing'
 import { awardXp } from './xp';
 import { incrementStats } from './stats'
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // ── Trapping (docs/trapping-spec.md) ──────────────────────────────
 // Passive hunting mode. Traps are independent of player_actions: they run
@@ -159,7 +160,7 @@ export async function placeTrap(
         if (err.message === 'NO_TRAP_ITEM') return { success: false, error: 'You need that trap in your inventory.' }
         if (err.message === 'NO_BAIT') return { success: false, error: 'You have none of that bait in your pouch.' }
         logger.error('placeTrap error: ' + err)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -251,7 +252,7 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
         if (err.message === 'NOT_YOURS') return { success: false, error: 'That trap is not yours to check.' }
         if (err.message === 'NOTHING_CAUGHT') return { success: false, error: 'Nothing has been caught yet.' }
         logger.error('collectTrap error: ' + err)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
@@ -284,7 +285,7 @@ export async function dismantleTrap(playerId: number, trapId: number): Promise<{
         if (err.message === 'NOT_YOURS') return { success: false, error: 'That trap is not yours.' }
         if (err.message === 'COLLECT_FIRST') return { success: false, error: 'Collect the catch before dismantling.' }
         logger.error('dismantleTrap error: ' + err)
-        return { success: false, error: 'Server error' }
+        return { success: false, error: SERVER_ERROR }
     }
 }
 

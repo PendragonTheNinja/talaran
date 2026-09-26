@@ -39,13 +39,21 @@ export function notifyInventoryChanged(playerId: number): void {
 }
 
 export async function addItemToInventory(playerId: number, itemId: number, quantity: number): Promise<void> {
-    const existing = await db('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
-    if (existing) {
-        await db('player_inventory').where({ id: existing.id }).increment('quantity', quantity);
-    } else {
-        await db('player_inventory').insert({ player_id: playerId, item_id: itemId, quantity });
-    }
+    await upsertStack(db, playerId, itemId, quantity);
     notifyInventoryChanged(playerId);
+}
+
+/**
+ * Add to a stack, creating it if needed, as ONE statement. It was read, then
+ * increment or insert: two first-time adds of the same item both saw no stack,
+ * both inserted, and the second failed on the one-stack-per-item rule
+ * (player_inventory_player_id_item_id_unique). The upsert cannot race.
+ */
+async function upsertStack(q: any, playerId: number, itemId: number, quantity: number): Promise<void> {
+    await q('player_inventory')
+        .insert({ player_id: playerId, item_id: itemId, quantity })
+        .onConflict(['player_id', 'item_id'])
+        .merge({ quantity: q.raw('?? + ??', ['player_inventory.quantity', 'excluded.quantity']) });
 }
 
 /**
@@ -60,16 +68,7 @@ export async function addItemToInventoryWithin(
     itemId: number,
     quantity: number,
 ): Promise<void> {
-    const existing = await trx('player_inventory')
-        .where({ player_id: playerId, item_id: itemId })
-        .forUpdate()
-        .first();
-
-    if (existing) {
-        await trx('player_inventory').where({ id: existing.id }).increment('quantity', quantity);
-    } else {
-        await trx('player_inventory').insert({ player_id: playerId, item_id: itemId, quantity });
-    }
+    await upsertStack(trx, playerId, itemId, quantity);
 }
 
 /**
@@ -96,6 +95,87 @@ export async function removeItemFromInventoryWithin(
         await trx('player_inventory').where({ id: row.id }).decrement('quantity', quantity);
     }
     return true;
+}
+
+/** A named quantity of an item: a recipe input, a build cost. */
+export interface ItemCost {
+    name: string;
+    quantity: number;
+}
+
+/**
+ * Take several named items from a player's pack inside the caller's
+ * transaction: all of them, or none (audit §5.1).
+ *
+ * Every crafting path used to check the pack, then delete or decrement each
+ * input without a lock, then add the output the same way. Two crafts at once
+ * both passed the check, and the second then failed partway (since the
+ * non-negative CHECKs) with some inputs already gone, or (before them) drove a
+ * stack below zero. This:
+ *   - resolves every item name first, so a missing item never costs anything;
+ *   - locks each stack in item-id order, so two takes cannot deadlock;
+ *   - checks every stack under those locks, and only then writes.
+ * On a shortfall it returns { ok: false } having written nothing.
+ */
+export async function takeItemsWithin(
+    trx: any,
+    playerId: number,
+    costs: ItemCost[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    // One entry per item, even if a recipe names it twice.
+    const need = new Map<string, number>();
+    for (const c of costs) need.set(c.name, (need.get(c.name) ?? 0) + c.quantity);
+
+    const items = await trx('items').whereIn('name', [...need.keys()]).select('id', 'name');
+    const byName = new Map<string, { id: number; name: string }>(items.map((i: any) => [i.name, i]));
+    for (const name of need.keys()) {
+        if (!byName.has(name)) return { ok: false, error: `Required item not found: ${name}` };
+    }
+
+    const ordered = [...byName.values()].sort((a, b) => a.id - b.id);
+    const stacks = new Map<number, any>();
+    for (const item of ordered) {
+        const row = await trx('player_inventory')
+            .where({ player_id: playerId, item_id: item.id })
+            .forUpdate()
+            .first();
+        const qty = need.get(item.name)!;
+        if (!row || Number(row.quantity) < qty) return { ok: false, error: `You need ${qty}x ${item.name}.` };
+        stacks.set(item.id, row);
+    }
+
+    for (const item of ordered) {
+        const row = stacks.get(item.id);
+        const qty = need.get(item.name)!;
+        if (Number(row.quantity) === qty) {
+            await trx('player_inventory').where({ id: row.id }).delete();
+        } else {
+            await trx('player_inventory').where({ id: row.id }).decrement('quantity', qty);
+        }
+    }
+    return { ok: true };
+}
+
+/**
+ * Turn inputs into an output as one unit: the output item is resolved before
+ * anything is taken, then the inputs are taken and the output given in a single
+ * transaction. Either the craft happens whole or nothing changes. Does not
+ * emit; callers report the result themselves.
+ */
+export async function craftItems(
+    playerId: number,
+    inputs: ItemCost[],
+    output: ItemCost,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    const outputItem = await db('items').where({ name: output.name }).first();
+    if (!outputItem) return { ok: false, error: `Output item not found: ${output.name}` };
+
+    return db.transaction(async (trx) => {
+        const took = await takeItemsWithin(trx, playerId, inputs);
+        if (!took.ok) return took;   // nothing was written
+        await upsertStack(trx, playerId, outputItem.id, output.quantity);
+        return { ok: true as const };
+    });
 }
 
 /**

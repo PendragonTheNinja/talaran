@@ -103,6 +103,7 @@ app.use('/api', (req, res, next) => {
 
 import cors from 'express';
 import { logBalanceChecksAtStartup } from './services/balanceChecks';
+import { SERVER_ERROR } from './lib/serviceResult';
 
 // Audit finding 5: this reflected whatever origin asked, making every website
 // an allowed origin. Mirrors the allow-list the socket server already uses.
@@ -219,6 +220,24 @@ app.use('/api/tanning', tanningRoutes);
 app.use('/api/trapping', trappingRoutes);
 app.use('/api/fishing', fishingRoutes);
 app.use('/api/loot-log', lootLogRoutes);
+
+// The last word on any error a route did not answer itself (audit §15, found
+// item 3). Express 5 forwards a rejected async handler here; without this its
+// default handler answered with an HTML page, which the client cannot read (the
+// player saw "Request failed: 500") and which carries a stack trace wherever
+// NODE_ENV is not "production". Errors Express marks as the client's (a body
+// that is not JSON, or too large) keep their 4xx; everything else is logged and
+// answered as a server error.
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (res.headersSent) return next(err);
+  const status = Number(err?.status ?? err?.statusCode);
+  if (status >= 400 && status < 500) {
+    res.status(status).json({ error: status === 413 ? 'Request too large' : 'Bad request' });
+    return;
+  }
+  logger.error(`Unhandled error on ${req.method} ${req.originalUrl}: ${err?.stack ?? err}`);
+  res.status(500).json({ error: SERVER_ERROR });
+});
 
 // Socket.io.
 //

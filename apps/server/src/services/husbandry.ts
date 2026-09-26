@@ -10,6 +10,7 @@ import { updateQuestObjectiveProgress } from '../routes/quests';
 import { isLiquid, canFill, addLiquid, liquidState } from './liquids';
 import { missingBuildTool as sharedMissingBuildTool } from './construction';
 import { awardXp as awardSkillXp } from './xp';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
 // beside the fields, then stocked with animals found in the wild: feed → collect
@@ -919,7 +920,7 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
         if (err?.message?.startsWith('NO_TOOL:')) return { success: false, error: err.message.slice('NO_TOOL:'.length) };
         if (err?.message === 'SHORT_MATERIALS') return { success: false, error: 'You no longer have the materials.' };
         logger.error(`resolveBuildPen error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1073,7 +1074,7 @@ export async function resolveDemolishPen(playerId: number, penIdRaw: string | nu
         if (m === 'OCCUPIED') return { success: false, error: 'Move the animals out before you pull it down.' };
         if (m === 'NO_SKEP') return { success: false, error: 'You have no empty skep to coax them into.' };
         logger.error(`resolveDemolishPen error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1155,7 +1156,7 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
         if (m.startsWith('NO_BABY:')) return { success: false, error: `You have no ${m.slice('NO_BABY:'.length)}.` };
         if (m === 'SHORT_MATERIALS') return { success: false, error: 'You no longer have that animal.' };
         logger.error(`placeAnimal error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1252,7 +1253,7 @@ export async function resolveFeed(playerId: number, penIdRaw: string | null): Pr
         if (m.startsWith('SHORT_FEED:')) return { success: false, error: `You no longer have enough ${m.slice('SHORT_FEED:'.length)}.` };
         if (m === 'SHORT_MATERIALS') return { success: false, error: 'You no longer have enough feed.' };
         logger.error(`resolveFeed error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1443,7 +1444,7 @@ export async function resolveFeedAll(playerId: number): Promise<HusbandryActionR
             return { success: false, error: item ? `You have no ${item} to feed with.` : 'You have nothing to feed them with.' };
         }
         logger.error(`resolveFeedAll error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1525,7 +1526,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
         if (m === 'ALL_CLEAN') return { success: false, error: 'No pen needs mucking out yet.' };
         if (m === 'NO_BEDDING') return { success: false, error: `You have no ${BEDDING.itemName} for fresh bedding.` };
         logger.error(`resolveMuckAll error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1613,7 +1614,7 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
         if (m === 'NOT_DUE') return { success: false, error: 'The bedding is still clean.' };
         if (m.startsWith('NO_BEDDING:')) return { success: false, error: `You no longer have enough ${m.slice('NO_BEDDING:'.length)}.` };
         logger.error(`resolveMuck error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1658,7 +1659,7 @@ export async function addPenFlower(
         if (m === 'FULL') return { ok: false, error: 'That apiary has all the flowers it can hold.' };
         if (m === 'NONE') return { ok: false, error: `You have no ${itemName.toLowerCase()}.` };
         logger.error(`addPenFlower error: ${err}`);
-        return { ok: false, error: 'Server error' };
+        return { ok: false, error: SERVER_ERROR };
     }
 }
 
@@ -1690,7 +1691,7 @@ export async function removePenFlower(
         const m = String(err?.message ?? err);
         if (m === 'EMPTY') return { ok: false, error: 'There is nothing in that spot.' };
         logger.error(`removePenFlower error: ${err}`);
-        return { ok: false, error: 'Server error' };
+        return { ok: false, error: SERVER_ERROR };
     }
 }
 
@@ -1830,7 +1831,7 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
         if (m.startsWith('NOT_READY:')) return { success: false, error: `${m.slice('NOT_READY:'.length)} has nothing for you yet.` };
         if (m === 'NO_ROOM') return { success: false, error: 'You have nowhere to put it — you need an empty Lanai Bucket.' };
         logger.error(`resolveCollect error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -1956,7 +1957,7 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
         if (m === 'NO_PRODUCT') return { success: false, error: 'There is nothing to collect from them.' };
         if (m === 'NOT_READY') return { success: false, error: 'Nothing is ready yet.' };
         logger.error(`resolveCollectAll error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -2041,7 +2042,7 @@ export async function resolveSlaughter(playerId: number, animalIdRaw: string | n
         if (m === 'IS_MOUNT') return { success: false, error: 'That is a riding animal.' };
         if (m.startsWith('JUVENILE:')) return { success: false, error: `${m.slice('JUVENILE:'.length)} is not grown yet.` };
         logger.error(`resolveSlaughter error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -2143,7 +2144,7 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
         if (m === 'IS_MOUNT') return { success: false, error: 'Those are riding animals.' };
         if (m === 'NONE_GROWN') return { success: false, error: 'None of them are grown yet.' };
         logger.error(`resolveSlaughterAll error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 
@@ -2213,7 +2214,7 @@ export async function resolveTame(playerId: number, animalIdRaw: string | null):
         if (m === 'NOT_MOUNT') return { success: false, error: 'That animal was not raised to be ridden.' };
         if (m.startsWith('JUVENILE:')) return { success: false, error: `${m.slice('JUVENILE:'.length)} is not grown yet.` };
         logger.error(`resolveTame error: ${err}`);
-        return { success: false, error: 'Server error' };
+        return { success: false, error: SERVER_ERROR };
     }
 }
 

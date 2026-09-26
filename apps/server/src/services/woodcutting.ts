@@ -6,6 +6,7 @@ import { rollSecondaryDrops, SecondaryDrop } from './drops';
 import { addItemToInventoryWithin } from './inventory';
 import { timerCut } from './buffs';
 import { awardXp } from './xp';
+import { SERVER_ERROR } from '../lib/serviceResult';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -298,6 +299,6 @@ export async function processWoodcuttingAction(
 
   } catch (err) {
     logger.error(`Woodcutting error for player ${playerId}: ${err}`);
-    return { success: false, error: 'Server error' };
+    return { success: false, error: SERVER_ERROR };
   }
 }

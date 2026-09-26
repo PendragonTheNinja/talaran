@@ -15,6 +15,7 @@ import {
     HEARTH_LOCATION,
 } from '../services/workstations';
 import { BUILD_MALLET } from '../services/construction';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -54,7 +55,7 @@ async function loadStation(playerId: number, locationId: number, type: string) {
 router.post('/hearth', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const result = await startBuildHearth(req.player!.playerId);
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
         res.json({ message: 'Setting stone', timerSeconds: result.timerSeconds });
     } catch (err) {
         logger.error(`Build hearth error: ${err}`);
@@ -103,7 +104,7 @@ router.post('/campfire', requireAuth, async (req: AuthRequest, res: Response) =>
         if (!logName) return res.status(400).json({ error: 'Nothing named.' });
 
         const result = await lightCampfire(playerId, player.current_location_id, logName);
-        if (!result.ok) return res.status(400).json({ error: result.error });
+        if (!result.ok) return res.status(failureStatus(result.error)).json({ error: result.error });
 
         res.json({
             success: true,
@@ -157,7 +158,7 @@ router.post('/:type/socket', requireAuth, async (req: AuthRequest, res: Response
             String(slot),
             String(itemName),
         );
-        if (!result.success) return res.status(400).json({ error: result.error });
+        if (!result.success) return res.status(failureStatus(result.error)).json({ error: result.error });
 
         res.json({
             success: true,
@@ -192,7 +193,7 @@ router.post('/:type/unsocket', requireAuth, async (req: AuthRequest, res: Respon
             String(slot),
             Number(slotIndex ?? 0),
         );
-        if (!result.success) return res.status(400).json({ error: result.error });
+        if (!result.success) return res.status(failureStatus(result.error)).json({ error: result.error });
 
         res.json({
             success: true,

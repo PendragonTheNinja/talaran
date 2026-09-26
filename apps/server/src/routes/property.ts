@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { getStorage, getCarried, depositItem, withdrawItem } from '../services/property';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -20,14 +21,14 @@ router.get('/storage', requireAuth, async (req: AuthRequest, res: Response) => {
 router.post('/storage/deposit', requireAuth, async (req: AuthRequest, res: Response) => {
     const { itemId, quantity } = req.body;
     const r = await depositItem(req.player!.playerId, itemId, quantity);
-    if (!r.success) { res.status(400).json({ error: r.error }); return; }
+    if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json(r);
 });
 
 router.post('/storage/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
     const { itemId, quantity } = req.body;
     const r = await withdrawItem(req.player!.playerId, itemId, quantity);
-    if (!r.success) { res.status(400).json({ error: r.error }); return; }
+    if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json(r);
 });
 

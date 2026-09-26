@@ -5,6 +5,7 @@ import { getPlayerTraps, placeTrap, collectTrap, dismantleTrap, trapSlotsForLeve
 import { convertibleBait } from '../services/fishing'
 import { levelFromXp } from '../services/xp'
 import { logger } from '../lib/logger';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router()
 
@@ -77,7 +78,7 @@ router.post('/place', requireAuth, async (req: AuthRequest, res: Response) => {
             typeof bait === 'string' && bait ? bait : null,
         )
         if (!result.success) {
-            res.status(400).json({ error: result.error })
+            res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
         res.json({ message: 'Trap placed.' })
@@ -105,7 +106,7 @@ router.post('/collect', requireAuth, async (req: AuthRequest, res: Response) => 
 
         const result = await collectTrap(playerId, trapId)
         if (!result.success) {
-            res.status(400).json({ error: result.error })
+            res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
         res.json(result)
@@ -133,7 +134,7 @@ router.post('/dismantle', requireAuth, async (req: AuthRequest, res: Response) =
 
         const result = await dismantleTrap(playerId, trapId)
         if (!result.success) {
-            res.status(400).json({ error: result.error })
+            res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
         res.json({ message: `${result.itemName} recovered.` })
