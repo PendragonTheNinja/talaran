@@ -14,6 +14,7 @@ import { apiFetch } from './api'
  */
 
 export interface ItemDetail {
+    id: number
     name: string
     type: string | null
     subtype: string | null

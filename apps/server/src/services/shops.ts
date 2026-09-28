@@ -562,6 +562,12 @@ export async function createBuyOrder(
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'Invalid quantity.' };
     if (!Number.isFinite(price) || price <= 0) return { success: false, error: 'Offer at least 1g.' };
 
+    // Only an item that is in the game can be wanted. The picker offers every
+    // active item; the server holds the rule itself, because a request can be
+    // sent without the picker.
+    const item = await db('items').where({ id: itemId, is_active: true }).first();
+    if (!item) return { success: false, error: 'That item cannot be ordered.' };
+
     try {
         return await db.transaction(async (trx) => {
             await trx('player_shops').where({ id: found.shop.id }).forUpdate().first();

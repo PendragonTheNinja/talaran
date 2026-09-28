@@ -605,9 +605,18 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
             pen,
             pen.pen_type === 'apiary' ? await penFlowerCount(pen.id) : 0,
         );
-        const fed = pen.fed_until && new Date(pen.fed_until).getTime() > now;
-        const needsMuck = pen.muck_due_at && new Date(pen.muck_due_at).getTime() <= now;
-        const head = `${animals.length} ${species.name}${animals.length === 1 ? '' : 's'}`;
+        // A hive is never fed or mucked (see isApiary), so it is never halted
+        // for either. The Tally Board used to check both for every pen, and a
+        // hive's fed_until is never set, so bees always read "hungry, nothing
+        // growing".
+        const apiary = isApiary(pen.pen_type);
+        const fed = apiary || (pen.fed_until && new Date(pen.fed_until).getTime() > now);
+        const needsMuck = !apiary && pen.muck_due_at && new Date(pen.muck_due_at).getTime() <= now;
+        // Counted as the game calls them: hives, not "Bees" (the species name
+        // is already plural, so adding an s read "Beess").
+        const head = apiary
+            ? `${animals.length} ${animals.length === 1 ? 'hive' : 'hives'}`
+            : `${animals.length} ${species.name}${animals.length === 1 ? '' : 's'}`;
 
         // A halted pen is idle, not working: nothing accrues until it is fixed,
         // and telling the player which of the two is wrong saves a journey.
@@ -1126,8 +1135,11 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
 
             const patch: any = {};
             if (!pen.species_id) patch.species_id = species.id;
-            // First head in an unmucked pen starts the muck clock.
-            if (!pen.muck_due_at) patch.muck_due_at = new Date(Date.now() + MUCK_INTERVAL * 1000);
+            // First head in an unmucked pen starts the muck clock. Never for a
+            // hive: bees keep their own hive clean. This used to run for an
+            // apiary too, so a day after its first skep went in, the hive
+            // "needed mucking" on the Tally Board.
+            if (!pen.muck_due_at && !isApiary(pen.pen_type)) patch.muck_due_at = new Date(Date.now() + MUCK_INTERVAL * 1000);
             if (Object.keys(patch).length) await trx('player_pens').where({ id: pen.id }).update(patch);
 
             await updateQuestObjectiveProgress(playerId, 'place_animal', species.name, 1);
@@ -1534,6 +1546,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
 export async function startMuck(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     const pen = await ownedPen(playerId, penId);
     if (!pen) return { ok: false, error: 'That is not your pen.' };
+    if (isApiary(pen.pen_type)) return { ok: false, error: 'Bees keep their own hive clean. It never needs mucking.' };
     if (!(await equippedTool(playerId, 'fork'))) return { ok: false, error: 'You need a Mucking Fork equipped.' };
 
     const head = await db('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
@@ -1568,6 +1581,7 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
         await db.transaction(async (trx) => {
             const pen = await ownedPen(playerId, penIdRaw ? parseInt(penIdRaw) : 0, trx);
             if (!pen) throw new Error('NOT_YOURS');
+            if (isApiary(pen.pen_type)) throw new Error('APIARY');
             await trx('player_pens').where({ id: pen.id }).forUpdate().first();
 
             const animals = await accrueAllInPen(pen, trx);
@@ -1612,6 +1626,7 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
         if (m === 'NOT_YOURS') return { success: false, error: 'That is not your pen.' };
         if (m === 'EMPTY_PEN') return { success: false, error: 'An empty pen needs no mucking.' };
         if (m === 'NOT_DUE') return { success: false, error: 'The bedding is still clean.' };
+        if (m === 'APIARY') return { success: false, error: 'Bees keep their own hive clean. It never needs mucking.' };
         if (m.startsWith('NO_BEDDING:')) return { success: false, error: `You no longer have enough ${m.slice('NO_BEDDING:'.length)}.` };
         logger.error(`resolveMuck error: ${err}`);
         return { success: false, error: SERVER_ERROR };

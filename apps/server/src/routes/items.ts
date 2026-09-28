@@ -30,6 +30,9 @@ router.get('/tooltips', requireAuth, async (_req: AuthRequest, res: Response) =>
             const rows = await db('items')
                 .where({ is_active: true })
                 .select(
+                    // id too: the shop's "Wanted" picker offers every active
+                    // item from this list and posts the order by id.
+                    'id',
                     'name',
                     'type',
                     'subtype',

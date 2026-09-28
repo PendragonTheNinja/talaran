@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './MyShopMenu.css'
 import { useItemTooltip } from './ItemTooltip'
+import { loadItemDetails, type ItemDetail } from '../lib/itemDetails'
 
 // The owner's side of a player shop (docs/marketplace-spec.md §4).
 //
@@ -98,6 +99,15 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
     const [descDraft, setDescDraft] = useState('')
     const [listDraft, setListDraft] = useState<{ itemId: string; qty: string; price: string }>({ itemId: '', qty: '', price: '' })
     const [orderDraft, setOrderDraft] = useState<{ itemId: string; qty: string; price: string }>({ itemId: '', qty: '', price: '' })
+    // Every active item in the game, for the Wanted picker. It used to offer
+    // only what was in the shop's storage or the owner's pack, so anything they
+    // did not already hold (a Skep of Bees, say) could never be asked for.
+    const [catalogue, setCatalogue] = useState<ItemDetail[]>([])
+    const [orderSearch, setOrderSearch] = useState('')
+    const orderFormRef = useRef<HTMLDivElement | null>(null)
+    useEffect(() => {
+        loadItemDetails().then(map => setCatalogue([...map.values()].sort((a, b) => a.name.localeCompare(b.name))))
+    }, [])
     const [fundAmount, setFundAmount] = useState('')
     // Kept as text so the box can be cleared and retyped; only valid values move.
     const [amountText, setAmountText] = useState('1')
@@ -518,18 +528,25 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                             The gold is held out of your buying fund until someone fills the order.
                         </p>
 
-                        {orderSlotsLeft > 0 && storage && (
-                            <div className="msh-money-row">
+                        {(orderSlotsLeft > 0 || shop.buyOrders.some(o => String(o.itemId) === orderDraft.itemId)) && (
+                            <div className="msh-money-row" ref={orderFormRef}>
+                                <input
+                                    className="msh-input"
+                                    type="search"
+                                    value={orderSearch}
+                                    placeholder="Search items…"
+                                    onChange={e => setOrderSearch(e.target.value)}
+                                />
                                 <select
                                     className="msh-input"
                                     value={orderDraft.itemId}
                                     onChange={e => setOrderDraft({ ...orderDraft, itemId: e.target.value })}
                                 >
                                     <option value="">Choose an item…</option>
-                                    {[...storage.items, ...storage.carried]
-                                        .filter((i, idx, arr) => arr.findIndex(x => x.itemId === i.itemId) === idx)
-                                        .sort((a, b) => a.name.localeCompare(b.name))
-                                        .map(i => <option key={i.itemId} value={i.itemId}>{i.name}</option>)}
+                                    {catalogue
+                                        .filter(i => String(i.id) === orderDraft.itemId
+                                            || i.name.toLowerCase().includes(orderSearch.trim().toLowerCase()))
+                                        .map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                                 </select>
                                 <input
                                     className="msh-input msh-input-short"
@@ -559,7 +576,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                         if (ok) setOrderDraft({ itemId: '', qty: '', price: '' })
                                     }}
                                 >
-                                    Post
+                                    {shop.buyOrders.some(o => String(o.itemId) === orderDraft.itemId) ? 'Update' : 'Post'}
                                 </button>
                             </div>
                         )}
@@ -578,6 +595,19 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                                 </span>
                                             </div>
                                             <span className="msh-row-price">{fmt(o.unitPrice)}g ea</span>
+                                            {/* Posting an order for an item already wanted updates it
+                                                in place, so editing is filling the form with it. */}
+                                            <button
+                                                className="msh-cancel"
+                                                disabled={busy || !shop.atShop}
+                                                onClick={() => {
+                                                    setOrderSearch('')
+                                                    setOrderDraft({ itemId: String(o.itemId), qty: String(o.wanted), price: String(o.unitPrice) })
+                                                    orderFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                                }}
+                                            >
+                                                Edit
+                                            </button>
                                             <button
                                                 className="msh-cancel"
                                                 disabled={busy || !shop.atShop}

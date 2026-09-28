@@ -93,6 +93,15 @@
   width: 100%;
   max-width: 500px;
   padding: 0 var(--space-lg);
+  /* Never taller than the scene. Centred as it is, content taller than the
+     scene (a result with several drops, on a phone) used to run past both its
+     top and bottom edges. Now it stays inside and scrolls there; when it fits,
+     nothing changes. */
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .scene-action-text {
