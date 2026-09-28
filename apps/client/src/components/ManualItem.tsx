@@ -45,6 +45,21 @@ const sentence = (v: string) => v.charAt(0).toUpperCase() + v.slice(1)
  * large enough to actually see, since for a lot of items the art is the first
  * thing that tells you what it is.
  */
+/**
+ * An item's kind in plain words: its type ("Food", "Tool"), plus its subtype
+ * only when that says something the name does not ("Food · cooked fish" for
+ * Cooked Tiddle; just "Ore" for Ambren Ore, whose subtype is "ambren"). This
+ * printed the raw codes, subtype then type: "Cooked_fish food".
+ */
+function kindOf(page: { name: string; type: string; subtype: string | null }): string {
+    const words = (code: string) => code.replace(/_/g, ' ').trim().toLowerCase()
+    const type = words(page.type)
+    const kind = type.charAt(0).toUpperCase() + type.slice(1)
+    const sub = page.subtype ? words(page.subtype) : ''
+    if (!sub || sub === type || page.name.toLowerCase().includes(sub)) return kind
+    return `${kind} · ${sub}`
+}
+
 export default function ManualItem({
     name,
     onNavigate,
@@ -94,7 +109,7 @@ export default function ManualItem({
     // Facts worth stating. A row that would only say "none" is left out rather
     // than printed empty, which is what makes a short entry look deliberate.
     const facts: [string, string][] = []
-    facts.push(['Kind', page.subtype ? `${sentence(page.subtype)} ${page.type}` : sentence(page.type)])
+    facts.push(['Kind', kindOf(page)])
     if (page.quality) facts.push(['Grade', sentence(page.quality)])
     if (page.tier) facts.push(['Tier', String(page.tier)])
     if (page.slot) facts.push(['Worn', SLOT_WORDS[page.slot] || sentence(page.slot)])

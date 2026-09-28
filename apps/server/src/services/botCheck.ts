@@ -24,7 +24,7 @@ export function isBotCheckDue(player: any, now: Date = new Date()): boolean {
 // Generate a fresh question, store the expected answer on the player, and emit it.
 // Does NOT touch last_bot_check — that only advances when the player passes.
 /** Each addend runs 1 to this. Both together top out at twice it. */
-export const BOT_CHECK_MAX_ADDEND = 50;
+export const BOT_CHECK_MAX_ADDEND = 20;
 
 export async function issueBotCheck(playerId: number): Promise<{ a: number; b: number }> {
     const a = Math.floor(Math.random() * BOT_CHECK_MAX_ADDEND) + 1;

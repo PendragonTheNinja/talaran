@@ -24,8 +24,8 @@ export interface ChatMessage {
 export const CHANNEL_COLORS: Record<string, string> = {
     world: '#ffb96f',
     region: '#a8a8a8',
-    guild: '#F74B07',
-    trade: '#ae00ff',
+    guild: '#ff6b30',
+    trade: '#ce79ff',
     help: '#ECFF00',
     whisper: '#08f8d0',
     server: '#ff4444',

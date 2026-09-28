@@ -1,5 +1,6 @@
 import db from '../db';
 import { codeSources, codeUses } from './itemUsageCode';
+import { buyPrice } from './marketplace';
 
 // Item pages.
 //
@@ -352,6 +353,29 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
                 link: SKILL_PAGE[r.skill],
             });
         }
+
+        // Made on the side by a recipe for something else. Straw has come from
+        // threshing this way since 2026-08-29, but only a recipe's main output
+        // was ever listed, so its page showed nothing but a quest and players
+        // took straw to be gone.
+        if (r.byproduct_item_name && Number(r.byproduct_qty) > 0
+            && String(r.byproduct_item_name).toLowerCase() === name.toLowerCase()) {
+            const inputs = asArray(r.inputs).map((i: any) => ({
+                name: String(i.itemName ?? i.name),
+                qty: Number(i.qty ?? i.quantity ?? 1),
+            }));
+            sources.push({
+                kind: r.skill,
+                from: r.name,
+                where: r.station ? r.station.charAt(0).toUpperCase() + r.station.slice(1) : undefined,
+                detail: [
+                    `Level ${r.required_level}`,
+                    `By-product: ${r.byproduct_qty} with every ${r.output_qty} ${r.output_item_name}`,
+                ].join(' · '),
+                inputs: inputs.length ? inputs : undefined,
+                link: SKILL_PAGE[r.skill],
+            });
+        }
     }
 
     // Caught. fish_species.item_name is the item; name is the species label.
@@ -498,7 +522,10 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             kind: 'Merchant',
             from: m.merchant,
             where: m.where || undefined,
-            detail: item.value ? `${item.value} gold` : undefined,
+            // What the merchant actually charges: buyPrice, the function the
+            // merchant's own stock uses. This printed the item's bare value,
+            // so the Manual quoted 74 for gloves Tessa sells for 128.
+            detail: item.value ? `${buyPrice(Number(item.value))} gold` : undefined,
             link: 'systems/the-marketplace',
         });
     }

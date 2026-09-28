@@ -23,11 +23,14 @@ const EMPTY: Results = { pages: [], tables: [], items: [] }
 export default function ManualSearch({
     onOpenPage,
     onOpenItem,
+    initialQuery = '',
 }: {
     onOpenPage: (section: string, slug: string) => void
     onOpenItem: (name: string) => void
+    /** What was typed in the sidebar box when it handed the search over. */
+    initialQuery?: string
 }) {
-    const [query, setQuery] = useState('')
+    const [query, setQuery] = useState(initialQuery)
     const [results, setResults] = useState<Results>(EMPTY)
     const [busy, setBusy] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)

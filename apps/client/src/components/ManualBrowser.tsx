@@ -67,6 +67,9 @@ export default function ManualBrowser({
 
     const [query, setQuery] = useState('')
     const [hits, setHits] = useState<SearchHit[]>([])
+    // Handed to the full Search page, so it opens already searching. It also
+    // keys that page, so a second hand-off restarts it with the new words.
+    const [searchSeed, setSearchSeed] = useState('')
     const [navOpen, setNavOpen] = useState(false)
 
     // Where you were before. Following a cross-reference and wanting to come
@@ -248,6 +251,23 @@ export default function ManualBrowser({
                     />
                 </div>
 
+                {/* This box finds Manual PAGES; items and tables are on the Search
+                    page. Players searched here for an item, got nothing, and took
+                    the item to be gone (Straw), so it hands the search on. */}
+                {query.trim().length >= 2 && (
+                    <button
+                        className="manual-search-hit manual-search-handoff"
+                        onClick={() => {
+                            setSearchSeed(query.trim())
+                            setQuery('')
+                            setHits([])
+                            go('search', 'all')
+                        }}
+                    >
+                        <span className="manual-search-hit-title">Search items and tables for “{query.trim()}” ›</span>
+                    </button>
+                )}
+
                 {hits.length > 0 ? (
                     <div className="manual-search-results">
                         <p className="manual-nav-label">
@@ -266,7 +286,7 @@ export default function ManualBrowser({
                         ))}
                     </div>
                 ) : query.trim().length >= 2 ? (
-                    <p className="manual-nav-empty">Nothing found for “{query}”.</p>
+                    <p className="manual-nav-empty">No page mentions “{query}”.</p>
                 ) : (
                     <nav className="manual-nav-tree">
                         <button
@@ -335,6 +355,8 @@ export default function ManualBrowser({
                             <p className="manual-breadcrumb">Search</p>
                         </div>
                         <ManualSearch
+                            key={searchSeed}
+                            initialQuery={searchSeed}
                             onOpenPage={(sec, sl) => go(sec, sl)}
                             onOpenItem={openItem}
                         />

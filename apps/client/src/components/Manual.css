@@ -1514,3 +1514,10 @@
     border-bottom-style: solid;
     border-bottom-color: var(--color-gold, #c8922a);
 }
+
+/* "Search items and tables for …": the sidebar box handing a search to the
+   full Search page. Set apart from the page hits it sits above. */
+.manual-search-handoff {
+    margin-bottom: var(--space-sm, 8px);
+    border: 1px dashed var(--color-border-gold);
+}
