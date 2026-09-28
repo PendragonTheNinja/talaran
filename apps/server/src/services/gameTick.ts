@@ -16,7 +16,7 @@ import {
 } from './husbandry';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { buffTimerBonus } from './buffs';
-import { processMiningRock, processMiningVein, checkVeinAnnouncements } from './mining';
+import { processMiningRock, processMiningVein, checkVeinAnnouncements, veinNode } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
@@ -1128,10 +1128,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         .first();
       const playerLevel = levelFromXp(playerSkillRow?.xp ? parseInt(playerSkillRow.xp) : 0);
       const oreItem = await db('items').where({ id: vein.ore_item_id }).first()
-      const oreNode = await db('resource_nodes')
-        .where({ location_id: action.location_id, skill: 'mining' })
-        .whereNotNull('ore_subtype')
-        .first();
+      const oreNode = await veinNode(action.location_id, vein.ore_item_id);
 
       const baseTimer = oreNode?.base_timer || 28;
       const minTimer = oreNode?.min_timer || 25;

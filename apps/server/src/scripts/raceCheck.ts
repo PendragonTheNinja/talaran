@@ -897,6 +897,33 @@ const SCENARIOS: Scenario[] = [
                 ?? noServerErrors([dropped]);
         },
     },
+    {
+        id: 'mine', name: "five miners take a vein's last ore at once", rounds: 10,
+        run: async (ctx) => {
+            // One ore left. Exactly one miner may get it and the vein must end
+            // depleted; the count used to be read, then written back minus one.
+            const w = await world(ctx);
+            const mining = await ctx.seed.row('skills', { name: 'Mining' });
+            const pick = await ctx.seed.row('items', { name: 'Ambren Pickaxe', type: 'tool', subtype: 'pickaxe', slot: 'mainhand', tier: 1 });
+            const ore = await ctx.seed.row('items', { name: 'Ambren Ore', type: 'ore', subtype: 'ambren', level_required: 1, tier: 1 });
+            const vein = await ctx.seed.row('ore_veins', { location_id: w.town.id, ore_item_id: ore.id, remaining_quantity: 1, is_depleted: false });
+            const miners = [w.player];
+            for (let i = 0; i < 4; i++) miners.push(await ctx.seed.row('players', { username: `Miner${i}`, email: `miner${i}@racecheck.test`, current_location_id: w.town.id }));
+            for (const m of miners) {
+                await ctx.seed.row('player_skills', { player_id: m.id, skill_id: mining.id, xp: 0 });
+                await ctx.seed.row('player_equipment', { player_id: m.id, mainhand_item_id: pick.id });
+            }
+            const { processMiningVein } = await import('../services/mining');
+            const results = await Promise.allSettled(miners.map((m) => processMiningVein(m.id, vein.id)));
+            const got = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+            const crashed = results.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success && r.value.error === 'Server error')).length;
+            const after = await ctx.db('ore_veins').where({ id: vein.id }).first();
+            return changed('ore mined from a one-ore vein', 1, await ctx.itemTotal(ore.id))
+                ?? (got === 1 ? null : `${got} miners were told they got it`)
+                ?? (after.is_depleted && Number(after.remaining_quantity) === 0 ? null : `vein left at ${after.remaining_quantity}, depleted=${after.is_depleted}`)
+                ?? (crashed ? `${crashed} swing(s) hit a server error` : null);
+        },
+    },
 ];
 
 main().catch((err) => {

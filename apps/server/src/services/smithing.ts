@@ -306,7 +306,9 @@ export async function smeltIngots(
 
     // Track quest progress
     const { updateQuestObjectiveProgress } = await import('../routes/quests');
-    await updateQuestObjectiveProgress(playerId, 'smelt', 'Ambren Ingot', 1);
+    // The recipe's own output: this said 'Ambren Ingot' whatever was smelted,
+    // so the first new metal would have counted as Ambren.
+    await updateQuestObjectiveProgress(playerId, 'smelt', recipe.output, 1);
 
     // Award XP
     await awardXp(playerId, smithingSkill.id, recipe.xp);
@@ -407,6 +409,14 @@ interface SmeltRecipe {
   requiredLevel: number;
   xp: number;
   timer: number;
+  /**
+   * A bonus path: better than the ordinary recipe for the same output, and
+   * only open to some players (dense ore comes from mining well above an ore's
+   * level). scripts/deriveValues.ts prices items by their CHEAPEST recipe, so
+   * a bonus recipe must be left out of that or it drags the output's value
+   * down for everyone.
+   */
+  bonus?: boolean;
 }
 
 interface SmithRecipe {
@@ -432,6 +442,27 @@ export const SMELT_RECIPES: Record<string, SmeltRecipe> = {
     requiredLevel: 1,
     xp: 30,
     timer: 45,
+  },
+
+  // Dense ore. The economy values a dense ore at two ordinary ones
+  // (DENSE_ORE_MULT in scripts/deriveValues.ts), so a dense smelt is exactly
+  // two ordinary smelts (twice the ore value, fuel, XP and time) plus ONE bonus
+  // ingot: 5 where two smelts give 4. The bonus is the reward for mining dense.
+  // XP and time stay at two smelts' worth so dense smelting is no faster route
+  // to levels. The same rule for later metals: an alloy pair gives two smelts'
+  // output + 1; a single ore, which gives 1 bar, gives 2 + 1 = 3 from dense.
+  'ambren_dense': {
+    ingredients: [
+      { name: 'Dense Ambren Ore', quantity: 1 },
+      { name: 'Dense Burgh Ore', quantity: 1 },
+      { name: 'Charc', quantity: 4 },
+    ],
+    output: 'Ambren Ingot',
+    outputQuantity: 5,
+    requiredLevel: 1,
+    xp: 60,
+    timer: 90,
+    bonus: true,
   },
 };
 

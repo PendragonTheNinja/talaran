@@ -38,6 +38,11 @@ interface Ingredient {
 const eq = (a: string | undefined, b: string) =>
     !!a && a.toLowerCase() === b.toLowerCase();
 
+/** "Smelting ambren", or "Smelting dense ambren" for a dense-ore recipe. */
+function smeltLabel(key: string): string {
+    return key.endsWith('_dense') ? `Smelting dense ${key.slice(0, -'_dense'.length)}` : `Smelting ${key}`;
+}
+
 /** A recipe's ingredients as data, for the Manual to link (see ItemSource.inputs). */
 function ingredientInputs(list: Ingredient[] | undefined): { name: string; qty: number }[] | undefined {
     const out = (list || []).map(i => ({ name: String(i.name ?? i.itemName), qty: Number(i.quantity ?? i.qty ?? 1) }));
@@ -82,7 +87,7 @@ export function codeSources(name: string): ItemSource[] {
         if (!eq(r.output, name)) continue;
         out.push({
             kind: 'Smithing',
-            from: `Smelting ${key}`,
+            from: smeltLabel(key),
             detail: [
                 `Level ${r.requiredLevel}`,
                 r.outputQuantity > 1 ? `Makes ${r.outputQuantity}` : '',

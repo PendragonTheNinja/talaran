@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
+import { canMineHere, canMineVein, getActiveVeins, veinNode } from '../services/mining';
 import { calculateTimer } from '../services/woodcutting';
 import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
@@ -111,13 +111,10 @@ router.post('/vein/start', requireAuth, botCheckGate, async (req: AuthRequest, r
       .first();
     const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
 
-    const oreNode = await db('resource_nodes')
-      .where({ location_id: player.current_location_id, skill: 'mining' })
-      .whereNotNull('ore_subtype')
-      .first();
+    const oreNode = await veinNode(player.current_location_id, vein.ore_item_id);
 
     const baseTimer = oreNode?.base_timer || 28;
-    const minTimer = oreNode?.min_timer || 16;
+    const minTimer = oreNode?.min_timer || 25;
     // Get player's tool tier
     const playerTool = await db('player_inventory')
       .join('items', 'player_inventory.item_id', 'items.id')

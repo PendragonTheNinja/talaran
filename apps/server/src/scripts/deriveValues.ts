@@ -442,7 +442,10 @@ async function main(): Promise<void> {
     };
     for (const [k, r] of Object.entries<any>(SAW_RECIPES ?? {})) addConst(r, k, 'saw');
     for (const [k, r] of Object.entries<any>(WOODWORK_RECIPES ?? {})) addConst(r, k, 'woodwork');
-    for (const [k, r] of Object.entries<any>(SMELT_RECIPES ?? {})) addConst(r, k, 'smelt');
+    // Bonus recipes (dense ore) are left out: prices take the CHEAPEST path, and
+    // a path only well-levelled miners can take is not an honest floor for an
+    // item everyone makes. See SmeltRecipe.bonus in services/smithing.ts.
+    for (const [k, r] of Object.entries<any>(SMELT_RECIPES ?? {})) if (!r.bonus) addConst(r, k, 'smelt');
     for (const [k, r] of Object.entries<any>(SMITH_RECIPES ?? {})) addConst(r, k, 'smith');
 
     // ---- 9a. Tier-estimate the LEAVES before pricing recipes ---------------

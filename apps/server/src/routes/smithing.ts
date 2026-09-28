@@ -262,51 +262,22 @@ router.get('/recipes', requireAuth, async (req: AuthRequest, res: Response) => {
       .first();
     const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
 
-    // For now return Ambren recipes
+    // Built from SMELT_RECIPES, the recipes smelting actually uses. This was a
+    // hand-written copy ("for now return Ambren recipes"), so a recipe added to
+    // the constants never reached the Forge, and its smithing half had gone
+    // stale (it listed ambren_pickaxe_head and other keys that do not exist).
+    // Only the smelting half was ever read; the anvil lists its own recipes.
     const recipes = {
-      smelt: [
-        {
-          key: 'ambren',
-          name: 'Ambren Ingot',
-          ingredients: [
-            { name: 'Ambren Ore', quantity: 1 },
-            { name: 'Burgh Ore', quantity: 1 },
-            { name: 'Charc', quantity: 2 },
-          ],
-          outputQuantity: 2,
-          requiredLevel: 1,
-          canMake: playerLevel >= 1,
-        },
-      ],
-      smith: [
-        {
-          key: 'ambren_pickaxe_head',
-          name: 'Ambren Pickaxe Head',
-          partType: 'pickaxe_head',
-          metalType: 'ambren',
-          ingredients: [{ name: 'Ambren Ingot', quantity: 2 }],
-          requiredLevel: 1,
-          canMake: playerLevel >= 1,
-        },
-        {
-          key: 'ambren_hatchet_head',
-          name: 'Ambren Hatchet Head',
-          partType: 'hatchet_head',
-          metalType: 'ambren',
-          ingredients: [{ name: 'Ambren Ingot', quantity: 2 }],
-          requiredLevel: 1,
-          canMake: playerLevel >= 1,
-        },
-        {
-          key: 'ambren_tool_rod',
-          name: 'Ambren Tool Rod',
-          partType: 'tool_rod',
-          metalType: 'ambren',
-          ingredients: [{ name: 'Ambren Ingot', quantity: 1 }],
-          requiredLevel: 1,
-          canMake: playerLevel >= 1,
-        },
-      ],
+      smelt: Object.entries(SMELT_RECIPES)
+        .map(([key, r]) => ({
+          key,
+          name: r.output,
+          ingredients: r.ingredients,
+          outputQuantity: r.outputQuantity,
+          requiredLevel: r.requiredLevel,
+          canMake: playerLevel >= r.requiredLevel,
+        }))
+        .sort((a, b) => a.requiredLevel - b.requiredLevel),
     };
 
     // Whose forge the smeltery would use. The client cannot infer this from

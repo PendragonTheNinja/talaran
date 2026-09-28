@@ -109,7 +109,7 @@ Checked every live action against the ladder. **Current tuning already conforms 
 | Lanai Tree (45s, L1) | 25 | 28 | **change** |
 | Old Growth Lanai (60s, L13) | 65 | 49 | **change** |
 | Granite Rock (20s) | 6 | 6 | keep |
-| Burgh / Ambren Ore (28s) | 20 | 20 | keep |
+| Burgh / Ambren Ore (28s) | 32 | 22 | **changed 2026-09-29** (this row first read 20/20/keep; live was in fact 32, from a code formula `level × 2.5 + 30`. Vein XP is now the ore node's `xp_reward`, set from this ladder: 2,860 × 28 ⁄ 3,600 = 22) |
 | Lanai Tool Rod (35s) | 39 | 39 | keep |
 | Lanai Staff (140s, L5) | 156 | 169 | **change** |
 | Lanai Sawhorse (350s) | 390 | 385 | keep (within 2%) |

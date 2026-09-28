@@ -6,11 +6,31 @@ import { rollSecondaryDrops } from './drops';
 import { awardXp } from './xp';
 import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { addItemToInventoryWithin } from './inventory';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
 const DENSE_ORE_GUARANTEED_LEVELS = 45;
 const MAX_TIER_DIFFERENCE = 3;
+
+/**
+ * The data row for mining a vein's ore at its location: its swing timers, level
+ * and tool tier, and its XP. Every figure about a vein swing comes from here,
+ * as trees and rocks take theirs from their own nodes.
+ *
+ * Matches the vein's ore. The two lookups this replaces (the start route and
+ * the tick) took whichever ore node the location had first, and disagreed on
+ * their fallback minimum timer (16 s and 25 s).
+ */
+export async function veinNode(locationId: number, oreItemId: number): Promise<any | null> {
+  const ore = await db('items').where({ id: oreItemId }).select('subtype').first();
+  const here = () => db('resource_nodes')
+    .where({ location_id: locationId, skill: 'mining' })
+    .whereNotNull('ore_subtype');
+  return (ore?.subtype ? await here().where({ ore_subtype: ore.subtype }).first() : null)
+    ?? (await here().first())
+    ?? null;
+}
 
 export interface MiningResult {
   success: boolean;
@@ -154,20 +174,9 @@ export async function processMiningRock(
       : null;
 
     if (rockItem) {
-      const existing = await db('player_inventory')
-        .where({ player_id: playerId, item_id: rockItem.id })
-        .first();
-      if (existing) {
-        await db('player_inventory')
-          .where({ player_id: playerId, item_id: rockItem.id })
-          .increment('quantity', 1);
-      } else {
-        await db('player_inventory').insert({
-          player_id: playerId,
-          item_id: rockItem.id,
-          quantity: 1,
-        });
-      }
+      // An atomic add (services/inventory.ts): the old read-then-insert let a
+      // first rock of a kind collide on the one-stack-per-item rule.
+      await db.transaction((trx) => addItemToInventoryWithin(trx, playerId, rockItem.id, 1));
     }
 
     await awardXp(playerId, miningSkill.id, node.xp_reward);
@@ -264,38 +273,42 @@ export async function processMiningVein(
       if (denseOre) oreItem = denseOre;
     }
 
-    const existing = await db('player_inventory')
-      .where({ player_id: playerId, item_id: oreItem.id })
-      .first();
-    if (existing) {
-      await db('player_inventory')
-        .where({ player_id: playerId, item_id: oreItem.id })
-        .increment('quantity', 1);
-    } else {
-      await db('player_inventory').insert({
-        player_id: playerId,
-        item_id: oreItem.id,
-        quantity: 1,
-      });
-    }
+    // Take one ore from the vein and give it, as one unit. The count used to be
+    // read above and written back as that number minus one, and the ore added
+    // with an unlocked read-then-write, so two players on a vein's last ore
+    // both got it. Now the vein gives up an ore only while it still has one.
+    const newRemaining = await db.transaction(async (trx) => {
+      const [left] = await trx('ore_veins')
+        .where({ id: veinId, is_depleted: false })
+        .where('remaining_quantity', '>', 0)
+        .update({
+          remaining_quantity: trx.raw('remaining_quantity - 1'),
+          is_depleted: trx.raw('remaining_quantity - 1 <= 0'),
+        })
+        .returning('remaining_quantity');
+      if (!left) return null;
+      await addItemToInventoryWithin(trx, playerId, oreItem.id, 1);
+      return Number(left.remaining_quantity);
+    });
+    if (newRemaining === null) return { success: false, error: 'This vein has been depleted' };
 
-    const oreXp = Math.floor(ore.level_required * 2.5) + 30;
+    // From the ore node's data, like every other gathering action. This was
+    // Math.floor(level * 2.5) + 30, a formula that gave Ambren and Burgh 32 XP
+    // a swing where the rate ladder (docs/xp-rebalance.md, ores at x1.3) sets
+    // 22, and grew in a straight line where the ladder grows 1.33x per 12
+    // levels. A later ore gets its number from the ladder when its node ships.
+    const node = await veinNode(vein.location_id, vein.ore_item_id);
+    const oreXp = Number(node?.xp_reward ?? 0);
+    if (!oreXp) logger.error(`[mining] no XP set for ${ore.name} veins at location ${vein.location_id} (resource_nodes.xp_reward)`);
     await awardXp(playerId, miningSkill.id, oreXp);
 
-    const newRemaining = vein.remaining_quantity - 1;
     if (newRemaining <= 0) {
-      await db('ore_veins').where({ id: veinId }).update({
-        remaining_quantity: 0,
-        is_depleted: true,
-      });
       pushToRoom(`location_${vein.location_id}`, 'vein_depleted', {
         veinId,
         oreName: ore.name,
         locationId: vein.location_id,
       });
       logger.info(`Vein ${veinId} (${ore.name}) depleted at location ${vein.location_id}`);
-    } else {
-      await db('ore_veins').where({ id: veinId }).update({ remaining_quantity: newRemaining });
     }
 
     const discoveryKey = `mining_ore_${ore.subtype}`;
