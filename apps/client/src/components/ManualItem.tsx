@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { getItemIcon } from '../lib/items'
 import './ManualItem.css'
 
@@ -11,6 +11,8 @@ interface Entry {
     where?: string
     detail?: string
     link?: string
+    /** A recipe's ingredients, each linked to its own page. */
+    inputs?: { name: string; qty: number }[]
 }
 
 interface ItemPage {
@@ -116,6 +118,20 @@ export default function ManualItem({
                 {e.where && <span className="mitem-entry-where">{e.where}</span>}
             </span>
             {e.detail && <span className="mitem-entry-detail">{e.detail}</span>}
+            {e.inputs && e.inputs.length > 0 && (
+                <span className="mitem-entry-detail">
+                    From{' '}
+                    {e.inputs.map((input, n) => (
+                        <Fragment key={input.name}>
+                            {n > 0 && ', '}
+                            {input.qty} ×{' '}
+                            <button className="mitem-link mitem-link-inline" onClick={() => onOpenItem(input.name)}>
+                                {input.name}
+                            </button>
+                        </Fragment>
+                    ))}
+                </span>
+            )}
             {e.link && (
                 <button
                     className="mitem-entry-more"

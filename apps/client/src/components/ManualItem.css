@@ -274,3 +274,11 @@
         text-align: left;
     }
 }
+
+/* An ingredient inside a detail line: the link's colour and dotted rule, at the
+   line's own font and size. */
+.mitem-link.mitem-link-inline {
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+}

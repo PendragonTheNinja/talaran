@@ -38,10 +38,10 @@ interface Ingredient {
 const eq = (a: string | undefined, b: string) =>
     !!a && a.toLowerCase() === b.toLowerCase();
 
-function ingredientList(list: Ingredient[] | undefined): string {
-    return (list || [])
-        .map(i => `${i.quantity ?? i.qty ?? 1} x ${i.name ?? i.itemName}`)
-        .join(', ');
+/** A recipe's ingredients as data, for the Manual to link (see ItemSource.inputs). */
+function ingredientInputs(list: Ingredient[] | undefined): { name: string; qty: number }[] | undefined {
+    const out = (list || []).map(i => ({ name: String(i.name ?? i.itemName), qty: Number(i.quantity ?? i.qty ?? 1) }));
+    return out.length ? out : undefined;
 }
 
 function needed(list: Ingredient[] | undefined, name: string): number | null {
@@ -85,9 +85,9 @@ export function codeSources(name: string): ItemSource[] {
             from: `Smelting ${key}`,
             detail: [
                 `Level ${r.requiredLevel}`,
-                ingredientList(r.ingredients) ? `From ${ingredientList(r.ingredients)}` : '',
                 r.outputQuantity > 1 ? `Makes ${r.outputQuantity}` : '',
             ].filter(Boolean).join(' · '),
+            inputs: ingredientInputs(r.ingredients),
             link: 'skills/smithing',
         });
     }
@@ -99,8 +99,8 @@ export function codeSources(name: string): ItemSource[] {
             from: `Forging ${key}`,
             detail: [
                 `Level ${r.requiredLevel}`,
-                ingredientList(r.ingredients) ? `From ${ingredientList(r.ingredients)}` : '',
             ].filter(Boolean).join(' · '),
+            inputs: ingredientInputs(r.ingredients),
             link: 'skills/smithing',
         });
     }
@@ -126,9 +126,9 @@ export function codeSources(name: string): ItemSource[] {
             from: key,
             detail: [
                 `Level ${r.requiredLevel}`,
-                ingredientList(r.ingredients) ? `From ${ingredientList(r.ingredients)}` : '',
                 r.outputQuantity > 1 ? `Makes ${r.outputQuantity}` : '',
             ].filter(Boolean).join(' · '),
+            inputs: ingredientInputs(r.ingredients),
             link: 'skills/carpentry',
         });
     }

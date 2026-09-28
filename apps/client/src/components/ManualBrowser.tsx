@@ -19,6 +19,12 @@ interface ManualBrowserProps {
     variant: 'page' | 'panel'
     initialSection?: string
     initialSlug?: string
+    /**
+     * Changes on every request to open a page. Without it, asking for the page
+     * already requested (the same item twice, after wandering elsewhere in the
+     * Manual) changed no prop, so the Manual did not move.
+     */
+    targetSeq?: number
     /** Page variant reflects navigation into the URL; the panel doesn't. */
     onLocationChange?: (section: string | null, slug: string | null) => void
 }
@@ -27,6 +33,7 @@ export default function ManualBrowser({
     variant,
     initialSection,
     initialSlug,
+    targetSeq,
     onLocationChange,
 }: ManualBrowserProps) {
     const [manifest, setManifest] = useState<ManualManifest | null>(null)
@@ -77,7 +84,7 @@ export default function ManualBrowser({
             setSection(initialSection)
             setSlug(initialSlug)
         }
-    }, [initialSection, initialSlug])
+    }, [initialSection, initialSlug, targetSeq])
 
     useEffect(() => {
         if (!section || !slug) {

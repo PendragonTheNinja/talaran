@@ -540,13 +540,20 @@ export default function GameLayout({
     }).catch(() => { })
   }, [showManual])
   // Which page the manual should open at. Null means the contents.
-  const [manualTarget, setManualTarget] = useState<{ section: string; slug: string } | null>(null)
+  const [manualTarget, setManualTarget] = useState<{ section: string; slug: string; seq: number } | null>(null)
 
-  /** Open the manual at a specific page, from a contextual help affordance. */
+  /**
+   * Open the manual at a specific page: from contextual help, or "Manual" on an
+   * inventory item. If the manual is already open it just turns to that page.
+   * It used to close every panel first, the manual included, so asking from an
+   * open manual scheduled the manual itself to close 200 ms later.
+   */
   const openManualAt = (section: string, slug: string) => {
-    closeAllPanels()
-    setManualTarget({ section, slug })
-    setShowManual(true)
+    if (!showManual) {
+      closeAllPanels()
+      setShowManual(true)
+    }
+    setManualTarget(prev => ({ section, slug, seq: (prev?.seq ?? 0) + 1 }))
   }
 
   const [messagesClosing, setMessagesClosing] = useState(false)
@@ -687,6 +694,7 @@ export default function GameLayout({
 
   const leftPanelEl = (
     <LeftPanel
+      onOpenManualItem={name => openManualAt('item', name)}
       inventoryData={inventoryData}
       equipmentData={equipmentData}
       onEquipmentUpdate={onEquipmentUpdate}
@@ -1137,6 +1145,7 @@ export default function GameLayout({
           closing={manualClosing}
           initialSection={manualTarget?.section}
           initialSlug={manualTarget?.slug}
+          targetSeq={manualTarget?.seq}
         />
       )}
 

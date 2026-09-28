@@ -10,6 +10,8 @@ interface ManualPanelProps {
     /** Deep link target, for contextual "?" affordances on other panels. */
     initialSection?: string
     initialSlug?: string
+    /** Changes on every request to open a page; see ManualBrowser. */
+    targetSeq?: number
 }
 
 export default function ManualPanel({
@@ -17,6 +19,7 @@ export default function ManualPanel({
     closing,
     initialSection,
     initialSlug,
+    targetSeq,
 }: ManualPanelProps) {
     const isMobile = useIsMobile()
     const dock = useDockableWindow('manual')
@@ -60,6 +63,7 @@ export default function ManualPanel({
                 variant="panel"
                 initialSection={initialSection}
                 initialSlug={initialSlug}
+                targetSeq={targetSeq}
             />
         </DockableWindow>
     )

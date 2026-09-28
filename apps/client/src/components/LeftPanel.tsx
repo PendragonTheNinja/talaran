@@ -50,6 +50,8 @@ interface LeftPanelProps {
   onEquipmentUpdate: () => void
   onInventoryUpdate: () => void
   onDropItem: (itemId: number, quantity: number) => void
+  /** Opens the Manual on this item's page ("Manual" in the right-click menu). */
+  onOpenManualItem?: (itemName: string) => void
   dropMode?: boolean
   dropAmount?: number
   storeMode?: boolean
@@ -119,7 +121,7 @@ function sortInventory(items: InventoryItem[], mode: SortMode, dir: SortDir, fil
   return dir === 'desc' ? sorted.reverse() : sorted
 }
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem }: LeftPanelProps) {
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   // Set when eating would replace a running buff, so the player is warned first.
@@ -603,6 +605,15 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
             >
               <div className="context-menu-title">{contextMenu.item.name}</div>
               <div className="context-menu-divider" />
+              {onOpenManualItem && (
+                <button className="context-menu-item" onClick={() => {
+                  const name = contextMenu.item.name
+                  setContextMenu(null)
+                  onOpenManualItem(name)
+                }}>
+                  Manual
+                </button>
+              )}
               {/* Provisions are the only edible thing for now. Cooked food
                   carries a heal_amount but there is no health to restore until
                   combat exists, so offering Eat on a fish would do nothing. */}

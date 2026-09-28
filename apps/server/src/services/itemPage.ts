@@ -23,6 +23,12 @@ export interface ItemSource {
     where?: string;        // location, when the source has one
     detail?: string;       // odds, quantity, level
     link?: string;         // manual page worth reading next
+    /**
+     * What a recipe is made from, as data, so the Manual can link each
+     * ingredient to its own page. It used to be flattened into `detail` as
+     * "From 2 x Oak Plank, ..." text, which could only be read, not followed.
+     */
+    inputs?: { name: string; qty: number }[];
 }
 
 export interface ItemUse {
@@ -330,18 +336,19 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
     const recipes = await db('recipes').where('is_active', true).select('*');
     for (const r of recipes) {
         if (String(r.output_item_name).toLowerCase() === name.toLowerCase()) {
-            const inputs = asArray(r.inputs)
-                .map((i: any) => `${i.qty ?? i.quantity ?? 1} x ${i.itemName ?? i.name}`)
-                .join(', ');
+            const inputs = asArray(r.inputs).map((i: any) => ({
+                name: String(i.itemName ?? i.name),
+                qty: Number(i.qty ?? i.quantity ?? 1),
+            }));
             sources.push({
                 kind: r.skill,
                 from: r.name,
                 where: r.station ? r.station.charAt(0).toUpperCase() + r.station.slice(1) : undefined,
                 detail: [
                     `Level ${r.required_level}`,
-                    inputs ? `From ${inputs}` : '',
                     r.output_qty > 1 ? `Makes ${r.output_qty}` : '',
                 ].filter(Boolean).join(' · '),
+                inputs: inputs.length ? inputs : undefined,
                 link: SKILL_PAGE[r.skill],
             });
         }
@@ -640,17 +647,19 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
     // and the prose around them is ignored.
     const numbersIn = (text: string): string => (text.match(/\d+/g) || []).join(',');
 
-    function dedupe<T extends { kind: string; from?: string; into?: string; detail?: string; where?: string }>(
+    function dedupe<T extends { kind: string; from?: string; into?: string; detail?: string; where?: string; inputs?: { name: string; qty: number }[] }>(
         list: T[],
     ): T[] {
         return list.filter((e) => {
             const detail = (e.detail || '').toLowerCase();
+            // A recipe's ingredients are data now (inputs), not "From ..." text.
+            const ingredients = (e.inputs || []).map((i) => `${i.qty} ${i.name}`).join(' ');
 
             // Anything quoting ingredients or a quantity is a recipe, and two
             // recipes are the same when they make the same thing out of the
             // same amounts at the same level.
-            if (detail.includes('from ') || detail.includes('needs ')) {
-                const key = `${e.kind}|${e.into ?? ''}|${numbersIn(detail)}`.toLowerCase();
+            if (e.inputs?.length || detail.includes('from ') || detail.includes('needs ')) {
+                const key = `${e.kind}|${e.into ?? ''}|${numbersIn(`${detail} ${ingredients}`)}`.toLowerCase();
                 if (recipeSeen.has(key)) return false;
                 recipeSeen.add(key);
                 return true;
