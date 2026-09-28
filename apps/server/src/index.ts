@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
 import { startPlaytimeTracking } from './services/playtime';
+import { startGroundItemSweep } from './services/groundItems';
 import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import workstationRoutes from './routes/workstations';
@@ -101,7 +102,6 @@ app.use('/api', (req, res, next) => {
   next()
 })
 
-import cors from 'express';
 import { logBalanceChecksAtStartup } from './services/balanceChecks';
 import { SERVER_ERROR } from './lib/serviceResult';
 
@@ -382,6 +382,19 @@ io.on('connection', (socket) => {
 // require.main is the module Node was started with, so this is true under
 // `node dist/index.js` and `ts-node src/index.ts`, and false on every import.
 if (require.main === module) {
+  // Last line of defence (audit L-9). Node 22 ends the process on an unhandled
+  // promise rejection, so one forgotten .catch on a fire-and-forget promise
+  // could take the game down; log it and keep serving instead. An uncaught
+  // EXCEPTION leaves the process in an unknown state: log it and exit, and pm2
+  // starts a clean one.
+  process.on('unhandledRejection', (reason) => {
+    logger.error(`Unhandled promise rejection: ${reason instanceof Error ? reason.stack : reason}`);
+  });
+  process.on('uncaughtException', (err) => {
+    logger.error(`Uncaught exception, exiting for pm2 to restart: ${err.stack ?? err}`);
+    process.exit(1);
+  });
+
   // Economy self-checks, once, at boot. A tab is only as good as somebody
   // remembering to open it; this way a deploy that leaves items unmapped or a
   // shelf mis-stocked says so in the pm2 log. Never throws, never blocks boot.
@@ -392,6 +405,7 @@ if (require.main === module) {
   // Start the game tick
   startGameTick(io);
   startPlaytimeTracking();
+  startGroundItemSweep();
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
@@ -409,7 +423,8 @@ if (require.main === module) {
       if (parseInt(result?.count as string) === 0) {
         takeWeeklySnapshot();
       }
-    });
+    })
+    .catch(err => logger.error(`Weekly snapshot check failed at boot: ${err}`));
 
   // Schedule weekly snapshot every Monday
   const msUntilMonday = () => {

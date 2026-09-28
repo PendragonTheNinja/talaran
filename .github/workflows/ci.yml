@@ -49,6 +49,15 @@ jobs:
       - name: Install (exactly the lockfile)
         run: pnpm install --frozen-lockfile
 
+      # Knex runs migrations in filename order, so two sharing a timestamp run
+      # in whatever order the rest of the name sorts (audit L-13). The two
+      # existing pairs cannot be renamed: live records completed migrations by
+      # name. Any new duplicate fails here.
+      - name: No new migration shares a timestamp
+        run: |
+          dupes=$(ls apps/server/src/db/migrations | cut -c1-14 | sort | uniq -d | grep -vxE '20260726020000|20260731170000' || true)
+          if [ -n "$dupes" ]; then echo "Migrations sharing a timestamp: $dupes"; exit 1; fi
+
       - name: Server type-check (baseline 0)
         working-directory: apps/server
         run: npx tsc --noEmit

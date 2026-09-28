@@ -1044,23 +1044,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
         });
 
-        // The action limiter is applied per repeating block rather than in one
-        // shared place, so a new looping skill has to opt in explicitly or it
-        // silently ignores the limit every other skill honours.
-        if (action.action_limit && action.action_limit > 0) {
-          const actionsCompleted = (action.actions_completed || 0) + 1;
-          if (actionsCompleted >= action.action_limit) {
-            await db('player_actions').where({ id: action.id }).delete();
-            io.to(`player_${action.player_id}`).emit('action_limit_reached', {
-              message: `Action limit of ${action.action_limit} reached.`,
-            });
-            return;
-          }
-          await db('player_actions').where({ id: action.id }).update({
-            actions_completed: actionsCompleted,
-            last_timer_seconds: nextTimer,
-          });
-        }
+        // No action limit here (audit L-12): action limits are a processing
+        // feature (smelting, smithing, sawing, woodworking, recipes; see
+        // PROCESSING_ACTIONS in GameView.tsx). The net's start route never
+        // stored one and the client never offered one, so the limiter block
+        // that used to sit here could never run.
       } else {
         await db('player_actions').where({ id: action.id }).delete();
         await emitActionComplete(io, action, {

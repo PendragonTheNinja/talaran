@@ -5,11 +5,12 @@ import { logger } from '../lib/logger';
 import crypto from 'crypto';
 import { sendEmail, passwordResetEmail } from '../lib/email';
 import { requireAuthToClaim, AuthRequest } from '../middleware/auth';
-import { createGuest, GuestCapacityError, GUEST_SUFFIX, GUEST_SESSION_MINUTES } from '../services/guest';
+import { createGuest, GuestCapacityError, GUEST_SESSION_MINUTES } from '../services/guest';
 import { issueSession, endSessions } from '../lib/sessions';
 import {
-  passwordProblem, hashPassword, passwordMatches, cleanEmail, EMAIL_PROBLEM, isUniqueViolation,
+  passwordProblem, hashPassword, passwordMatches, cleanEmail, cleanUsername, EMAIL_PROBLEM, isUniqueViolation,
 } from '../lib/credentials';
+import { setUpNewPlayerWithin } from '../services/newPlayer';
 
 const router = Router();
 
@@ -22,11 +23,11 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  // Checked as a string before anything calls .length or .toLowerCase() on
-  // it. These run outside the try below, so a number or an object here used
-  // to throw past the handler instead of getting an answer.
-  if (typeof username !== 'string' || username.length < 3 || username.length > 32) {
-    res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
+  // One rule for every chosen name (lib/credentials.ts): type, length, the
+  // characters allowed, and the reserved guest suffix (audit L-4).
+  const name = cleanUsername(username);
+  if (!name.ok) {
+    res.status(400).json({ error: name.error });
     return;
   }
 
@@ -42,13 +43,6 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  // The guest suffix is reserved. Without this, anyone could register
-  // "Foozard-guest" and impersonate a real player in chat. Compared
-  // case-insensitively to match players_username_lower_unique.
-  if (username.toLowerCase().endsWith(GUEST_SUFFIX)) {
-    res.status(400).json({ error: `Usernames cannot end in "${GUEST_SUFFIX}"` });
-    return;
-  }
 
   try {
     // Case-insensitive on both. Registration was comparing exactly, so
@@ -56,7 +50,7 @@ router.post('/register', async (req: Request, res: Response) => {
     // trivial and makes any case-insensitive lookup elsewhere (whispers, for one)
     // pick between them arbitrarily.
     const existing = await db('players')
-      .whereRaw('LOWER(username) = LOWER(?)', [username])
+      .whereRaw('LOWER(username) = LOWER(?)', [name.value])
       .orWhereRaw('LOWER(email) = LOWER(?)', [email])
       .first();
 
@@ -67,64 +61,26 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const password_hash = await hashPassword(password);
 
-    const startingLocation = await db('locations').where({ name: 'Talador' }).first();
-
-    const [player] = await db('players')
-      .insert({
-        username,
-        email,
-        password_hash,
-        current_location_id: startingLocation?.id || null,
-      })
-      .returning(['id', 'username', 'email']);
+    // The account and everything a new character starts with, as one unit
+    // (audit L-4): a failure part way used to leave an account with no skills.
+    const player = await db.transaction(async (trx) => {
+      const startingLocation = await trx('locations').where({ name: 'Talador' }).first();
+      const [created] = await trx('players')
+        .insert({
+          username: name.value,
+          email,
+          password_hash,
+          current_location_id: startingLocation?.id || null,
+        })
+        .returning(['id', 'username', 'email']);
+      await setUpNewPlayerWithin(trx, created.id);
+      return created;
+    });
 
     // Initialize all skills at 0 XP for the new player
-    const allSkills = await db('skills').select('id');
-    const playerSkills = allSkills.map((skill: { id: number }) => ({
-      player_id: player.id,
-      skill_id: skill.id,
-      xp: 0,
-    }));
-
-    // Initialize player skills
-    await db('player_skills').insert(playerSkills);
-    // Initialize player stats
-    await db('player_stats').insert({ player_id: player.id });
-
-    // Give starter tools
-    const hatchet = await db('items').where({ name: 'Ambren Hatchet' }).first();
-    const pickaxe = await db('items').where({ name: 'Ambren Pickaxe' }).first();
-    const pony = await db('items').where({ name: "Novice's Pony" }).first();
-
-    if (hatchet) {
-      await db('player_inventory').insert({
-        player_id: player.id,
-        item_id: hatchet.id,
-        quantity: 1,
-      });
-    }
-    if (pickaxe) {
-      await db('player_inventory').insert({
-        player_id: player.id,
-        item_id: pickaxe.id,
-        quantity: 1,
-      });
-    }
-
-    if (pony) {
-      await db('player_inventory').insert({
-        player_id: player.id,
-        item_id: pony.id,
-        quantity: 1,
-      });
-    }
-
-    // Bow + arrows are handed over by Geonsen in "The Huntsman's Lesson" at Eld
-    // Grove — a tutorial that teaches the loop beats a silent inventory grant.
-
     const token = await issueSession(player.id)
 
-    logger.info(`New player registered: ${username}`);
+    logger.info(`New player registered: ${player.username}`);
     res.status(201).json({ token, player });
   } catch (err) {
     // Two sign-ups racing for one name or address: the check above passed
@@ -347,11 +303,11 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
     res.status(400).json({ error: 'Username, email and password are required' });
     return;
   }
-  // Checked as a string before anything calls .length or .toLowerCase() on
-  // it. These run outside the try below, so a number or an object here used
-  // to throw past the handler instead of getting an answer.
-  if (typeof username !== 'string' || username.length < 3 || username.length > 32) {
-    res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
+  // One rule for every chosen name (lib/credentials.ts): type, length, the
+  // characters allowed, and the reserved guest suffix (audit L-4).
+  const name = cleanUsername(username);
+  if (!name.ok) {
+    res.status(400).json({ error: name.error });
     return;
   }
   const email = cleanEmail(req.body.email);
@@ -362,10 +318,6 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
   const weak = passwordProblem(password);
   if (weak) {
     res.status(400).json({ error: weak });
-    return;
-  }
-  if (username.toLowerCase().endsWith(GUEST_SUFFIX)) {
-    res.status(400).json({ error: `Usernames cannot end in "${GUEST_SUFFIX}"` });
     return;
   }
 
@@ -386,7 +338,7 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
     const clash = await db('players')
       .whereNot({ id: playerId })
       .andWhere(function () {
-        this.whereRaw('LOWER(username) = LOWER(?)', [username])
+        this.whereRaw('LOWER(username) = LOWER(?)', [name.value])
           .orWhereRaw('LOWER(email) = LOWER(?)', [email]);
       })
       .first();
@@ -400,7 +352,7 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
 
     await db.transaction(async (trx) => {
       await trx('players').where({ id: playerId }).update({
-        username,
+        username: name.value,
         email,
         password_hash,
         is_guest: false,
@@ -426,13 +378,13 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
       .count<{ converted: string }[]>('id as converted');
 
     logger.info(
-      `[guest] converted ${player.username} -> ${username} (player ${playerId}); `
+      `[guest] converted ${player.username} -> ${name.value} (player ${playerId}); `
       + `${converted}/${started} guests claimed to date`,
     );
 
     const token = await issueSession(playerId);
 
-    res.json({ token, player: { id: playerId, username, email, is_guest: false } });
+    res.json({ token, player: { id: playerId, username: name.value, email, is_guest: false } });
   } catch (err) {
     if (isUniqueViolation(err)) {
       res.status(409).json({ error: 'Username or email already taken' });

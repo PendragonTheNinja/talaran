@@ -19,5 +19,5 @@ logs/
 Thumbs.db
 
 # pnpm
-.pnpm-store/*:Zone.Identifier
+.pnpm-store/
 *:Zone.Identifier

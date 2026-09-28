@@ -243,6 +243,31 @@ export default function GameLayout({
     }
   }
   const [groundItemsKey, setGroundItemsKey] = useState(0)
+  // The location the ground list belongs to, read by the socket handler below
+  // without re-subscribing every time the player moves.
+  const groundLocationRef = useRef<number | null>(null)
+  const groundLocationId = locationData?.location?.id ?? null
+  useEffect(() => { groundLocationRef.current = groundLocationId }, [groundLocationId])
+
+  // Refresh the ground list when items here turn public, expire, or are picked
+  // up (the server sends ground_items_changed from services/groundItems.ts).
+  useEffect(() => {
+    const onGroundChanged = ({ locationId }: { locationId: number }) => {
+      if (locationId === groundLocationRef.current) setGroundItemsKey(k => k + 1)
+    }
+    let subscribed: ReturnType<typeof getSocket> = null
+    const interval = setInterval(() => {
+      const socket = getSocket()
+      if (!socket) return
+      clearInterval(interval)
+      socket.on('ground_items_changed', onGroundChanged)
+      subscribed = socket
+    }, 100)
+    return () => {
+      clearInterval(interval)
+      subscribed?.off('ground_items_changed', onGroundChanged)
+    }
+  }, [])
 
   const [showAdmin, setShowAdmin] = useState(false)
   const [adminClosing, setAdminClosing] = useState(false)

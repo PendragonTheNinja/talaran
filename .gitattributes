@@ -1,0 +1,21 @@
+# Line endings (audit L-14): 33 source files were CRLF among LF ones. Text is
+# stored as LF in the repo, whatever the editor or OS. After adding this file,
+# run once:  git add --renormalize .  and commit the result.
+* text=auto eol=lf
+
+# Binary files: never touch their bytes.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.psd   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary
+*.mp3   binary
+*.ogg   binary
+*.wav   binary

@@ -79,6 +79,9 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },
     ore_veins:                   { label: 'Ore Veins',             group: 'World State' },
+    // Per-item totals of dropped stacks that expired unclaimed after a week
+    // (services/groundItems.ts): what players do not think worth picking up.
+    ground_item_despawns:        { label: 'Despawned Items',       group: 'World State' },
     ground_items:                { label: 'Ground Items',          group: 'World State' },
     kiln_jobs:                   { label: 'Kiln Jobs',             group: 'World State' },
     tanning_jobs:                { label: 'Tanning Jobs',          group: 'World State' },

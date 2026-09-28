@@ -484,7 +484,6 @@ router.get('/applications', requireAuth, async (req: AuthRequest, res: Response)
 
     try {
         const player = await db('players').where({ id: playerId }).first();
-        console.log('Applications route - player:', player?.username, 'role:', player?.guild_role, 'guild:', player?.guild_id);
 
         if (!player.guild_id || !['founder', 'leader'].includes(player.guild_role)) {
             res.status(403).json({ error: 'No permission.' });

@@ -3,11 +3,10 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
-import { pushToPlayer, pushToRoom } from '../lib/realtime';
+import { announceGroundChange, GROUND_ITEM_PRIVATE_SECONDS, GROUND_ITEM_LIFETIME_MINUTES } from '../services/groundItems';
 import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
-const PRIVATE_WINDOW_SECONDS = 15;
 
 // Get ground items at current location
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -17,8 +16,12 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         const locationId = player.current_location_id;
         const now = new Date();
 
+        // Past its lifetime it is gone, even in the seconds before the sweep
+        // deletes the row.
+        const expiredBefore = new Date(now.getTime() - GROUND_ITEM_LIFETIME_MINUTES * 60_000);
         const items = await db('ground_items')
             .where({ location_id: locationId })
+            .where('ground_items.dropped_at', '>', expiredBefore)
             .where(function () {
                 this.where('visible_to_all_at', '<=', now)
                     .orWhere('dropped_by_player_id', playerId)
@@ -52,7 +55,7 @@ router.post('/drop', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         const locationId = player.current_location_id;
 
         const now = new Date();
-        const visibleAt = new Date(now.getTime() + PRIVATE_WINDOW_SECONDS * 1000);
+        const visibleAt = new Date(now.getTime() + GROUND_ITEM_PRIVATE_SECONDS * 1000);
 
         // One transaction, with the inventory row locked for the whole of it.
         //
@@ -109,23 +112,10 @@ router.post('/drop', requireAuth, requireTrusted, async (req: AuthRequest, res: 
         const item = await db('items').where({ id: itemId }).first();
         logger.info(`Player ${playerId} dropped ${dropQty}x ${item.name} at location ${locationId}`);
 
-        // Notify the dropper immediately
-        pushToPlayer(playerId, 'ground_item_dropped', {
-            groundItemId: groundItem.id,
-            itemName: item.name,
-            quantity: dropQty,
-            visibleAt: visibleAt,
-        });
-
-        // Schedule public visibility notification
-        setTimeout(async () => {
-            pushToRoom(`location_${locationId}`, 'ground_item_visible', {
-                groundItemId: groundItem.id,
-                itemName: item.name,
-                quantity: dropQty,
-                locationId,
-            });
-        }, PRIVATE_WINDOW_SECONDS * 1000);
+        // Nobody else is told yet: the drop is private for its first seconds.
+        // The ground-item sweep (services/groundItems.ts) announces it to the
+        // location once it turns public, from the database, so a restart in
+        // between loses nothing.
 
         res.json({ success: true });
     } catch (err) {
@@ -162,7 +152,10 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const claimed = await db('ground_items').where({ id: groundItemId }).delete();
+        const claimed = await db('ground_items')
+            .where({ id: groundItemId })
+            .where('dropped_at', '>', new Date(Date.now() - GROUND_ITEM_LIFETIME_MINUTES * 60_000))
+            .delete();
         if (claimed === 0) {
             res.status(404).json({ error: 'It is already gone.' });
             return;
@@ -190,10 +183,8 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
 
         const item = await db('items').where({ id: groundItem.item_id }).first();
 
-        // Notify all players at location that item was picked up
-        pushToRoom(`location_${groundItem.location_id}`, 'ground_item_picked_up', {
-            groundItemId,
-        });
+        // Everyone at the location refreshes their ground list.
+        announceGroundChange(groundItem.location_id);
 
         logger.info(`Player ${playerId} picked up ${groundItem.quantity}x ${item.name}`);
         res.json({ success: true, itemName: item.name, quantity: groundItem.quantity });

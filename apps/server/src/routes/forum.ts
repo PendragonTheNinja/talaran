@@ -8,6 +8,19 @@ import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
+/**
+ * Is this player barred from writing on the forum? A timed ban that has run
+ * out is lifted here, the first time it is checked. One helper for every write
+ * path: thread, reply and edit used to carry their own copies, and edit had none
+ * (audit L-5), so a forum-banned player could still rewrite old posts.
+ */
+async function forumBanned(player: { id: number; is_forum_banned: boolean; forum_banned_until: Date | string | null }): Promise<boolean> {
+    if (!player.is_forum_banned) return false;
+    if (!player.forum_banned_until || new Date(player.forum_banned_until) > new Date()) return true;
+    await db('players').where({ id: player.id }).update({ is_forum_banned: false, forum_banned_until: null });
+    return false;
+}
+
 // Get all categories (filtered by staff status)
 router.get('/categories', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
@@ -252,14 +265,9 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
     try {
         const player = await db('players').where({ id: playerId }).first();
         const isStaff = player.is_admin || player.is_mod;
-        if (player.is_forum_banned) {
-            const now = new Date();
-            if (!player.forum_banned_until || new Date(player.forum_banned_until) > now) {
-                res.status(403).json({ error: 'You are banned from the forum.' });
-                return;
-            } else {
-                await db('players').where({ id: playerId }).update({ is_forum_banned: false, forum_banned_until: null });
-            }
+        if (await forumBanned(player)) {
+            res.status(403).json({ error: 'You are banned from the forum.' });
+            return;
         }
 
         const category = await db('forum_categories').where({ id: categoryId }).first();
@@ -408,14 +416,17 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
         if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
 
         const player = await db('players').where({ id: playerId }).first();
-        if (player.is_forum_banned) {
-            const now = new Date();
-            if (!player.forum_banned_until || new Date(player.forum_banned_until) > now) {
-                res.status(403).json({ error: 'You are banned from the forum.' });
-                return;
-            } else {
-                await db('players').where({ id: playerId }).update({ is_forum_banned: false, forum_banned_until: null });
-            }
+
+        // A staff-only thread is hidden from non-staff everywhere else, but a
+        // reply by thread id used to go through (audit L-5).
+        const category = await db('forum_categories').where({ id: thread.category_id }).first();
+        if (category?.staff_only && !(player.is_admin || player.is_mod)) {
+            res.status(404).json({ error: 'Thread not found.' });
+            return;
+        }
+        if (await forumBanned(player)) {
+            res.status(403).json({ error: 'You are banned from the forum.' });
+            return;
         }
 
         await db('forum_posts').insert({
@@ -455,36 +466,38 @@ router.post('/posts/:id/vote', requireAuth, requireTrusted, async (req: AuthRequ
             return;
         }
 
-        const existing = await db('forum_post_votes')
-            .where({ post_id: postId, player_id: playerId })
-            .first();
+        // The vote row is the truth and the counters are recounted from it,
+        // under a lock on the post. They used to be adjusted by +1/-1 from a
+        // read made before the write, so parallel clicks drifted them and could
+        // drive them below zero (audit L-6).
+        const outcome = await db.transaction(async (trx) => {
+            const post = await trx('forum_posts').where({ id: postId, is_deleted: false }).forUpdate().first();
+            if (!post) return null;
 
-        if (existing) {
-            if (existing.vote === vote) {
-                // Remove vote
-                await db('forum_post_votes').where({ id: existing.id }).delete();
-                await db('forum_posts').where({ id: postId }).update({
-                    upvotes: db.raw(`upvotes - ${vote === 1 ? 1 : 0}`),
-                    downvotes: db.raw(`downvotes - ${vote === -1 ? 1 : 0}`),
-                });
-                res.json({ success: true, removed: true });
+            const existing = await trx('forum_post_votes').where({ post_id: postId, player_id: playerId }).first();
+            let result: { removed?: true; changed?: true };
+            if (existing && existing.vote === vote) {
+                await trx('forum_post_votes').where({ id: existing.id }).delete();
+                result = { removed: true };
+            } else if (existing) {
+                await trx('forum_post_votes').where({ id: existing.id }).update({ vote });
+                result = { changed: true };
             } else {
-                // Change vote
-                await db('forum_post_votes').where({ id: existing.id }).update({ vote });
-                await db('forum_posts').where({ id: postId }).update({
-                    upvotes: db.raw(`upvotes + ${vote === 1 ? 1 : -1}`),
-                    downvotes: db.raw(`downvotes + ${vote === -1 ? 1 : -1}`),
-                });
-                res.json({ success: true, changed: true });
+                await trx('forum_post_votes').insert({ post_id: postId, player_id: playerId, vote });
+                result = {};
             }
-        } else {
-            await db('forum_post_votes').insert({ post_id: postId, player_id: playerId, vote });
-            await db('forum_posts').where({ id: postId }).update({
-                upvotes: db.raw(`upvotes + ${vote === 1 ? 1 : 0}`),
-                downvotes: db.raw(`downvotes + ${vote === -1 ? 1 : 0}`),
-            });
-            res.json({ success: true });
+
+            const [counts] = await trx('forum_post_votes').where({ post_id: postId })
+                .select(trx.raw('count(*) FILTER (WHERE vote = 1)::int AS up'), trx.raw('count(*) FILTER (WHERE vote = -1)::int AS down'));
+            await trx('forum_posts').where({ id: postId }).update({ upvotes: counts.up, downvotes: counts.down });
+            return result;
+        });
+
+        if (!outcome) {
+            res.status(404).json({ error: 'Post not found.' });
+            return;
         }
+        res.json({ success: true, ...outcome });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -503,22 +516,30 @@ router.post('/polls/:id/vote', requireAuth, requireTrusted, async (req: AuthRequ
             return;
         }
 
-        const existing = await db('forum_poll_votes')
-            .where({ poll_id: pollId, player_id: playerId })
-            .first();
-
-        if (existing) {
-            res.status(400).json({ error: 'You have already voted.' });
+        // The option must belong to THIS poll: it was never checked, so a vote
+        // on one poll could count for an option of another.
+        const option = await db('forum_poll_options').where({ id: optionId, poll_id: pollId }).first();
+        if (!option) {
+            res.status(400).json({ error: 'That is not an option in this poll.' });
             return;
         }
 
-        await db('forum_poll_votes').insert({
-            poll_id: pollId,
-            option_id: optionId,
-            player_id: playerId,
+        // One vote per player per poll, held by the unique key: the vote and its
+        // count go in together or not at all.
+        const counted = await db.transaction(async (trx) => {
+            const [vote] = await trx('forum_poll_votes')
+                .insert({ poll_id: pollId, option_id: optionId, player_id: playerId })
+                .onConflict(['poll_id', 'player_id'])
+                .ignore()
+                .returning('id');
+            if (!vote) return false;
+            await trx('forum_poll_options').where({ id: optionId }).increment('vote_count', 1);
+            return true;
         });
-
-        await db('forum_poll_options').where({ id: optionId }).increment('vote_count', 1);
+        if (!counted) {
+            res.status(400).json({ error: 'You have already voted.' });
+            return;
+        }
 
         res.json({ success: true });
     } catch (err) {
@@ -656,10 +677,15 @@ router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response
         }
 
         const player = await db('players').where({ id: playerId }).first();
-        const canEdit = post.author_id === playerId || player.is_admin || player.is_mod;
+        const isStaff = player.is_admin || player.is_mod;
+        const canEdit = post.author_id === playerId || isStaff;
 
         if (!canEdit) {
             res.status(403).json({ error: 'You cannot edit this post.' });
+            return;
+        }
+        if (!isStaff && await forumBanned(player)) {
+            res.status(403).json({ error: 'You are banned from the forum.' });
             return;
         }
 

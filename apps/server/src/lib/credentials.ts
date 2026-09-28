@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { GUEST_SUFFIX } from '../services/guest';
 
 // One set of rules for every place a password or an email is set or checked:
 // registration, guest claim, password reset, login and account settings.
@@ -59,6 +60,27 @@ export function cleanEmail(raw: unknown): string | null {
 }
 
 export const EMAIL_PROBLEM = 'That does not look like an email address';
+
+
+/**
+ * The name to store, or why this can't be one (audit L-4). Trimmed; 3 to 32
+ * characters; plain letters, digits, single spaces, hyphens and underscores,
+ * starting and ending with a letter or digit. Anything else used to pass:
+ * trailing spaces, zero-width characters, and look-alike letters from other
+ * alphabets, which let one player pass as another in chat. Existing names are
+ * untouched; this governs names being chosen.
+ */
+export function cleanUsername(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {
+    if (typeof raw !== 'string') return { ok: false, error: 'Username must be between 3 and 32 characters' };
+    const name = raw.trim();
+    if (name.length < 3 || name.length > 32) return { ok: false, error: 'Username must be between 3 and 32 characters' };
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9_-]| (?! ))*[A-Za-z0-9]$/.test(name)) {
+        return { ok: false, error: 'Names can use letters, numbers, single spaces, hyphens and underscores, and must start and end with a letter or number' };
+    }
+    // Guest names end in this, so a chosen name may not (it would pass for one).
+    if (name.toLowerCase().endsWith(GUEST_SUFFIX)) return { ok: false, error: `Usernames cannot end in "${GUEST_SUFFIX}"` };
+    return { ok: true, value: name };
+}
 
 /** Postgres unique_violation. A clash that slipped past the check-then-write. */
 export function isUniqueViolation(err: unknown): boolean {

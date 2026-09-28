@@ -86,6 +86,13 @@ router.post('/request', requireAuth, requireTrusted, async (req: AuthRequest, re
             return;
         }
 
+        // A trade with yourself can never complete (both acceptances live on
+        // one side) and only ties you up until cancelled (audit L-3).
+        if (target.id === playerId) {
+            res.status(400).json({ error: 'You cannot trade with yourself.' });
+            return;
+        }
+
         if (target.current_location_id !== player.current_location_id) {
             res.status(400).json({ error: 'That player is not at your location.' });
             return;

@@ -28,13 +28,10 @@ router.get('/inbox', requireAuth, async (req: AuthRequest, res: Response) => {
 router.get('/sent', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   try {
-    console.log('Sent route called for player:', playerId);
     const messages = await db('messages')
       .where({ sender_id: playerId, is_system: false })
       .orderBy('sent_at', 'desc')
       .select('id', 'sender_name', 'subject', 'is_read', 'is_system', 'sent_at', 'reply_to_id', 'recipient_id');
-
-    console.log('Sent messages found:', messages.length);
 
     const messagesWithRecipients = await Promise.all(messages.map(async m => {
       const recipient = await db('players').where({ id: m.recipient_id }).select('username').first();

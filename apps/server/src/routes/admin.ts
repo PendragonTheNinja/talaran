@@ -9,6 +9,7 @@ import { adminAdjustTalers } from '../services/talers';
 import { runBalanceChecks } from '../services/balanceChecks';
 import { onlinePlayers, pushToAll, pushToPlayer } from '../lib/realtime';
 import { endSessions, forgetSession } from '../lib/sessions';
+import { maskEmail } from '../lib/email';
 
 const router = Router();
 
@@ -20,6 +21,17 @@ async function hasPermission(playerId: number, permission: string): Promise<bool
     const perms = await db('mod_permissions').where({ player_id: playerId }).first();
     if (!perms) return false;
     return perms[permission] === true;
+}
+
+/**
+ * Moderators see a player's email masked (p•••@example.com); only admins see it
+ * whole (audit L-10). A moderator needs to know whose account they are looking
+ * at, not how to reach its owner; fixing an address for someone locked out is
+ * an admin's job.
+ */
+function emailFor<T extends { email?: string | null }>(viewer: { is_admin?: boolean } | undefined, player: T): T {
+    if (viewer?.is_admin || !player.email) return player;
+    return { ...player, email: maskEmail(player.email) };
 }
 
 // Get online players
@@ -86,6 +98,7 @@ router.get('/players/search', requireAuth, async (req: AuthRequest, res: Respons
             return;
         }
 
+        const viewer = await db('players').where({ id: playerId }).select('is_admin').first();
         const players = await db('players')
             .where('username', 'ilike', `%${q}%`)
             .leftJoin('locations', 'players.current_location_id', 'locations.id')
@@ -109,7 +122,7 @@ router.get('/players/search', requireAuth, async (req: AuthRequest, res: Respons
             )
             .limit(20);
 
-        res.json({ players });
+        res.json({ players: players.map((p: any) => emailFor(viewer, p)) });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -152,6 +165,8 @@ router.get('/players/:id', requireAuth, async (req: AuthRequest, res: Response) 
             res.status(404).json({ error: 'Player not found.' });
             return;
         }
+        const viewer = await db('players').where({ id: playerId }).select('is_admin').first();
+        Object.assign(player, emailFor(viewer, player));
 
         const warnings = await db('warnings')
             .where({ player_id: targetId })

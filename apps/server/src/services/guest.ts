@@ -1,5 +1,6 @@
 import db from '../db';
 import { logger } from '../lib/logger';
+import { setUpNewPlayerWithin } from './newPlayer';
 
 // Guest sessions.
 //
@@ -144,29 +145,7 @@ export async function createGuest(): Promise<CreatedGuest | null> {
 
         // Same seeding as POST /api/auth/register. If that ever grows a step,
         // this has to grow with it, which is why they are commented as a pair.
-        const allSkills = await trx('skills').select('id');
-        if (allSkills.length) {
-            await trx('player_skills').insert(
-                allSkills.map((skill: { id: number }) => ({
-                    player_id: player.id,
-                    skill_id: skill.id,
-                    xp: 0,
-                })),
-            );
-        }
-        await trx('player_stats').insert({ player_id: player.id });
-
-        const starters = ['Ambren Hatchet', 'Ambren Pickaxe', "Novice's Pony"];
-        for (const name of starters) {
-            const item = await trx('items').where({ name }).first();
-            if (item) {
-                await trx('player_inventory').insert({
-                    player_id: player.id,
-                    item_id: item.id,
-                    quantity: 1,
-                });
-            }
-        }
+        await setUpNewPlayerWithin(trx, player.id);
 
         logger.info(`[guest] created ${username} (expires ${expiresAt.toISOString()})`);
         return { id: player.id, username: player.username, guest_expires_at: expiresAt };
