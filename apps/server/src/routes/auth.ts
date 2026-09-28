@@ -4,7 +4,7 @@ import { Player } from '../types';
 import { logger } from '../lib/logger';
 import crypto from 'crypto';
 import { sendEmail, passwordResetEmail } from '../lib/email';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireAuthToClaim, AuthRequest } from '../middleware/auth';
 import { createGuest, GuestCapacityError, GUEST_SUFFIX, GUEST_SESSION_MINUTES } from '../services/guest';
 import { issueSession, endSessions } from '../lib/sessions';
 import {
@@ -336,7 +336,10 @@ router.post('/guest', async (req: Request, res: Response) => {
 // Turn a guest into a real account, keeping every bit of progress. Because a
 // guest is already a row in `players`, this is an UPDATE: no rows move, no
 // foreign keys change, nothing has to be copied across.
-router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => {
+// requireAuthToClaim, not requireAuth: an expired guest must get through here,
+// and only here. Behind requireAuth every claim by an expired guest was refused
+// with "claim your character to keep playing".
+router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { username, password } = req.body;
 
@@ -395,16 +398,24 @@ router.post('/upgrade', requireAuth, async (req: AuthRequest, res: Response) => 
 
     const password_hash = await hashPassword(password);
 
-    await db('players').where({ id: playerId }).update({
-      username,
-      email,
-      password_hash,
-      is_guest: false,
-      guest_expires_at: null,
-      // Left unverified on purpose. Once ENFORCE_EMAIL_VERIFICATION is on,
-      // an upgraded account is in exactly the same position as any other new
-      // registration, which is the point of having one predicate.
-      email_verified_at: null,
+    await db.transaction(async (trx) => {
+      await trx('players').where({ id: playerId }).update({
+        username,
+        email,
+        password_hash,
+        is_guest: false,
+        guest_expires_at: null,
+        // Left unverified on purpose. Once ENFORCE_EMAIL_VERIFICATION is on,
+        // an upgraded account is in exactly the same position as any other new
+        // registration, which is the point of having one predicate.
+        email_verified_at: null,
+      });
+      // End every earlier session, the guest token included, so only the token
+      // handed back below works from here on. This also drops the cached
+      // session row, which still says "expired guest": without that, the new
+      // token was refused as an expired guest for up to thirty seconds and the
+      // claim panel reopened straight after a successful claim.
+      await endSessions(playerId, trx);
     });
 
     const [{ started }] = await db('players')

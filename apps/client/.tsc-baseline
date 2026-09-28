@@ -1,0 +1,20 @@
+src/App.tsx: error TS2339: Property 'has_seen_welcome' does not exist on type 'Player'.
+src/App.tsx: error TS2741: Property 'allLocations' is missing in type 'LocationData' but required in type 'LocationData'.
+src/components/AdminContentBrowser.tsx: error TS2322: Type '{ table: string; label: string; columns: string[]; columnKinds: Record<string, ColumnKind>; enumOptions: Record<string, string[]>; initialValues: Record<string, string>; onCreated: () => Promise<...>; onCancel: () => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+src/components/GameLayout.tsx: error TS2322: Type '{ locationData: LocationData; currentAction: any; onStartAction: (type: string, id: string | number) => void; veins: any[]; onKilnMaxLogs: (max: number) => void; onActionLimitChange: (limit: number) => void; ... 7 more ...; smithingStatusKey: number; }' is not assignable to type 'IntrinsicAttributes & LocationPanelProps'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_mod' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_mod' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_mod' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2339: Property 'is_mod' does not exist on type 'Player'.
+src/components/GameLayout.tsx: error TS2719: Type 'Skill[]' is not assignable to type 'Skill[]'. Two different types with this name exist, but they are unrelated.
+src/components/GameView.tsx: error TS2339: Property 'xpAtLevel' does not exist on type 'XpInfo'.
+src/components/GameView.tsx: error TS2339: Property 'xpAtLevel' does not exist on type 'XpInfo'.
+src/components/LocationPanel.tsx: error TS2339: Property 'onRequestTrade' does not exist on type 'LocationPanelProps'.
+src/components/RightPanel.tsx: error TS2322: Type '{ currentLocationId: number; locationName: string; locations: Location[]; connections: any[]; onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void; }' is not assignable to type 'IntrinsicAttributes & MiniMapProps'.
+src/components/SkillsPanel.tsx: error TS2719: Type 'Skill[]' is not assignable to type 'Skill[]'. Two different types with this name exist, but they are unrelated.
+src/components/TabbedPanel.tsx: error TS2719: Type 'Skill[]' is not assignable to type 'Skill[]'. Two different types with this name exist, but they are unrelated.

@@ -23,13 +23,12 @@ import { signToken } from '../config/jwt';
 import { afterCommit } from './afterCommit';
 import { realtimeServer } from './realtime';
 import type { JwtPayload } from '../types';
+import { GUEST_TOKEN_SECONDS } from '../services/guest';
 
 const SESSION_CACHE_MS = 30_000;
 
 /** How long a full account's token lasts. */
 export const ACCOUNT_SESSION_SECONDS = 60 * 60 * 24 * 30;
-/** A guest's token; the guest deadline column is the real limit. */
-export const GUEST_SESSION_SECONDS = 60 * 60 * 24;
 
 interface SessionRow {
     token_version: number;
@@ -86,7 +85,7 @@ export async function issueSession(
         tv: Number(row?.token_version ?? 0),
         ...(opts.isGuest ? { isGuest: true } : {}),
     };
-    return signToken(payload, opts.isGuest ? GUEST_SESSION_SECONDS : ACCOUNT_SESSION_SECONDS);
+    return signToken(payload, opts.isGuest ? GUEST_TOKEN_SECONDS : ACCOUNT_SESSION_SECONDS);
 }
 
 /**
@@ -130,8 +129,16 @@ export type SessionVerdict =
  * route then explains the ban, once the password is proven). 403 with
  * reason 'guest_expired' keeps its old meaning: the token is fine, the trial is
  * over, and the client shows the claim-your-character panel.
+ *
+ * `allowExpiredGuest` is for the claim route alone. Claiming is the one thing
+ * an expired guest is meant to do, and it used to sit behind this same gate,
+ * so the panel that said "claim your character to keep playing" refused every
+ * claim with exactly that message.
  */
-export async function checkSession(payload: JwtPayload): Promise<SessionVerdict> {
+export async function checkSession(
+    payload: JwtPayload,
+    opts: { allowExpiredGuest?: boolean } = {},
+): Promise<SessionVerdict> {
     const row = await loadSessionRow(payload.playerId);
     if (!row) {
         return { ok: false, status: 401, error: 'This session has ended.', reason: 'session_ended' };
@@ -148,7 +155,7 @@ export async function checkSession(payload: JwtPayload): Promise<SessionVerdict>
 
     // A guest deadline is set once, at creation, and never moves. See the note
     // in middleware/auth.ts.
-    if (row.is_guest && row.guest_expires_at && row.guest_expires_at.getTime() <= Date.now()) {
+    if (!opts.allowExpiredGuest && row.is_guest && row.guest_expires_at && row.guest_expires_at.getTime() <= Date.now()) {
         return {
             ok: false, status: 403, reason: 'guest_expired',
             error: 'Your guest session has ended. Claim your character to keep playing.',

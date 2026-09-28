@@ -355,6 +355,9 @@ function App() {
   const navigate = useNavigate()
 
   const handleLogout = () => {
+    // Cleared here too: left set, the next guest's claim panel opened as
+    // already expired the moment their banner appeared.
+    setGuestExpired(false)
     disconnectSocket()
     localStorage.removeItem('talaran_token')
     localStorage.removeItem('talaran_player')
@@ -395,6 +398,7 @@ function App() {
                 onUpgraded={handleUpgraded}
                 expired={guestExpired}
                 onDismissExpired={() => setGuestExpired(false)}
+                onLeave={handleLogout}
               />
             )}
             {claimedName && (

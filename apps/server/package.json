@@ -11,18 +11,20 @@
     "content:import": "ts-node src/scripts/importContent.ts",
     "values:derive": "ts-node --transpile-only src/scripts/deriveValues.ts",
     "items:audit": "ts-node --transpile-only src/scripts/auditItemCoverage.ts",
-    "race:check": "ts-node --transpile-only src/scripts/raceCheck.ts"
+    "race:check": "ts-node --transpile-only src/scripts/raceCheck.ts",
+    "db:baseline": "ts-node --transpile-only src/scripts/dbBaseline.ts write",
+    "db:build": "ts-node --transpile-only src/scripts/dbBaseline.ts build"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.2",
+    "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "^9.0.3",
     "knex": "^3.2.9",
     "pg": "^8.20.0",
     "redis": "^5.12.1",
-    "socket.io": "^4.8.3",
+    "socket.io": "^4.8.4",
     "winston": "^3.19.0"
   },
   "devDependencies": {

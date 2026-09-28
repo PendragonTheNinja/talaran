@@ -11,6 +11,12 @@ interface GuestBannerProps {
     /** Set once the server has refused a request because the session lapsed. */
     expired: boolean
     onDismissExpired: () => void
+    /**
+     * Sign out without claiming. Offered once the trial has ended, when the
+     * panel cannot otherwise be closed: nothing in the game works for an
+     * expired guest, so claiming or leaving are the only two ways forward.
+     */
+    onLeave: () => void
     /** Set when a milestone is worth interrupting for. Null the rest of the time. */
     nudge?: string | null
     onDismissNudge?: () => void
@@ -48,6 +54,7 @@ export default function GuestBanner({
     onUpgraded,
     expired,
     onDismissExpired,
+    onLeave,
     nudge,
     onDismissNudge,
 }: GuestBannerProps) {
@@ -57,6 +64,7 @@ export default function GuestBanner({
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
+    const [confirmLeave, setConfirmLeave] = useState(false)
 
     const remaining = useCountdown(player.guest_expires_at)
 
@@ -202,6 +210,27 @@ export default function GuestBanner({
                                 <button className="guest-later" onClick={close}>
                                     Keep looking around
                                 </button>
+                            )}
+
+                            {expired && !confirmLeave && (
+                                <button className="guest-later" onClick={() => setConfirmLeave(true)}>
+                                    Leave without claiming
+                                </button>
+                            )}
+
+                            {expired && confirmLeave && (
+                                <div className="guest-leave-confirm">
+                                    <p className="guest-hint">
+                                        A trial character can only be claimed from this browser, so leaving now
+                                        gives it up for good.
+                                    </p>
+                                    <button className="guest-later" onClick={onLeave}>
+                                        Leave for good
+                                    </button>
+                                    <button className="guest-later" onClick={() => setConfirmLeave(false)}>
+                                        Back
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>

@@ -65,7 +65,23 @@ async function main() {
             }
             const rows: Record<string, unknown>[] = JSON.parse(fs.readFileSync(file, 'utf8'));
 
-            for (const row of rows) {
+            // json/jsonb columns go over the wire as JSON text. The driver sends
+            // a JavaScript ARRAY as a Postgres array literal, which a jsonb
+            // column rejects, so a snapshot with an array in one (e.g.
+            // npc_dialogues.options) could never be imported (audit M17).
+            // Objects happened to work, which is why it went unnoticed.
+            const { rows: jsonCols } = await trx.raw(
+                `SELECT column_name FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = ? AND data_type IN ('json', 'jsonb')`,
+                [table],
+            );
+            const asJson = (jsonCols as { column_name: string }[]).map((c) => c.column_name);
+
+            for (const raw of rows) {
+                const row = { ...raw };
+                for (const col of asJson) {
+                    if (row[col] !== null && row[col] !== undefined) row[col] = JSON.stringify(row[col]);
+                }
                 await trx(table).insert(row).onConflict('id').merge();
             }
 

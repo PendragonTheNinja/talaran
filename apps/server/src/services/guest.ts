@@ -25,6 +25,16 @@ export const GUEST_SESSION_MINUTES = 60;
 export const GUEST_RETENTION_DAYS = 7;
 
 /**
+ * How long a guest's token lasts: the whole time the character can still be
+ * claimed, trial plus retention. A guest has no password, so this token is
+ * their ONLY key. It used to last 24 hours, so someone who came back on day
+ * three was thrown to the login screen with a character nobody could claim,
+ * although it was kept for a week. Playing still stops at the guest deadline:
+ * lib/sessions.ts refuses an expired guest everywhere except the claim route.
+ */
+export const GUEST_TOKEN_SECONDS = GUEST_SESSION_MINUTES * 60 + GUEST_RETENTION_DAYS * 24 * 60 * 60;
+
+/**
  * Ceiling on live guest sessions across the whole server.
  *
  * The per-IP rate limit is the first line, but it only slows down one address.

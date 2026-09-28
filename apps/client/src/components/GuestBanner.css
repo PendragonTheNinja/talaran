@@ -200,6 +200,13 @@
     cursor: default;
 }
 
+/* The two-step "leave without claiming", offered only once the trial has ended. */
+.guest-leave-confirm {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border-dark);
+}
+
 .guest-later {
     display: block;
     width: 100%;

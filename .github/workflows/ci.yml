@@ -1,0 +1,98 @@
+# Checks every push and pull request (audit §5.6).
+#
+# A failure here is something that would otherwise have shipped: a new type
+# error, lint that grew, a client that no longer builds, a migration that does
+# not apply, or a dupe (race:check). Known debt is held in committed baselines
+# (apps/client/.tsc-baseline, apps/client/.eslint-baseline) so the checks can
+# pass today and fail on anything NEW; shrink the baselines as debt is paid.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/talaran_ci
+      RACECHECK_DATABASE_URL: postgres://postgres:postgres@localhost:5432/talaran_racecheck
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (exactly the lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Server type-check (baseline 0)
+        working-directory: apps/server
+        run: npx tsc --noEmit
+
+      - name: Client type-check (no errors beyond .tsc-baseline)
+        working-directory: apps/client
+        run: |
+          npx tsc --noEmit -p tsconfig.app.json > /tmp/tsc.txt 2>&1 || true
+          grep "error TS" /tmp/tsc.txt | sed -E 's/\([0-9]+,[0-9]+\)//' | sort > /tmp/now.txt || true
+          comm -13 .tsc-baseline /tmp/now.txt > /tmp/new.txt
+          if [ -s /tmp/new.txt ]; then echo "New client type errors:"; cat /tmp/new.txt; exit 1; fi
+          echo "$(wc -l < /tmp/now.txt) errors, all in the baseline"
+
+      - name: Client lint (no more problems than .eslint-baseline)
+        working-directory: apps/client
+        run: |
+          npx eslint . -f json > /tmp/eslint.json || true
+          count=$(node -e 'const r=require("/tmp/eslint.json");console.log(r.reduce((n,f)=>n+f.messages.length,0))')
+          baseline=$(cat .eslint-baseline)
+          echo "eslint: $count problems (baseline $baseline)"
+          if [ "$count" -gt "$baseline" ]; then npx eslint . || true; exit 1; fi
+
+      - name: Client build
+        working-directory: apps/client
+        run: npx vite build
+
+      - name: Postgres client tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Build a database from the repo alone (audit M17)
+        working-directory: apps/server
+        run: |
+          createdb talaran_ci
+          createdb talaran_racecheck
+          pnpm db:build
+          pnpm migrate
+          pnpm content:import --yes
+
+      - name: Race check
+        working-directory: apps/server
+        run: pnpm race:check
+
+      # Visible, not blocking: advisories arrive from outside, and a new one
+      # should be read and triaged (CLAUDE.md §3), not fail an unrelated push.
+      - name: Dependency audit
+        continue-on-error: true
+        run: pnpm audit --prod

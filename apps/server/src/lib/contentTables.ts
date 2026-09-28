@@ -67,6 +67,15 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // just makes the feat permanently unearnable.
     feats:                       { label: 'Feats',                 group: 'Feats',      snapshot: true, editable: true },
 
+    // ---- Station slots and action text ----
+    // Authored content that migrations created and filled but that was never
+    // registered, so content:export left it out and a database rebuilt from the
+    // repo had no workstation slots and no action text (audit M17). Merchants
+    // are NOT here on purpose: seeds/08_merchants.ts is their declarative source
+    // of truth, and a snapshot copy would compete with it.
+    workstation_slot_types:      { label: 'Workstation Slot Types', group: 'Crafting',  snapshot: true, editable: true },
+    action_presentation:         { label: 'Action Presentation',   group: 'Core',       snapshot: true, editable: true },
+
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },
     ore_veins:                   { label: 'Ore Veins',             group: 'World State' },

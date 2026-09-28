@@ -30,6 +30,28 @@ export function requireAuth(
   res: Response,
   next: NextFunction
 ): void {
+  authenticate(req, res, next, {});
+}
+
+/**
+ * requireAuth for the claim route only: an expired guest gets through, because
+ * claiming the character is the one thing they are meant to be able to do.
+ * Everything else about the session is still checked (version, ban, account).
+ */
+export function requireAuthToClaim(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void {
+  authenticate(req, res, next, { allowExpiredGuest: true });
+}
+
+function authenticate(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+  opts: { allowExpiredGuest?: boolean },
+): void {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -48,7 +70,7 @@ export function requireAuth(
   }
 
   req.player = payload;
-  checkSession(payload)
+  checkSession(payload, opts)
     .then((verdict) => {
       if (verdict.ok) {
         next();
