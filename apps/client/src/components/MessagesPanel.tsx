@@ -7,6 +7,7 @@ import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { TEXT_LIMITS } from '../lib/textLimits'
+import { useDraft } from '../lib/drafts'
 
 interface MessageSummary {
     id: number
@@ -42,8 +43,10 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
     // Compose form
     const [composeTo, setComposeTo] = useState('')
     const [composeSubject, setComposeSubject] = useState('')
-    const [composeBody, setComposeBody] = useState('')
     const [replyToId, setReplyToId] = useState<number | null>(null)
+    // The body is a draft (lib/drafts.ts), one per message being answered and
+    // one for a new message, so a letter survives closing the window.
+    const [composeBody, setComposeBody, clearComposeBody] = useDraft(replyToId ? `messages:reply:${replyToId}` : 'messages:new:body')
 
     const isMobile = useIsMobile()
     const dock = useDockableWindow('messages')
@@ -99,7 +102,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
             setSuccess('Message sent!')
             setComposeTo('')
             setComposeSubject('')
-            setComposeBody('')
+            clearComposeBody()
             setReplyToId(null)
             setView('inbox')
             await loadInbox()
@@ -112,7 +115,6 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
         if (!selected) return
         setComposeTo(selected.sender_name)
         setComposeSubject(`Re: ${selected.subject}`)
-        setComposeBody('')
         setReplyToId(selected.id)
         setView('compose')
     }
@@ -166,7 +168,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
         >            <div className="messages-header">
                 <h3 className="gold-text">Messages</h3>
                 <div className="messages-header-actions">
-                    <button className="btn" onClick={() => { setView('compose'); setReplyToId(null); setComposeTo(''); setComposeSubject(''); setComposeBody('') }}>
+                    <button className="btn" onClick={() => { setView('compose'); setReplyToId(null); setComposeTo(''); setComposeSubject('') }}>
                         + Compose
                     </button>
                     {!isMobile && (

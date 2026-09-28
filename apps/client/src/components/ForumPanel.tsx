@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Badge from './Badge'
 import { formatGameDate, formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
@@ -11,6 +11,7 @@ import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { TEXT_LIMITS } from '../lib/textLimits'
+import { useDraft, readDraft, writeDraft } from '../lib/drafts'
 
 interface ForumCategory {
     id: number
@@ -86,6 +87,18 @@ interface RecentThread {
 
 type ForumView = 'home' | 'category' | 'thread' | 'new_thread'
 
+/** Where the forum was left, for reopening there (this browser session). */
+interface ForumPlace { view: ForumView; threadId: number | null; categoryId: number | null; page: number; scroll: number }
+const FORUM_PLACE_KEY = 'talaran:forum:place'
+
+function readForumPlace(): ForumPlace | null {
+    try { return JSON.parse(sessionStorage.getItem(FORUM_PLACE_KEY) || 'null') } catch { return null }
+}
+
+function writeForumPlace(place: ForumPlace): void {
+    try { sessionStorage.setItem(FORUM_PLACE_KEY, JSON.stringify(place)) } catch { /* storage blocked */ }
+}
+
 export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile, openThreadId, onThreadOpened, onShareToChat }: {
     onClose: () => void
     playerUsername: string
@@ -112,21 +125,22 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const [success, setSuccess] = useState<string | null>(null)
     const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
 
-    // New thread form
-    const [newTitle, setNewTitle] = useState('')
-    const [newContent, setNewContent] = useState('')
+    // New thread form. Title and body are drafts (lib/drafts.ts): backing out
+    // of the Forum mid-post no longer loses them.
+    const [newTitle, setNewTitle, clearNewTitle] = useDraft('forum:new-thread:title')
+    const [newContent, setNewContent, clearNewContent] = useDraft('forum:new-thread:body')
     const [newCategoryId, setNewCategoryId] = useState<number | null>(null)
     const [hasPoll, setHasPoll] = useState(false)
     const [pollQuestion, setPollQuestion] = useState('')
     const [pollOptions, setPollOptions] = useState(['', ''])
 
-    // Reply
-    const [replyContent, setReplyContent] = useState('')
+    // Reply: one draft per thread, so a half-written reply waits in its thread.
+    const [replyContent, setReplyContent, clearReply] = useDraft(currentThread ? `forum:reply:${currentThread.id}` : null)
     const [showReply, setShowReply] = useState(false)
 
     // Edit and Markdown
     const [editingPostId, setEditingPostId] = useState<number | null>(null)
-    const [editContent, setEditContent] = useState('')
+    const [editContent, setEditContent, clearEdit] = useDraft(editingPostId ? `forum:edit:${editingPostId}` : null)
     const { textareaRef: editTextareaRef, insertMarkdown: insertEditMarkdown } = useMarkdownEditor(editContent, setEditContent)
     const { textareaRef: replyTextareaRef, insertMarkdown: insertReplyMarkdown } = useMarkdownEditor(replyContent, setReplyContent)
     const { textareaRef: newThreadTextareaRef, insertMarkdown: insertNewThreadMarkdown } = useMarkdownEditor(newContent, setNewContent)
@@ -134,10 +148,8 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const isMobile = useIsMobile()
     const dock = useDockableWindow('forum')
 
-    useEffect(() => {
-        if (openThreadId) return
-        loadHome()
-    }, [])
+    const bodyRef = useRef<HTMLDivElement | null>(null)
+    const scrollToRestore = useRef<number | null>(null)
 
     useEffect(() => {
         if (openThreadId) {
@@ -184,12 +196,46 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
             setTotalPages(data.totalPages)
             setPage(p)
             setView('thread')
-            setShowReply(false)
-            setReplyContent('')
+            // The reply box opens by itself when this thread has an unsent reply.
+            setShowReply(readDraft(`forum:reply:${threadId}`) !== '')
         } catch (err) {
             setError('Failed to load thread.')
         }
     }
+
+    // Reopen where the player left off (lib: sessionStorage, this browser
+    // session): the thread and its page, a category, or the new-thread form,
+    // and the scroll position. Opening AT a thread wins. Home loads first, so
+    // a remembered thread that has since gone still leaves a working forum.
+    useEffect(() => {
+        if (openThreadId) return
+        const place = readForumPlace()
+        scrollToRestore.current = place?.scroll ?? null
+        loadHome().then(() => {
+            if (place?.view === 'thread' && place.threadId) loadThread(place.threadId, place.page)
+            else if (place?.view === 'category' && place.categoryId) loadCategory({ id: place.categoryId } as ForumCategory, place.page)
+            else if (place?.view === 'new_thread') { setNewCategoryId(place.categoryId ?? null); setView('new_thread') }
+        })
+    }, [])
+
+    // Remember the view for next time.
+    useEffect(() => {
+        writeForumPlace({
+            view,
+            threadId: currentThread?.id ?? null,
+            categoryId: view === 'new_thread' ? newCategoryId : currentCategory?.id ?? null,
+            page,
+            scroll: bodyRef.current?.scrollTop ?? 0,
+        })
+    }, [view, currentThread?.id, currentCategory?.id, newCategoryId, page])
+
+    // When the restored view has rendered, go back to where the reader was.
+    useEffect(() => {
+        if (scrollToRestore.current === null || !bodyRef.current) return
+        if (view === 'home' && readForumPlace()?.view !== 'home') return   // still on the way there
+        bodyRef.current.scrollTop = scrollToRestore.current
+        scrollToRestore.current = null
+    }, [view, posts, threads])
 
     const handleNewThread = async () => {
         setError(null)
@@ -204,8 +250,8 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                     pollOptions: hasPoll ? pollOptions.filter(o => o.trim()) : null,
                 }),
             })
-            setNewTitle('')
-            setNewContent('')
+            clearNewTitle()
+            clearNewContent()
             setHasPoll(false)
             setPollQuestion('')
             setPollOptions(['', ''])
@@ -224,7 +270,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                 method: 'POST',
                 body: JSON.stringify({ content: replyContent }),
             })
-            setReplyContent('')
+            clearReply()
             setShowReply(false)
             await loadThread(currentThread.id, page)
         } catch (err: any) {
@@ -304,8 +350,8 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                 ? { ...p, content: editContent, edited_at: new Date().toISOString() }
                 : p
             ))
+            clearEdit()
             setEditingPostId(null)
-            setEditContent('')
         } catch (err: any) {
             setError(err.message)
         }
@@ -434,7 +480,11 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
             {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
-            <div className="forum-body">
+            <div
+                className="forum-body"
+                ref={bodyRef}
+                onScroll={e => writeForumPlace({ ...(readForumPlace() ?? { view, threadId: null, categoryId: null, page }), scroll: e.currentTarget.scrollTop })}
+            >
 
                 {/* HOME VIEW */}
                 {view === 'home' && (
@@ -650,7 +700,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                     <button className="btn btn-gold" style={{ fontSize: '13px' }} onClick={() => handleEditPost(post.id)}>
                                                         Save
                                                     </button>
-                                                    <button className="btn" style={{ fontSize: '13px' }} onClick={() => { setEditingPostId(null); setEditContent('') }}>
+                                                    <button className="btn" style={{ fontSize: '13px' }} onClick={() => { clearEdit(); setEditingPostId(null) }}>
                                                         Cancel
                                                     </button>
                                                 </div>
@@ -676,8 +726,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                     className="btn"
                                                     style={{ fontSize: '12px' }}
                                                     onClick={() => {
+                                                        // Start from the post, unless an unsent edit of it
+                                                        // is waiting.
+                                                        if (readDraft(`forum:edit:${post.id}`) === '') writeDraft(`forum:edit:${post.id}`, post.content)
                                                         setEditingPostId(post.id)
-                                                        setEditContent(post.content)
                                                     }}
                                                 >
                                                     Edit

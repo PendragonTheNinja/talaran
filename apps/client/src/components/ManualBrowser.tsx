@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import ManualRenderer from './ManualRenderer'
 import ManualItem from './ManualItem'
 import ManualItemIndex from './ManualItemIndex'
@@ -29,6 +29,22 @@ interface ManualBrowserProps {
     onLocationChange?: (section: string | null, slug: string | null) => void
 }
 
+/**
+ * Where the in-game manual was left: page and scroll, kept in sessionStorage
+ * so it lasts the browser session. A player learning a new trade can close the
+ * manual to act and reopen it to the same paragraph.
+ */
+interface Place { section: string | null; slug: string | null; scroll: number }
+const PLACE_KEY = 'talaran:manual:place'
+
+function readPlace(): Place | null {
+    try { return JSON.parse(sessionStorage.getItem(PLACE_KEY) || 'null') } catch { return null }
+}
+
+function writePlace(place: Place): void {
+    try { sessionStorage.setItem(PLACE_KEY, JSON.stringify(place)) } catch { /* storage blocked */ }
+}
+
 export default function ManualBrowser({
     variant,
     initialSection,
@@ -37,8 +53,13 @@ export default function ManualBrowser({
     onLocationChange,
 }: ManualBrowserProps) {
     const [manifest, setManifest] = useState<ManualManifest | null>(null)
-    const [section, setSection] = useState<string | null>(initialSection || null)
-    const [slug, setSlug] = useState<string | null>(initialSlug || null)
+    // The in-game panel reopens where it was left (page and scroll), for the
+    // rest of the browser session, unless it was opened AT a page, which wins.
+    const restoring = variant === 'panel' && !initialSection && !initialSlug
+    const [section, setSection] = useState<string | null>(() => initialSection || (restoring ? readPlace()?.section ?? null : null))
+    const [slug, setSlug] = useState<string | null>(() => initialSlug || (restoring ? readPlace()?.slug ?? null : null))
+    const bodyRef = useRef<HTMLDivElement | null>(null)
+    const scrollToRestore = useRef<number | null>(restoring ? readPlace()?.scroll ?? null : null)
 
     const [content, setContent] = useState<string>('')
     const [loading, setLoading] = useState(true)
@@ -111,6 +132,19 @@ export default function ManualBrowser({
 
         return () => { live = false }
     }, [section, slug])
+
+    // Remember the page for the next time the panel opens.
+    useEffect(() => {
+        if (variant === 'panel') writePlace({ section, slug, scroll: bodyRef.current?.scrollTop ?? 0 })
+    }, [variant, section, slug])
+
+    // Once the page has loaded: the first time after reopening, go back to
+    // where the reader was; after that, every new page starts at the top.
+    useEffect(() => {
+        if (variant !== 'panel' || loading || !bodyRef.current) return
+        bodyRef.current.scrollTop = scrollToRestore.current ?? 0
+        scrollToRestore.current = null
+    }, [variant, loading, section, slug])
 
     const go = useCallback((nextSection: string | null, nextSlug: string | null) => {
         setHistory(h => {
@@ -281,7 +315,11 @@ export default function ManualBrowser({
                 )}
             </aside>
 
-            <div className="manual-body">
+            <div
+                className="manual-body"
+                ref={bodyRef}
+                onScroll={variant === 'panel' ? e => writePlace({ section, slug, scroll: e.currentTarget.scrollTop }) : undefined}
+            >
                 {error ? (
                     <div className="manual-message">
                         <p>{error}</p>

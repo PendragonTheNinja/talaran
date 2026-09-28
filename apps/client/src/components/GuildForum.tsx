@@ -7,6 +7,7 @@ import { formatGameDateTime, formatGameDate } from '../lib/time'
 import './ForumPanel.css'
 import './GuildForum.css'
 import { TEXT_LIMITS } from '../lib/textLimits'
+import { useDraft } from '../lib/drafts'
 
 // The guild's own forum, shown inside the guild page.
 //
@@ -288,7 +289,8 @@ function ThreadView({ threadId, onBack }: { threadId: number; onBack: () => void
         canManage: boolean
         myPlayerId: number
     } | null>(null)
-    const [reply, setReply] = useState('')
+    // A draft per thread (lib/drafts.ts): closing the window keeps the reply.
+    const [reply, setReply, clearReply] = useDraft(`guild:reply:${threadId}`)
     const [error, setError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
 
@@ -310,7 +312,7 @@ function ThreadView({ threadId, onBack }: { threadId: number; onBack: () => void
                 method: 'POST',
                 body: JSON.stringify({ content: reply }),
             })
-            setReply('')
+            clearReply()
             await load()
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Could not post that.')
@@ -427,8 +429,9 @@ function Compose({
     onDone: (threadId: number) => void
     onCancel: () => void
 }) {
-    const [title, setTitle] = useState('')
-    const [content, setContent] = useState('')
+    // A draft per board: a new thread survives backing out of the forum.
+    const [title, setTitle, clearTitle] = useDraft(`guild:new-thread:${category.id}:title`)
+    const [content, setContent, clearContent] = useDraft(`guild:new-thread:${category.id}:body`)
     const [error, setError] = useState<string | null>(null)
 
     const submit = async () => {
@@ -439,6 +442,8 @@ function Compose({
                 method: 'POST',
                 body: JSON.stringify({ categoryId: category.id, title, content }),
             })
+            clearTitle()
+            clearContent()
             onDone(d.threadId)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Could not post that.')

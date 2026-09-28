@@ -8,6 +8,7 @@ import { useMarkdownEditor } from '../lib/useMarkdownEditor'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
+import { useDraft } from '../lib/drafts'
 
 interface NewsPost {
     id: number
@@ -29,8 +30,9 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
     const [posts, setPosts] = useState<NewsPost[]>([])
     const [selected, setSelected] = useState<NewsPost | null>(null)
     const [view, setView] = useState<'list' | 'create'>('list')
-    const [newTitle, setNewTitle] = useState('')
-    const [newBody, setNewBody] = useState('')
+    // Drafts (lib/drafts.ts): a news post survives closing the panel.
+    const [newTitle, setNewTitle, clearNewTitle] = useDraft('news:new:title')
+    const [newBody, setNewBody, clearNewBody] = useDraft('news:new:body')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const { textareaRef: bodyTextareaRef, insertMarkdown: insertBodyMarkdown } = useMarkdownEditor(newBody, setNewBody)
@@ -60,8 +62,8 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                 body: JSON.stringify({ title: newTitle, body: newBody }),
             })
             setSuccess('News post published!')
-            setNewTitle('')
-            setNewBody('')
+            clearNewTitle()
+            clearNewBody()
             setView('list')
             setTimeout(() => setSuccess(null), 3000)
             await loadNews()
