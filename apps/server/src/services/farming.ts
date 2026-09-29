@@ -4,7 +4,7 @@ import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
-import { awardXp as awardSkillXp } from './xp';
+import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { takeItemsWithin } from './inventory';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
@@ -255,8 +255,8 @@ async function equippedTool(playerId: number, subtype: string) {
 }
 
 // Thin local name over the shared writer in services/xp.ts.
-async function awardXp(playerId: number, skillName: string, xp: number): Promise<void> {
-    await awardSkillXp(playerId, skillName, xp);
+async function awardXp(playerId: number, skillName: string, xp: number, opts: AwardXpOptions = {}): Promise<void> {
+    await awardSkillXp(playerId, skillName, xp, db, opts);
 }
 
 async function playerProperty(playerId: number) {
@@ -643,7 +643,7 @@ export async function resolveTend(playerId: number): Promise<FarmActionResult> {
 
         const lvl = await skillLevel(playerId, 'Farming');
         const xp = activeXpForSeconds(lvl, plots.length * TEND_SECONDS_PER_PLOT);
-        await awardXp(playerId, 'Farming', xp);
+        await awardXp(playerId, 'Farming', xp, { units: tended });
         await incrementStats(playerId, { total_actions_completed: 1});
 
         return {
@@ -1020,7 +1020,7 @@ export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | n
 
         if (brought.size === 0) return { success: false, error: 'The fields had nothing left to give.' };
 
-        await awardXp(playerId, 'Farming', totalXp);
+        await awardXp(playerId, 'Farming', totalXp, { units: goldBasisXp.length });
         await incrementStats(playerId, {
             total_actions_completed: 1,
             total_crops_harvested: totalYield,

@@ -178,6 +178,11 @@
   font-size: 16px;
 }
 
+/* A world event's bonus XP, beside the normal amount. */
+.last-result-event {
+  color: var(--color-gold-bright);
+}
+
 .last-result-next {
   color: var(--color-text-muted);
   font-size: 16px;

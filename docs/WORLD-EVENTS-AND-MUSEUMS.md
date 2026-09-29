@@ -2,7 +2,7 @@
 
 **Status:** step 1 of the build order is built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button. Steps 2 to 5 are not. The one remaining choice is marked **Q**.
 
-**One refinement made while building step 1:** the bonus is applied inside `awardXp`, the game's one XP writer, not at each action's XP call (there are 37 of them, most without their location). The place is where the player stands when the XP lands. An "all" action (Harvest All, Feed All) is one action: it takes one unit from the pool and its whole payout is raised.
+**One refinement made while building step 1:** the bonus is applied inside `awardXp`, the game's one XP writer, not at each action's XP call (there are 37 of them, most without their location). The place is where the player stands when the XP lands. A bulk action (Harvest All, Feed All, Tend, Muck All, Collect All, Slaughter All) takes one unit per thing it did (plots, pens, animals); when fewer are left, only that share of its XP is raised. A juvenile's growing-up XP is never raised and takes nothing: it pays for time passing, not for an action.
 
 Both systems are built on what Talaran already has rather than beside it: islands are `locations.region`, announcements go through the existing server channel (`services/records.ts`, the same path as the firsts feed), rewards come from feats, and every item move goes through the locked helpers in `services/inventory.ts`.
 
@@ -15,7 +15,7 @@ Both systems are built on what Talaran already has rather than beside it: island
 - **The Events button** (top navigation, currently dead) opens an Events panel: what is happening now, when the Travelling Merchant is next due, and what ended in the last day.
 - **Each live event** shows where it is, what it favours, a countdown, and how much is left ("Bountiful Shoal at Luxmere · +25% Fishing XP · 1 h 12 min · 212 of 400 catches left").
 - **When an event starts**, one line in the server channel, like a world first: *"A bountiful shoal has come into Luxmere. Fishing there earns a quarter more experience while it lasts."* No banner, no sound.
-- **At the event's location**, the location panel shows it, and every boosted action says so in its result line.
+- **At the event's location**, the location panel shows it, and every boosted action says so in its result line, beside the normal XP: "+40 Cooking experience (+10 event), 43,952 total."
 
 ### How events happen
 
@@ -36,7 +36,7 @@ Both systems are built on what Talaran already has rather than beside it: island
 ### What an event does
 
 - **Skill events:** that skill's actions, completed at that location while the event is live, earn **+25% XP** in that skill (the multiplier is per type, editable). Only that skill's XP: not the Exploration XP some actions also give, and items and gold are unchanged.
-- **Each boosted action uses one from the pool.** Decided when the action completes: an action started just before an event, finishing during it, counts; idle repeats count. When the pool is empty the bonus stops for everyone at once.
+- **Each boosted action uses one from the pool** (a bulk action, one per plot, pen or animal). Decided when the action completes: an action started just before an event, finishing during it, counts; idle repeats count. When the pool is empty the bonus stops for everyone at once.
 - **Food buffs** speed actions up, raise rare odds or double output; none touches XP, so nothing stacks awkwardly. A faster buff simply spends the pool faster.
 
 ### The roster (first version)
@@ -87,7 +87,7 @@ A future `invasion` kind in the same system and panel. Each kind brings its own 
 
 - **The event types are data, not code,** so the panel can edit them: a `world_event_types` table (seeded with the roster above, snapshotted like other content). What each *kind* does (skill boost, merchant, later invasion) is code in `services/worldEvents.ts`.
 - **Tables:** `world_event_types` (the roster), `world_event_settings` (one row: frequency, limits, merchant schedule), `world_events` (each event: type, kind, place, skill, bonus, pool total and left, start, end, how it ended, who started it, its announcement), `world_event_stock` (the merchant's limited stock per visit), `merchant_extra_goods` (the extras list).
-- **One call at every boosted XP site:** `withEventBonus(baseXp, { playerId, locationId, skill }, trx)` takes one from the pool (an atomic `pool_left - 1 WHERE pool_left > 0 AND ends_at > now`) and returns the boosted XP, or the base XP untouched when there is no event or the pool is empty. The sites are already known: woodcutting, rock and vein mining, both fishing actions, foraging, trapping, hunting, farming and husbandry actions, smelting, smithing, the kiln, sawing, woodworking, and recipes.
+- **One call, inside `awardXp`:** `applyEventBonus` takes `units` from the pool in one locked statement (fewer if fewer are left) and returns the XP with that share raised, or untouched when there is no event or the pool is empty. `awardXp(…, { units })` passes the count from bulk actions; `{ eventBonus: false }` opts an award out. The bonus is noted once the award commits, and the tick's one emit point adds it to the result as `eventXp` for the result line.
 - **Routes:** `GET /api/events` (live, recent, merchant due), merchant buy, and the admin set.
 - **Client:** an `EventsPanel` like the other panels, the nav button wired to it, the location marker, and the admin Events section. A socket `world_events_changed` keeps them current.
 - **Tested** like everything else: `race:check` scenarios for the shared pool (many players on the last few actions: exactly the pool's size is paid) and the merchant's last item.
@@ -129,7 +129,7 @@ A future `invasion` kind in the same system and panel. Each kind brings its own 
 
 ## Build order
 
-1. **Events core:** tables and the seeded roster, the scheduler, `withEventBonus` at every XP site, the Events panel and nav button.
+1. **Events core:** tables and the seeded roster, the scheduler, the bonus in `awardXp`, the Events panel and nav button.
 2. **Admin Events section:** live events, starting and one-off events, the roster, the scheduler.
 3. **Travelling Merchant:** weekly visits, stock from the location plus extras, buying, admin controls.
 4. **Museum:** tables seeded with every current item, donating, silhouettes and plaques, island progress, new items placing themselves.

@@ -60,15 +60,18 @@ function changedAfterCommit(x: Knex | Knex.Transaction): void {
 
 /**
  * The XP for an award, with any live event at the player's place applied.
- * Called by awardXp, inside its transaction: one unit is taken from the event's
- * pool atomically, and only if one was left is the XP raised. If the action
- * rolls back, the pool gets its unit back. The last unit ends the event.
+ * Called by awardXp, inside its transaction. `units` is how many things the
+ * award paid for (a Harvest All over 20 plots is 20): that many are taken from
+ * the event's pool atomically, or whatever is left if fewer, and only that
+ * share of the award is raised. If the action rolls back, the pool gets its
+ * units back. The last unit ends the event.
  */
 export async function applyEventBonus(
     playerId: number,
     skillName: string,
     xp: number,
     x: Knex | Knex.Transaction,
+    units = 1,
 ): Promise<number> {
     if (!live.size) return xp;
     const player = await x('players').where({ id: playerId }).select('current_location_id').first();
@@ -76,13 +79,24 @@ export async function applyEventBonus(
     const event = live.get(liveKey(player.current_location_id, skillName));
     if (!event) return xp;
 
-    const [taken] = await x('world_events')
-        .where({ id: event.id })
-        .whereNull('ended_at')
-        .where('pool_left', '>', 0)
-        .where('ends_at', '>', x.fn.now())
-        .decrement('pool_left', 1)
-        .returning(['pool_left', 'xp_multiplier']);
+    const want = Math.max(1, Math.floor(units));
+    // One statement: lock the row, take min(want, left), and report how many
+    // were taken. The locked read in the CTE sees the latest pool, so two
+    // awards racing for the last few units split them rather than both
+    // taking them.
+    const { rows } = await x.raw(`
+        WITH cur AS (
+            SELECT id, pool_left FROM world_events
+            WHERE id = ? AND ended_at IS NULL AND pool_left > 0 AND ends_at > now()
+            FOR UPDATE
+        )
+        UPDATE world_events w
+        SET pool_left = w.pool_left - LEAST(cur.pool_left, ?)
+        FROM cur
+        WHERE w.id = cur.id
+        RETURNING LEAST(cur.pool_left, ?) AS taken, w.pool_left, w.xp_multiplier`,
+        [event.id, want, want]);
+    const taken = rows[0];
     if (!taken) {
         // Emptied or ended since the cache was filled.
         changedAfterCommit(x);
@@ -92,7 +106,37 @@ export async function applyEventBonus(
         await x('world_events').where({ id: event.id }).update({ ended_at: x.fn.now(), end_reason: 'pool' });
         changedAfterCommit(x);
     }
-    return Math.round(xp * Number(taken.xp_multiplier));
+    const extra = Math.round(xp * (Number(taken.xp_multiplier) - 1) * Number(taken.taken) / want);
+    if (extra > 0) afterCommit(x, () => noteEventXp(playerId, skillName, extra));
+    return xp + extra;
+}
+
+// ── What the result card is told ──────────────────────────────────────────
+//
+// Each action's service reports its own XP before awardXp raises it, so the
+// result card would show the normal number and never the bonus. Rather than
+// thread the bonus back through every call site, the bonus is noted here once
+// the award commits, and the tick's one emit point (emitActionComplete) takes
+// it and adds it to the result as `eventXp`. Keyed by player and skill, and
+// short-lived, so a bonus from anything the tick did not resolve is never
+// shown on a later, unrelated card.
+
+const NOTE_TTL_MS = 60_000;
+const eventXpNotes = new Map<number, { skill: string; xp: number; at: number }>();
+
+function noteEventXp(playerId: number, skillName: string, extra: number): void {
+    const prev = eventXpNotes.get(playerId);
+    const same = prev && prev.skill === skillName && Date.now() - prev.at < NOTE_TTL_MS;
+    eventXpNotes.set(playerId, { skill: skillName, xp: (same ? prev.xp : 0) + extra, at: Date.now() });
+}
+
+/** The event bonus in a player's last award of this skill, once; 0 when none. */
+export function takeEventXp(playerId: number, skillName: string | null | undefined): number {
+    const note = eventXpNotes.get(playerId);
+    if (!note) return 0;
+    eventXpNotes.delete(playerId);
+    if (!skillName || note.skill.toLowerCase() !== skillName.toLowerCase()) return 0;
+    return Date.now() - note.at < NOTE_TTL_MS ? note.xp : 0;
 }
 
 // ── Where an event may happen ─────────────────────────────────────────────

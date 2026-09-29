@@ -96,11 +96,27 @@ async function skillNameById(id: number, x: Knex | Knex.Transaction): Promise<st
 // finishing in the same tick cannot read-then-write over each other, and it
 // works identically inside a transaction. `returning` hands back the new total
 // from that same statement, which is what makes the live push below free.
+export interface AwardXpOptions {
+    /**
+     * How many things this award paid for: a Harvest All over 20 plots is 20.
+     * A world event takes that many units from its pool, and when fewer are
+     * left, only that share of the award is raised. Default 1.
+     */
+    units?: number
+    /**
+     * False for XP that is not earned by an action: a juvenile's growing-up
+     * XP is paid when the pen is next looked at, for weeks of time passing,
+     * and time passing is never what an event rewards.
+     */
+    eventBonus?: boolean
+}
+
 export async function awardXp(
     playerId: number,
     skill: string | number,
     amount: number,
     x: Knex | Knex.Transaction = db,
+    opts: AwardXpOptions = {},
 ): Promise<void> {
     if (!Number.isFinite(amount) || amount <= 0) return;
     let xp = Math.round(amount);
@@ -127,7 +143,7 @@ export async function awardXp(
     // A live world event for this skill where the player stands raises it
     // (services/worldEvents.ts). Here, in the one XP writer, so every skill is
     // covered and none can forget to ask.
-    if (skillName) xp = await applyEventBonus(playerId, skillName, xp, x);
+    if (skillName && opts.eventBonus !== false) xp = await applyEventBonus(playerId, skillName, xp, x, opts.units ?? 1);
 
     const [row] = await x('player_skills')
         .insert({ player_id: playerId, skill_id: skillId, xp })

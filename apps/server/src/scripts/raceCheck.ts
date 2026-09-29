@@ -946,6 +946,33 @@ const SCENARIOS: Scenario[] = [
                 ?? (after.pool_left === 0 && after.end_reason === 'pool' ? null : `event left at ${after.pool_left}, ended ${after.end_reason}`);
         },
     },
+    {
+        id: 'event-bulk', name: "four bulk actions race for a world event's last five", rounds: 10,
+        run: async (ctx) => {
+            // A Farming event with 5 left. Four Harvest Alls of 10 plots each
+            // (1,000 XP apiece) land at once: between them they may take the 5
+            // units and no more, so exactly 5 plots' share is raised
+            // (5/10 of 1,000 x 0.25 = 125). A growing-up award alongside takes
+            // nothing and is never raised.
+            const w = await world(ctx);
+            await ctx.seed.row('skills', { name: 'Farming' });
+            const ev = await ctx.seed.row('world_events', { name: 'Fair Growing Weather', kind: 'skill', skill: 'Farming', location_id: w.town.id,
+                xp_multiplier: 1.25, pool_total: 5, pool_left: 5, ends_at: new Date(Date.now() + 3600_000) });
+            const { refreshLiveEvents } = await import('../services/worldEvents');
+            const { awardXp } = await import('../services/xp');
+            await refreshLiveEvents();
+            const results = await Promise.allSettled([
+                ...Array.from({ length: 4 }, () => awardXp(w.player.id, 'Farming', 1000, ctx.db, { units: 10 })),
+                awardXp(w.player.id, 'Farming', 200, ctx.db, { eventBonus: false }),
+            ]);
+            const crashed = results.filter((r) => r.status === 'rejected').length;
+            const xp = Number((await ctx.db('player_skills').where({ player_id: w.player.id }).first())?.xp ?? 0);
+            const after = await ctx.db('world_events').where({ id: ev.id }).first();
+            return (crashed ? `${crashed} award(s) threw` : null)
+                ?? changed('XP from 4 x 1,000 with 5 plots boosted, plus 200 unboosted', 4325, xp)
+                ?? (after.pool_left === 0 && after.end_reason === 'pool' ? null : `event left at ${after.pool_left}, ended ${after.end_reason}`);
+        },
+    },
 ];
 
 main().catch((err) => {

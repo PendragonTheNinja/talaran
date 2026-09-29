@@ -9,7 +9,7 @@ import { activeXpForSeconds } from './farming';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { isLiquid, canFill, addLiquid, liquidState } from './liquids';
 import { missingBuildTool as sharedMissingBuildTool } from './construction';
-import { awardXp as awardSkillXp } from './xp';
+import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
@@ -201,8 +201,8 @@ async function equippedTool(playerId: number, subtype: string, x: Ex = db) {
 
 // Kept as a thin local name so the call sites below read unchanged; the write
 // itself lives in services/xp.ts with every other skill's.
-async function awardXp(playerId: number, skillName: string, xp: number, x: Ex = db): Promise<void> {
-    await awardSkillXp(playerId, skillName, xp, x);
+async function awardXp(playerId: number, skillName: string, xp: number, x: Ex = db, opts: AwardXpOptions = {}): Promise<void> {
+    await awardSkillXp(playerId, skillName, xp, x, opts);
 }
 
 /**
@@ -554,7 +554,9 @@ async function payMaturityXp(playerId: number, animal: any, species: any): Promi
         // the lifetime total itself.
         const lvl = await skillLevel(playerId, 'Husbandry');
         const matureXp = taperedXp(lvl, species, 'xp_mature');
-        await awardXp(playerId, 'Husbandry', matureXp);
+        // Paid for weeks of time passing, not for an action: never raised by
+        // a world event, and never takes from its pool.
+        await awardXp(playerId, 'Husbandry', matureXp, db, { eventBonus: false });
         return matureXp;
     }
     return 0;
@@ -1438,7 +1440,7 @@ export async function resolveFeedAll(playerId: number): Promise<HusbandryActionR
             // Priced on what was actually fed, so a round that ran short pays for
             // the pens it reached and no more.
             xp = activeXpForSeconds(lvl, feedRoundSeconds(fedHead));
-            await awardXp(playerId, 'Husbandry', xp, trx);
+            await awardXp(playerId, 'Husbandry', xp, trx, { units: fedPens });
         });
 
         await incrementStats(playerId, { total_actions_completed: 1});
@@ -1520,7 +1522,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
 
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             xp = activeXpForSeconds(lvl, muckRoundSeconds(muckedPens));
-            await awardXp(playerId, 'Husbandry', xp, trx);
+            await awardXp(playerId, 'Husbandry', xp, trx, { units: muckedPens });
             await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', muckedPens);
         });
 
@@ -1950,7 +1952,7 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
                 }
                 if (qty > 0) await updateQuestObjectiveProgress(playerId, 'collect', productItem, qty);
             }
-            await awardXp(playerId, 'Husbandry', xp, trx);
+            await awardXp(playerId, 'Husbandry', xp, trx, { units: animalsWorked });
         });
 
         await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1});
@@ -2143,7 +2145,7 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
 
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             xp = speciesXp + activeXpForSeconds(lvl, slaughterAllSeconds(killed));
-            await awardXp(playerId, 'Husbandry', xp, trx);
+            await awardXp(playerId, 'Husbandry', xp, trx, { units: killed });
             await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, killed);
         });
 

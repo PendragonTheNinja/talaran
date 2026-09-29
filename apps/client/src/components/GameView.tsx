@@ -40,7 +40,14 @@ interface LocationData {
 interface ActionResult {
   itemName: string
   xpAwarded: number
+  eventXp?: number
   remainingQuantity?: number
+}
+
+/** A world event's extra XP, beside the normal amount: "(+10 event)". */
+function eventXpTag(eventXp?: number) {
+  if (!eventXp || eventXp <= 0) return null
+  return <span className="last-result-event"> (+{eventXp.toLocaleString()} event)</span>
 }
 
 interface XpInfo {
@@ -142,6 +149,8 @@ export default function GameView({
     ingredientsRemaining?: { name: string; quantity: number }[]
     outputTotal?: number
     ended?: 'limit' | 'materials' | 'unavailable'
+    /** A world event's bonus, shown beside the normal XP. */
+    eventXp?: number
     /** The server's own sentence for why it stopped, shown instead of a guess. */
     endedReason?: string
     drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[]
@@ -336,6 +345,7 @@ export default function GameView({
             arrowRecovered: r.arrowRecovered,
             drops: r.drops || [],
             ended: r.ended,
+            eventXp: r.eventXp,
           } as any)
 
           if (data.xpInfo?.leveledUp) {
@@ -386,6 +396,7 @@ export default function GameView({
             baitCategory: r.baitCategory,
             firstDiscovery: r.firstDiscovery,
             drops: r.drops || [],
+            eventXp: r.eventXp,
           } as any)
 
           if (data.xpInfo?.leveledUp) {
@@ -428,6 +439,7 @@ export default function GameView({
             skillName,
             message: r.message,
             drops: r.drops || [],
+            eventXp: r.eventXp,
           })
           if (data.xpInfo?.leveledUp) {
             setLevelUpSkill({ name: skillName, level: data.xpInfo.level })
@@ -460,6 +472,7 @@ export default function GameView({
             skillName,
             message: r.message,
             drops: [],
+            eventXp: r.eventXp,
           })
           if (data.xpInfo?.leveledUp) {
             setLevelUpSkill({ name: skillName, level: data.xpInfo.level })
@@ -498,6 +511,7 @@ export default function GameView({
             notable: (data.result as any).notable,
             firstDiscovery: (data.result as any).firstDiscovery,
             message: (data.result as any).message,
+            eventXp: data.result.eventXp,
           })
 
           if (data.xpInfo?.leveledUp) {
@@ -1471,7 +1485,7 @@ export default function GameView({
           {r.xpAwarded > 0 ? (
             <>
               <p className="last-result-xp">
-                +{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.
+                +{r.xpAwarded} {r.skillName} experience{eventXpTag(r.eventXp)}, {r.totalXp.toLocaleString()} total.
               </p>
               {r.craftingXp > 0 && (
                 <p className="last-result-xp">+{r.craftingXp} Crafting experience.</p>
@@ -1508,7 +1522,7 @@ export default function GameView({
               ? `You felled the ${r.animalName}!`
               : `The ${r.animalName} got away, but you learned from the attempt.`}
           </p>
-          <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+          <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience{eventXpTag(r.eventXp)}, {r.totalXp.toLocaleString()} total.</p>
           <p className="last-result-next">
             {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
               (() => {
@@ -1546,7 +1560,7 @@ export default function GameView({
           {r.itemName && (
             <p className="last-result-drop">You gathered {r.quantity ?? 1} × {r.itemName}.</p>
           )}
-          <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+          <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience{eventXpTag(r.eventXp)}, {r.totalXp.toLocaleString()} total.</p>
         </>
       )
     }
@@ -1558,7 +1572,7 @@ export default function GameView({
           {r.firstDiscovery && <span className="discovery-tag">New discovery! </span>}
           You gained {r.quantity ?? 1} × {r.itemName}!
         </p>
-        <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience, {r.totalXp.toLocaleString()} total.</p>
+        <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience{eventXpTag(r.eventXp)}, {r.totalXp.toLocaleString()} total.</p>
         <p className="last-result-next">
           {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
             (() => {
@@ -1616,7 +1630,7 @@ export default function GameView({
                     <>
                       <p className="last-result-item">{(lastResult as any).message || 'You arrive.'}</p>
                       <p className="last-result-xp">
-                        +{lastResult.xpAwarded} {lastResult.skillName} experience, {lastResult.totalXp.toLocaleString()} total.
+                        +{lastResult.xpAwarded} {lastResult.skillName} experience{eventXpTag(lastResult.eventXp)}, {lastResult.totalXp.toLocaleString()} total.
                       </p>
                       <p className="last-result-next">
                         {Math.ceil(lastResult.xpToNext / lastResult.xpAwarded).toLocaleString()} actions ({lastResult.xpToNext.toLocaleString()} xp) to level {lastResult.level + 1} ({

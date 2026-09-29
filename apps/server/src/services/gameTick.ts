@@ -26,6 +26,7 @@ import { recordLoot } from './lootLog';
 import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
+import { takeEventXp } from './worldEvents';
 
 const TICK_INTERVAL = 2000;
 let lastTrapSweep = 0;
@@ -69,8 +70,35 @@ const GOLD_FIND_ACTIONS: Record<string, string> = {
   hunting: 'hunting',
 };
 
+// The skill a result paid, for the older results that do not name it (the
+// client makes the same inference for its label).
+const SKILL_BY_ACTION: Record<string, string> = {
+  woodcutting: 'Woodcutting',
+  mining_rock: 'Mining',
+  mining_vein: 'Mining',
+  smelting: 'Smithing',
+  smithing: 'Smithing',
+  kiln_collect: 'Smithing',
+  sawing: 'Carpentry',
+  woodworking: 'Carpentry',
+};
+
 async function emitActionComplete(io: Server, action: any, payload: any): Promise<void> {
   const result = payload?.result;
+
+  // A world event's bonus, shown beside the normal XP rather than folded into
+  // it (services/worldEvents.ts). Services report their XP before awardXp
+  // raises it, so the level-up check that was made from it is redone here with
+  // the bonus counted.
+  const eventXp = takeEventXp(action.player_id, result?.skillName ?? SKILL_BY_ACTION[action.action_type]);
+  if (result && eventXp > 0) {
+    result.eventXp = eventXp;
+    const info = payload.xpInfo;
+    if (info && typeof info.totalXp === 'number' && !info.leveledUp) {
+      const before = Math.max(0, info.totalXp - (result.xpAwarded || 0) - eventXp);
+      info.leveledUp = levelFromXp(before) < levelFromXp(info.totalXp);
+    }
+  }
 
   // Coins are rolled BEFORE the emit, so the find rides along with the action
   // that produced it rather than arriving as a second, unexplained message.
