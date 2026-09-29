@@ -3,7 +3,7 @@ import './TopNav.css'
 import { useNavigate } from 'react-router-dom'
 
 const NAV_ITEMS = [
-  'Messages', 'Forum', 'Guild', 'Journal',
+  'Messages', 'Forum', 'Guild',
   'Events', 'Highscores', 'Manual', 'News', 'Store', 'Settings'
 ]
 
@@ -15,6 +15,7 @@ interface TopNavProps {
   onForumClick: () => void
   onNewsClick: () => void
   onHighscoresClick: () => void
+  onEventsClick: () => void
   unreadMessages: number
   isAdmin?: boolean
   isMod?: boolean
@@ -24,7 +25,7 @@ interface TopNavProps {
   onManualClick: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick, onManualClick }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForumClick, onNewsClick, onHighscoresClick, onEventsClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick, onManualClick }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -42,6 +43,7 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
                   item === 'Forum' ? onForumClick :
                     item === 'News' ? onNewsClick :
                       item === 'Highscores' ? onHighscoresClick :
+                      item === 'Events' ? onEventsClick :
                         item === 'Settings' ? onSettingsClick :
                           item === 'Store' ? onSupportClick :
                             item === 'Manual' ? onManualClick :

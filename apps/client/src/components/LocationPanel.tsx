@@ -10,6 +10,8 @@ import MarketplaceMenu from './MarketplaceMenu'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
 import { useItemTooltip } from './ItemTooltip'
+import { useWorldEvents } from '../lib/worldEvents'
+import './EventsPanel.css'
 
 interface GroundItem {
   id: number
@@ -299,6 +301,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     return () => { cancelled = true }
   }, [location?.id])
 
+  const worldEvents = useWorldEvents()
+
   return (
     <aside className={`location-panel panel location-panel--${layout}`}>
 
@@ -307,6 +311,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         <div className="panel-title" style={{ cursor: 'pointer' }} onClick={() => onLocationRefresh?.()}>
           {locationData?.location?.name || 'Location Menu'}
         </div>
+        {/* A world event on here: what it favours, and for how long. */}
+        {worldEvents.live.filter(e => e.locationId === location?.id).map(e => (
+          <div key={e.id} className="location-event">
+            <span className="location-event-name">{e.name}</span>
+            {e.skill && <> · +{e.bonusPercent}% {e.skill} XP here</>}
+            {' · '}{e.poolLeft.toLocaleString()} left
+          </div>
+        ))}
 
         {woodcuttingNodes.map((node: any) => (
           <button

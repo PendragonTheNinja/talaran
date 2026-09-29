@@ -18,6 +18,7 @@ import ForumPanel from './ForumPanel'
 import NewsPanel from './NewsPanel'
 import ManualPanel from './ManualPanel'
 import HighscoresPanel from './HighscoresPanel'
+import EventsPanel from './EventsPanel'
 import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
 import PlayerProfile from './PlayerProfile'
@@ -609,6 +610,7 @@ export default function GameLayout({
     if (showManual) closePanel(setManualClosing, setShowManual)
     if (showForum) closePanel(setForumClosing, setShowForum, 400)
     if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
+    if (showEvents) closePanel(setEventsClosing, setShowEvents)
     if (showGuildPanel) closePanel(setGuildClosing, setShowGuildPanel)
     if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
     if (showSettings) closePanel(setSettingsClosing, setShowSettings)
@@ -617,6 +619,8 @@ export default function GameLayout({
 
   const [showHighscores, setShowHighscores] = useState(false)
   const [highscoresClosing, setHighscoresClosing] = useState(false)
+  const [showEvents, setShowEvents] = useState(false)
+  const [eventsClosing, setEventsClosing] = useState(false)
 
   const handleDropItem = async (itemId: number, quantity: number) => {
     try {
@@ -758,6 +762,9 @@ export default function GameLayout({
     { label: 'Guild', onClick: () => { closeAllPanels(); setShowGuildPanel(true) } },
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
+    // In the drawer from the start: the Manual and Feats both shipped without
+    // one and were unreachable on a phone.
+    { label: 'Events', onClick: () => { closeAllPanels(); setShowEvents(true) } },
     // Was desktop-only: the top nav has a Manual button and the mobile drawer
     // simply never got one, so the manual was unreachable on a phone.
     { label: 'Manual', onClick: () => { closeAllPanels(); setManualTarget(null); setShowManual(true) } },
@@ -1170,6 +1177,13 @@ export default function GameLayout({
         />
       )}
 
+      {showEvents && (
+        <EventsPanel
+          onClose={() => closePanel(setEventsClosing, setShowEvents)}
+          closing={eventsClosing}
+        />
+      )}
+
       {showAdmin && (
         <AdminPanel
           onClose={() => closePanel(setAdminClosing, setShowAdmin)}
@@ -1276,6 +1290,10 @@ export default function GameLayout({
         onHighscoresClick={() => {
           if (showHighscores) closePanel(setHighscoresClosing, setShowHighscores)
           else { closeAllPanels(); setShowHighscores(true) }
+        }}
+        onEventsClick={() => {
+          if (showEvents) closePanel(setEventsClosing, setShowEvents)
+          else { closeAllPanels(); setShowEvents(true) }
         }}
         isAdmin={playerData?.player?.is_admin || false}
         isMod={playerData?.player?.is_mod || false}

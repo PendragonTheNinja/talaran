@@ -924,6 +924,28 @@ const SCENARIOS: Scenario[] = [
                 ?? (crashed ? `${crashed} swing(s) hit a server error` : null);
         },
     },
+    {
+        id: 'event', name: "twenty actions race for a world event's last five", rounds: 10,
+        run: async (ctx) => {
+            // A Woodcutting event at Talador with 5 left in its pool. Twenty
+            // awards land at once: exactly five may be boosted, and the event
+            // must end on its pool.
+            const w = await world(ctx);
+            await ctx.seed.row('skills', { name: 'Woodcutting' });
+            const ev = await ctx.seed.row('world_events', { name: 'Windthrow', kind: 'skill', skill: 'Woodcutting', location_id: w.town.id,
+                xp_multiplier: 1.25, pool_total: 5, pool_left: 5, ends_at: new Date(Date.now() + 3600_000) });
+            const { refreshLiveEvents } = await import('../services/worldEvents');
+            const { awardXp } = await import('../services/xp');
+            await refreshLiveEvents();
+            const results = await Promise.allSettled(Array.from({ length: 20 }, () => awardXp(w.player.id, 'Woodcutting', 100)));
+            const crashed = results.filter((r) => r.status === 'rejected').length;
+            const xp = Number((await ctx.db('player_skills').where({ player_id: w.player.id }).first())?.xp ?? 0);
+            const after = await ctx.db('world_events').where({ id: ev.id }).first();
+            return (crashed ? `${crashed} award(s) threw` : null)
+                ?? changed('XP from 20 awards with 5 boosted (5 x 125 + 15 x 100)', 2125, xp)
+                ?? (after.pool_left === 0 && after.end_reason === 'pool' ? null : `event left at ${after.pool_left}, ended ${after.end_reason}`);
+        },
+    },
 ];
 
 main().catch((err) => {

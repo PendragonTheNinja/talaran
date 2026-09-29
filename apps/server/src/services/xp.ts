@@ -3,6 +3,7 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { pushToPlayerAfterCommit } from '../lib/realtime';
 import { incrementStats } from './stats';
+import { applyEventBonus } from './worldEvents';
 
 // XP curve — one formula, no branches. Derivation + rate ladder: docs/xp-rebalance.md
 //
@@ -102,7 +103,7 @@ export async function awardXp(
     x: Knex | Knex.Transaction = db,
 ): Promise<void> {
     if (!Number.isFinite(amount) || amount <= 0) return;
-    const xp = Math.round(amount);
+    let xp = Math.round(amount);
 
     let skillId: number;
     let skillName: string | null;
@@ -122,6 +123,11 @@ export async function awardXp(
         skillName = row.name;
         skillNames.set(row.id, row.name);
     }
+
+    // A live world event for this skill where the player stands raises it
+    // (services/worldEvents.ts). Here, in the one XP writer, so every skill is
+    // covered and none can forget to ask.
+    if (skillName) xp = await applyEventBonus(playerId, skillName, xp, x);
 
     const [row] = await x('player_skills')
         .insert({ player_id: playerId, skill_id: skillId, xp })

@@ -9,6 +9,8 @@ import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
 import { startPlaytimeTracking } from './services/playtime';
 import { startGroundItemSweep } from './services/groundItems';
+import { startWorldEventScheduler } from './services/worldEvents';
+import eventRoutes from './routes/events';
 import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import workstationRoutes from './routes/workstations';
@@ -220,6 +222,7 @@ app.use('/api/tanning', tanningRoutes);
 app.use('/api/trapping', trappingRoutes);
 app.use('/api/fishing', fishingRoutes);
 app.use('/api/loot-log', lootLogRoutes);
+app.use('/api/events', eventRoutes);
 
 // The last word on any error a route did not answer itself (audit §15, found
 // item 3). Express 5 forwards a rejected async handler here; without this its
@@ -406,6 +409,7 @@ if (require.main === module) {
   startGameTick(io);
   startPlaytimeTracking();
   startGroundItemSweep();
+  startWorldEventScheduler();
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {

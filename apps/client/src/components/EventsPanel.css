@@ -1,0 +1,138 @@
+/* The Events panel: laid out like the other top-nav panels (Highscores). */
+.ev-panel {
+    position: fixed;
+    top: 50px;
+    right: 0;
+    width: 440px;
+    max-width: 95vw;
+    bottom: 0;
+    border-left: 1px solid var(--color-border-gold);
+    border-top: 1px solid var(--color-border-gold);
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    animation: slide-in-right 0.2s ease;
+    overflow: hidden;
+}
+
+.ev-panel.closing {
+    animation: slide-out-up 0.2s ease forwards;
+}
+
+.ev-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--color-border-gold);
+    flex-shrink: 0;
+    font-size: 20px;
+}
+
+.ev-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.ev-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-md) var(--space-xl) var(--space-xl);
+}
+
+.ev-section-title {
+    font-family: var(--font-heading);
+    color: var(--color-text-muted);
+    margin: var(--space-md) 0 var(--space-sm);
+    font-size: 15px;
+    letter-spacing: 0.04em;
+}
+
+.ev-empty {
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    line-height: 1.5;
+}
+
+.ev-card {
+    border: 1px solid var(--color-border-gold);
+    border-radius: 4px;
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.ev-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-md);
+}
+
+.ev-card-name {
+    font-family: var(--font-heading);
+    font-size: 18px;
+}
+
+.ev-card-time {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.ev-card-where {
+    margin: 4px 0 var(--space-sm);
+    font-family: var(--font-body);
+}
+
+.ev-pool {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-border-dark);
+    overflow: hidden;
+}
+
+.ev-pool-fill {
+    height: 100%;
+    background: var(--color-gold, #c8922a);
+    transition: width 0.4s ease;
+}
+
+.ev-pool-label {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.ev-recent {
+    font-family: var(--font-body);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--color-border-dark);
+}
+
+.ev-recent-name {
+    color: var(--color-text-bright, #e8d5a3);
+}
+
+.ev-recent-where,
+.ev-recent-end {
+    color: var(--color-text-muted);
+}
+
+/* The marker under a location's name while an event is on there. */
+.location-event {
+    margin: 6px 0 2px;
+    padding: 6px 10px;
+    border: 1px dashed var(--color-border-gold);
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: 14px;
+}
+
+.location-event-name {
+    color: var(--color-gold-bright, #e8b84b);
+    font-weight: 600;
+}

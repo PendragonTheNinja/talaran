@@ -34,6 +34,18 @@ export const MILESTONE_LEVELS = [25, 50, 75, 100]
  * mid-action for it would wear thin by the second week.
  */
 async function announce(playerId: number, message: string): Promise<void> {
+    await postServerLine(playerId, message)
+}
+
+/**
+ * A server-channel line that no player caused: a world event beginning, the
+ * travelling merchant arriving. Same channel and look as a world first.
+ */
+export async function announceServer(message: string): Promise<void> {
+    await postServerLine(null, message)
+}
+
+async function postServerLine(playerId: number | null, message: string): Promise<void> {
     try {
         const now = new Date()
         await db('chat_messages').insert({

@@ -952,7 +952,7 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
  * it". Kept as one function so a second island can add public benches by
  * adding rows rather than by editing this.
  */
-const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string }> = {
+export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string }> = {
     smithing: { location: 'Emberra', quest: "The Blacksmith's Bargain", keeper: 'Geoffrey' },
     carpentry: { location: 'Verdale', quest: "The Carpenter's Commission", keeper: 'Geossica' },
     cooking: { location: 'Phoenwick', quest: "The Cook's Conundrum", keeper: 'Geomima' },
