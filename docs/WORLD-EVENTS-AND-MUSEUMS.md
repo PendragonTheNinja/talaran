@@ -1,6 +1,6 @@
 # World Events and Island Museums: design
 
-**Status:** steps 1 to 3 of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, the admin Events tab, and the Travelling Merchant. Steps 4 and 5 are not. The one remaining choice is marked **Q**.
+**Status:** steps 1 to 4 of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, the admin Events tab, the Travelling Merchant, and the Taiar Museum in Talador. Step 5 (Curator of Taiar) is not.
 
 **One refinement made while building step 1:** the bonus is applied inside `awardXp`, the game's one XP writer, not at each action's XP call (there are 37 of them, most without their location). The place is where the player stands when the XP lands. A bulk action (Harvest All, Feed All, Tend, Muck All, Collect All, Slaughter All) takes one unit per thing it did (plots, pens, animals); when fewer are left, only that share of its XP is raised. A juvenile's growing-up XP is never raised and takes nothing: it pays for time passing, not for an action.
 
@@ -132,6 +132,13 @@ A future `invasion` kind in the same system and panel. Each kind brings its own 
 - **Curator of Taiar** is a feat with a new criterion kind, `museum_complete`: every case in that museum donated. Titles and badges then work exactly as today.
 - **Tested:** a `race:check` scenario for two donations of the same item at once (one taken, one refused, one first donor).
 
+**As built (step 4):** migration `20260930040000_museums`, `services/museum.ts`, `routes/museum.ts`, `MuseumPanel.tsx`.
+- **Exhibits say what belongs on them.** Each `museum_exhibits` row has a `match` list of `{ type, subtype? }` patterns; an item goes to the most specific match, or to the exhibit marked `is_catch_all` (Curiosities). The rule is `lib/museumPlacement.ts`, used by both the migration that first filled the museum and `placeNewItem`, so editing an exhibit's `match` changes where new items go.
+- **The first fill** is every active, priced item except Gold, sorted by tier then name within each of ten exhibits: Timber; Stone and Ore; Fish of the Coast; Hedgerow and Herb; Field and Fold; Hide, Bone and Feather; The Larder; Tools of the Trades; Arms and Armour; Curiosities. "Priced" is how quest-only items stay out: a price is derived from the work that yields an item, so an item with none cannot be had any other way.
+- **The plaque is state, not content.** It is the earliest `museum_donations` row for a case (donations to a case are made under its row lock, so ids order them), so the snapshotted content tables never carry a player id.
+- **New items** place themselves from `recordItemFirst` when `firstInWorld`, in the museum whose `island` is the finder's `locations.region`. Quest grants (`source = 'quest'`) do not place anything.
+- **Moving or removing a case** is an edit to `museum_cases` in the admin Content browser (group Museums).
+
 ---
 
 ## Build order
@@ -146,4 +153,4 @@ Each step ships on its own and is proven like the rest.
 
 ## Still open
 
-- **Q: the museum's town.** Talador is the proposal (where everyone starts, and the trading post). Say if another town suits it better.
+- Nothing. The museum is in Talador (decided 2026-09-30).

@@ -211,6 +211,14 @@ export async function recordItemFirst(
             }
         }
 
+        // The first anyone has found it: it takes its place in the museum of
+        // the island it was found on. Imported here, not at the top:
+        // services/museum.ts imports this file.
+        if (firstInWorld) {
+            const { placeNewItem } = await import('./museum');
+            await placeNewItem(itemId, playerId, source);
+        }
+
         return { firstEver, firstInWorld };
     } catch (err) {
         // Never let bookkeeping break an award.

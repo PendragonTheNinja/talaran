@@ -88,6 +88,15 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     merchant_extra_goods:        { label: 'Merchant Extra Goods',  group: 'Events',     snapshot: true, editable: true },
     world_event_stock:           { label: 'Merchant Stock (visits)', group: 'Events' },
 
+    // ---- Museums ----
+    // Which museums exist, their exhibits and which item sits in which case
+    // are authored content: moving or removing a case is an edit here.
+    // Donations are state, and the plaques are read from them.
+    museums:                     { label: 'Museums',               group: 'Museums',    snapshot: true, editable: true },
+    museum_exhibits:             { label: 'Museum Exhibits',       group: 'Museums',    snapshot: true, editable: true },
+    museum_cases:                { label: 'Museum Cases',          group: 'Museums',    snapshot: true, editable: true },
+    museum_donations:            { label: 'Museum Donations',      group: 'Museums' },
+
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },
     ore_veins:                   { label: 'Ore Veins',             group: 'World State' },

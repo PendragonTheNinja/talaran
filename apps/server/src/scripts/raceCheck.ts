@@ -646,6 +646,37 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'museum', name: 'one player gives five times and four others once, to one case, at once', rounds: 10,
+        run: async (ctx) => {
+            // Pendragon fires five donations of the same item; four others give
+            // theirs alongside. Each player gives once: five planks leave the
+            // world (the museum is a sink), five donations exist, and exactly
+            // one of them is the plaque's first.
+            const w = await world(ctx);
+            const museum = await ctx.seed.row('museums', { key: 'taiar', name: 'Taiar Museum', island: 'Taiar Island', location_id: w.town.id });
+            const exhibit = await ctx.seed.row('museum_exhibits', { museum_id: museum.id, name: 'Timber' });
+            const theCase = await ctx.seed.row('museum_cases', { exhibit_id: exhibit.id, item_id: w.plank.id });
+            await inPack(ctx, w.player.id, w.plank.id, 5);
+            const givers = [w.player];
+            for (let i = 0; i < 4; i++) {
+                const g = await ctx.seed.row('players', { username: `Giver${i}`, email: `giver${i}@racecheck.test`, current_location_id: w.town.id });
+                await inPack(ctx, g.id, w.plank.id, 1);
+                givers.push(g);
+            }
+            await Promise.all(givers.map((g) => ctx.warm(g.id)));
+            const st = await Promise.all([
+                ...Array.from({ length: 4 }, () => ctx.post(w.player.id, '/museum/donate', { caseId: theCase.id })),
+                ...givers.map((g) => ctx.post(g.id, '/museum/donate', { caseId: theCase.id })),
+            ]);
+            const donations = await ctx.db('museum_donations').where({ case_id: theCase.id }).count('* as n').first();
+            const firsts = await ctx.db('chat_messages').where('message', 'like', '%is the first to give%').count('* as n').first();
+            return changed('planks in the world', 9 - 5, await ctx.itemTotal(w.plank.id))
+                ?? changed('donations', 5, Number(donations?.n))
+                ?? changed('first-donor announcements', 1, Number(firsts?.n))
+                ?? succeeded(st, 5);
+        },
+    },
+    {
         id: 'H6', name: 'five sells of ten into an order wanting twenty, at once', rounds: 10,
         run: async (ctx) => {
             // Partial fills are normal: the first two fill it, the rest are told

@@ -95,6 +95,24 @@ export async function announceWorldFirstDrop(
     }
 }
 
+/**
+ * The first to give an item to a museum. Their name is on that case's plaque
+ * for good, and it goes out through the firsts feed like any other first.
+ */
+export async function announceMuseumFirst(
+    playerId: number,
+    itemName: string,
+    museumName: string,
+): Promise<void> {
+    try {
+        const player = await db('players').where({ id: playerId }).first()
+        if (!player) return
+        await announce(playerId, `${player.username} is the first to give ${aOrAn(itemName)} to the ${museumName}.`)
+    } catch (err) {
+        logger.error(`announceMuseumFirst failed: ${err}`)
+    }
+}
+
 /** "a Wild Hive", "an Amber Bead". Small thing, but it reads wrong otherwise. */
 function aOrAn(name: string): string {
     return /^[aeiou]/i.test(name) ? `an ${name}` : `a ${name}`

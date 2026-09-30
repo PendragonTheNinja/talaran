@@ -1,0 +1,93 @@
+/* An island museum. The modal and tabs are the homestead's (FarmPanel.css);
+   the cases are the pack's own tiles. */
+.museum-modal {
+  max-width: 860px;
+}
+
+.museum-progress {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.museum-tabs {
+  flex-wrap: wrap;
+}
+
+.museum-tabs .farm-tab {
+  flex: 1 1 150px;
+}
+
+.museum-notice {
+  color: var(--color-gold-bright);
+}
+
+.museum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--space-md) var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.museum-case {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+}
+
+.museum-slot {
+  border: 1px solid var(--color-border-dark);
+  padding: 0;
+}
+
+.museum-case.can-give .museum-slot {
+  border-color: var(--color-gold);
+}
+
+/* The item's own shape in black: every icon has a transparent background,
+   so one filter draws any case, present or future, with no new art. */
+.museum-silhouette {
+  filter: brightness(0);
+  opacity: 0.6;
+}
+
+.museum-case-blank {
+  color: var(--color-text-muted);
+  font-size: 22px;
+}
+
+.museum-held {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 12px;
+  color: var(--color-gold-bright);
+}
+
+.museum-case-name {
+  font-size: 13px;
+  color: var(--color-text-base);
+  line-height: 1.2;
+}
+
+.museum-case:not(.given) .museum-case-name {
+  color: var(--color-text-muted);
+}
+
+.museum-plaque {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.25;
+}
+
+.museum-plaque strong {
+  color: var(--color-gold);
+  font-weight: normal;
+}
+
+@media (max-width: 600px) {
+  .museum-grid {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  }
+}

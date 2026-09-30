@@ -8,6 +8,7 @@ import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
 import TravellingMerchantMenu from './TravellingMerchantMenu'
+import MuseumPanel from './MuseumPanel'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
 import { useItemTooltip } from './ItemTooltip'
@@ -303,6 +304,18 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     return () => { cancelled = true }
   }, [location?.id])
 
+  // The museum standing here, if any: asked of the server, so a second
+  // island's museum needs no change here.
+  const [museum, setMuseum] = useState<{ id: number; name: string } | null>(null)
+  const [museumOpen, setMuseumOpen] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    apiFetch<{ museum: { id: number; name: string } | null }>('/api/museum/here')
+      .then(d => { if (!cancelled) setMuseum(d.museum) })
+      .catch(() => { if (!cancelled) setMuseum(null) })
+    return () => { cancelled = true }
+  }, [location?.id])
+
   const worldEvents = useWorldEvents()
   const eventsHere = worldEvents.live.filter(e => e.locationId === location?.id)
   const merchantHere = eventsHere.some(isMerchant)
@@ -404,6 +417,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {isTalador && (
           <button className="location-action-btn" onClick={() => setMarketplaceOpen(true)}>
             Taiar Marketplace →
+          </button>
+        )}
+
+        {museum && (
+          <button className="location-action-btn" onClick={() => setMuseumOpen(true)}>
+            {museum.name} →
           </button>
         )}
 
@@ -865,6 +884,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           onClose={() => { setMyShopOpen(false); refreshShopBadge() }}
           onChanged={handleGoldChanged}
         />
+      )}
+
+      {museumOpen && museum && (
+        <MuseumPanel museumId={museum.id} onClose={() => setMuseumOpen(false)} />
       )}
 
       {merchantOpen && (
