@@ -4,6 +4,8 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { exhibitFor } from '../lib/museumPlacement';
 import { takeItemsWithin, notifyInventoryChanged } from './inventory';
 import { announceMuseumFirst } from './records';
+import { evaluateFeats } from './feats';
+import { pushToPlayer } from '../lib/realtime';
 
 // Island Museums (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2).
 //
@@ -157,6 +159,9 @@ export async function donate(playerId: number, caseIdRaw: unknown): Promise<
         });
         notifyInventoryChanged(playerId);
         if (result.first) await announceMuseumFirst(playerId, result.name, result.museum);
+        // The last case filled is the moment a museum feat is earned, so feats
+        // are checked here rather than waiting for the next level up.
+        for (const feat of await evaluateFeats(playerId)) pushToPlayer(playerId, 'feat_earned', feat);
         return { ok: true, ...result };
     } catch (err) {
         if (err instanceof DonateAbort) return { error: err.message };

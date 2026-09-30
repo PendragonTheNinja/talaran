@@ -414,17 +414,18 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         )}
 
+        {museum && (
+          <button className="location-action-btn" onClick={() => setMuseumOpen(true)}>
+            {museum.name} →
+          </button>
+        )}
+
         {isTalador && (
           <button className="location-action-btn" onClick={() => setMarketplaceOpen(true)}>
             Taiar Marketplace →
           </button>
         )}
 
-        {museum && (
-          <button className="location-action-btn" onClick={() => setMuseumOpen(true)}>
-            {museum.name} →
-          </button>
-        )}
 
         {isTalador && (
           <button className="location-action-btn" onClick={() => setShopsOpen(true)}>

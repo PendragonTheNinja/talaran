@@ -81,7 +81,21 @@ async function snapshot(playerId: number) {
         .first()
     const tradeCount = Number(tradeRow?.c ?? 0)
 
-    return { stats, levels, totalLevel, tradeCount }
+    // Each museum's cases on show (active items only, as the museum counts
+    // them) and how many of them this player has given, for 'museum_complete'.
+    const museumRows = await db.raw(`
+        SELECT m.key, count(c.id)::int AS total, count(d.id)::int AS given
+        FROM museums m
+        JOIN museum_exhibits e ON e.museum_id = m.id
+        JOIN museum_cases c ON c.exhibit_id = e.id
+        JOIN items i ON i.id = c.item_id AND i.is_active
+        LEFT JOIN museum_donations d ON d.case_id = c.id AND d.player_id = ?
+        GROUP BY m.key`, [playerId])
+    const museums = new Map<string, { given: number; total: number }>(
+        museumRows.rows.map((r: any) => [r.key, { given: r.given, total: r.total }]),
+    )
+
+    return { stats, levels, totalLevel, tradeCount, museums }
 }
 
 /**
@@ -92,6 +106,9 @@ async function snapshot(playerId: number) {
  */
 function targetOf(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number {
     if (feat.criterion_kind === 'breadth_all') return snap.tradeCount
+    // Every case on show in that museum, however many there are today: a new
+    // item found for the first time raises it, and switching one off lowers it.
+    if (feat.criterion_kind === 'museum_complete') return snap.museums.get(feat.criterion_target)?.total ?? 0
     return Number(feat.criterion_value)
 }
 
@@ -116,6 +133,9 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
             for (const level of snap.levels.values()) if (level >= bar) count++
             return count
         }
+        // criterion_target is the museum's key ('taiar').
+        case 'museum_complete':
+            return snap.museums.get(feat.criterion_target)?.given ?? 0
         default:
             return 0
     }
@@ -140,7 +160,9 @@ export async function evaluateFeats(playerId: number): Promise<{ slug: string; n
         const fresh: { slug: string; name: string; title: string | null }[] = []
         for (const feat of all as any[]) {
             if (earned.has(feat.id)) continue
-            if (measure(feat, snap) < targetOf(feat, snap)) continue
+            // A target of nothing is a museum with no cases yet, not a free feat.
+            const target = targetOf(feat, snap)
+            if (target <= 0 || measure(feat, snap) < target) continue
 
             const inserted = await db('player_feats')
                 .insert({ player_id: playerId, feat_id: feat.id })

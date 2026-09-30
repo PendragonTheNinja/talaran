@@ -1,6 +1,6 @@
 # World Events and Island Museums: design
 
-**Status:** steps 1 to 4 of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, the admin Events tab, the Travelling Merchant, and the Taiar Museum in Talador. Step 5 (Curator of Taiar) is not.
+**Status:** all five steps of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, the admin Events tab, the Travelling Merchant, the Taiar Museum in Talador, and the Curator of Taiar feat. Invasions and travel-skill events remain for later.
 
 **One refinement made while building step 1:** the bonus is applied inside `awardXp`, the game's one XP writer, not at each action's XP call (there are 37 of them, most without their location). The place is where the player stands when the XP lands. A bulk action (Harvest All, Feed All, Tend, Muck All, Collect All, Slaughter All) takes one unit per thing it did (plots, pens, animals); when fewer are left, only that share of its XP is raised. A juvenile's growing-up XP is never raised and takes nothing: it pays for time passing, not for an action.
 
@@ -138,6 +138,8 @@ A future `invasion` kind in the same system and panel. Each kind brings its own 
 - **The plaque is state, not content.** It is the earliest `museum_donations` row for a case (donations to a case are made under its row lock, so ids order them), so the snapshotted content tables never carry a player id.
 - **New items** place themselves from `recordItemFirst` when `firstInWorld`, in the museum whose `island` is the finder's `locations.region`. Quest grants (`source = 'quest'`) do not place anything.
 - **Moving or removing a case** is an edit to `museum_cases` in the admin Content browser (group Museums).
+- **Curator of Taiar (step 5)** is the feat `curator-of-taiar` (migration `20260930050000`, category Collections, badge ⚱ until `/images/badges/curator-of-taiar.png` exists). Its kind, `museum_complete`, reads the museum by key: the target is every case on show there today, so it rises as new items are first found and never needs a migration; once earned it is kept. A museum with no cases on show awards nothing. Feats are checked after every donation, so it arrives the moment the last case is filled.
+- **Your firsts are marked:** a case you gave first has a gold border and says so, and the header counts your firsts; other players' plaques show on every case.
 - **An inactive item is not on show:** switching `items.is_active` off hides its case, leaves it out of every count and refuses donations; switching it back on restores it with its donations kept.
 
 ---
