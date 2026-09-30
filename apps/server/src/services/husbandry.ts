@@ -535,19 +535,18 @@ async function accrueAllInPen(pen: any, x: Ex = db) {
  */
 async function payMaturityXp(playerId: number, animal: any, species: any): Promise<number> {
     if (animal.mature_xp_paid) return 0;
+    // Something with no growing to do (bees: a caught hive is working the day
+    // it is hung) never grows up, so it is never paid for it. Before this,
+    // every new hive paid its xp_mature on the next look at the pens.
+    if (!(species.grow_seconds > 0)) return 0;
     if (stageOf(animal, species) === 'juvenile') return 0;
     await db('player_animals').where({ id: animal.id }).update({ mature_xp_paid: true });
 
     // Counted here rather than on an action, because raising something is not
     // a thing you click: it is a thing that happens because you kept a pen fed
-    // for a fortnight. The mature_xp_paid guard above fires once per animal.
-    //
-    // Anything with no grow time is skipped. Bees are adult the moment they go
-    // in the skep, so the juvenile guard above does not catch them, and calling
-    // a caught colony "raised" would make the counter mean two things.
-    if (species.grow_seconds > 0) {
-        await incrementStats(playerId, { total_animals_raised: 1 });
-    }
+    // for a fortnight. The mature_xp_paid guard above fires once per animal,
+    // and the grow-time guard keeps a caught hive from counting as "raised".
+    await incrementStats(playerId, { total_animals_raised: 1 });
 
     if (species.xp_mature > 0) {
         // Anchored to the taming that began this animal's cycle. awardXp counts
