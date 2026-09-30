@@ -5,6 +5,7 @@ import AdminContentBrowser from './AdminContentBrowser'
 import AdminBalanceCalculator from './AdminBalanceCalculator'
 import AdminBalanceChecks from './AdminBalanceChecks'
 import AdminManualEditor from './AdminManualEditor'
+import AdminEvents from './AdminEvents'
 import './AdminPanel.css'
 
 interface PlayerInfo {
@@ -60,7 +61,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
-    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual'>('players')
+    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events'>('players')
 
     /**
      * Problem count on the Balance label.
@@ -404,6 +405,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                             >
                                 Manual
                             </button>
+                            <button
+                                className={`admin-tab ${mainTab === 'events' ? 'active' : ''}`}
+                                onClick={() => setMainTab('events')}
+                            >
+                                Events
+                            </button>
                         </div>
                     )}
                 </div>
@@ -420,7 +427,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                     <AdminBalanceCalculator />
                 </div>
             ) :
-            mainTab === 'manual' ? <AdminManualEditor /> : (
+            mainTab === 'manual' ? <AdminManualEditor /> :
+            mainTab === 'events' ? <AdminEvents /> : (
             <div className="admin-body">
                 {/* Sidebar */}
                 <div className="admin-sidebar">

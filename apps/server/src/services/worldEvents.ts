@@ -49,6 +49,12 @@ export async function refreshLiveEvents(): Promise<void> {
     live = next;
 }
 
+/** Refresh the cache and tell clients now: for writes made outside a transaction. */
+export async function eventsChanged(): Promise<void> {
+    await refreshLiveEvents();
+    pushToAll(EVENTS_CHANGED, {});
+}
+
 /** Refresh the cache and tell clients, once whatever wrote has committed. */
 function changedAfterCommit(x: Knex | Knex.Transaction): void {
     afterCommit(x, () => {

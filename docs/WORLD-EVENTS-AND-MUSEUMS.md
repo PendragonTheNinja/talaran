@@ -1,6 +1,6 @@
 # World Events and Island Museums: design
 
-**Status:** step 1 of the build order is built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button. Steps 2 to 5 are not. The one remaining choice is marked **Q**.
+**Status:** steps 1 and 2 of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, and the admin Events tab. Steps 3 to 5 are not. The one remaining choice is marked **Q**.
 
 **One refinement made while building step 1:** the bonus is applied inside `awardXp`, the game's one XP writer, not at each action's XP call (there are 37 of them, most without their location). The place is where the player stands when the XP lands. A bulk action (Harvest All, Feed All, Tend, Muck All, Collect All, Slaughter All) takes one unit per thing it did (plots, pens, animals); when fewer are left, only that share of its XP is raised. A juvenile's growing-up XP is never raised and takes nothing: it pays for time passing, not for an action.
 
@@ -79,6 +79,8 @@ Everything above is adjustable from the panel, without a deploy:
 - **The merchant:** when he is next due, summon now, how long he stays, how much he carries, and the extras list.
 - **History:** every past event, how it ended (time, pool, admin), and how many actions it paid out.
 
+**As built (step 2):** the admin panel's Events tab (`AdminEvents.tsx`), backed by `/api/admin/events` (`routes/adminEvents.ts`, admin-only) and `services/worldEventsAdmin.ts`. A refill or cut sets the pool's total along with what is left, in one statement, so total minus left is always what was paid. Starting by hand ignores the scheduler's limits except one: a second live event for the same skill at the same place is refused, because only one of them could pay. The roster shows how many places the scheduler could put each type, and flags a type with none. The roster is registered in `lib/contentTables.ts` and snapshotted; the settings and the events themselves are not. The merchant controls come with step 3.
+
 ### Invasions, later
 
 A future `invasion` kind in the same system and panel. Each kind brings its own effect; nothing here needs changing for it.
@@ -88,7 +90,7 @@ A future `invasion` kind in the same system and panel. Each kind brings its own 
 - **The event types are data, not code,** so the panel can edit them: a `world_event_types` table (seeded with the roster above, snapshotted like other content). What each *kind* does (skill boost, merchant, later invasion) is code in `services/worldEvents.ts`.
 - **Tables:** `world_event_types` (the roster), `world_event_settings` (one row: frequency, limits, merchant schedule), `world_events` (each event: type, kind, place, skill, bonus, pool total and left, start, end, how it ended, who started it, its announcement), `world_event_stock` (the merchant's limited stock per visit), `merchant_extra_goods` (the extras list).
 - **One call, inside `awardXp`:** `applyEventBonus` takes `units` from the pool in one locked statement (fewer if fewer are left) and returns the XP with that share raised, or untouched when there is no event or the pool is empty. `awardXp(…, { units })` passes the count from bulk actions; `{ eventBonus: false }` opts an award out. The bonus is noted once the award commits, and the tick's one emit point adds it to the result as `eventXp` for the result line.
-- **Routes:** `GET /api/events` (live, recent, merchant due), merchant buy, and the admin set.
+- **Routes:** `GET /api/events` (live, recent, merchant due), merchant buy, and the admin set (`/api/admin/events`: overview, `start`, `settings`, `types`, `types/:id`, `live/:id`, `live/:id/end`).
 - **Client:** an `EventsPanel` like the other panels, the nav button wired to it, the location marker, and the admin Events section. A socket `world_events_changed` keeps them current.
 - **Tested** like everything else: `race:check` scenarios for the shared pool (many players on the last few actions: exactly the pool's size is paid) and the merchant's last item.
 

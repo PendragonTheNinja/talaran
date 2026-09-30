@@ -76,6 +76,14 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     workstation_slot_types:      { label: 'Workstation Slot Types', group: 'Crafting',  snapshot: true, editable: true },
     action_presentation:         { label: 'Action Presentation',   group: 'Core',       snapshot: true, editable: true },
 
+    // ---- World events ----
+    // The roster is authored content (edited in the admin Events tab). The
+    // scheduler's dials are per server and events themselves are state, so
+    // neither is snapshotted.
+    world_event_types:           { label: 'World Event Types',     group: 'Events',     snapshot: true, editable: true },
+    world_event_settings:        { label: 'World Event Settings',  group: 'Events',     editable: true },
+    world_events:                { label: 'World Events',          group: 'Events' },
+
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },
     ore_veins:                   { label: 'Ore Veins',             group: 'World State' },

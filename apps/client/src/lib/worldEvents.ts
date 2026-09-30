@@ -42,22 +42,34 @@ export function useWorldEvents(): WorldEvents {
     useEffect(() => {
         load()
         const timer = setInterval(load, REFRESH_MS)
-        let subscribed: ReturnType<typeof getSocket> = null
-        const waitForSocket = setInterval(() => {
-            const socket = getSocket()
-            if (!socket) return
-            clearInterval(waitForSocket)
-            socket.on('world_events_changed', load)
-            subscribed = socket
-        }, 200)
+        const unsubscribe = onWorldEventsChanged(load)
         return () => {
             clearInterval(timer)
-            clearInterval(waitForSocket)
-            subscribed?.off('world_events_changed', load)
+            unsubscribe()
         }
     }, [load])
 
     return events
+}
+
+/**
+ * Call `fn` whenever the server says an event started, changed or ended
+ * (world_events_changed). Waits for the socket if it is not up yet. Returns
+ * the unsubscribe, for an effect's cleanup.
+ */
+export function onWorldEventsChanged(fn: () => void): () => void {
+    let subscribed: ReturnType<typeof getSocket> = null
+    const waitForSocket = setInterval(() => {
+        const socket = getSocket()
+        if (!socket) return
+        clearInterval(waitForSocket)
+        socket.on('world_events_changed', fn)
+        subscribed = socket
+    }, 200)
+    return () => {
+        clearInterval(waitForSocket)
+        subscribed?.off('world_events_changed', fn)
+    }
 }
 
 /** "1 h 12 min", "8 min", "under a minute". */
