@@ -661,22 +661,6 @@ export default function AdminContentBrowser() {
                             <p className="muted-text">No content edits logged yet.</p>
                         ) : (
                             <div className="admin-content-scroll">
-                                {confirmDelete !== null && (
-                                    <div className="admin-delete-confirm">
-                                        Delete row {confirmDelete}? It goes into the change log and can be
-                                        reverted from there.
-                                        {data.snapshot && (
-                                            <span className="admin-snapshot-warn">
-                                                {' '}This table is snapshotted, so run content:export
-                                                afterwards or the row returns on the next import.
-                                            </span>
-                                        )}
-                                        <button className="btn btn-red" style={{ marginLeft: '8px', fontSize: '12px', padding: '2px 10px' }}
-                                            onClick={() => deleteRow(confirmDelete)}>Delete</button>
-                                        <button className="btn" style={{ marginLeft: '4px', fontSize: '12px', padding: '2px 10px' }}
-                                            onClick={() => setConfirmDelete(null)}>Cancel</button>
-                                    </div>
-                                )}
 
                                 <table className="admin-content-table">
                                     <thead>
@@ -719,6 +703,25 @@ export default function AdminContentBrowser() {
                 {/* Table view */}
                 {selected && selected !== '__changes' && selected !== '__orphans' && selected !== '__validate' && !usageItem && data && !loading && (
                     <div className="admin-content-table-wrap">
+                        {/* The row delete's confirmation belongs with the rows. It sat in
+                            the Change Log view instead, so Delete on a row seemed to do
+                            nothing: its prompt only ever appeared on another screen. */}
+                        {confirmDelete !== null && (
+                            <div className="admin-delete-confirm">
+                                Delete row {confirmDelete}? It goes into the change log and can be
+                                reverted from there.
+                                {data.snapshot && (
+                                    <span className="admin-snapshot-warn">
+                                        {' '}This table is snapshotted, so run content:export
+                                        afterwards or the row returns on the next import.
+                                    </span>
+                                )}
+                                <button className="btn btn-red" style={{ marginLeft: '8px', fontSize: '12px', padding: '2px 10px' }}
+                                    onClick={() => deleteRow(confirmDelete)}>Delete</button>
+                                <button className="btn" style={{ marginLeft: '4px', fontSize: '12px', padding: '2px 10px' }}
+                                    onClick={() => setConfirmDelete(null)}>Cancel</button>
+                            </div>
+                        )}
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '8px' }}>
                             <p className="admin-section-title" style={{ marginBottom: 0 }}>{data.label}</p>
                             <span className="muted-text" style={{ fontSize: '13px' }}>
