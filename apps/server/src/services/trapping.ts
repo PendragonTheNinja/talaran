@@ -216,10 +216,15 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
 
             // A trap catch is a hunt. It counted nothing before, so a trapper
             // could take a thousand rabbits and show no animals hunted.
+            // Inside the transaction, so through it: awardXp has already locked this
+            // player's player_stats row in this transaction (lifetime XP), and a
+            // write through the plain connection waited on that lock forever while
+            // the transaction waited on it. Every trap collection hung holding two
+            // pool connections until the pool ran dry (2026-09-30 outage).
             await incrementStats(playerId, {
                 total_animals_hunted: 1,
                 total_actions_completed: 1,
-            })
+            }, trx)
 
             const broke = Math.random() * 100 < trapType.break_chance
             const wasBaited = trap.bait_category as string | null

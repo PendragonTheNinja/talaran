@@ -11,6 +11,7 @@ import { isLiquid, canFill, addLiquid, liquidState } from './liquids';
 import { missingBuildTool as sharedMissingBuildTool } from './construction';
 import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { afterCommit } from '../lib/afterCommit';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
 // beside the fields, then stocked with animals found in the wild: feed → collect
@@ -933,7 +934,10 @@ export async function resolveBuildPen(playerId: number, penTypeRaw: string | nul
             await awardXp(playerId, 'Carpentry', xp, trx);
             // Target is the pen kind, so a quest can ask for a coop specifically
             // (Geothro's lesson does) rather than any pen at all.
-            await updateQuestObjectiveProgress(playerId, 'build', penType === 'coop' ? 'Coop' : 'Paddock', 1);
+            // Quest progress after the transaction commits (lib/afterCommit): it is
+            // written through the plain connection, which inside a transaction borrows a
+            // second pool connection, and would count an action that then rolled back.
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'build', penType === 'coop' ? 'Coop' : 'Paddock', 1));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1});
@@ -1159,7 +1163,7 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
             if (!pen.muck_due_at && !isApiary(pen.pen_type)) patch.muck_due_at = new Date(Date.now() + MUCK_INTERVAL * 1000);
             if (Object.keys(patch).length) await trx('player_pens').where({ id: pen.id }).update(patch);
 
-            await updateQuestObjectiveProgress(playerId, 'place_animal', species.name, 1);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'place_animal', species.name, 1));
         });
 
         return {
@@ -1267,7 +1271,7 @@ export async function resolveFeed(playerId: number, penIdRaw: string | null): Pr
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             xp = activeXpForSeconds(lvl, Math.max(5, animals.length * FEED_SECONDS_PER_HEAD));
             await awardXp(playerId, 'Husbandry', xp, trx);
-            await updateQuestObjectiveProgress(playerId, 'feed', species.name, 1);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'feed', species.name, 1));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1});
@@ -1446,7 +1450,7 @@ export async function resolveFeedAll(playerId: number): Promise<HusbandryActionR
 
                 fedPens++;
                 fedHead += animals.length;
-                await updateQuestObjectiveProgress(playerId, 'feed', species.name, 1);
+                afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'feed', species.name, 1));
             }
 
             if (!fedPens) throw new Error(`NO_FEED:${shortItem}`);
@@ -1538,7 +1542,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             xp = activeXpForSeconds(lvl, muckRoundSeconds(muckedPens));
             await awardXp(playerId, 'Husbandry', xp, trx, { units: muckedPens });
-            await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', muckedPens);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'muck', 'Pen', muckedPens));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1});
@@ -1629,7 +1633,7 @@ export async function resolveMuck(playerId: number, penIdRaw: string | null): Pr
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             xp = activeXpForSeconds(lvl, MUCK_SECONDS);
             await awardXp(playerId, 'Husbandry', xp, trx);
-            await updateQuestObjectiveProgress(playerId, 'muck', 'Pen', 1);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'muck', 'Pen', 1));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1, total_pens_mucked: 1});
@@ -1831,7 +1835,7 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
             xp = taperedXp(collectLvl, species, 'xp_product') * hits
                 + activeXp;
             await awardXp(playerId, 'Husbandry', xp, trx);
-            await updateQuestObjectiveProgress(playerId, 'collect', productItem, qty);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'collect', productItem, qty));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1, total_animal_products: 1});
@@ -1965,7 +1969,7 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
                 } else {
                     await giveItem(playerId, productItem, qty, trx);
                 }
-                if (qty > 0) await updateQuestObjectiveProgress(playerId, 'collect', productItem, qty);
+                if (qty > 0) afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'collect', productItem, qty));
             }
             await awardXp(playerId, 'Husbandry', xp, trx, { units: animalsWorked });
         });
@@ -2059,7 +2063,7 @@ export async function resolveSlaughter(playerId: number, animalIdRaw: string | n
             await trx('player_animals').where({ id: fresh.id }).delete();
             await clearPenIfEmpty(pen, trx);
             await awardXp(playerId, 'Husbandry', xp, trx);
-            await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, 1);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'slaughter', species.name, 1));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1});
@@ -2161,7 +2165,7 @@ export async function resolveSlaughterAll(playerId: number, penIdRaw: string | n
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             xp = speciesXp + activeXpForSeconds(lvl, slaughterAllSeconds(killed));
             await awardXp(playerId, 'Husbandry', xp, trx, { units: killed });
-            await updateQuestObjectiveProgress(playerId, 'slaughter', species.name, killed);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'slaughter', species.name, killed));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1, total_animals_slaughtered: 1});
@@ -2231,7 +2235,7 @@ export async function resolveTame(playerId: number, animalIdRaw: string | null):
             xp = taperedXp(lvl, species, 'xp_slaughter')
                 + activeXpForSeconds(lvl, TAME_SECONDS);
             await awardXp(playerId, 'Husbandry', xp, trx);
-            await updateQuestObjectiveProgress(playerId, 'tame', species.name, 1);
+            afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'tame', species.name, 1));
         });
 
         await incrementStats(playerId, { total_actions_completed: 1});

@@ -1033,6 +1033,33 @@ const SCENARIOS: Scenario[] = [
                 ?? (after.pool_left === 0 && after.end_reason === 'pool' ? null : `event left at ${after.pool_left}, ended ${after.end_reason}`);
         },
     },
+    {
+        id: 'trap', name: 'a sprung trap collected twice at once pays once and never hangs', rounds: 10,
+        run: async (ctx) => {
+            // The 2026-09-30 outage: collectTrap wrote player_stats through the
+            // plain connection inside its transaction, after awardXp had locked
+            // that row in the transaction. It waited on itself forever, holding
+            // two pool connections, until the pool ran dry. So: finish within
+            // ten seconds, pay exactly once.
+            const w = await world(ctx);
+            await ctx.seed.row('skills', { name: 'Hunting' });
+            const type = await ctx.seed.row('trap_types', { name: 'Snare', item_name: 'Snare', required_level: 1, roll_interval_seconds: 1800,
+                catch_chance: 100, break_chance: 0, scavenger_safe_hours: 1, scavenger_hourly_chance: 0 });
+            const target = await ctx.seed.row('trap_targets', { location_id: w.town.id, trap_type_id: type.id, name: 'Rabbit', weight: 1, xp: 40, drop_table: '[]' });
+            const trap = await ctx.seed.row('player_traps', { player_id: w.player.id, trap_type_id: type.id, location_id: w.town.id,
+                state: 'caught', caught_target_id: target.id, caught_at: new Date(), next_roll_at: new Date() });
+            const { collectTrap } = await import('../services/trapping');
+            const hung = Symbol('hung');
+            const outcome = await Promise.race([
+                Promise.allSettled([collectTrap(w.player.id, trap.id), collectTrap(w.player.id, trap.id)]),
+                new Promise((r) => setTimeout(() => r(hung), 10_000)),
+            ]);
+            if (outcome === hung) return 'collecting hung for 10 s (a transaction waiting on itself)';
+            const paid = (outcome as PromiseSettledResult<any>[]).filter((r) => r.status === 'fulfilled' && r.value.success).length;
+            const xp = Number((await ctx.db('player_skills').where({ player_id: w.player.id }).first())?.xp ?? 0);
+            return (paid === 1 ? null : `${paid} collections paid`) ?? changed('Hunting XP from one catch', 40, xp);
+        },
+    },
 ];
 
 main().catch((err) => {
