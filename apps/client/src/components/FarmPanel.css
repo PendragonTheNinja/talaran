@@ -55,6 +55,11 @@
   color: var(--color-red-glow);
 }
 
+/* An animal came of age: the growing-up XP it paid. */
+.farm-grown {
+  color: var(--color-xp);
+}
+
 .farm-build-lead {
   color: var(--color-text-muted);
   font-style: italic;

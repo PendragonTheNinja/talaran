@@ -49,9 +49,11 @@ function startHandler(
 }
 
 // Pens, stock, and everything the client needs to render the Animals tab.
+// `?peek=1` reads without paying growing-up XP, for callers that only want a
+// number from it and would otherwise pay it where nobody sees.
 router.get('/state', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-        res.json(await getHusbandryState(req.player!.playerId));
+        res.json(await getHusbandryState(req.player!.playerId, { settleMaturity: req.query.peek !== '1' }));
     } catch (err) {
         logger.error(`Husbandry state error: ${err}`);
         res.status(500).json({ error: 'Server error' });

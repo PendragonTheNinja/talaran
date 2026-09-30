@@ -104,7 +104,9 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
 
     const [husbandryLevel, setHusbandryLevel] = useState<number | null>(null)
     useEffect(() => {
-        apiFetch<{ husbandryLevel: number }>('/api/husbandry/state')
+        // peek: only the level is wanted here, so growing up is left to be
+        // paid where the Animals tab can say so.
+        apiFetch<{ husbandryLevel: number }>('/api/husbandry/state?peek=1')
             .then(d => setHusbandryLevel(d.husbandryLevel)).catch(() => setHusbandryLevel(1))
     }, [])
 

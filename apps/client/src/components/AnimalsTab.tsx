@@ -39,7 +39,17 @@ interface SpeciesDef {
     isMount: boolean; description: string | null
     unlocked: boolean; babiesHeld: number
 }
+/** An animal that came of age since the pens were last looked at. */
+export interface MaturedAnimal { name: string; species: string; xp: number }
+
+function grownLine(m: MaturedAnimal): string {
+    const who = m.name || `Your ${m.species.toLowerCase()}`
+    return `${who} has grown up. +${m.xp.toLocaleString()} Husbandry experience.`
+}
+
 export interface HusbandryState {
+    /** Paid on this read: growing up is settled when the pens are looked at. */
+    matured?: MaturedAnimal[]
     hasFarmstead: boolean; atNovita: boolean; town: string
     husbandryLevel: number; penCap: number; penMax: number
     coopCapacity: number; paddockCapacity: number; apiaryCapacity?: number
@@ -141,9 +151,24 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
     // is six animals and would otherwise be most of a screen on its own.
     const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
 
+    // Growing up is paid when the pens are read, so each read says what came
+    // of age: a line in the log, and one here for as long as the tab is open.
+    const [grown, setGrown] = useState<MaturedAnimal[]>([])
+
     const load = useCallback(() => {
         return apiFetch<HusbandryState>('/api/husbandry/state')
-            .then(setData).catch(() => setError('Could not reach your pens.')).finally(() => setLoading(false))
+            .then(d => {
+                setData(d)
+                const matured = d.matured ?? []
+                if (!matured.length) return
+                setGrown(prev => [...prev, ...matured])
+                for (const m of matured) {
+                    window.dispatchEvent(new CustomEvent('talaran:notice', {
+                        detail: { message: grownLine(m), type: 'success' },
+                    }))
+                }
+            })
+            .catch(() => setError('Could not reach your pens.')).finally(() => setLoading(false))
     }, [])
     useEffect(() => { load() }, [load])
     // Animals grow on their own; refresh the countdowns once a minute.
@@ -205,6 +230,7 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
     return (
         <>
             {error && <p className="farm-error">{error}</p>}
+            {grown.map((m, i) => <p key={i} className="farm-note farm-grown">{grownLine(m)}</p>)}
 
             <div className="farm-status">
                 <span>Husbandry Lv {data.husbandryLevel}</span>

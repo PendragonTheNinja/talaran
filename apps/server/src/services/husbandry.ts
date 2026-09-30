@@ -676,7 +676,19 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
 }
 
 // ── state ───────────────────────────────────────────────────────────────────
-export async function getHusbandryState(playerId: number) {
+/** An animal that came of age since the pens were last looked at, and what it paid. */
+export interface MaturedAnimal { name: string; species: string; xp: number }
+
+/**
+ * Everything the Animals tab renders. Reading it is also when growing up is
+ * paid (the clocks are folded forward on read), so a caller that only wants a
+ * number from it passes `settleMaturity: false`: otherwise the XP lands with
+ * nothing on screen to say so. What was paid comes back as `matured`, and the
+ * Animals tab tells the player.
+ */
+export async function getHusbandryState(playerId: number, opts: { settleMaturity?: boolean } = {}) {
+    const settleMaturity = opts.settleMaturity !== false;
+    const matured: MaturedAnimal[] = [];
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     const { novita, property } = await playerProperty(playerId);
     const atNovita = !!novita && player?.current_location_id === novita.id;
@@ -770,7 +782,10 @@ export async function getHusbandryState(playerId: number) {
             const sp = species ?? withPenContext(
                 await db('animal_species').where({ id: a.species_id }).first(), pen, flowerCount);
             const stage = stageOf(a, sp);
-            await payMaturityXp(playerId, a, sp);
+            if (settleMaturity) {
+                const xp = await payMaturityXp(playerId, a, sp);
+                if (xp > 0) matured.push({ name: a.name, species: sp.name, xp });
+            }
             const interval = productInterval(sp, stage);
             animalList.push({
                 id: a.id, name: a.name, species: sp.name, stage,
@@ -838,6 +853,7 @@ export async function getHusbandryState(playerId: number) {
     return {
         ...base,
         hasFarmstead: true,
+        matured,
         pens,
         canBuildPen: pens.length < penCapForLevel(husbandryLvl),
         nextPenCost: {

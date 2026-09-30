@@ -706,8 +706,8 @@ export default function GameView({
     // Generic notice channel, so a panel deep in the tree can put a line in the
     // log without threading a callback down to it.
     const onNotice = (e: Event) => {
-      const d = (e as CustomEvent<{ message: string; type?: 'info' | 'error' }>).detail
-      if (d?.message) addLog(d.message, d.type === 'error' ? 'error' : 'info')
+      const d = (e as CustomEvent<{ message: string; type?: 'info' | 'error' | 'success' }>).detail
+      if (d?.message) addLog(d.message, d.type === 'error' || d.type === 'success' ? d.type : 'info')
     }
     // A feat is worth a line in the log and nothing more intrusive. It is not
     // an interruption, it is a note that something you were already doing
