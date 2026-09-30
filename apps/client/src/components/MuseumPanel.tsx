@@ -18,6 +18,8 @@ interface MuseumCase {
     held: number
     firstDonor: string | null
     firstDonatedAt: string | null
+    /** You gave the first one. */
+    yourFirst: boolean
 }
 
 interface Exhibit {
@@ -35,6 +37,7 @@ interface Museum {
     town: string | null
     total: number
     given: number
+    firsts: number
     exhibits: Exhibit[]
 }
 
@@ -108,7 +111,12 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                 <div className="farm-header">
                     <h2>{museum?.name ?? 'Museum'}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {museum && <span className="museum-progress tabular-num">{museum.given} of {museum.total} given</span>}
+                        {museum && (
+                            <span className="museum-progress tabular-num">
+                                {museum.given} of {museum.total} given
+                                {museum.firsts > 0 && <span className="museum-firsts"> · ★ {museum.firsts} first{museum.firsts === 1 ? '' : 's'}</span>}
+                            </span>
+                        )}
                         <button className="farm-close" onClick={onClose}>✕</button>
                     </div>
                 </div>
@@ -140,7 +148,7 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                         </p>
                         <div className="museum-grid">
                             {exhibit.cases.map(c => (
-                                <div key={c.caseId} className={`museum-case ${c.donated ? 'given' : c.held > 0 ? 'can-give' : ''}`}>
+                                <div key={c.caseId} className={`museum-case ${c.donated ? 'given' : c.held > 0 ? 'can-give' : ''} ${c.yourFirst ? 'your-first' : ''}`}>
                                     <button className="inventory-slot occupied museum-slot" onClick={() => pick(c)}>
                                         <CaseIcon c={c} hover={hoverProps({ name: c.name },
                                             c.donated ? 'Given' : c.held > 0 ? 'Click to give one' : 'Not yet given')} />
@@ -148,9 +156,11 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                                     </button>
                                     <span className="museum-case-name">{c.name}</span>
                                     <span className="museum-plaque">
-                                        {c.firstDonor
-                                            ? <>First given by <strong>{c.firstDonor}</strong>, {shortDate(c.firstDonatedAt!)}</>
-                                            : 'Nobody has given one yet'}
+                                        {c.yourFirst
+                                            ? <span className="museum-your-first">★ You gave the first, {shortDate(c.firstDonatedAt!)}</span>
+                                            : c.firstDonor
+                                                ? <>First given by <strong>{c.firstDonor}</strong>, {shortDate(c.firstDonatedAt!)}</>
+                                                : 'Nobody has given one yet'}
                                     </span>
                                 </div>
                             ))}

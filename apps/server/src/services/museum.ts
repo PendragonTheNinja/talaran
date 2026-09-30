@@ -21,6 +21,8 @@ export interface MuseumCase {
     /** How many the player carries, so the panel can offer to donate. */
     held: number
     firstDonor: string | null
+    /** This player gave the first one: their mark on the case. */
+    yourFirst: boolean
     firstDonatedAt: string | null
 }
 
@@ -73,7 +75,7 @@ export async function museumState(playerId: number, museumId: number) {
         .where('i.is_active', true)
         .orderBy([{ column: 'c.display_order' }, { column: 'i.name' }])
         .select('c.id', 'c.exhibit_id', 'c.item_id', 'i.name', 'd.id as donation_id', 'inv.quantity as held',
-            'p.username as first_donor', 'f.donated_at as first_donated_at');
+            'p.username as first_donor', 'f.player_id as first_donor_id', 'f.donated_at as first_donated_at');
 
     // Islanders who have filled each exhibit: players whose donations there
     // number the exhibit's cases. Active items only, on both sides.
@@ -103,13 +105,15 @@ export async function museumState(playerId: number, museumId: number) {
             donated: c.donation_id !== null,
             held: Number(c.held ?? 0),
             firstDonor: c.first_donor ?? null,
+            yourFirst: c.first_donor_id === playerId,
             firstDonatedAt: c.first_donated_at ?? null,
         })),
     })).filter((e: MuseumExhibit) => e.cases.length > 0);
 
     const total = shaped.reduce((n, e) => n + e.cases.length, 0);
     const given = shaped.reduce((n, e) => n + e.cases.filter((c) => c.donated).length, 0);
-    return { id: museum.id, name: museum.name, island: museum.island, town: museum.town, total, given, exhibits: shaped };
+    const firsts = shaped.reduce((n, e) => n + e.cases.filter((c) => c.yourFirst).length, 0);
+    return { id: museum.id, name: museum.name, island: museum.island, town: museum.town, total, given, firsts, exhibits: shaped };
 }
 
 /** A refusal inside the donation: thrown so it rolls back, answered in words. */

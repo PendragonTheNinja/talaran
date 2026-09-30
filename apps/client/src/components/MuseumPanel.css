@@ -86,6 +86,17 @@
   font-weight: normal;
 }
 
+/* Your own firsts: the case you were first to fill. */
+.museum-case.your-first .museum-slot {
+  border-color: var(--color-gold-bright);
+  box-shadow: 0 0 6px rgba(232, 184, 75, 0.45);
+}
+
+.museum-your-first,
+.museum-firsts {
+  color: var(--color-gold-bright);
+}
+
 @media (max-width: 600px) {
   .museum-grid {
     grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
