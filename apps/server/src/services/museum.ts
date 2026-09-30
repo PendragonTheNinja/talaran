@@ -68,22 +68,28 @@ export async function museumState(playerId: number, museumId: number) {
             this.on('inv.item_id', 'c.item_id').andOn('inv.player_id', db.raw('?', [playerId]));
         })
         .where('e.museum_id', museumId)
+        // An item switched off is not on show, and counts toward nothing,
+        // until it is switched back on (its donations are kept).
+        .where('i.is_active', true)
         .orderBy([{ column: 'c.display_order' }, { column: 'i.name' }])
         .select('c.id', 'c.exhibit_id', 'c.item_id', 'i.name', 'd.id as donation_id', 'inv.quantity as held',
             'p.username as first_donor', 'f.donated_at as first_donated_at');
 
     // Islanders who have filled each exhibit: players whose donations there
-    // number the exhibit's cases.
+    // number the exhibit's cases. Active items only, on both sides.
     const completed = await db.raw(`
         SELECT e.id AS exhibit_id, count(*)::int AS players
         FROM museum_exhibits e
         JOIN (
             SELECT c.exhibit_id, d.player_id, count(*) AS n
-            FROM museum_donations d JOIN museum_cases c ON c.id = d.case_id
+            FROM museum_donations d
+            JOIN museum_cases c ON c.id = d.case_id
+            JOIN items i ON i.id = c.item_id AND i.is_active
             GROUP BY c.exhibit_id, d.player_id
         ) given ON given.exhibit_id = e.id
         WHERE e.museum_id = ?
-          AND given.n = (SELECT count(*) FROM museum_cases c2 WHERE c2.exhibit_id = e.id)
+          AND given.n = (SELECT count(*) FROM museum_cases c2 JOIN items i2 ON i2.id = c2.item_id AND i2.is_active
+                         WHERE c2.exhibit_id = e.id)
         GROUP BY e.id`, [museumId]);
     const completedBy = new Map<number, number>(completed.rows.map((r: any) => [r.exhibit_id, r.players]));
 
@@ -129,7 +135,8 @@ export async function donate(playerId: number, caseIdRaw: unknown): Promise<
             if (!museum || !player || player.current_location_id !== museum.location_id) {
                 throw new DonateAbort(`You must be at the ${museum?.name ?? 'museum'} to give to it.`);
             }
-            const item = await trx('items').where({ id: theCase.item_id }).select('name').first();
+            const item = await trx('items').where({ id: theCase.item_id }).select('name', 'is_active').first();
+            if (!item?.is_active) throw new DonateAbort('That case is not on show.');
 
             // Under the case's lock: nobody else can be giving to it right now.
             const first = !(await trx('museum_donations').where({ case_id: caseId }).first());

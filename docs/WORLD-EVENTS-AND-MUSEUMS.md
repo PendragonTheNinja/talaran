@@ -138,6 +138,7 @@ A future `invasion` kind in the same system and panel. Each kind brings its own 
 - **The plaque is state, not content.** It is the earliest `museum_donations` row for a case (donations to a case are made under its row lock, so ids order them), so the snapshotted content tables never carry a player id.
 - **New items** place themselves from `recordItemFirst` when `firstInWorld`, in the museum whose `island` is the finder's `locations.region`. Quest grants (`source = 'quest'`) do not place anything.
 - **Moving or removing a case** is an edit to `museum_cases` in the admin Content browser (group Museums).
+- **An inactive item is not on show:** switching `items.is_active` off hides its case, leaves it out of every count and refuses donations; switching it back on restores it with its donations kept.
 
 ---
 
