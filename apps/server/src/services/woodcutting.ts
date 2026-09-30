@@ -60,6 +60,20 @@ export function calculateTimer(
   return Math.max(minTimer, rounded - timerCut(rounded, buffPercent))
 }
 
+/**
+ * Which wood a tree gives, from its node name. The one copy of the rule: the
+ * chop uses it, and so does anything asking what a place yields (the
+ * travelling merchant's stock, services/travellingMerchant.ts).
+ */
+export function logSubtypeFor(nodeName: string): string {
+  const n = nodeName.toLowerCase();
+  return n.includes('lanai') ? 'lanai'
+    : n.includes('hatch') ? 'hatch'
+      : n.includes('bearn') ? 'bearn'
+        : n.includes('mirrith') ? 'mirrith'
+          : 'craxial';
+}
+
 export function determineLogQuality(
   poorChance: number,
   fineChance: number,
@@ -205,11 +219,7 @@ export async function processWoodcuttingAction(
     );
 
     // Find the log item
-    const subtype = node.name.toLowerCase().includes('lanai') ? 'lanai'
-      : node.name.toLowerCase().includes('hatch') ? 'hatch'
-        : node.name.toLowerCase().includes('bearn') ? 'bearn'
-          : node.name.toLowerCase().includes('mirrith') ? 'mirrith'
-            : 'craxial';
+    const subtype = logSubtypeFor(node.name);
 
     const logItem = await db('items')
       .where({ subtype, quality, type: 'log' })

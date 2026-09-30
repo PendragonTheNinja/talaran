@@ -1,6 +1,6 @@
 # World Events and Island Museums: design
 
-**Status:** steps 1 and 2 of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, and the admin Events tab. Steps 3 to 5 are not. The one remaining choice is marked **Q**.
+**Status:** steps 1 to 3 of the build order are built (2026-09-30): the events core, the roster, the XP bonus, the Events panel and nav button, the admin Events tab, and the Travelling Merchant. Steps 4 and 5 are not. The one remaining choice is marked **Q**.
 
 **One refinement made while building step 1:** the bonus is applied inside `awardXp`, the game's one XP writer, not at each action's XP call (there are 37 of them, most without their location). The place is where the player stands when the XP lands. A bulk action (Harvest All, Feed All, Tend, Muck All, Collect All, Slaughter All) takes one unit per thing it did (plots, pens, animals); when fewer are left, only that share of its XP is raised. A juvenile's growing-up XP is never raised and takes nothing: it pays for time passing, not for an action.
 
@@ -67,6 +67,11 @@ Every skill whose actions happen at a shared place. Each event happens at a real
 - **Plus an extras list** you edit in the admin panel: anything added there can turn up in his stock wherever he is. That is where unique items go, once there are some.
 - **Limited for the whole server:** "12 Oak Logs, 3 Dense Burgh Ore", then gone. Sold at the usual merchant markup (`buyPrice`). Buying is a locked decrement, so two players never both buy the last one.
 - **Summon him** from the admin panel at any time, to any place.
+
+**As built (step 3):** `services/travellingMerchant.ts`. A visit is a `world_events` row of kind `merchant`, so it has the countdown, the admin controls and the history of any event; its pool is his goods (every unit he brought, and what is unsold), and he leaves early when he sells out. The events scheduler calls `merchantSchedulerTick` each minute: his first visit falls at a random time within the first interval, then one every `merchant_every_days`. He never takes a skill event's slot.
+- **What he sells** is `locationYields`: a place's logs (each quality its trees can give), its rock and the ores its veins can be, its fish, and the non-rare drops of its forage, hunts and traps, by the same rules the skills use (`logSubtypeFor`, `rockSubtypeFor`, `veinOresAt` are shared with woodcutting and mining). Drops marked notable are left out; the extras list is how a rare thing is sold on purpose. He brings up to `merchant_lines` of them, each about `merchant_line_gold` worth of value (so logs by the armful, ore by the handful), plus each extras line that rolls its chance.
+- **Buying** (`POST /api/events/merchant/buy`, trusted accounts) locks the visit, takes the goods with a conditional decrement, then the gold (`npc_purchase`, ref `world_event`), all in one transaction; the price shown travels with the request and a different one is refused. `race:check merchant` holds it, and fails on a read-then-write version.
+- **Players** see him in the Events panel with when he is next due (not where), a line and a button in the location panel where he stands, and his cart in the marketplace's own modal. **Admin:** the Events tab's merchant card (on or off, next visit, interval, stay, cart size, arrival line, summon now, the extras list); his live card shows his cart. `merchant_extra_goods` is snapshotted content; stock is state.
 
 ### Admin: an Events section
 

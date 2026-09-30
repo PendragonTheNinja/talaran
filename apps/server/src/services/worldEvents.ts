@@ -259,7 +259,8 @@ export async function startEvent(type: any, opts: StartOptions): Promise<any> {
  * skill or the same place. Returns null when nothing fits right now.
  */
 export async function spawnRandomEvent(maxConcurrent: number): Promise<any | null> {
-    const running = await db('world_events').whereNull('ended_at').where('ends_at', '>', db.fn.now()).select('skill', 'location_id');
+    // Skill events only: the merchant keeps his own calendar and takes no slot.
+    const running = await db('world_events').where({ kind: 'skill' }).whereNull('ended_at').where('ends_at', '>', db.fn.now()).select('skill', 'location_id');
     if (running.length >= maxConcurrent) return null;
     const busySkills = new Set(running.map((r: any) => String(r.skill ?? '').toLowerCase()));
     const busyPlaces = new Set(running.map((r: any) => r.location_id));
@@ -311,6 +312,10 @@ async function schedulerTick(): Promise<void> {
         await refreshLiveEvents();
         pushToAll(EVENTS_CHANGED, {});
     }
+    // The travelling merchant's weekly visit. Imported here, not at the top:
+    // travellingMerchant.ts imports this file.
+    const { merchantSchedulerTick } = await import('./travellingMerchant');
+    await merchantSchedulerTick();
 }
 
 export function startWorldEventScheduler(): void {
@@ -322,8 +327,11 @@ export function startWorldEventScheduler(): void {
 
 // ── Listing ───────────────────────────────────────────────────────────────
 
-/** What the Events panel shows: live events, and those that ended in the last day. */
-export async function listEvents(): Promise<{ live: any[]; recent: any[] }> {
+/**
+ * What the Events panel shows: live events, those that ended in the last day,
+ * and when the travelling merchant is next due (null while he is out, or off).
+ */
+export async function listEvents(): Promise<{ live: any[]; recent: any[]; merchantNextAt: string | null }> {
     const columns = [
         'e.id', 'e.name', 'e.kind', 'e.skill', 'e.xp_multiplier', 'e.pool_total', 'e.pool_left',
         'e.starts_at', 'e.ends_at', 'e.ended_at', 'e.end_reason', 'e.announcement',
@@ -342,5 +350,11 @@ export async function listEvents(): Promise<{ live: any[]; recent: any[] }> {
         startsAt: r.starts_at, endsAt: r.ends_at, endedAt: r.ended_at, endReason: r.end_reason,
         location: r.location, locationId: r.location_id, announcement: r.announcement,
     });
-    return { live: liveRows.map(shape), recent: recentRows.map(shape) };
+    const settings = await db('world_event_settings').where({ id: 1 }).first();
+    const merchantOut = liveRows.some((r: any) => r.kind === 'merchant');
+    return {
+        live: liveRows.map(shape),
+        recent: recentRows.map(shape),
+        merchantNextAt: settings?.merchant_enabled && !merchantOut ? settings.merchant_next_at ?? null : null,
+    };
 }

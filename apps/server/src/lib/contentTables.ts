@@ -83,6 +83,10 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     world_event_types:           { label: 'World Event Types',     group: 'Events',     snapshot: true, editable: true },
     world_event_settings:        { label: 'World Event Settings',  group: 'Events',     editable: true },
     world_events:                { label: 'World Events',          group: 'Events' },
+    // The merchant's extras list is authored (items that can turn up in his
+    // cart); what one visit carries is state.
+    merchant_extra_goods:        { label: 'Merchant Extra Goods',  group: 'Events',     snapshot: true, editable: true },
+    world_event_stock:           { label: 'Merchant Stock (visits)', group: 'Events' },
 
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },

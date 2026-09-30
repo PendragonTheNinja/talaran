@@ -22,9 +22,31 @@ export interface WorldEvent {
     announcement: string | null
 }
 
-export interface WorldEvents { live: WorldEvent[]; recent: WorldEvent[] }
+export interface WorldEvents {
+    live: WorldEvent[]
+    recent: WorldEvent[]
+    /** When the travelling merchant is next due; null while he is out, or off. */
+    merchantNextAt?: string | null
+}
 
 const EMPTY: WorldEvents = { live: [], recent: [] }
+
+/** A visit from the travelling merchant, rather than a skill event. His pool is his goods. */
+export const isMerchant = (e: { kind: string }) => e.kind === 'merchant'
+
+/** How each kind of event ended, in words. */
+export function endedWords(e: { kind: string; endReason: string | null }): string {
+    if (isMerchant(e)) return e.endReason === 'pool' ? 'sold out' : e.endReason === 'admin' ? 'packed up early' : 'moved on'
+    return e.endReason === 'pool' ? 'was used up' : e.endReason === 'admin' ? 'was called off' : 'ran its course'
+}
+
+/** "in about 3 days", "in about 5 hours", "within the hour": deliberately loose. */
+export function dueIn(at: string, now: number): string {
+    const hours = (new Date(at).getTime() - now) / 3_600_000
+    if (hours < 1) return 'within the hour'
+    if (hours < 36) return `in about ${Math.round(hours)} hour${Math.round(hours) === 1 ? '' : 's'}`
+    return `in about ${Math.round(hours / 24)} days`
+}
 /** A pool's count changes with every boosted action; it is re-read this often rather than pushed each time. */
 const REFRESH_MS = 30_000
 

@@ -3,22 +3,16 @@ import './EventsPanel.css'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
-import { useWorldEvents, timeLeft, type WorldEvent } from '../lib/worldEvents'
+import { useWorldEvents, timeLeft, dueIn, endedWords, isMerchant, type WorldEvent } from '../lib/worldEvents'
 
 interface EventsPanelProps {
     onClose: () => void
     closing?: boolean
 }
 
-const ENDED: Record<string, string> = {
-    time: 'ran its course',
-    pool: 'was used up',
-    admin: 'was called off',
-}
-
 /** What is happening around the island now, and what ended in the last day. */
 export default function EventsPanel({ onClose, closing }: EventsPanelProps) {
-    const { live, recent } = useWorldEvents()
+    const { live, recent, merchantNextAt } = useWorldEvents()
     const isMobile = useIsMobile()
     const dock = useDockableWindow('events')
 
@@ -65,6 +59,13 @@ export default function EventsPanel({ onClose, closing }: EventsPanelProps) {
                     live.map(e => <LiveEvent key={e.id} event={e} now={now} />)
                 )}
 
+                {/* When he is due, not where: the place is his to choose. */}
+                {merchantNextAt && (
+                    <p className="ev-merchant-due">
+                        The travelling merchant is expected {dueIn(merchantNextAt, now)}, somewhere on the island.
+                    </p>
+                )}
+
                 {recent.length > 0 && (
                     <>
                         <h4 className="ev-section-title">Earlier today</h4>
@@ -72,7 +73,7 @@ export default function EventsPanel({ onClose, closing }: EventsPanelProps) {
                             <div key={e.id} className="ev-recent">
                                 <span className="ev-recent-name">{e.name}</span>
                                 {e.location && <span className="ev-recent-where"> at {e.location}</span>}
-                                <span className="ev-recent-end"> {ENDED[e.endReason ?? 'time'] ?? 'ended'}.</span>
+                                <span className="ev-recent-end"> {endedWords(e)}.</span>
                             </div>
                         ))}
                     </>
@@ -93,11 +94,14 @@ function LiveEvent({ event: e, now }: { event: WorldEvent; now: number }) {
             <div className="ev-card-where">
                 {e.location}
                 {e.skill && <> · <strong>+{e.bonusPercent}% {e.skill} XP</strong></>}
+                {isMerchant(e) && <> · <strong>goods from round about</strong></>}
             </div>
             <div className="ev-pool" title={`${e.poolLeft} of ${e.poolTotal} left`}>
                 <div className="ev-pool-fill" style={{ width: `${left}%` }} />
             </div>
-            <div className="ev-pool-label">{e.poolLeft.toLocaleString()} of {e.poolTotal.toLocaleString()} actions left</div>
+            <div className="ev-pool-label">
+                {e.poolLeft.toLocaleString()} of {e.poolTotal.toLocaleString()} {isMerchant(e) ? 'goods unsold' : 'actions left'}
+            </div>
         </div>
     )
 }

@@ -2,6 +2,7 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { eligibleLocations, eventsChanged, startEvent } from './worldEvents';
+import { merchantPlaces, summonMerchant, MerchantRefusal } from './travellingMerchant';
 
 // The admin panel's Events tab (docs/WORLD-EVENTS-AND-MUSEUMS.md, "Admin: an
 // Events section"). Every number the scheduler and the roster use is a row, so
@@ -19,7 +20,7 @@ async function answer<T>(label: string, fn: () => Promise<T>): Promise<Result<T>
     try {
         return { ok: true, ...(await fn()) };
     } catch (err: any) {
-        if (err instanceof Refusal) return { error: err.message };
+        if (err instanceof Refusal || err instanceof MerchantRefusal) return { error: err.message };
         // The CHECK constraints on the event tables are the backstop for the
         // ranges validated below; if one fires, say so rather than 500.
         if (err?.code === '23514') return { error: 'Those numbers do not fit together (check the ranges).' };
@@ -122,13 +123,26 @@ export async function eventsAdminOverview() {
             });
         }
 
+        // The merchant's cart, on his live visit (there is at most one).
+        const stockRows = await db('world_event_stock as s').join('items as i', 'i.id', 's.item_id')
+            .whereIn('s.event_id', live.filter((e: any) => e.kind === 'merchant').map((e: any) => e.id))
+            .orderBy('i.name')
+            .select('s.event_id', 'i.name', 's.price', 's.quantity_left', 's.quantity_total');
+        const stockFor = (eventId: number) => stockRows.filter((r: any) => r.event_id === eventId)
+            .map((r: any) => ({ name: r.name, price: r.price, left: r.quantity_left, total: r.quantity_total }));
+
+        const extras = await db('merchant_extra_goods as x').join('items as i', 'i.id', 'x.item_id')
+            .orderBy('i.name')
+            .select('x.id', 'x.item_id', 'i.name', 'x.chance_percent', 'x.min_qty', 'x.max_qty', 'x.is_active');
+        const items = await db('items').where({ is_active: true }).where('value', '>', 0).orderBy('name').select('id', 'name');
+
         const s = await db('world_event_settings').where({ id: 1 }).first();
         const skills = (await db('skills').where({ is_active: true, is_implemented: true }).orderBy('name').select('name'))
             .map((r: { name: string }) => r.name);
         const locations = await db('locations').where({ is_accessible: true }).orderBy('name').select('id', 'name', 'region');
 
         return {
-            live: live.map(shape),
+            live: live.map((r: any) => ({ ...shape(r), stock: r.kind === 'merchant' ? stockFor(r.id) : undefined })),
             history: history.map(shape),
             types,
             settings: {
@@ -136,6 +150,22 @@ export async function eventsAdminOverview() {
                 averageGapMinutes: s?.average_gap_minutes ?? 180,
                 maxConcurrent: s?.max_concurrent ?? 3,
             },
+            merchant: {
+                enabled: !!s?.merchant_enabled,
+                nextAt: s?.merchant_next_at ?? null,
+                everyDays: s?.merchant_every_days ?? 7,
+                stayMinutes: s?.merchant_stay_minutes ?? 1440,
+                lines: s?.merchant_lines ?? 8,
+                lineGold: s?.merchant_line_gold ?? 300,
+                arrivalText: s?.merchant_arrival_text ?? '',
+                // Where he could go today: open places with something to sell.
+                places: (await merchantPlaces()).length,
+            },
+            extras: extras.map((x: any) => ({
+                id: x.id, itemId: x.item_id, name: x.name, chancePercent: x.chance_percent,
+                minQty: x.min_qty, maxQty: x.max_qty, isActive: x.is_active,
+            })),
+            items,
             skills,
             locations,
         };
@@ -170,6 +200,13 @@ export async function updateLiveEvent(adminId: number, eventId: number, change: 
         if (change.multiplier !== undefined && change.multiplier !== '') patch.xp_multiplier = multiplier(change.multiplier);
         if (change.announcement !== undefined) patch.announcement = text(change.announcement, 'Announcement', 500);
         if (!Object.keys(patch).length) throw new Refusal('Nothing to change.');
+
+        // A merchant's pool is his goods, and he has no bonus: only his stay
+        // and wording are his to change.
+        const current = await db('world_events').where({ id: eventId }).first();
+        if (current?.kind === 'merchant' && (left !== undefined || patch.xp_multiplier !== undefined)) {
+            throw new Refusal('The merchant has no pool or bonus to change: only how long he stays and his announcement.');
+        }
 
         const [row] = await db('world_events').where({ id: eventId }).whereNull('ended_at').update(patch).returning('*');
         if (!row) throw new Refusal('That event has already ended.');
@@ -349,6 +386,91 @@ export async function updateEventSettings(adminId: number, f: SettingsFields) {
         if (!Object.keys(patch).length) throw new Refusal('Nothing to change.');
         await db('world_event_settings').where({ id: 1 }).update({ ...patch, updated_at: db.fn.now() });
         logger.info(`[events admin] player ${adminId} changed the scheduler: ${JSON.stringify(patch)}`);
+        return {};
+    });
+}
+
+// ── The travelling merchant ───────────────────────────────────────────────
+
+/** Bring him now, anywhere, for as long as asked. Refused while he is already out. */
+export async function summonMerchantNow(adminId: number, req: { locationId?: unknown; stayMinutes?: unknown }) {
+    return answer('summon merchant', async () => {
+        const location = req.locationId !== undefined && req.locationId !== '' && req.locationId !== null
+            ? await realLocation(req.locationId) : undefined;
+        const stay = optionalWhole(req.stayMinutes, 'Stay', 1, 7 * 24 * 60);
+        const visit = await summonMerchant({ locationId: location?.id, stayMinutes: stay, startedBy: adminId });
+        return visit;
+    });
+}
+
+export interface MerchantFields {
+    enabled?: boolean
+    /** Hours from now until he is next due. */
+    nextInHours?: number | string
+    everyDays?: number | string
+    stayMinutes?: number | string
+    lines?: number | string
+    lineGold?: number | string
+    arrivalText?: string
+}
+
+export async function updateMerchantSettings(adminId: number, f: MerchantFields) {
+    return answer('merchant settings', async () => {
+        const patch: Record<string, unknown> = {};
+        if (f.enabled !== undefined) patch.merchant_enabled = !!f.enabled;
+        const next = optionalWhole(f.nextInHours, 'Next visit (hours)', 0, 60 * 24);
+        if (next !== undefined) patch.merchant_next_at = new Date(Date.now() + next * 3_600_000);
+        const every = optionalWhole(f.everyDays, 'Days between visits', 1, 60);
+        if (every !== undefined) patch.merchant_every_days = every;
+        const stay = optionalWhole(f.stayMinutes, 'Stay (minutes)', 10, 7 * 24 * 60);
+        if (stay !== undefined) patch.merchant_stay_minutes = stay;
+        const lines = optionalWhole(f.lines, 'Lines he carries', 1, 40);
+        if (lines !== undefined) patch.merchant_lines = lines;
+        const gold = optionalWhole(f.lineGold, 'Gold of value per line', 1, 100_000);
+        if (gold !== undefined) patch.merchant_line_gold = gold;
+        if (f.arrivalText !== undefined) patch.merchant_arrival_text = text(f.arrivalText, 'Arrival line', 500);
+        if (!Object.keys(patch).length) throw new Refusal('Nothing to change.');
+        await db('world_event_settings').where({ id: 1 }).update({ ...patch, updated_at: db.fn.now() });
+        await eventsChanged();
+        logger.info(`[events admin] player ${adminId} changed the merchant: ${Object.keys(patch).join(', ')}`);
+        return {};
+    });
+}
+
+export interface ExtraFields {
+    itemId?: number | string
+    chancePercent?: number | string
+    minQty?: number | string
+    maxQty?: number | string
+    isActive?: boolean
+}
+
+/** Add an item to the extras list, or change its line. One line per item. */
+export async function saveMerchantExtra(adminId: number, f: ExtraFields) {
+    return answer('merchant extra', async () => {
+        const itemId = whole(f.itemId, 'Item', 1, 2 ** 31 - 1);
+        const item = await db('items').where({ id: itemId }).first();
+        if (!item) throw new Refusal('That item does not exist.');
+        if (!(Number(item.value) > 0)) throw new Refusal(`${item.name} has no value, so he could not price it.`);
+        const row = {
+            item_id: itemId,
+            chance_percent: whole(f.chancePercent, 'Chance', 1, 100),
+            min_qty: whole(f.minQty, 'Fewest', 1, 999),
+            max_qty: whole(f.maxQty, 'Most', 1, 999),
+            is_active: f.isActive !== false,
+        };
+        if (row.max_qty < row.min_qty) throw new Refusal('Most is fewer than fewest.');
+        await db('merchant_extra_goods').insert(row).onConflict('item_id').merge({ ...row, updated_at: db.fn.now() });
+        logger.info(`[events admin] player ${adminId} set merchant extra ${item.name}: ${JSON.stringify(row)}`);
+        return {};
+    });
+}
+
+export async function removeMerchantExtra(adminId: number, extraId: number) {
+    return answer('remove merchant extra', async () => {
+        const n = await db('merchant_extra_goods').where({ id: extraId }).delete();
+        if (!n) throw new Refusal('That line is already gone.');
+        logger.info(`[events admin] player ${adminId} removed merchant extra ${extraId}`);
         return {};
     });
 }

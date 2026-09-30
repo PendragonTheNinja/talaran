@@ -7,10 +7,11 @@ import NPCDialogue from './NPCDialogue'
 import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
+import TravellingMerchantMenu from './TravellingMerchantMenu'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
 import { useItemTooltip } from './ItemTooltip'
-import { useWorldEvents } from '../lib/worldEvents'
+import { useWorldEvents, isMerchant } from '../lib/worldEvents'
 import './EventsPanel.css'
 
 interface GroundItem {
@@ -60,6 +61,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // Self-contained: the panel fetches its own state, so no props to thread.
   const [tallyOpen, setTallyOpen] = useState(false)
   const [marketplaceOpen, setMarketplaceOpen] = useState(false)
+  const [merchantOpen, setMerchantOpen] = useState(false)
   // Ground items get the same tooltip the pack does.
   const { hoverProps, tooltipEl } = useItemTooltip()
   const [shopsOpen, setShopsOpen] = useState(false)
@@ -302,6 +304,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   }, [location?.id])
 
   const worldEvents = useWorldEvents()
+  const eventsHere = worldEvents.live.filter(e => e.locationId === location?.id)
+  const merchantHere = eventsHere.some(isMerchant)
 
   return (
     <aside className={`location-panel panel location-panel--${layout}`}>
@@ -312,13 +316,19 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           {locationData?.location?.name || 'Location Menu'}
         </div>
         {/* A world event on here: what it favours, and for how long. */}
-        {worldEvents.live.filter(e => e.locationId === location?.id).map(e => (
+        {eventsHere.map(e => (
           <div key={e.id} className="location-event">
             <span className="location-event-name">{e.name}</span>
             {e.skill && <> · +{e.bonusPercent}% {e.skill} XP here</>}
-            {' · '}{e.poolLeft.toLocaleString()} left
+            {isMerchant(e) ? ' is here' : ''}
+            {' · '}{e.poolLeft.toLocaleString()} {isMerchant(e) ? 'goods unsold' : 'left'}
           </div>
         ))}
+        {merchantHere && (
+          <button className="location-action-btn" onClick={() => setMerchantOpen(true)}>
+            The Travelling Merchant →
+          </button>
+        )}
 
         {woodcuttingNodes.map((node: any) => (
           <button
@@ -854,6 +864,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         <MyShopMenu
           onClose={() => { setMyShopOpen(false); refreshShopBadge() }}
           onChanged={handleGoldChanged}
+        />
+      )}
+
+      {merchantOpen && (
+        <TravellingMerchantMenu
+          onClose={() => setMerchantOpen(false)}
+          onGoldChanged={handleGoldChanged}
         />
       )}
 

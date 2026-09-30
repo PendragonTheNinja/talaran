@@ -143,7 +143,7 @@ function SortBar({ options, sortKey, sortDir, onChange }: {
  * `hover` comes from the menu's own useItemTooltip, so a merchant's goods get
  * the same tooltip as the pack instead of the browser's `title` attribute.
  */
-function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknown> }) {
+export function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknown> }) {
     const [failed, setFailed] = useState(false)
     if (failed) return <span className="mkt-icon mkt-icon-blank" aria-hidden="true" {...hover} />
     return (
@@ -161,7 +161,7 @@ function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknow
  * The quantity control. A plain number input is miserable on mobile for the
  * "sell all 340 of these" case, so All sits next to it as its own button.
  */
-function QtyPicker({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
+export function QtyPicker({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
     return (
         <div className="mkt-qty">
             <button className="mkt-qty-step" onClick={() => onChange(Math.max(1, value - 1))} disabled={value <= 1}>−</button>

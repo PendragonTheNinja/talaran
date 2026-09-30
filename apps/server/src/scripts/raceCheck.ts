@@ -617,6 +617,35 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'merchant', name: "five buyers take three each from the travelling merchant's five, at once", rounds: 10,
+        run: async (ctx) => {
+            // His cart is shared by the server. Exactly one purchase fits; the
+            // planks in packs plus what is left in his cart stays five, and
+            // what was paid is exactly one purchase.
+            const w = await world(ctx);
+            const visit = await ctx.seed.row('world_events', { name: 'The Travelling Merchant', kind: 'merchant', location_id: w.town.id,
+                xp_multiplier: 1, pool_total: 5, pool_left: 5, ends_at: new Date(Date.now() + 3600_000) });
+            await ctx.seed.row('world_event_stock', { event_id: visit.id, item_id: w.plank.id, quantity_total: 5, quantity_left: 5, price: 10 });
+            const buyers = [];
+            for (let i = 0; i < 5; i++) {
+                const b = await ctx.seed.row('players', { username: `Buyer${i}`, email: `buyer${i}@racecheck.test`, current_location_id: w.town.id });
+                await fund(ctx, b.id, 1_000);
+                buyers.push(b);
+            }
+            await Promise.all(buyers.map((b) => ctx.warm(b.id)));
+            const st = await Promise.all(buyers.map((b) =>
+                ctx.post(b.id, '/events/merchant/buy', { eventId: visit.id, itemId: w.plank.id, quantity: 3, price: 10 })));
+            const paid = (await Promise.all(buyers.map((b) => goldOf(ctx, b.id)))).reduce((a, g) => a + (1_000 - g), 0);
+            const cart = await ctx.db('world_event_stock').where({ event_id: visit.id }).first();
+            const after = await ctx.db('world_events').where({ id: visit.id }).first();
+            return changed('planks in packs and cart', 5, await ctx.itemTotal(w.plank.id) + cart.quantity_left)
+                ?? changed('gold paid', 30, paid)
+                ?? changed("his unsold pool", cart.quantity_left, after.pool_left)
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'H6', name: 'five sells of ten into an order wanting twenty, at once', rounds: 10,
         run: async (ctx) => {
             // Partial fills are normal: the first two fill it, the rest are told

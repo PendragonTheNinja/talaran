@@ -132,3 +132,21 @@
     background: rgba(200, 146, 42, 0.35);
     color: var(--color-text-bright);
 }
+
+.ev-admin-subtitle {
+    margin-top: var(--space-md);
+}
+
+/* The merchant's cart on his live card. */
+.ev-admin-stock {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 13px;
+    color: var(--color-text-base);
+    margin-bottom: var(--space-sm);
+}
+
+.ev-admin-extra-add {
+    margin-top: var(--space-sm);
+}

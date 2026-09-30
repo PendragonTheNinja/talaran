@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
-import { onWorldEventsChanged, timeLeft } from '../lib/worldEvents'
+import { onWorldEventsChanged, timeLeft, endedWords, isMerchant } from '../lib/worldEvents'
 import ConfirmModal from './ConfirmModal'
 import './AdminEvents.css'
 
@@ -16,6 +16,9 @@ import './AdminEvents.css'
 interface LiveEvent {
     id: number
     name: string
+    kind: string
+    /** The merchant's cart, on his live visit. */
+    stock?: { name: string; price: number; left: number; total: number }[]
     skill: string | null
     location: string | null
     multiplier: number
@@ -51,7 +54,23 @@ interface EventType {
 
 interface Settings { schedulerEnabled: boolean; averageGapMinutes: number; maxConcurrent: number }
 
+interface MerchantSettings {
+    enabled: boolean
+    nextAt: string | null
+    everyDays: number
+    stayMinutes: number
+    lines: number
+    lineGold: number
+    arrivalText: string
+    places: number
+}
+
+interface Extra { id: number; itemId: number; name: string; chancePercent: number; minQty: number; maxQty: number; isActive: boolean }
+
 interface Overview {
+    merchant: MerchantSettings
+    extras: Extra[]
+    items: { id: number; name: string }[]
     live: LiveEvent[]
     history: LiveEvent[]
     types: EventType[]
@@ -59,8 +78,6 @@ interface Overview {
     skills: string[]
     locations: { id: number; name: string; region: string }[]
 }
-
-const ENDED: Record<string, string> = { time: 'ran its course', pool: 'was used up', admin: 'was called off' }
 
 const bonus = (m: number) => `+${Math.round((m - 1) * 100)}%`
 
@@ -116,6 +133,8 @@ export default function AdminEvents() {
 
             <StartCard data={data} send={send} />
 
+            <MerchantCard key={JSON.stringify(data.merchant)} data={data} send={send} />
+
             {/* Keyed on the saved values, so the form starts over from the
                 server's when they change under it (another admin, a reload). */}
             <SchedulerCard key={JSON.stringify(data.settings)} settings={data.settings} send={send} />
@@ -141,9 +160,9 @@ export default function AdminEvents() {
                             {data.history.map(e => (
                                 <div key={e.id} className="ev-admin-history-row">
                                     <span className="ev-admin-name">{e.name}</span>
-                                    <span>{e.skill} at {e.location ?? 'nowhere'}</span>
-                                    <span>{e.endReason ? ENDED[e.endReason] : 'ended'}</span>
-                                    <span className="tabular-num">{e.paidOut.toLocaleString()} of {e.poolTotal.toLocaleString()} paid</span>
+                                    <span>{isMerchant(e) ? 'visiting' : e.skill} at {e.location ?? 'nowhere'}</span>
+                                    <span>{endedWords(e)}</span>
+                                    <span className="tabular-num">{e.paidOut.toLocaleString()} of {e.poolTotal.toLocaleString()} {isMerchant(e) ? 'sold' : 'paid'}</span>
                                     <span>{e.endedAt ? new Date(e.endedAt).toLocaleString() : ''}</span>
                                     <span>{e.startedBy ? `by ${e.startedBy}` : 'scheduler'}</span>
                                 </div>
@@ -165,6 +184,8 @@ function LiveCard({ event, now, send }: { event: LiveEvent; now: number; send: S
     const [announcement, setAnnouncement] = useState(event.announcement ?? '')
     const [confirmEnd, setConfirmEnd] = useState(false)
 
+    const merchant = isMerchant(event)
+
     const save = async () => {
         const body: Record<string, unknown> = {}
         if (minutes) body.endsInMinutes = minutes
@@ -180,16 +201,30 @@ function LiveCard({ event, now, send }: { event: LiveEvent; now: number; send: S
         <div className="ev-admin-live">
             <div className="ev-admin-live-head">
                 <span className="ev-admin-name">{event.name}</span>
-                <span>{event.skill} at {event.location ?? 'nowhere'}</span>
-                <span className="gold-text">{bonus(event.multiplier)}</span>
+                <span>{merchant ? 'visiting' : event.skill} at {event.location ?? 'nowhere'}</span>
+                {!merchant && <span className="gold-text">{bonus(event.multiplier)}</span>}
                 <span className="tabular-num">{timeLeft(event.endsAt, now)} left</span>
-                <span className="tabular-num">{event.poolLeft.toLocaleString()} of {event.poolTotal.toLocaleString()} left ({event.paidOut.toLocaleString()} paid)</span>
+                <span className="tabular-num">
+                    {event.poolLeft.toLocaleString()} of {event.poolTotal.toLocaleString()} {merchant ? 'unsold' : 'left'}
+                    {' '}({event.paidOut.toLocaleString()} {merchant ? 'sold' : 'paid'})
+                </span>
                 <span className="ev-admin-muted">{event.startedBy ? `started by ${event.startedBy}` : 'scheduler'}</span>
             </div>
+            {merchant && event.stock && (
+                <div className="ev-admin-stock">
+                    {event.stock.map(l => (
+                        <span key={l.name} className="tabular-num">{l.left}/{l.total} {l.name} @ {l.price}g</span>
+                    ))}
+                </div>
+            )}
             <div className="ev-admin-fields">
                 <label>Minutes left<input className="chat-input" type="number" min={1} value={minutes} placeholder="unchanged" onChange={e => setMinutes(e.target.value)} /></label>
-                <label>Actions left<input className="chat-input" type="number" min={1} value={pool} placeholder={String(event.poolLeft)} onChange={e => setPool(e.target.value)} /></label>
-                <label>Multiplier<input className="chat-input" type="number" step={0.05} min={1} value={mult} placeholder={event.multiplier.toFixed(2)} onChange={e => setMult(e.target.value)} /></label>
+                {!merchant && (
+                    <>
+                        <label>Actions left<input className="chat-input" type="number" min={1} value={pool} placeholder={String(event.poolLeft)} onChange={e => setPool(e.target.value)} /></label>
+                        <label>Multiplier<input className="chat-input" type="number" step={0.05} min={1} value={mult} placeholder={event.multiplier.toFixed(2)} onChange={e => setMult(e.target.value)} /></label>
+                    </>
+                )}
             </div>
             <label className="ev-admin-wide">Announcement (shown in the Events panel)
                 <textarea className="chat-input" rows={2} value={announcement} onChange={e => setAnnouncement(e.target.value)} />
@@ -392,6 +427,114 @@ function TypeEditor({ type, data, send }: { type?: EventType; data: Overview; se
             <div className="ev-admin-actions">
                 <button className="btn btn-gold" onClick={save}>{type ? 'Save' : 'Add'}</button>
                 <button className="btn" onClick={() => setOpen(false)}>Close</button>
+            </div>
+        </div>
+    )
+}
+
+/**
+ * The travelling merchant: his calendar and cart size, bringing him now, and
+ * the extras list (items that can turn up in his cart wherever he is).
+ */
+function MerchantCard({ data, send }: { data: Overview; send: Send }) {
+    const m = data.merchant
+    const [enabled, setEnabled] = useState(m.enabled)
+    const [nextIn, setNextIn] = useState('')
+    const [every, setEvery] = useState(String(m.everyDays))
+    const [stay, setStay] = useState(String(m.stayMinutes))
+    const [lines, setLines] = useState(String(m.lines))
+    const [lineGold, setLineGold] = useState(String(m.lineGold))
+    const [arrival, setArrival] = useState(m.arrivalText)
+    const [summonAt, setSummonAt] = useState('')
+    const [summonStay, setSummonStay] = useState('')
+    const [extraItem, setExtraItem] = useState('')
+    const [extraChance, setExtraChance] = useState('50')
+    const [extraMin, setExtraMin] = useState('1')
+    const [extraMax, setExtraMax] = useState('1')
+    const out = data.live.some(isMerchant)
+
+    const saveSettings = () => send('/merchant/settings', {
+        enabled, nextInHours: nextIn || undefined, everyDays: every, stayMinutes: stay,
+        lines, lineGold, arrivalText: arrival,
+    }, 'Merchant saved.')
+
+    const saveExtra = async () => {
+        const name = data.items.find(i => String(i.id) === extraItem)?.name ?? 'Item'
+        if (await send('/merchant/extras', {
+            itemId: extraItem, chancePercent: extraChance, minQty: extraMin, maxQty: extraMax,
+        }, `${name} is on the extras list.`)) setExtraItem('')
+    }
+
+    return (
+        <div className="admin-action-card">
+            <p className="admin-section-title">🛒 Travelling Merchant</p>
+            <p className="ev-admin-note">
+                {out
+                    ? 'He is out now (see Live Events).'
+                    : m.enabled && m.nextAt
+                        ? `Next due ${new Date(m.nextAt).toLocaleString()}.`
+                        : m.enabled ? 'His first visit is set within a minute of the scheduler running.' : 'He is off: he only comes when summoned.'}
+                {' '}{m.places} place{m.places === 1 ? '' : 's'} have something he could carry.
+            </p>
+
+            <div className="ev-admin-fields">
+                <label className="ev-admin-check">
+                    <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+                    Visits on his own
+                </label>
+                <label>Next visit in (hours)<input className="chat-input" type="number" min={0} value={nextIn} placeholder="unchanged" onChange={e => setNextIn(e.target.value)} /></label>
+                <label>Every (days)<input className="chat-input" type="number" min={1} value={every} onChange={e => setEvery(e.target.value)} /></label>
+                <label>Stays (minutes)<input className="chat-input" type="number" min={10} value={stay} onChange={e => setStay(e.target.value)} /></label>
+                <label>Lines he carries<input className="chat-input" type="number" min={1} value={lines} onChange={e => setLines(e.target.value)} /></label>
+                <label>Gold of goods per line<input className="chat-input" type="number" min={1} value={lineGold} onChange={e => setLineGold(e.target.value)} /></label>
+            </div>
+            <label className="ev-admin-wide">Arrival line; {'{location}'} is filled in
+                <textarea className="chat-input" rows={2} value={arrival} onChange={e => setArrival(e.target.value)} />
+            </label>
+            <div className="ev-admin-actions">
+                <button className="btn btn-gold" onClick={saveSettings}>Save</button>
+            </div>
+
+            <p className="admin-section-title ev-admin-subtitle">Summon Now</p>
+            <div className="ev-admin-fields">
+                <label>Place
+                    <select className="chat-input" value={summonAt} onChange={e => setSummonAt(e.target.value)}>
+                        <option value="">Random, somewhere with goods</option>
+                        {data.locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                </label>
+                <label>Stays (minutes)<input className="chat-input" type="number" min={1} value={summonStay} placeholder={String(m.stayMinutes)} onChange={e => setSummonStay(e.target.value)} /></label>
+            </div>
+            <div className="ev-admin-actions">
+                <button className="btn btn-gold" disabled={out}
+                    onClick={() => send('/merchant/summon', { locationId: summonAt, stayMinutes: summonStay }, 'He is on his way.')}>
+                    Summon
+                </button>
+            </div>
+
+            <p className="admin-section-title ev-admin-subtitle">Extras List</p>
+            <p className="ev-admin-note">Each visit, every line here has its chance of being in his cart, wherever he is.</p>
+            {data.extras.map(x => (
+                <div key={x.id} className={`ev-admin-history-row ${x.isActive ? '' : 'ev-admin-muted'}`}>
+                    <span className="ev-admin-name">{x.name}</span>
+                    <span>{x.chancePercent}% a visit</span>
+                    <span className="tabular-num">{x.minQty === x.maxQty ? x.minQty : `${x.minQty} to ${x.maxQty}`} at a time</span>
+                    <button className="btn" onClick={() => send(`/merchant/extras/${x.id}/delete`, {}, `${x.name} is off the extras list.`)}>Remove</button>
+                </div>
+            ))}
+            <div className="ev-admin-fields ev-admin-extra-add">
+                <label>Item
+                    <select className="chat-input" value={extraItem} onChange={e => setExtraItem(e.target.value)}>
+                        <option value="">Pick an item…</option>
+                        {data.items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                </label>
+                <label>Chance (%)<input className="chat-input" type="number" min={1} max={100} value={extraChance} onChange={e => setExtraChance(e.target.value)} /></label>
+                <label>Fewest<input className="chat-input" type="number" min={1} value={extraMin} onChange={e => setExtraMin(e.target.value)} /></label>
+                <label>Most<input className="chat-input" type="number" min={1} value={extraMax} onChange={e => setExtraMax(e.target.value)} /></label>
+            </div>
+            <div className="ev-admin-actions">
+                <button className="btn btn-gold" disabled={!extraItem} onClick={saveExtra}>Add or Update</button>
             </div>
         </div>
     )

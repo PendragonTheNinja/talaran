@@ -5,6 +5,7 @@ import { failureStatus } from '../lib/serviceResult';
 import {
     eventsAdminOverview, updateLiveEvent, endLiveEvent, startEventNow,
     updateEventType, createEventType, updateEventSettings,
+    summonMerchantNow, updateMerchantSettings, saveMerchantExtra, removeMerchantExtra,
 } from '../services/worldEventsAdmin';
 
 // The admin panel's Events tab. Admin-only, like the content tools: it is the
@@ -41,6 +42,10 @@ router.post('/settings', requireAuth, admin((adminId, req) => updateEventSetting
 router.post('/types', requireAuth, admin((adminId, req) => createEventType(adminId, req.body ?? {})));
 router.post('/types/:id', requireAuth, admin((adminId, req) => updateEventType(adminId, id(req), req.body ?? {})));
 router.post('/live/:id/end', requireAuth, admin((adminId, req) => endLiveEvent(adminId, id(req))));
+router.post('/merchant/summon', requireAuth, admin((adminId, req) => summonMerchantNow(adminId, req.body ?? {})));
+router.post('/merchant/settings', requireAuth, admin((adminId, req) => updateMerchantSettings(adminId, req.body ?? {})));
+router.post('/merchant/extras', requireAuth, admin((adminId, req) => saveMerchantExtra(adminId, req.body ?? {})));
+router.post('/merchant/extras/:id/delete', requireAuth, admin((adminId, req) => removeMerchantExtra(adminId, id(req))));
 router.post('/live/:id', requireAuth, admin((adminId, req) => updateLiveEvent(adminId, id(req), req.body ?? {})));
 
 export default router;

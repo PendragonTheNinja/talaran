@@ -156,14 +156,7 @@ export async function processMiningRock(
       .first();
     const playerLevel = playerSkill ? levelFromXp(parseInt(playerSkill.xp)) : 1;
 
-    const nm = node.name.toLowerCase();
-    const rockSubtype: string | null = node.ore_subtype
-      || (nm.includes('granite') ? 'granite'
-        : nm.includes('limestone') ? 'limestone'
-          : nm.includes('sandstone') ? 'sandstone'
-            : nm.includes('marble') ? 'marble'
-              : nm.includes('basalt') ? 'basalt'
-                : null);
+    const rockSubtype = rockSubtypeFor(node);
 
     if (!rockSubtype) {
       logger.warn(`Rock node ${nodeId} ("${node.name}") has no resolvable rock type — awarding nothing.`);
@@ -347,6 +340,39 @@ export async function processMiningVein(
   }
 }
 
+/**
+ * Which rock a rock node gives: its ore_subtype, or else the stone in its name.
+ * Null when neither says, and the swing then gives nothing. Shared with
+ * anything asking what a place yields (services/travellingMerchant.ts).
+ */
+export function rockSubtypeFor(node: { name: string; ore_subtype?: string | null }): string | null {
+  const nm = node.name.toLowerCase();
+  return node.ore_subtype
+    || (nm.includes('granite') ? 'granite'
+      : nm.includes('limestone') ? 'limestone'
+        : nm.includes('sandstone') ? 'sandstone'
+          : nm.includes('marble') ? 'marble'
+            : nm.includes('basalt') ? 'basalt'
+              : null);
+}
+
+/**
+ * The ores a vein at this location can be: the plain ore item of every mining
+ * node's ore_subtype here. Granite has no ore item, so it never yields itself.
+ */
+export async function veinOresAt(locationId: number): Promise<any[]> {
+  const oreNodes = await db('resource_nodes')
+    .where({ location_id: locationId, skill: 'mining' })
+    .whereNotNull('ore_subtype')
+    .select('ore_subtype');
+  if (oreNodes.length === 0) return [];
+  return db('items')
+    .where({ type: 'ore' })
+    .whereNull('quality')
+    .whereIn('subtype', oreNodes.map((n: any) => n.ore_subtype))
+    .orderBy('level_required', 'asc');
+}
+
 async function discoverVein(
   playerId: number,
   nodeId: number,
@@ -356,21 +382,7 @@ async function discoverVein(
   try {
     const node = await db('resource_nodes').where({ id: nodeId }).first();
 
-    // Get ore subtypes allowed at this location
-    const oreNodes = await db('resource_nodes')
-      .where({ location_id: locationId, skill: 'mining' })
-      .whereNotNull('ore_subtype')
-      .select('ore_subtype');
-
-    if (oreNodes.length === 0) return null;
-
-    const allowedSubtypes = oreNodes.map((n: any) => n.ore_subtype);
-
-    const eligibleOres = await db('items')
-      .where({ type: 'ore' })
-      .whereNull('quality')
-      .whereIn('subtype', allowedSubtypes)
-      .orderBy('level_required', 'asc');
+    const eligibleOres = await veinOresAt(locationId);
 
     if (eligibleOres.length === 0) return null;
 
@@ -385,8 +397,6 @@ async function discoverVein(
     const quantity = Math.floor(Math.random() * (node.max_vein_quantity - node.min_vein_quantity + 1)) + node.min_vein_quantity;
     const now = new Date();
     const announceAt = new Date(now.getTime() + VEIN_ANNOUNCE_DELAY);
-
-    if (oreNodes.length === 0) return null;
 
     await db('ore_veins').insert({
       location_id: locationId,
