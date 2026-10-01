@@ -33,6 +33,10 @@ export const COMBAT = {
 
     // §6 weapons
     POWER_GROWTH: 1.221,
+    // §5 max hit = weapon power + this × level term. 0.5 puts the level at about
+    // a third of max hit for a trained player (half the weapon's share), the same
+    // weapon-first split aim has. SIM.
+    MAX_HIT_PER_LEVEL_TERM: 0.5,
 
     // §7 armour, late set with shield at tier 1
     ARMOUR_LATE_BASE: 80,
@@ -47,6 +51,8 @@ export const COMBAT = {
     ENEMY_PER_LEVEL: 5.05,
     ENEMY_MAX_HIT_BASE: 6,
     ENEMY_MAX_HIT_PER_LEVEL: 0.46,
+    // Fitted so a level-matched fight lasts ~40s at combat 1 and ~99s at combat 100
+    // (§6) once max hit carries a level term (combatSim.ts fit). v2: 140 and 1.33.
     ENEMY_HP_BASE: 140,
     ENEMY_HP_GROWTH_PER_TIER: 1.33,
     GRUNT_SWING_SECONDS: 3.0, // the v2 tables were measured at 4.0; see ABSORPTION_DIVISOR
@@ -104,6 +110,43 @@ export function maxHp(constitution: number, c: CombatConstants = COMBAT): number
     return c.HP_BASE + c.HP_PER_CONSTITUTION * (constitution - 1)
 }
 
+/**
+ * Max hit: the weapon's power plus a smaller level term (§5). The level term is
+ * scaled by swing time (per 3.0s, the balanced form), so levels add the same
+ * damage per SECOND to every form; a flat amount per swing would favour the
+ * fastest weapons (dual came out ~15% ahead, combatSim.ts variants).
+ */
+export function playerMaxHit(power: number, level: number, swingSeconds: number, c: CombatConstants = COMBAT): number {
+    return power + c.MAX_HIT_PER_LEVEL_TERM * levelTerm(level, c) * swingSeconds / FORMS.onehand.swingSeconds
+}
+
+/**
+ * Which levels feed aim and max hit (§2, SIM):
+ *   A  Attack feeds aim, Strength feeds max hit
+ *   B  both read the offense level: Attack XP + Strength XP through the curve
+ *   C  both read the skill the held form trains (one-hand: Attack for aim, Strength for max hit)
+ * `levelFromXp` is passed in so this module stays free of the database.
+ */
+export type LevelVariant = 'A' | 'B' | 'C'
+
+export function offenseLevels(
+    variant: LevelVariant,
+    form: Form,
+    attackXp: number,
+    strengthXp: number,
+    levelFromXp: (xp: number) => number,
+): { aimLevel: number; hitLevel: number } {
+    const attack = levelFromXp(attackXp)
+    const strength = levelFromXp(strengthXp)
+    if (variant === 'B') {
+        const offense = levelFromXp(attackXp + strengthXp)
+        return { aimLevel: offense, hitLevel: offense }
+    }
+    if (variant === 'C' && form === 'dual') return { aimLevel: attack, hitLevel: attack }
+    if (variant === 'C' && form === 'twohand') return { aimLevel: strength, hitLevel: strength }
+    return { aimLevel: attack, hitLevel: strength }
+}
+
 // ── Enemies ──────────────────────────────────────────────────────────────────
 
 export interface Combatant {
@@ -156,7 +199,7 @@ export function damageBand(aim: number, defence: number, c: CombatConstants = CO
 
 export interface SwingResult {
     hit: boolean
-    /** What the swing would have done before armour. Rolled on a miss too: misses count toward Defense (§2). */
+    /** What the swing would have done before armour. Rolled on a miss too, for the simulator's ledger comparisons. */
     rolled: number
     absorbed: number
     landed: number
@@ -180,8 +223,8 @@ export interface KillResult {
     playerHpLeft: number
     playerSwings: number
     enemySwings: number
-    /** Defense's share of the ledger: misses plus absorbed (§2). */
-    prevented: number
+    /** Defense's share of the ledger: what armour absorbed. Misses count for neither skill (§2). */
+    absorbed: number
     /** Constitution's share of the ledger. */
     landed: number
 }
@@ -203,7 +246,7 @@ export function fightOne(
     let hp = playerHp
     let nextPlayer = 0
     let nextEnemy = enemy.swingSeconds
-    const out: KillResult = { seconds: 0, playerDied: false, playerHpLeft: hp, playerSwings: 0, enemySwings: 0, prevented: 0, landed: 0 }
+    const out: KillResult = { seconds: 0, playerDied: false, playerHpLeft: hp, playerSwings: 0, enemySwings: 0, absorbed: 0, landed: 0 }
     for (;;) {
         if (nextPlayer <= nextEnemy) {
             const s = swing(rng, player, enemy, stanceMultiplier, c)
@@ -215,7 +258,7 @@ export function fightOne(
             const s = swing(rng, enemy, player, 1, c)
             out.enemySwings++
             out.landed += s.landed
-            out.prevented += s.hit ? s.absorbed : s.rolled
+            out.absorbed += s.absorbed
             hp -= s.landed
             if (hp <= 0) { out.seconds = nextEnemy; out.playerDied = true; break }
             nextEnemy += enemy.swingSeconds

@@ -6,21 +6,28 @@
  *   npx ts-node --transpile-only src/scripts/combatSim.ts acceptance [swing] [divisor] [minutes]
  *   npx ts-node --transpile-only src/scripts/combatSim.ts lowlevel [swing] [divisor]
  *   npx ts-node --transpile-only src/scripts/combatSim.ts ledger
+ *   npx ts-node --transpile-only src/scripts/combatSim.ts fit
+ *   npx ts-node --transpile-only src/scripts/combatSim.ts variants
  *
  * calibrate   reproduces the spec's §11 tables (the v2 unabsorbed model) to
  *             pin down the kit the original sim used, which v2 never recorded.
  * acceptance  sweeps the absorption constant against the §5 table.
  * lowlevel    combat 1–12 against Ambren kit: Taiar, the first release.
  * ledger      Defense's share of the defensive half under each way of counting.
+ * fit         enemy HP base and growth that keep level-matched kills at ~40s
+ *             (combat 1) and ~99s (combat 100) once max hit has a level term.
+ * variants    level-term variants A, B, C (§2) per form: kills, damage taken, AFK.
  *
  * Read-only: no database.
  */
 
 import {
-    COMBAT, CombatConstants, Combatant, DamageType, Form, FORMS, Rng,
-    absorption, armourPoints, enemyStats, fightOne, hitChance, levelTerm, maxHp, swing, weaponAim, weaponPower,
+    COMBAT, CombatConstants, Combatant, DamageType, Form, FORMS, LevelVariant, Rng,
+    absorption, armourPoints, enemyStats, fightOne, hitChance, levelTerm, maxHp, offenseLevels,
+    playerMaxHit, swing, weaponAim, weaponPower,
 } from '../lib/combatMath'
 import { levelFromXp, xpForLevel } from '../services/xp'
+import { tierOfLevel } from '../services/workstations'
 
 // ── Plumbing ─────────────────────────────────────────────────────────────────
 
@@ -85,6 +92,45 @@ function v2Kit(combatLevel: 50 | 100, c: CombatConstants): Kit {
             absorb: absorption(armour, c),
             swingSeconds: 3.0,
             hp: combatLevel === 50 ? 440 : 790,
+        },
+    }
+}
+
+/** The v2 model's enemy HP, which the v2 tables and the §5 acceptance table were measured with. */
+const V2: Partial<CombatConstants> = { ENEMY_HP_BASE: 140, ENEMY_HP_GROWTH_PER_TIER: 1.33 }
+
+/**
+ * A one-form player at a combat level, holding that level's tier (the curve
+ * gates make it the same tier for every form, §2), with the level's XP shared
+ * out: the offensive half by form, the defensive half by `defenseShare`
+ * (measured about half and half at parity with a shield, §2).
+ */
+function kitAt(
+    combatLevel: number, form: Form, type: DamageType, variant: LevelVariant,
+    c: CombatConstants, defenseShare = 0.5,
+): Kit {
+    const tier = tierOfLevel(combatLevel)
+    const total = xpForLevel(combatLevel)
+    const offense = total / 2
+    const attackXp = form === 'twohand' ? 0 : form === 'dual' ? offense : offense / 2
+    const strengthXp = offense - attackXp
+    const { aimLevel, hitLevel } = offenseLevels(variant, form, attackXp, strengthXp, levelFromXp)
+    const defense = levelFromXp(total / 2 * defenseShare)
+    const constitution = levelFromXp(total / 2 * (1 - defenseShare))
+    const armour = armourPoints(tier, 'late', FORMS[form].shield, c)
+    const hp = maxHp(constitution, c)
+    return {
+        label: `C${combatLevel} ${form} ${type} T${tier} ${variant} (aim lvl ${aimLevel}, hit lvl ${hitLevel}, Def ${defense}, Con ${constitution})`,
+        combatLevel,
+        maxHp: hp,
+        foodHeal: 0,
+        player: {
+            aim: weaponAim(type, tier, c) + levelTerm(aimLevel, c),
+            defence: armour + levelTerm(defense, c),
+            maxHit: playerMaxHit(weaponPower(form, type, tier, c), hitLevel, FORMS[form].swingSeconds, c),
+            absorb: absorption(armour, c),
+            swingSeconds: FORMS[form].swingSeconds,
+            hp,
         },
     }
 }
@@ -157,7 +203,7 @@ const V2_TABLES: Record<50 | 100, [number, number, number, number, number, numbe
 
 function calibrate(): void {
     for (const enemySwing of [3.0, 4.0]) {
-        const c: CombatConstants = { ...COMBAT, ABSORPTION: 0, GRUNT_SWING_SECONDS: enemySwing }
+        const c: CombatConstants = { ...COMBAT, ...V2, ABSORPTION: 0, GRUNT_SWING_SECONDS: enemySwing }
         console.log(`\nEnemy swing ${enemySwing}s, no absorption. Each cell: simulated / v2 table.`)
         for (const level of [50, 100] as const) {
             const kit = v2Kit(level, c)
@@ -223,7 +269,7 @@ function acceptance(): void {
     table(
         ['const', 'C50 AFK mean|50%|90%', 'C100 AFK mean|50%|90%', 'C100 parity min', 'food/hr'],
         ACCEPTANCE.map(([k, c50, c100, surv, food]) => {
-            const c: CombatConstants = { ...COMBAT, ABSORPTION: k, ABSORPTION_DIVISOR: divisor, GRUNT_SWING_SECONDS: enemySwing }
+            const c: CombatConstants = { ...COMBAT, ...V2, ABSORPTION: k, ABSORPTION_DIVISOR: divisor, GRUNT_SWING_SECONDS: enemySwing }
             const k50 = v2Kit(50, c)
             const k100 = v2Kit(100, c)
             const parity = measure(mulberry32(1), k100, enemyStats(100, c), 2500, c)
@@ -241,36 +287,6 @@ function acceptance(): void {
 
 // ── lowlevel ─────────────────────────────────────────────────────────────────
 
-/**
- * A one-form player at a combat level, with that level's XP shared out:
- * the offensive half by form (§2), the defensive half by `defenseShare`.
- * Variant A's level terms (Attack for aim, Defense for defence).
- */
-function kitAt(combatLevel: number, form: Form, type: DamageType, tier: number, defenseShare: number, c: CombatConstants): Kit {
-    const total = xpForLevel(combatLevel)
-    const offense = total / 2
-    const attack = levelFromXp(form === 'twohand' ? 0 : form === 'dual' ? offense : offense / 2)
-    const defense = levelFromXp(total / 2 * defenseShare)
-    const constitution = levelFromXp(total / 2 * (1 - defenseShare))
-    const shield = FORMS[form].shield
-    const armour = armourPoints(tier, 'late', shield, c)
-    const hp = maxHp(constitution, c)
-    return {
-        label: `C${combatLevel} ${form} ${type} T${tier} (Att ${attack}, Def ${defense}, Con ${constitution})`,
-        combatLevel,
-        maxHp: hp,
-        foodHeal: 0,
-        player: {
-            aim: weaponAim(type, tier, c) + levelTerm(attack, c),
-            defence: armour + levelTerm(defense, c),
-            maxHit: weaponPower(form, type, tier, c),
-            absorb: absorption(armour, c),
-            swingSeconds: FORMS[form].swingSeconds,
-            hp,
-        },
-    }
-}
-
 function lowlevel(): void {
     const c: CombatConstants = {
         ...COMBAT,
@@ -278,29 +294,29 @@ function lowlevel(): void {
         ABSORPTION_DIVISOR: Number(process.argv[4] ?? COMBAT.ABSORPTION_DIVISOR),
     }
     console.log(`\nTaiar: Ambren kit (one-hand spear, late set with shield), grunt ${c.GRUNT_SWING_SECONDS}s, armour × ${c.ABSORPTION} / ${c.ABSORPTION_DIVISOR}.`)
-    console.log('Defensive XP split evenly between Defense and Constitution for the levels. Dishes/hr at 20 and 40 heal.')
+    console.log('Variant B levels, defensive XP split evenly. Food items/hr at 20 and 40 heal.')
     const rng = mulberry32(12)
     const rows: (string | number)[][] = []
     for (const level of [3, 6, 9, 12]) {
-        const kit = kitAt(level, 'onehand', 'pierce', 1, 0.5, c)
+        const kit = kitAt(level, 'onehand', 'pierce', 'B', c)
         for (const foe of [...new Set([level, Math.max(1, level - 3), 1])]) {
             const enemy = enemyStats(foe, c)
-            let prevented = 0
+            let absorbed = 0
             let landed = 0
             for (let i = 0; i < 2000; i++) {
                 const r = fightOne(rng, kit.player, enemy, 1e9, 1, c)
-                prevented += r.prevented
+                absorbed += r.absorbed
                 landed += r.landed
             }
             const m = measure(rng, kit, enemy, 2000, c)
             rows.push([
                 level, foe, kit.maxHp, f1(m.killSeconds), f1(m.damagePerKill),
                 Math.round(m.damagePerHour / 20), Math.round(m.damagePerHour / 40),
-                Math.round(m.unattendedMinutes), pct(prevented / (prevented + landed)),
+                Math.round(m.unattendedMinutes), pct(absorbed / (absorbed + landed)),
             ])
         }
     }
-    table(['combat', 'foe', 'max HP', 'kill s', 'dmg/kill', 'dishes/hr @20', '@40', 'unattended min', 'Defense share'], rows)
+    table(['combat', 'foe', 'max HP', 'kill s', 'dmg/kill', 'food/hr @20', '@40', 'unattended min', 'Defense share'], rows)
 }
 
 // ── ledger ───────────────────────────────────────────────────────────────────
@@ -315,11 +331,10 @@ function lowlevel(): void {
  */
 function ledger(): void {
     const c = COMBAT
-    const tierOf = (level: number) => [1, 13, 25, 37, 50, 62, 75, 87, 100].filter(r => level >= r).length
     const rows: (string | number)[][] = []
     for (const level of [3, 12, 25, 50, 100]) {
         for (const form of ['onehand', 'twohand'] as Form[]) {
-            const kit = kitAt(level, form, 'slash', tierOf(level), 0.5, c)
+            const kit = kitAt(level, form, 'slash', 'B', c)
             for (const below of [0, 25]) {
                 const enemy = enemyStats(Math.max(1, Math.round(level * (1 - below / 100))), c)
                 const rng = mulberry32(level * 31 + below)
@@ -336,9 +351,72 @@ function ledger(): void {
     table(['combat', 'form', 'foe below', 'misses+absorbed (v3)', 'absorbed only', 'misses at half'], rows)
 }
 
+// ── fit ──────────────────────────────────────────────────────────────────────
+
+const KILL_SECONDS_C1 = 40
+const KILL_SECONDS_C100 = 99
+
+/** Mean seconds to kill a level-matched grunt: one-hand slash, variant B, the reference player. */
+function parityKillSeconds(level: number, c: CombatConstants): number {
+    return measure(mulberry32(level), kitAt(level, 'onehand', 'slash', 'B', c), enemyStats(level, c), 4000, c).killSeconds
+}
+
+/**
+ * Kill time is close to proportional to enemy HP, so scale the base to fix
+ * combat 1 and the growth to fix combat 100, and repeat until both hold.
+ */
+function fitEnemyHp(c: CombatConstants): CombatConstants {
+    let fitted = { ...c }
+    for (let i = 0; i < 6; i++) {
+        fitted = { ...fitted, ENEMY_HP_BASE: fitted.ENEMY_HP_BASE * KILL_SECONDS_C1 / parityKillSeconds(1, fitted) }
+        const ratio = KILL_SECONDS_C100 / parityKillSeconds(100, fitted)
+        fitted = { ...fitted, ENEMY_HP_GROWTH_PER_TIER: fitted.ENEMY_HP_GROWTH_PER_TIER * Math.pow(ratio, 12 / 99) }
+    }
+    return fitted
+}
+
+function fit(): void {
+    const c = fitEnemyHp(COMBAT)
+    console.log(`\nMax hit = power + ${c.MAX_HIT_PER_LEVEL_TERM} × level term. Reference: one-hand slash, variant B, even foe.`)
+    console.log(`Fitted ENEMY_HP_BASE ${c.ENEMY_HP_BASE.toFixed(1)}, ENEMY_HP_GROWTH_PER_TIER ${c.ENEMY_HP_GROWTH_PER_TIER.toFixed(4)} (v2: 140, 1.33)`)
+    table(['combat', 'kill s', 'enemy HP', 'player max hit'], [1, 12, 25, 50, 75, 100].map(level => [
+        level, f1(parityKillSeconds(level, c)), Math.round(enemyStats(level, c).hp),
+        f1(kitAt(level, 'onehand', 'slash', 'B', c).player.maxHit),
+    ]))
+}
+
+// ── variants ─────────────────────────────────────────────────────────────────
+
+function variants(): void {
+    const c = fitEnemyHp(COMBAT)
+    const levels = (process.argv[3] ?? '12,25,50,100').split(',').map(Number)
+    console.log(`\nEnemy HP fitted as in \`fit\`. Slash in every form (types are equal at parity, §6).`)
+    console.log('kills/hr against an even foe, relative to one-hand under the same variant | HP lost per hour | AFK band (mean rule, 20 min)')
+    for (const level of levels) {
+        console.log(`\nCombat ${level}`)
+        const rows: (string | number)[][] = []
+        for (const form of ['onehand', 'twohand', 'dual'] as Form[]) {
+            const row: (string | number)[] = [form]
+            for (const variant of ['A', 'B', 'C'] as LevelVariant[]) {
+                const kit = kitAt(level, form, 'slash', variant, c)
+                const ref = kitAt(level, 'onehand', 'slash', variant, c)
+                const enemy = enemyStats(level, c)
+                const m = measure(mulberry32(level), kit, enemy, 3000, c)
+                const r = measure(mulberry32(level), ref, enemy, 3000, c)
+                const killsPerHour = (x: Matchup) => 3600 / (x.killSeconds + c.ENGAGE_DELAY_SECONDS)
+                row.push(`${killsPerHour(m).toFixed(1)} (${pct(killsPerHour(m) / killsPerHour(r))})`)
+                row.push(Math.round(m.damagePerHour))
+                row.push(`${afkBand(kit, c, 20, 'mean')}%`)
+            }
+            rows.push(row)
+        }
+        table(['form', 'A kills/hr', 'A HP/hr', 'A AFK', 'B kills/hr', 'B HP/hr', 'B AFK', 'C kills/hr', 'C HP/hr', 'C AFK'], rows)
+    }
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger }
+const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger, fit, variants }
 const cmd = process.argv[2] ?? 'calibrate'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)

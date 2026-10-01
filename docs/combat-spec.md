@@ -46,10 +46,17 @@ This replaces Draft 1's damage-type routing, which is dead. Type-based routing r
 
 The defensive half splits on what happened to incoming damage:
 
-- **Defense** takes the share that was *prevented*: missed or absorbed. A miss counts the damage it would have done (the band is rolled anyway, so the number exists).
+- **Defense** takes the share your armour *absorbed*.
 - **Constitution** takes the share that *landed*.
+- **Misses count for neither.** (Decided 2026-10-01 after `combatSim.ts ledger`: counting misses for Defense gave Defense 60–90% of the defensive half at every level, because weak enemies miss a lot, and left no way to train Constitution on purpose.)
 
-Fight something that barely touches you and you train Defense. Fight something that hurts and you train Constitution. Same XP either way, so the choice is distribution, paid for in food and risk.
+Same XP either way, so the choice is distribution, paid for in food and risk. Measured split, shield kit fighting an even foe: about 50/50 at combat 12, 50 and 100. The levers, none of them a menu:
+
+- **Take the shield off**, or fight two-handed: about two thirds goes to Constitution.
+- **Fight something that hurts**: more lands, more Constitution.
+- **Fight something weaker, or wear heavier armour**: more Defense.
+
+The first few combat levels lean to Defense (about 76% at combat 3), because armour absorbs most of a level 1 creature's small hits. It evens out by about combat 10.
 
 ### Payment
 
@@ -292,7 +299,11 @@ Nouns are rows (CLAUDE.md §2). An enemy row holds **level**, a **stance per dam
 
 Fights are **one player, one enemy**. Group boss fights are a later possibility; nothing in the enemy rows should prevent them.
 
-**Taiar hosts enemies of level 1–12**, matching Ambren (§15).
+### Fighting spots
+
+A **fighting spot** is a place with a pool of enemies. **You do not choose your opponent.** A spot with one creature gives you that creature every time; a mixed spot draws each next enemy at random, weighted per row (Eld Grove might hold forest creatures of level 8 to 12). Mixed spots make AFK riskier, since the occasional high roll is what kills you, which is the point of them. Each island gets several spots so players have real options: the choice is the place, not the creature.
+
+**Taiar hosts enemies of level 1–12**, matching Ambren (§15). The creature roster is still to be designed; the simulator uses generic grunts by level until then.
 
 ---
 
@@ -398,7 +409,7 @@ XP per kill is set so a level-matched fight pays a normal skill's rate × 1.5. C
 1. ~~Reproduce the §5 absorption table; record the kit it assumed.~~ Done (§5).
 2. Variant A, B or C for the level terms (§2).
 3. The level term's weights in aim and max hit (gear ≈ 2× level).
-4. Defense's measured share of the defensive half, and from it the armour gate levels (§2, §7).
+4. Armour gate levels from Defense's share (§2, §7). The share is measured (§2): about half at parity with a shield.
 5. Food per hour at parity against the real heal values of Taiar's cooked food.
 6. Durability numbers (§13) and the ingot and leather supply they demand.
 7. Regenerated §11 tables.
@@ -417,7 +428,7 @@ XP per kill is set so a level-matched fight pays a normal skill's rate × 1.5. C
 - **Weapon gates by the curve**, so every form opens a tier at the same combat level (§2).
 - **Weapon power compensated** across damage types (§6).
 - **Grunt swing 3.0s**, bosses hand-set.
-- **Misses count toward Defense**; XP paid at the end of the kill, nothing for a fled or lost fight.
+- **Defense takes what armour absorbed, Constitution what landed, misses count for neither**; XP paid at the end of the kill, nothing for a fled or lost fight.
 - **No skill caps**; combat level keeps counting.
 - **Guaranteed use count** for durability, counted in **kills** (§13).
 - **A third roll per swing**, if one ever earns its place, does *not* go in the advantage multiplier. §4 explains why that spot is dead.
