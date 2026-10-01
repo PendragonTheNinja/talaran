@@ -9,6 +9,7 @@
  *   npx ts-node --transpile-only src/scripts/combatSim.ts fit
  *   npx ts-node --transpile-only src/scripts/combatSim.ts variants [levels]
  *   npx ts-node --transpile-only src/scripts/combatSim.ts afk [maxTier] [maxFoe]
+ *   npx ts-node --transpile-only src/scripts/combatSim.ts pacing
  *
  * calibrate   reproduces the spec's §11 tables (the v2 unabsorbed model) to
  *             pin down the kit the original sim used, which v2 never recorded.
@@ -20,6 +21,9 @@
  * variants    level-term variants A, B, C (§2) per form: kills, damage taken, AFK.
  * afk         per form and combat level: the toughest foe you can leave for 20
  *             minutes. maxTier/maxFoe model an island (Taiar: 1 and 12).
+ * pacing      hours of fighting to reach each rung in each combat skill, under
+ *             the spec's shared XP and under option 3 (each skill at a normal
+ *             skill's pace), against a gatherer on the band.
  *
  * Read-only: no database.
  */
@@ -31,6 +35,7 @@ import {
 } from '../lib/combatMath'
 import { levelFromXp, xpForLevel } from '../services/xp'
 import { tierOfLevel } from '../services/workstations'
+import { activeXpForSeconds } from '../services/farming'
 
 // ── Plumbing ─────────────────────────────────────────────────────────────────
 
@@ -456,9 +461,149 @@ function afk(): void {
     table(['combat', 'max HP', 'one-hand + shield', 'two-hand', 'dual'], rows)
 }
 
+// ── pacing ───────────────────────────────────────────────────────────────────
+
+/** Level from XP by binary search over the real curve (levelFromXp is too slow for hour-by-hour stepping). */
+const CURVE: number[] = Array.from({ length: 161 }, (_, l) => (l < 1 ? 0 : xpForLevel(l)))
+function fastLevel(xp: number): number {
+    let lo = 1
+    let hi = 160
+    while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1
+        if (CURVE[mid] <= xp) lo = mid
+        else hi = mid - 1
+    }
+    return lo
+}
+
+/** A normal skill's on-band XP per hour at a level: the rate every rung is placed against. */
+const band = (level: number) => activeXpForSeconds(level, 3600)
+
+type Skill = 'attack' | 'strength' | 'defense' | 'constitution'
+
+interface PacingScheme {
+    label: string
+    /** XP per hour into each skill, as multiples of the band at the fight's level. */
+    rates: (form: Form, defenseShare: number) => Record<Skill, number>
+    /** The level the fight (and so the band) runs at. */
+    combatLevel: (xp: Record<Skill, number>) => number
+}
+
+const PACING: PacingScheme[] = [
+    {
+        label: 'Spec now: one skill × 1.5, shared four ways',
+        rates: (form, d) => ({
+            attack: form === 'twohand' ? 0 : form === 'dual' ? 0.75 : 0.375,
+            strength: form === 'dual' ? 0 : form === 'twohand' ? 0.75 : 0.375,
+            defense: 0.75 * d,
+            constitution: 0.75 * (1 - d),
+        }),
+        combatLevel: xp => fastLevel(xp.attack + xp.strength + xp.defense + xp.constitution),
+    },
+    {
+        label: 'Option 4a: spec pool, but one-hand pays the offensive 0.75 to BOTH skills',
+        rates: (form, d) => ({
+            attack: form === 'twohand' ? 0 : 0.75,
+            strength: form === 'dual' ? 0 : 0.75,
+            defense: 0.75 * d,
+            constitution: 0.75 * (1 - d),
+        }),
+        combatLevel: xp => fastLevel(xp.attack + xp.strength + xp.defense + xp.constitution),
+    },
+    {
+        label: 'Option 4b: as 4a, and the defensive pool doubled to 1.5, split by the ledger',
+        rates: (form, d) => ({
+            attack: form === 'twohand' ? 0 : 0.75,
+            strength: form === 'dual' ? 0 : 0.75,
+            defense: 1.5 * d,
+            constitution: 1.5 * (1 - d),
+        }),
+        combatLevel: xp => fastLevel(xp.attack + xp.strength + xp.defense + xp.constitution),
+    },
+    {
+        label: 'Option 3a: form skill(s) × 1.0 each, defensive × 1.0 split by the ledger',
+        rates: (form, d) => ({
+            attack: form === 'twohand' ? 0 : 1,
+            strength: form === 'dual' ? 0 : 1,
+            defense: d,
+            constitution: 1 - d,
+        }),
+        combatLevel: optionThreeCombatLevel,
+    },
+    {
+        label: 'Option 3b: form skill(s) × 1.0 each, defensive × 2.0 split by the ledger',
+        rates: (form, d) => ({
+            attack: form === 'twohand' ? 0 : 1,
+            strength: form === 'dual' ? 0 : 1,
+            defense: 2 * d,
+            constitution: 2 * (1 - d),
+        }),
+        combatLevel: optionThreeCombatLevel,
+    },
+]
+
+/** Option 3's combat level: the average of your better offensive and better defensive skill. */
+function optionThreeCombatLevel(xp: Record<Skill, number>): number {
+    const offense = fastLevel(Math.max(xp.attack, xp.strength))
+    const defense = fastLevel(Math.max(xp.defense, xp.constitution))
+    return Math.round((offense + defense) / 2)
+}
+
+/** Hours until each skill (and combat level) first reaches each rung. */
+function hoursToRungs(scheme: PacingScheme, form: Form, defenseShare: number, rungs: number[]) {
+    const rates = scheme.rates(form, defenseShare)
+    const xp: Record<Skill, number> = { attack: 0, strength: 0, defense: 0, constitution: 0 }
+    const reached: Record<string, Record<number, number>> = { weapon: {}, defense: {}, constitution: {}, combat: {} }
+    const weaponLevel = () => form === 'twohand' ? fastLevel(xp.strength)
+        : form === 'dual' ? fastLevel(xp.attack)
+        : Math.min(fastLevel(xp.attack), fastLevel(xp.strength))
+    const step = 0.25
+    let combatXpPerHourAt50 = 0
+    for (let h = 0; h < 40000; h += step) {
+        const level = scheme.combatLevel(xp)
+        const b = band(level)
+        if (level === 50 && !combatXpPerHourAt50) combatXpPerHourAt50 = (rates.attack + rates.strength + rates.defense + rates.constitution)
+        for (const k of Object.keys(xp) as Skill[]) xp[k] += rates[k] * b * step
+        const now = { weapon: weaponLevel(), defense: fastLevel(xp.defense), constitution: fastLevel(xp.constitution), combat: scheme.combatLevel(xp) }
+        for (const key of Object.keys(now) as (keyof typeof now)[]) {
+            for (const r of rungs) if (now[key] >= r && reached[key][r] === undefined) reached[key][r] = h + step
+        }
+        if (rungs.every(r => reached.weapon[r] !== undefined && reached.defense[r] !== undefined)) break
+    }
+    return { reached, totalMultiple: rates.attack + rates.strength + rates.defense + rates.constitution }
+}
+
+function pacing(): void {
+    const rungs = [13, 25, 50, 100]
+    const fmt = (h: number | undefined) => (h === undefined ? '—' : h < 10 ? h.toFixed(1) : String(Math.round(h)))
+    const gatherer: Record<number, number> = {}
+    {
+        let xp = 0
+        for (let h = 0.25; h < 40000 && Object.keys(gatherer).length < rungs.length; h += 0.25) {
+            xp += band(fastLevel(xp)) * 0.25
+            for (const r of rungs) if (fastLevel(xp) >= r && gatherer[r] === undefined) gatherer[r] = h
+        }
+    }
+    console.log(`\nHours of on-band play to reach each rung. Gatherer on the band: ${rungs.map(r => `${r}: ${fmt(gatherer[r])}h`).join(', ')}.`)
+    console.log('Defense share of the defensive XP: 50% with a shield, 33% without (combatSim.ts ledger).')
+    for (const scheme of PACING) {
+        console.log(`\n${scheme.label}`)
+        const rows: (string | number)[][] = []
+        for (const [form, share] of [['twohand', 1 / 3], ['onehand', 0.5]] as [Form, number][]) {
+            const { reached, totalMultiple } = hoursToRungs(scheme, form, share, rungs)
+            const label = form === 'twohand' ? 'two-hand / dual' : 'one-hand + shield'
+            rows.push([
+                label, `${totalMultiple.toFixed(2)}×`,
+                ...rungs.map(r => `${fmt(reached.weapon[r])} | ${fmt(reached.defense[r])} | ${fmt(reached.constitution[r])} | ${fmt(reached.combat[r])}`),
+            ])
+        }
+        table(['form', 'XP vs gatherer', ...rungs.map(r => `rung ${r}: weapon | Def | Con | CL`)], rows)
+    }
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger, fit, variants, afk }
+const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger, fit, variants, afk, pacing }
 const cmd = process.argv[2] ?? 'calibrate'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)
