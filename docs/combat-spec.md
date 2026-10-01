@@ -307,7 +307,7 @@ Fights are **one player, one enemy**. Group boss fights are a later possibility;
 
 A **fighting spot** is a place with a pool of enemies. **You do not choose your opponent.** A spot with one creature gives you that creature every time; a mixed spot draws each next enemy at random, weighted per row (Eld Grove might hold forest creatures of level 8 to 12). Mixed spots make AFK riskier, since the occasional high roll is what kills you, which is the point of them. Each island gets several spots so players have real options: the choice is the place, not the creature.
 
-**Taiar hosts enemies of level 1–12**, matching Ambren (§15). The creature roster is still to be designed; the simulator uses generic grunts by level until then.
+**Taiar hosts enemies of level 1–12**, matching Ambren (§15). **AFK on Taiar is deliberately thin** (`combatSim.ts afk 1 12`): with Ambren the only metal, a shield-bearer can leave level 3s at combat 12 and level 7s at combat 30, and a shieldless fighter cannot leave even a level 1 until about combat 18. That is the one-metal island, not the formulas: with Serph gear a combat 15 player leaves level 5s. A higher starting HP (200) would have fixed it, and was rejected (2026-10-01): a combat 1 player should not be able to idle level 1s. The creature roster is still to be designed; the simulator uses generic grunts by level until then.
 
 ---
 
