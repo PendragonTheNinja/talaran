@@ -47,3 +47,12 @@ naturally after currency.
 Read-only report in the admin panel, sitting beside the validate sweep. The
 trades tables are deliberately non-editable there: they are the audit trail this
 would read, and hand-editing them would destroy the evidence.
+
+---
+
+## The between-realm  *(idea, from the combat spec pass 2026-10-01)*
+
+On death, instead of waking in Talador, the dead arrive in a between-realm and
+choose where to respawn from there. Combat ships with a plain Talador respawn
+(`docs/combat-spec.md` §14); this is the flavourful version for later, and a
+natural place for death-related content (a ferryman, a toll, a way back).
