@@ -5,18 +5,20 @@
  *   npx ts-node --transpile-only src/scripts/combatSim.ts calibrate
  *   npx ts-node --transpile-only src/scripts/combatSim.ts acceptance [swing] [divisor] [minutes]
  *   npx ts-node --transpile-only src/scripts/combatSim.ts lowlevel [swing] [divisor]
+ *   npx ts-node --transpile-only src/scripts/combatSim.ts ledger
  *
  * calibrate   reproduces the spec's §11 tables (the v2 unabsorbed model) to
  *             pin down the kit the original sim used, which v2 never recorded.
  * acceptance  sweeps the absorption constant against the §5 table.
  * lowlevel    combat 1–12 against Ambren kit: Taiar, the first release.
+ * ledger      Defense's share of the defensive half under each way of counting.
  *
  * Read-only: no database.
  */
 
 import {
     COMBAT, CombatConstants, Combatant, DamageType, Form, FORMS, Rng,
-    absorption, armourPoints, enemyStats, fightOne, hitChance, levelTerm, maxHp, weaponAim, weaponPower,
+    absorption, armourPoints, enemyStats, fightOne, hitChance, levelTerm, maxHp, swing, weaponAim, weaponPower,
 } from '../lib/combatMath'
 import { levelFromXp, xpForLevel } from '../services/xp'
 
@@ -301,9 +303,42 @@ function lowlevel(): void {
     table(['combat', 'foe', 'max HP', 'kill s', 'dmg/kill', 'dishes/hr @20', '@40', 'unattended min', 'Defense share'], rows)
 }
 
+// ── ledger ───────────────────────────────────────────────────────────────────
+
+/**
+ * How the defensive half would split between Defense and Constitution, per
+ * way of counting a swing that came at you:
+ *   misses+absorbed  v3: a miss counts what it would have done, absorbed counts
+ *   absorbed only    misses count for nobody
+ *   misses at half   a miss counts half what it would have done
+ * Uses the kill's swing-by-swing ledger through the real swing() roll.
+ */
+function ledger(): void {
+    const c = COMBAT
+    const tierOf = (level: number) => [1, 13, 25, 37, 50, 62, 75, 87, 100].filter(r => level >= r).length
+    const rows: (string | number)[][] = []
+    for (const level of [3, 12, 25, 50, 100]) {
+        for (const form of ['onehand', 'twohand'] as Form[]) {
+            const kit = kitAt(level, form, 'slash', tierOf(level), 0.5, c)
+            for (const below of [0, 25]) {
+                const enemy = enemyStats(Math.max(1, Math.round(level * (1 - below / 100))), c)
+                const rng = mulberry32(level * 31 + below)
+                let missed = 0, absorbed = 0, landed = 0
+                for (let i = 0; i < 4000; i++) {
+                    const s = swing(rng, enemy, kit.player, 1, c)
+                    if (s.hit) { absorbed += s.absorbed; landed += s.landed } else missed += s.rolled
+                }
+                const share = (prev: number) => pct(prev / (prev + landed))
+                rows.push([level, form, `${below}%`, share(missed + absorbed), share(absorbed), share(missed / 2 + absorbed)])
+            }
+        }
+    }
+    table(['combat', 'form', 'foe below', 'misses+absorbed (v3)', 'absorbed only', 'misses at half'], rows)
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel }
+const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger }
 const cmd = process.argv[2] ?? 'calibrate'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)

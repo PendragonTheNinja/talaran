@@ -170,7 +170,9 @@ This is the single lever that sets the AFK band, and 0.4 is chosen rather than m
 
 **TREAT THIS TABLE AS THE ACCEPTANCE TEST.** The absorption term is applied to armour on a damage scale, not to raw armour points: tier 9 armour totals 380 against an enemy max hit of 52, so subtracting any large fraction of raw points would zero out all incoming damage. The likely form is `absorbed = 0.4 × armour / 10`, about 15 off a 52-point hit at tier 9.
 
-Do not take that formula on trust. The simulator must **tune the term until it reproduces all five rows above**. The rows are measured output from the original sim and are authoritative; the formula is reconstructed and is not. The original sim's kit is not recorded; the first job is to find the kit (form, shield or not) under which the rows reproduce, and record it here.
+**Fitted (2026-10-01, `combatSim.ts acceptance`): `absorbed = 0.4 × armour / 11`**, with 3.0s grunts. Measured against the 0.4 row: C50 AFK 26%, C100 AFK 20–22%, parity survival 5.7 min, food 23/hr.
+
+**What the original sim actually used**, recovered by `combatSim.ts calibrate`, which reproduces every §11 cell: a one-hand Spear, weapon and late armour with shield at the player's combat tier, aim level 41 / 86, defence level 36 / 81, and **grunts swinging every 4.0 seconds**, not 3.0. At 4.0s the table reproduces at `armour / 15`. §8's 3.0s was written after the numbers were measured. **Decided: grunts stay at 3.0s**, with the divisor refitted to 11 so the 0.4 row still holds.
 
 ---
 
@@ -282,7 +284,7 @@ enemy swing   = 3.0 seconds for grunts
 
 This HP formula is current. `docs/cooking-outline.md` §4 anchored food on "about 250 at Constitution 24", which predates this spec; the formula above gives 330. Food heal values are checked against it in the simulator, not the other way round.
 
-**Grunts swing at 3.0s, the same as the balanced player form. Bosses vary for flavour**, hand-set per boss.
+**Grunts swing at 3.0s, the same as the balanced player form** (confirmed 2026-10-01; §5 explains why the v2 tables were measured at 4.0s). **Bosses vary for flavour**, hand-set per boss.
 
 ### Enemies are rows
 
@@ -393,7 +395,7 @@ XP per kill is set so a level-matched fight pays a normal skill's rate × 1.5. C
 
 **SIM, settled by the simulator before seeding:**
 
-1. Reproduce the §5 absorption table; record the kit it assumed.
+1. ~~Reproduce the §5 absorption table; record the kit it assumed.~~ Done (§5).
 2. Variant A, B or C for the level terms (§2).
 3. The level term's weights in aim and max hit (gear ≈ 2× level).
 4. Defense's measured share of the defensive half, and from it the armour gate levels (§2, §7).
@@ -421,7 +423,8 @@ XP per kill is set so a level-matched fight pays a normal skill's rate × 1.5. C
 - **A third roll per swing**, if one ever earns its place, does *not* go in the advantage multiplier. §4 explains why that spot is dead.
 - **Eating is free.** Food is the only heal. No auto-eat, no auto-retreat, no regen.
 - **Disconnect = flee** by default (§9).
-- **Absorption at 0.4**, with the §5 table as the acceptance test.
+- **Absorption at 0.4**, with the §5 table as the acceptance test; fitted as `0.4 × armour / 11`.
+- **Grunt swing 3.0s**, kept after the sim showed the v2 tables used 4.0s.
 - **The nine weapons and their names** (§6).
 
 ---
