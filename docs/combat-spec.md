@@ -66,7 +66,7 @@ A kill's XP is split **half offensive, half defensive**, and all of it is paid *
 
 Not an average. The **total XP of all four** run through the normal level curve, so it reads as the level you would be if combat were a single skill. Uncapped, like every skill: with all four at 100 it reads about 120. Four skills splitting one skill's worth of XP per hour means the individual numbers always look low next to a woodcutter's; combat level is the honest comparison.
 
-### What the levels do (SIM: choose A, B or C)
+### What the levels do (DECIDED: B, the offense level)
 
 Weapon stats carry roughly twice what levels do (§4). Levels are mainly about **which tier you can equip**. The open question is which level feeds the smaller, level-driven part of aim and max hit, because a one-form player never trains the other offensive skill:
 
@@ -76,7 +76,7 @@ Weapon stats carry roughly twice what levels do (§4). Levels are mainly about *
 | **B. Offense level** | offense level | offense level | Offense level is a *derived number*, not a skill: Attack XP + Strength XP through the curve, exactly as combat level is built. Every form earns the same offense level per hour. Attack and Strength then matter for gates only. |
 | **C. Own form's skill** | the skill(s) the held form trains | same | Most literal to "the weapon decides". Switching forms late starts the new form's skill from scratch. |
 
-The simulator runs all three side by side (damage per hour, AFK band and food per hour, per form, at combat 12 / 25 / 50 / 100). Whichever wins, the skill descriptions in `skills` are rewritten by migration to say what the skill actually does.
+**Decided 2026-10-01: B.** Measured by `combatSim.ts variants` (kills per hour against an even foe, relative to one-hand): under A a lifelong two-hander falls to 56% at combat 100; under C the balanced form falls 18–21% behind the others; under B every form stays within a few percent before the shield budget (§6) is applied. Attack and Strength therefore decide **which weapons you can equip**, and nothing else; their descriptions in `skills` are rewritten by migration to say so. Defense feeds defence and gates armour; Constitution sets max HP.
 
 ### Weapon gates: by the curve, so every form opens a tier at the same combat level
 
@@ -148,14 +148,16 @@ advantage = (aim - defence) / 10
 low       = 25 + advantage         clamped 0 to 100
 high      = 75 + advantage         clamped 0 to 100
 damage    = rng(low, high)% of max hit
-max hit   = weapon power + level term        (SIM: weights)
+max hit   = weapon power + 0.5 × level term × swing seconds / 3.0
 ```
 
 Second roll. Two per swing, total.
 
 At parity that is rng(25,75)%, averaging half your max hit. At +25 advantage it becomes rng(50,100)%. At −35 it is rng(0,40)%, which is what lets weak enemies chip at you instead of whiffing dramatically.
 
-**Max hit is the weapon's power plus a smaller level term**, the same roughly 2:1 split aim uses: the weapon is the stronger half, the level the weaker. Which level depends on the variant (§2). The weights are tuned in the simulator. SIM.
+**Max hit is the weapon's power plus a smaller level term**, read from the offense level (§2): for a trained player the level is about a third of max hit, the same weapon-first split aim has. The level term is **scaled by swing time**, so levels add the same damage per second to every form; a flat amount per swing put dual about 15% ahead of everything else.
+
+Adding a level term made every fight shorter, so **enemy HP is refitted** to keep the §6 anchors (an even fight lasts about 40 seconds at combat 1 and 99 at combat 100): base **173**, growth **×1.3555 per tier** (v2: 140 and ×1.33). `combatSim.ts fit` checks it.
 
 Aim moves hit chance and the damage band together, so it raises your average hit without touching your ceiling.
 
@@ -215,13 +217,15 @@ The dual-wield names are plural because the pair is **one inventory item**, not 
 
 ### Weapon power: compensated, so the three types are equal at parity (DECIDED)
 
-v2 left open whether to pay blunt for its worse aim. **Decided: compensate with power.** At parity, on equal power, pierce came out 8.3% ahead of blunt, because aim helps both the hit roll and the damage band. Tier 1 power:
+v2 left open whether to pay blunt for its worse aim. **Decided: compensate with power.** At parity, on equal power, pierce came out 8.3% ahead of blunt, because aim helps both the hit roll and the damage band.
+
+**The shieldless forms carry 1.25× the v2 budget (DECIDED 2026-10-01).** At the v2 budget, two-hand and dual killed only ~7% faster than one-hand while taking 40–60% more damage, so the shield was simply the better deal. At 1.25× they earn about 21–25% more kills per hour for about 12% more food per kill and a worse AFK band: the active player's form. One-hand stays the safe one. Tier 1 power:
 
 | Form | Pierce | Slash | Blunt |
 |---|---|---|---|
-| Dual (2.4s) | 33 | 34 | 35 |
+| Dual (2.4s) | 41 | 43 | 44 |
 | 1H + shield (3.0s) | 37 | 38 | 40 |
-| Two-hand (3.6s) | 49 | 51 | 53 |
+| Two-hand (3.6s) | 61 | 64 | 66 |
 
 Scaling per tier: aim `+37.5`, power `× 1.221`.
 
@@ -407,8 +411,8 @@ XP per kill is set so a level-matched fight pays a normal skill's rate × 1.5. C
 **SIM, settled by the simulator before seeding:**
 
 1. ~~Reproduce the §5 absorption table; record the kit it assumed.~~ Done (§5).
-2. Variant A, B or C for the level terms (§2).
-3. The level term's weights in aim and max hit (gear ≈ 2× level).
+2. ~~Variant A, B or C for the level terms (§2).~~ B.
+3. ~~The level term's weights in aim and max hit.~~ §5.
 4. Armour gate levels from Defense's share (§2, §7). The share is measured (§2): about half at parity with a shield.
 5. Food per hour at parity against the real heal values of Taiar's cooked food.
 6. Durability numbers (§13) and the ingot and leather supply they demand.
@@ -426,7 +430,8 @@ XP per kill is set so a level-matched fight pays a normal skill's rate × 1.5. C
 - **XP routing by form, not damage type.**
 - **Speed by form**, three values, not nine.
 - **Weapon gates by the curve**, so every form opens a tier at the same combat level (§2).
-- **Weapon power compensated** across damage types (§6).
+- **Weapon power compensated** across damage types, and **×1.25 for the shieldless forms** (§6).
+- **Offense level (variant B)** feeds aim and max hit; Attack and Strength gate weapons (§2).
 - **Grunt swing 3.0s**, bosses hand-set.
 - **Defense takes what armour absorbed, Constitution what landed, misses count for neither**; XP paid at the end of the kill, nothing for a fled or lost fight.
 - **No skill caps**; combat level keeps counting.

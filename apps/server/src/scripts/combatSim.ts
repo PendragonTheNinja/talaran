@@ -7,7 +7,8 @@
  *   npx ts-node --transpile-only src/scripts/combatSim.ts lowlevel [swing] [divisor]
  *   npx ts-node --transpile-only src/scripts/combatSim.ts ledger
  *   npx ts-node --transpile-only src/scripts/combatSim.ts fit
- *   npx ts-node --transpile-only src/scripts/combatSim.ts variants
+ *   npx ts-node --transpile-only src/scripts/combatSim.ts variants [levels]
+ *   npx ts-node --transpile-only src/scripts/combatSim.ts afk [maxTier] [maxFoe]
  *
  * calibrate   reproduces the spec's §11 tables (the v2 unabsorbed model) to
  *             pin down the kit the original sim used, which v2 never recorded.
@@ -17,6 +18,8 @@
  * fit         enemy HP base and growth that keep level-matched kills at ~40s
  *             (combat 1) and ~99s (combat 100) once max hit has a level term.
  * variants    level-term variants A, B, C (§2) per form: kills, damage taken, AFK.
+ * afk         per form and combat level: the toughest foe you can leave for 20
+ *             minutes. maxTier/maxFoe model an island (Taiar: 1 and 12).
  *
  * Read-only: no database.
  */
@@ -107,9 +110,9 @@ const V2: Partial<CombatConstants> = { ENEMY_HP_BASE: 140, ENEMY_HP_GROWTH_PER_T
  */
 function kitAt(
     combatLevel: number, form: Form, type: DamageType, variant: LevelVariant,
-    c: CombatConstants, defenseShare = 0.5,
+    c: CombatConstants, defenseShare = 0.5, maxTier = 9,
 ): Kit {
-    const tier = tierOfLevel(combatLevel)
+    const tier = Math.min(maxTier, tierOfLevel(combatLevel))
     const total = xpForLevel(combatLevel)
     const offense = total / 2
     const attackXp = form === 'twohand' ? 0 : form === 'dual' ? offense : offense / 2
@@ -377,6 +380,7 @@ function fitEnemyHp(c: CombatConstants): CombatConstants {
 
 function fit(): void {
     const c = fitEnemyHp(COMBAT)
+    console.log(`\nCOMBAT now holds ENEMY_HP_BASE ${COMBAT.ENEMY_HP_BASE}, ENEMY_HP_GROWTH_PER_TIER ${COMBAT.ENEMY_HP_GROWTH_PER_TIER}.`)
     console.log(`\nMax hit = power + ${c.MAX_HIT_PER_LEVEL_TERM} × level term. Reference: one-hand slash, variant B, even foe.`)
     console.log(`Fitted ENEMY_HP_BASE ${c.ENEMY_HP_BASE.toFixed(1)}, ENEMY_HP_GROWTH_PER_TIER ${c.ENEMY_HP_GROWTH_PER_TIER.toFixed(4)} (v2: 140, 1.33)`)
     table(['combat', 'kill s', 'enemy HP', 'player max hit'], [1, 12, 25, 50, 75, 100].map(level => [
@@ -388,9 +392,9 @@ function fit(): void {
 // ── variants ─────────────────────────────────────────────────────────────────
 
 function variants(): void {
-    const c = fitEnemyHp(COMBAT)
+    const c = COMBAT
     const levels = (process.argv[3] ?? '12,25,50,100').split(',').map(Number)
-    console.log(`\nEnemy HP fitted as in \`fit\`. Slash in every form (types are equal at parity, §6).`)
+    console.log(`\nSlash in every form (types are equal at parity, §6).`)
     console.log('kills/hr against an even foe, relative to one-hand under the same variant | HP lost per hour | AFK band (mean rule, 20 min)')
     for (const level of levels) {
         console.log(`\nCombat ${level}`)
@@ -414,9 +418,47 @@ function variants(): void {
     }
 }
 
+// ── afk ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Unattended minutes (mean rule: max HP over damage per hour) for a player
+ * fighting one foe level continuously with no food.
+ */
+function unattended(kit: Kit, foe: number, c: CombatConstants): number {
+    return measure(mulberry32(kit.combatLevel * 1000 + foe), kit, enemyStats(foe, c), 1500, c).unattendedMinutes
+}
+
+function afk(): void {
+    const c = COMBAT
+    const maxTier = Number(process.argv[3] ?? 9)
+    const maxFoe = Number(process.argv[4] ?? 999)
+    const minutes = 20
+    console.log(`\nToughest foe you can leave for ${minutes} min, no food. Gear capped at tier ${maxTier}, foes at level ${maxFoe}.`)
+    console.log('Each cell: foe level (unattended minutes against it). "none" = not even a level 1. Unattended vs level 1 in brackets after.')
+    const rows: (string | number)[][] = []
+    for (const level of [1, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 40]) {
+        const row: (string | number)[] = [level]
+        for (const form of ['onehand', 'twohand', 'dual'] as Form[]) {
+            const kit = kitAt(level, form, 'slash', 'B', c, 0.5, maxTier)
+            let best = 0
+            let bestMin = 0
+            for (let foe = Math.min(level, maxFoe); foe >= 1; foe--) {
+                const m = unattended(kit, foe, c)
+                if (m >= minutes) { best = foe; bestMin = m; break }
+            }
+            const vsOne = unattended(kit, 1, c)
+            const cell = best ? `${best} (${Math.round(bestMin)})` : 'none'
+            row.push(`${cell} [${vsOne > 600 ? '10h+' : Math.round(vsOne)}]`)
+            if (form === 'onehand') row.splice(1, 0, kit.maxHp)
+        }
+        rows.push(row)
+    }
+    table(['combat', 'max HP', 'one-hand + shield', 'two-hand', 'dual'], rows)
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger, fit, variants }
+const commands: Record<string, () => void> = { calibrate, acceptance, lowlevel, ledger, fit, variants, afk }
 const cmd = process.argv[2] ?? 'calibrate'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)

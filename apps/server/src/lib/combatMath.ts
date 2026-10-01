@@ -35,7 +35,7 @@ export const COMBAT = {
     POWER_GROWTH: 1.221,
     // §5 max hit = weapon power + this × level term. 0.5 puts the level at about
     // a third of max hit for a trained player (half the weapon's share), the same
-    // weapon-first split aim has. SIM.
+    // weapon-first split aim has.
     MAX_HIT_PER_LEVEL_TERM: 0.5,
 
     // §7 armour, late set with shield at tier 1
@@ -53,8 +53,8 @@ export const COMBAT = {
     ENEMY_MAX_HIT_PER_LEVEL: 0.46,
     // Fitted so a level-matched fight lasts ~40s at combat 1 and ~99s at combat 100
     // (§6) once max hit carries a level term (combatSim.ts fit). v2: 140 and 1.33.
-    ENEMY_HP_BASE: 140,
-    ENEMY_HP_GROWTH_PER_TIER: 1.33,
+    ENEMY_HP_BASE: 173,
+    ENEMY_HP_GROWTH_PER_TIER: 1.3555,
     GRUNT_SWING_SECONDS: 3.0, // the v2 tables were measured at 4.0; see ABSORPTION_DIVISOR
 
     // §9 fight loop
@@ -72,11 +72,16 @@ export const FORMS: Record<Form, { swingSeconds: number; shield: boolean }> = {
 /** Aim by damage type at tier 1 (§6). */
 export const TYPE_AIM: Record<DamageType, number> = { pierce: 110, slash: 100, crush: 90 }
 
-/** Tier 1 weapon power, compensated so the three types are equal at parity (§6). */
+/**
+ * Tier 1 weapon power, compensated so the three types are equal at parity (§6).
+ * The shieldless forms carry ×1.25 the v2 budget (decided 2026-10-01): at the
+ * v2 budget they killed only ~7% faster than one-hand for 40–60% more damage
+ * taken, so the shield was simply the better deal (combatSim.ts variants).
+ */
 export const TIER1_POWER: Record<Form, Record<DamageType, number>> = {
-    dual: { pierce: 33, slash: 34, crush: 35 },
+    dual: { pierce: 41, slash: 43, crush: 44 },
     onehand: { pierce: 37, slash: 38, crush: 40 },
-    twohand: { pierce: 49, slash: 51, crush: 53 },
+    twohand: { pierce: 61, slash: 64, crush: 66 },
 }
 
 export const STANCE_MULTIPLIER: Record<Stance, number> = { weak: 1.25, neutral: 1.0, resistant: 0.75 }
@@ -121,7 +126,8 @@ export function playerMaxHit(power: number, level: number, swingSeconds: number,
 }
 
 /**
- * Which levels feed aim and max hit (§2, SIM):
+ * Which levels feed aim and max hit (§2). B is the decision (2026-10-01); A and
+ * C stay for the simulator's comparison:
  *   A  Attack feeds aim, Strength feeds max hit
  *   B  both read the offense level: Attack XP + Strength XP through the curve
  *   C  both read the skill the held form trains (one-hand: Attack for aim, Strength for max hit)
