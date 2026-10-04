@@ -22,6 +22,7 @@
  *   forms       per form: kills/hr, HP lost/hr, AFK band, against the §5 targets.
  *   afk         [maxTier] [maxFoe]  toughest foe you can leave for 20 minutes.
  *               Taiar is `afk 1 12`.
+ *   gap         [levels]  HP lost and kills per hour against foes below you, Ambren gear.
  *
  * Read-only: no database.
  */
@@ -526,9 +527,28 @@ function afk(): void {
     table(['combat', ...FORM_LIST.map(f => FORM_LABEL[f])], rows)
 }
 
+// ── gap ──────────────────────────────────────────────────────────────────────
+
+/** HP lost per hour against foes below you: what food a fighter actually needs. */
+function gap(): void {
+    const c = COMBAT
+    const levelsWanted = (process.argv[3] ?? '6,12').split(',').map(Number)
+    for (const level of levelsWanted) {
+        console.log(`\nCombat ${level}, Ambren gear. HP lost per hour of fighting (kills/hr in brackets).`)
+        const foes = [...new Set([level, Math.round(level * 0.75), Math.round(level * 0.5), 1].map(f => Math.max(1, f)))]
+        table(['form', ...foes.map(f => `foe ${f}`)], FORM_LIST.map(form => {
+            const kit = kitAt(level, form, 'slash', c, 1)
+            return [FORM_LABEL[form], ...foes.map(f => {
+                const m = measure(mulberry32(level * 100 + f), kit, enemyStats(f, c), 3000, c)
+                return `${Math.round(m.damagePerHour)} (${Math.round(m.killsPerHour)})`
+            })]
+        }))
+    }
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk }
+const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap }
 const cmd = process.argv[2] ?? 'forms'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)

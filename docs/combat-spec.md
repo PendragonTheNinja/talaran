@@ -387,9 +387,21 @@ Two proposals to change eating were considered and **both rejected**: eating cos
 
 A fight has exactly one decision in it: **when to eat**. Everything else is settled before you engage, when you pick your form, your damage type and your target. With several minutes of slack at parity, even that decision is easy.
 
-And because eating is free, **composite dishes dominate outright**: more heal per item, one inventory slot instead of five, and no downside.
+And because eating is free, composite dishes were expected to dominate: more heal per item, one slot instead of five. **Corrected 2026-10-04:** the pack has no slot limit and every item stacks, so a stack of fish is one slot too. Dishes compete on **HP per minute of cooking** (and the gathering behind them), and there direct cooking holds its own: Cooked Sabreling heals 30 in 30s (1.0 HP/s at Cooking 9), Morel Omelette 66 in 55s (1.2 HP/s at Cooking 12). A composite's real advantage is fewer taps mid-fight.
 
 Both are accepted as-is. They are structural rather than broken.
+
+### What fighting costs in food (measured 2026-10-04, `combatSim.ts gap`)
+
+HP lost per hour on Taiar, Ambren gear:
+
+| Combat | Even foe (shield / no shield) | ~25% below | Level 1 foe |
+|---|---|---|---|
+| 3 | 1,870 / 2,010 | 1,650 / 1,770 | 1,470 / 1,580 |
+| 6 | 1,640 / 2,360 | 1,460 / 2,140 | 850 / 1,400 |
+| 12 | 2,040 / 2,660 | 1,490 / 2,050 | 400 / 750 |
+
+In cooking time, at the best dish for a cook of the same level: an hour of even fighting needs about **55 minutes of cooking at combat 3**, falling to **about 30 minutes at combat 12** (one-hand; shieldless forms about a third more), before the fishing and gathering behind the ingredients. Fighting below your level roughly halves it. This is the intended loop (fighting feeds Cooking), and the reason 3b's extra XP is fair: counting the support work, combat earns about 1.5–2 skills' worth per hour, close to v2's ×1.5 intent. The early levels are the expensive ones; §12 E.
 
 ### No auto-eat, no auto-retreat, by design
 
