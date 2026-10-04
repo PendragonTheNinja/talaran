@@ -495,9 +495,11 @@ Hold ten Ambren Maces and have never fought: Ambren Mace, for your account, has 
 - **Tunable without a deploy.** A per-tier row holds the guaranteed kills and the break chance after them; nullable per-item override columns let a single item differ. Editable from the admin panel, like the world event settings.
 - **Smithed gear sits at the low end of its tier.** Drops you grind a creature for last longer. Starting point for smithed tier 1: about 200 kills (roughly three hours at parity), then 1% per kill. SIM, against supply.
 
-**Supply, measured against live Mining (2026-10-04).** Live `resource_nodes`: Granite 15–20s, veins 8–20 ore, and the vein roll is **out of 1,000** (`vein_discovery_chance` 10 = 1% a swing on Granite, 5 = 0.5% on the ore nodes). One open vein per ore per location, shared by everyone. One Ambren vein plus one Burgh vein is about 81 minutes of mining and smelting for 28 ingots: **about 21 ingots an hour, 2.9 minutes each**, plus 2 Charc per smelt.
+**Supply, measured against live Mining (2026-10-04).** Live `resource_nodes`: Granite swings 15–20s, the vein roll is **out of 1,000** (`vein_discovery_chance` 10 = 1% a swing on Granite, 5 = 0.5% on the ore nodes), and a vein's size comes from **the node it was found on**: 50–100 ore from Granite, 8–20 from an ore node. One open vein per ore per location, shared by everyone. A solo miner finding one Ambren and one Burgh vein from Granite, mining both and smelting: about 3 hours for 150 ingots, **about 50 ingots an hour of work, 1.2 minutes each**, plus 2 Charc per smelt.
 
-Demand at the starting numbers (about 300 uses before a break, 65 kills an hour, two of six armour pieces wearing per kill): a weapon lasts about 4.6 hours of fighting and armour about 12–14. That is **about 2 ingots per hour of fighting, 6–7 minutes of mining and smelting**, plus a minute or two at the anvil. Light beside food (§10).
+**That is best case.** It assumes the vein is there to be found and the finder mines it out. A vein already open at that location blocks a new find of the same ore, and an announced vein is mined by whoever turns up, so real supply depends on how many people mine and fight. No formula gives that; the market will.
+
+Demand at the starting numbers (about 300 uses before a break, 65 kills an hour): a weapon wears every kill and lasts about 4.6 hours of fighting; armour wears two random pieces per kill and lasts about three times as long. **About 2 ingots per hour of fighting, under 3 minutes of mining and smelting**, plus a minute or two at the anvil. Weapons and tools are where breakage is felt; armour is the slow drain. Durability starts here and is tuned from the admin table once testers show how fast gear actually goes.
 
 ---
 
