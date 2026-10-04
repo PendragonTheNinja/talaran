@@ -304,9 +304,20 @@ This HP formula is current. `docs/cooking-outline.md` §4 anchored food on "abou
 
 **Grunts swing at 3.0s, the same as the balanced player form** (confirmed 2026-10-01; §5 explains why the v2 tables were measured at 4.0s). **Bosses vary for flavour**, hand-set per boss.
 
-### Enemies are rows
+### Enemies are rows, each with a character
 
-Nouns are rows (CLAUDE.md §2). An enemy row holds **level**, a **stance per damage type**, its **location**, and its loot on the existing `drop_table_entries`. Aim, defence, max hit and HP are **computed in code from level** by the formulas above; nullable override columns let a boss be hand-set (swing speed, HP, max hit). Combat kills find gold like any active skill (`GOLD_FIND_ACTIONS`).
+Nouns are rows (CLAUDE.md §2). An enemy row holds **level**, a **stance per damage type**, its **location**, its loot on the existing `drop_table_entries`, and a **profile** (decided 2026-10-04): nullable multipliers on accuracy, defence, hitting power and HP around its level's baseline, and its own swing time. Null is the baseline grunt. `CreatureProfile` and `enemyStats` in `lib/combatMath.ts`.
+
+**XP per kill follows the creature's own kill time:** the band at its level, over the seconds a level-matched kill against it takes, measured by the simulator and written at seeding (as `values:derive` writes values), never hand-set. So XP per hour is about the same for every creature of a level, and what differs is the cost. `combatSim.ts creatures 50`:
+
+| Level 50 creature | Kill | HP lost/hr | XP per kill |
+|---|---|---|---|
+| Grunt (baseline) | 52s | 5,410 | 100% |
+| Wolf: accurate, quick (2.4s), light | 47s | 6,220 | 90% |
+| Boar: heavy, clumsy | 57s | 6,620 | 110% |
+| Tortoise: hard to hurt, slow (3.6s) | 98s | 4,330 | 189% |
+
+A dangerous creature is paid for in **loot**, not XP (§1: fighting at your level is where the loot is), and a safe one is the natural AFK target, so its loot should be thin. Combat kills find gold like any active skill (`GOLD_FIND_ACTIONS`).
 
 Fights are **one player, one enemy**. Group boss fights are a later possibility; nothing in the enemy rows should prevent them.
 
@@ -437,9 +448,7 @@ v2's XP paragraph (one skill's rate × 1.5, shared four ways) is superseded by �
 6. Durability numbers (§13) and the ingot and leather supply they demand.
 7. Regenerated §11 tables.
 
-**C. New-fighter danger.** At combat 1 a player wears only Bracers (Defense 1), so an even fight burns about 1,800 HP an hour: a meal every 3–4 minutes. Punishing by design, but it is the first thing a new fighter meets.
-
-**B. Should player defence grow faster than enemy accuracy?** Foozard's corollary. Advantage is near level-invariant (§4), which is why the Draft 1 AFK ramp did nothing. Widening the growth gap would make players progressively harder to hit as they level. Tested in the simulator as one more variable, after items 1–3; not decided.
+**B. Should player defence grow faster than enemy accuracy?** Foozard's corollary. **Set aside 2026-10-04:** creatures carry their own accuracy and power (§8), so how hard a creature is to avoid is decided per creature, not by a global growth curve. Reopen only if playtesting shows fighting below your level feels too safe or too risky across the board.
 
 ### Deferred to playtesting, deliberately
 
@@ -460,6 +469,8 @@ v2's XP paragraph (one skill's rate × 1.5, shared four ways) is superseded by �
 - **Guaranteed use count** for durability, counted in **kills** (§13).
 - **A third roll per swing**, if one ever earns its place, does *not* go in the advantage multiplier. §4 explains why that spot is dead.
 - **Eating is free.** Food is the only heal. No auto-eat, no auto-retreat, no regen.
+- **New fighters are not softened**: at combat 1 an even fight costs a meal every 3–4 minutes, and that is fine (2026-10-04).
+- **Creatures have profiles; XP per kill follows each one's kill time; danger is paid in loot** (§8).
 - **Disconnect = flee** by default (§9).
 - **Absorption at 0.4**, with the §5 table as the acceptance test; fitted as `0.4 × armour / 15` on the current model.
 - **Grunt swing 3.0s**, kept after the sim showed the v2 tables used 4.0s.

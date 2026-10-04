@@ -23,12 +23,13 @@
  *   afk         [maxTier] [maxFoe]  toughest foe you can leave for 20 minutes.
  *               Taiar is `afk 1 12`.
  *   gap         [levels]  HP lost and kills per hour against foes below you, Ambren gear.
+ *   creatures   [level]  one level, several creature profiles: kill time, HP cost, XP.
  *
  * Read-only: no database.
  */
 
 import {
-    COMBAT, CombatConstants, CombatLevels, Combatant, DamageType, Form, FORMS, Rng,
+    COMBAT, CombatConstants, CombatLevels, Combatant, CreatureProfile, DamageType, Form, FORMS, Rng,
     absorption, armourForDefense, combatLevel, defenseShare, enemyStats, fightOne, hitChance, levelTerm, maxHp,
     playerMaxHit, swing, weaponAim, weaponPower,
 } from '../lib/combatMath'
@@ -535,9 +536,36 @@ function gap(): void {
     }
 }
 
+// ── creatures ────────────────────────────────────────────────────────────────
+
+/** Example profiles: the same level, different characters (§8). */
+const EXAMPLE_PROFILES: Record<string, CreatureProfile> = {
+    'grunt (baseline)': {},
+    'wolf: accurate, quick, light': { accuracy: 1.15, power: 0.8, swingSeconds: 2.4, hp: 0.9 },
+    'boar: heavy, clumsy': { accuracy: 0.85, power: 1.35, hp: 1.1 },
+    'tortoise: hard to hurt, slow': { defence: 1.25, hp: 1.3, power: 0.9, swingSeconds: 3.6 },
+}
+
+/**
+ * The same level-matched fight against each example profile: how long a kill
+ * takes, what it costs in HP, and what XP per kill would be if every creature
+ * paid for its own kill time (the band over the seconds a kill takes).
+ */
+function creatures(): void {
+    const c = COMBAT
+    const level = Number(process.argv[3] ?? 12)
+    const kit = kitAt(level, 'onehand', 'slash', c)
+    const base = measure(mulberry32(level), kit, enemyStats(level, c), 3000, c)
+    console.log(`\nCombat ${level}, one-hand + shield, against level ${level} creatures with different profiles.`)
+    table(['creature', 'kill s', 'kills/hr', 'HP lost/hr', 'HP per kill', 'XP per kill (vs grunt)'], Object.entries(EXAMPLE_PROFILES).map(([name, profile]) => {
+        const m = measure(mulberry32(level), kit, enemyStats(level, c, profile), 3000, c)
+        return [name, f1(m.killSeconds), f1(m.killsPerHour), Math.round(m.damagePerHour), f1(m.damagePerKill), pct(m.killSeconds / base.killSeconds)]
+    }))
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap }
+const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures }
 const cmd = process.argv[2] ?? 'forms'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)

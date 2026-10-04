@@ -242,16 +242,33 @@ export interface Combatant {
     hp: number
 }
 
-/** Grunt stats from level (§8). HP grows ×1.33 per tier, applied smoothly across the levels. */
-export function enemyStats(level: number, c: CombatConstants = COMBAT): Combatant {
+/**
+ * A creature's character around its level's baseline (§8): multipliers on
+ * accuracy, defence, hitting power and HP, and its own swing time. A row
+ * leaves a field null for the baseline. A wolf might be accurate and quick, a
+ * boar heavy-hitting and clumsy, a tortoise hard to hurt and slow.
+ */
+export interface CreatureProfile {
+    accuracy?: number
+    defence?: number
+    power?: number
+    hp?: number
+    swingSeconds?: number
+}
+
+/**
+ * Creature stats: the level's baseline (§8), shaped by its profile. The
+ * baseline is the grunt; HP grows per tier, applied smoothly across levels.
+ */
+export function enemyStats(level: number, c: CombatConstants = COMBAT, profile: CreatureProfile = {}): Combatant {
     const accuracy = c.ENEMY_BASE + c.ENEMY_PER_LEVEL * (level - 1)
     return {
-        aim: accuracy,
-        defence: accuracy,
-        maxHit: c.ENEMY_MAX_HIT_BASE + c.ENEMY_MAX_HIT_PER_LEVEL * level,
+        aim: accuracy * (profile.accuracy ?? 1),
+        defence: accuracy * (profile.defence ?? 1),
+        maxHit: (c.ENEMY_MAX_HIT_BASE + c.ENEMY_MAX_HIT_PER_LEVEL * level) * (profile.power ?? 1),
         absorb: 0,
-        swingSeconds: c.GRUNT_SWING_SECONDS,
-        hp: c.ENEMY_HP_BASE * Math.pow(c.ENEMY_HP_GROWTH_PER_TIER, (level - 1) / 12),
+        swingSeconds: profile.swingSeconds ?? c.GRUNT_SWING_SECONDS,
+        hp: c.ENEMY_HP_BASE * Math.pow(c.ENEMY_HP_GROWTH_PER_TIER, (level - 1) / 12) * (profile.hp ?? 1),
     }
 }
 
