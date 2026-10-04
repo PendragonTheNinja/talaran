@@ -8,6 +8,8 @@
 // Everything tunable is in COMBAT. Functions take a constants object so the
 // simulator can sweep a value without touching the default.
 
+import { rungOfTier, tierOfLevel } from './tiers'
+
 export type Form = 'dual' | 'onehand' | 'twohand'
 export type DamageType = 'pierce' | 'slash' | 'crush'
 export type Stance = 'weak' | 'neutral' | 'resistant'
@@ -26,10 +28,11 @@ export const COMBAT = {
     BAND_LOW: 25,
     BAND_HIGH: 75,
     ABSORPTION: 0.4,
-    // Fitted against the §5 table (scripts/combatSim.ts acceptance). The pair
-    // matters: 4.0s grunts reproduce the table at /15, 3.0s grunts at /11.
-    // PROVISIONAL until the grunt swing is decided (combat-spec §12).
-    ABSORPTION_DIVISOR: 11,
+    // Fitted to the §5 targets on the 3b model (combatSim.ts forms): one-hand at
+    // combat 100 gives AFK 24% below, 5.8 min parity survival, 23 food/hr. On the
+    // v2 model it was /11 (combatSim.ts acceptance); 3b players carry more
+    // Defense and Constitution, so armour absorbs a little less to match.
+    ABSORPTION_DIVISOR: 15,
 
     // §6 weapons
     POWER_GROWTH: 1.221,
@@ -52,13 +55,23 @@ export const COMBAT = {
     ENEMY_MAX_HIT_BASE: 6,
     ENEMY_MAX_HIT_PER_LEVEL: 0.46,
     // Fitted so a level-matched fight lasts ~40s at combat 1 and ~99s at combat 100
-    // (§6) once max hit carries a level term (combatSim.ts fit). v2: 140 and 1.33.
-    ENEMY_HP_BASE: 173,
-    ENEMY_HP_GROWTH_PER_TIER: 1.3555,
-    GRUNT_SWING_SECONDS: 3.0, // the v2 tables were measured at 4.0; see ABSORPTION_DIVISOR
+    // (§6) on the 3b model (combatSim.ts fit). v2: 140 and 1.33.
+    ENEMY_HP_BASE: 174,
+    ENEMY_HP_GROWTH_PER_TIER: 1.3809,
+    GRUNT_SWING_SECONDS: 3.0, // the v2 tables were measured at 4.0 (combatSim.ts calibrate)
 
     // §9 fight loop
     ENGAGE_DELAY_SECONDS: 10,
+
+    // §2 pacing (option 3b, decided 2026-10-04): the defensive side pays twice a
+    // normal skill's XP, split by the ledger, so Defense and Constitution each
+    // level at about a normal skill's pace for a shield-bearer.
+    DEFENSIVE_XP_MULTIPLE: 2,
+    // Each absorbed point counts this many times in the Defense/Constitution
+    // split. Absorption is always small beside the damage that lands, so
+    // unweighted it gave a shield-bearer only ~32% Defense; at 2 it is ~50% with
+    // a shield and ~33% without (combatSim.ts ledger).
+    ABSORBED_XP_WEIGHT: 2,
 }
 
 export type CombatConstants = typeof COMBAT
@@ -96,12 +109,63 @@ export function weaponPower(form: Form, type: DamageType, tier: number, c: Comba
     return TIER1_POWER[form][type] * Math.pow(c.POWER_GROWTH, tier - 1)
 }
 
-/** Total armour of a full set (§7). The shield is the offhand piece; forms without one lose it. */
+/**
+ * Total armour of a full set (§7). The shield is the offhand piece; forms
+ * without one lose it. The simulator's whole-set shorthand; a player's real
+ * armour comes from the pieces they can wear (armourForDefense).
+ */
 export function armourPoints(tier: number, set: ArmourSet, withShield: boolean, c: CombatConstants = COMBAT): number {
     const base = set === 'late' ? c.ARMOUR_LATE_BASE : c.ARMOUR_EARLY_BASE
     const full = base + c.GEAR_PER_TIER * (tier - 1) * (base / c.ARMOUR_LATE_BASE)
     const shieldShare = set === 'late' ? c.SHIELD_SHARE_LATE : c.SHIELD_SHARE_EARLY
     return withShield ? full : full * (1 - shieldShare)
+}
+
+/**
+ * The armour ladder (§7): one piece per Defense level. Within a tier, piece k
+ * (0-based, in this order) needs Defense = the tier's rung + k, so Ambren runs
+ * Defense 1 to 12 and Serph 13 to 24. Points are tier 1's; every piece scales
+ * with its tier the way the late set does (80 + 37.5 per tier).
+ */
+export const ARMOUR_LADDER: { slot: string; set: ArmourSet; name: string; points: number }[] = [
+    { slot: 'hands', set: 'early', name: 'Bracers', points: 6 },
+    { slot: 'feet', set: 'early', name: 'Boots', points: 6 },
+    { slot: 'head', set: 'early', name: 'Coif', points: 8 },
+    { slot: 'offhand', set: 'early', name: 'Buckler', points: 10 },
+    { slot: 'legs', set: 'early', name: 'Chausses', points: 10 },
+    { slot: 'chest', set: 'early', name: 'Hauberk', points: 14 },
+    { slot: 'hands', set: 'late', name: 'Gauntlets', points: 9 },
+    { slot: 'feet', set: 'late', name: 'Sabatons', points: 9 },
+    { slot: 'head', set: 'late', name: 'Helm', points: 12 },
+    { slot: 'offhand', set: 'late', name: 'Kite shield', points: 15 },
+    { slot: 'legs', set: 'late', name: 'Greaves', points: 15 },
+    { slot: 'chest', set: 'late', name: 'Cuirass', points: 20 },
+]
+
+export function piecePoints(tier1Points: number, tier: number, c: CombatConstants = COMBAT): number {
+    return tier1Points * (1 + c.GEAR_PER_TIER * (tier - 1) / c.ARMOUR_LATE_BASE)
+}
+
+/** The Defense level a ladder piece needs. */
+export function pieceDefenseRequired(tier: number, ladderIndex: number): number {
+    return rungOfTier(tier) + ladderIndex
+}
+
+/**
+ * Best armour a player can wear at a Defense level, one piece per slot, with
+ * tiers capped at `maxTier` (an island's metal). Shieldless forms skip the
+ * offhand slot.
+ */
+export function armourForDefense(defense: number, withShield: boolean, maxTier = 9, c: CombatConstants = COMBAT): number {
+    const best: Record<string, number> = {}
+    for (let tier = 1; tier <= Math.min(maxTier, tierOfLevel(defense)); tier++) {
+        ARMOUR_LADDER.forEach((piece, k) => {
+            if (!withShield && piece.slot === 'offhand') return
+            if (defense < pieceDefenseRequired(tier, k)) return
+            best[piece.slot] = Math.max(best[piece.slot] ?? 0, piecePoints(piece.points, tier, c))
+        })
+    }
+    return Object.values(best).reduce((a, b) => a + b, 0)
 }
 
 // ── Levels ───────────────────────────────────────────────────────────────────
@@ -126,31 +190,64 @@ export function playerMaxHit(power: number, level: number, swingSeconds: number,
 }
 
 /**
- * Which levels feed aim and max hit (§2). B is the decision (2026-10-01); A and
- * C stay for the simulator's comparison:
- *   A  Attack feeds aim, Strength feeds max hit
- *   B  both read the offense level: Attack XP + Strength XP through the curve
- *   C  both read the skill the held form trains (one-hand: Attack for aim, Strength for max hit)
- * `levelFromXp` is passed in so this module stays free of the database.
+ * The offense level, which feeds both aim and max hit (§2): the higher of
+ * Attack and Strength. Not their combined XP: each combat skill levels at a
+ * normal skill's pace (§2 Pacing), so a one-hander, who trains both, would
+ * otherwise read twice a two-hander's XP and out-hit them.
  */
-export type LevelVariant = 'A' | 'B' | 'C'
+export function offenseLevel(attack: number, strength: number): number {
+    return Math.max(attack, strength)
+}
 
-export function offenseLevels(
-    variant: LevelVariant,
-    form: Form,
-    attackXp: number,
-    strengthXp: number,
-    levelFromXp: (xp: number) => number,
-): { aimLevel: number; hitLevel: number } {
-    const attack = levelFromXp(attackXp)
-    const strength = levelFromXp(strengthXp)
-    if (variant === 'B') {
-        const offense = levelFromXp(attackXp + strengthXp)
-        return { aimLevel: offense, hitLevel: offense }
-    }
-    if (variant === 'C' && form === 'dual') return { aimLevel: attack, hitLevel: attack }
-    if (variant === 'C' && form === 'twohand') return { aimLevel: strength, hitLevel: strength }
-    return { aimLevel: attack, hitLevel: strength }
+export interface CombatLevels { attack: number; strength: number; defense: number; constitution: number }
+
+/**
+ * Combat level (§2). Candidates while it is decided:
+ *   three  average of offense level, Defense and Constitution: the three things a fight reads
+ *   pair   average of offense level and the better of Defense and Constitution
+ *   four   average of all four skills (a one-form player's unused skill drags it down)
+ */
+export type CombatLevelRule = 'three' | 'pair' | 'four'
+
+export function combatLevel(l: CombatLevels, rule: CombatLevelRule = 'three'): number {
+    const offense = offenseLevel(l.attack, l.strength)
+    if (rule === 'pair') return Math.round((offense + Math.max(l.defense, l.constitution)) / 2)
+    if (rule === 'four') return Math.round((l.attack + l.strength + l.defense + l.constitution) / 4)
+    return Math.round((offense + l.defense + l.constitution) / 3)
+}
+
+/** The skills each form's offensive XP goes to (§2). */
+export const FORM_TRAINS: Record<Form, ('attack' | 'strength')[]> = {
+    dual: ['attack'],
+    onehand: ['attack', 'strength'],
+    twohand: ['strength'],
+}
+
+/**
+ * Defense's share of a kill's defensive XP (§2): what armour absorbed, weighted,
+ * against what landed. Nothing absorbed or landed (the enemy missed or never
+ * swung): an even split.
+ */
+export function defenseShare(absorbed: number, landed: number, c: CombatConstants = COMBAT): number {
+    const weighted = c.ABSORBED_XP_WEIGHT * absorbed
+    return weighted + landed > 0 ? weighted / (weighted + landed) : 0.5
+}
+
+/**
+ * What one kill pays (§2 Pacing). `xp` is the enemy's XP: a normal skill's
+ * on-band rate for its level, over the time a level-matched kill takes.
+ *   - every skill the form trains gets `xp` (one-hand: Attack AND Strength)
+ *   - the defensive side gets DEFENSIVE_XP_MULTIPLE × `xp`, split by the
+ *     ledger (defenseShare): Defense takes what armour absorbed, Constitution
+ *     what landed
+ */
+export function killXp(xp: number, form: Form, absorbed: number, landed: number, c: CombatConstants = COMBAT): CombatLevels {
+    const out: CombatLevels = { attack: 0, strength: 0, defense: 0, constitution: 0 }
+    for (const skill of FORM_TRAINS[form]) out[skill] = xp
+    const defensive = c.DEFENSIVE_XP_MULTIPLE * xp
+    out.defense = defensive * defenseShare(absorbed, landed, c)
+    out.constitution = defensive - out.defense
+    return out
 }
 
 // ── Enemies ──────────────────────────────────────────────────────────────────
@@ -217,7 +314,10 @@ export function swing(rng: Rng, attacker: Combatant, defender: Combatant, multip
     const [lo, hi] = damageBand(attacker.aim, defender.defence, c)
     const rolled = Math.round((lo + rng() * (hi - lo)) * attacker.maxHit * multiplier)
     if (!hit) return { hit, rolled, absorbed: 0, landed: 0 }
-    const absorbed = Math.min(rolled, Math.round(defender.absorb))
+    // Rounded at random so a fractional absorb keeps its average: early armour
+    // absorbs well under one point, which plain rounding turned into nothing.
+    const whole = Math.floor(defender.absorb)
+    const absorbed = Math.min(rolled, whole + (rng() < defender.absorb - whole ? 1 : 0))
     return { hit, rolled, absorbed, landed: rolled - absorbed }
 }
 

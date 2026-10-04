@@ -9,6 +9,7 @@ import {
 import { awardXp } from './xp'
 import { incrementStats } from './stats'
 import { SERVER_ERROR } from '../lib/serviceResult'
+import { tierOfLevel } from '../lib/tiers'
 
 // ── Workstations ──────────────────────────────────────────────────
 //
@@ -41,12 +42,7 @@ export function tierMultiplier(toolTier: number, actionTier: number): number | n
 }
 
 /** Tier band of a level, matching the rungs in docs/xp-rebalance.md. */
-const RUNGS = [1, 13, 25, 37, 50, 62, 75, 87, 100]
-export function tierOfLevel(level: number): number {
-    let tier = 1
-    for (let i = 0; i < RUNGS.length; i++) if (level >= RUNGS[i]) tier = i + 1
-    return tier
-}
+export { tierOfLevel }
 
 export interface SlotType {
     slot: string
