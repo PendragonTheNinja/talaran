@@ -23,7 +23,7 @@
  *   afk         [maxTier] [maxFoe]  toughest foe you can leave for 20 minutes.
  *               Taiar is `afk 1 12`.
  *   gap         [levels]  HP lost and kills per hour against foes below you, Ambren gear.
- *   creatures   [level]  one level, several creature profiles: kill time, HP cost, XP.
+ *   creatures   [level]  one level, several creature profiles: XP/hr, HP cost, AFK band.
  *
  * Read-only: no database.
  */
@@ -256,11 +256,11 @@ function timeToDeath(rng: Rng, kit: Kit, enemy: Combatant, capMinutes: number, c
  * unattended. `rule` decides what "last" means: the mean of HP over damage
  * rate (as the v2 Unattended column), or the share of real runs that survive.
  */
-function afkBand(kit: Kit, c: CombatConstants, minutes: number, rule: 'mean' | number): number {
+function afkBand(kit: Kit, c: CombatConstants, minutes: number, rule: 'mean' | number, profile: CreatureProfile = {}): number {
     const rng = mulberry32(kit.combatLevel * 7)
     for (let below = 0; below <= 99; below++) {
         const foe = Math.max(1, Math.round(kit.combatLevel * (1 - below / 100)))
-        const enemy = enemyStats(foe, c)
+        const enemy = enemyStats(foe, c, profile)
         if (rule === 'mean') {
             if (measure(rng, kit, enemy, 600, c).unattendedMinutes >= minutes) return below
         } else {
@@ -541,25 +541,35 @@ function gap(): void {
 /** Example profiles: the same level, different characters (§8). */
 const EXAMPLE_PROFILES: Record<string, CreatureProfile> = {
     'grunt (baseline)': {},
+    'hare: fragile, nervy': { hp: 0.8, defence: 0.95, accuracy: 1.1 },
     'wolf: accurate, quick, light': { accuracy: 1.15, power: 0.8, swingSeconds: 2.4, hp: 0.9 },
     'boar: heavy, clumsy': { accuracy: 0.85, power: 1.35, hp: 1.1 },
-    'tortoise: hard to hurt, slow': { defence: 1.25, hp: 1.3, power: 0.9, swingSeconds: 3.6 },
+    'tortoise: hard to hurt, slow': { defence: 1.1, hp: 1.15, power: 0.85, swingSeconds: 3.6 },
 }
 
+/** How far a creature's XP per hour may sit from the grunt's at its level before `creatures` flags it (§8). */
+const XP_PER_HOUR_TOLERANCE = 0.15
+
 /**
- * The same level-matched fight against each example profile: how long a kill
- * takes, what it costs in HP, and what XP per kill would be if every creature
- * paid for its own kill time (the band over the seconds a kill takes).
+ * The same level-matched fight against each example profile. XP per kill is
+ * the level's (the grunt's), so XP per hour follows from how fast the player
+ * kills the creature (§8). Flags any creature whose XP per hour strays more
+ * than XP_PER_HOUR_TOLERANCE from the grunt's.
  */
 function creatures(): void {
     const c = COMBAT
     const level = Number(process.argv[3] ?? 12)
     const kit = kitAt(level, 'onehand', 'slash', c)
     const base = measure(mulberry32(level), kit, enemyStats(level, c), 3000, c)
-    console.log(`\nCombat ${level}, one-hand + shield, against level ${level} creatures with different profiles.`)
-    table(['creature', 'kill s', 'kills/hr', 'HP lost/hr', 'HP per kill', 'XP per kill (vs grunt)'], Object.entries(EXAMPLE_PROFILES).map(([name, profile]) => {
+    console.log(`\nCombat ${level}, one-hand + shield, against level ${level} creatures. XP per kill is the level's; XP per hour follows kill speed.`)
+    table(['creature', 'kill s', 'XP/hr vs grunt', 'HP lost/hr', 'AFK band', ''], Object.entries(EXAMPLE_PROFILES).map(([name, profile]) => {
         const m = measure(mulberry32(level), kit, enemyStats(level, c, profile), 3000, c)
-        return [name, f1(m.killSeconds), f1(m.killsPerHour), Math.round(m.damagePerHour), f1(m.damagePerKill), pct(m.killSeconds / base.killSeconds)]
+        const ratio = m.killsPerHour / base.killsPerHour
+        return [
+            name, f1(m.killSeconds), pct(ratio), Math.round(m.damagePerHour),
+            `${afkBand(kit, c, 20, 'mean', profile)}% below`,
+            Math.abs(ratio - 1) > XP_PER_HOUR_TOLERANCE ? 'OUTSIDE ±15%' : '',
+        ]
     }))
 }
 

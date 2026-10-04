@@ -308,16 +308,19 @@ This HP formula is current. `docs/cooking-outline.md` §4 anchored food on "abou
 
 Nouns are rows (CLAUDE.md §2). An enemy row holds **level**, a **stance per damage type**, its **location**, its loot on the existing `drop_table_entries`, and a **profile** (decided 2026-10-04): nullable multipliers on accuracy, defence, hitting power and HP around its level's baseline, and its own swing time. Null is the baseline grunt. `CreatureProfile` and `enemyStats` in `lib/combatMath.ts`.
 
-**XP per kill follows the creature's own kill time:** the band at its level, over the seconds a level-matched kill against it takes, measured by the simulator and written at seeding (as `values:derive` writes values), never hand-set. So XP per hour is about the same for every creature of a level, and what differs is the cost. `combatSim.ts creatures 50`:
+**XP per kill comes from the creature's level** (decided 2026-10-04): the band at that level, over the time a level-matched kill against the baseline grunt takes, written at seeding by the simulator, never hand-set. A row may carry a small **XP multiplier** for its type. **XP per hour then follows from how fast the player kills it**: a creature you cut down quickly is better XP, a tough one is worse XP and perhaps a safer AFK or better loot. Loot is designed per creature, not derived from its stats.
 
-| Level 50 creature | Kill | HP lost/hr | XP per kill |
-|---|---|---|---|
-| Grunt (baseline) | 52s | 5,410 | 100% |
-| Wolf: accurate, quick (2.4s), light | 47s | 6,220 | 90% |
-| Boar: heavy, clumsy | 57s | 6,620 | 110% |
-| Tortoise: hard to hurt, slow (3.6s) | 98s | 4,330 | 189% |
+**The guardrail: within a level, XP per hour stays within about ±15% of the grunt's.** `combatSim.ts creatures` measures every profile and flags any outside it; a flagged creature gets a gentler profile or a small XP multiplier. Example profiles (`combatSim.ts creatures 50`, one-hand + shield, level-matched):
 
-A dangerous creature is paid for in **loot**, not XP (§1: fighting at your level is where the loot is), and a safe one is the natural AFK target, so its loot should be thin. Combat kills find gold like any active skill (`GOLD_FIND_ACTIONS`).
+| Level 50 creature | Kill | XP/hr | HP lost/hr | AFK band |
+|---|---|---|---|---|
+| Grunt (baseline) | 52s | 100% | 5,410 | 31% below |
+| Hare: fragile, nervy | 39s | 127%, flagged | 5,840 | 32% below |
+| Wolf: accurate, quick (2.4s), light | 47s | 109% | 6,220 | 34% below |
+| Boar: heavy, clumsy | 57s | 92% | 6,620 | 40% below |
+| Tortoise: hard to hurt, slow (3.6s) | 69s | 78%, flagged | 3,760 | 22% below |
+
+Each island wants a mix: quick XP that is hard to leave (wolf), slow but safe to leave (tortoise), costly in food but rich in loot (boar).
 
 Fights are **one player, one enemy**. Group boss fights are a later possibility; nothing in the enemy rows should prevent them.
 
@@ -470,7 +473,7 @@ v2's XP paragraph (one skill's rate × 1.5, shared four ways) is superseded by �
 - **A third roll per swing**, if one ever earns its place, does *not* go in the advantage multiplier. §4 explains why that spot is dead.
 - **Eating is free.** Food is the only heal. No auto-eat, no auto-retreat, no regen.
 - **New fighters are not softened**: at combat 1 an even fight costs a meal every 3–4 minutes, and that is fine (2026-10-04).
-- **Creatures have profiles; XP per kill follows each one's kill time; danger is paid in loot** (§8).
+- **Creatures have profiles; XP per kill comes from the level (plus a small per-type multiplier); XP per hour follows kill speed and stays within ±15% of the level's grunt** (§8).
 - **Disconnect = flee** by default (§9).
 - **Absorption at 0.4**, with the §5 table as the acceptance test; fitted as `0.4 × armour / 15` on the current model.
 - **Grunt swing 3.0s**, kept after the sim showed the v2 tables used 4.0s.
