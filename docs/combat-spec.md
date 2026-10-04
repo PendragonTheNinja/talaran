@@ -396,7 +396,7 @@ HP lost per hour on Taiar, Ambren gear:
 | 6 | 1,640 / 2,360 | 1,460 / 2,140 | 850 / 1,400 |
 | 12 | 2,040 / 2,660 | 1,490 / 2,050 | 400 / 750 |
 
-In cooking time, at the best dish for a cook of the same level: an hour of even fighting needs about **55 minutes of cooking at combat 3**, falling to **about 30 minutes at combat 12** (one-hand; shieldless forms about a third more), before the fishing and gathering behind the ingredients. Fighting below your level roughly halves it. This is the intended loop (fighting feeds Cooking), and the reason combat's extra XP is fair (§2 Pacing). The early levels are the expensive ones; §12 C.
+In cooking time, at the best dish for a cook of the same level: an hour of even fighting needs about **55 minutes of cooking at combat 3**, falling to **about 30 minutes at combat 12** (one-hand; shieldless forms about a third more), before the fishing and gathering behind the ingredients. Fighting below your level roughly halves it. This is the intended loop (fighting feeds Cooking), and the reason combat's extra XP is fair (§2 Pacing). The early levels are the expensive ones, and that is accepted (§12).
 
 ### No auto-eat, no auto-retreat, by design
 
