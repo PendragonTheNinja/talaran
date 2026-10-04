@@ -1,6 +1,6 @@
-# Talaran Combat — Build Spec (Skills #14–17)
+# Talaran Combat — Build Spec (Melee, Defense, Constitution)
 
-*Spec v3 — 2026-10-01. Supersedes v2 (2026-09-16), which incorporated Foozard's review of Draft 1. v3 records the decisions from Nathan's 2026-10-01 pass and marks what the simulator must settle before anything is seeded. Read CLAUDE.md §0 before building anything. This spec is the design authority; where it conflicts with an assumption, ask Nathan, do not improvise.*
+*Spec v4 — 2026-10-04. Supersedes v3 (2026-10-01) and v2 (2026-09-16, which incorporated Foozard's review of Draft 1). v4 replaces the four combat skills with three (§2). The simulator (`scripts/combatSim.ts`, §16) measured every number here. Read CLAUDE.md §0 before building anything. This spec is the design authority; where it conflicts with an assumption, ask Nathan, do not improvise.*
 
 **Status: design decisions are settled except where marked SIM. Every SIM item is settled by `scripts/combatSim.ts` (§16), then written back here, before any content is seeded.**
 
@@ -8,7 +8,7 @@
 
 ## 0. What Combat is
 
-Four skills, no menu to pick what you train. The weapon in your hand decides it. One enemy ladder, one fight loop, two rolls per swing. Unattended fighting is possible well below your level and deliberately worse than paying attention.
+Three skills, no menu to pick what you train. Every swing trains Melee; how the blows land on you decides between Defense and Constitution. One enemy ladder, one fight loop, two rolls per swing. Unattended fighting is possible well below your level and deliberately worse than paying attention.
 
 Design identity vs. the gathering skills: combat is the only skill where the thing you are working on fights back, so the levers are **what you carry into the fight** and **when you eat**. Everything else is settled before you engage.
 
@@ -28,92 +28,76 @@ The AFK band is a single constant and can move in a patch. It is **not** to be c
 
 ---
 
-## 2. The four skills and how they train
+## 2. The skills and how they train
 
-**Attack, Strength, Defense, Constitution.** No skill in Talaran is capped at 100, these included.
+**Melee, Defense, Constitution** (decided 2026-10-04). No skill in Talaran is capped at 100, these included.
 
-### Offensive side: routed by weapon FORM
+- **Melee** is how you fight. Every form trains it. It feeds aim and max hit, and it gates weapons.
+- **Defense** and **Constitution** are your body. They feed defence and max HP, and Defense gates armour. They belong to no weapon: when Archery and Talar arrive as fighting skills of their own, Defense and Constitution carry across.
 
-This replaces Draft 1's damage-type routing, which is dead. Type-based routing required an enemy favourable to each damage type, at every level, with matching XP and loot, forever, or specialising quietly cost you. Form-based routing needs **one enemy ladder instead of three**.
+### Why three, not four
 
-| Form | Speed | Trains |
-|---|---|---|
-| Dual wield | 2.4s | Attack |
-| One-hand and shield | 3.0s | Attack **and** Strength, each at the full rate |
-| Two-hand | 3.6s | Strength |
+v2 and v3 had Attack and Strength, routed by weapon form. They never earned separate jobs: the level term had to read their combined XP (or the higher of the two) so no form was penalised, at which point the split changed nothing in a fight, and one-hand had to train both in full to reach its gates. Defense and Constitution do have separate jobs, and §2's ledger lets a player steer between them through gear. So: one fighting skill, two body skills. (Considered and set aside: a single Melee skill with HP hidden inside it, which hid where HP comes from; and gating gear on combat level with one shared XP pool, which kept XP to one skill's worth but left the individual skills as decoration.)
 
-### Defensive side: routed by the damage ledger
+### What a kill pays
 
-- **Defense** takes the share your armour *absorbed*.
+All of it **when the kill ends**; a fight you flee or die in pays nothing. The enemy's XP is a row value: the band at its level, over the time a level-matched kill takes.
+
+- **Melee**: the enemy's XP, whatever the form.
+- **The defensive side**: twice that (`DEFENSIVE_XP_MULTIPLE`), split by the ledger below.
+
+### The ledger: Defense or Constitution
+
+- **Defense** takes the share your armour *absorbed*. Each absorbed point counts twice (`ABSORBED_XP_WEIGHT`): absorption is always small beside the damage that lands, and unweighted a shield-bearer got only about a third.
 - **Constitution** takes the share that *landed*.
-- **Misses count for neither.** (Decided 2026-10-01 after `combatSim.ts ledger`: counting misses gave Defense 60–90% at every level, because weak enemies miss a lot, and left no way to train Constitution on purpose.)
-- **Each absorbed point counts twice** (`ABSORBED_XP_WEIGHT`). Absorption is always small beside the damage that lands; unweighted, a shield-bearer got only about a third. Nothing absorbed or landed (the enemy missed, or never swung): an even split.
+- **Misses count for neither.** (Counting them gave Defense 60–90% at every level, because weak enemies miss a lot.) Nothing absorbed or landed: an even split.
 
-Measured split fighting an even foe: **about 50/50 with a shield, about one third Defense without**. The levers, none of them a menu:
+Measured fighting an even foe: **about 50/50 with a shield, about one third Defense without**. The levers, none of them a menu:
 
 - **Take the shield off**, or fight two-handed: two thirds goes to Constitution.
 - **Fight something that hurts**: more lands, more Constitution.
 - **Fight something weaker, or wear heavier armour**: more Defense.
 
-The first few combat levels lean to Constitution, because the first ladder pieces (§7) absorb little.
+### Pacing: each skill levels like a normal skill
 
-### Pacing: every combat skill levels like a normal skill (DECIDED 2026-10-04, option 3b)
+`combatSim.ts pacing`; a gatherer on the band reaches 13 in 22h, 25 in 73h, 50 in 360h, 100 in 2,581h.
 
-Spec v2 had the four skills **share one skill's worth of XP** (×1.5), so the individual numbers always looked low next to a woodcutter's. That broke clean gates: Serph weapons at Strength 13 would have come late, one-hand (needing both skills) later still, and the armour ladder (one piece per Defense level, §7) two to three times slower than the weapons. **Dead.**
-
-A kill pays, per skill:
-
-- **every skill the held form trains**: a normal skill's on-band XP for the time the kill takes (one-hand: Attack **and** Strength, both in full);
-- **the defensive side**: twice that (`DEFENSIVE_XP_MULTIPLE`), split by the ledger.
-
-All of it is paid **when the kill ends**. A fight you flee or die in pays nothing. The enemy's XP is a row value: the band at its level, over the time a level-matched kill takes.
-
-Measured (`combatSim.ts pacing`; a gatherer reaches 13 in 22h, 25 in 73h, 50 in 360h, 100 in 2,581h):
-
-| Form | Weapon skill | Defense | Constitution |
+| Form | Melee | Defense | Constitution |
 |---|---|---|---|
 | One-hand + shield | 13 in 22h, 100 in 2,581h | same | same |
 | Two-hand / dual | 13 in 22h, 100 in 2,700h | 13 in 32h, 100 in 3,438h | 13 in 17h, 100 in 2,216h |
 
-A shield-bearer levels all four exactly like a gatherer. Without a shield, Defense trails and Constitution leads: the ledger doing its job.
+A shield-bearer levels all three exactly like a gatherer, so armour and weapons arrive together. Without a shield, Defense trails and Constitution leads: new armour comes later, and more HP sooner. The fighter's own choice.
 
-**The cost, accepted:** an hour of fighting raises three skills (two-hand, dual) or four (one-hand) by a gatherer's hour each. Fighting also burns about half an hour of someone's cooking per hour, and the gear it breaks.
+**Why this pays more than one skill's worth an hour.** A skill that gates gear at the clean rungs must level at a normal pace, or its gear arrives late. Melee gates weapons and Defense gates armour, so combat cannot pay less than about two skills' worth and keep 13 / 25 / 37…; Constitution rides along because it shares Defense's pool. Counting the cooking, gathering and smithing an hour of fighting consumes (§10, §13), combat earns about 1.5 skills' worth per hour of total effort, close to v2's ×1.5 intent.
 
-**Total level:** **tally licences count non-combat skills only** (decided 2026-10-04; `totalLevel` in `services/tally.ts` gets a `type <> 'combat'` filter when combat ships), so fighting is not a shortcut to tally boards. Feats (`total_level`, `breadth`) and highscores: OPEN (§12).
+**Total level.** Tally licences count **non-combat skills only** (`totalLevel` in `services/tally.ts` gets a `type <> 'combat'` filter when combat ships), so fighting is not a shortcut to tally boards. The `total_level` and `breadth` feats **do** count combat skills; their thresholds may rise as skills are added. **Highscores**: combat level, and each of Melee, Defense and Constitution.
 
 ### Combat level
 
-Combat level must read as the level of fighter you are, because enemies are placed against it. Candidates, measured by `combatSim.ts levels`:
-
-| Rule | What it is | A two-hander at combat 100 | Hours to combat 100 (shield / no shield) |
-|---|---|---|---|
-| **three** (recommended) | average of offense level, Defense, Constitution | Str 100, Def 93, Con 106 | 2,581 / 2,681 |
-| pair | average of offense level and the better of Defense, Constitution | Str 97, Def 89, Con 102 | 2,581 / 2,202 |
-| four | average of all four | Str 133, Def 124, Con 140 | 2,581 / 12,006 |
-
-"four" punishes the one-form player, whose unused skill sits at 1. "pair" overstates the shieldless forms. "three" averages exactly what a fight reads, and every form reaches each combat level within a few percent of the same hours. OPEN (§12): "three" is used provisionally everywhere in the simulator.
+**The average of your fighting skill, Defense and Constitution**, rounded. When Archery and Talar exist, the fighting skill is the best of Melee, Archery and Talar. It is the number creatures are matched against, and a highscore. `combatSim.ts levels`: every form reaches each combat level within a few percent of the same hours; a two-hander at combat 100 has Melee 100, Defense 93, Constitution 106.
 
 ### What the levels do
 
-Weapon stats carry roughly twice what levels do (§4). The **offense level** feeds both aim and max hit: **the higher of Attack and Strength**. (Not their combined XP: a one-hander trains both in full, and would read twice a two-hander's level.) Attack and Strength otherwise decide only **which weapons you can equip**; their descriptions in `skills` are rewritten by migration to say so. Defense feeds defence and gates armour; Constitution sets max HP.
+Weapon stats carry roughly twice what levels do (§4).
 
-History: v3 compared three ways of feeding the level terms (A: Attack for aim, Strength for max hit; B: an offense level; C: each form's own skill). A left a lifelong two-hander at 56% of a one-hander's kill rate at combat 100; C left the balanced form 18–21% behind. B was chosen, and under 3b became "the higher of the two".
+- **Melee**: the level term in aim and in max hit; gates weapons.
+- **Defense**: the level term in defence; gates armour (§7).
+- **Constitution**: max HP, `100 + 10 × (Constitution − 1)`.
+
+History: v3 compared three ways for four skills to feed the level terms (Attack for aim and Strength for max hit; a combined offense level; each form's own skill). The first left a lifelong two-hander at 56% of a one-hander's kill rate at combat 100; the third left the balanced form 18–21% behind. Merging the two into Melee ends the question.
 
 ### Weapon gates: the clean rungs
 
-Every skill now levels at a normal pace, so gates are the ladder's own numbers:
+| Tier | Every form |
+|---|---|
+| T1 Ambren | Melee 1 |
+| T2 Serph | Melee 13 |
+| T3 Azulyss | Melee 25 |
+| … | the rung |
+| T9 | Melee 100 |
 
-| Tier | Two-hand | Dual | One-hand + shield |
-|---|---|---|---|
-| T1 Ambren | Strength 1 | Attack 1 | Attack 1 and Strength 1 |
-| T2 Serph | Strength 13 | Attack 13 | Attack 13 and Strength 13 |
-| T3 Azulyss | 25 | 25 | 25 and 25 |
-| … | rung | rung | rung and rung |
-| T9 | 100 | 100 | 100 and 100 |
-
-All three damage types in a form share the gate. The one-hander trains both skills in full, so it reaches its gate at the same hour as everyone else; the trade between forms is only what it should be: safer with a shield, about 20% fewer kills per hour (§6).
-
-History: v3 briefly used curve-scaled gates (Serph two-hand at Strength 8, tier 9 armour at Defense 67) to line gear up with a combat level that ran ahead of the shared-XP skills. 3b made that unnecessary.
+All nine weapons of a tier share the gate. The trade between forms is only what it should be: safer with a shield, about 20% fewer kills per hour (§6).
 
 ---
 
@@ -172,7 +156,7 @@ At parity that is rng(25,75)%, averaging half your max hit. At +25 advantage it 
 
 **Max hit is the weapon's power plus a smaller level term**, read from the offense level (§2): for a trained player the level is about a third of max hit, the same weapon-first split aim has. The level term is **scaled by swing time**, so levels add the same damage per second to every form; a flat amount per swing put dual about 15% ahead of everything else.
 
-Adding a level term made every fight shorter, so **enemy HP is refitted** to keep the §6 anchors (an even fight lasts about 40 seconds at combat 1 and 99 at combat 100): base **174**, growth **×1.3809 per tier** on the 3b model (v2: 140 and ×1.33). `combatSim.ts fit` checks it.
+Adding a level term made every fight shorter, so **enemy HP is refitted** to keep the §6 anchors (an even fight lasts about 40 seconds at combat 1 and 99 at combat 100): base **174**, growth **×1.3809 per tier** on the current model (v2: 140 and ×1.33). `combatSim.ts fit` checks it.
 
 Aim moves hit chance and the damage band together, so it raises your average hit without touching your ceiling.
 
@@ -198,7 +182,7 @@ This is the single lever that sets the AFK band, and 0.4 is chosen rather than m
 
 **What the original sim actually used**, recovered by `combatSim.ts calibrate`, which reproduces every §11 cell: a one-hand Spear, weapon and late armour with shield at the player's combat tier, aim level 41 / 86, defence level 36 / 81, and **grunts swinging every 4.0 seconds**, not 3.0. At 4.0s the table reproduces at `armour / 15`. §8's 3.0s was written after the numbers were measured. **Decided: grunts stay at 3.0s**, with the divisor refitted to 11 so the 0.4 row still holds.
 
-**Refitted on the 3b model (2026-10-04): `absorbed = 0.4 × armour / 15`.** 3b players carry more Defense and Constitution than the v2 kit, so armour absorbs a little less to keep the targets. One-hand, `combatSim.ts forms`: combat 100 gives AFK 23% below, 5.8 min parity survival, 23 food/hr (targets 24%, 5.7, 23); combat 50 gives AFK 31% (target 26%). Absorption is rounded at random (0.4 absorbs one point 40% of the time), so early armour keeps its average instead of rounding to nothing.
+**Refitted on the current model (2026-10-04): `absorbed = 0.4 × armour / 15`.** Players now carry more Defense and Constitution than the v2 kit, so armour absorbs a little less to keep the targets. One-hand, `combatSim.ts forms`: combat 100 gives AFK 23% below, 5.8 min parity survival, 23 food/hr (targets 24%, 5.7, 23); combat 50 gives AFK 31% (target 26%). Absorption is rounded at random (0.4 absorbs one point 40% of the time), so early armour keeps its average instead of rounding to nothing.
 
 ---
 
@@ -341,7 +325,7 @@ A **fighting spot** is a place with a pool of enemies. **You do not choose your 
 ```
 player inputs:   weapon aim, weapon power, form speed,
                  total armour, max HP,
-                 Attack / Strength / Defense / Constitution levels
+                 Melee / Defense / Constitution levels
 enemy inputs:    aim, defence, max hit, HP, swing speed, damage type stances
 
 loop:
@@ -401,7 +385,7 @@ HP lost per hour on Taiar, Ambren gear:
 | 6 | 1,640 / 2,360 | 1,460 / 2,140 | 850 / 1,400 |
 | 12 | 2,040 / 2,660 | 1,490 / 2,050 | 400 / 750 |
 
-In cooking time, at the best dish for a cook of the same level: an hour of even fighting needs about **55 minutes of cooking at combat 3**, falling to **about 30 minutes at combat 12** (one-hand; shieldless forms about a third more), before the fishing and gathering behind the ingredients. Fighting below your level roughly halves it. This is the intended loop (fighting feeds Cooking), and the reason 3b's extra XP is fair: counting the support work, combat earns about 1.5–2 skills' worth per hour, close to v2's ×1.5 intent. The early levels are the expensive ones; §12 E.
+In cooking time, at the best dish for a cook of the same level: an hour of even fighting needs about **55 minutes of cooking at combat 3**, falling to **about 30 minutes at combat 12** (one-hand; shieldless forms about a third more), before the fishing and gathering behind the ingredients. Fighting below your level roughly halves it. This is the intended loop (fighting feeds Cooking), and the reason combat's extra XP is fair (§2 Pacing). The early levels are the expensive ones; §12 C.
 
 ### No auto-eat, no auto-retreat, by design
 
@@ -453,11 +437,7 @@ v2's XP paragraph (one skill's rate × 1.5, shared four ways) is superseded by �
 6. Durability numbers (§13) and the ingot and leather supply they demand.
 7. Regenerated §11 tables.
 
-**C. Combat level rule** (§2): "three" (recommended), "pair" or "four".
-
-**D. Feats and highscores**: do `total_level` and `breadth` feats and the highscore total count combat skills? Tally licences do not (§2).
-
-**E. New-fighter danger.** At combat 1 a player wears only Bracers (Defense 1), so an even fight burns about 1,800 HP an hour: a meal every 3–4 minutes. Punishing by design, but it is the first thing a new fighter meets.
+**C. New-fighter danger.** At combat 1 a player wears only Bracers (Defense 1), so an even fight burns about 1,800 HP an hour: a meal every 3–4 minutes. Punishing by design, but it is the first thing a new fighter meets.
 
 **B. Should player defence grow faster than enemy accuracy?** Foozard's corollary. Advantage is near level-invariant (§4), which is why the Draft 1 AFK ramp did nothing. Widening the growth gap would make players progressively harder to hit as they level. Tested in the simulator as one more variable, after items 1–3; not decided.
 
@@ -468,12 +448,12 @@ v2's XP paragraph (one skill's rate × 1.5, shared four ways) is superseded by �
 
 ### Settled, recorded so it is not reopened
 
-- **XP routing by form, not damage type.**
 - **Speed by form**, three values, not nine.
-- **Every combat skill levels at a normal skill's pace** (option 3b), so **weapon gates are the clean rungs** and armour is **one piece per Defense level** (§2, §7).
-- **Tally licences count non-combat skills only** (§2).
+- **Three skills: Melee, Defense, Constitution** (§2). Each levels at a normal skill's pace, so **weapon gates are the clean rungs** (Melee) and armour is **one piece per Defense level** (§7).
+- **Combat level** is the average of the fighting skill, Defense and Constitution (§2).
+- **Tally licences count non-combat skills only; feats and highscores count them** (§2).
+- **Armour wears two random pieces per kill**; the weapon wears every kill (§13).
 - **Weapon power compensated** across damage types, and **×1.25 for the shieldless forms** (§6).
-- **Offense level** (the higher of Attack and Strength) feeds aim and max hit; Attack and Strength gate weapons (§2).
 - **Grunt swing 3.0s**, bosses hand-set.
 - **Defense takes what armour absorbed, Constitution what landed, misses count for neither**; XP paid at the end of the kill, nothing for a fled or lost fight.
 - **No skill caps**; combat level keeps counting.
@@ -481,7 +461,7 @@ v2's XP paragraph (one skill's rate × 1.5, shared four ways) is superseded by �
 - **A third roll per swing**, if one ever earns its place, does *not* go in the advantage multiplier. §4 explains why that spot is dead.
 - **Eating is free.** Food is the only heal. No auto-eat, no auto-retreat, no regen.
 - **Disconnect = flee** by default (§9).
-- **Absorption at 0.4**, with the §5 table as the acceptance test; fitted as `0.4 × armour / 15` on the 3b model.
+- **Absorption at 0.4**, with the §5 table as the acceptance test; fitted as `0.4 × armour / 15` on the current model.
 - **Grunt swing 3.0s**, kept after the sim showed the v2 tables used 4.0s.
 - **The nine weapons and their names** (§6).
 
@@ -493,9 +473,10 @@ Every weapon, armour piece and tool in the game breaks eventually, including rar
 
 A flat per-use break chance means a brand new piece can shatter on first use. Instead, each item has a **guaranteed use count**, tracked **per player, per item name**. Items stack, so the counter cannot live on the item or on copies.
 
-Hold ten Ambren Maces and have never fought: Ambren Mace, for your account, has a guaranteed count. Every kill ticks down the counter of everything you are wielding and wearing. At zero it stays at zero and the per-kill break roll starts applying. When one breaks, the counter resets to full and the next one is safe again for that many kills.
+Hold ten Ambren Maces and have never fought: Ambren Mace, for your account, has a guaranteed count. At zero it stays at zero and the break roll starts applying. When one breaks, the counter resets to full and the next one is safe again for that many uses.
 
 - **Counted in kills.** A fled or lost fight does not count.
+- **The weapon wears every kill. Armour wears two pieces per kill, chosen at random** among the pieces you wear (`ARMOUR_PIECES_WORN_PER_KILL`, decided 2026-10-04). With six pieces on, each wears about one kill in three, so armour lasts about three times as long as a weapon. Only a piece that wears rolls to break.
 - **When something breaks**, the fight log says so in a line of flavour text, the kill completes, and the fight **does not restart** until you equip a replacement.
 - **Tunable without a deploy.** A per-tier row holds the guaranteed kills and the break chance after them; nullable per-item override columns let a single item differ. Editable from the admin panel, like the world event settings.
 - **Smithed gear sits at the low end of its tier.** Drops you grind a creature for last longer. Starting point for smithed tier 1: about 200 kills (roughly three hours at parity), then 1% per kill. SIM, against supply.
@@ -524,7 +505,7 @@ Open liquid containers have no inventory row and stay with the player (CLAUDE.md
 
 **Ambren only.** Taiar has the first metal and nothing above it; the second island brings Serph. The first release is:
 
-- the four skills, combat level, the fight loop, death, durability;
+- Melee, Defense and Constitution (a migration turns the seeded Attack, Strength, Defense and Constitution rows into these three), combat level, the fight loop, death, durability;
 - nine Ambren weapons and two Ambren armour sets (twelve pieces);
 - Taiar enemies of level 1–12.
 
@@ -542,4 +523,4 @@ Open liquid containers have no inventory row and stay with the player (CLAUDE.md
 
 `apps/server/src/lib/combatMath.ts` holds every combat formula as pure functions. `apps/server/src/scripts/combatSim.ts` runs fights on it. The game imports the same module, so the simulator and the live fight can never drift apart.
 
-Done: reproduce the §5 table → compare variants A, B, C → level weights → pacing (3b) → Defense share and armour ladder → refit absorption and enemy HP. Next: food against Taiar's real dishes → durability and supply → regenerate §11 → question B. `lib/tiers.ts` holds the rung ladder for both.
+Done: reproduce the §5 table → compare variants A, B, C → level weights → pacing → three skills → Defense share and armour ladder → refit absorption and enemy HP → food against Taiar's dishes. Next: durability and supply (waiting on live mining numbers) → regenerate §11 → question B. `lib/tiers.ts` holds the rung ladder for both.

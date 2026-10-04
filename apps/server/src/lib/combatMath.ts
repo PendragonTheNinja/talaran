@@ -63,15 +63,19 @@ export const COMBAT = {
     // §9 fight loop
     ENGAGE_DELAY_SECONDS: 10,
 
-    // §2 pacing (option 3b, decided 2026-10-04): the defensive side pays twice a
-    // normal skill's XP, split by the ledger, so Defense and Constitution each
-    // level at about a normal skill's pace for a shield-bearer.
+    // §2 pacing (decided 2026-10-04): Melee earns a normal skill's XP; the
+    // defensive side earns twice that, split by the ledger, so Defense and
+    // Constitution each level at about a normal skill's pace for a shield-bearer.
     DEFENSIVE_XP_MULTIPLE: 2,
     // Each absorbed point counts this many times in the Defense/Constitution
     // split. Absorption is always small beside the damage that lands, so
     // unweighted it gave a shield-bearer only ~32% Defense; at 2 it is ~50% with
     // a shield and ~33% without (combatSim.ts ledger).
     ABSORBED_XP_WEIGHT: 2,
+
+    // §13 wear: the weapon wears every kill; this many worn armour pieces,
+    // chosen at random, wear per kill (decided 2026-10-04).
+    ARMOUR_PIECES_WORN_PER_KILL: 2,
 }
 
 export type CombatConstants = typeof COMBAT
@@ -170,7 +174,7 @@ export function armourForDefense(defense: number, withShield: boolean, maxTier =
 
 // ── Levels ───────────────────────────────────────────────────────────────────
 
-/** The smaller, level-driven part of aim, defence and (SIM) max hit (§4). */
+/** The smaller, level-driven part of aim, defence and max hit (§4): Melee for aim and max hit, Defense for defence. */
 export function levelTerm(level: number, c: CombatConstants = COMBAT): number {
     return c.LEVEL_TERM_BASE + c.LEVEL_TERM_PER_LEVEL * (level - 1)
 }
@@ -189,38 +193,15 @@ export function playerMaxHit(power: number, level: number, swingSeconds: number,
     return power + c.MAX_HIT_PER_LEVEL_TERM * levelTerm(level, c) * swingSeconds / FORMS.onehand.swingSeconds
 }
 
-/**
- * The offense level, which feeds both aim and max hit (§2): the higher of
- * Attack and Strength. Not their combined XP: each combat skill levels at a
- * normal skill's pace (§2 Pacing), so a one-hander, who trains both, would
- * otherwise read twice a two-hander's XP and out-hit them.
- */
-export function offenseLevel(attack: number, strength: number): number {
-    return Math.max(attack, strength)
-}
-
-export interface CombatLevels { attack: number; strength: number; defense: number; constitution: number }
+export interface CombatLevels { melee: number; defense: number; constitution: number }
 
 /**
- * Combat level (§2). Candidates while it is decided:
- *   three  average of offense level, Defense and Constitution: the three things a fight reads
- *   pair   average of offense level and the better of Defense and Constitution
- *   four   average of all four skills (a one-form player's unused skill drags it down)
+ * Combat level (§2): the average of your fighting skill, Defense and
+ * Constitution, the three things a fight reads. When Archery and Talar exist,
+ * the fighting skill becomes the best of them.
  */
-export type CombatLevelRule = 'three' | 'pair' | 'four'
-
-export function combatLevel(l: CombatLevels, rule: CombatLevelRule = 'three'): number {
-    const offense = offenseLevel(l.attack, l.strength)
-    if (rule === 'pair') return Math.round((offense + Math.max(l.defense, l.constitution)) / 2)
-    if (rule === 'four') return Math.round((l.attack + l.strength + l.defense + l.constitution) / 4)
-    return Math.round((offense + l.defense + l.constitution) / 3)
-}
-
-/** The skills each form's offensive XP goes to (§2). */
-export const FORM_TRAINS: Record<Form, ('attack' | 'strength')[]> = {
-    dual: ['attack'],
-    onehand: ['attack', 'strength'],
-    twohand: ['strength'],
+export function combatLevel(l: CombatLevels): number {
+    return Math.round((l.melee + l.defense + l.constitution) / 3)
 }
 
 /**
@@ -236,14 +217,13 @@ export function defenseShare(absorbed: number, landed: number, c: CombatConstant
 /**
  * What one kill pays (§2 Pacing). `xp` is the enemy's XP: a normal skill's
  * on-band rate for its level, over the time a level-matched kill takes.
- *   - every skill the form trains gets `xp` (one-hand: Attack AND Strength)
+ *   - Melee gets `xp`, whatever the form
  *   - the defensive side gets DEFENSIVE_XP_MULTIPLE × `xp`, split by the
  *     ledger (defenseShare): Defense takes what armour absorbed, Constitution
  *     what landed
  */
-export function killXp(xp: number, form: Form, absorbed: number, landed: number, c: CombatConstants = COMBAT): CombatLevels {
-    const out: CombatLevels = { attack: 0, strength: 0, defense: 0, constitution: 0 }
-    for (const skill of FORM_TRAINS[form]) out[skill] = xp
+export function killXp(xp: number, absorbed: number, landed: number, c: CombatConstants = COMBAT): CombatLevels {
+    const out: CombatLevels = { melee: xp, defense: 0, constitution: 0 }
     const defensive = c.DEFENSIVE_XP_MULTIPLE * xp
     out.defense = defensive * defenseShare(absorbed, landed, c)
     out.constitution = defensive - out.defense
@@ -371,5 +351,21 @@ export function fightOne(
         }
     }
     out.playerHpLeft = hp
+    return out
+}
+
+// ── Wear ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Which worn armour slots wear on this kill (§13): ARMOUR_PIECES_WORN_PER_KILL
+ * of them, chosen at random without repeats. The weapon wears every kill and
+ * is not in this draw.
+ */
+export function armourSlotsWorn(rng: Rng, wornSlots: string[], c: CombatConstants = COMBAT): string[] {
+    const pool = [...wornSlots]
+    const out: string[] = []
+    while (out.length < c.ARMOUR_PIECES_WORN_PER_KILL && pool.length > 0) {
+        out.push(pool.splice(Math.floor(rng() * pool.length), 1)[0])
+    }
     return out
 }

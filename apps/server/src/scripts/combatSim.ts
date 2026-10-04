@@ -13,9 +13,9 @@
  *   acceptance  [swing] [divisor] [minutes] sweeps the absorption constant
  *               against the §5 table, on the v2 model.
  *
- * The current model (option 3b pacing, offense level, clean rung gates, the
- * one-piece-per-Defense-level armour ladder):
- *   levels      [rule]  combat level against each skill's level, per form.
+ * The current model (Melee, Defense, Constitution at a normal skill's pace,
+ * clean rung gates, the one-piece-per-Defense-level armour ladder):
+ *   levels      combat level against each skill's level, per form.
  *   pacing      hours to each rung per skill, against a gatherer on the band.
  *   ledger      Defense's share of the defensive XP, per form and gap.
  *   fit         enemy HP base and growth for ~40s / ~99s level-matched kills.
@@ -28,9 +28,9 @@
  */
 
 import {
-    COMBAT, CombatConstants, CombatLevelRule, CombatLevels, Combatant, DamageType, Form, FORM_TRAINS, FORMS, Rng,
+    COMBAT, CombatConstants, CombatLevels, Combatant, DamageType, Form, FORMS, Rng,
     absorption, armourForDefense, combatLevel, defenseShare, enemyStats, fightOne, hitChance, levelTerm, maxHp,
-    offenseLevel, playerMaxHit, swing, weaponAim, weaponPower,
+    playerMaxHit, swing, weaponAim, weaponPower,
 } from '../lib/combatMath'
 import { tierOfLevel } from '../lib/tiers'
 import { xpForLevel } from '../services/xp'
@@ -93,32 +93,31 @@ const DEFENSE_SHARE: Record<Form, number> = { onehand: 0.5, twohand: 0.33, dual:
 interface Snapshot { hours: number; levels: CombatLevels }
 
 /**
- * A one-form player fighting on the band (§2 Pacing, option 3b): every skill
- * the form trains earns a normal skill's rate at the fight's level, and the
- * defensive side earns DEFENSIVE_XP_MULTIPLE × that, split by the ledger.
+ * A one-form player fighting on the band (§2 Pacing): Melee earns a normal
+ * skill's rate at the fight's level, and the defensive side earns
+ * DEFENSIVE_XP_MULTIPLE × that, split by the ledger.
  * Returns the skill levels at the moment each combat level is first reached.
  */
 const progressionCache = new Map<string, Snapshot[]>()
-function progression(form: Form, rule: CombatLevelRule = 'three', c: CombatConstants = COMBAT): Snapshot[] {
-    const key = `${form}:${rule}:${c.DEFENSIVE_XP_MULTIPLE}`
+function progression(form: Form, c: CombatConstants = COMBAT): Snapshot[] {
+    const key = `${form}:${c.DEFENSIVE_XP_MULTIPLE}`
     const hit = progressionCache.get(key)
     if (hit) return hit
-    const xp: CombatLevels = { attack: 0, strength: 0, defense: 0, constitution: 0 }
+    const xp: CombatLevels = { melee: 0, defense: 0, constitution: 0 }
     const levels = (): CombatLevels => ({
-        attack: fastLevel(xp.attack), strength: fastLevel(xp.strength),
-        defense: fastLevel(xp.defense), constitution: fastLevel(xp.constitution),
+        melee: fastLevel(xp.melee), defense: fastLevel(xp.defense), constitution: fastLevel(xp.constitution),
     })
     const out: Snapshot[] = []
     out[1] = { hours: 0, levels: levels() }
     const step = 0.1
     for (let h = 0; h < 20000 && out.length <= 120; h += step) {
-        const rate = band(combatLevel(levels(), rule)) * step
-        for (const skill of FORM_TRAINS[form]) xp[skill] += rate
+        const rate = band(combatLevel(levels())) * step
+        xp.melee += rate
         const defensive = c.DEFENSIVE_XP_MULTIPLE * rate
         xp.defense += defensive * DEFENSE_SHARE[form]
         xp.constitution += defensive * (1 - DEFENSE_SHARE[form])
         const now = levels()
-        const cl = combatLevel(now, rule)
+        const cl = combatLevel(now)
         for (let l = 2; l <= cl; l++) if (!out[l]) out[l] = { hours: h + step, levels: now }
     }
     progressionCache.set(key, out)
@@ -137,13 +136,6 @@ interface Kit {
     foodHeal: number
 }
 
-/** The skill level a form's weapons are gated on (§2): one-hand needs both. */
-function weaponGateLevel(form: Form, l: CombatLevels): number {
-    if (form === 'twohand') return l.strength
-    if (form === 'dual') return l.attack
-    return Math.min(l.attack, l.strength)
-}
-
 /**
  * A one-form player at a combat level on the current model: levels from the
  * progression, the best weapon tier their gate skill allows, the best armour
@@ -151,12 +143,12 @@ function weaponGateLevel(form: Form, l: CombatLevels): number {
  */
 function kitAt(combatLevelWanted: number, form: Form, type: DamageType, c: CombatConstants = COMBAT, maxTier = 9): Kit {
     const { levels: l } = progression(form)[combatLevelWanted]
-    const tier = Math.min(maxTier, tierOfLevel(weaponGateLevel(form, l)))
-    const offense = offenseLevel(l.attack, l.strength)
+    const tier = Math.min(maxTier, tierOfLevel(l.melee))
+    const offense = l.melee
     const armour = armourForDefense(l.defense, FORMS[form].shield, maxTier, c)
     const hp = maxHp(l.constitution, c)
     return {
-        label: `C${combatLevelWanted} ${form} T${tier} (Att ${l.attack} Str ${l.strength} Def ${l.defense} Con ${l.constitution}, armour ${Math.round(armour)})`,
+        label: `C${combatLevelWanted} ${form} T${tier} (Melee ${l.melee} Def ${l.defense} Con ${l.constitution}, armour ${Math.round(armour)})`,
         combatLevel: combatLevelWanted,
         maxHp: hp,
         foodHeal: 0.45 * hp,
@@ -362,20 +354,17 @@ function acceptance(): void {
 // ── levels ───────────────────────────────────────────────────────────────────
 
 function levels(): void {
-    const rules: CombatLevelRule[] = process.argv[3] ? [process.argv[3] as CombatLevelRule] : ['three', 'pair', 'four']
-    for (const rule of rules) {
-        console.log(`\nCombat level rule "${rule}". Skill levels at the moment each combat level is reached (Att / Str / Def / Con), and hours of play.`)
-        const rows: (string | number)[][] = []
-        for (const cl of [5, 12, 25, 50, 75, 100]) {
-            rows.push([cl, ...FORM_LIST.map(form => {
-                const s = progression(form, rule)[cl]
-                if (!s) return '—'
-                const l = s.levels
-                return `${l.attack}/${l.strength}/${l.defense}/${l.constitution} (${hrs(s.hours)}h)`
-            })])
-        }
-        table(['combat', ...FORM_LIST.map(f => FORM_LABEL[f])], rows)
+    console.log('\nSkill levels at the moment each combat level is reached (Melee / Defense / Constitution), and hours of play.')
+    const rows: (string | number)[][] = []
+    for (const cl of [5, 12, 25, 50, 75, 100]) {
+        rows.push([cl, ...FORM_LIST.map(form => {
+            const s = progression(form)[cl]
+            if (!s) return '—'
+            const l = s.levels
+            return `${l.melee}/${l.defense}/${l.constitution} (${hrs(s.hours)}h)`
+        })])
     }
+    table(['combat', ...FORM_LIST.map(f => FORM_LABEL[f])], rows)
 }
 
 // ── pacing ───────────────────────────────────────────────────────────────────
@@ -388,7 +377,7 @@ function pacing(): void {
         xp += band(fastLevel(xp)) * 0.1
         for (const r of rungs) if (fastLevel(xp) >= r && gatherer[r] === undefined) gatherer[r] = h
     }
-    console.log(`\nHours of on-band fighting until each skill first reaches each rung (option 3b, combat level rule "three").`)
+    console.log(`\nHours of on-band fighting until each skill first reaches each rung.`)
     console.log(`A gatherer on the band: ${rungs.map(r => `${r} in ${hrs(gatherer[r])}h`).join(', ')}.`)
     const rows: (string | number)[][] = []
     for (const form of FORM_LIST) {
@@ -397,7 +386,7 @@ function pacing(): void {
         for (const r of rungs) {
             rows.push([
                 FORM_LABEL[form], r,
-                hrs(first(l => weaponGateLevel(form, l), r)),
+                hrs(first(l => l.melee, r)),
                 hrs(first(l => l.defense, r)),
                 hrs(first(l => l.constitution, r)),
                 hrs(snaps.find((s, i) => i >= r)?.hours),
@@ -405,7 +394,7 @@ function pacing(): void {
             ])
         }
     }
-    table(['form', 'rung', 'weapon gate', 'Defense', 'Constitution', 'combat level', 'gatherer'], rows)
+    table(['form', 'rung', 'Melee', 'Defense', 'Constitution', 'combat level', 'gatherer'], rows)
 }
 
 // ── ledger ───────────────────────────────────────────────────────────────────
