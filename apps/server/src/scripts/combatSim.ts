@@ -24,12 +24,13 @@
  *               Taiar is `afk 1 12`.
  *   gap         [levels]  HP lost and kills per hour against foes below you, Ambren gear.
  *   creatures   [level]  one level, several creature profiles: XP/hr, HP cost, AFK band.
+ *   roster      Taiar's creatures, each at its own level, against the guardrail.
  *
  * Read-only: no database.
  */
 
 import {
-    COMBAT, CombatConstants, CombatLevels, Combatant, CreatureProfile, DamageType, Form, FORMS, Rng,
+    COMBAT, CombatConstants, CombatLevels, Combatant, CreatureProfile, DamageType, Form, FORMS, Rng, STANCE_MULTIPLIER, Stance,
     absorption, armourForDefense, combatLevel, defenseShare, enemyStats, fightOne, hitChance, levelTerm, maxHp,
     playerMaxHit, swing, weaponAim, weaponPower,
 } from '../lib/combatMath'
@@ -212,12 +213,12 @@ interface Matchup {
     unattendedMinutes: number
 }
 
-function measure(rng: Rng, kit: Kit, enemy: Combatant, fights: number, c: CombatConstants): Matchup {
+function measure(rng: Rng, kit: Kit, enemy: Combatant, fights: number, c: CombatConstants, stanceMultiplier = 1): Matchup {
     let seconds = 0
     let damage = 0
     for (let i = 0; i < fights; i++) {
         // Effectively unkillable, so death never cuts a fight short.
-        const r = fightOne(rng, kit.player, enemy, 1e9, 1, c)
+        const r = fightOne(rng, kit.player, enemy, 1e9, stanceMultiplier, c)
         seconds += r.seconds
         damage += r.landed
     }
@@ -573,9 +574,87 @@ function creatures(): void {
     }))
 }
 
+// ── roster ───────────────────────────────────────────────────────────────────
+
+interface RosterCreature {
+    name: string
+    level: number
+    spots: string[]
+    profile: CreatureProfile
+    stance: Record<DamageType, Stance>
+    note: string
+}
+
+const W: Stance = 'weak'
+const N: Stance = 'neutral'
+const X: Stance = 'resistant'
+
+/** Taiar's roster (combat-spec §8), as decided with Nathan 2026-10-05. Rows in the database once built. */
+const TAIAR: RosterCreature[] = [
+    { name: 'Dock Rat', level: 1, spots: ['Talador'], profile: {},
+      stance: { pierce: N, slash: W, crush: N }, note: 'scrappy baseline' },
+    { name: 'Granary Rat', level: 2, spots: ['Novita'], profile: { hp: 1.1, power: 0.9, accuracy: 0.9, swingSeconds: 3.6 },
+      stance: { pierce: X, slash: W, crush: N }, note: 'fat and slow: the first safe AFK' },
+    { name: 'Jackalope', level: 3, spots: ['Novita'], profile: { hp: 0.85, defence: 1.1, accuracy: 1.05, power: 0.85, swingSeconds: 2.4 },
+      stance: { pierce: N, slash: W, crush: X }, note: 'quick, hard to land a heavy blow on' },
+    { name: 'Feral Dog', level: 4, spots: ['Novita'], profile: { accuracy: 1.1, power: 0.85, hp: 0.9, swingSeconds: 2.4 },
+      stance: { pierce: W, slash: N, crush: N }, note: 'quick, accurate, light' },
+    { name: 'Shore Crab', level: 4, spots: ['Dawncrest'], profile: { defence: 1.1, hp: 1.15, power: 0.85, swingSeconds: 3.6 },
+      stance: { pierce: N, slash: X, crush: W }, note: 'shell: hard to hurt, slow, safe' },
+    { name: 'Wrecker', level: 6, spots: ['Dawncrest'], profile: { power: 1.1, accuracy: 0.95 },
+      stance: { pierce: W, slash: N, crush: N }, note: 'a person with a cudgel; no armour' },
+    { name: 'Sidehill Gouger', level: 6, spots: ['Origrund'], profile: { accuracy: 0.85, power: 1.3, hp: 1.1 },
+      stance: { pierce: W, slash: N, crush: X }, note: 'heavy and clumsy; thick hump' },
+    { name: 'Jumper', level: 8, spots: ['Origrund', 'Grundagr'], profile: { defence: 1.1, hp: 1.15, power: 0.9, swingSeconds: 3.6 },
+      stance: { pierce: N, slash: X, crush: W }, note: 'claim-jumper in mail: hard to hurt, slow' },
+    { name: 'Grey Wolf', level: 8, spots: ['Eld Grove'], profile: { accuracy: 1.15, power: 0.8, hp: 0.9, swingSeconds: 2.4 },
+      stance: { pierce: N, slash: W, crush: X }, note: 'pack hunter: quick, accurate; thick fur' },
+    { name: 'Knocker', level: 9, spots: ['Grundagr'], profile: { defence: 1.15, accuracy: 1.1, hp: 0.8, power: 0.85, swingSeconds: 2.4 },
+      stance: { pierce: X, slash: N, crush: W }, note: 'small, stony, evasive' },
+    { name: 'Agropelter', level: 10, spots: ['Eld Grove'], profile: { accuracy: 1.15, hp: 0.85, power: 0.95 },
+      stance: { pierce: W, slash: N, crush: N }, note: 'hurls branches from the canopy' },
+    { name: 'Hodag', level: 12, spots: ['Eld Grove'], profile: { power: 1.25, hp: 1.2, accuracy: 0.9, swingSeconds: 3.6 },
+      stance: { pierce: N, slash: X, crush: W }, note: 'horned, spined back; heavy' },
+]
+
+/**
+ * Each roster creature at its own level against a level-matched one-hander,
+ * hitting its weakness. XP per hour is measured against the baseline grunt hit
+ * with a weakness too (every roster creature has one, so that is the
+ * reference play); the neutral column shows the cost of the wrong weapon.
+ */
+function roster(): void {
+    const c = COMBAT
+    console.log('\nTaiar roster. One-hand + shield at the creature\'s level, using its weakness. ±15% guardrail on XP/hr.')
+    /** The lowest combat level (Ambren gear, one-hand) that can leave this creature 20 minutes. */
+    const afkFrom = (cr: RosterCreature): string => {
+        for (let level = cr.level; level <= 60; level++) {
+            const kit = kitAt(level, 'onehand', 'slash', c, 1)
+            const m = measure(mulberry32(level * 13 + cr.level), kit, enemyStats(cr.level, c, cr.profile), 800, c, STANCE_MULTIPLIER.weak)
+            if (m.unattendedMinutes >= 20) return `combat ${level}`
+        }
+        return 'past 60'
+    }
+    table(['creature', 'lvl', 'weak / resists', 'XP/hr', 'wrong-weapon XP/hr', 'HP lost/hr', 'AFK from', '', 'note'], TAIAR.map(cr => {
+        const kit = kitAt(cr.level, 'onehand', 'slash', c, 1)
+        const weakType = (Object.keys(cr.stance) as DamageType[]).find(t => cr.stance[t] === 'weak')!
+        const resist = (Object.keys(cr.stance) as DamageType[]).filter(t => cr.stance[t] === 'resistant')
+        const ref = measure(mulberry32(cr.level), kit, enemyStats(cr.level, c), 3000, c, STANCE_MULTIPLIER.weak)
+        const best = measure(mulberry32(cr.level), kit, enemyStats(cr.level, c, cr.profile), 3000, c, STANCE_MULTIPLIER.weak)
+        const neutral = measure(mulberry32(cr.level), kit, enemyStats(cr.level, c, cr.profile), 3000, c, STANCE_MULTIPLIER.neutral)
+        const ratio = best.killsPerHour / ref.killsPerHour
+        return [
+            cr.name, cr.level, `${weakType} / ${resist.join(', ') || '—'}`,
+            pct(ratio), pct(neutral.killsPerHour / ref.killsPerHour), Math.round(best.damagePerHour),
+            afkFrom(cr),
+            Math.abs(ratio - 1) > XP_PER_HOUR_TOLERANCE ? 'OUTSIDE' : '', cr.note,
+        ]
+    }))
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures }
+const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures, roster }
 const cmd = process.argv[2] ?? 'forms'
 if (!commands[cmd]) {
     console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)

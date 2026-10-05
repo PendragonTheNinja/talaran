@@ -328,7 +328,30 @@ Fights are **one player, one enemy**. Group boss fights are a later possibility;
 
 A **fighting spot** is a place with a pool of enemies. **You do not choose your opponent.** A spot with one creature gives you that creature every time; a mixed spot draws each next enemy at random, weighted per row (Eld Grove might hold forest creatures of level 8 to 12). Mixed spots make AFK riskier, since the occasional high roll is what kills you, which is the point of them. Each island gets several spots so players have real options: the choice is the place, not the creature.
 
-**Taiar hosts enemies of level 1–12**, matching Ambren (§15). **AFK on Taiar is deliberately thin** (`combatSim.ts afk 1 12`): with Ambren the only metal, a shield-bearer can leave level 3s at combat 12 and level 7s at combat 30, and a shieldless fighter cannot leave even a level 1 until about combat 18. That is the one-metal island, not the formulas: with Serph gear a combat 15 player leaves level 5s. A higher starting HP (200) would have fixed it, and was rejected (2026-10-01): a combat 1 player should not be able to idle level 1s. The creature roster is still to be designed; the simulator uses generic grunts by level until then.
+**Taiar hosts enemies of level 1–12**, matching Ambren (§15). **AFK on Taiar is deliberately thin** (`combatSim.ts afk 1 12`): with Ambren the only metal, a shield-bearer can leave level 3s at combat 12 and level 7s at combat 30, and a shieldless fighter cannot leave even a level 1 until about combat 18. That is the one-metal island, not the formulas: with Serph gear a combat 15 player leaves level 5s. A higher starting HP (200) would have fixed it, and was rejected (2026-10-01): a combat 1 player should not be able to idle level 1s. 
+
+### Taiar's roster (decided with Nathan 2026-10-05)
+
+Twelve creatures, six spots. Towns host no fighting except the docks at Talador; roads are for travel only; Verdale, Lanaivale, Luxmere and the Talar Rift have none (the Rift waits for the Talar update). No bosses yet: the Hodag is an ordinary creature. Profiles are first drafts, checked by `combatSim.ts roster` (one-hand + shield at the creature's level, hitting its weakness):
+
+| Spot | Creature | Lvl | Character | Weak / resists | XP/hr | AFK from |
+|---|---|---|---|---|---|---|
+| Talador (the docks) | Dock Rat | 1 | scrappy baseline, off the ships | slash / – | 100% | combat 10 |
+| Novita | Granary Rat | 2 | fat and slow: the first safe AFK | slash / pierce | 93% | combat 9 |
+| Novita | Jackalope | 3 | quick, hard to land a heavy blow on | slash / crush | 109% | combat 12 |
+| Novita | Feral Dog | 4 | quick, accurate, light; harries the flocks | pierce / – | 109% | combat 14 |
+| Dawncrest | Shore Crab | 4 | shell: hard to hurt, slow, safe | crush / slash | 86% | combat 11 |
+| Dawncrest | Wrecker | 6 | a person with a cudgel, no armour; lures ships onto the rocks | pierce / – | 100% | combat 22 |
+| Origrund | Sidehill Gouger | 6 | heavy, clumsy, a thick hump | pierce / crush | 93% | combat 27 |
+| Origrund, Grundagr | Jumper | 8 | claim-jumper in mail: hard to hurt, slow | crush / slash | 86% | combat 19 |
+| Eld Grove | Grey Wolf | 8 | pack hunter: quick, accurate, thick fur | slash / crush | 108% | combat 24 |
+| Grundagr | Knocker | 9 | mine spirit: small, stony, evasive | crush / pierce | 111% | combat 28 |
+| Eld Grove | Agropelter | 10 | hurls branches from the canopy | pierce / – | 113% | combat 28 |
+| Eld Grove | Hodag | 12 | horned, spined back, heavy | crush / slash | 86% | combat 40 |
+
+Mixed spots draw at random: Novita (Granary Rat, Jackalope, Feral Dog), Dawncrest (Crab, Wrecker), Origrund (Gouger, Jumper), Grundagr (Jumper, Knocker), Eld Grove (Wolf, Agropelter, Hodag). The Jumper lives in two spots, so a spot holds a weighted pool of creatures rather than a creature holding a spot.
+
+Each damage type is the weakness of four creatures (slash: both rats, Jackalope, Wolf; pierce: Dog, Wrecker, Gouger, Agropelter; crush: Crab, Jumper, Knocker, Hodag). The wrong weapon costs 5–30% of XP per hour. Jumpers drop coins and, now and then, a sack of stolen Ambren Ore. Loot for the rest is still to design. A combat tutor would need a new Geo- name: Geothro is Husbandry's stockman.
 
 ---
 
