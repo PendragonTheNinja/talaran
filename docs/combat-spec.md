@@ -254,7 +254,21 @@ Smithing makes every weapon and armour piece. Pattern: the Ambren Pickaxe (2 ing
 | Spear | 1 | Lanai Tool Rod, Leather Strips |
 | Atgeir | 2 | Lanai Tool Rod, Leather Strips |
 
-Quantities of rods and strips, timers and XP are set at seeding by the finished-goods policy (CLAUDE.md §8). **Supply is checked before seeding**: the ingots and leather that breakage (§13) demands per hour of fighting must be something Mining, smelting and Husbandry can produce. SIM.
+**DRAFT recipe numbers (2026-10-09, for Nathan's review).** Smithing convention: 45 seconds per ingot (the Ambren tools), one Lanai Tool Rod and one Leather Strips where listed, at the anvil (`station: 'smithing'`). XP by the law, as the Ambren Tinderbox computes it: `1.8 (finished goods) × 1.10 (tier unlock) × R̂(level) × seconds / 3600`, with `R̂(L) = 2000 × 1.33^((L−1)/12)`. Smithing is a dense skill (`docs/xp-rebalance.md`), so items sit at their own levels across the Ambren band instead of all at 1: one-hand weapons at the rung, dual at rung + 3, two-hand at rung + 7; armour at the same rung + k as its Defense gate (§7), one new piece per Smithing level. Weapon recipes are `for_skill: 'Melee'`, armour `for_skill: 'Defense'`.
+
+| Weapon | Smithing | Ingots | Also | Time | XP |
+|---|---|---|---|---|---|
+| Ambren Spear | 1 | 1 | Tool Rod, Strips | 45s | 50 |
+| Ambren Scimitar | 1 | 2 | Strips | 90s | 99 |
+| Ambren Mace | 1 | 2 | Tool Rod, Strips | 90s | 99 |
+| Ambren Daggers | 4 | 2 | Strips | 90s | 106 |
+| Ambren Hand Axes | 4 | 2 | Tool Rod, Strips | 90s | 106 |
+| Ambren War Hammers | 4 | 3 | Tool Rod, Strips | 135s | 159 |
+| Ambren Atgeir | 8 | 2 | Tool Rod, Strips | 90s | 117 |
+| Ambren Greatsword | 8 | 4 | Strips | 180s | 234 |
+| Ambren Maul | 8 | 4 | Tool Rod, Strips | 180s | 234 |
+
+Armour recipes are in §7. **Supply is checked before seeding**: the ingots and leather that breakage (§13) demands per hour of fighting must be something Mining, smelting and Husbandry can produce. SIM.
 
 ### The shield problem, noted not solved
 
@@ -283,6 +297,25 @@ The early set completes at +5, the late set at +11. Shieldless fighters get noth
 | **Total** | | **54** | **13** | | **80** | **22** |
 
 Every piece scales with its tier the way the late set does: points × `(1 + 37.5 × (tier - 1) / 80)`, so the tier 9 late set totals 380. Dropping the shield costs about 19% of total armour.
+
+**DRAFT armour recipes (2026-10-09):** the same convention as weapons (§6).
+
+| Piece | Smithing (= Defense gate) | Ingots | Also | Time | XP |
+|---|---|---|---|---|---|
+| Ambren Bracers | 1 | 1 | Strips | 45s | 50 |
+| Ambren Boots | 2 | 1 | Strips | 45s | 51 |
+| Ambren Coif | 3 | 2 | Strips | 90s | 104 |
+| Ambren Buckler | 4 | 2 | Strips | 90s | 106 |
+| Ambren Chausses | 5 | 3 | Strips | 135s | 163 |
+| Ambren Hauberk | 6 | 4 | Leather | 180s | 223 |
+| Ambren Gauntlets | 7 | 2 | Strips | 90s | 114 |
+| Ambren Sabatons | 8 | 2 | Strips | 90s | 117 |
+| Ambren Helm | 9 | 3 | Strips | 135s | 180 |
+| Ambren Kite Shield | 10 | 5 | Leather | 225s | 307 |
+| Ambren Greaves | 11 | 4 | Strips | 180s | 251 |
+| Ambren Cuirass | 12 | 6 | Leather | 270s | 386 |
+
+Both sets together: 35 ingots, about 26 minutes at the anvil.
 
 **Leather:** metal armour eats leather, which has five tiers against metal's nine: leather 1 covers metals 1–2, leather 2 covers 3–4, and so on up. **No piece takes more than one Leather**, and only the biggest take one (Hauberk, Cuirass, Kite shield). Every other piece takes Leather Strips.
 
@@ -541,7 +574,18 @@ Hold ten Ambren Maces and have never fought: Ambren Mace, for your account, has 
 - **The weapon wears every kill. Armour wears two pieces per kill, chosen at random** among the pieces you wear (`ARMOUR_PIECES_WORN_PER_KILL`, decided 2026-10-04). With six pieces on, each wears about one kill in three, so armour lasts about three times as long as a weapon. Only a piece that wears rolls to break.
 - **When something breaks**, the fight log says so in a line of flavour text, the kill completes, and the fight **does not restart** until you equip a replacement.
 - **Tunable without a deploy.** A per-tier row holds the guaranteed kills and the break chance after them; nullable per-item override columns let a single item differ. Editable from the admin panel, like the world event settings.
-- **Smithed gear sits at the low end of its tier.** Drops you grind a creature for last longer. Starting point for smithed tier 1: about 200 kills (roughly three hours at parity), then 1% per kill. SIM, against supply.
+- **Smithed gear sits at the low end of its tier.** Drops you grind a creature for last longer.
+- **DRAFT starting numbers (2026-10-09, for Nathan's review).** Smithed gear: tier 1 guarantees 200 uses then breaks at 1% a use; each tier up guarantees ×1.25 more and breaks ×0.85 as often. Hours at Taiar's pace (65 kills an hour; armour wears a third of kills):
+
+| Tier | Guaranteed | Then | Mean uses | Weapon | Armour piece |
+|---|---|---|---|---|---|
+| T1 | 200 | 1.00% | 300 | 4.6 h | 13.8 h |
+| T2 | 250 | 0.85% | 368 | 5.7 h | 17.0 h |
+| T3 | 312 | 0.72% | 450 | 6.9 h | 20.8 h |
+| T5 | 488 | 0.52% | 680 | 10.5 h | 31.4 h |
+| T9 | 1,192 | 0.27% | 1,559 | 24.0 h | 72.0 h |
+
+  Drop gear: **rare weapons** guarantee 1,500 then 0.2% (about 2,000 uses, 31 hours, about 7× a smithed weapon); **Crabshell pieces** 600 then 0.4% (about 850 uses, 39 hours, about 3× a smithed piece). Higher tiers fight slower kills, so real hours run longer than the Taiar pace shows.
 
 **Supply, measured against live Mining (2026-10-04).** Live `resource_nodes`: Granite swings 15–20s, the vein roll is **out of 1,000** (`vein_discovery_chance` 10 = 1% a swing on Granite, 5 = 0.5% on the ore nodes), and a vein's size comes from **the node it was found on**: 50–100 ore from Granite, 8–20 from an ore node. One open vein per ore per location, shared by everyone. A solo miner finding one Ambren and one Burgh vein from Granite, mining both and smelting: about 3 hours for 150 ingots, **about 50 ingots an hour of work, 1.2 minutes each**, plus 2 Charc per smelt.
 
