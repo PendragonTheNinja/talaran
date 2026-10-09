@@ -340,7 +340,8 @@ Twelve creatures, six spots. Towns host no fighting except the docks at Talador;
 | Novita | Granary Rat | 2 | fat and slow: the first safe AFK | slash / pierce | 93% | combat 9 |
 | Novita | Jackalope | 3 | quick, hard to land a heavy blow on | slash / crush | 109% | combat 12 |
 | Novita | Feral Dog | 4 | quick, accurate, light; harries the flocks | pierce / – | 109% | combat 14 |
-| Dawncrest | Shore Crab | 4 | shell: hard to hurt, slow, safe | crush / slash | 86% | combat 11 |
+| Dawncrest | Shore Crab | 5 | shell: hard to hurt, slow, safe | crush / slash | 86% | combat 12 |
+| Dawncrest | Ol' Shellback | 9 | old, huge, barnacled: hard to hurt, slow | crush / slash | 87% | combat 24 |
 | Dawncrest | Wrecker | 6 | a person with a cudgel, no armour; lures ships onto the rocks | pierce / – | 100% | combat 22 |
 | Origrund | Sidehill Gouger | 6 | heavy, clumsy, a thick hump | pierce / crush | 93% | combat 27 |
 | Origrund, Grundagr | Jumper | 8 | claim-jumper in mail: hard to hurt, slow | crush / slash | 86% | combat 19 |
@@ -368,7 +369,8 @@ Decided so far:
 - **More useful drops (2026-10-09):** Jumpers drop **Charc** (raided from the smelters; Charc is smelting's bottleneck); Wreckers an **Ambren Tinderbox** now and then (they lit false fires); Knockers **Dense Burgh Ore**, about 1 in 100; Granary Rats **Wild Grain** as well as Grain.
 - **Other skills' materials are allowed as random combat drops**, so long as combat never out-produces the main source per hour spent: feathers stay mainly Trapping's and the chickens', linen mainly Foraging's. Seeding checks each such drop's per-hour yield against its main source's.
 - **Rare weapons are as strong as the next tier's smithed weapon of their form**, gated at the dropping creature's level, and far more durable. On Taiar that makes each the best of its type by about 26% more kills per hour; once Serph exists it is Serph's equal that rarely breaks, worth carrying to Melee 25 (`combatSim.ts`, 2026-10-09).
-- **Spot weights favour the lower-level creature:** Novita Granary Rat 45 / Jackalope 35 / Feral Dog 20; Dawncrest Shore Crab 65 / Wrecker 35; Origrund Sidehill Gouger 60 / Jumper 40; Grundagr Jumper 70 / Knocker 30; Eld Grove Grey Wolf 50 / Agropelter 35 / Hodag 15. At Grundagr a 1-in-100 Knocker vein comes about once in 330 kills.
+- **The Crabshell set (2026-10-09).** Six pieces dropped whole by the Dawncrest crabs, about 1 in 100 per piece: the **Shore Crab** drops the smaller pieces (hands, feet, head), **Ol' Shellback** the bigger ones (legs, chest, shield). Gated on the late Ambren pieces' Defense levels (7 to 12); about **99 armour** for the full set, halfway between the late Ambren set (80) and the late Serph set (117.5), so about 24% more than late Ambren; far more durable than smithed. (The early Serph set, 79, is no step up from late Ambren, which is why the target is halfway to late Serph.) Collecting one crab's three pieces takes about 550 kills, roughly 10 hours; pieces trade.
+- **Spot weights favour the lower-level creature:** Novita Granary Rat 45 / Jackalope 35 / Feral Dog 20; Dawncrest: OPEN (§12, choose or draw, and whether the Wrecker stays); Origrund Sidehill Gouger 60 / Jumper 40; Grundagr Jumper 70 / Knocker 30; Eld Grove Grey Wolf 50 / Agropelter 35 / Hodag 15. At Grundagr a 1-in-100 Knocker vein comes about once in 330 kills.
 - **The Bestiary is its own panel, like Feats**, opened from the fight screen (the creature you are fighting), from a Bestiary page in the Manual, and from the mobile drawer; not the top bar, which already has twelve entries. It is per player, which the Manual is not. Unlocks by kills: **1** name, picture, description, level, where it lives (and a little Exploration XP); **10** weaknesses and resistances; **50** common and uncommon drops; **250** the full drop list, rare weapon included, never the exact chances; **1,000** a line of lore and a mastery mark.
 
 ---
