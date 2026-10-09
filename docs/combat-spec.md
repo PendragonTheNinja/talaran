@@ -326,7 +326,12 @@ Fights are **one player, one enemy**. Group boss fights are a later possibility;
 
 ### Fighting spots
 
-A **fighting spot** is a place with a pool of enemies. **You do not choose your opponent.** A spot with one creature gives you that creature every time; a mixed spot draws each next enemy at random, weighted per row (Eld Grove might hold forest creatures of level 8 to 12). Mixed spots make AFK riskier, since the occasional high roll is what kills you, which is the point of them. Each island gets several spots so players have real options: the choice is the place, not the creature.
+A **fighting spot** is a place with a pool of enemies, and each spot is one of two kinds (a column on the spot, decided 2026-10-09):
+
+- **Drawn** (the default): you do not choose your opponent. A one-creature spot gives you that creature every time; a mixed spot draws each next enemy at random, weighted per row. Mixed spots make AFK riskier, since the occasional high roll is what kills you, which is the point of them.
+- **Chosen**: you pick which of the spot's creatures to fight, and fight it until you stop. For a spot whose creatures are each farmed *for* something, where a random draw would keep handing a set-piece hunter the wrong creature.
+
+Each island gets several spots so players have real options.
 
 **Taiar hosts enemies of level 1–12**, matching Ambren (§15). **AFK on Taiar is deliberately thin** (`combatSim.ts afk 1 12`): with Ambren the only metal, a shield-bearer can leave level 3s at combat 12 and level 7s at combat 30, and a shieldless fighter cannot leave even a level 1 until about combat 18. That is the one-metal island, not the formulas: with Serph gear a combat 15 player leaves level 5s. A higher starting HP (200) would have fixed it, and was rejected (2026-10-01): a combat 1 player should not be able to idle level 1s. 
 
@@ -350,7 +355,7 @@ Twelve creatures, six spots. Towns host no fighting except the docks at Talador;
 | Eld Grove | Agropelter | 10 | hurls branches from the canopy | pierce / – | 113% | combat 28 |
 | Eld Grove | Hodag | 12 | horned, spined back, heavy | crush / slash | 86% | combat 40 |
 
-Mixed spots draw at random: Novita (Granary Rat, Jackalope, Feral Dog), Dawncrest (Crab, Wrecker), Origrund (Gouger, Jumper), Grundagr (Jumper, Knocker), Eld Grove (Wolf, Agropelter, Hodag). The Jumper lives in two spots, so a spot holds a weighted pool of creatures rather than a creature holding a spot.
+**Dawncrest is a chosen spot** (Shore Crab, Ol' Shellback, Wrecker): the crabs drop the Crabshell set, the Wrecker the Cutlass. Every other mixed spot is drawn: Novita (Granary Rat, Jackalope, Feral Dog), Origrund (Gouger, Jumper), Grundagr (Jumper, Knocker), Eld Grove (Wolf, Agropelter, Hodag). The Jumper lives in two spots, so a spot holds a weighted pool of creatures rather than a creature holding a spot.
 
 Each damage type is the weakness of four creatures (slash: both rats, Jackalope, Wolf; pierce: Dog, Wrecker, Gouger, Agropelter; crush: Crab, Jumper, Knocker, Hodag). The wrong weapon costs 5–30% of XP per hour. Jumpers drop coins and, now and then, a sack of stolen Ambren Ore. Loot for the rest is still to design. A combat tutor would need a new Geo- name: Geothro is Husbandry's stockman.
 
@@ -370,7 +375,7 @@ Decided so far:
 - **Other skills' materials are allowed as random combat drops**, so long as combat never out-produces the main source per hour spent: feathers stay mainly Trapping's and the chickens', linen mainly Foraging's. Seeding checks each such drop's per-hour yield against its main source's.
 - **Rare weapons are as strong as the next tier's smithed weapon of their form**, gated at the dropping creature's level, and far more durable. On Taiar that makes each the best of its type by about 26% more kills per hour; once Serph exists it is Serph's equal that rarely breaks, worth carrying to Melee 25 (`combatSim.ts`, 2026-10-09).
 - **The Crabshell set (2026-10-09).** Six pieces dropped whole by the Dawncrest crabs, about 1 in 100 per piece: the **Shore Crab** drops the smaller pieces (hands, feet, head), **Ol' Shellback** the bigger ones (legs, chest, shield). Gated on the late Ambren pieces' Defense levels (7 to 12); about **99 armour** for the full set, halfway between the late Ambren set (80) and the late Serph set (117.5), so about 24% more than late Ambren; far more durable than smithed. (The early Serph set, 79, is no step up from late Ambren, which is why the target is halfway to late Serph.) Collecting one crab's three pieces takes about 550 kills, roughly 10 hours; pieces trade.
-- **Spot weights favour the lower-level creature:** Novita Granary Rat 45 / Jackalope 35 / Feral Dog 20; Dawncrest: OPEN (§12, choose or draw, and whether the Wrecker stays); Origrund Sidehill Gouger 60 / Jumper 40; Grundagr Jumper 70 / Knocker 30; Eld Grove Grey Wolf 50 / Agropelter 35 / Hodag 15. At Grundagr a 1-in-100 Knocker vein comes about once in 330 kills.
+- **Spot weights favour the lower-level creature:** Novita Granary Rat 45 / Jackalope 35 / Feral Dog 20; Dawncrest is chosen, so it has no weights; Origrund Sidehill Gouger 60 / Jumper 40; Grundagr Jumper 70 / Knocker 30; Eld Grove Grey Wolf 50 / Agropelter 35 / Hodag 15. At Grundagr a 1-in-100 Knocker vein comes about once in 330 kills.
 - **The Bestiary is its own panel, like Feats**, opened from the fight screen (the creature you are fighting), from a Bestiary page in the Manual, and from the mobile drawer; not the top bar, which already has twelve entries. It is per player, which the Manual is not. Unlocks by kills: **1** name, picture, description, level, where it lives (and a little Exploration XP); **10** weaknesses and resistances; **50** common and uncommon drops; **250** the full drop list, rare weapon included, never the exact chances; **1,000** a line of lore and a mastery mark.
 
 ---
