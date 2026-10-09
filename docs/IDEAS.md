@@ -56,3 +56,15 @@ On death, instead of waking in Talador, the dead arrive in a between-realm and
 choose where to respawn from there. Combat ships with a plain Talador respawn
 (`docs/combat-spec.md` §14); this is the flavourful version for later, and a
 natural place for death-related content (a ferryman, a toll, a way back).
+
+---
+
+## Bonemeal  *(idea, from the combat loot pass 2026-10-09)*
+
+Hunting's Bones drop from every kill and nothing uses them. At Caliwen, a
+Crafting action with the mortar and pestle grinds Bones into Bonemeal; a
+Farming action dresses a growing plot with it so that harvest does not drop the
+soil a step. Manure restores worn soil; Bonemeal preserves good soil (bone meal
+is a slow-release fertiliser), so a farmer can grow hungry crops back to back
+on rich ground. Not part of combat: combat creatures do not drop Bones.
+

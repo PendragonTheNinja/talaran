@@ -353,6 +353,20 @@ Mixed spots draw at random: Novita (Granary Rat, Jackalope, Feral Dog), Dawncres
 
 Each damage type is the weakness of four creatures (slash: both rats, Jackalope, Wolf; pierce: Dog, Wrecker, Gouger, Agropelter; crush: Crab, Jumper, Knocker, Hodag). The wrong weapon costs 5–30% of XP per hour. Jumpers drop coins and, now and then, a sack of stolen Ambren Ore. Loot for the rest is still to design. A combat tutor would need a new Geo- name: Geothro is Husbandry's stockman.
 
+### Loot (in progress with Nathan, 2026-10-09)
+
+Decided so far:
+
+- **Every drop has a real use** (a recipe, farming, smithing, salvage, a quest), now or named for later. Trophies are keepsakes (trophy slot, museum) and do not count as a use.
+- **No Bones, meat or hides from combat**: Bones stay Hunting's, and meat and hides are Hunting's and Husbandry's.
+- **Rates:** commons about 1 in 5 to 1 in 10 by creature; trophies rarer than Hunting's 1 in 300; some creatures drop little or nothing (Dock Rat, Shore Crab).
+- **People carry coins:** Wreckers and Jumpers drop coins on top of the normal gold-find, and combat's gold-find runs a little more often than other skills'.
+- **Jumpers drop their own mine's ore:** a Sack of Ambren Ore at Origrund, a Sack of Burgh Ore at Grundagr, so drop tables are keyed by spot as well as creature.
+- **Wreckers** rarely drop a Locked Rusty Chest or Amber (both from the sea).
+- **Knockers reveal veins**, as in folklore: a Knocker kill at Grundagr, rarely (1 in 100 or rarer), opens a Burgh vein as a Granite find would, if none is open. Mining stays the main way to find veins.
+- **One rare weapon per damage type per island, each in a different form, never of its dropper's weakness** (farm with one type, earn another). About 1 in 1,500 to 1 in 2,000. Taiar: **Hodag Horn** (pierce, two-hand; Hodag weak to crush), **Wrecker's Cutlass** (slash, one-hand; Wrecker weak to pierce), **Gouger's Legbone** (crush, two-hand club; Gouger weak to pierce). Strength against the smithed weapons: open (§12).
+- **A Bestiary**: kills per creature unlock more about it, weaknesses included. Placement and unlock steps: open (§12).
+
 ---
 
 ## 9. The fight loop
