@@ -2,6 +2,9 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { gateSkill } from './equipment';
+import { isForm } from '../services/combat';
+import { FORMS } from '../lib/combatMath';
 
 const router = Router();
 
@@ -47,7 +50,21 @@ router.get('/tooltips', requireAuth, async (_req: AuthRequest, res: Response) =>
                     'buff_skill',
                     'buff_magnitude',
                     'buff_seconds',
+                    // Combat gear (docs/combat-spec.md §6, §7).
+                    'weapon_form',
+                    'damage_type',
+                    'aim',
+                    'power',
+                    'armour',
                 );
+            // What the client must not work out for itself: the skill a level
+            // requirement is checked against (routes/equipment.ts) and a
+            // weapon's swing time, which comes from its form.
+            for (const row of rows) {
+                row.requires_skill = row.level_required > 1 ? gateSkill(row) : null;
+                const form: unknown = row.weapon_form;
+                row.swing_seconds = isForm(form) ? FORMS[form].swingSeconds : null;
+            }
             cache = { rows, at: Date.now() };
         }
         res.json({ items: cache.rows });

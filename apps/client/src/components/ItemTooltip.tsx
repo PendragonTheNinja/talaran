@@ -54,6 +54,31 @@ function describeBuff(item: TooltipItem | ItemDetail): string {
     }
 }
 
+const FORM_WORDS: Record<string, string> = {
+    dual: 'A pair, one in each hand',
+    onehand: 'One hand, room for a shield',
+    twohand: 'Both hands',
+}
+
+/**
+ * What a piece of combat gear does, from its own row: how it is held, what it
+ * hits with and how hard, or the armour it gives. Empty for anything else.
+ */
+function combatLines(d: ItemDetail | null): string[] {
+    if (!d) return []
+    const lines: string[] = []
+    if (d.weapon_form) {
+        const type = d.damage_type ? d.damage_type.charAt(0).toUpperCase() + d.damage_type.slice(1) : ''
+        lines.push(`${FORM_WORDS[d.weapon_form] ?? d.weapon_form}. ${type}${d.swing_seconds ? `, every ${d.swing_seconds}s` : ''}`)
+        lines.push(`Aim ${d.aim ?? 0}, power ${d.power ?? 0}`)
+    }
+    if (d.armour) lines.push(`Armour ${d.armour}`)
+    if (d.requires_skill && d.level_required && d.level_required > 1) {
+        lines.push(`Needs ${d.requires_skill} ${d.level_required}`)
+    }
+    return lines
+}
+
 function fmtBuffTime(seconds: number): string {
     const h = Math.floor(seconds / 3600)
     const m = Math.round((seconds % 3600) / 60)
@@ -115,6 +140,7 @@ export default function ItemTooltip({ x, y, item, hint }: ItemTooltipProps) {
     const quality = item.quality ?? cached?.quality ?? null
     const description = item.description ?? cached?.description ?? null
     const buff = item.buff_effect ? item : (cached?.buff_effect ? cached : null)
+    const gear = combatLines(cached)
 
     return (
         <TooltipShell x={x} y={y} width={220}>
@@ -136,6 +162,11 @@ export default function ItemTooltip({ x, y, item, hint }: ItemTooltipProps) {
             {buff && (
                 <p className="item-tooltip-buff">
                     {describeBuff(buff)} for {fmtBuffTime(buff.buff_seconds ?? 0)}
+                </p>
+            )}
+            {gear.length > 0 && (
+                <p className="item-tooltip-buff">
+                    {gear.map(line => <span key={line} style={{ display: 'block' }}>{line}</span>)}
                 </p>
             )}
             {hint && <p className="item-tooltip-hint">{hint}</p>}

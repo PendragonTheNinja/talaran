@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
 import { addItemToInventoryWithin, removeItemFromInventoryWithin } from '../services/inventory';
+import { combatLevels, combatProfile, holdsBothHands, CombatProfile, COMBAT_SKILLS } from '../services/combat';
 
 const router = Router();
 
@@ -37,6 +38,20 @@ const SUBTYPE_SKILL: Record<string, string> = {
   horse: 'Equitation',
   pony: 'Equitation',
 };
+
+/**
+ * The skill an item's level_required is checked against.
+ *
+ * Combat gear goes by what the item IS, not its subtype (docs/combat-spec.md
+ * §6, §7): anything with a weapon form needs Melee, anything with armour points
+ * needs Defense. Subtypes would collide: the leatherworker's agility boots are
+ * subtype 'boots' and must stay ungated by Defense.
+ */
+export function gateSkill(item: { weapon_form?: string | null; armour?: number | null; subtype?: string | null }): string | null {
+  if (item.weapon_form) return COMBAT_SKILLS.melee;
+  if (item.armour) return COMBAT_SKILLS.defense;
+  return SUBTYPE_SKILL[item.subtype ?? ''] ?? null;
+}
 
 /**
  * The player's equipment row, created if absent.
@@ -105,31 +120,20 @@ async function loadEquipment(playerId: number): Promise<Record<string, unknown>>
   return equipped;
 }
 
+/**
+ * The slot map and the fighting numbers it gives (services/combat.ts), sent
+ * together by every equipment response so the panel never works them out.
+ */
+async function equipmentState(playerId: number): Promise<{ equipment: Record<string, any>; combat: CombatProfile }> {
+  const [equipment, levels] = await Promise.all([loadEquipment(playerId), combatLevels(playerId)]);
+  return { equipment, combat: combatProfile(levels, equipment as Record<string, any>) };
+}
+
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
 
   try {
-    const equipment = await ensureEquipmentRow(playerId);
-
-    // One query for every equipped item rather than one per slot. This used to
-    // issue up to twelve round trips on every equipment load.
-    const equippedIds = VALID_SLOTS
-      .map((slot) => equipment[`${slot}_item_id`])
-      .filter((id): id is number => !!id);
-
-    const items = equippedIds.length
-      ? await db('items').whereIn('id', equippedIds)
-      : [];
-
-    const byId = new Map(items.map((item) => [item.id, item]));
-
-    const equipped: Record<string, any> = {};
-    for (const slot of VALID_SLOTS) {
-      const itemId = equipment[`${slot}_item_id`];
-      equipped[slot] = itemId ? byId.get(itemId) ?? null : null;
-    }
-
-    res.json({ equipment: equipped });
+    res.json(await equipmentState(playerId));
   } catch (err) {
     logger.error(`Get equipment error: ${err}`);
     res.status(500).json({ error: 'Server error' });
@@ -178,7 +182,7 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 
     if (item.level_required > 1) {
-      const skillName = SUBTYPE_SKILL[item.subtype] ?? null;
+      const skillName = gateSkill(item);
 
       if (!skillName) {
         // Allowed rather than refused, so adding an item cannot silently make it
@@ -225,11 +229,11 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
         .first();
       const currentItemId = equipment?.[`${item.slot}_item_id`] ?? null;
 
-      // Already wearing this exact item. There is no dual-wielding, so the
-      // right answer is to change nothing. (This branch once destroyed a spare
-      // copy: the swap-out was skipped but the removal still ran.) No write has
-      // happened, so returning here commits nothing.
-      if (currentItemId === itemId) return { unchanged: true };
+      // Already wearing this exact item. A pair of daggers is one item, so
+      // the right answer is to change nothing. (This branch once destroyed a
+      // spare copy: the swap-out was skipped but the removal still ran.) No
+      // write has happened, so returning here commits nothing.
+      if (currentItemId === itemId) return { unchanged: true, otherHandItemId: null };
 
       // Take the incoming item first. If it is no longer held (spent in another
       // tab), refuse before anything has moved.
@@ -240,12 +244,30 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
       if (currentItemId) {
         await addItemToInventoryWithin(trx, playerId, currentItemId, 1);
       }
+      const update: Record<string, number | null> = { [`${item.slot}_item_id`]: itemId };
+
+      // Dual and two-hand weapons take both hands (docs/combat-spec.md §6).
+      // Read from the locked row, like the slot itself: a weapon going into
+      // the main hand empties the offhand, and anything going into the offhand
+      // puts such a weapon away. Either way it lands in the pack.
+      let otherHand: 'offhand' | 'mainhand' | null = null;
+      if (item.slot === 'mainhand' && holdsBothHands(item)) {
+        otherHand = 'offhand';
+      } else if (item.slot === 'offhand' && equipment?.mainhand_item_id) {
+        const held = await trx('items').where({ id: equipment.mainhand_item_id }).first();
+        if (holdsBothHands(held)) otherHand = 'mainhand';
+      }
+      const otherHandItemId: number | null = otherHand ? equipment?.[`${otherHand}_item_id`] ?? null : null;
+      if (otherHand && otherHandItemId) {
+        await addItemToInventoryWithin(trx, playerId, otherHandItemId, 1);
+        update[`${otherHand}_item_id`] = null;
+      }
 
       await trx('player_equipment')
         .where({ player_id: playerId })
-        .update({ [`${item.slot}_item_id`]: itemId });
+        .update(update);
 
-      return { unchanged: false };
+      return { unchanged: false, otherHandItemId };
     });
 
     if (outcome.unchanged) {
@@ -253,16 +275,25 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
         message: `${item.name} is already equipped`,
         slot: item.slot,
         unchanged: true,
-        equipment: await loadEquipment(playerId),
+        ...(await equipmentState(playerId)),
       });
       return;
     }
 
+    // Name what the other hand put away, so a shield that vanished from the
+    // paper doll is explained. The slot's own swap is not news: that is what
+    // equipping means.
+    const putAway = outcome.otherHandItemId
+      ? await db('items').where({ id: outcome.otherHandItemId }).first()
+      : null;
+
     logger.info(`Player ${playerId} equipped ${item.name} in ${item.slot}`);
     res.json({
-      message: `${item.name} equipped`,
+      message: putAway
+        ? `${item.name} equipped. ${putAway.name} put back in your pack.`
+        : `${item.name} equipped`,
       slot: item.slot,
-      equipment: await loadEquipment(playerId),
+      ...(await equipmentState(playerId)),
     });
 
   } catch (err) {
@@ -323,7 +354,7 @@ router.post('/unequip', requireAuth, async (req: AuthRequest, res: Response) => 
     res.json({
       message: `${item.name} unequipped`,
       slot,
-      equipment: await loadEquipment(playerId),
+      ...(await equipmentState(playerId)),
     });
 
   } catch (err) {

@@ -25,7 +25,7 @@ import PlayerProfile from './PlayerProfile'
 import { getSkipConfirm, setSkipConfirm } from '../lib/confirmPrefs';
 import { useIsMobile } from '../lib/useIsMobile'
 import MobileShell from './MobileShell'
-import EquipmentPanel from './EquipmentPanel'
+import EquipmentPanel, { type CombatProfile } from './EquipmentPanel'
 import SkillsPanel from './SkillsPanel'
 import MiniMap from './MiniMap'
 import PlayerStats from './PlayerStats'
@@ -112,6 +112,7 @@ interface GameLayoutProps {
   locationData: LocationData | null
   inventoryData: InventoryItem[]
   equipmentData: EquipmentData | null
+  combatProfile?: CombatProfile | null
   onLogout: () => void
   onPlayerDataUpdate: () => void
   onEquipmentUpdate: () => void
@@ -129,6 +130,7 @@ export default function GameLayout({
   locationData,
   inventoryData,
   equipmentData,
+  combatProfile,
   onLogout,
   onPlayerDataUpdate,
   onEquipmentUpdate,
@@ -718,6 +720,7 @@ export default function GameLayout({
       tradeMode={tradeMode}
       tradeId={activeTrade?.tradeId}
       hp={playerData?.hp}
+      combat={combatProfile}
     />
   )
 
@@ -730,6 +733,7 @@ export default function GameLayout({
       onEquipmentUpdate={onEquipmentUpdate}
       onInventoryUpdate={onInventoryUpdate}
       hp={playerData?.hp}
+      combat={combatProfile}
     />
   )
 

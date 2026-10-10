@@ -28,6 +28,8 @@ Live `player_skills` for the combat skills: 83 rows each for Attack, Strength, D
 
 **Test:** smith a piece at each level band, equip and unequip, gates refuse correctly, stats read right.
 
+**Built 2026-10-10.** The gate goes by what the item is (`gateSkill` in `routes/equipment.ts`): a weapon form means Melee, armour points mean Defense, anything else falls back to `SUBTYPE_SKILL`, so the leatherworker's boots stay ungated. Inside the locked equip transaction a dual or two-hand weapon puts the offhand item back in the pack, and anything equipped to the offhand puts such a weapon away; the response names what moved. `combatProfile` in `services/combat.ts` rides on every equipment response. With no weapon in hand, aim and max hit read as a dash. **Step 4 must decide** whether a fight can start bare-handed. Forged armour (`metal_armor`) and weapons sell to the smith. `race:check` C2 has two new scenarios, both shown failing against an unlocked read of the other hand.
+
 ## Step 3: creatures and fighting spots (data only)
 
 - Tables: `creatures` (level, profile multipliers, stance per damage type, XP per kill), `fighting_spots` (location, `drawn` or `chosen`), `fighting_spot_creatures` (weight). Registered in `lib/contentTables.ts` so content snapshots carry them.

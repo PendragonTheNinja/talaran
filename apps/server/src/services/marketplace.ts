@@ -153,8 +153,12 @@ const TYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     log: 'carpenter',
     plank: 'carpenter',
     // The leatherworker sells boots, so he had better buy them back. A merchant
-    // who stocks a thing but will not take it is just confusing.
+    // who stocks a thing but will not take it is just confusing. Forged armour
+    // (subtype 'metal_armor') is the smith's: see ARMOR_SUBTYPE_DOMAINS.
     armor: 'leatherworker',
+    // Every Ambren weapon is forged at the anvil (docs/combat-spec.md §6). Rare
+    // drops that are not forged are named in their own step.
+    weapon: 'smith',
     food: 'provisioner',
     animal: 'provisioner',
     // A mount is livestock raised in a pen, so it belongs to the same trade
@@ -211,11 +215,17 @@ const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     // merchant implying they are ordinary stock.
 };
 
+// Armour by who makes it: the anvil's plate and rings, the leatherworker's boots.
+const ARMOR_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
+    metal_armor: 'smith',
+};
+
 export function merchantForItem(item: { type?: string | null; subtype?: string | null }): MerchantKey {
     const type = item.type ?? '';
     const subtype = item.subtype ?? '';
 
     if (type === 'tool' && TOOL_SUBTYPE_DOMAINS[subtype]) return TOOL_SUBTYPE_DOMAINS[subtype]!;
+    if (type === 'armor' && ARMOR_SUBTYPE_DOMAINS[subtype]) return ARMOR_SUBTYPE_DOMAINS[subtype]!;
     if (type === 'material' && MATERIAL_SUBTYPE_DOMAINS[subtype]) return MATERIAL_SUBTYPE_DOMAINS[subtype]!;
     if (TYPE_DOMAINS[type]) return TYPE_DOMAINS[type]!;
     return 'pawnbroker';

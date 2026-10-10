@@ -418,6 +418,14 @@ async function fund(ctx: Ctx, playerId: number, amount: number) {
  * requests were all refused for some unrelated reason (a seeding mistake, a
  * missing requirement) would "hold" while testing nothing.
  */
+/** A two-hand weapon never shares the hands with anything in the offhand (combat step 2). */
+async function bothHandsHeld(ctx: Ctx, playerId: number, twoHandIds: number[]): Promise<string | null> {
+    const row = await ctx.db('player_equipment').where({ player_id: playerId }).first();
+    return row && twoHandIds.includes(row.mainhand_item_id) && row.offhand_item_id
+        ? `a two-hand weapon (item ${row.mainhand_item_id}) is worn beside item ${row.offhand_item_id} in the offhand`
+        : null;
+}
+
 function succeeded(statuses: number[], expected: number): string | null {
     // A server error is a failure even when every total balances. With the
     // non-negative CHECK constraints in place, a missing lock usually shows up
@@ -456,6 +464,50 @@ const SCENARIOS: Scenario[] = [
             return changed('hatchets', 1, await ctx.itemTotal(w.hatchet.id))
                 ?? changed('crude axes', 1, await ctx.itemTotal(w.axeA.id))
                 ?? changed('chipped axes', 1, await ctx.itemTotal(w.axeB.id))
+                ?? succeeded(st, 2);
+        },
+    },
+    {
+        id: 'C2', name: 'two two-hand weapons over a worn shield at once', rounds: 10,
+        run: async (ctx) => {
+            // A two-hand weapon puts the shield in the offhand away (combat
+            // step 2). Both requests must not each find the shield and each
+            // return it: the offhand is read from the locked row, like the slot.
+            const w = await world(ctx);
+            const shield = await ctx.seed.row('items', { name: 'Ambren Buckler', type: 'armor', subtype: 'metal_armor', slot: 'offhand', level_required: 1, armour: 10 });
+            const sword = await ctx.seed.row('items', { name: 'Ambren Greatsword', type: 'weapon', subtype: 'greatsword', slot: 'mainhand', level_required: 1, weapon_form: 'twohand', damage_type: 'slash', aim: 100, power: 64 });
+            const maul = await ctx.seed.row('items', { name: 'Ambren Maul', type: 'weapon', subtype: 'maul', slot: 'mainhand', level_required: 1, weapon_form: 'twohand', damage_type: 'crush', aim: 90, power: 66 });
+            await wearing(ctx, w.player.id, 'offhand_item_id', shield.id);
+            await inPack(ctx, w.player.id, sword.id, 1);
+            await inPack(ctx, w.player.id, maul.id, 1);
+            const st = await ctx.burst(w.player.id, 2, (i) =>
+                ctx.post(w.player.id, '/equipment/equip', { itemId: i === 0 ? sword.id : maul.id }));
+            return changed('bucklers', 1, await ctx.itemTotal(shield.id))
+                ?? changed('greatswords', 1, await ctx.itemTotal(sword.id))
+                ?? changed('mauls', 1, await ctx.itemTotal(maul.id))
+                ?? await bothHandsHeld(ctx, w.player.id, [sword.id, maul.id])
+                ?? succeeded(st, 2);
+        },
+    },
+    {
+        id: 'C2', name: 'a shield and a two-hand weapon over each other at once', rounds: 10,
+        run: async (ctx) => {
+            // Wearing a two-hand weapon: a shield puts it away, while a second
+            // two-hand weapon swaps it out. Sent together, the weapon held at
+            // the start must come back to the pack once, not twice.
+            const w = await world(ctx);
+            const shield = await ctx.seed.row('items', { name: 'Ambren Buckler', type: 'armor', subtype: 'metal_armor', slot: 'offhand', level_required: 1, armour: 10 });
+            const sword = await ctx.seed.row('items', { name: 'Ambren Greatsword', type: 'weapon', subtype: 'greatsword', slot: 'mainhand', level_required: 1, weapon_form: 'twohand', damage_type: 'slash', aim: 100, power: 64 });
+            const maul = await ctx.seed.row('items', { name: 'Ambren Maul', type: 'weapon', subtype: 'maul', slot: 'mainhand', level_required: 1, weapon_form: 'twohand', damage_type: 'crush', aim: 90, power: 66 });
+            await wearing(ctx, w.player.id, 'mainhand_item_id', sword.id);
+            await inPack(ctx, w.player.id, shield.id, 1);
+            await inPack(ctx, w.player.id, maul.id, 1);
+            const st = await ctx.burst(w.player.id, 2, (i) =>
+                ctx.post(w.player.id, '/equipment/equip', { itemId: i === 0 ? shield.id : maul.id }));
+            return changed('bucklers', 1, await ctx.itemTotal(shield.id))
+                ?? changed('greatswords', 1, await ctx.itemTotal(sword.id))
+                ?? changed('mauls', 1, await ctx.itemTotal(maul.id))
+                ?? await bothHandsHeld(ctx, w.player.id, [sword.id, maul.id])
                 ?? succeeded(st, 2);
         },
     },

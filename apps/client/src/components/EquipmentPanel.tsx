@@ -18,12 +18,38 @@ interface EquipmentData {
     trophy: any | null
 }
 
+/**
+ * A player's fighting numbers, worked out on the server from their combat
+ * levels and what they wear (services/combat.ts) and sent with the equipment.
+ */
+export interface CombatProfile {
+    weapon: { name: string; form: 'dual' | 'onehand' | 'twohand'; damageType: string; swingSeconds: number } | null
+    aim: number | null
+    maxHit: number | null
+    defence: number
+    armour: number
+    absorb: number
+}
+
 interface EquipmentPanelProps {
     equipmentData: EquipmentData | null
     onEquipmentUpdate: () => void
     onInventoryUpdate: () => void
     /** Current and max HP, from the server. Absent while the player loads. */
     hp?: { current: number; max: number }
+    /** Aim, defence, max hit and armour, from the server. Absent while equipment loads. */
+    combat?: CombatProfile | null
+}
+
+/** How a weapon is held, in the panel's words. */
+const FORM_LABEL: Record<string, string> = {
+    dual: 'Pair',
+    onehand: 'One hand',
+    twohand: 'Two hands',
+}
+
+function capitalise(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 const SLOTS = [
@@ -41,7 +67,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, combat }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
@@ -128,11 +154,24 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
             <div className="divider" />
 
+            {/* Every number here comes from the server (services/combat.ts):
+                weapon and armour from the item rows, the level terms from
+                Melee and Defense. A dash means no weapon in hand. */}
             <div className="combat-stats panel-inset">
                 <div className="panel-title">Combat Stats</div>
-                <div className="stat-row"><span>Armor</span><span>0</span></div>
-                <div className="stat-row"><span>Accuracy</span><span>0</span></div>
-                <div className="stat-row"><span>Power</span><span>0</span></div>
+                <div className="stat-row">
+                    <span>Weapon</span>
+                    <span>{combat?.weapon
+                        ? `${FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}, ${capitalise(combat.weapon.damageType)}, ${combat.weapon.swingSeconds}s`
+                        : 'None'}</span>
+                </div>
+                <div className="stat-row"><span>Aim</span><span>{combat?.aim ?? '-'}</span></div>
+                <div className="stat-row"><span>Max hit</span><span>{combat?.maxHit ?? '-'}</span></div>
+                <div className="stat-row"><span>Defence</span><span>{combat?.defence ?? '-'}</span></div>
+                <div className="stat-row">
+                    <span>Armour</span>
+                    <span>{combat ? `${combat.armour} (stops ${combat.absorb} a hit)` : '-'}</span>
+                </div>
             </div>
             {tooltipEl}
         </div>

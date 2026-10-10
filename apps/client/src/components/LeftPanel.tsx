@@ -3,7 +3,7 @@ import { useIsMobile } from '../lib/useIsMobile'
 import { getItemIcon, getQualityColor } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './LeftPanel.css'
-import EquipmentPanel from './EquipmentPanel'
+import EquipmentPanel, { type CombatProfile } from './EquipmentPanel'
 import ConfirmModal from './ConfirmModal'
 import BuffPanel from './BuffPanel'
 import { useItemTooltip } from './ItemTooltip'
@@ -63,6 +63,7 @@ interface LeftPanelProps {
   onDropAmountChange?: (amount: number) => void
   /** Current and max HP, from the server. */
   hp?: { current: number; max: number }
+  combat?: CombatProfile | null
 }
 
 type SortMode = 'category' | 'name' | 'quantity' | 'recent'
@@ -123,7 +124,7 @@ function sortInventory(items: InventoryItem[], mode: SortMode, dir: SortDir, fil
   return dir === 'desc' ? sorted.reverse() : sorted
 }
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem, hp }: LeftPanelProps) {
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem, hp, combat }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   // Set when eating would replace a running buff, so the player is warned first.
@@ -560,6 +561,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         onEquipmentUpdate={onEquipmentUpdate}
         onInventoryUpdate={onInventoryUpdate}
         hp={hp}
+        combat={combat}
       />
 
       <BuffPanel onInventoryUpdate={onInventoryUpdate} />

@@ -14,6 +14,7 @@ import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
 import TradeWindow from './components/TradeWindow'
 import GuestBanner, { ClaimSuccessModal } from './components/GuestBanner'
+import type { CombatProfile } from './components/EquipmentPanel'
 
 interface Skill {
   id: number
@@ -93,6 +94,7 @@ function App() {
   const [checking, setChecking] = useState(true)
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>([])
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null)
+  const [combatProfile, setCombatProfile] = useState<CombatProfile | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
   const [serverAnnouncement, setServerAnnouncement] = useState<string | null>(null)
   const [tradeRequest, setTradeRequest] = useState<{ tradeId: number; fromPlayer: { id: number; username: string } } | null>(null)
@@ -160,8 +162,9 @@ function App() {
 
   const loadEquipment = useCallback(async () => {
     try {
-      const data = await apiFetch<{ equipment: EquipmentData }>('/api/equipment')
+      const data = await apiFetch<{ equipment: EquipmentData; combat?: CombatProfile }>('/api/equipment')
       setEquipmentData(data.equipment)
+      setCombatProfile(data.combat ?? null)
     } catch (err) {
       console.error('Failed to load equipment:', err)
     }
@@ -369,6 +372,7 @@ function App() {
     setLocationData(null)
     setInventoryData([])
     setEquipmentData(null)
+    setCombatProfile(null)
     navigate('/')
   }
 
@@ -413,6 +417,7 @@ function App() {
               locationData={locationData}
               inventoryData={inventoryData}
               equipmentData={equipmentData}
+              combatProfile={combatProfile}
               onLogout={handleLogout}
               onPlayerDataUpdate={loadPlayerData}
               onEquipmentUpdate={loadEquipment}

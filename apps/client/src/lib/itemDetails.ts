@@ -27,6 +27,16 @@ export interface ItemDetail {
     buff_skill: string | null
     buff_magnitude: number | null
     buff_seconds: number | null
+    // Combat gear (docs/combat-spec.md §6, §7); null on everything else.
+    weapon_form: string | null
+    damage_type: string | null
+    aim: number | null
+    power: number | null
+    armour: number | null
+    /** From the weapon's form, worked out on the server. */
+    swing_seconds: number | null
+    /** The skill level_required is checked against, from the server; null when ungated. */
+    requires_skill: string | null
 }
 
 let byName: Map<string, ItemDetail> | null = null

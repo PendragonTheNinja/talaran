@@ -141,7 +141,7 @@ export const ARMOUR_LADDER: { slot: string; set: ArmourSet; name: string; points
     { slot: 'hands', set: 'late', name: 'Gauntlets', points: 9 },
     { slot: 'feet', set: 'late', name: 'Sabatons', points: 9 },
     { slot: 'head', set: 'late', name: 'Helm', points: 12 },
-    { slot: 'offhand', set: 'late', name: 'Kite shield', points: 15 },
+    { slot: 'offhand', set: 'late', name: 'Kite Shield', points: 15 },
     { slot: 'legs', set: 'late', name: 'Greaves', points: 15 },
     { slot: 'chest', set: 'late', name: 'Cuirass', points: 20 },
 ]
