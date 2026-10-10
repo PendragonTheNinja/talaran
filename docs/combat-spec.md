@@ -254,7 +254,7 @@ Smithing makes every weapon and armour piece. Pattern: the Ambren Pickaxe (2 ing
 | Spear | 1 | Lanai Tool Rod, Leather Strips |
 | Atgeir | 2 | Lanai Tool Rod, Leather Strips |
 
-**DRAFT recipe numbers (2026-10-09, for Nathan's review).** Smithing convention: 45 seconds per ingot (the Ambren tools), one Lanai Tool Rod and one Leather Strips where listed, at the anvil (`station: 'smithing'`). XP by the law, as the Ambren Tinderbox computes it: `1.8 (finished goods) × 1.10 (tier unlock) × R̂(level) × seconds / 3600`, with `R̂(L) = 2000 × 1.33^((L−1)/12)`. Smithing is a dense skill (`docs/xp-rebalance.md`), so items sit at their own levels across the Ambren band instead of all at 1: one-hand weapons at the rung, dual at rung + 3, two-hand at rung + 7; armour at the same rung + k as its Defense gate (§7), one new piece per Smithing level. Weapon recipes are `for_skill: 'Melee'`, armour `for_skill: 'Defense'`.
+**Recipe numbers (decided 2026-10-10).** Smithing convention: 45 seconds per ingot (the Ambren tools), one Lanai Tool Rod and one Leather Strips where listed, at the anvil (`station: 'smithing'`). XP by the law, as the Ambren Tinderbox computes it: `1.8 (finished goods) × 1.10 (tier unlock) × R̂(level) × seconds / 3600`, with `R̂(L) = 2000 × 1.33^((L−1)/12)`. Smithing is a dense skill (`docs/xp-rebalance.md`), so items sit at their own levels across the Ambren band instead of all at 1: one-hand weapons at the rung, dual at rung + 3, two-hand at rung + 7; armour at the same rung + k as its Defense gate (§7), one new piece per Smithing level. Weapon recipes are `for_skill: 'Melee'`, armour `for_skill: 'Defense'`.
 
 | Weapon | Smithing | Ingots | Also | Time | XP |
 |---|---|---|---|---|---|
@@ -298,7 +298,7 @@ The early set completes at +5, the late set at +11. Shieldless fighters get noth
 
 Every piece scales with its tier the way the late set does: points × `(1 + 37.5 × (tier - 1) / 80)`, so the tier 9 late set totals 380. Dropping the shield costs about 19% of total armour.
 
-**DRAFT armour recipes (2026-10-09):** the same convention as weapons (§6).
+**Armour recipes (decided 2026-10-10):** the same convention as weapons (§6).
 
 | Piece | Smithing (= Defense gate) | Ingots | Also | Time | XP |
 |---|---|---|---|---|---|
@@ -575,7 +575,7 @@ Hold ten Ambren Maces and have never fought: Ambren Mace, for your account, has 
 - **When something breaks**, the fight log says so in a line of flavour text, the kill completes, and the fight **does not restart** until you equip a replacement.
 - **Tunable without a deploy.** A per-tier row holds the guaranteed kills and the break chance after them; nullable per-item override columns let a single item differ. Editable from the admin panel, like the world event settings.
 - **Smithed gear sits at the low end of its tier.** Drops you grind a creature for last longer.
-- **DRAFT starting numbers (2026-10-09, for Nathan's review).** Smithed gear: tier 1 guarantees 200 uses then breaks at 1% a use; each tier up guarantees ×1.25 more and breaks ×0.85 as often. Hours at Taiar's pace (65 kills an hour; armour wears a third of kills):
+- **Starting numbers (decided 2026-10-10).** Smithed gear: tier 1 guarantees 200 uses then breaks at 1% a use; each tier up guarantees ×1.25 more and breaks ×0.85 as often. Hours at Taiar's pace (65 kills an hour; armour wears a third of kills):
 
 | Tier | Guaranteed | Then | Mean uses | Weapon | Armour piece |
 |---|---|---|---|---|---|
