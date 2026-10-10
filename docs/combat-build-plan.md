@@ -4,17 +4,9 @@
 
 ---
 
-## Before step 1
+## Before step 1 (done 2026-10-10)
 
-Run on the box, so the skills migration knows what it is changing:
-
-```
-SELECT s.name, COUNT(ps.*) AS rows, COALESCE(SUM(ps.xp::bigint), 0) AS xp
-FROM skills s LEFT JOIN player_skills ps ON ps.skill_id = s.id
-WHERE s.type = 'combat' GROUP BY s.name;
-```
-
-Expected: rows may exist (new characters get a row per skill), xp should be 0 everywhere. If any xp is not 0, step 1 decides where it goes before anything is renamed.
+Live `player_skills` for the combat skills: 83 rows each for Attack, Strength, Defense and Constitution, **0 XP in every row**. So Attack can be renamed Melee in place, and Strength's rows deleted with nothing lost.
 
 ---
 
@@ -98,6 +90,6 @@ Expected: rows may exist (new characters get a row per skill), xp should be 0 ev
 
 ---
 
-## Proposed while planning (to confirm)
+## Decided while planning
 
-- A Jumper's "sack of stolen ore" drops ore directly (a few Ambren or Burgh Ore), described as a sack in the log, rather than a sack item to open.
+- A Jumper drops ore directly, a few Ambren or Burgh Ore within a range (decided 2026-10-10); no sack item.
