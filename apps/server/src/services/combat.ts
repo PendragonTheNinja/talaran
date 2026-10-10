@@ -7,6 +7,7 @@ import db from '../db'
 import { levelFromXp } from './xp'
 import {
     absorption, combatLevel, CombatLevels, DamageType, Form, FORMS, levelTerm, maxHp, playerMaxHit,
+    UNARMED, unarmedWeapon,
 } from '../lib/combatMath'
 
 /** The skill rows combat reads, by name (skills.name). */
@@ -61,12 +62,15 @@ export interface WornCombatItem {
 }
 
 export interface CombatProfile {
-    /** The weapon in the main hand, or null when it holds none (empty, or a tool). */
-    weapon: { name: string; form: Form; damageType: DamageType; swingSeconds: number } | null
-    /** Accuracy: the weapon's aim plus the Melee level term (§4). Null without a weapon. */
-    aim: number | null
-    /** The most one swing can do before armour (§5). Null without a weapon. */
-    maxHit: number | null
+    /**
+     * What the player fights with: the weapon in the main hand, or bare hands
+     * when it holds none (empty, or a tool). `unarmed` marks the fallback.
+     */
+    weapon: { name: string; form: Form; damageType: DamageType; swingSeconds: number; unarmed: boolean }
+    /** Accuracy: the weapon's aim plus the Melee level term (§4). */
+    aim: number
+    /** The most one swing can do before armour (§5). */
+    maxHit: number
     /** Armour points plus the Defense level term (§4). */
     defence: number
     /** Armour points of everything worn (§7). */
@@ -94,19 +98,28 @@ export function combatProfile(levels: CombatLevels, worn: Record<string, WornCom
     const defence = armour + levelTerm(levels.defense)
 
     const main = worn.mainhand
-    const weapon = main && isForm(main.weapon_form) && main.aim != null && main.power != null
-        ? {
-            name: main.name,
-            form: main.weapon_form,
-            damageType: main.damage_type as DamageType,
-            swingSeconds: FORMS[main.weapon_form].swingSeconds,
-        }
-        : null
+    let form: Form, damageType: DamageType, aim: number, power: number, name: string
+    const unarmed = !(main && isForm(main.weapon_form) && main.aim != null && main.power != null)
+    if (!unarmed) {
+        form = main!.weapon_form as Form
+        damageType = main!.damage_type as DamageType
+        aim = Number(main!.aim)
+        power = Number(main!.power)
+        name = main!.name
+    } else {
+        // Bare hands (lib/combatMath.ts UNARMED): one hand beside a shield,
+        // a pair otherwise.
+        form = Number(worn.offhand?.armour) > 0 ? 'onehand' : 'dual'
+        ;({ aim, power } = unarmedWeapon(form))
+        damageType = UNARMED.damageType
+        name = UNARMED.name
+    }
+    const swingSeconds = FORMS[form].swingSeconds
 
     return {
-        weapon,
-        aim: weapon ? Math.round(Number(main!.aim) + levelTerm(levels.melee)) : null,
-        maxHit: weapon ? Math.round(playerMaxHit(Number(main!.power), levels.melee, weapon.swingSeconds)) : null,
+        weapon: { name, form, damageType, swingSeconds, unarmed },
+        aim: Math.round(aim + levelTerm(levels.melee)),
+        maxHit: Math.round(playerMaxHit(power, levels.melee, swingSeconds)),
         defence: Math.round(defence),
         armour,
         absorb: Math.round(absorption(armour) * 10) / 10,

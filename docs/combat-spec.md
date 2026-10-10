@@ -270,6 +270,10 @@ Smithing makes every weapon and armour piece. Pattern: the Ambren Pickaxe (2 ing
 
 Armour recipes are in §7. **Supply is checked before seeding**: the ingots and leather that breakage (§13) demands per hour of fighting must be something Mining, smelting and Husbandry can produce. SIM.
 
+### Bare hands (DECIDED 2026-10-10)
+
+A player can always fight. With no weapon in the main hand (empty, or holding a tool), they fight with their fists: **crush**, at crush's aim (90) and **half of tier 1 crush power**. Fists are a pair (dual, 2.4s) or, with a shield in the offhand, one hand (3.0s). They never gain tiers; the Melee level term still grows their max hit. At combat 1 against a grunt: ~54s a kill and ~37 damage taken, against ~40s and ~25 with an Ambren Mace. A fallback, not a build (`UNARMED` in `lib/combatMath.ts`).
+
 ### The shield problem, noted not solved
 
 Two of the three forms drop the shield, which leaves the offhand attached only to the balanced form. Worth watching once armour sets are in; not worth pre-solving.

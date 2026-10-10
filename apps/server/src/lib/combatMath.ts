@@ -101,6 +101,20 @@ export const TIER1_POWER: Record<Form, Record<DamageType, number>> = {
     twohand: { pierce: 61, slash: 64, crush: 66 },
 }
 
+/**
+ * Fighting bare-handed (decided 2026-10-10), the fallback when the main hand
+ * holds no weapon: crush, at crush's aim and half of tier 1 crush power. Fists
+ * fight as a pair, or as one hand when the offhand holds a shield. At combat 1
+ * against a grunt that is ~54s a kill and ~37 damage taken, against ~40s and
+ * ~25 with an Ambren Mace (combatSim-style run, 2026-10-10). Fists never gain
+ * tiers; the Melee level term still grows their max hit.
+ */
+export const UNARMED = { name: 'Bare hands', damageType: 'crush' as DamageType, powerShare: 0.5 }
+
+export function unarmedWeapon(form: 'dual' | 'onehand'): { aim: number; power: number } {
+    return { aim: TYPE_AIM[UNARMED.damageType], power: Math.round(TIER1_POWER[form][UNARMED.damageType] * UNARMED.powerShare) }
+}
+
 export const STANCE_MULTIPLIER: Record<Stance, number> = { weak: 1.25, neutral: 1.0, resistant: 0.75 }
 
 // ── Gear ─────────────────────────────────────────────────────────────────────

@@ -23,9 +23,10 @@ interface EquipmentData {
  * levels and what they wear (services/combat.ts) and sent with the equipment.
  */
 export interface CombatProfile {
-    weapon: { name: string; form: 'dual' | 'onehand' | 'twohand'; damageType: string; swingSeconds: number } | null
-    aim: number | null
-    maxHit: number | null
+    /** The main-hand weapon, or bare hands (`unarmed`) when it holds none. */
+    weapon: { name: string; form: 'dual' | 'onehand' | 'twohand'; damageType: string; swingSeconds: number; unarmed: boolean }
+    aim: number
+    maxHit: number
     defence: number
     armour: number
     absorb: number
@@ -156,14 +157,15 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
             {/* Every number here comes from the server (services/combat.ts):
                 weapon and armour from the item rows, the level terms from
-                Melee and Defense. A dash means no weapon in hand. */}
+                Melee and Defense. With no weapon in hand you fight with
+                your fists, and the server says so. */}
             <div className="combat-stats panel-inset">
                 <div className="panel-title">Combat Stats</div>
                 <div className="stat-row">
                     <span>Weapon</span>
-                    <span>{combat?.weapon
-                        ? `${FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}, ${capitalise(combat.weapon.damageType)}, ${combat.weapon.swingSeconds}s`
-                        : 'None'}</span>
+                    <span>{combat
+                        ? `${combat.weapon.unarmed ? 'Fists' : FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}, ${capitalise(combat.weapon.damageType)}, ${combat.weapon.swingSeconds}s`
+                        : '-'}</span>
                 </div>
                 <div className="stat-row"><span>Aim</span><span>{combat?.aim ?? '-'}</span></div>
                 <div className="stat-row"><span>Max hit</span><span>{combat?.maxHit ?? '-'}</span></div>
