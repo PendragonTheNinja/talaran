@@ -22,6 +22,8 @@ interface EquipmentPanelProps {
     equipmentData: EquipmentData | null
     onEquipmentUpdate: () => void
     onInventoryUpdate: () => void
+    /** Current and max HP, from the server. Absent while the player loads. */
+    hp?: { current: number; max: number }
 }
 
 const SLOTS = [
@@ -39,7 +41,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
@@ -69,15 +71,14 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 bars cost more vertical space than the doll itself, and the panel
                 is the tightest column in the layout.
 
-                Both are still placeholders: there is no health column on players
-                and Talar is not implemented, so these read 100/100 and 50/50
-                until combat lands. The shape is here so wiring them later is a
-                value change rather than a layout change. */}
+                Health is live: max from Constitution, current from what the
+                player has not yet healed, both from the server. Talar is not
+                implemented, so its bar is still a placeholder. */}
             <div className="doll-row">
                 <div className="vital-bar hp">
-                    <span className="vital-readout">Health 100 / 100</span>
+                    <span className="vital-readout">{hp ? `Health ${hp.current} / ${hp.max}` : 'Health'}</span>
                     <div className="vital-track">
-                        <div className="vital-fill health" style={{ height: '100%' }} />
+                        <div className="vital-fill health" style={{ height: `${hp && hp.max > 0 ? Math.round(100 * hp.current / hp.max) : 100}%` }} />
                     </div>
                     <span className="vital-label">HP</span>
                 </div>

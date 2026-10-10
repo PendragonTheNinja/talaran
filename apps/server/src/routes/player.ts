@@ -5,6 +5,7 @@ import { levelFromXp, skillProgress } from '../services/xp';
 import { Request } from 'express';
 import { logger } from '../lib/logger';
 import { onlinePlayers } from '../lib/realtime';
+import { combatStanding } from '../services/combat';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
     const player = await db('players')
       .where({ id: playerId })
       .select('id', 'username', 'email', 'current_location_id', 'has_seen_welcome', 'is_admin', 'is_mod', 'gold',
-        'is_guest', 'guest_expires_at')
+        'is_guest', 'guest_expires_at', 'hp_missing')
       .first();
 
     if (!player) {
@@ -78,6 +79,14 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
     const totalLevel = skillsWithLevels.reduce((sum: number, s: any) => sum + s.level, 0);
     const totalXp = skillsWithLevels.reduce((sum: number, s: any) => sum + parseInt(s.xp) || 0, 0);
 
+    // Combat level and HP come from the server (lib/combatMath.ts), never
+    // worked out in the client.
+    const { combatLevel, hp } = combatStanding(
+      new Map(skillsWithLevels.map((s: any) => [s.name, s.level])),
+      Number(player.hp_missing ?? 0),
+    );
+    delete player.hp_missing;
+
     // Get current action if any
     const currentAction = await db('player_actions')
       .where({ player_id: playerId })
@@ -88,6 +97,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       skills: skillsWithLevels,
       totalLevel,
       totalXp,
+      combatLevel,
+      hp,
       currentAction: currentAction || null,
     });
 
@@ -186,8 +197,10 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
 
       const totalLevel = skillsWithLevels.reduce((sum, s) => sum + s.level, 0);
       const totalXp = skillsWithLevels.reduce((sum, s) => sum + s.xp, 0);
+      // Combat level is public, like any level; HP is not shown on a profile.
+      const { combatLevel } = combatStanding(new Map(skillsWithLevels.map(s => [s.name, s.level])), 0);
 
-      res.json({ player, skills: skillsWithLevels, equipment, totalLevel, totalXp });
+      res.json({ player, skills: skillsWithLevels, equipment, totalLevel, totalXp, combatLevel });
     } catch (err) {
       logger.error(`Profile error: ${err}`);
       res.status(500).json({ error: 'Server error' });

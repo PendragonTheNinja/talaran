@@ -29,6 +29,9 @@ interface PlayerData {
   skills: Skill[]
   totalLevel: number
   totalXp: number
+  /** From the server (lib/combatMath.ts on the server); never worked out here. */
+  combatLevel?: number
+  hp?: { current: number; max: number }
   currentAction: any
 }
 

@@ -56,12 +56,18 @@ export async function boardCapFor(playerId: number): Promise<number> {
     return Math.max(1, Number(row?.tally_licences ?? 1));
 }
 
-/** Sum of every skill level. The breadth measure the licence gate reads. */
+/**
+ * Sum of every non-combat skill level. The breadth measure the licence gate
+ * reads. Combat is left out on purpose (docs/combat-spec.md §2): a kill pays
+ * three skills at once, so counting them would make fighting the shortcut to
+ * tally boards.
+ */
 export async function totalLevel(playerId: number): Promise<number> {
     const rows = await db('player_skills as ps')
         .join('skills as s', 's.id', 'ps.skill_id')
         .where('ps.player_id', playerId)
         .andWhere('s.is_implemented', true)
+        .andWhereNot('s.type', 'combat')
         .select('ps.xp');
     return rows.reduce((sum: number, r: { xp: string | number }) => sum + levelFromXp(Number(r.xp || 0)), 0);
 }

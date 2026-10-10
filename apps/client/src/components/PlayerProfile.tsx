@@ -35,6 +35,8 @@ interface ProfileData {
     equipment: Record<string, string | null>
     totalLevel: number
     totalXp: number
+    /** From the server; never worked out here. */
+    combatLevel?: number
 }
 
 interface PlayerProfileProps {
@@ -121,6 +123,12 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                     <span className="muted-text" style={{ fontSize: '12px' }}>Total Level</span>
                                     <span className="gold-text" style={{ fontSize: '18px', fontFamily: 'var(--font-heading)' }}>{profile.totalLevel}</span>
                                 </div>
+                                {profile.combatLevel !== undefined && (
+                                    <div className="profile-total-item">
+                                        <span className="muted-text" style={{ fontSize: '12px' }}>Combat</span>
+                                        <span className="gold-text" style={{ fontSize: '18px', fontFamily: 'var(--font-heading)' }}>{profile.combatLevel}</span>
+                                    </div>
+                                )}
                                 <div className="profile-total-item">
                                     <span className="muted-text" style={{ fontSize: '12px' }}>Total XP</span>
                                     <span className="gold-text" style={{ fontSize: '18px', fontFamily: 'var(--font-heading)' }}>{profile.totalXp.toLocaleString()}</span>

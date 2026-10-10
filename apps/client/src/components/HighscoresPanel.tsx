@@ -128,6 +128,11 @@ export default function HighscoresPanel({ onClose, closing }: HighscoresPanelPro
                     className={`hs-panel-skill-tab ${selectedSkill === 'total' ? 'active' : ''}`}
                     onClick={() => { setSelectedSkill('total'); setPage(1) }}
                 >Total</button>
+                {/* Combat level: the server reads it from the combat skills. */}
+                <button
+                    className={`hs-panel-skill-tab ${selectedSkill === 'combat' ? 'active' : ''}`}
+                    onClick={() => { setSelectedSkill('combat'); setPage(1) }}
+                >Combat</button>
                 {skills.map(skill => (
                     <button
                         key={skill.id}

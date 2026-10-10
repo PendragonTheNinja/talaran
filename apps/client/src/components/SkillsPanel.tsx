@@ -23,6 +23,8 @@ interface SkillsPanelProps {
     playerName?: string
     totalLevel?: number
     totalXp?: number
+    /** From the server; never worked out here. */
+    combatLevel?: number
     gold?: number
     /** Worn from the Feats panel. Both optional: most players wear neither. */
     wornTitle?: string | null
@@ -36,7 +38,7 @@ const fmt = (n: number) => n.toLocaleString('en-US')
 const RW = 94, RH = 94, RR = 12   // rect size + corner radius (in viewBox units)
 const RING_P = 2 * (RW - 2 * RR) + 2 * (RH - 2 * RR) + 2 * Math.PI * RR
 
-export default function SkillsPanel({ skills, playerName, totalLevel, totalXp, gold, wornTitle, wornBadge, wornBadgeGlyph }: SkillsPanelProps) {
+export default function SkillsPanel({ skills, playerName, totalLevel, totalXp, combatLevel, gold, wornTitle, wornBadge, wornBadgeGlyph }: SkillsPanelProps) {
     const [showModal, setShowModal] = useState(false)
     // The tooltip is shared with player profiles; see SkillTooltip.
     const { hoverProps, tooltipEl } = useSkillTooltip()
@@ -61,6 +63,7 @@ export default function SkillsPanel({ skills, playerName, totalLevel, totalXp, g
                     )}
                     <div className="skills-identity-row skills-identity-sub">
                         <span>Total Level <b>{fmt(totalLevel ?? 0)}</b></span>
+                        {combatLevel !== undefined && <span>Combat <b>{fmt(combatLevel)}</b></span>}
                         <span>{fmt(totalXp ?? 0)} XP</span>
                     </div>
                 </div>

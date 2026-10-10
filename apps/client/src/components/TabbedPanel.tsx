@@ -30,6 +30,7 @@ interface TabbedPanelProps {
     playerName?: string
     totalLevel?: number
     totalXp?: number
+    combatLevel?: number
     gold?: number
 }
 
@@ -40,7 +41,7 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
     { key: 'feats', label: 'Feats', icon: '✦' },
 ]
 
-export default function TabbedPanel({ playerId, skills, equipmentData, onEquipmentUpdate, onInventoryUpdate, playerName, totalLevel, totalXp, gold }: TabbedPanelProps) {
+export default function TabbedPanel({ playerId, skills, equipmentData, onEquipmentUpdate, onInventoryUpdate, playerName, totalLevel, totalXp, combatLevel, gold }: TabbedPanelProps) {
     const [active, setActive] = useState<TabKey>('skills')
 
     /**
@@ -115,6 +116,7 @@ export default function TabbedPanel({ playerId, skills, equipmentData, onEquipme
                         playerName={playerName}
                         totalLevel={totalLevel}
                         totalXp={totalXp}
+                        combatLevel={combatLevel}
                         gold={gold}
                         wornTitle={worn.title}
                         wornBadge={worn.badge}

@@ -61,6 +61,8 @@ interface LeftPanelProps {
   tradeId?: number
   onToggleDropMode?: () => void
   onDropAmountChange?: (amount: number) => void
+  /** Current and max HP, from the server. */
+  hp?: { current: number; max: number }
 }
 
 type SortMode = 'category' | 'name' | 'quantity' | 'recent'
@@ -121,7 +123,7 @@ function sortInventory(items: InventoryItem[], mode: SortMode, dir: SortDir, fil
   return dir === 'desc' ? sorted.reverse() : sorted
 }
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem }: LeftPanelProps) {
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem, hp }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   // Set when eating would replace a running buff, so the player is warned first.
@@ -557,6 +559,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         equipmentData={equipmentData}
         onEquipmentUpdate={onEquipmentUpdate}
         onInventoryUpdate={onInventoryUpdate}
+        hp={hp}
       />
 
       <BuffPanel onInventoryUpdate={onInventoryUpdate} />

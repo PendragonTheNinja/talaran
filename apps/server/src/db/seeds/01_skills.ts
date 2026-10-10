@@ -19,10 +19,10 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Husbandry', type: 'crafting', display_order: 10, description: 'Raise and care for animals. Unlocks mounts and animal products.' },
     { name: 'Crafting', type: 'crafting', display_order: 11, description: 'Create armor, jewelry, and goods from raw materials.' },
     // Combat
-    { name: 'Attack', type: 'combat', display_order: 12, description: 'Determines your accuracy in melee combat, as well as what tier of weapon you can wield.' },
-    { name: 'Strength', type: 'combat', display_order: 13, description: 'Increases melee damage output.' },
-    { name: 'Defense', type: 'combat', display_order: 14, description: 'Reduces damage taken from enemies.' },
-    { name: 'Constitution', type: 'combat', display_order: 15, description: 'Governs your maximum health points.' },
+    // Combat: three skills since 20261010120000_combat_skills (Attack became Melee, Strength retired).
+    { name: 'Melee', type: 'combat', display_order: 12, description: "Fight at arm's length with blade, spear or hammer. The better your hand, the finer the weapon it can hold." },
+    { name: 'Defense', type: 'combat', display_order: 13, description: 'Take the blow on your armour and not on yourself. The more you turn aside, the heavier the armour you can carry.' },
+    { name: 'Constitution', type: 'combat', display_order: 14, description: 'Bear the blows that get through. A hardy body has more to lose before it falls.' },
     // Utility
     { name: 'Agility', type: 'utility', display_order: 16, description: 'Increases movement speed and unlocks shortcuts.' },
     { name: 'Equitation', type: 'utility', display_order: 17, description: 'The art of riding mounts. Higher levels increase mounted speed.' },

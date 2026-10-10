@@ -42,6 +42,7 @@ interface PlayerData {
   skills: Skill[]
   totalLevel: number
   totalXp: number
+  combatLevel?: number
   currentAction: any
 }
 
@@ -98,6 +99,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
         playerName={player.username}
         totalLevel={totalLevel}
         totalXp={playerData?.totalXp}
+        combatLevel={playerData?.combatLevel}
         gold={playerData?.player?.gold}
       />
 

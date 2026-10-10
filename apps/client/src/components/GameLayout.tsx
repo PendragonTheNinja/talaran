@@ -53,6 +53,9 @@ interface PlayerData {
   skills: Skill[]
   totalLevel: number
   totalXp: number
+  /** From the server (lib/combatMath.ts on the server); never worked out here. */
+  combatLevel?: number
+  hp?: { current: number; max: number }
   currentAction: any
 }
 
@@ -283,6 +286,7 @@ export default function GameLayout({
       playerName={player.username}
       totalLevel={playerData?.totalLevel}
       totalXp={playerData?.totalXp}
+      combatLevel={playerData?.combatLevel}
       gold={playerData?.player?.gold}
     />
   )
@@ -713,6 +717,7 @@ export default function GameLayout({
       onDropAmountChange={(amt: number) => setDropAmount(amt)}
       tradeMode={tradeMode}
       tradeId={activeTrade?.tradeId}
+      hp={playerData?.hp}
     />
   )
 
@@ -724,6 +729,7 @@ export default function GameLayout({
       equipmentData={equipmentData}
       onEquipmentUpdate={onEquipmentUpdate}
       onInventoryUpdate={onInventoryUpdate}
+      hp={playerData?.hp}
     />
   )
 

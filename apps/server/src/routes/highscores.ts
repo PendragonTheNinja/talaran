@@ -3,6 +3,7 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { getWeekStart } from '../services/weeklySnapshot';
 import { levelFromXp, countedSkillIds } from '../services/xp';
+import { combatStanding, COMBAT_SKILLS } from '../services/combat';
 
 const router = Router();
 
@@ -128,6 +129,62 @@ router.get('/', async (req: Request, res: Response) => {
                 weeklyLevels: p.weeklyLevels,
             }));
 
+            res.json({ players, totalCount, page, totalPages: Math.ceil(totalCount / limit) });
+            return;
+        }
+
+        // Combat level board: the combat skills' XP read through combatStanding
+        // (lib/combatMath.ts), so the board and the Skills tab agree. XP is the
+        // three skills' total; weekly levels are combat levels gained.
+        if (skillId === 'combat') {
+            const rows = await db('player_skills')
+                .join('players', 'player_skills.player_id', 'players.id')
+                .join('skills', 'player_skills.skill_id', 'skills.id')
+                .where('players.is_guest', false)
+                .whereIn('skills.name', Object.values(COMBAT_SKILLS))
+                .select('players.id', 'players.username', 'players.guild_tag', 'skills.name as skill', 'player_skills.xp');
+
+            const snapMap = new Map<string, number>();
+            if (weekStart) {
+                const snaps = await db('skill_snapshots')
+                    .join('skills', 'skill_snapshots.skill_id', 'skills.id')
+                    .whereIn('skills.name', Object.values(COMBAT_SKILLS))
+                    .where({ snapshot_date: weekStart })
+                    .select('skill_snapshots.player_id', 'skills.name as skill', 'skill_snapshots.xp_at_snapshot');
+                for (const sn of snaps) snapMap.set(`${sn.player_id}:${sn.skill}`, parseInt(sn.xp_at_snapshot));
+            }
+
+            const byPlayer = new Map<number, { id: number; username: string; guildTag: string | null; xp: number; weeklyXp: number; now: Map<string, number>; then: Map<string, number> }>();
+            for (const r of rows) {
+                const xp = parseInt(r.xp);
+                let p = byPlayer.get(r.id);
+                if (!p) {
+                    p = { id: r.id, username: r.username, guildTag: r.guild_tag, xp: 0, weeklyXp: 0, now: new Map(), then: new Map() };
+                    byPlayer.set(r.id, p);
+                }
+                const snapXp = snapMap.get(`${r.id}:${r.skill}`) ?? 0;
+                p.xp += xp;
+                p.weeklyXp += Math.max(0, xp - snapXp);
+                p.now.set(r.skill, levelFromXp(xp));
+                p.then.set(r.skill, levelFromXp(snapXp));
+            }
+
+            let computed: Computed[] = [...byPlayer.values()]
+                .filter(p => p.xp > 0)
+                .map(p => {
+                    const level = combatStanding(p.now, 0).combatLevel;
+                    const weeklyXp = weekStart ? p.weeklyXp : 0;
+                    const weeklyLevels = weekStart ? Math.max(0, level - combatStanding(p.then, 0).combatLevel) : 0;
+                    return { id: p.id, username: p.username, guildTag: p.guildTag, level, xp: p.xp, weeklyXp, weeklyLevels };
+                });
+            if (weekStart) computed = computed.filter(p => p.weeklyXp > 0);
+
+            const all = sortRows(computed, sortBy, dir);
+            const totalCount = all.length;
+            const players = all.slice(offset, offset + limit).map((p, i) => ({
+                rank: offset + i + 1, id: p.id, username: p.username, guildTag: p.guildTag,
+                level: p.level, xp: p.xp, weeklyXp: p.weeklyXp, weeklyLevels: p.weeklyLevels,
+            }));
             res.json({ players, totalCount, page, totalPages: Math.ceil(totalCount / limit) });
             return;
         }
