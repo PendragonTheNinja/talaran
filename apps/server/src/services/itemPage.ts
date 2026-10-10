@@ -484,7 +484,40 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             'drop_table_entries.max_qty as maxq',
         );
 
+    // Combat drops are keyed 'combat:<creature>' or 'combat:<creature>@<spot>'
+    // (migration 20261010140000), keys rather than words, so they are looked
+    // up by name. No odds: the Bestiary tells a fighter what a creature drops
+    // as they kill more of it, and never the exact chances (combat-spec §8).
+    const combatKeys = secondary.map(d => String(d.key)).filter(k => k.startsWith('combat:'));
+    const creatureNames = new Map<string, string>();
+    const spotPlaces = new Map<string, string>();
+    if (combatKeys.length) {
+        const parsed = combatKeys.map(k => k.slice('combat:'.length).split('@'));
+        for (const c of await db('creatures').whereIn('key', parsed.map(p => p[0])).select('key', 'name')) {
+            creatureNames.set(c.key, c.name);
+        }
+        const spotKeys = parsed.map(p => p[1]).filter((k): k is string => !!k);
+        if (spotKeys.length) {
+            for (const sp of await db('fighting_spots')
+                .join('locations', 'locations.id', 'fighting_spots.location_id')
+                .whereIn('fighting_spots.key', spotKeys)
+                .select('fighting_spots.key', 'locations.name as place')) {
+                spotPlaces.set(sp.key, sp.place);
+            }
+        }
+    }
+
     for (const d of secondary) {
+        if (String(d.key).startsWith('combat:')) {
+            const [creatureKey, spotKey] = String(d.key).slice('combat:'.length).split('@');
+            sources.push({
+                kind: 'Combat',
+                from: `Dropped by ${creatureNames.get(creatureKey) ?? creatureKey}`,
+                where: spotKey ? spotPlaces.get(spotKey) : undefined,
+            });
+            continue;
+        }
+
         // 'woodcutting:lanai' and 'mining:rock:granite' are readable already;
         // they just need the punctuation turning into words.
         const parts = String(d.key).split(':');

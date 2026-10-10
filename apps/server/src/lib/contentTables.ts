@@ -55,6 +55,13 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     trap_targets:                { label: 'Trap Targets',          group: 'Hunting',    snapshot: true, editable: true },
     animal_species:              { label: 'Animal Species',        group: 'Husbandry',  snapshot: true, editable: true },
     crops:                       { label: 'Crops',                 group: 'Farming',    snapshot: true, editable: true },
+    // ---- Combat (docs/combat-spec.md §8) ----
+    // Creatures, the places to fight them and which creature lives where.
+    // creatures.xp_per_kill is derived (pnpm combat:derive), so edit the level
+    // or xp_multiplier and re-run the script rather than typing a number.
+    creatures:                   { label: 'Creatures',             group: 'Combat',     snapshot: true, editable: true },
+    fighting_spots:              { label: 'Fighting Spots',        group: 'Combat',     snapshot: true, editable: true },
+    fighting_spot_creatures:     { label: 'Fighting Spot Creatures', group: 'Combat',   snapshot: true, editable: true },
     recipes:                     { label: 'Recipes',               group: 'Crafting',   snapshot: true, editable: true },
     drop_table_entries:          { label: 'Drop Table Entries',    group: 'Drops',      snapshot: true, editable: true },
     quests:                      { label: 'Quests',                group: 'Quests',     snapshot: true, editable: true },

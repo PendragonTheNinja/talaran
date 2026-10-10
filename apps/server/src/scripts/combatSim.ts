@@ -25,8 +25,10 @@
  *   gap         [levels]  HP lost and kills per hour against foes below you, Ambren gear.
  *   creatures   [level]  one level, several creature profiles: XP/hr, HP cost, AFK band.
  *   roster      Taiar's creatures, each at its own level, against the guardrail.
+ *   xp          [maxLevel]  XP per kill by creature level (xpPerKillAt), the
+ *               numbers `pnpm combat:derive` writes to creatures.xp_per_kill.
  *
- * Read-only: no database.
+ * Read-only: no database. xpPerKillAt is exported for scripts/deriveCreatureXp.ts.
  */
 
 import {
@@ -654,12 +656,40 @@ function roster(): void {
     }))
 }
 
+// ── xp per kill ──────────────────────────────────────────────────────────────
+
+/**
+ * XP per kill for a creature of `level`, before its type's multiplier (§8):
+ * the band at that level over the cycle a level-matched kill of the baseline
+ * grunt takes (kill plus the engage delay), so fighting grunts nonstop pays a
+ * normal skill's rate. The reference player is the one-hander at that combat
+ * level hitting the grunt's weakness, the play the roster's XP/hr column is
+ * measured against; a creature's profile then moves its XP per hour, not its
+ * XP per kill. Seeded per level, so the same level always gives the same
+ * number.
+ */
+export function xpPerKillAt(level: number, c: CombatConstants = COMBAT): number {
+    const kit = kitAt(level, 'onehand', 'slash', c)
+    const m = measure(mulberry32(level), kit, enemyStats(level, c), 4000, c, STANCE_MULTIPLIER.weak)
+    return Math.max(1, Math.round(band(level) * (m.killSeconds + c.ENGAGE_DELAY_SECONDS) / 3600))
+}
+
+function xp(): void {
+    const top = Number(process.argv[3] ?? 12)
+    console.log('\nXP per kill by creature level (before a type multiplier). Kill + engage delay at the band.')
+    table(['level', 'band XP/hr', 'XP per kill'], Array.from({ length: top }, (_, i) => i + 1).map(level => [
+        level, Math.round(band(level)), xpPerKillAt(level),
+    ]))
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures, roster }
-const cmd = process.argv[2] ?? 'forms'
-if (!commands[cmd]) {
-    console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)
-    process.exit(1)
+const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures, roster, xp }
+if (require.main === module) {
+    const cmd = process.argv[2] ?? 'forms'
+    if (!commands[cmd]) {
+        console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)
+        process.exit(1)
+    }
+    commands[cmd]()
 }
-commands[cmd]()

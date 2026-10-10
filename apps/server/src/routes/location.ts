@@ -43,6 +43,28 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .count('id as count').first();
     const fishSpeciesCount = Number(fishSpecies?.count || 0);
 
+    // Places to fight here (docs/combat-spec.md §8), each with the creatures
+    // it holds, lowest level first. Draw weights stay on the server: what a
+    // drawn spot sends you next is the fight's business, not the panel's.
+    const spots = await db('fighting_spots')
+      .where({ location_id: player.current_location_id, is_active: true })
+      .orderBy(['display_order', 'id'])
+      .select('id', 'key', 'name', 'kind', 'description');
+    const spotCreatures = spots.length
+      ? await db('fighting_spot_creatures')
+        .join('creatures', 'creatures.id', 'fighting_spot_creatures.creature_id')
+        .whereIn('fighting_spot_creatures.spot_id', spots.map((s) => s.id))
+        .andWhere('creatures.is_active', true)
+        .orderBy(['creatures.level', 'creatures.name'])
+        .select('fighting_spot_creatures.spot_id', 'creatures.id', 'creatures.key', 'creatures.name', 'creatures.level')
+      : [];
+    const fightingSpots = spots.map((spot) => ({
+      ...spot,
+      creatures: spotCreatures
+        .filter((c) => c.spot_id === spot.id)
+        .map(({ spot_id: _spotId, ...c }) => c),
+    }));
+
     // Direct connections FROM current location
     const directConnections = await db('location_connections')
       .where({ from_location_id: player.current_location_id })
@@ -104,6 +126,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       huntableAnimals,
       foragingHabitats,
       fishSpeciesCount,
+      fightingSpots,
     });
 
   } catch (err) {
