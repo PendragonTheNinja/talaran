@@ -39,24 +39,24 @@ Live `player_skills` for the combat skills: 83 rows each for Attack, Strength, D
 
 **Test:** each spot appears at its location with the right creatures; admin content browser shows the rows.
 
-**Built 2026-10-10** (migration `20261010140000_taiar_creatures`). XP per kill: `pnpm combat:derive` (`scripts/deriveCreatureXp.ts` on `xpPerKillAt` in `combatSim.ts`) gives 26 at level 1 to 40 at level 12; the migration writes those numbers out. Spots: The Docks (Talador), The Stackyards (Novita), The Wrecking Rocks (Dawncrest, chosen), The Spoil Heaps (Origrund), The Old Workings (Grundagr), The Deep Wood (Eld Grove). Loot keys are `combat:<creature>` and `combat:<creature>@<spot>`. Seeded now, for items that already exist:
+**Built 2026-10-10** (migration `20261010140000_taiar_creatures`). XP per kill: `pnpm combat:derive` (`scripts/deriveCreatureXp.ts` on `xpPerKillAt` in `combatSim.ts`) gives 26 at level 1 to 40 at level 12; the migration writes those numbers out. Spots: The Docks (Talador), The Stackyards (Novita), The Wrecking Rocks (Dawncrest, chosen), The Spoil Heaps (Origrund), The Old Workings (Grundagr), The Deep Wood (Eld Grove). Loot keys are `combat:<creature>` and `combat:<creature>@<spot>`. Seeded now, for items that already exist (rates as revised 2026-10-11, migration `20261011120000_combat_drop_rates`):
 
 | Creature | Drop | Chance | Qty |
 |---|---|---|---|
-| Granary Rat | Grain | 1 in 5 | 1-3 |
-| Granary Rat | Wild Grain | 1 in 8 | 1-2 |
-| Wrecker | Linen Cloth | 1 in 25 | 1 |
-| Wrecker | Locked Rusty Chest | 1 in 40 | 1 |
-| Wrecker | Ambren Tinderbox | 1 in 60 | 1 |
+| Granary Rat | Grain | 1 in 10 | 1-2 |
+| Granary Rat | Wild Grain | 1 in 20 | 1 |
+| Wrecker | Linen Cloth | 1 in 40 | 1 |
+| Wrecker | Locked Rusty Chest | 1 in 55 | 1 |
+| Wrecker | Ambren Tinderbox | 1 in 80 | 1 |
 | Wrecker | Amber | 1 in 150 | 1 |
-| Jumper | Charc | 1 in 8 | 1-2 |
-| Jumper at Origrund | Ambren Ore | 1 in 6 | 2-4 |
-| Jumper at Grundagr | Burgh Ore | 1 in 6 | 2-4 |
+| Jumper | Charc | 1 in 10 | 1-2 |
+| Jumper at Origrund | Ambren Ore | 1 in 20 | 2-4 |
+| Jumper at Grundagr | Burgh Ore | 1 in 20 | 2-4 |
 | Knocker | Dense Burgh Ore | 1 in 100 | 1 |
 | Agropelter | Poor Lanai Log | 1 in 5 | 1-3 |
 | Agropelter | Feathers | 1 in 20 | 1-2 |
 
-Item pages list a combat source as "Dropped by X" without odds (the Bestiary never shows exact chances). `combatSim.ts` still carries its own copy of the roster (`TAIAR`); step 10 points it at the rows.
+Granary Rats were checked against their sources (2026-10-11): a drawn Novita fight meets ~40 to 57 rats an hour at combat 9 to 30, so the revised rates give ~6 to 9 Grain an hour (under a Farming 12 player's Wild Grain plots over a day) and ~2 to 3 Wild Grain (10 to 15% of the Sunlit Meadow's 14 to 25). Item pages list a combat source as "Dropped by X" without odds (the Bestiary never shows exact chances). `combatSim.ts` still carries its own copy of the roster (`TAIAR`); step 10 points it at the rows.
 
 ## Step 4: the fight loop (server)
 

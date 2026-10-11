@@ -43,7 +43,7 @@ import { activeXpForSeconds } from '../services/farming'
 // ── Plumbing ─────────────────────────────────────────────────────────────────
 
 /** Seeded so a table reads the same twice. */
-function mulberry32(seed: number): Rng {
+export function mulberry32(seed: number): Rng {
     let a = seed >>> 0
     return () => {
         a = (a + 0x6D2B79F5) >>> 0
@@ -145,7 +145,7 @@ interface Kit {
  * progression, the best weapon tier their gate skill allows, the best armour
  * their Defense allows, capped at `maxTier` (an island's metal).
  */
-function kitAt(combatLevelWanted: number, form: Form, type: DamageType, c: CombatConstants = COMBAT, maxTier = 9): Kit {
+export function kitAt(combatLevelWanted: number, form: Form, type: DamageType, c: CombatConstants = COMBAT, maxTier = 9): Kit {
     const { levels: l } = progression(form)[combatLevelWanted]
     const tier = Math.min(maxTier, tierOfLevel(l.melee))
     const offense = l.melee
@@ -215,7 +215,7 @@ interface Matchup {
     unattendedMinutes: number
 }
 
-function measure(rng: Rng, kit: Kit, enemy: Combatant, fights: number, c: CombatConstants, stanceMultiplier = 1): Matchup {
+export function measure(rng: Rng, kit: Kit, enemy: Combatant, fights: number, c: CombatConstants, stanceMultiplier = 1): Matchup {
     let seconds = 0
     let damage = 0
     for (let i = 0; i < fights; i++) {
