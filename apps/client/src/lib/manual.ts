@@ -42,27 +42,36 @@ export type ManualNode =
     | { type: 'data'; query: string; param?: string }
     | { type: 'details'; label: string; children: ManualNode[] }
     | { type: 'tabs'; tabs: { label: string; children: ManualNode[] }[] }
+    | { type: 'open'; target: string; label: string }
 
 const DATA_RE = /\{\{data:([a-z-]+)(?::([^}]+))?\}\}/i
+// {{open:<panel>:<label>}}: a button that opens an in-game panel (ManualRenderer
+// decides which panels it knows; the public page shows nothing).
+const OPEN_RE = /\{\{open:([a-z-]+):([^}]+)\}\}/i
 const DETAILS_OPEN_RE = /\{\{details:([^}]+)\}\}/i
 const DETAILS_CLOSE = '{{/details}}'
 const TABS_OPEN = '{{tabs}}'
 const TABS_CLOSE = '{{/tabs}}'
 const TAB_RE = /\{\{tab:([^}]+)\}\}/g
 
-/** Splits prose and {{data:...}} directives. No nesting at this level. */
+/** Splits prose, {{data:...}} and {{open:...}} directives. No nesting at this level. */
 function parseFlat(text: string): ManualNode[] {
     const nodes: ManualNode[] = []
     let rest = text
 
     for (;;) {
-        const m = rest.match(DATA_RE)
+        const data = rest.match(DATA_RE)
+        const open = rest.match(OPEN_RE)
+        const m = [data, open]
+            .filter((x): x is RegExpMatchArray => !!x && x.index !== undefined)
+            .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0]
         if (!m || m.index === undefined) break
 
         const before = rest.slice(0, m.index)
         if (before.trim()) nodes.push({ type: 'prose', text: before.trim() })
 
-        nodes.push({ type: 'data', query: m[1].toLowerCase(), param: m[2]?.trim() })
+        if (m === open) nodes.push({ type: 'open', target: m[1].toLowerCase(), label: m[2].trim() })
+        else nodes.push({ type: 'data', query: m[1].toLowerCase(), param: m[2]?.trim() })
         rest = rest.slice(m.index + m[0].length)
     }
 

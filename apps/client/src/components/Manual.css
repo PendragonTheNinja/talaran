@@ -311,6 +311,10 @@
     color: var(--color-gold-bright, #e8b84b);
 }
 
+.manual-open {
+    margin: 1em 0;
+}
+
 .manual-signature {
     font-family: var(--font-body);
     font-style: italic;

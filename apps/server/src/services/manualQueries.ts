@@ -17,6 +17,9 @@ import { FARM_ESTABLISH_COST, plotCost } from './farming';
 import { ESTABLISH_COST as SHOP_COST, SHOP_TOWN, CARPENTRY_REQ as SHOP_CARPENTRY_REQ } from './shops';
 import { BUILD_COST as TALLY_COST, CARPENTRY_REQ as TALLY_CARPENTRY_REQ } from './tally';
 import type { ManualTable } from '../routes/manual';
+import { FORMS, STANCE_MULTIPLIER, TYPE_AIM, COMBAT, maxHp, unarmedWeapon, UNARMED, type Form } from '../lib/combatMath';
+import { RUNGS } from '../lib/tiers';
+import { BESTIARY_STEPS } from './bestiary';
 
 type QueryHandler = (param?: string) => Promise<ManualTable | null>;
 
@@ -44,6 +47,12 @@ function titleCase(v: string): string {
         .filter(Boolean)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
+}
+
+const FORM_LABEL: Record<Form, string> = { dual: 'A pair', onehand: 'One hand', twohand: 'Both hands' };
+
+function cap(v: string): string {
+    return v.charAt(0).toUpperCase() + v.slice(1);
 }
 
 function seconds(s: number): string {
@@ -609,5 +618,232 @@ export const extraQueries: Record<string, QueryHandler> = {
             note: 'You cannot go looking for a vein. You mine the granite, and every so often the rock opens onto a seam, which is yours alone until it is announced to the island a short while later. Work it until it is spent, then the granite is still there.',
         };
     },
+
+    // ── Combat (docs/combat-spec.md; Manual pages Melee, Defense,
+    // Constitution, Combat and Bestiary) ─────────────────────────────────────
+    //
+    // The Manual is public, and a creature's drops and its weaknesses are the
+    // Bestiary's to tell (decided 2026-10-12), so nothing here reads
+    // drop_table_entries or a creature's stance columns. Where and how strong a
+    // creature is, the fight menu shows anyway.
+
+    'fighting-spots': async () => {
+        const rows = await db('fighting_spots')
+            .join('locations', 'locations.id', 'fighting_spots.location_id')
+            .join('fighting_spot_creatures', 'fighting_spot_creatures.spot_id', 'fighting_spots.id')
+            .join('creatures', 'creatures.id', 'fighting_spot_creatures.creature_id')
+            .where('fighting_spots.is_active', true)
+            .andWhere('creatures.is_active', true)
+            .select('fighting_spots.id', 'fighting_spots.name as spot', 'fighting_spots.kind',
+                'locations.name as place', 'locations.region as island', 'creatures.level');
+        if (!rows.length) return null;
+
+        const spots = new Map<number, { spot: string; place: string; island: string; kind: string; levels: number[] }>();
+        for (const r of rows as any[]) {
+            const s = spots.get(r.id) ?? { spot: r.spot, place: r.place, island: r.island || '', kind: r.kind, levels: [] as number[] };
+            s.levels.push(Number(r.level));
+            spots.set(r.id, s);
+        }
+        const list = [...spots.values()].sort((a, b) => Math.min(...a.levels) - Math.min(...b.levels));
+        const islands = new Set(list.map(s => s.island).filter(Boolean));
+
+        const columns: ManualTable['columns'] = [{ key: 'spot', label: 'Spot' }];
+        if (islands.size > 1) columns.push({ key: 'island', label: 'Island' });
+        columns.push(
+            { key: 'place', label: 'Where' },
+            { key: 'levels', label: 'Levels', align: 'right' },
+            { key: 'kind', label: 'You fight' },
+        );
+        return {
+            title: 'Where the fighting is',
+            columns,
+            rows: list.map(s => ({
+                spot: s.spot,
+                island: s.island,
+                place: s.place,
+                levels: range(Math.min(...s.levels), Math.max(...s.levels)),
+                kind: s.kind === 'chosen' ? 'Whichever you pick' : 'Whatever comes',
+            })),
+            note: islands.size === 1 ? `All of it on ${[...islands][0]}, for now.` : undefined,
+        };
+    },
+
+    'creatures': async () => {
+        const rows = await db('creatures')
+            .join('fighting_spot_creatures', 'fighting_spot_creatures.creature_id', 'creatures.id')
+            .join('fighting_spots', 'fighting_spots.id', 'fighting_spot_creatures.spot_id')
+            .join('locations', 'locations.id', 'fighting_spots.location_id')
+            .where('creatures.is_active', true)
+            .andWhere('fighting_spots.is_active', true)
+            .orderBy(['creatures.level', 'creatures.name'])
+            .select('creatures.id', 'creatures.name', 'creatures.level', 'creatures.xp_per_kill',
+                'fighting_spots.name as spot', 'locations.name as place');
+        if (!rows.length) return null;
+
+        const byCreature = new Map<number, { name: string; level: number; xp: number; where: string[] }>();
+        for (const r of rows as any[]) {
+            const c = byCreature.get(r.id) ?? { name: r.name, level: Number(r.level), xp: Number(r.xp_per_kill), where: [] as string[] };
+            c.where.push(`${r.spot}, ${r.place}`);
+            byCreature.set(r.id, c);
+        }
+        return {
+            title: 'What lives there',
+            columns: [
+                { key: 'name', label: 'Creature' },
+                { key: 'level', label: 'Level', align: 'right' },
+                { key: 'where', label: 'Found at' },
+                { key: 'xp', label: 'Melee XP a kill', align: 'right' },
+            ],
+            rows: [...byCreature.values()].map(c => ({ ...c, where: c.where.join('; ') })),
+            note: `Defense and Constitution share ${COMBAT.DEFENSIVE_XP_MULTIPLE === 2 ? 'twice' : `${COMBAT.DEFENSIVE_XP_MULTIPLE} times`} the Melee figure between them. What the creature carries and what hurts it, your Bestiary will tell you once you have killed enough of them.`,
+        };
+    },
+
+    // Every weapon a smith can make, plus the one everybody already owns.
+    // Weapons nobody makes come from creatures, and those are the Bestiary's.
+    'weapons': async () => {
+        const rows = await db('items')
+            .whereNotNull('items.weapon_form')
+            .whereExists(function () {
+                this.select(1).from('recipes').whereRaw('recipes.output_item_name = items.name').andWhere('recipes.is_active', true);
+            })
+            .orderBy(['items.level_required', 'items.name'])
+            .select('items.name', 'items.weapon_form', 'items.damage_type', 'items.level_required', 'items.aim', 'items.power');
+
+        const fists = unarmedWeapon('dual');
+        const out = [
+            {
+                name: UNARMED.name, icon: '', form: 'A pair, or one with a shield', type: cap(UNARMED.damageType),
+                level: 1, aim: fists.aim, power: fists.power, swing: `${FORMS.dual.swingSeconds}s`,
+            },
+            ...(rows as any[]).map(r => ({
+                name: r.name,
+                icon: r.name,
+                form: FORM_LABEL[r.weapon_form as Form] ?? r.weapon_form,
+                type: r.damage_type ? cap(r.damage_type) : '',
+                level: r.level_required,
+                aim: r.aim,
+                power: r.power,
+                swing: FORMS[r.weapon_form as Form] ? `${FORMS[r.weapon_form as Form].swingSeconds}s` : '',
+            })),
+        ];
+        return {
+            title: 'Weapons',
+            columns: [
+                { key: 'name', label: 'Weapon', icon: 'icon' },
+                { key: 'form', label: 'Held in' },
+                { key: 'type', label: 'Damage' },
+                { key: 'level', label: 'Melee', align: 'right' },
+                { key: 'aim', label: 'Aim', align: 'right' },
+                { key: 'power', label: 'Power', align: 'right' },
+                { key: 'swing', label: 'Swing', align: 'right' },
+            ],
+            rows: out,
+            note: 'Only a one-handed weapon leaves room for a shield. Bare hands are the fallback when nothing is held, and swing as a one-hander if a shield is.',
+        };
+    },
+
+    'damage-types': async () => ({
+        title: 'Pierce, slash and crush',
+        columns: [
+            { key: 'type', label: 'Damage' },
+            { key: 'aim', label: 'Aim, first metal', align: 'right' },
+            { key: 'weak', label: 'Against a weakness', align: 'right' },
+            { key: 'resist', label: 'Against a hide that shrugs it off', align: 'right' },
+        ],
+        rows: (Object.keys(TYPE_AIM) as (keyof typeof TYPE_AIM)[]).map(t => ({
+            type: cap(t),
+            aim: TYPE_AIM[t],
+            weak: `+${Math.round((STANCE_MULTIPLIER.weak - 1) * 100)}% damage`,
+            resist: `${Math.round((STANCE_MULTIPLIER.resistant - 1) * 100)}% damage`,
+        })),
+        note: 'The surer the aim, the lighter the blow: each type is weighed so that none of them comes out ahead against a creature that neither fears nor ignores it.',
+    }),
+
+    'armour': async () => {
+        const rows = await db('items')
+            .where('items.armour', '>', 0)
+            .whereExists(function () {
+                this.select(1).from('recipes').whereRaw('recipes.output_item_name = items.name').andWhere('recipes.is_active', true);
+            })
+            .orderBy(['items.level_required', 'items.name'])
+            .select('items.name', 'items.slot', 'items.level_required', 'items.armour');
+        if (!rows.length) return null;
+        const SLOT: Record<string, string> = { head: 'Head', chest: 'Body', legs: 'Legs', hands: 'Hands', feet: 'Feet', offhand: 'Shield' };
+        return {
+            title: 'Armour',
+            columns: [
+                { key: 'name', label: 'Piece', icon: 'name' },
+                { key: 'slot', label: 'Worn on' },
+                { key: 'level', label: 'Defense', align: 'right' },
+                { key: 'armour', label: 'Armour', align: 'right' },
+            ],
+            rows: (rows as any[]).map(r => ({ name: r.name, slot: SLOT[r.slot] ?? r.slot, level: r.level_required, armour: r.armour })),
+            note: 'One new piece for every level of Defense. A shield needs a one-handed weapon beside it.',
+        };
+    },
+
+    'constitution-hp': async () => ({
+        title: 'Health by Constitution',
+        columns: [
+            { key: 'level', label: 'Constitution', align: 'right' },
+            { key: 'hp', label: 'Health', align: 'right' },
+        ],
+        rows: RUNGS.map(level => ({ level, hp: maxHp(level) })),
+        note: `Every level adds ${COMBAT.HP_PER_CONSTITUTION} health.`,
+    }),
+
+    'durability': async () => {
+        const rows = await db('durability_tiers').orderBy('tier').select('*');
+        if (!rows.length) return null;
+        return {
+            title: 'How long gear lasts',
+            columns: [
+                { key: 'tier', label: 'Tier', align: 'right' },
+                { key: 'uses', label: 'Lasts at least', align: 'right' },
+                { key: 'chance', label: 'Then breaks', align: 'right' },
+            ],
+            rows: (rows as any[]).map(r => ({
+                tier: r.tier,
+                uses: `${Number(r.guaranteed_uses).toLocaleString('en-US')} kills`,
+                chance: `${Number(r.break_chance_pct)}% a kill`,
+            })),
+            note: `Your weapon wears with every kill, and ${COMBAT.ARMOUR_PIECES_WORN_PER_KILL} of the armour pieces you have on, picked at random. A few rare pieces last longer than their tier. The count is kept per kind of item rather than per piece, so trading one blade for another of the same make does not start it again; a break does.`,
+        };
+    },
+
+    'fight-food': async () => {
+        const rows = await db('items')
+            .where('heal_amount', '>', 0)
+            .whereNull('buff_effect')
+            .orderBy([{ column: 'heal_amount', order: 'desc' }, 'name'])
+            .select('name', 'heal_amount');
+        if (!rows.length) return null;
+        return {
+            title: 'Food that mends',
+            columns: [
+                { key: 'name', label: 'Food', icon: 'name' },
+                { key: 'heal', label: 'Mends', align: 'right' },
+            ],
+            rows: (rows as any[]).map(r => ({ name: r.name, heal: r.heal_amount })),
+            note: 'Dishes that do something else besides, such as a meal that speeds a trade, are not fighting food and mend nothing.',
+        };
+    },
+
+    'bestiary-steps': async () => ({
+        title: 'What the Bestiary tells, and when',
+        columns: [
+            { key: 'kills', label: 'Kills', align: 'right' },
+            { key: 'learn', label: 'You learn' },
+        ],
+        rows: [
+            { kills: BESTIARY_STEPS.found, learn: 'Its name, its look, its level and where it lives. A little Exploration XP for the finding.' },
+            { kills: BESTIARY_STEPS.stances, learn: 'What it is weak to and what it shrugs off. The fight shows it from then on.' },
+            { kills: BESTIARY_STEPS.commonDrops, learn: 'What it usually carries.' },
+            { kills: BESTIARY_STEPS.allDrops, learn: 'Everything it carries, the rare things included.' },
+            { kills: BESTIARY_STEPS.mastery.toLocaleString('en-US'), learn: 'A line of its story, and the mark of mastery.' },
+        ],
+        note: 'The chance of any one thing is never written down. You will have a feel for it by then.',
+    }),
 
 };

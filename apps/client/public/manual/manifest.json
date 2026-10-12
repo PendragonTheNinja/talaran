@@ -86,6 +86,21 @@
           "slug": "cooking",
           "title": "Cooking",
           "blurb": "Fire, fuel, and the trade that makes every other trade worth something."
+        },
+        {
+          "slug": "melee",
+          "title": "Melee",
+          "blurb": "The only trade where the work fights back."
+        },
+        {
+          "slug": "defense",
+          "title": "Defense",
+          "blurb": "Being hit less, and minding less when you are."
+        },
+        {
+          "slug": "constitution",
+          "title": "Constitution",
+          "blurb": "How much of you there is."
         }
       ]
     },
@@ -122,6 +137,16 @@
           "slug": "the-homestead",
           "title": "The Homestead",
           "blurb": "Ground with your name on it, and fifty slots of consequences."
+        },
+        {
+          "slug": "combat",
+          "title": "Combat",
+          "blurb": "Fighting spots, food, falling, and the gear that wears out."
+        },
+        {
+          "slug": "bestiary",
+          "title": "The Bestiary",
+          "blurb": "The book you write by killing things."
         }
       ]
     },

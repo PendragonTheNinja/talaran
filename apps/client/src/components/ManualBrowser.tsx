@@ -81,6 +81,10 @@ export default function ManualBrowser({
     const [reference, setReference] = useState(false)
 
     useEffect(() => {
+        // Logged out, there is nothing to read, and asking anyway gets a 401,
+        // which apiFetch answers by sending the browser to the homepage: the
+        // public Manual could not be opened by anyone without an account.
+        if (!localStorage.getItem('talaran_token')) return
         apiFetch<{ manualReferenceMode?: boolean }>('/api/settings')
             .then(d => setReference(!!d.manualReferenceMode))
             .catch(() => { /* logged out, or settings unavailable: guide as written */ })
@@ -444,6 +448,7 @@ export default function ManualBrowser({
                             content={content}
                             onNavigate={go}
                             reference={reference && supportsReference(section || '')}
+                            inGame={variant === 'panel'}
                         />
                         {!(reference && supportsReference(section || '')) && (
                             <p className="manual-signature">— the Geographer</p>
