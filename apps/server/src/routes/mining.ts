@@ -7,6 +7,7 @@ import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
+import { endFightIfAny } from '../services/combatFights';
 
 const router = Router();
 
@@ -93,7 +94,8 @@ router.post('/vein/start', requireAuth, botCheckGate, async (req: AuthRequest, r
   const { veinId } = req.body;
 
   try {
-    // Cancel existing action
+    // Cancel existing action (a fight is settled to now first)
+    await endFightIfAny(playerId);
     await db('player_actions').where({ player_id: playerId }).delete();
 
     const { allowed, reason } = await canMineVein(playerId, veinId);

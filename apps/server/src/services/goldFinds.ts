@@ -46,6 +46,19 @@ export const MAX_MULTIPLIER = 3;
 /** Ceiling, so a future high-xp action cannot drop something absurd. */
 export const MAX_COINS = 250;
 
+/**
+ * A larger find, never a more frequent one, where a skill should feel richer
+ * (frequency is what turns a surprise into income, see above).
+ *
+ * Combat (decided with Nathan 2026-10-12, docs/combat-spec.md §8): a kill is
+ * priced from its Melee XP only, which is one normal skill's rate; the
+ * Defense and Constitution XP on top would otherwise make combat three times
+ * as rich. Then x1.5, because people carry coins: ~1.5% of xp/hr.
+ */
+const PAYOUT_SCALE: Record<string, number> = {
+    combat: 1.5,
+};
+
 export interface GoldFind {
     amount: number;
     /** Replaces the main action text above the timer for this one action. */
@@ -100,6 +113,12 @@ const FLAVOUR: Record<string, string[]> = {
         'Whatever you are following walked over these first. Coins, pressed into the mud.',
         'A snare that is not yours, rusted through, and coins beside it. Someone else hunted here.',
         'Coins under a flat stone at the edge of the clearing. A hunter\'s cache, forgotten.',
+    ],
+    combat: [
+        'Something glints where it fell. Coins, and nobody left to claim them.',
+        'Coins in the dirt where the fight was. Somebody lost them here before you came.',
+        'A little purse, chewed through, and the coins still in it.',
+        'Coins, trodden into the ground. This was not the first fight here.',
     ],
 };
 
@@ -162,7 +181,7 @@ export async function rollGoldFinds(
             if (Math.random() >= DROP_CHANCE) continue;
             const unitValue = Math.max(1, Math.round(xp / 5));
             const multiplier = 1 + Math.floor(Math.random() * MAX_MULTIPLIER);
-            amount += Math.min(MAX_COINS, unitValue * multiplier);
+            amount += Math.min(MAX_COINS, Math.round(unitValue * multiplier * (PAYOUT_SCALE[actionKey] ?? 1)));
         }
         if (amount <= 0) return null;
 

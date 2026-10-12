@@ -69,6 +69,17 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 
 **Test:** via step 5's panel.
 
+**Built 2026-10-12** (migration `20261012120000_combat_fights`, `services/combatFights.ts`, `lib/combatFight.ts`, `routes/combat.ts`).
+- Fight state is a `combat_fights` row hanging off the action (`ON DELETE CASCADE`). Every path locks action, fight, player in that order and settles to now first: the tick, `/api/combat/eat`, `/flee`, `/state`, and travel, Stop and vein start (`endFightIfAny`).
+- **Stalls:** a fight whose next swing is more than 15s overdue was not being run (a restart); the gap is skipped, not played.
+- **Bot checks** freeze a fight at a kill; the answer restarts its clock with a fresh 10s approach.
+- **Food** is anything with `heal_amount` and no buff (Nathan, 2026-10-12); eating works in or out of a fight and is refused at full health.
+- **Coins:** priced from each kill's Melee XP, x1.5 (`goldFinds.ts` `PAYOUT_SCALE`), so ~1.5% of xp/hr.
+- **Death (interim, option a):** full HP, wake in Talador, nothing lost; step 6 adds the pile.
+- **Disconnect:** flees, settled to `last_seen`, unless `combat_continue_offline` (`POST /api/settings/combat-offline`).
+- **Pushes:** `combat_update` (swings, kills, HP, the fight), `hp_changed` after an eat, `action_failed` (info) when a fight ends; each kill also goes through the tick's one completion path (`emitCompletion`: result card, loot log, coins, feats, firsts).
+- Left for step 5 (CLAUDE.md §5 checklist): the client restore case in `GameView.tsx`, socket listeners and their cleanup.
+
 ## Step 5: the fight panel
 
 - One panel: both HP bars, the fight log, your food as icons along the top (tap to eat), Flee, and a creature picker at chosen spots. Damage-type hint once the Bestiary has unlocked it (step 9).

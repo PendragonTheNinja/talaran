@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
 import { computeTravelTime } from '../services/travel'
 import { pushToPlayer } from '../lib/realtime';
+import { endFightIfAny } from '../services/combatFights';
 
 const router = Router();
 
@@ -55,7 +56,9 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
 
     const { travelTime } = await computeTravelTime(playerId, baseTravelTime);
 
-    // Cancel any existing action
+    // Cancel any existing action. A fight is settled to this moment first, so
+    // walking away is a flee that keeps every swing (services/combatFights.ts).
+    await endFightIfAny(playerId);
     await db('player_actions').where({ player_id: playerId }).delete();
 
     // Cancel any active trades

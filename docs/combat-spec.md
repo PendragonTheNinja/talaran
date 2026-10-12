@@ -403,7 +403,7 @@ Decided so far:
 - **Every drop has a real use** (a recipe, farming, smithing, salvage, a quest), now or named for later. Trophies are keepsakes (trophy slot, museum) and do not count as a use.
 - **No Bones, meat or hides from combat**: Bones stay Hunting's, and meat and hides are Hunting's and Husbandry's.
 - **Rates:** commons about 1 in 5 to 1 in 10 by creature; trophies rarer than Hunting's 1 in 300; some creatures drop little or nothing (Dock Rat, Shore Crab).
-- **People carry coins:** Wreckers and Jumpers drop coins on top of the normal gold-find, and combat's gold-find runs a little more often than other skills'.
+- **People carry coins:** Wreckers and Jumpers drop coins on top of the normal gold-find, and combat's gold-find pays more than other skills' (decided 2026-10-12): priced from each kill's Melee XP only, with finds x1.5, never more frequent (`services/goldFinds.ts`).
 - **Jumpers drop their own mine's ore:** a few Ambren Ore at Origrund, a few Burgh Ore at Grundagr (a range, dropped directly; no sack item, 2026-10-10), so drop tables are keyed by spot as well as creature.
 - **Wreckers** rarely drop a Locked Rusty Chest or Amber (both from the sea).
 - **Knockers reveal veins**, as in folklore: a Knocker kill at Grundagr, rarely (1 in 100 or rarer), opens a Burgh vein as a Granite find would, if none is open. Mining stays the main way to find veins.
@@ -460,7 +460,7 @@ A setting, `combat_continue_offline` in `player_settings`, default off, lets a p
 
 ## 10. Food and the one decision
 
-Eating is free and instant. It costs no swing and takes no time.
+Eating is free and instant. It costs no swing and takes no time. **Fight food is anything that heals and does nothing else** (decided 2026-10-12): dishes with a buff are not combat healing.
 
 **Food is the only way to heal.** There is no regeneration between kills or out of combat. Respawning after death restores full HP.
 

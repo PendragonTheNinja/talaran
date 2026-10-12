@@ -29,6 +29,7 @@ const ACTION_LABELS: Record<string, string> = {
     sawing: 'Sawing',
     woodworking: 'Woodworking',
     hunting: 'Hunting',
+    combat: 'Fighting',
     foraging: 'Foraging',
     fishing_rod: 'Fishing',
     fishing_net: 'Net Fishing',

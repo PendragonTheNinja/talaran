@@ -35,6 +35,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             showItemAnimation: settings?.show_item_animation ?? true,
             hideTallyWhenBuilt: settings?.hide_tally_when_built ?? false,
             manualReferenceMode: settings?.manual_reference_mode ?? false,
+            combatContinueOffline: settings?.combat_continue_offline ?? false,
             theme,
             paletteTokens,
             paletteName,
@@ -46,6 +47,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             showItemAnimation: true,
             hideTallyWhenBuilt: false,
             manualReferenceMode: false,
+            combatContinueOffline: false,
             theme: 'tavern',
         });
     }
@@ -207,6 +209,24 @@ router.post('/travel-log', requireAuth, async (req: AuthRequest, res: Response) 
         res.json({ success: true });
     } catch (err) {
         logger.error(`Update travel log setting error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Fight on through a disconnect (docs/combat-spec.md §9). Off by default: a
+// dropped connection flees, so it never costs anyone their kit. On, the fight
+// runs under the normal 30-minute absence rule like any other action.
+router.post('/combat-offline', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const { combatContinueOffline } = req.body;
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, combat_continue_offline: !!combatContinueOffline })
+            .onConflict(['player_id'])
+            .merge(['combat_continue_offline']);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Update combat offline setting error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

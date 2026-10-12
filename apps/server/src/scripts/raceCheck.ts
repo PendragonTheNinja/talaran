@@ -418,6 +418,30 @@ async function fund(ctx: Ctx, playerId: number, amount: number) {
  * requests were all refused for some unrelated reason (a seeding mistake, a
  * missing requirement) would "hold" while testing nothing.
  */
+/**
+ * Pendragon mid-fight at a Talador spot against one creature, with the fight's
+ * clocks set by the caller (services/combatFights.ts settles them on read).
+ */
+async function inFight(ctx: Ctx, creature: Record<string, unknown>, clock: { enemyHp: number; playerNextAt: number; enemyNextAt: number }) {
+    const w = await world(ctx);
+    for (const name of ['Melee', 'Defense', 'Constitution']) await ctx.seed.row('skills', { name, type: 'combat' });
+    const foe = await ctx.seed.row('creatures', { key: 'rc_foe', name: 'Racecheck Rat', level: 1, xp_per_kill: 26, ...creature });
+    const spot = await ctx.seed.row('fighting_spots', { key: 'rc_docks', location_id: w.town.id, name: 'The Docks', kind: 'drawn' });
+    await ctx.seed.row('fighting_spot_creatures', { spot_id: spot.id, creature_id: foe.id, weight: 1 });
+    const now = Date.now();
+    const action = await ctx.seed.row('player_actions', {
+        player_id: w.player.id, action_type: 'combat', action_data: String(spot.id), location_id: w.town.id,
+        completes_at: new Date(now + 60_000), bot_check_pending: false,
+    });
+    await ctx.seed.row('combat_fights', {
+        action_id: action.id, player_id: w.player.id, spot_id: spot.id, creature_id: foe.id, enemy_hp: clock.enemyHp,
+        engage_at: new Date(now - 10_000), player_next_at: new Date(clock.playerNextAt), enemy_next_at: new Date(clock.enemyNextAt),
+        settled_at: new Date(now - 10_000),
+    });
+    const food = await ctx.seed.row('items', { name: 'Cooked Sabreling', type: 'food', heal_amount: 30 });
+    return { ...w, foe, spot, food };
+}
+
 /** A two-hand weapon never shares the hands with anything in the offhand (combat step 2). */
 async function bothHandsHeld(ctx: Ctx, playerId: number, twoHandIds: number[]): Promise<string | null> {
     const row = await ctx.db('player_equipment').where({ player_id: playerId }).first();
@@ -1110,6 +1134,61 @@ const SCENARIOS: Scenario[] = [
             const paid = (outcome as PromiseSettledResult<any>[]).filter((r) => r.status === 'fulfilled' && r.value.success).length;
             const xp = Number((await ctx.db('player_skills').where({ player_id: w.player.id }).first())?.xp ?? 0);
             return (paid === 1 ? null : `${paid} collections paid`) ?? changed('Hunting XP from one catch', 40, xp);
+        },
+    },
+    {
+        id: 'fight', name: 'five eats at once, mid-fight, with HP for two', rounds: 10,
+        run: async (ctx) => {
+            // 50 HP down and five 30-HP fish: the first heals 30, the second
+            // the last 20, and the rest are refused at full health. Read
+            // unlocked, every eat saw 50 missing and ate a fish.
+            const later = Date.now() + 60_000;
+            const w = await inFight(ctx, {}, { enemyHp: 100, playerNextAt: later, enemyNextAt: later });
+            await ctx.db('players').where({ id: w.player.id }).update({ hp_missing: 50 });
+            await inPack(ctx, w.player.id, w.food.id, 5);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/combat/eat', { itemId: w.food.id }));
+            const missing = (await ctx.db('players').where({ id: w.player.id }).first()).hp_missing;
+            return changed('fish', 3, await ctx.itemTotal(w.food.id)) ?? changed('HP missing', 0, missing) ?? succeeded(st, 2);
+        },
+    },
+    {
+        id: 'fight', name: 'eat against a killing blow already due', rounds: 10,
+        run: async (ctx) => {
+            // One HP left and the creature's blows overdue (it cannot miss
+            // five times running at 99%). The fight is settled before the
+            // meal, so the player is already down: no eat, one death, the fish
+            // still in the pack, wakes in Talador at full HP.
+            const now = Date.now();
+            const w = await inFight(ctx, { accuracy: 20, power: 10, swing_seconds: 2.4 },
+                { enemyHp: 100, playerNextAt: now + 60_000, enemyNextAt: now - 10_000 });
+            await ctx.db('players').where({ id: w.player.id }).update({ hp_missing: 99 });
+            await inPack(ctx, w.player.id, w.food.id, 1);
+            const st = await ctx.burst(w.player.id, 3, () => ctx.post(w.player.id, '/combat/eat', { itemId: w.food.id }));
+            const deaths = Number((await ctx.db('player_stats').where({ player_id: w.player.id }).first())?.total_combat_deaths ?? 0);
+            const missing = (await ctx.db('players').where({ id: w.player.id }).first()).hp_missing;
+            return changed('fish', 1, await ctx.itemTotal(w.food.id))
+                ?? changed('deaths', 1, deaths)
+                ?? changed('HP missing after waking', 0, missing)
+                ?? succeeded(st, 0);
+        },
+    },
+    {
+        id: 'fight', name: 'flee five times at once as the killing swing settles', rounds: 10,
+        run: async (ctx) => {
+            // The creature at 1 HP and the player's swings overdue: whichever
+            // flee settles first lands the kill and pays it once. Unlocked,
+            // every flee settled the same kill and paid it again.
+            const now = Date.now();
+            const w = await inFight(ctx, { defence: 0.01 }, { enemyHp: 1, playerNextAt: now - 9_000, enemyNextAt: now + 60_000 });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/combat/flee', {}));
+            const melee = await ctx.db('player_skills').join('skills', 'skills.id', 'player_skills.skill_id')
+                .where({ 'player_skills.player_id': w.player.id, 'skills.name': 'Melee' }).first();
+            const kills = Number((await ctx.db('player_stats').where({ player_id: w.player.id }).first())?.total_creatures_killed ?? 0);
+            const left = await ctx.db('player_actions').where({ player_id: w.player.id }).first();
+            return changed('kills', 1, kills)
+                ?? changed('Melee XP', 26, Number(melee?.xp ?? 0))
+                ?? (left ? 'the fight is still running after a flee' : null)
+                ?? succeeded(st, 1);
         },
     },
 ];

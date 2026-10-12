@@ -27,6 +27,7 @@ import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
+import { realtimeServer } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
 let lastTrapSweep = 0;
@@ -68,6 +69,9 @@ const GOLD_FIND_ACTIONS: Record<string, string> = {
   farm_harvest: 'farming',
   farm_harvest_all: 'farming',
   hunting: 'hunting',
+  // Priced per kill from its Melee XP only (the result's goldBasisXp), with a
+  // larger find (services/goldFinds.ts PAYOUT_SCALE).
+  combat: 'combat',
 };
 
 // The skill a result paid, for the older results that do not name it (the
@@ -83,7 +87,7 @@ const SKILL_BY_ACTION: Record<string, string> = {
   woodworking: 'Carpentry',
 };
 
-async function emitActionComplete(io: Server, action: any, payload: any): Promise<void> {
+async function emitActionComplete(io: Server | null, action: any, payload: any): Promise<void> {
   const result = payload?.result;
 
   // A world event's bonus, shown beside the normal XP rather than folded into
@@ -126,7 +130,7 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
   // Server-side bookkeeping, not something the client needs to see.
   if (result) delete result.goldBasisXp;
 
-  io.to(`player_${action.player_id}`).emit('action_complete', payload);
+  io?.to(`player_${action.player_id}`).emit('action_complete', payload);
 
   // World firsts, on SECONDARY DROPS only.
   //
@@ -158,7 +162,7 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
     const { evaluateFeats } = await import('./feats');
     const fresh = await evaluateFeats(action.player_id);
     for (const feat of fresh) {
-      io.to(`player_${action.player_id}`).emit('feat_earned', feat);
+      io?.to(`player_${action.player_id}`).emit('feat_earned', feat);
     }
 
     // First in Talaran to this rung. Claimed by unique index inside, so a tie
@@ -178,6 +182,16 @@ async function emitActionComplete(io: Server, action: any, payload: any): Promis
     itemName: result.itemName,
     quantity: result.quantity,
   });
+}
+
+/**
+ * The same completion, for a result that lands outside the tick: a kill that
+ * falls while a fight is being settled for an eat or a flee
+ * (services/combatFights.ts). One path, so the loot log, coins, world firsts
+ * and feats cannot differ by which request happened to settle the swing.
+ */
+export async function emitCompletion(action: any, payload: any): Promise<void> {
+  await emitActionComplete(realtimeServer(), action, payload);
 }
 
 // Expired guests are swept hourly. Nothing about this is urgent — the session
@@ -336,6 +350,16 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       || live.action_type !== action.action_type
       || live.action_data !== action.action_data
       || new Date(live.completes_at).getTime() !== new Date(action.completes_at).getTime()) {
+      return;
+    }
+
+    // A fight is settled swing by swing, not resolved once (services/
+    // combatFights.ts). It has its own absence rule (a disconnect flees unless
+    // the player opted to fight on) and takes bot checks only between kills,
+    // so it goes before the generic checks below.
+    if (action.action_type === 'combat') {
+      const { tickFight } = await import('./combatFights');
+      await tickFight(io, action);
       return;
     }
 

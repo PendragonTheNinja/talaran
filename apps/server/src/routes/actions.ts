@@ -6,6 +6,7 @@ import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
 import { botCheckGate, issueBotCheck } from '../services/botCheck';
+import { endFightIfAny } from '../services/combatFights';
 
 const router = Router();
 
@@ -108,6 +109,8 @@ router.post('/stop', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
 
   try {
+    // Stopping a fight is fleeing it: settled to now first.
+    await endFightIfAny(playerId);
     await db('player_actions').where({ player_id: playerId }).delete();
     res.json({ message: 'Action stopped' });
   } catch (err) {

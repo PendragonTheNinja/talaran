@@ -3,10 +3,11 @@
 // max hit and armour, from what they wear). The formulas live in
 // lib/combatMath.ts; this is where they meet the database's rows.
 
+import type { Knex } from 'knex'
 import db from '../db'
 import { levelFromXp } from './xp'
 import {
-    absorption, combatLevel, CombatLevels, DamageType, Form, FORMS, levelTerm, maxHp, playerMaxHit,
+    absorption, combatLevel, CombatLevels, Combatant, DamageType, Form, FORMS, levelTerm, maxHp, playerMaxHit,
     UNARMED, unarmedWeapon,
 } from '../lib/combatMath'
 
@@ -37,8 +38,8 @@ export function combatStanding(levelsByName: Map<string, number>, hpMissing: num
 }
 
 /** Each combat skill's level for a player, 1 where no row exists yet. */
-export async function combatLevels(playerId: number): Promise<CombatLevels> {
-    const rows = await db('player_skills')
+export async function combatLevels(playerId: number, x: Knex | Knex.Transaction = db): Promise<CombatLevels> {
+    const rows = await x('player_skills')
         .join('skills', 'skills.id', 'player_skills.skill_id')
         .where('player_skills.player_id', playerId)
         .whereIn('skills.name', Object.values(COMBAT_SKILLS))
@@ -90,10 +91,10 @@ export function holdsBothHands(item: { weapon_form?: string | null } | null | un
 
 /**
  * A player's fighting numbers from their combat levels and what they wear,
- * slot by slot. The same arithmetic a fight will use (step 4); shown on the
- * equipment panel so the client never works it out.
+ * slot by slot, unrounded: what a fight uses (playerCombatant) and what the
+ * equipment panel shows rounded (combatProfile).
  */
-export function combatProfile(levels: CombatLevels, worn: Record<string, WornCombatItem | null | undefined>): CombatProfile {
+function fightingNumbers(levels: CombatLevels, worn: Record<string, WornCombatItem | null | undefined>) {
     const armour = Object.values(worn).reduce((sum, item) => sum + (Number(item?.armour) || 0), 0)
     const defence = armour + levelTerm(levels.defense)
 
@@ -118,10 +119,43 @@ export function combatProfile(levels: CombatLevels, worn: Record<string, WornCom
 
     return {
         weapon: { name, form, damageType, swingSeconds, unarmed },
-        aim: Math.round(aim + levelTerm(levels.melee)),
-        maxHit: Math.round(playerMaxHit(power, levels.melee, swingSeconds)),
-        defence: Math.round(defence),
+        aim: aim + levelTerm(levels.melee),
+        maxHit: playerMaxHit(power, levels.melee, swingSeconds),
+        defence,
         armour,
-        absorb: Math.round(absorption(armour) * 10) / 10,
+        absorb: absorption(armour),
+    }
+}
+
+/** The fighting numbers for the equipment panel, rounded for reading. */
+export function combatProfile(levels: CombatLevels, worn: Record<string, WornCombatItem | null | undefined>): CombatProfile {
+    const f = fightingNumbers(levels, worn)
+    return {
+        weapon: f.weapon,
+        aim: Math.round(f.aim),
+        maxHit: Math.round(f.maxHit),
+        defence: Math.round(f.defence),
+        armour: f.armour,
+        absorb: Math.round(f.absorb * 10) / 10,
+    }
+}
+
+/**
+ * The player as a fight sees them (lib/combatMath.ts Combatant), unrounded,
+ * at `hp`, plus the damage type their swings carry.
+ */
+export function playerCombatant(
+    levels: CombatLevels,
+    worn: Record<string, WornCombatItem | null | undefined>,
+    hp: number,
+): { combatant: Combatant; damageType: DamageType; weaponName: string } {
+    const f = fightingNumbers(levels, worn)
+    return {
+        combatant: {
+            aim: f.aim, defence: f.defence, maxHit: f.maxHit, absorb: f.absorb,
+            swingSeconds: f.weapon.swingSeconds, hp,
+        },
+        damageType: f.weapon.damageType,
+        weaponName: f.weapon.name,
     }
 }
