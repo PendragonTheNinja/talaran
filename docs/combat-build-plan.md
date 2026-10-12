@@ -56,7 +56,7 @@ Live `player_skills` for the combat skills: 83 rows each for Attack, Strength, D
 | Agropelter | Poor Lanai Log | 1 in 5 | 1-3 |
 | Agropelter | Feathers | 1 in 20 | 1-2 |
 
-Granary Rats were checked against their sources (2026-10-11): a drawn Novita fight meets ~40 to 57 rats an hour at combat 9 to 30, so the revised rates give ~6 to 9 Grain an hour (under a Farming 12 player's Wild Grain plots over a day) and ~2 to 3 Wild Grain (10 to 15% of the Sunlit Meadow's 14 to 25). Item pages list a combat source as "Dropped by X" without odds (the Bestiary never shows exact chances). `combatSim.ts` still carries its own copy of the roster (`TAIAR`); step 10 points it at the rows.
+Granary Rats were checked against their sources (2026-10-11): a drawn Novita fight meets ~40 to 57 rats an hour at combat 9 to 30, so the revised rates give ~6 to 9 Grain an hour (under a Farming 12 player's Wild Grain plots over a day) and ~2 to 3 Wild Grain (10 to 15% of the Sunlit Meadow's 14 to 25). Item pages never list combat drops (decided 2026-10-12): they are the Bestiary's to show. `combatSim.ts` still carries its own copy of the roster (`TAIAR`); step 10 points it at the rows.
 
 ## Step 4: the fight loop (server)
 
