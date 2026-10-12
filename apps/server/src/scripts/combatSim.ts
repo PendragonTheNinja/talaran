@@ -24,21 +24,24 @@
  *               Taiar is `afk 1 12`.
  *   gap         [levels]  HP lost and kills per hour against foes below you, Ambren gear.
  *   creatures   [level]  one level, several creature profiles: XP/hr, HP cost, AFK band.
- *   roster      Taiar's creatures, each at its own level, against the guardrail.
+ *   roster      the live creature rows, each at its own level, against the guardrail.
+ *               Needs DATABASE_URL.
  *   xp          [maxLevel]  XP per kill by creature level (xpPerKillAt), the
  *               numbers `pnpm combat:derive` writes to creatures.xp_per_kill.
  *
- * Read-only: no database. xpPerKillAt is exported for scripts/deriveCreatureXp.ts.
+ * Read-only. Only `roster` reads the database (the live creature rows).
+ * xpPerKillAt is exported for scripts/deriveCreatureXp.ts.
  */
 
 import {
     COMBAT, CombatConstants, CombatLevels, Combatant, CreatureProfile, DamageType, Form, FORMS, Rng, STANCE_MULTIPLIER, Stance,
-    absorption, armourForDefense, combatLevel, defenseShare, enemyStats, fightOne, hitChance, levelTerm, maxHp,
+    absorption, armourForDefense, combatLevel, creatureProfileOf, defenseShare, enemyStats, fightOne, hitChance, levelTerm, maxHp,
     playerMaxHit, swing, weaponAim, weaponPower,
 } from '../lib/combatMath'
 import { tierOfLevel } from '../lib/tiers'
 import { xpForLevel } from '../services/xp'
 import { activeXpForSeconds } from '../services/farming'
+import db from '../db'
 
 // ── Plumbing ─────────────────────────────────────────────────────────────────
 
@@ -584,42 +587,33 @@ interface RosterCreature {
     spots: string[]
     profile: CreatureProfile
     stance: Record<DamageType, Stance>
-    note: string
 }
 
-const W: Stance = 'weak'
-const N: Stance = 'neutral'
-const X: Stance = 'resistant'
-
-/** Taiar's roster (combat-spec §8), as decided with Nathan 2026-10-05. Rows in the database once built. */
-const TAIAR: RosterCreature[] = [
-    { name: 'Dock Rat', level: 1, spots: ['Talador'], profile: {},
-      stance: { pierce: N, slash: W, crush: N }, note: 'scrappy baseline' },
-    { name: 'Granary Rat', level: 2, spots: ['Novita'], profile: { hp: 1.1, power: 0.9, accuracy: 0.9, swingSeconds: 3.6 },
-      stance: { pierce: X, slash: W, crush: N }, note: 'fat and slow: the first safe AFK' },
-    { name: 'Jackalope', level: 3, spots: ['Novita'], profile: { hp: 0.85, defence: 1.1, accuracy: 1.05, power: 0.85, swingSeconds: 2.4 },
-      stance: { pierce: N, slash: W, crush: X }, note: 'quick, hard to land a heavy blow on' },
-    { name: 'Feral Dog', level: 4, spots: ['Novita'], profile: { accuracy: 1.1, power: 0.85, hp: 0.9, swingSeconds: 2.4 },
-      stance: { pierce: W, slash: N, crush: N }, note: 'quick, accurate, light' },
-    { name: 'Shore Crab', level: 5, spots: ['Dawncrest'], profile: { defence: 1.1, hp: 1.15, power: 0.85, swingSeconds: 3.6 },
-      stance: { pierce: N, slash: X, crush: W }, note: 'shell: hard to hurt, slow, safe' },
-    { name: "Ol' Shellback", level: 9, spots: ['Dawncrest'], profile: { defence: 1.1, hp: 1.12, power: 1.0, accuracy: 0.9, swingSeconds: 3.6 },
-      stance: { pierce: N, slash: X, crush: W }, note: 'old, huge, barnacled: hard to hurt, slow' },
-    { name: 'Wrecker', level: 6, spots: ['Dawncrest'], profile: { power: 1.1, accuracy: 0.95 },
-      stance: { pierce: W, slash: N, crush: N }, note: 'a person with a cudgel; no armour' },
-    { name: 'Sidehill Gouger', level: 6, spots: ['Origrund'], profile: { accuracy: 0.85, power: 1.3, hp: 1.1 },
-      stance: { pierce: W, slash: N, crush: X }, note: 'heavy and clumsy; thick hump' },
-    { name: 'Jumper', level: 8, spots: ['Origrund', 'Grundagr'], profile: { defence: 1.1, hp: 1.15, power: 0.9, swingSeconds: 3.6 },
-      stance: { pierce: N, slash: X, crush: W }, note: 'claim-jumper in mail: hard to hurt, slow' },
-    { name: 'Grey Wolf', level: 8, spots: ['Eld Grove'], profile: { accuracy: 1.15, power: 0.8, hp: 0.9, swingSeconds: 2.4 },
-      stance: { pierce: N, slash: W, crush: X }, note: 'pack hunter: quick, accurate; thick fur' },
-    { name: 'Knocker', level: 9, spots: ['Grundagr'], profile: { defence: 1.15, accuracy: 1.1, hp: 0.8, power: 0.85, swingSeconds: 2.4 },
-      stance: { pierce: X, slash: N, crush: W }, note: 'small, stony, evasive' },
-    { name: 'Agropelter', level: 10, spots: ['Eld Grove'], profile: { accuracy: 1.15, hp: 0.85, power: 0.95 },
-      stance: { pierce: W, slash: N, crush: N }, note: 'hurls branches from the canopy' },
-    { name: 'Hodag', level: 12, spots: ['Eld Grove'], profile: { power: 1.25, hp: 1.2, accuracy: 0.9, swingSeconds: 3.6 },
-      stance: { pierce: N, slash: X, crush: W }, note: 'horned, spined back; heavy' },
-]
+/**
+ * The live roster: every active creature row, read the way the fight reads it
+ * (creatureProfileOf), with the places it lives. The decided list (2026-10-05)
+ * was copied here until the rows existed; it is in migration
+ * 20261010140000_taiar_creatures now, and the admin panel can change it.
+ */
+async function loadRoster(): Promise<RosterCreature[]> {
+    const rows = await db('creatures').where({ is_active: true }).orderBy(['level', 'name'])
+    const homes = await db('fighting_spot_creatures')
+        .join('fighting_spots', 'fighting_spots.id', 'fighting_spot_creatures.spot_id')
+        .join('locations', 'locations.id', 'fighting_spots.location_id')
+        .where('fighting_spots.is_active', true)
+        .select('fighting_spot_creatures.creature_id', 'locations.name as place')
+    return rows.map((r: any) => ({
+        name: r.name,
+        level: Number(r.level),
+        spots: [...new Set(homes.filter((h: any) => h.creature_id === r.id).map((h: any) => h.place as string))],
+        profile: creatureProfileOf(r),
+        stance: {
+            pierce: (r.stance_pierce ?? 'neutral') as Stance,
+            slash: (r.stance_slash ?? 'neutral') as Stance,
+            crush: (r.stance_crush ?? 'neutral') as Stance,
+        },
+    }))
+}
 
 /**
  * Each roster creature at its own level against a level-matched one-hander,
@@ -627,9 +621,10 @@ const TAIAR: RosterCreature[] = [
  * with a weakness too (every roster creature has one, so that is the
  * reference play); the neutral column shows the cost of the wrong weapon.
  */
-function roster(): void {
+async function roster(): Promise<void> {
     const c = COMBAT
-    console.log('\nTaiar roster. One-hand + shield at the creature\'s level, using its weakness. ±15% guardrail on XP/hr.')
+    const live = await loadRoster()
+    console.log('\nThe live roster (creatures rows). One-hand + shield at the creature\'s level, using its weakness. ±15% guardrail on XP/hr.')
     /** The lowest combat level (Ambren gear, one-hand) that can leave this creature 20 minutes. */
     const afkFrom = (cr: RosterCreature): string => {
         for (let level = cr.level; level <= 60; level++) {
@@ -639,19 +634,19 @@ function roster(): void {
         }
         return 'past 60'
     }
-    table(['creature', 'lvl', 'weak / resists', 'XP/hr', 'wrong-weapon XP/hr', 'HP lost/hr', 'AFK from', '', 'note'], TAIAR.map(cr => {
+    table(['creature', 'lvl', 'where', 'weak / resists', 'XP/hr', 'wrong-weapon XP/hr', 'HP lost/hr', 'AFK from', ''], live.map(cr => {
         const kit = kitAt(cr.level, 'onehand', 'slash', c, 1)
-        const weakType = (Object.keys(cr.stance) as DamageType[]).find(t => cr.stance[t] === 'weak')!
+        const weakType = (Object.keys(cr.stance) as DamageType[]).find(t => cr.stance[t] === 'weak')
         const resist = (Object.keys(cr.stance) as DamageType[]).filter(t => cr.stance[t] === 'resistant')
         const ref = measure(mulberry32(cr.level), kit, enemyStats(cr.level, c), 3000, c, STANCE_MULTIPLIER.weak)
         const best = measure(mulberry32(cr.level), kit, enemyStats(cr.level, c, cr.profile), 3000, c, STANCE_MULTIPLIER.weak)
         const neutral = measure(mulberry32(cr.level), kit, enemyStats(cr.level, c, cr.profile), 3000, c, STANCE_MULTIPLIER.neutral)
         const ratio = best.killsPerHour / ref.killsPerHour
         return [
-            cr.name, cr.level, `${weakType} / ${resist.join(', ') || '—'}`,
+            cr.name, cr.level, cr.spots.join(', '), `${weakType ?? 'none'} / ${resist.join(', ') || '—'}`,
             pct(ratio), pct(neutral.killsPerHour / ref.killsPerHour), Math.round(best.damagePerHour),
             afkFrom(cr),
-            Math.abs(ratio - 1) > XP_PER_HOUR_TOLERANCE ? 'OUTSIDE' : '', cr.note,
+            Math.abs(ratio - 1) > XP_PER_HOUR_TOLERANCE ? 'OUTSIDE' : '',
         ]
     }))
 }
@@ -684,12 +679,14 @@ function xp(): void {
 
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const commands: Record<string, () => void> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures, roster, xp }
+const commands: Record<string, () => void | Promise<void>> = { calibrate, acceptance, levels, pacing, ledger, fit, forms, afk, gap, creatures, roster, xp }
 if (require.main === module) {
     const cmd = process.argv[2] ?? 'forms'
     if (!commands[cmd]) {
         console.error(`Unknown command "${cmd}". One of: ${Object.keys(commands).join(', ')}`)
         process.exit(1)
     }
-    commands[cmd]()
+    // roster reads the database; the rest never open it, and destroying an
+    // unopened pool is harmless.
+    Promise.resolve(commands[cmd]()).finally(() => db.destroy())
 }

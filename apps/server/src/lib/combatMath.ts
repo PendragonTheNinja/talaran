@@ -271,6 +271,18 @@ export interface CreatureProfile {
 }
 
 /**
+ * A `creatures` row's profile columns (null for the baseline). Shared by the
+ * live fight and the simulator's roster, so both read a creature the same way.
+ */
+export function creatureProfileOf(row: { accuracy?: unknown; defence?: unknown; power?: unknown; hp?: unknown; swing_seconds?: unknown }): CreatureProfile {
+    const num = (x: unknown): number | undefined => (x === null || x === undefined ? undefined : Number(x))
+    return {
+        accuracy: num(row.accuracy), defence: num(row.defence), power: num(row.power),
+        hp: num(row.hp), swingSeconds: num(row.swing_seconds),
+    }
+}
+
+/**
  * Creature stats: the level's baseline (§8), shaped by its profile. The
  * baseline is the grunt; HP grows per tier, applied smoothly across levels.
  */

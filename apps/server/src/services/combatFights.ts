@@ -26,7 +26,7 @@ import type { Server } from 'socket.io'
 import db from '../db'
 import { logger } from '../lib/logger'
 import {
-    COMBAT, CombatLevels, Combatant, CreatureProfile, DamageType, STANCE_MULTIPLIER, Stance, enemyStats, killXp, maxHp,
+    COMBAT, CombatLevels, Combatant, DamageType, STANCE_MULTIPLIER, Stance, creatureProfileOf, enemyStats, killXp, maxHp,
 } from '../lib/combatMath'
 import { FightClock, SwingEvent, drawByWeight, engage, nextEventAt, settle } from '../lib/combatFight'
 import { COMBAT_SKILLS, WornCombatItem, combatLevels, playerCombatant } from './combat'
@@ -69,17 +69,9 @@ export class CombatAbort extends Error {
 // ── Reading the world ────────────────────────────────────────────────────────
 
 const ms = (t: Date | string | number) => new Date(t).getTime()
-const num = (x: unknown): number | undefined => (x === null || x === undefined ? undefined : Number(x))
-
-function profileOf(row: any): CreatureProfile {
-    return {
-        accuracy: num(row.accuracy), defence: num(row.defence), power: num(row.power),
-        hp: num(row.hp), swingSeconds: num(row.swing_seconds),
-    }
-}
 
 function creatureCombatant(row: any): Combatant {
-    return enemyStats(row.level, COMBAT, profileOf(row))
+    return enemyStats(row.level, COMBAT, creatureProfileOf(row))
 }
 
 function stanceMultiplier(creature: any, type: DamageType): number {

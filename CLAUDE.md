@@ -109,6 +109,19 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Cryptids are the rare tier** (Squonk, 0.5% weight). `notable` and `perishable` are per-drop data flags, never inferred.
 - **The wild economy is gated on itself** (bow → hunt → hide → leather → snare). **Foraging is the only thing that breaks the circle** (plant fiber → cordage; wild flax → linen → bowstring). Therefore **tool breakage cannot ship until every tool has a craft path that doesn't need that tool.** Sinew is fine as a drop, never as the bowstring.
 
+### Combat (`docs/combat-spec.md`, built per `docs/combat-build-plan.md`)
+- **Three skills: Melee, Defense, Constitution** (`type: 'combat'`). Combat level is their rounded average (`combatLevel` in `lib/combatMath.ts`). Tally licences count non-combat skills only; highscores have a combat board.
+- **All formulas live in `lib/combatMath.ts` (pure).** The live fight and `scripts/combatSim.ts` both run on it, so a sim number is a shipped number. Tune `COMBAT`, never a copy. The sim's `roster` reads the live `creatures` rows; `pnpm combat:derive` writes `creatures.xp_per_kill` from `xpPerKillAt`.
+- **Fights are settled on read, not ticked.** A `combat` row in `player_actions` plus a `combat_fights` row (cascade) hold the clocks; `settle` in `lib/combatFight.ts` is pure and replays every swing due up to now. Every entry point (tick, eat, flee, state) settles first, inside one transaction, locking **action → fight → player (`forNoKeyUpdate`, never `forUpdate`: a pack insert's foreign key takes KEY SHARE on the player row and deadlocks against FOR UPDATE) → equipment**. Side effects run after commit (`afterFight`); kill cards go through `emitCompletion` in `gameTick.ts`.
+- **A kill pays Melee its XP, and twice that to Defense and Constitution, split by what armour absorbed vs what landed** (`killXp`). Every award goes through `awardXp(…, trx)`.
+- **Food is anything with `heal_amount > 0` and no `buff_effect`.** Buff dishes are not combat food (Nathan). Eating never touches the fight clock. Health never regenerates. `players.hp_missing` stores damage, so a Constitution level-up raises current health too.
+- **Death drops everything** (`dropEverythingWithin` in `services/groundItems.ts`): worn then carried, one ground stack each, private to the dead player for `DEATH_PILE_PRIVATE_MINUTES`. Kept: gold, the trophy slot, open liquid containers. Respawn in Talador at full health.
+- **Absence:** a disconnected fighter flees, settled to `last_seen`, unless `player_settings.combat_continue_offline`. Bot checks freeze a fight between kills only.
+- **Durability** (`services/durability.ts`) is generic: `durability_tiers` per tier plus `items.durability_*` overrides, `player_item_wear` counts uses per player per item NAME (a break resets it). Combat wears the weapon and `ARMOUR_PIECES_WORN_PER_KILL` random armour pieces per kill; a break ends the fight after the kill is paid. Tools do not wear yet: the circularity rule above still applies to them.
+- **Drops are rows** (`drop_table_entries`, `source_key` `combat:<creature>` or `combat:<creature>@<spot>`); coins and veins are `creatures.coin_*` / `vein_*` (veins open through `openVein` in `services/mining.ts`, shared with Granite). Rare weapons, Crabshell and trophies sell only to the pawnbroker; `values:derive` prices combat-native subtypes only where nothing else prices them.
+- **Drops and weaknesses are the Bestiary's to tell, and nowhere else's** (Nathan, 2026-10-12): not the Manual, not item pages. `services/bestiary.ts` decides what a player sees by kills (`BESTIARY_STEPS`: 1 / 10 / 50 / 250 / 1,000); chances are never shown; nothing about an unfound creature is sent. A first kill pays Exploration (`level × 5`, no event bonus).
+- **Creature art** is `/images/bestiary/<Name>.png` through `getCreatureImage()` in `lib/items` (spaces to underscores, apostrophes dropped: `Ol_Shellback.png`), 256×256 transparent. The fight view's own portrait is `players.avatar_url`; avatar upload is not built yet.
+
 ---
 
 ## 3. Verification commands
@@ -223,6 +236,7 @@ The tick is a 2-second `setInterval`, one branch per action type. **It claims be
 | an NPC | `getDialogueStage` in `routes/npcs.ts` | stages are derived, scoped by `npc_name` |
 | a new panel | `FarmPanel.tsx` | tabs not buttons, help button per tab |
 | anything reading `recipe.inputs` | `services/liquids.ts` + §2 Liquids | liquids are volume, not rows |
+| anything in a fight | `services/combatFights.ts` (`settleWithin`), `lib/combatMath.ts` | settle-on-read, the lock order, after-commit effects |
 | a new gathering skill | `routes/location.ts` | the skill is invisible until the location payload carries its field (`foragingHabitats`, `fishSpeciesCount`, …) |
 
 ---
@@ -234,6 +248,7 @@ The tick is a 2-second `setInterval`, one branch per action type. **It claims be
 - **Feature panels are one modal with tabs**, not several location buttons.
 - **Admin cards are `admin-action-card`** with an emoji-led `admin-section-title`. Gate admin tools on `isAdmin` in the UI as well as the route.
 - **CSS tokens have no bare names:** `--color-border-mid/-dark/-gold`, `--color-text-base/-muted/-bright`, `--color-gold`. No `--color-border`, `--color-text`, `--color-error`. Buttons are `btn btn-gold`. Check `apps/client/src/index.css`.
+- **`apiFetch` answers a 401 by sending the browser home.** A public page (the Manual, News, Highscores) must not call an authenticated route without a token, or a logged-out visitor is bounced off it. The Manual did exactly this from 2026-08-30 until 2026-10-12.
 - **`lib/markdown.ts` strips more than expected:** no `table`, `details`, `summary`; attributes are only `href/target/rel`, so heading ids vanish; every anchor is forced to `target="_blank"`. Anything structural in rendered markdown must be a React component.
 - **Style: 4-space, no semicolons** in `apps/client` and server services; **2-space + semicolons** in `gameTick.ts` and index-adjacent files. Match the file you're in.
 - `GuildPanel` is the live guild UI (`GuildModal` was deleted in `8750a07`). Grep `GameLayout.tsx` for what actually renders before editing any panel.
@@ -339,6 +354,7 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 | `docs/marketplace-spec.md` | Gold, merchants, player shops, new-player tutorial. |
 | `docs/manual-spec.md` | Manual content model, directives, voice. |
 | `docs/trapping-spec.md` · `docs/crafting-launch-spec.md` · `docs/fishing-spec.md` · `docs/cooking-outline.md` | Per-system specs. |
+| `docs/combat-spec.md` · `docs/combat-build-plan.md` | Combat design (locked decisions dated inline) and the ten-step build, with a "Built" note per step. |
 | `docs/derived-values.md` / `.csv` | Output of `values:derive`. Regenerated, not edited. |
 | `docs/IDEAS.md` | Parking lot (the event-chat "firsts" feed lives here). |
 | `docs/BUILD-NOTES.md` · `docs/WIRING.md` · `docs/FARMING-M1-NOTES.md` | Historical handoff notes from the Foraging and Farming builds. Archive candidates. |
@@ -352,9 +368,9 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 - **Audit fix batches 1–4** (`docs/AUDIT-2026-09-22.md` §8).
 - **Legacy deletion:** `WOODWORK_RECIPES`, `SMITH_RECIPES`, their routes, and the tick's `woodworking`/`smithing` branches. Still referenced in `gameTick.ts`.
 - **Onboarding discovery:** the bow moved to Geonsen's quest and nothing signals he exists. Nathan wants quests discovered by finding the giver, not listed in a panel.
-- **Combat** is next (design documented; pending Foozard's review).
+- **Combat** is built on `claude/admiring-babbage-ww0x2g` (steps 1 to 10), not yet deployed. Open: no way to eat outside a fight, no switch for `combat_continue_offline`, no wear indicator, no Defense/Constitution level-up popup, creature art and three skill icons.
 - **Deferred by choice:** shop tier ladder (numbers already in a table) · stall rent · one-shop-per-island vs per-location poll · the Provisioner (seeded but disabled; activate with `sells: false`) · farming manure source / retting pool / house tiers · breeding (deliberately unbuilt).
 - **Husbandry roadmap:** buffalo (L25, Thick Leather), aurochs (L50, Heavy Leather), sheep (~L60, blocked on a textile consumer), mounts IV–IX.
 - **Crafting content:** gems + finery. Sinks for Squonk Tears, Rabbit's Foot, Prized Plume.
-- **Manual pages unwritten:** Combat, Trading, Item Firsts, Themes & Palettes, Bestiary. The Skills sidebar wants grouping first. `/manual` is not yet linked from the homepage.
+- **Manual pages unwritten:** Trading, Item Firsts, Themes & Palettes. The Skills sidebar wants grouping first. A page can open an in-game panel with `{{open:<panel>:<label>}}` (`OPENERS` in `ManualRenderer.tsx`; hidden on the public page).
 - **UI queue:** tooltip unification (skill-hover style wins), number-font token (`--font-num`, tabular figures), stage-at-rest treatment. Paper-doll reskin parked at `8745528`.
