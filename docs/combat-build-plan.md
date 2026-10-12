@@ -130,6 +130,8 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 - Manual pages: Melee, Defense, Constitution, Combat, Bestiary (`{{data:…}}` queries for every number).
 - `combatSim.ts` re-run against the seeded rows; CLAUDE.md gains the combat rules; fresh-order migration dry run; patch notes.
 
+**Built 2026-10-12.** Manual: Melee, Defense and Constitution under Skills, Combat and The Bestiary under Systems, on nine registry queries in `services/manualQueries.ts` (`fighting-spots`, `creatures`, `weapons`, `damage-types`, `armour`, `constitution-hp`, `durability`, `fight-food`, `bestiary-steps`). None reads drops or stances: those stay the Bestiary's. `{{open:bestiary:Label}}` puts an Open button on the page in game only (`OPENERS` in `ManualRenderer.tsx`). The public Manual had been bouncing logged-out readers to the homepage since 2026-08-30 (`ManualBrowser` asked `/api/settings` without a token, and `apiFetch` answers a 401 by going home); it now skips the request when logged out. Fight face-off: the player's avatar (or initial) against the creature's art, a flash on each hit, the fallen creature greyed before the next; `getCreatureImage` drops apostrophes (`Ol_Shellback.png`), art 256×256. `combatSim.ts roster` reads the live `creatures` rows through `creatureProfileOf` in `lib/combatMath.ts`, the function the fight uses (all 13 inside the ±15% guardrail; `combat:derive` reports 0 changes). Dry run: the eight branch migrations rolled back on a copy of a fully migrated database, then run as one batch in filename order; combat content identical to the piecemeal build. `race:check` 35 of 35. Patch notes drafted (not committed; fresh at deploy).
+
 ---
 
 ## Decided while planning

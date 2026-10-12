@@ -15,7 +15,7 @@ What each skill does in all this is on its own page: [Melee](/manual/skills/mele
 
 ## Health and food
 
-Your health does not come back by itself. **Food mends you, and nothing else does.** Eat during a fight and it is taken at once, without costing you a swing. A dish cooked to quicken some other trade will not mend you; it was not made for this.
+Your health does not come back by itself. **Food mends you, and nothing else does.** Eat from your pack whenever you like. During a fight it is taken at once, without costing you a swing. A dish cooked to quicken some other trade will not mend you; it was not made for this.
 
 Carry more than you think you need. Everybody says that and nobody does it, so I say it in bold: **carry more than you think you need.**
 

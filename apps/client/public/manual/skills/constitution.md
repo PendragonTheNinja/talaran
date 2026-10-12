@@ -18,7 +18,7 @@ Each level adds to your health and nothing else.
 
 Your health is the bar beside your name. It falls when you are hit and it does not come back on its own. **Food is the only thing that mends you.**
 
-Eat during a fight and the meal is taken at once. It costs you no swing and the creature gets no free one, so the only mistake is waiting too long. A meal you meant to eat does not mend anybody.
+Eat from your pack whenever you like, in a fight or out of one. During a fight the meal is taken at once. It costs you no swing and the creature gets no free one, so the only mistake is waiting too long. A meal you meant to eat does not mend anybody.
 
 If your health runs out, you fall. The [Combat](/manual/systems/combat) page says what that costs, and I would read it before it happens rather than after.
 
