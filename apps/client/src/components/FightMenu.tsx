@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchFightState, openBestiary, type FightFood, type FightingSpot, type Hp } from '../lib/combat'
 import { getCreatureImage } from '../lib/items'
+import CombatAwaySetting from './CombatAwaySetting'
 import './FightMenu.css'
 
 interface FightMenuProps {
@@ -52,6 +53,10 @@ export default function FightMenu({ spot, onClose, onStart }: FightMenuProps) {
                                 ? 'You carry nothing that mends.'
                                 : `You carry ${meals} ${meals === 1 ? 'meal' : 'meals'} that mend.`}
                     </span>
+                </div>
+
+                <div className="fight-menu-away">
+                    <CombatAwaySetting />
                 </div>
 
                 {spot.kind === 'chosen' ? (

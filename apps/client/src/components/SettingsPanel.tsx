@@ -8,6 +8,7 @@ import DockableWindow from './DockableWindow'
 import { THEMES, applyTheme, previewTheme, currentTheme, initTheme, saveTheme, type ThemeId } from '../lib/theme'
 import PaletteEditor from './PaletteEditor'
 import PaletteGallery from './PaletteGallery'
+import CombatAwaySetting from './CombatAwaySetting'
 
 interface SettingsPanelProps {
     onClose: () => void
@@ -15,7 +16,7 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) {
-    const [tab, setTab] = useState<'account' | 'chat' | 'game' | 'themes'>('account')
+    const [tab, setTab] = useState<'account' | 'chat' | 'game' | 'combat' | 'themes'>('account')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
 
@@ -269,6 +270,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
         { key: 'account', label: 'Account' },
         { key: 'chat', label: 'Chat' },
         { key: 'game', label: 'Game' },
+        { key: 'combat', label: 'Combat' },
         { key: 'themes', label: 'Themes' },
     ]
 
@@ -511,6 +513,13 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                             onApplied={setActiveTheme}
                             onError={setError}
                         />
+                    </div>
+                )}
+
+                {tab === 'combat' && (
+                    <div className="settings-section">
+                        <h4 className="settings-section-title">Combat</h4>
+                        <CombatAwaySetting />
                     </div>
                 )}
 

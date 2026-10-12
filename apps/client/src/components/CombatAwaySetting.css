@@ -1,0 +1,12 @@
+.combat-away {
+    gap: var(--space-md);
+}
+
+.combat-away .settings-toggle-btn {
+    flex-shrink: 0;
+}
+
+.combat-away-error {
+    font-size: 13px;
+    color: var(--color-red-bright);
+}

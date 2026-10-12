@@ -7,6 +7,15 @@ import {
     passwordProblem, hashPassword, passwordMatches, cleanEmail, EMAIL_PROBLEM, isUniqueViolation,
 } from '../lib/credentials';
 import { sendEmail, emailChangedEmail } from '../lib/email';
+import { OFFLINE_GRACE_MS } from '../lib/presence';
+import { DEATH_PILE_PRIVATE_MINUTES } from '../services/groundItems';
+
+// What the fight-on-while-away warning quotes, so the popup states the real
+// rules rather than a copy of them.
+const COMBAT_AWAY_RULES = {
+    offlineGraceMinutes: OFFLINE_GRACE_MS / 60_000,
+    deathPilePrivateMinutes: DEATH_PILE_PRIVATE_MINUTES,
+};
 
 const router = Router();
 
@@ -36,6 +45,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             hideTallyWhenBuilt: settings?.hide_tally_when_built ?? false,
             manualReferenceMode: settings?.manual_reference_mode ?? false,
             combatContinueOffline: settings?.combat_continue_offline ?? false,
+            combatAwayRules: COMBAT_AWAY_RULES,
             theme,
             paletteTokens,
             paletteName,
@@ -48,6 +58,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             hideTallyWhenBuilt: false,
             manualReferenceMode: false,
             combatContinueOffline: false,
+            combatAwayRules: COMBAT_AWAY_RULES,
             theme: 'tavern',
         });
     }
