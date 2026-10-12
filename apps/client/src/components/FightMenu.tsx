@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchFightState, type FightFood, type FightingSpot, type Hp } from '../lib/combat'
+import { fetchFightState, openBestiary, type FightFood, type FightingSpot, type Hp } from '../lib/combat'
 import './FightMenu.css'
 
 interface FightMenuProps {
@@ -34,7 +34,10 @@ export default function FightMenu({ spot, onClose, onStart }: FightMenuProps) {
             <div className="fight-menu-modal" onClick={e => e.stopPropagation()}>
                 <div className="fight-menu-header">
                     <h3 className="gold-text">{spot.name}</h3>
-                    <button className="modal-close-btn" onClick={onClose}>✕</button>
+                    <div className="fight-menu-header-actions">
+                        <button className="btn fight-menu-bestiary" onClick={() => { onClose(); openBestiary() }}>Bestiary</button>
+                        <button className="modal-close-btn" onClick={onClose}>✕</button>
+                    </div>
                 </div>
 
                 {spot.description && <p className="fight-menu-desc">{spot.description}</p>}

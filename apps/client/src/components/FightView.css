@@ -89,6 +89,20 @@
     text-shadow: 0 0 3px black;
 }
 
+.fight-weak {
+    color: var(--color-gold-bright);
+}
+
+.fight-bestiary-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-gold);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .fight-frozen {
     margin: 0;
     text-align: center;

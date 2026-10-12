@@ -35,6 +35,47 @@ export interface FightState {
     /** Waiting on a bot check, between kills. */
     frozen: boolean
     weapon: string
+    /** What it is weak to and shrugs off, once the Bestiary tells it (10 kills). */
+    stances: Stances | null
+}
+
+export type DamageType = 'pierce' | 'slash' | 'crush'
+
+export interface Stances {
+    weak: DamageType[]
+    resists: DamageType[]
+}
+
+/** One creature in the player's Bestiary, told as far as their kills allow (server: services/bestiary.ts). */
+export interface BestiaryEntry {
+    id: number
+    kills: number
+    /** The next step that tells more, or null once mastered. */
+    next: number | null
+    name: string
+    level: number
+    description: string | null
+    places: string[]
+    stances: Stances | null
+    drops: { name: string; where?: string }[] | null
+    allDrops: boolean
+    lore: string | null
+    mastered: boolean
+}
+
+export interface BestiaryData {
+    entries: BestiaryEntry[]
+    undiscovered: number
+    steps: { found: number; stances: number; commonDrops: number; allDrops: number; mastery: number }
+}
+
+export function fetchBestiary() {
+    return apiFetch<BestiaryData>('/api/combat/bestiary')
+}
+
+/** Open the Bestiary from anywhere (GameLayout listens), at a creature if given. */
+export function openBestiary(creatureId?: number) {
+    window.dispatchEvent(new CustomEvent<{ creatureId?: number }>('talaran:open-bestiary', { detail: { creatureId } }))
 }
 
 export interface FightFood {

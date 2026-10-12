@@ -18,6 +18,17 @@
     align-items: center;
 }
 
+.fight-menu-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.fight-menu-bestiary {
+    font-size: 12px;
+    padding: 2px 10px;
+}
+
 .fight-menu-desc {
     color: var(--color-text-base);
     font-style: italic;

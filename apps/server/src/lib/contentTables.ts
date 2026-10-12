@@ -140,6 +140,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // Uses since the last break, per player per item (services/durability.ts).
     // Editable so a test can be brought to the edge of a break.
     player_item_wear:            { label: 'Player Item Wear',      group: 'Progress',   editable: true },
+    // Kills per creature, which is what the Bestiary reveals by (services/bestiary.ts).
+    player_creature_kills:       { label: 'Player Creature Kills', group: 'Progress',   editable: true },
     player_feats:                { label: 'Player Feats',          group: 'Progress',   editable: true },
     // item_firsts is already registered under Records further down.
     skill_snapshots:             { label: 'Skill Snapshots',       group: 'Progress' },

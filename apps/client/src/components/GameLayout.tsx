@@ -33,6 +33,7 @@ import QuestsView from './QuestsView'
 import FeatsPanel from './FeatsPanel'
 import HuntingMenu from './HuntingMenu'
 import FightMenu from './FightMenu'
+import BestiaryPanel from './BestiaryPanel'
 import type { FightingSpot } from '../lib/combat'
 import ForagingMenu from './ForagingMenu'
 import WorkstationPanel from './WorkstationPanel'
@@ -582,6 +583,14 @@ export default function GameLayout({
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [showQuestsModal, setShowQuestsModal] = useState(false)
   const [showFeatsModal, setShowFeatsModal] = useState(false)
+  // The Bestiary, opened from the fight screen, the fight menu or the mobile
+  // drawer (lib/combat.ts openBestiary), at a creature when one is given.
+  const [bestiary, setBestiary] = useState<{ creatureId?: number } | null>(null)
+  useEffect(() => {
+    const onOpen = (e: Event) => setBestiary({ creatureId: (e as CustomEvent<{ creatureId?: number }>).detail?.creatureId })
+    window.addEventListener('talaran:open-bestiary', onOpen)
+    return () => window.removeEventListener('talaran:open-bestiary', onOpen)
+  }, [])
 
   useEffect(() => {
     const loadCount = () => {
@@ -793,6 +802,7 @@ export default function GameLayout({
     // Feats shipped as a fourth tab on the desktop panel, and the mobile drawer
     // never got an entry, so the whole feature was unreachable on a phone.
     { label: 'Feats', onClick: () => { closeAllPanels(); setShowFeatsModal(true) } },
+    { label: 'Bestiary', onClick: () => { closeAllPanels(); setBestiary({}) } },
     ...(playerData?.player?.is_admin || playerData?.player?.is_mod
       ? [{ label: 'Admin', onClick: () => { closeAllPanels(); setShowAdmin(true) } }]
       : []),
@@ -1262,6 +1272,15 @@ export default function GameLayout({
           <div className="quests-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowQuestsModal(false)}>✕</button>
             <QuestsView />
+          </div>
+        </div>
+      )}
+
+      {bestiary && (
+        <div className="modal-overlay" onClick={() => setBestiary(null)}>
+          <div className="quests-popup bestiary-popup" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setBestiary(null)}>✕</button>
+            <BestiaryPanel initialCreatureId={bestiary.creatureId} />
           </div>
         </div>
       )}

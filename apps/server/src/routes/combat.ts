@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
 import { eatFood, fightState, fleeFight, startFight } from '../services/combatFights';
+import { bestiaryFor } from '../services/bestiary';
 
 // Fighting (docs/combat-spec.md §9, §10). The fight itself lives in
 // services/combatFights.ts; these are thin doors into it.
@@ -17,6 +18,12 @@ function wholeId(x: unknown): number | null {
 // The fight as it stands, settled to now, and the food the player could eat.
 router.get('/state', requireAuth, async (req: AuthRequest, res: Response) => {
   res.json(await fightState(req.player!.playerId));
+});
+
+// The player's Bestiary: each creature they have killed, told as far as their
+// kills allow (services/bestiary.ts).
+router.get('/bestiary', requireAuth, async (req: AuthRequest, res: Response) => {
+  res.json(await bestiaryFor(req.player!.playerId));
 });
 
 router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {

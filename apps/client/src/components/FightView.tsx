@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getItemIcon } from '../lib/items'
-import type { FightFood, FightState, Hp } from '../lib/combat'
+import { openBestiary, type FightFood, type FightState, type Hp } from '../lib/combat'
 import { useItemTooltip } from './ItemTooltip'
 import './FightView.css'
 
@@ -97,7 +97,19 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
                         : <div className="fight-bar"><span className="fight-bar-label">
                             {fight ? `Closing in, ${Math.max(1, Math.ceil((engageAt - now) / 1000))}s` : ''}
                         </span></div>}
-                    {fight && <span className="fight-side-note muted-text">{fight.kills} {fight.kills === 1 ? 'kill' : 'kills'}</span>}
+                    {fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (
+                        <span className="fight-side-note">
+                            {fight.stances.weak.length > 0 && <span className="fight-weak">Weak to {fight.stances.weak.join(', ')}</span>}
+                            {fight.stances.weak.length > 0 && fight.stances.resists.length > 0 && ' · '}
+                            {fight.stances.resists.length > 0 && <span className="muted-text">shrugs off {fight.stances.resists.join(', ')}</span>}
+                        </span>
+                    )}
+                    {fight && (
+                        <span className="fight-side-note muted-text">
+                            {fight.kills} {fight.kills === 1 ? 'kill' : 'kills'} ·{' '}
+                            <button className="fight-bestiary-link" onClick={() => openBestiary(fight.creature.id)}>Bestiary</button>
+                        </span>
+                    )}
                 </div>
             </div>
 

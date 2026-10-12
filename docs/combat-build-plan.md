@@ -123,6 +123,8 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 
 **Test:** kill counts climb, entries unlock at each step.
 
+**Built 2026-10-12** (migration `20261012150000_bestiary`, `services/bestiary.ts`, `components/BestiaryPanel.tsx`). `player_creature_kills` counts kills per player per creature, written in the kill branch of the fight's settle (same transaction); `creatures.lore` holds the line shown at 1,000 kills with the ✦ mark. The server decides what each entry shows (`bestiaryFor`, `GET /api/combat/bestiary`): name, level, description and where it lives at 1; weak and resistant damage types at 10 (the fight view shows them too from then on); drops up to 1 in 100 at 50 and the rest at 250, spot-only drops naming their place; never a chance. Nothing about an unfound creature is sent, only a count. A first kill pays Exploration XP of the creature's level × 5 (no event bonus) and says so on the kill card; reaching a later step says the Bestiary has more to tell. Opened from the fight menu's header, the fight view, and the mobile drawer; the Manual link comes with step 10's pages.
+
 ## Step 10: words and release
 
 - Manual pages: Melee, Defense, Constitution, Combat, Bestiary (`{{data:…}}` queries for every number).

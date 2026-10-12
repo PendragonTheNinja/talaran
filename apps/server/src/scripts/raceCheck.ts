@@ -425,6 +425,7 @@ async function fund(ctx: Ctx, playerId: number, amount: number) {
 async function inFight(ctx: Ctx, creature: Record<string, unknown>, clock: { enemyHp: number; playerNextAt: number; enemyNextAt: number }) {
     const w = await world(ctx);
     for (const name of ['Melee', 'Defense', 'Constitution']) await ctx.seed.row('skills', { name, type: 'combat' });
+    await ctx.seed.row('skills', { name: 'Exploration', type: 'utility' });
     const foe = await ctx.seed.row('creatures', { key: 'rc_foe', name: 'Racecheck Rat', level: 1, xp_per_kill: 26, ...creature });
     const spot = await ctx.seed.row('fighting_spots', { key: 'rc_docks', location_id: w.town.id, name: 'The Docks', kind: 'drawn' });
     await ctx.seed.row('fighting_spot_creatures', { spot_id: spot.id, creature_id: foe.id, weight: 1 });
