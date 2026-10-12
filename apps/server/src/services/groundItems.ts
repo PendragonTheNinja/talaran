@@ -18,6 +18,9 @@ import { pushToRoom } from '../lib/realtime';
 /** How long a drop is visible only to the player who dropped it. */
 export const GROUND_ITEM_PRIVATE_SECONDS = 15;
 
+/** How long what a fallen fighter carried is theirs alone (docs/combat-spec.md §14). */
+export const DEATH_PILE_PRIVATE_MINUTES = 15;
+
 /** How long a drop stays on the ground before it is gone. */
 export const GROUND_ITEM_LIFETIME_MINUTES = 7 * 24 * 60;   // one week
 
@@ -77,6 +80,56 @@ async function sweep(): Promise<void> {
     lastSweep = now.getTime();
     if (expired.length) logger.info(`[ground] ${expired.length} dropped stack(s) expired unclaimed`);
     for (const id of new Set([...turnedPublic, ...expired].map((r) => r.location_id))) announceGroundChange(id);
+}
+
+/**
+ * Everything a player carries and wears, onto the ground where they fell
+ * (docs/combat-spec.md §14), inside the caller's transaction.
+ *
+ * Not a second system: ordinary ground rows, dropped by the player, private to
+ * them for DEATH_PILE_PRIVATE_MINUTES instead of GROUND_ITEM_PRIVATE_SECONDS,
+ * public after that and swept after a week like any drop. Kept: gold (it is
+ * not an item), the trophy, and open liquid containers (they have no
+ * inventory row). The mount goes with everything else.
+ *
+ * Lock order is the equip route's (routes/equipment.ts): the equipment row,
+ * then the pack, so a death and an equip cannot wait on each other. The pack
+ * is emptied with one DELETE ... RETURNING, so what lands on the ground is
+ * exactly what was taken. One stack per item.
+ */
+export async function dropEverythingWithin(
+    trx: any,
+    playerId: number,
+    locationId: number,
+    at: Date,
+): Promise<{ stacks: number }> {
+    const totals = new Map<number, number>();
+    const add = (itemId: number, quantity: number) => totals.set(itemId, (totals.get(itemId) ?? 0) + quantity);
+
+    const worn = await trx('player_equipment').where({ player_id: playerId }).forUpdate().first();
+    if (worn) {
+        const cleared: Record<string, null> = {};
+        for (const [column, itemId] of Object.entries(worn)) {
+            if (!column.endsWith('_item_id') || !itemId || column === 'trophy_item_id') continue;
+            add(Number(itemId), 1);
+            cleared[column] = null;
+        }
+        if (Object.keys(cleared).length) await trx('player_equipment').where({ player_id: playerId }).update(cleared);
+    }
+
+    const carried: { item_id: number; quantity: number }[] = await trx('player_inventory')
+        .where({ player_id: playerId })
+        .delete()
+        .returning(['item_id', 'quantity']);
+    for (const row of carried) if (Number(row.quantity) > 0) add(row.item_id, Number(row.quantity));
+
+    const visibleAt = new Date(at.getTime() + DEATH_PILE_PRIVATE_MINUTES * 60_000);
+    const rows = [...totals].map(([itemId, quantity]) => ({
+        item_id: itemId, quantity, location_id: locationId,
+        dropped_by_player_id: playerId, dropped_at: at, visible_to_all_at: visibleAt,
+    }));
+    if (rows.length) await trx('ground_items').insert(rows);
+    return { stacks: rows.length };
 }
 
 export function startGroundItemSweep(): void {

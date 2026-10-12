@@ -162,6 +162,8 @@ export default function GameView({
     message?: string
     /** Every skill an action paid, where it paid more than one (a kill). */
     xpAwards?: { skill: string; xp: number }[]
+    /** A card that is only its ended line: a fight that ended before any kill. */
+    noDetails?: boolean
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
@@ -711,15 +713,25 @@ export default function GameView({
       socket.on('force_refresh', () => window.location.reload())
 
       socket.on('action_failed', (data: { error: string; info?: boolean }) => {
-        addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
+        // A fight's end goes on the result card below, which stays; the same
+        // sentence in the log as well printed it twice, one over the other.
+        if (!(data.info && currentActionRef.current === 'combat')) {
+          addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
+        }
         // Carry the server's own sentence. Every informational stop used to be
         // labelled "Out of materials", so a hearth going cold, a tool being
         // unsocketed and a campfire burning out all read as running out of
         // ingredients.
         if (data.info) {
+          // A fight that ends before its first kill has no card to put the
+          // reason on, and a death's reason says where the pile lies, so it
+          // gets a card of its own rather than five seconds in the log.
+          const fightEnded = currentActionRef.current === 'combat'
           setLastResult(prev => prev
             ? { ...prev, ended: 'materials', endedReason: data.error }
-            : prev)
+            : fightEnded
+              ? { itemName: '', xpAwarded: 0, totalXp: 0, level: 1, xpToNext: 0, xpAtLevel: 0, skillName: '', ended: 'materials', endedReason: data.error, noDetails: true }
+              : prev)
         }
         setCurrentAction(null)
         setActiveNodeId(null)
@@ -1837,7 +1849,7 @@ export default function GameView({
                       ? 'Action limit reached'
                       : lastResult.endedReason || 'Out of materials'}
                   </p>
-                  {renderResultDetails(lastResult)}
+                  {!lastResult.noDetails && renderResultDetails(lastResult)}
                 </div>
               )}
               {lastResult && !lastResult.ended && (

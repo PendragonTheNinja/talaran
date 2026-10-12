@@ -254,6 +254,12 @@ function App() {
         loadInventory()
       })
 
+      // Worn gear changed without the player touching it: a death leaves it
+      // on the ground (services/groundItems.ts dropEverythingWithin).
+      socket.on('equipment_changed', () => {
+        loadEquipment()
+      })
+
       socket.on('trade_completed', () => {
         window.dispatchEvent(new CustomEvent('trade_completed'))
         loadInventory()

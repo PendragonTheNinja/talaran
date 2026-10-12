@@ -5,6 +5,7 @@ import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { announceGroundChange, GROUND_ITEM_PRIVATE_SECONDS, GROUND_ITEM_LIFETIME_MINUTES } from '../services/groundItems';
 import { failureStatus } from '../lib/serviceResult';
+import { addItemToInventoryWithin, notifyInventoryChanged } from '../services/inventory';
 
 const router = Router();
 
@@ -152,31 +153,26 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const claimed = await db('ground_items')
-            .where({ id: groundItemId })
-            .where('dropped_at', '>', new Date(Date.now() - GROUND_ITEM_LIFETIME_MINUTES * 60_000))
-            .delete();
-        if (claimed === 0) {
+        // The claim and the add are one unit of work. The add used to read the
+        // stack and then increment or insert, outside any transaction: a death
+        // emptying the pack in between (services/groundItems.ts
+        // dropEverythingWithin) left the increment matching nothing, and the
+        // picked-up stack was gone from the ground and never reached the pack.
+        // addItemToInventoryWithin is one atomic upsert (CLAUDE.md §4 rule 13).
+        const claimed = await db.transaction(async (trx) => {
+            const n = await trx('ground_items')
+                .where({ id: groundItemId })
+                .where('dropped_at', '>', new Date(Date.now() - GROUND_ITEM_LIFETIME_MINUTES * 60_000))
+                .delete();
+            if (n === 0) return false;
+            await addItemToInventoryWithin(trx, playerId, groundItem.item_id, groundItem.quantity);
+            return true;
+        });
+        if (!claimed) {
             res.status(404).json({ error: 'It is already gone.' });
             return;
         }
-
-        // Add to inventory
-        const existing = await db('player_inventory')
-            .where({ player_id: playerId, item_id: groundItem.item_id })
-            .first();
-
-        if (existing) {
-            await db('player_inventory')
-                .where({ player_id: playerId, item_id: groundItem.item_id })
-                .increment('quantity', groundItem.quantity);
-        } else {
-            await db('player_inventory').insert({
-                player_id: playerId,
-                item_id: groundItem.item_id,
-                quantity: groundItem.quantity,
-            });
-        }
+        notifyInventoryChanged(playerId);
 
         // The claim above already deleted the row; this is where the old
         // read-then-delete used to happen.

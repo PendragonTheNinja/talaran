@@ -97,6 +97,8 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 
 **Test:** die on purpose, walk back, pick up the pile; check a second account cannot see it until 15 minutes pass.
 
+**Built 2026-10-12.** `dropEverythingWithin` in `services/groundItems.ts`, inside the fight's locked settle: the equipment row then the pack (the equip route's lock order), one ground stack per item at the spot's location, `visible_to_all_at` 15 minutes out (`DEATH_PILE_PRIVATE_MINUTES`), swept after a week like any drop. Kept: gold, the trophy, open liquid containers. The death notice stays on the result card and names where the pile lies; `inventory_changed` and a new `equipment_changed` push refresh the pack and the doll. Pickup moved into a transaction with the atomic upsert: the old read-then-increment lost a stack when a death emptied the pack between the two (`race:check` "die while picking up from the ground", shown failing against the old pickup: 8 planks became 4 to 7).
+
 ## Step 7: durability
 
 - Per player, per item name: a use counter and a tier table (guaranteed uses, break chance after), per-item overrides, editable from the admin panel. Built generic, so tools can join later.

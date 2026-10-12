@@ -16,8 +16,10 @@
 // connection (drops, coins, the loot log, pushes, bot checks) run after the
 // commit, from the report the transaction returns (CLAUDE.md §4 rule 18).
 //
-// Death (interim, until step 6): at 0 HP the fight ends, HP is restored and
-// the player wakes in Talador, keeping everything. Step 6 adds the pile.
+// Death (spec §14): at 0 HP the fight ends, everything carried and worn but the
+// trophy goes on the ground where they fell (theirs alone for 15 minutes,
+// services/groundItems.ts dropEverythingWithin), and they wake in Talador at
+// full HP with their gold.
 
 import type { Knex } from 'knex'
 import type { Server } from 'socket.io'
@@ -33,6 +35,8 @@ import { incrementStats } from './stats'
 import { takeItemsWithin } from './inventory'
 import { isBotCheckDue, issueBotCheck } from './botCheck'
 import { isPlayerOnline, RESTART_GRACE_MS, serverStartedAt, shouldCancelForAbsence } from '../lib/presence'
+import { DEATH_PILE_PRIVATE_MINUTES, dropEverythingWithin } from './groundItems'
+import { notifyInventoryChanged } from './inventory'
 import { pushToPlayer } from '../lib/realtime'
 import { SERVER_ERROR } from '../lib/serviceResult'
 
@@ -155,6 +159,8 @@ interface FightReport {
     froze: boolean
     hp: { current: number; max: number }
     view: FightView | null
+    /** Where a death left the pile, for the message. */
+    pile: { place: string; stacks: number } | null
 }
 
 // ── The settle ───────────────────────────────────────────────────────────────
@@ -274,7 +280,12 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     }
 
     let ended: FightReport['ended'] = null
+    let pile: FightReport['pile'] = null
     if (died) {
+        const fellAt = spot.location_id
+        const { stacks } = await dropEverythingWithin(trx, playerId, fellAt, new Date(settledAt))
+        const place = await trx('locations').where({ id: fellAt }).select('name').first()
+        pile = { place: place?.name ?? 'where you fell', stacks }
         const respawn = await trx('locations').where({ name: RESPAWN_LOCATION }).first()
         await trx('players').where({ id: playerId }).update({
             hp_missing: 0,
@@ -316,6 +327,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
         kills,
         ended,
         froze,
+        pile,
         hp: { current: died ? max : Math.max(0, max - missing), max },
         view: ended ? null : {
             spot: { id: spot.id, key: spot.key, name: spot.name, kind: spot.kind },
@@ -331,7 +343,6 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
 }
 
 const END_MESSAGES: Record<string, string> = {
-    died: 'You fall. You come round in Talador, aching all over, with everything you carried still on you.',
     fled: 'You break off and back away.',
     disconnected: 'You broke off the fight when your connection dropped.',
     absent: 'You broke off the fight after a long while away.',
@@ -403,8 +414,17 @@ async function afterFight(report: FightReport | null): Promise<void> {
         })
         // A replaced fight says nothing: the request replacing it is already
         // starting the next thing, and a stop notice would clear it on screen.
-        if (report.ended && END_MESSAGES[report.ended]) {
-            pushToPlayer(playerId, 'action_failed', { error: END_MESSAGES[report.ended], info: report.ended !== 'died' })
+        if (report.ended === 'died') {
+            const lost = report.pile && report.pile.stacks > 0
+                ? ` What you carried lies at ${report.pile.place}, yours alone for ${DEATH_PILE_PRIVATE_MINUTES} minutes. After that, anyone passing may take it.`
+                : ''
+            // As info, so it stays on the result card rather than fading
+            // from the log in five seconds: it says where the pile is.
+            pushToPlayer(playerId, 'action_failed', { error: `You fall. You come round in Talador with your purse and little else.${lost}`, info: true })
+            notifyInventoryChanged(playerId)
+            pushToPlayer(playerId, 'equipment_changed')
+        } else if (report.ended && END_MESSAGES[report.ended]) {
+            pushToPlayer(playerId, 'action_failed', { error: END_MESSAGES[report.ended], info: true })
         }
     } catch (err) {
         logger.error(`afterFight error (player ${playerId}): ${err}`)

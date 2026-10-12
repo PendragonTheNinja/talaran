@@ -1173,6 +1173,49 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'fight', name: 'die while picking up from the ground, at once', rounds: 30,
+        run: async (ctx, round) => {
+            // The killing blow is overdue, so the eat settles a death that
+            // drops the pack and the worn gear (not the trophy) where the
+            // player fell, while a pickup of their own ground stack is in
+            // flight. The pickup used to add to the pack with an unlocked
+            // read-then-increment: with the pack emptied in between, the
+            // increment matched nothing and the planks vanished.
+            const now = Date.now();
+            const w = await inFight(ctx, { accuracy: 20, power: 10, swing_seconds: 2.4 },
+                { enemyHp: 100, playerNextAt: now + 60_000, enemyNextAt: now - 10_000 });
+            await ctx.db('players').where({ id: w.player.id }).update({ hp_missing: 99 });
+            const trophy = await ctx.seed.row('items', { name: 'Antler', type: 'collectible', subtype: 'trophy', slot: 'trophy' });
+            await ctx.seed.row('player_equipment', { player_id: w.player.id, mainhand_item_id: w.hatchet.id, trophy_item_id: trophy.id });
+            await inPack(ctx, w.player.id, w.plank.id, 3);
+            await inPack(ctx, w.player.id, w.food.id, 1);
+            const ground: { id: number }[] = [];
+            for (let i = 0; i < 5; i++) {
+                ground.push(await ctx.seed.row('ground_items', {
+                    item_id: w.plank.id, quantity: 1, location_id: w.town.id, dropped_by_player_id: w.player.id,
+                    dropped_at: new Date(), visible_to_all_at: new Date(),
+                }));
+            }
+            // The window is a pickup's read landing just before the death's
+            // delete, so the five pickups are staggered by a few milliseconds
+            // and the stagger moves each round, sweeping across the settle.
+            const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+            await ctx.burst(w.player.id, 6, async (i) => {
+                if (i === 0) return ctx.post(w.player.id, '/combat/eat', { itemId: w.food.id });
+                await sleep((round % 10) * 3 + (i - 1) * 2);
+                return ctx.post(w.player.id, '/ground-items/pickup', { groundItemId: ground[i - 1].id });
+            });
+            const deaths = Number((await ctx.db('player_stats').where({ player_id: w.player.id }).first())?.total_combat_deaths ?? 0);
+            const worn = await ctx.db('player_equipment').where({ player_id: w.player.id }).first();
+            return changed('planks', 8, await ctx.itemTotal(w.plank.id))
+                ?? changed('hatchets', 1, await ctx.itemTotal(w.hatchet.id))
+                ?? changed('fish', 1, await ctx.itemTotal(w.food.id))
+                ?? changed('deaths', 1, deaths)
+                ?? (worn?.mainhand_item_id ? 'the hatchet stayed in hand through a death' : null)
+                ?? (worn?.trophy_item_id !== trophy.id ? 'the trophy left with the rest' : null);
+        },
+    },
+    {
         id: 'fight', name: 'flee five times at once as the killing swing settles', rounds: 10,
         run: async (ctx) => {
             // The creature at 1 HP and the player's swings overdue: whichever
@@ -1180,6 +1223,11 @@ const SCENARIOS: Scenario[] = [
             // every flee settled the same kill and paid it again.
             const now = Date.now();
             const w = await inFight(ctx, { defence: 0.01 }, { enemyHp: 1, playerNextAt: now - 9_000, enemyNextAt: now + 60_000 });
+            // A blade that cannot miss (99%, the cap), so the overdue swings
+            // always land the kill. Bare fists hit this creature ~61% of the
+            // time, and four misses running made the round flaky.
+            const blade = await ctx.seed.row('items', { name: 'Racecheck Blade', type: 'weapon', slot: 'mainhand', weapon_form: 'onehand', damage_type: 'slash', aim: 5000, power: 40 });
+            await wearing(ctx, w.player.id, 'mainhand_item_id', blade.id);
             const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/combat/flee', {}));
             const melee = await ctx.db('player_skills').join('skills', 'skills.id', 'player_skills.skill_id')
                 .where({ 'player_skills.player_id': w.player.id, 'skills.name': 'Melee' }).first();
