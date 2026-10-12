@@ -1,0 +1,111 @@
+.fight-menu-modal {
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    width: 480px;
+    max-width: calc(100vw - 32px);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.fight-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fight-menu-desc {
+    color: var(--color-text-base);
+    font-style: italic;
+    margin: 0;
+}
+
+.fight-menu-standing {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-base);
+    font-size: 13px;
+}
+
+.fight-menu-warn {
+    color: var(--color-red-bright);
+}
+
+.fight-menu-hint {
+    margin: 0;
+    font-size: 13px;
+}
+
+.fight-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+}
+
+.fight-menu-card {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--color-text-base);
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: border-color 0.1s;
+}
+
+.fight-menu-card:hover:not(.static) {
+    border-color: var(--color-gold-bright);
+}
+
+.fight-menu-card.static {
+    cursor: default;
+}
+
+.fight-menu-image {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fight-menu-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.fight-menu-name {
+    font-size: 13px;
+    color: var(--color-text-bright);
+    text-align: center;
+}
+
+.fight-menu-level {
+    font-size: 11px;
+}
+
+.fight-menu-go {
+    align-self: center;
+    min-width: 140px;
+}
+
+@media (max-width: 520px) {
+    .fight-menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

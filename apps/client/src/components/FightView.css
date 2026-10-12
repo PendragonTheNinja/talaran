@@ -1,0 +1,132 @@
+.fight-view {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 520px;
+}
+
+.fight-food {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    justify-content: center;
+    min-height: 48px;
+    align-items: center;
+}
+
+.fight-food-slot {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--color-border-gold);
+}
+
+.fight-food-slot.busy {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.fight-food-empty {
+    font-size: 13px;
+}
+
+.fight-sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+}
+
+.fight-side {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.fight-side-name {
+    color: var(--color-text-bright);
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fight-side-note {
+    font-size: 12px;
+}
+
+.fight-bar {
+    position: relative;
+    height: 18px;
+    background: var(--color-bg-deepest);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.fight-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease-out;
+}
+
+.fight-bar-fill.you {
+    background: var(--color-health);
+}
+
+.fight-bar-fill.foe {
+    background: var(--color-gold-dim);
+}
+
+.fight-bar-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--color-text-white);
+    text-shadow: 0 0 3px black;
+}
+
+.fight-frozen {
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+}
+
+.fight-log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 120px;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.fight-log-line {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-base);
+}
+
+.fight-log-line.foe {
+    color: var(--color-red-bright);
+}
+
+.fight-log-line.kill {
+    color: var(--color-gold-bright);
+}
+
+.fight-log-line.info {
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 520px) {
+    .fight-sides {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+    }
+}

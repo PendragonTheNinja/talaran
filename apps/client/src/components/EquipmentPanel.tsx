@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { Hp } from '../lib/combat'
 import { getItemIcon, getSlotIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { useItemTooltip } from './ItemTooltip'
@@ -70,6 +71,19 @@ const SLOTS = [
 
 export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, combat }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
+    // Mid-fight HP, announced by GameView as each swing lands (lib/combat.ts
+    // announceHp), so the bar keeps up without refetching the whole player.
+    // A fresh `hp` from the server takes over again when it arrives.
+    const [liveHp, setLiveHp] = useState<{ hp: Hp; over: Hp | undefined } | null>(null)
+    useEffect(() => {
+        const onHp = (e: Event) => {
+            const detail = (e as CustomEvent<Hp>).detail
+            if (detail) setLiveHp({ hp: detail, over: hp })
+        }
+        window.addEventListener('talaran:hp', onHp)
+        return () => window.removeEventListener('talaran:hp', onHp)
+    }, [hp])
+    const shownHp = liveHp && liveHp.over === hp ? liveHp.hp : hp
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
 
@@ -103,9 +117,9 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 implemented, so its bar is still a placeholder. */}
             <div className="doll-row">
                 <div className="vital-bar hp">
-                    <span className="vital-readout">{hp ? `Health ${hp.current} / ${hp.max}` : 'Health'}</span>
+                    <span className="vital-readout">{shownHp ? `Health ${shownHp.current} / ${shownHp.max}` : 'Health'}</span>
                     <div className="vital-track">
-                        <div className="vital-fill health" style={{ height: `${hp && hp.max > 0 ? Math.round(100 * hp.current / hp.max) : 100}%` }} />
+                        <div className="vital-fill health" style={{ height: `${shownHp && shownHp.max > 0 ? Math.round(100 * shownHp.current / shownHp.max) : 100}%` }} />
                     </div>
                     <span className="vital-label">HP</span>
                 </div>

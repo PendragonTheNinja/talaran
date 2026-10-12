@@ -8,6 +8,8 @@ import LogPanel from './LogPanel'
 import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
+import FightView, { type FightLogLine } from './FightView'
+import { announceHp, describeSwing, fetchFightState, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
 
 interface Node {
   id: number
@@ -158,9 +160,22 @@ export default function GameView({
     firstDiscovery?: boolean
     firstEver?: boolean
     message?: string
+    /** Every skill an action paid, where it paid more than one (a kill). */
+    xpAwards?: { skill: string; xp: number }[]
   } | null>(null)
   const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
   const [actionsCompleted, setActionsCompleted] = useState(0)
+
+  // ── A fight (docs/combat-spec.md §9) ──────────────────────────────
+  // Everything here is the server's: services/combatFights.ts pushes every
+  // settle as combat_update, and the restore case re-reads /api/combat/state.
+  const [fight, setFight] = useState<FightState | null>(null)
+  const [fightHp, setFightHp] = useState<Hp | null>(null)
+  const [fightFood, setFightFood] = useState<FightFood[]>([])
+  const [fightLog, setFightLog] = useState<FightLogLine[]>([])
+  const [fightBusy, setFightBusy] = useState(false)
+  const fightLogIdRef = useRef(0)
+  const fightCreatureRef = useRef<string | null>(null)
 
   const [travelLogOpen, setTravelLogOpen] = useState(false)
   const [travelLogKey, setTravelLogKey] = useState(0)
@@ -185,6 +200,33 @@ export default function GameView({
   }, [actionLimit])
 
   // ── Helpers ───────────────────────────────────────────────────────
+  /** Lines into the fight log, oldest first; the view shows the newest. */
+  const addFightLines = (lines: { text: string; kind: FightLogLine['kind'] }[]) => {
+    if (!lines.length) return
+    setFightLog(prev => [
+      ...prev,
+      ...lines.map(l => {
+        fightLogIdRef.current += 1
+        return { id: fightLogIdRef.current, ...l }
+      }),
+    ].slice(-40))
+  }
+
+  /** The fight as it stands now, and the food to eat, from the server. */
+  const refreshFight = async () => {
+    try {
+      const d = await fetchFightState()
+      setFight(d.fight)
+      setFightHp(d.hp)
+      setFightFood(d.food)
+      announceHp(d.hp)
+      if (d.fight) fightCreatureRef.current = d.fight.creature.name
+      return d
+    } catch {
+      return null
+    }
+  }
+
   const addLog = (message: string, type: LogEntry['type'] = 'info', persist = false) => {
     logIdRef.current += 1
     const id = logIdRef.current
@@ -197,6 +239,72 @@ export default function GameView({
       setTimeout(() => {
         setLog(prev => prev.filter(entry => entry.id !== id))
       }, 5000)
+    }
+  }
+
+  // Fighting. Same opening as every other start (checklist item 8), then the
+  // fight's own state from the server's answer.
+  const startFight = async (spotId: number, creatureId: number | null) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ fight: FightState; hp: Hp }>('/api/combat/start', {
+        method: 'POST',
+        body: JSON.stringify(creatureId ? { spotId, creatureId } : { spotId }),
+      })
+      setCurrentAction('combat')
+      setFight(res.fight)
+      setFightHp(res.hp)
+      announceHp(res.hp)
+      fightCreatureRef.current = res.fight.creature.name
+      fightLogIdRef.current += 1
+      setFightLog([{ id: fightLogIdRef.current, text: `A ${res.fight.creature.name} closes in.`, kind: 'info' }])
+      refreshFight()
+    } catch (err) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 423) { rememberPendingAction(() => startFight(spotId, creatureId)); return }
+      addLog(e.message || 'Could not start the fight.', 'error')
+    }
+  }
+
+  const eatInFight = async (itemId: number) => {
+    setFightBusy(true)
+    try {
+      const res = await apiFetch<{ healed: number; itemName: string; hp: Hp }>('/api/combat/eat', {
+        method: 'POST',
+        body: JSON.stringify({ itemId }),
+      })
+      setFightHp(res.hp)
+      announceHp(res.hp)
+      addFightLines([{ text: `You eat the ${res.itemName} and mend ${res.healed}.`, kind: 'info' }])
+      onInventoryUpdate()
+      refreshFight()
+    } catch (err) {
+      addFightLines([{ text: (err as { message?: string }).message || 'You could not eat that.', kind: 'info' }])
+    } finally {
+      setFightBusy(false)
+    }
+  }
+
+  const fleeFight = async () => {
+    setFightBusy(true)
+    try {
+      const res = await apiFetch<{ hp: Hp }>('/api/combat/flee', { method: 'POST' })
+      if (res.hp) announceHp(res.hp)
+    } catch (err) {
+      addLog((err as { message?: string }).message || 'You could not get away.', 'error')
+    } finally {
+      setFightBusy(false)
+      setCurrentAction(null)
+      setFight(null)
+      fightCreatureRef.current = null
+      onPlayerDataUpdate()
     }
   }
 
@@ -327,6 +435,43 @@ export default function GameView({
         // vanished. Every completed swing changes that number, so every completed
         // swing should refresh it.
         if ((data as any).actionType === 'mining_vein') loadVeins()
+
+        // A kill: Melee's XP on the card, with Defense and Constitution beside
+        // it (xpAwards). The fight itself carries on; combat_update draws it.
+        const kill = data as unknown as {
+          actionType?: string
+          firstEver?: boolean
+          result: {
+            skillName?: string; xpAwarded?: number; message?: string; eventXp?: number
+            xpAwards?: { skill: string; xp: number }[]
+            drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[]
+          }
+          xpInfo?: XpInfo & { xpAtLevel?: number }
+        }
+        if (kill.actionType === 'combat') {
+          const r = kill.result
+          setLastResult({
+            firstEver: kill.firstEver,
+            itemName: '',
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: kill.xpInfo?.totalXp || 0,
+            level: kill.xpInfo?.level || 1,
+            xpToNext: kill.xpInfo?.xpToNext || 0,
+            xpAtLevel: kill.xpInfo?.xpAtLevel || 0,
+            skillName: r.skillName || 'Melee',
+            message: r.message,
+            xpAwards: r.xpAwards,
+            drops: r.drops || [],
+            eventXp: r.eventXp,
+          })
+          if (data.xpInfo?.leveledUp) {
+            setLevelUpSkill({ name: r.skillName || 'Melee', level: data.xpInfo.level })
+          }
+          onPlayerDataUpdate()
+          onInventoryUpdate()
+          setActionsCompleted(prev => prev + 1)
+          return
+        }
 
         // Hunting: its own result shape (no single itemName; success/miss + drops)
         if ((data.result as any)?.skillName === 'Hunting') {
@@ -638,6 +783,41 @@ export default function GameView({
         onTrapsChanged?.()
       })
 
+      // Every settle of a fight: the swings since the last one, any kills,
+      // where both sides stand, and whether it ended.
+      socket.on('combat_update', (data: CombatUpdate) => {
+        const lines: { text: string; kind: FightLogLine['kind'] }[] = []
+        for (const e of data.events || []) {
+          if (fightCreatureRef.current !== e.creature) {
+            fightCreatureRef.current = e.creature
+            lines.push({ text: `A ${e.creature} closes in.`, kind: 'info' })
+          }
+          lines.push({ text: describeSwing(e), kind: e.by === 'player' ? 'you' : 'foe' })
+        }
+        for (const k of data.kills || []) lines.push({ text: `The ${k.creature} falls.`, kind: 'kill' })
+        addFightLines(lines)
+        if (data.hp) {
+          setFightHp(data.hp)
+          announceHp(data.hp)
+        }
+        if (data.fight) {
+          setFight(data.fight)
+        } else if (data.ended) {
+          setFight(null)
+          fightCreatureRef.current = null
+          // A death moves the player to Talador; anything else leaves them
+          // where they are, with the HP they kept.
+          onPlayerDataUpdate()
+          if (data.ended === 'died') onLocationDataUpdate?.()
+        }
+      })
+
+      socket.on('hp_changed', (data: { hp: Hp }) => {
+        if (!data?.hp) return
+        setFightHp(data.hp)
+        announceHp(data.hp)
+      })
+
       socket.on('action_limit_reached', (data: { message: string }) => {
         addLog(data.message, 'info')
         setLastResult(prev => prev ? { ...prev, ended: 'limit' } : prev)
@@ -665,6 +845,8 @@ export default function GameView({
         socket.off('vein_depleted')
         socket.off('action_switched')
         socket.off('action_limit_reached')
+        socket.off('combat_update')
+        socket.off('hp_changed')
         socket.off('force_refresh')
       }
     }
@@ -913,6 +1095,13 @@ export default function GameView({
         }
         break
 
+      // A fight has no timer to restore: it is re-read, settled to now.
+      case 'combat':
+        setCurrentAction('combat')
+        setFightLog([])
+        refreshFight()
+        break
+
       case 'traveling':
         break
     }
@@ -998,6 +1187,9 @@ export default function GameView({
       startCutBait(externalAction.id as string)
     } else if (externalAction.type === 'recipe') {
       startRecipe(externalAction.id as number)
+    } else if (externalAction.type === 'combat') {
+      // id is the spot; text, at a chosen spot, the creature picked.
+      startFight(externalAction.id as number, externalAction.text ? Number(externalAction.text) : null)
     }
 
     onExternalActionHandled()
@@ -1513,6 +1705,30 @@ export default function GameView({
       )
     }
 
+    // A kill: three skills paid, drops beneath (services/combatFights.ts).
+    if (Array.isArray(r.xpAwards) && r.skillName === 'Melee') {
+      const parts = (r.xpAwards as { skill: string; xp: number }[])
+        .filter(a => a.xp > 0)
+        .map(a => `+${a.xp} ${a.skill}`)
+      return (
+        <>
+          <p className="last-result-item">{r.message}</p>
+          <p className="last-result-xp">{parts.join(', ')} experience{eventXpTag(r.eventXp)}.</p>
+          {r.drops && (r.drops as { name: string; quantity: number; notable?: boolean }[]).map((d, i) => (
+            d.notable ? (
+              <p key={`cd-${i}`} className="last-result-drop">
+                <span className="drop-sparkle">✦</span> You found {d.quantity > 1 ? `${d.quantity}× ` : ''}<span className="drop-name">{d.name}</span>!
+              </p>
+            ) : (
+              <p key={`cd-${i}`} className="last-result-gained">
+                You gained {d.quantity > 1 ? `${d.quantity}× ` : ''}{d.name}.
+              </p>
+            )
+          ))}
+        </>
+      )
+    }
+
     // Hunting: success/miss layout (no single itemName)
     if (r.skillName === 'Hunting') {
       return (
@@ -1655,7 +1871,28 @@ export default function GameView({
             </div>
           )}
 
-          {currentAction && !botCheckPending && (
+          {currentAction === 'combat' && (
+            <div className="scene-action-overlay">
+              <FightView
+                fight={fight}
+                hp={fightHp}
+                log={fightLog}
+                food={fightFood}
+                sceneText={sceneTextFor(presentation, currentAction, null, null)}
+                fleeLabel={cancelLabelFor(presentation, currentAction, null)}
+                busy={fightBusy}
+                onEat={eatInFight}
+                onFlee={fleeFight}
+              />
+              {lastResult && (
+                <div className="scene-last-result">
+                  {renderResultDetails(lastResult)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentAction && currentAction !== 'combat' && !botCheckPending && (
             <div className="scene-action-overlay">
               {/* The fire, while a cook is running. It is the one thing that can
                   stop a cook without the player doing anything, so it belongs in

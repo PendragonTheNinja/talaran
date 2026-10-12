@@ -87,6 +87,8 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 
 **Test:** fight Dock Rats at Talador from level 1; eat, flee, refresh mid-fight, disconnect mid-fight.
 
+**Built 2026-10-12.** Each spot is a location button that opens `FightMenu` (the spot's line, your health, how many meals you carry that mend; a picker at a chosen spot). While fighting, `GameView` draws `FightView` in place of the timer: food tiles along the top (a tap eats one), both health bars, the approach countdown, the last swings, and Flee (`action_presentation`'s cancel label). A kill gets the result card (all three skills' XP and the drops). Refresh restores the fight from `/api/combat/state`; `combat_update` and `hp_changed` are listened for and cleaned up; the equipment panel's HP follows the fight through a window event (`lib/combat.ts` `announceHp`). Travel, Stop and a vein end a fight quietly ('replaced'), so no stop notice clears the next action on screen. Creature pictures are read from `/images/bestiary/<Name>.png`, as hunting's are.
+
 ## Step 6: death
 
 - At 0 HP: everything carried and worn (mount included, trophy and gold kept) drops where you fell, as one ground pile private to you for 15 minutes (a per-drop private window on `ground_items`, not a second system), public after, swept after a week.

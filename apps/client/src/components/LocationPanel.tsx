@@ -162,6 +162,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const huntableAnimals = locationData?.huntableAnimals || []
   const foragingHabitats = locationData?.foragingHabitats || []
   const fishSpeciesCount = locationData?.fishSpeciesCount || 0
+  const fightingSpots: { id: number; name: string }[] = locationData?.fightingSpots || []
 
   const handlePickup = async (groundItemId: number) => {
     try {
@@ -404,6 +405,18 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {WATER_LABELS[locationData?.location?.name ?? ''] ?? 'Fish the Water'} →
           </button>
         )}
+
+        {/* Places to fight (docs/combat-spec.md §8). Each opens its menu:
+            take what comes, or pick a creature at a chosen spot. */}
+        {fightingSpots.map(spot => (
+          <button
+            key={`fight-${spot.id}`}
+            className={`location-action-btn ${currentAction === 'combat' ? 'active' : ''}`}
+            onClick={() => onStartAction('fight_menu', spot.id)}
+          >
+            {spot.name} →
+          </button>
+        ))}
 
         {/* Tally board. Top level and unconditional: it reports work from
             everywhere, so it must be reachable everywhere, and it doubles as

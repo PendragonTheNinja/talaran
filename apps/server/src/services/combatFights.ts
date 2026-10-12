@@ -151,7 +151,7 @@ interface FightReport {
     events: (SwingEvent & { creature: string })[]
     kills: KillReport[]
     /** How the fight ended in this settle, if it did. */
-    ended: 'died' | 'fled' | 'disconnected' | 'absent' | null
+    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | null
     froze: boolean
     hp: { current: number; max: number }
     view: FightView | null
@@ -159,7 +159,8 @@ interface FightReport {
 
 // ── The settle ───────────────────────────────────────────────────────────────
 
-type EndMode = null | 'fled' | 'disconnected' | 'absent'
+/** 'replaced': another action is taking the fight's place (travel, Stop, a vein); the client already knows. */
+type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced'
 
 /**
  * Lock the player's fight and play it up to `until`, inside `trx`. With
@@ -400,7 +401,9 @@ async function afterFight(report: FightReport | null): Promise<void> {
             fight: report.view,
             ended: report.ended,
         })
-        if (report.ended) {
+        // A replaced fight says nothing: the request replacing it is already
+        // starting the next thing, and a stop notice would clear it on screen.
+        if (report.ended && END_MESSAGES[report.ended]) {
             pushToPlayer(playerId, 'action_failed', { error: END_MESSAGES[report.ended], info: report.ended !== 'died' })
         }
     } catch (err) {
@@ -594,7 +597,7 @@ export async function fleeFight(playerId: number): Promise<{ success: boolean; e
  */
 export async function endFightIfAny(playerId: number): Promise<void> {
     try {
-        await runSettle(playerId, Date.now(), 'fled')
+        await runSettle(playerId, Date.now(), 'replaced')
     } catch (err) {
         logger.error(`endFightIfAny error (player ${playerId}): ${err}`)
     }

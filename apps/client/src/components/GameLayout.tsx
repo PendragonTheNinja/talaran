@@ -32,6 +32,8 @@ import PlayerStats from './PlayerStats'
 import QuestsView from './QuestsView'
 import FeatsPanel from './FeatsPanel'
 import HuntingMenu from './HuntingMenu'
+import FightMenu from './FightMenu'
+import type { FightingSpot } from '../lib/combat'
 import ForagingMenu from './ForagingMenu'
 import WorkstationPanel from './WorkstationPanel'
 import FishingMenu from './FishingMenu'
@@ -76,6 +78,8 @@ interface LocationData {
   }[]
   connections: any[]
   allLocations: any[]
+  /** Places to fight here (routes/location.ts). */
+  fightingSpots?: FightingSpot[]
 }
 
 interface InventoryItem {
@@ -300,6 +304,8 @@ export default function GameLayout({
   const isMobile = useIsMobile()
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
+  // The fighting spot whose menu is open, by id.
+  const [fightSpotId, setFightSpotId] = useState<number | null>(null)
   const [showForagingMenu, setShowForagingMenu] = useState(false)
   // Which workstation's tool rack is open, or null. One piece of state serves
   // the forge, the carpentry bench, the cookhouse and the apiary.
@@ -445,6 +451,8 @@ export default function GameLayout({
       }
     } else if (type === 'hunting_menu') {
       setShowHuntingMenu(true)
+    } else if (type === 'fight_menu') {
+      setFightSpotId(Number(id))
     } else if (type === 'foraging_menu') {
       setShowForagingMenu(true)
     } else if (type === 'fishing_menu') {
@@ -1054,6 +1062,21 @@ export default function GameLayout({
           </div>
         </div>
       )}
+
+      {fightSpotId !== null && (() => {
+        const spot = locationData?.fightingSpots?.find(s => s.id === fightSpotId)
+        if (!spot) return null
+        return (
+          <FightMenu
+            spot={spot}
+            onClose={() => setFightSpotId(null)}
+            onStart={(creatureId) => {
+              setFightSpotId(null)
+              setGameViewAction({ type: 'combat', id: spot.id, text: creatureId ? String(creatureId) : undefined })
+            }}
+          />
+        )
+      })()}
 
       {showHuntingMenu && (
         <HuntingMenu
