@@ -9,6 +9,9 @@ import './MuseumPanel.css'
 // An island museum (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2). One modal, a tab
 // per exhibit, a case per item. A case is the item's own icon drawn black until
 // you have given yours; the plaque under it names whoever gave one first.
+// Until you have given it, a case says nothing else about what it holds: no
+// name and no tooltip (Nathan, 2026-10-12). The silhouette is the only clue.
+// One you carry lights up so you can give it, and the confirmation names it.
 
 interface MuseumCase {
     caseId: number
@@ -50,7 +53,7 @@ function CaseIcon({ c, hover }: { c: MuseumCase; hover: Record<string, unknown> 
         <img
             className={`inventory-item-icon ${c.donated ? '' : 'museum-silhouette'}`}
             src={getItemIcon(c.name)}
-            alt={c.name}
+            alt={c.donated ? c.name : ''}
             onError={() => setFailed(true)}
             {...hover}
         />
@@ -97,7 +100,7 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
         setNotice(null)
         if (c.donated) return
         if (c.held < 1) {
-            setNotice(`You have no ${c.name} to give.`)
+            setNotice('You have nothing to put in that case yet.')
             return
         }
         setGiving(c)
@@ -150,11 +153,10 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                             {exhibit.cases.map(c => (
                                 <div key={c.caseId} className={`museum-case ${c.donated ? 'given' : c.held > 0 ? 'can-give' : ''} ${c.yourFirst ? 'your-first' : ''}`}>
                                     <button className="inventory-slot occupied museum-slot" onClick={() => pick(c)}>
-                                        <CaseIcon c={c} hover={hoverProps({ name: c.name },
-                                            c.donated ? 'Given' : c.held > 0 ? 'Click to give one' : 'Not yet given')} />
+                                        <CaseIcon c={c} hover={c.donated ? hoverProps({ name: c.name }, 'Given') : {}} />
                                         {!c.donated && c.held > 0 && <span className="museum-held tabular-num">{c.held}</span>}
                                     </button>
-                                    <span className="museum-case-name">{c.name}</span>
+                                    <span className="museum-case-name">{c.donated ? c.name : '?'}</span>
                                     <span className="museum-plaque">
                                         {c.yourFirst
                                             ? <span className="museum-your-first">★ You gave the first, {shortDate(c.firstDonatedAt!)}</span>

@@ -33,7 +33,7 @@ import { COMBAT_SKILLS, WornCombatItem, combatLevels, playerCombatant } from './
 import { awardXp, levelFromXp, xpForLevel, xpToNextLevel } from './xp'
 import { incrementStats } from './stats'
 import { takeItemsWithin } from './inventory'
-import { isBotCheckDue, issueBotCheck } from './botCheck'
+import { combatBotCheckIntervalMs, isBotCheckDue, issueBotCheck } from './botCheck'
 import { isPlayerOnline, RESTART_GRACE_MS, serverStartedAt, shouldCancelForAbsence } from '../lib/presence'
 import { DEATH_PILE_PRIVATE_MINUTES, dropEverythingWithin } from './groundItems'
 import { notifyInventoryChanged } from './inventory'
@@ -207,6 +207,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
 
     const spot = await trx('fighting_spots').where({ id: fight.spot_id }).first()
     const pool = await spotPool(trx, fight.spot_id)
+    // The player's own wait between bot checks while fighting (Settings > Combat).
+    const botCheckMs = await combatBotCheckIntervalMs(trx, playerId)
     let creature = pool.find(c => c.id === fight.creature_id)
         ?? await trx('creatures').where({ id: fight.creature_id }).first()
 
@@ -346,7 +348,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             levels = await combatLevels(playerId, trx)
 
             // Bot checks only ever fall between kills (§9).
-            if (!end && isBotCheckDue(player, new Date(r.killedAt))) { froze = true; break }
+            if (!end && isBotCheckDue(player, new Date(r.killedAt), botCheckMs)) { froze = true; break }
         }
     }
 

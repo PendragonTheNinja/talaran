@@ -9,6 +9,7 @@ import {
 import { sendEmail, emailChangedEmail } from '../lib/email';
 import { OFFLINE_GRACE_MS } from '../lib/presence';
 import { DEATH_PILE_PRIVATE_MINUTES } from '../services/groundItems';
+import { COMBAT_BOT_CHECK_MINUTES, DEFAULT_COMBAT_BOT_CHECK_MINUTES } from '../services/botCheck';
 
 // What the fight-on-while-away warning quotes, so the popup states the real
 // rules rather than a copy of them.
@@ -46,6 +47,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             manualReferenceMode: settings?.manual_reference_mode ?? false,
             combatContinueOffline: settings?.combat_continue_offline ?? false,
             combatAwayRules: COMBAT_AWAY_RULES,
+            combatBotCheckMinutes: settings?.combat_bot_check_minutes ?? DEFAULT_COMBAT_BOT_CHECK_MINUTES,
+            combatBotCheckChoices: COMBAT_BOT_CHECK_MINUTES,
             theme,
             paletteTokens,
             paletteName,
@@ -59,6 +62,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             manualReferenceMode: false,
             combatContinueOffline: false,
             combatAwayRules: COMBAT_AWAY_RULES,
+            combatBotCheckMinutes: DEFAULT_COMBAT_BOT_CHECK_MINUTES,
+            combatBotCheckChoices: COMBAT_BOT_CHECK_MINUTES,
             theme: 'tavern',
         });
     }
@@ -238,6 +243,27 @@ router.post('/combat-offline', requireAuth, async (req: AuthRequest, res: Respon
         res.json({ success: true });
     } catch (err) {
         logger.error(`Update combat offline setting error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// The wait between bot checks while fighting: one of COMBAT_BOT_CHECK_MINUTES.
+// A check freezes a fight between kills, so a shorter wait is a safety stop.
+router.post('/combat-bot-check', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const minutes = Math.floor(Number(req.body?.minutes));
+    if (!(COMBAT_BOT_CHECK_MINUTES as readonly number[]).includes(minutes)) {
+        res.status(400).json({ error: `Choose one of ${COMBAT_BOT_CHECK_MINUTES.join(', ')} minutes.` });
+        return;
+    }
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, combat_bot_check_minutes: minutes })
+            .onConflict(['player_id'])
+            .merge(['combat_bot_check_minutes']);
+        res.json({ success: true, minutes });
+    } catch (err) {
+        logger.error(`Update combat bot check setting error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

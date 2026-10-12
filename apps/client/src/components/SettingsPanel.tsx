@@ -9,6 +9,7 @@ import { THEMES, applyTheme, previewTheme, currentTheme, initTheme, saveTheme, t
 import PaletteEditor from './PaletteEditor'
 import PaletteGallery from './PaletteGallery'
 import CombatAwaySetting from './CombatAwaySetting'
+import CombatBotCheckSetting from './CombatBotCheckSetting'
 
 interface SettingsPanelProps {
     onClose: () => void
@@ -520,6 +521,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                     <div className="settings-section">
                         <h4 className="settings-section-title">Combat</h4>
                         <CombatAwaySetting />
+                        <CombatBotCheckSetting />
                     </div>
                 )}
 
