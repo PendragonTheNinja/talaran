@@ -44,6 +44,54 @@
     min-width: 0;
 }
 
+.fight-portrait {
+    position: relative;
+    align-self: center;
+    width: 112px;
+    height: 112px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: opacity 0.4s ease-out, filter 0.4s ease-out;
+}
+
+.fight-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.fight-portrait-initial {
+    font-size: 40px;
+    color: var(--color-gold);
+}
+
+.fight-portrait.approaching {
+    opacity: 0.55;
+}
+
+.fight-portrait.fallen {
+    filter: grayscale(1) brightness(0.6);
+}
+
+.fight-portrait-flash {
+    position: absolute;
+    inset: 0;
+    background: var(--color-red-bright);
+    opacity: 0;
+    pointer-events: none;
+    animation: fight-portrait-flash 0.35s ease-out;
+}
+
+@keyframes fight-portrait-flash {
+    from { opacity: 0.45; }
+    to { opacity: 0; }
+}
+
 .fight-side-name {
     color: var(--color-text-bright);
     font-size: 14px;
@@ -140,7 +188,11 @@
 
 @media (max-width: 520px) {
     .fight-sides {
-        grid-template-columns: 1fr;
         gap: var(--space-sm);
+    }
+
+    .fight-portrait {
+        width: 84px;
+        height: 84px;
     }
 }

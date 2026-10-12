@@ -22,6 +22,11 @@ export function getItemIcon(itemName: string): string {
   return `/images/items/${filename}`
 }
 
+/** A creature's or animal's portrait: same naming as item icons, so "Ol' Shellback" is Ol_Shellback.png. */
+export function getCreatureImage(name: string): string {
+  return `/images/bestiary/${name.replace(/ /g, '_').replace(/'/g, '')}.png`
+}
+
 export function getSlotIcon(slot: string): string {
   const map: Record<string, string> = {
     head: '/images/paper_doll/Head_Slot.png',

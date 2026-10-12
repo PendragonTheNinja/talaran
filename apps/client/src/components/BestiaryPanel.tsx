@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getItemIcon } from '../lib/items'
+import { getCreatureImage, getItemIcon } from '../lib/items'
 import { fetchBestiary, type BestiaryData, type BestiaryEntry } from '../lib/combat'
 import { useItemTooltip } from './ItemTooltip'
 import './BestiaryPanel.css'
@@ -20,7 +20,7 @@ function Entry({ entry, steps }: { entry: BestiaryEntry; steps: BestiaryData['st
             <div className="bestiary-entry-head">
                 <div className="bestiary-portrait">
                     <img
-                        src={`/images/bestiary/${entry.name.replace(/ /g, '_')}.png`}
+                        src={getCreatureImage(entry.name)}
                         alt={entry.name}
                         onError={e => { e.currentTarget.style.display = 'none' }}
                     />

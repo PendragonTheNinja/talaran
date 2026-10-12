@@ -147,6 +147,8 @@ export interface FightView {
     weapon: string
     /** What this creature is weak to and shrugs off, once the Bestiary tells it (10 kills). */
     stances: Stances | null
+    /** The player's side of the face-off: their name and forum avatar, if they have one. */
+    you: { name: string; avatarUrl: string | null }
 }
 
 interface KillReport {
@@ -423,6 +425,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             frozen: frozen || froze,
             weapon,
             stances: knownStances,
+            you: { name: player.username, avatarUrl: player.avatar_url ?? null },
         },
     }
 }
@@ -653,6 +656,7 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
                     frozen: false,
                     weapon: me.weaponName,
                     stances: (await killsOf(trx, playerId, creature.id)) >= BESTIARY_STEPS.stances ? stancesOf(creature) : null,
+                    you: { name: player.username, avatarUrl: player.avatar_url ?? null },
                 },
             }
         })

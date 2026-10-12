@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getItemIcon } from '../lib/items'
+import { getCreatureImage, getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './HuntingMenu.css'
 
@@ -85,7 +85,7 @@ const BAIT_LABELS: Record<string, string> = {
  * of quietly showing nothing, which is what happened here.
  */
 function RevealImage({ species, fallbackItem }: { species: string; fallbackItem?: string }) {
-    const portrait = `/images/bestiary/${species.replace(/ /g, '_')}.png`
+    const portrait = getCreatureImage(species)
     const [src, setSrc] = useState(portrait)
     const [hidden, setHidden] = useState(false)
 
@@ -413,7 +413,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                                     >
                                         <div className="hunting-animal-image">
                                             <img
-                                                src={`/images/bestiary/${animal.name.replace(/ /g, '_')}.png`}
+                                                src={getCreatureImage(animal.name)}
                                                 alt={animal.name}
                                                 onError={(e) => { e.currentTarget.style.display = 'none' }}
                                             />

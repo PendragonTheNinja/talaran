@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getItemIcon } from '../lib/items'
+import { getCreatureImage, getItemIcon } from '../lib/items'
 import { openBestiary, type FightFood, type FightState, type Hp } from '../lib/combat'
 import { useItemTooltip } from './ItemTooltip'
 import './FightView.css'
@@ -8,7 +8,15 @@ export interface FightLogLine {
     id: number
     text: string
     kind: 'you' | 'foe' | 'kill' | 'info'
+    /** A swing that drew blood: the side it landed on flashes. */
+    hit?: boolean
+    /** On a kill: who fell, and when, so the portrait can grey out before the next one. */
+    creature?: string
+    at?: number
 }
+
+/** How long a fallen creature stays on screen, greyed, before the next one shows. */
+const FALLEN_MS = 1500
 
 interface FightViewProps {
     fight: FightState | null
@@ -33,6 +41,25 @@ function Bar({ current, max, kind }: { current: number; max: number; kind: 'you'
 }
 
 /**
+ * One side of the face-off. The picture falls back to an initial in a frame
+ * (a player with no avatar, a creature whose art is not drawn yet). `flashKey`
+ * is the id of the last swing that landed on this side; keying the flash on it
+ * replays the animation once per hit.
+ */
+function Portrait({ src, name, flashKey, state }: { src: string | null; name: string; flashKey: number | null; state?: 'approaching' | 'fallen' }) {
+    const [failed, setFailed] = useState<string | null>(null)
+    const showImage = src && failed !== src
+    return (
+        <div className={`fight-portrait ${state ?? ''}`}>
+            {showImage
+                ? <img src={src} alt={name} onError={() => setFailed(src)} />
+                : <span className="fight-portrait-initial">{name.charAt(0).toUpperCase()}</span>}
+            {flashKey !== null && <span key={flashKey} className="fight-portrait-flash" />}
+        </div>
+    )
+}
+
+/**
  * The fight, while it runs (docs/combat-spec.md §9, §10): food along the top,
  * a tap eats one; both health bars; the swings as they land; and the way out.
  * Everything shown comes from the server's pushes (GameView listens).
@@ -51,6 +78,15 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
         const t = window.setInterval(() => setNow(Date.now()), 250)
         return () => clearInterval(t)
     }, [fighting])
+
+    // The face-off: who was last hit, and whether a creature has just fallen.
+    const lastHit = (kind: FightLogLine['kind']) => {
+        for (let i = log.length - 1; i >= 0; i--) if (log[i].kind === kind && log[i].hit) return log[i].id
+        return null
+    }
+    const lastKill = [...log].reverse().find(l => l.kind === 'kill')
+    const fallen = lastKill?.creature && lastKill.at && now - lastKill.at < FALLEN_MS ? lastKill.creature : null
+    const foeName = fallen ?? fight?.creature.name ?? null
 
     return (
         <div className="fight-view">
@@ -83,11 +119,24 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
 
             <div className="fight-sides">
                 <div className="fight-side">
+                    <Portrait
+                        src={fight?.you.avatarUrl ?? null}
+                        name={fight?.you.name ?? 'You'}
+                        flashKey={lastHit('foe')}
+                    />
                     <span className="fight-side-name">You</span>
                     {hp ? <Bar current={hp.current} max={hp.max} kind="you" /> : <div className="fight-bar" />}
                     {fight?.weapon && <span className="fight-side-note muted-text">{fight.weapon}</span>}
                 </div>
                 <div className="fight-side">
+                    {foeName
+                        ? <Portrait
+                            src={getCreatureImage(foeName)}
+                            name={foeName}
+                            flashKey={fallen ? null : lastHit('you')}
+                            state={fallen ? 'fallen' : approaching ? 'approaching' : undefined}
+                        />
+                        : <div className="fight-portrait" />}
                     <span className="fight-side-name">
                         {fight ? `${fight.creature.name}` : '...'}
                         {fight && <span className="muted-text"> (level {fight.creature.level})</span>}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchFightState, openBestiary, type FightFood, type FightingSpot, type Hp } from '../lib/combat'
+import { getCreatureImage } from '../lib/items'
 import './FightMenu.css'
 
 interface FightMenuProps {
@@ -61,7 +62,7 @@ export default function FightMenu({ spot, onClose, onStart }: FightMenuProps) {
                                 <button key={c.id} className="fight-menu-card" onClick={() => onStart(c.id)}>
                                     <div className="fight-menu-image">
                                         <img
-                                            src={`/images/bestiary/${c.name.replace(/ /g, '_')}.png`}
+                                            src={getCreatureImage(c.name)}
                                             alt={c.name}
                                             onError={e => { e.currentTarget.style.display = 'none' }}
                                         />
@@ -79,7 +80,7 @@ export default function FightMenu({ spot, onClose, onStart }: FightMenuProps) {
                                 <div key={c.id} className="fight-menu-card static">
                                     <div className="fight-menu-image">
                                         <img
-                                            src={`/images/bestiary/${c.name.replace(/ /g, '_')}.png`}
+                                            src={getCreatureImage(c.name)}
                                             alt={c.name}
                                             onError={e => { e.currentTarget.style.display = 'none' }}
                                         />

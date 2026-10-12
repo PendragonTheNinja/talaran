@@ -203,7 +203,7 @@ export default function GameView({
 
   // ── Helpers ───────────────────────────────────────────────────────
   /** Lines into the fight log, oldest first; the view shows the newest. */
-  const addFightLines = (lines: { text: string; kind: FightLogLine['kind'] }[]) => {
+  const addFightLines = (lines: Omit<FightLogLine, 'id'>[]) => {
     if (!lines.length) return
     setFightLog(prev => [
       ...prev,
@@ -798,16 +798,16 @@ export default function GameView({
       // Every settle of a fight: the swings since the last one, any kills,
       // where both sides stand, and whether it ended.
       socket.on('combat_update', (data: CombatUpdate) => {
-        const lines: { text: string; kind: FightLogLine['kind'] }[] = []
+        const lines: Omit<FightLogLine, 'id'>[] = []
         for (const e of data.events || []) {
           if (fightCreatureRef.current !== e.creature) {
             fightCreatureRef.current = e.creature
             lines.push({ text: `A ${e.creature} closes in.`, kind: 'info' })
           }
-          lines.push({ text: describeSwing(e), kind: e.by === 'player' ? 'you' : 'foe' })
+          lines.push({ text: describeSwing(e), kind: e.by === 'player' ? 'you' : 'foe', hit: e.hit && e.damage > 0 })
         }
         for (const k of data.kills || []) {
-          lines.push({ text: `The ${k.creature} falls.`, kind: 'kill' })
+          lines.push({ text: `The ${k.creature} falls.`, kind: 'kill', creature: k.creature, at: Date.now() })
           for (const b of k.broken || []) lines.push({ text: `Your ${b} gives out.`, kind: 'foe' })
         }
         addFightLines(lines)

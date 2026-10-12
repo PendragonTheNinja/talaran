@@ -37,6 +37,8 @@ export interface FightState {
     weapon: string
     /** What it is weak to and shrugs off, once the Bestiary tells it (10 kills). */
     stances: Stances | null
+    /** Your side of the face-off: name and forum avatar, if you have one. */
+    you: { name: string; avatarUrl: string | null }
 }
 
 export type DamageType = 'pierce' | 'slash' | 'crush'
