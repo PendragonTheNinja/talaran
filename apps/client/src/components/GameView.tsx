@@ -806,7 +806,10 @@ export default function GameView({
           }
           lines.push({ text: describeSwing(e), kind: e.by === 'player' ? 'you' : 'foe' })
         }
-        for (const k of data.kills || []) lines.push({ text: `The ${k.creature} falls.`, kind: 'kill' })
+        for (const k of data.kills || []) {
+          lines.push({ text: `The ${k.creature} falls.`, kind: 'kill' })
+          for (const b of k.broken || []) lines.push({ text: `Your ${b} gives out.`, kind: 'foe' })
+        }
         addFightLines(lines)
         if (data.hp) {
           setFightHp(data.hp)

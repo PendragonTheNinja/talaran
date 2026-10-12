@@ -106,6 +106,8 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 
 **Test:** with the counters lowered from admin, watch a weapon and a piece break.
 
+**Built 2026-10-12** (migration `20261012130000_durability`, `services/durability.ts`). `durability_tiers` (9 rows, admin content browser, Combat group) with `items.durability_uses` / `durability_break_pct` overrides; `player_item_wear` counts uses since the last break per player per item (Progress group, editable to bring a test to the edge). Per kill: the weapon, and two of the worn armour pieces at random (`armourSlotsWorn`); past the guarantee each rolls to break; a break clears the slot, counts `player_stats.total_gear_broken`, resets the count, and ends the fight after the kill is paid. The settle now locks the equipment row (after action, fight, player), and locks the player row FOR NO KEY UPDATE rather than FOR UPDATE: FOR UPDATE blocked the KEY SHARE lock a pack insert takes for its foreign key, so an equip or a pickup deadlocked against a settle (also latent in step 6's death). `race:check` "equip a replacement as the old blade breaks" fails both ways: with FOR UPDATE (a 500 from the deadlock) and without the equipment lock (the break destroys the newly equipped spare).
+
 ## Step 8: the special drops
 
 - Hodag Horn, Wrecker's Cutlass, Gouger's Legbone (next-tier strength, high durability); the Crabshell set; the trophies; Jumper ore and Charc; Knocker veins and Dense Burgh Ore; the Wrecker's chest, Amber and Tinderbox. Museum placement is automatic for new items.

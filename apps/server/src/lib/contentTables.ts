@@ -62,6 +62,9 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     creatures:                   { label: 'Creatures',             group: 'Combat',     snapshot: true, editable: true },
     fighting_spots:              { label: 'Fighting Spots',        group: 'Combat',     snapshot: true, editable: true },
     fighting_spot_creatures:     { label: 'Fighting Spot Creatures', group: 'Combat',   snapshot: true, editable: true },
+    // Guaranteed uses and the break chance after them, per tier (§13). Single
+    // items differ through items.durability_uses / durability_break_pct.
+    durability_tiers:            { label: 'Durability Tiers',      group: 'Combat',     snapshot: true, editable: true },
     recipes:                     { label: 'Recipes',               group: 'Crafting',   snapshot: true, editable: true },
     drop_table_entries:          { label: 'Drop Table Entries',    group: 'Drops',      snapshot: true, editable: true },
     quests:                      { label: 'Quests',                group: 'Quests',     snapshot: true, editable: true },
@@ -134,6 +137,9 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // can be revoked and a donator badge can be handed out by hand. NEVER
     // snapshotted: these are per-player facts, and importing a dev snapshot
     // over live would hand everyone somebody else's achievements.
+    // Uses since the last break, per player per item (services/durability.ts).
+    // Editable so a test can be brought to the edge of a break.
+    player_item_wear:            { label: 'Player Item Wear',      group: 'Progress',   editable: true },
     player_feats:                { label: 'Player Feats',          group: 'Progress',   editable: true },
     // item_firsts is already registered under Records further down.
     skill_snapshots:             { label: 'Skill Snapshots',       group: 'Progress' },

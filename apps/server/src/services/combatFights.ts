@@ -37,6 +37,8 @@ import { isBotCheckDue, issueBotCheck } from './botCheck'
 import { isPlayerOnline, RESTART_GRACE_MS, serverStartedAt, shouldCancelForAbsence } from '../lib/presence'
 import { DEATH_PILE_PRIVATE_MINUTES, dropEverythingWithin } from './groundItems'
 import { notifyInventoryChanged } from './inventory'
+import { WearableItem, loadDurabilityTiers, wearItem } from './durability'
+import { armourSlotsWorn } from '../lib/combatMath'
 import { pushToPlayer } from '../lib/realtime'
 import { SERVER_ERROR } from '../lib/serviceResult'
 
@@ -84,16 +86,19 @@ function stanceMultiplier(creature: any, type: DamageType): number {
     return STANCE_MULTIPLIER[stance] ?? 1
 }
 
+/** A worn item as a fight reads it: its combat columns and its durability. */
+type WornGear = WornCombatItem & WearableItem
+
 /** What the player wears, slot by slot, with the columns a fight reads. */
-async function loadWorn(x: Executor, playerId: number): Promise<Record<string, WornCombatItem>> {
+async function loadWorn(x: Executor, playerId: number): Promise<Record<string, WornGear>> {
     const row = await x('player_equipment').where({ player_id: playerId }).first()
     if (!row) return {}
     const slots = Object.entries(row).filter(([k, v]) => k.endsWith('_item_id') && v) as [string, number][]
     if (!slots.length) return {}
     const items = await x('items').whereIn('id', slots.map(([, id]) => id))
-        .select('id', 'name', 'weapon_form', 'damage_type', 'aim', 'power', 'armour')
+        .select('id', 'name', 'weapon_form', 'damage_type', 'aim', 'power', 'armour', 'tier', 'durability_uses', 'durability_break_pct')
     const byId = new Map(items.map((i: any) => [i.id, i]))
-    const out: Record<string, WornCombatItem> = {}
+    const out: Record<string, WornGear> = {}
     for (const [column, id] of slots) {
         const item = byId.get(id)
         if (item) out[column.replace(/_item_id$/, '')] = item
@@ -147,6 +152,8 @@ interface KillReport {
     spotKey: string
     xp: CombatLevels
     xpAfter: Record<string, number>
+    /** Gear that broke on this kill (§13). */
+    broken: string[]
 }
 
 interface FightReport {
@@ -155,7 +162,7 @@ interface FightReport {
     events: (SwingEvent & { creature: string })[]
     kills: KillReport[]
     /** How the fight ended in this settle, if it did. */
-    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | null
+    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | null
     froze: boolean
     hp: { current: number; max: number }
     view: FightView | null
@@ -166,7 +173,7 @@ interface FightReport {
 // ── The settle ───────────────────────────────────────────────────────────────
 
 /** 'replaced': another action is taking the fight's place (travel, Stop, a vein); the client already knows. */
-type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced'
+type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke'
 
 /**
  * Lock the player's fight and play it up to `until`, inside `trx`. With
@@ -177,7 +184,13 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     const action = await trx('player_actions').where({ player_id: playerId, action_type: 'combat' }).forUpdate().first()
     if (!action) return null
     const fight = await trx('combat_fights').where({ action_id: action.id }).forUpdate().first()
-    const player = await trx('players').where({ id: playerId }).forUpdate().first()
+    // FOR NO KEY UPDATE, not FOR UPDATE: every write here leaves the key
+    // alone, and FOR UPDATE also blocks the KEY SHARE lock that any insert
+    // referencing this player takes for its foreign key. An equip or a pickup
+    // holds its own rows and inserts into the pack; with FOR UPDATE here it
+    // waited on us while we waited on its equipment row, a deadlock (race:check
+    // "fight", equip during a break, showed it as a 500).
+    const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first()
     if (!fight || !player) {
         // An action with no fight behind it cannot be played; clear it.
         await trx('player_actions').where({ id: action.id }).delete()
@@ -216,7 +229,12 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     until = Math.max(until, settledAt)
 
     let levels = await combatLevels(playerId, trx)
+    // Locked with the rest: a break takes the piece out of its slot, so an
+    // equip landing mid-settle must wait rather than swap the breaking piece
+    // back into the pack (race:check "fight", equip during a break).
+    await trx('player_equipment').where({ player_id: playerId }).forUpdate().first()
     const worn = await loadWorn(trx, playerId)
+    const tiers = await loadDurabilityTiers(trx)
     let missing = Math.max(0, Number(player.hp_missing) || 0)
     const events: FightReport['events'] = []
     const kills: KillReport[] = []
@@ -249,10 +267,36 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             await awardXp(playerId, COMBAT_SKILLS.defense, xp.defense, trx)
             await awardXp(playerId, COMBAT_SKILLS.constitution, xp.constitution, trx)
             killCount++
+
+            // Wear (§13): the weapon every kill, and ARMOUR_PIECES_WORN_PER_KILL
+            // of the armour pieces worn, at random. A piece past its
+            // guarantee may break; a broken piece is gone from its slot.
+            const wearing: string[] = []
+            if (worn.mainhand?.weapon_form) wearing.push('mainhand')
+            const armourSlots = Object.keys(worn).filter(slot => Number(worn[slot]?.armour) > 0)
+            wearing.push(...armourSlotsWorn(Math.random, armourSlots))
+            const broken: string[] = []
+            for (const slot of wearing) {
+                const piece = worn[slot]
+                if (!piece || !(await wearItem(trx, playerId, piece, tiers, Math.random))) continue
+                await trx('player_equipment').where({ player_id: playerId }).update({ [`${slot}_item_id`]: null })
+                broken.push(piece.name)
+                delete worn[slot]
+            }
+            if (broken.length) await incrementStats(playerId, { total_gear_broken: broken.length }, trx)
+
             kills.push({
                 creatureKey: creature.key, creatureName: creature.name, spotKey: spot.key, xp,
                 xpAfter: await skillXps(trx, playerId),
+                broken,
             })
+
+            // Something broke: the kill stands, and the fight waits for the
+            // player to equip a replacement (§13).
+            if (broken.length) {
+                end = end ?? 'broke'
+                break
+            }
 
             // The next one closes in after the engage delay: drawn by weight,
             // or the one the player chose.
@@ -380,6 +424,7 @@ async function afterFight(report: FightReport | null): Promise<void> {
                     // Coins are priced from the Melee XP alone (services/goldFinds.ts PAYOUT_SCALE).
                     goldBasisXp: [kill.xp.melee],
                     drops,
+                    // A break ends the fight, and the ending line names it.
                     message: `You bring down the ${kill.creatureName}.`,
                 },
                 xpInfo: {
@@ -407,7 +452,7 @@ async function afterFight(report: FightReport | null): Promise<void> {
 
         pushToPlayer(playerId, 'combat_update', {
             events: report.events.map(e => ({ ...e, at: new Date(e.at).toISOString() })),
-            kills: report.kills.map(k => ({ creature: k.creatureName, xp: k.xp })),
+            kills: report.kills.map(k => ({ creature: k.creatureName, xp: k.xp, broken: k.broken })),
             hp: report.hp,
             fight: report.view,
             ended: report.ended,
@@ -422,6 +467,13 @@ async function afterFight(report: FightReport | null): Promise<void> {
             // from the log in five seconds: it says where the pile is.
             pushToPlayer(playerId, 'action_failed', { error: `You fall. You come round in Talador with your purse and little else.${lost}`, info: true })
             notifyInventoryChanged(playerId)
+            pushToPlayer(playerId, 'equipment_changed')
+        } else if (report.ended === 'broke') {
+            const names = report.kills.flatMap(k => k.broken)
+            pushToPlayer(playerId, 'action_failed', {
+                error: `Your ${names.join(' and your ')} ${names.length > 1 ? 'give' : 'gives'} out. You step back to see to your gear before the next one.`,
+                info: true,
+            })
             pushToPlayer(playerId, 'equipment_changed')
         } else if (report.ended && END_MESSAGES[report.ended]) {
             pushToPlayer(playerId, 'action_failed', { error: END_MESSAGES[report.ended], info: true })
@@ -474,7 +526,7 @@ export type StartResult = { success: true; fight: FightView; hp: { current: numb
 export async function startFight(playerId: number, spotId: number, creatureId: number | null): Promise<StartResult> {
     try {
         return await db.transaction(async trx => {
-            const player = await trx('players').where({ id: playerId }).forUpdate().first()
+            const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first()
             if (!player) throw new CombatAbort('Player not found', 404)
             if (await trx('player_actions').where({ player_id: playerId }).first()) {
                 throw new CombatAbort('You are already doing something.', 409)
@@ -573,7 +625,7 @@ export async function eatFood(playerId: number, itemId: number): Promise<EatResu
                 return { success: false as const, error: 'You fell before you could eat.', status: 409 }
             }
             // Out of a fight there was nothing to settle: lock the player here.
-            const player = await trx('players').where({ id: playerId }).forUpdate().first()
+            const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first()
             const max = maxHp((await combatLevels(playerId, trx)).constitution)
             const missing = Math.max(0, Number(player.hp_missing) || 0)
             if (missing <= 0) {

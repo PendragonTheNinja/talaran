@@ -1200,7 +1200,7 @@ const SCENARIOS: Scenario[] = [
             // delete, so the five pickups are staggered by a few milliseconds
             // and the stagger moves each round, sweeping across the settle.
             const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-            await ctx.burst(w.player.id, 6, async (i) => {
+            const st = await ctx.burst(w.player.id, 6, async (i) => {
                 if (i === 0) return ctx.post(w.player.id, '/combat/eat', { itemId: w.food.id });
                 await sleep((round % 10) * 3 + (i - 1) * 2);
                 return ctx.post(w.player.id, '/ground-items/pickup', { groundItemId: ground[i - 1].id });
@@ -1212,7 +1212,41 @@ const SCENARIOS: Scenario[] = [
                 ?? changed('fish', 1, await ctx.itemTotal(w.food.id))
                 ?? changed('deaths', 1, deaths)
                 ?? (worn?.mainhand_item_id ? 'the hatchet stayed in hand through a death' : null)
-                ?? (worn?.trophy_item_id !== trophy.id ? 'the trophy left with the rest' : null);
+                ?? (worn?.trophy_item_id !== trophy.id ? 'the trophy left with the rest' : null)
+                ?? noServerErrors(st);
+        },
+    },
+    {
+        id: 'fight', name: 'equip a replacement as the old blade breaks on a kill', rounds: 40,
+        run: async (ctx, round) => {
+            // A blade past its guarantee that always breaks, the killing
+            // swing overdue, and a second blade equipped at the same moment.
+            // Whichever lands first, a blade either broke (gone) or still
+            // exists, never both: broken + blades left == 2. Without the
+            // equipment row locked by the settle, the equip swapped the
+            // breaking blade back into the pack, and it broke and stayed.
+            const now = Date.now();
+            const w = await inFight(ctx, { defence: 0.01 }, { enemyHp: 1, playerNextAt: now - 9_000, enemyNextAt: now + 60_000 });
+            await ctx.seed.row('durability_tiers', { tier: 1, guaranteed_uses: 200, break_chance_pct: 1 });
+            const brittle = await ctx.seed.row('items', { name: 'Racecheck Brittle Blade', type: 'weapon', slot: 'mainhand', tier: 1,
+                weapon_form: 'onehand', damage_type: 'slash', aim: 5000, power: 40, durability_uses: 0, durability_break_pct: 100 });
+            const spare = await ctx.seed.row('items', { name: 'Racecheck Spare Blade', type: 'weapon', slot: 'mainhand', tier: 1,
+                weapon_form: 'onehand', damage_type: 'slash', aim: 5000, power: 40 });
+            await wearing(ctx, w.player.id, 'mainhand_item_id', brittle.id);
+            await inPack(ctx, w.player.id, spare.id, 1);
+            const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+            const st = await ctx.burst(w.player.id, 2, async (i) => {
+                if (i === 0) return ctx.post(w.player.id, '/combat/flee', {});
+                await sleep((round % 20) * 2);
+                return ctx.post(w.player.id, '/equipment/equip', { itemId: spare.id });
+            });
+            const broken = Number((await ctx.db('player_stats').where({ player_id: w.player.id }).first())?.total_gear_broken ?? 0);
+            // The spare is fresh (its guarantee is 200) and can never be the
+            // one that breaks; the brittle blade is either broken and gone, or
+            // was swapped out before the kill and survives.
+            return changed('spare blades (never the one to break)', 1, await ctx.itemTotal(spare.id))
+                ?? changed('brittle blades left plus broken', 1, await ctx.itemTotal(brittle.id) + broken)
+                ?? noServerErrors(st);
         },
     },
     {

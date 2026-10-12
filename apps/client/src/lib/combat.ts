@@ -56,10 +56,10 @@ export interface FightSwing {
 /** The server's push after every settle (combat_update). */
 export interface CombatUpdate {
     events: FightSwing[]
-    kills: { creature: string; xp: { melee: number; defense: number; constitution: number } }[]
+    kills: { creature: string; xp: { melee: number; defense: number; constitution: number }; broken?: string[] }[]
     hp: Hp
     fight: FightState | null
-    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | null
+    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | null
 }
 
 /** The fight as it stands, settled to now, and the food the player could eat. */
