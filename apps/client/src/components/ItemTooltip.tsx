@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getQualityColor } from '../lib/items'
 import { itemDetail, loadItemDetails, onItemDetailsLoaded, type ItemDetail } from '../lib/itemDetails'
 import './ItemTooltip.css'
@@ -107,7 +108,12 @@ export function TooltipShell({
     const PAD = 14
     const flipX = x + PAD + width > window.innerWidth
     const flipY = y + PAD + height > window.innerHeight
-    return (
+    // Drawn at the top of the page, not where it was asked for: `position:
+    // fixed` is measured from the nearest ancestor with a transform, and the
+    // scene overlays are centred with one. Inside a fight the tooltip landed
+    // off to one side of the overlay, unseen, and pushed a horizontal
+    // scrollbar onto it.
+    return createPortal(
         <div
             className="item-tooltip"
             style={{
@@ -117,7 +123,8 @@ export function TooltipShell({
             }}
         >
             {children}
-        </div>
+        </div>,
+        document.body,
     )
 }
 
@@ -164,6 +171,7 @@ export default function ItemTooltip({ x, y, item, hint }: ItemTooltipProps) {
                     {describeBuff(buff)} for {fmtBuffTime(buff.buff_seconds ?? 0)}
                 </p>
             )}
+            {cached?.mends ? <p className="item-tooltip-buff">Mends {cached.mends} health</p> : null}
             {gear.length > 0 && (
                 <p className="item-tooltip-buff">
                     {gear.map(line => <span key={line} style={{ display: 'block' }}>{line}</span>)}

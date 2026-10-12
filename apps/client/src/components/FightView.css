@@ -1,25 +1,41 @@
+/* The fight fills the scene and never scrolls: everything above the swing log
+   keeps its size, and the log takes whatever height is left
+   (.scene-fight-overlay in GameView.css holds it). */
 .fight-view {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-sm);
     width: 100%;
-    max-width: 520px;
+    max-width: 560px;
+    height: 100%;
+    min-height: 0;
 }
 
+.fight-scene-text {
+    margin: 0;
+    font-size: 19px;
+    font-style: italic;
+    text-align: center;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    flex-shrink: 0;
+}
+
+/* ── Food ── */
 .fight-food {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-xs);
     justify-content: center;
-    min-height: 48px;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .fight-food-slot {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border: 1px solid var(--color-border-gold);
+    cursor: pointer;
 }
 
 .fight-food-slot.busy {
@@ -31,10 +47,13 @@
     font-size: 13px;
 }
 
-.fight-sides {
+/* ── The face-off: you, the countdown, the creature ── */
+.fight-faceoff {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
+    grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr);
+    gap: var(--space-sm);
+    align-items: start;
+    flex-shrink: 0;
 }
 
 .fight-side {
@@ -44,11 +63,44 @@
     min-width: 0;
 }
 
+.fight-middle {
+    /* Level with the portraits' middle. */
+    height: var(--fight-portrait, 104px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.fight-vs {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.fight-countdown {
+    font-family: var(--font-heading);
+    font-size: 30px;
+    line-height: 1;
+    color: var(--color-gold-bright);
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+.fight-middle-label {
+    white-space: nowrap;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+}
+
 .fight-portrait {
     position: relative;
     align-self: center;
-    width: 112px;
-    height: 112px;
+    width: var(--fight-portrait, 104px);
+    height: var(--fight-portrait, 104px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -155,23 +207,100 @@
     margin: 0;
     text-align: center;
     font-size: 13px;
+    flex-shrink: 0;
 }
 
+/* ── The last kill's pay ── */
+.fight-spoils {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px var(--space-sm);
+    background: rgba(8, 6, 8, 0.75);
+    border: 1px solid rgba(200, 146, 42, 0.3);
+    border-radius: var(--radius-md);
+    min-height: 34px;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.fight-spoils-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px var(--space-sm);
+}
+
+.fight-spoils-message {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    font-size: 15px;
+}
+
+.fight-spoils-xp {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.fight-xp-chip {
+    font-size: 12px;
+    padding: 1px 8px;
+    border: 1px solid var(--color-border-mid);
+    border-radius: 999px;
+    color: var(--color-text-bright);
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.fight-xp-chip.event {
+    border-color: var(--color-border-gold);
+    color: var(--color-gold-bright);
+}
+
+.fight-spoils-drops {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.fight-drop-slot {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--color-border-mid);
+}
+
+.fight-drop-slot.notable {
+    border-color: var(--color-gold-bright);
+    box-shadow: 0 0 6px rgba(232, 184, 74, 0.45);
+}
+
+.fight-spoils-empty {
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ── The swings: whatever height is left, newest on top, no scrollbar ── */
 .fight-log {
+    flex: 1 1 auto;
+    min-height: 64px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    min-height: 120px;
     padding: var(--space-xs) var(--space-sm);
     background: var(--color-bg-deep);
     border: 1px solid var(--color-border-dark);
     border-radius: var(--radius-sm);
+    /* Older lines fade out at the bottom instead of being cut off hard. */
+    mask-image: linear-gradient(to bottom, black 70%, transparent);
 }
 
 .fight-log-line {
     margin: 0;
     font-size: 13px;
     color: var(--color-text-base);
+    flex-shrink: 0;
 }
 
 .fight-log-line.foe {
@@ -186,13 +315,59 @@
     color: var(--color-text-muted);
 }
 
-@media (max-width: 520px) {
-    .fight-sides {
-        gap: var(--space-sm);
+/* Clear of the scene's corner buttons (journal and bot check), which sit
+   over the bottom corners of every scene. */
+.fight-flee {
+    align-self: center;
+    width: calc(100% - 112px);
+    max-width: 320px;
+    flex-shrink: 0;
+}
+
+/* The scene's own height decides how much room the face-off takes, so the
+   swing log always keeps a few lines (.scene-fight-overlay is the container). */
+@container fight-scene (max-height: 640px) {
+    .fight-view {
+        --fight-portrait: 84px;
+        gap: 6px;
     }
 
-    .fight-portrait {
-        width: 84px;
-        height: 84px;
+    .fight-scene-text {
+        font-size: 17px;
+    }
+
+    .fight-food-slot {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+@container fight-scene (max-height: 520px) {
+    .fight-view {
+        --fight-portrait: 64px;
+    }
+
+    .fight-portrait-initial {
+        font-size: 28px;
+    }
+
+    .fight-drop-slot {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (max-width: 520px) {
+    .fight-view {
+        --fight-portrait: 80px;
+    }
+
+    .fight-faceoff {
+        grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+        gap: var(--space-xs);
+    }
+
+    .fight-scene-text {
+        font-size: 16px;
     }
 }

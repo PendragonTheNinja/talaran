@@ -39,6 +39,22 @@ export interface FightState {
     stances: Stances | null
     /** Your side of the face-off: name and forum avatar, if you have one. */
     you: { name: string; avatarUrl: string | null }
+    /** Every kill of this creature's kind, ever; `kills` is this fight's. */
+    totalKills: number
+    /** Milliseconds until the creature closes in, when the server made this view. */
+    engageInMs: number
+    /** Client only: engageInMs on this browser's clock (localizeFight). */
+    engageAtLocal?: number
+}
+
+/**
+ * Stamp a fight from the server with when it closes in on THIS browser's clock.
+ * The server sends a duration, not a time, so a computer whose clock disagrees
+ * with the server's still counts down the right number of seconds. Call it
+ * where the fight arrives, never during a render.
+ */
+export function localizeFight(f: FightState): FightState {
+    return { ...f, engageAtLocal: Date.now() + (f.engageInMs ?? 0) }
 }
 
 export type DamageType = 'pierce' | 'slash' | 'crush'

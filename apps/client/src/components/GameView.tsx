@@ -9,7 +9,7 @@ import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
-import { announceHp, describeSwing, fetchFightState, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
+import { announceHp, describeSwing, fetchFightState, localizeFight, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
 
 interface Node {
   id: number
@@ -218,7 +218,7 @@ export default function GameView({
   const refreshFight = async () => {
     try {
       const d = await fetchFightState()
-      setFight(d.fight)
+      setFight(d.fight ? localizeFight(d.fight) : null)
       setFightHp(d.hp)
       setFightFood(d.food)
       announceHp(d.hp)
@@ -261,7 +261,7 @@ export default function GameView({
         body: JSON.stringify(creatureId ? { spotId, creatureId } : { spotId }),
       })
       setCurrentAction('combat')
-      setFight(res.fight)
+      setFight(localizeFight(res.fight))
       setFightHp(res.hp)
       announceHp(res.hp)
       fightCreatureRef.current = res.fight.creature.name
@@ -811,12 +811,15 @@ export default function GameView({
           for (const b of k.broken || []) lines.push({ text: `Your ${b} gives out.`, kind: 'foe' })
         }
         addFightLines(lines)
+        // A kill can drop food, so the strip is read again; the fight it
+        // returns is the same one, settled to now.
+        if ((data.kills || []).length && data.fight) refreshFight()
         if (data.hp) {
           setFightHp(data.hp)
           announceHp(data.hp)
         }
         if (data.fight) {
-          setFight(data.fight)
+          setFight(localizeFight(data.fight))
         } else if (data.ended) {
           setFight(null)
           fightCreatureRef.current = null
@@ -1887,23 +1890,22 @@ export default function GameView({
           )}
 
           {currentAction === 'combat' && (
-            <div className="scene-action-overlay">
+            // Its own container: full height, no transform, so the fight lays
+            // itself out to fit (FightView.css) and a kill's pay shows inside
+            // it rather than in a card pushed off the bottom.
+            <div className="scene-fight-overlay">
               <FightView
                 fight={fight}
                 hp={fightHp}
                 log={fightLog}
                 food={fightFood}
+                spoils={lastResult && Array.isArray(lastResult.xpAwards) ? lastResult : null}
                 sceneText={sceneTextFor(presentation, currentAction, null, null)}
                 fleeLabel={cancelLabelFor(presentation, currentAction, null)}
                 busy={fightBusy}
                 onEat={eatInFight}
                 onFlee={fleeFight}
               />
-              {lastResult && (
-                <div className="scene-last-result">
-                  {renderResultDetails(lastResult)}
-                </div>
-              )}
             </div>
           )}
 

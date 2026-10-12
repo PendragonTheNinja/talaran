@@ -120,7 +120,7 @@ async function skillXps(x: Executor, playerId: number): Promise<Record<string, n
 }
 
 /** Food for a fight: anything that heals and does nothing else. Buff dishes are not combat food (Nathan, 2026-10-12). */
-function isFightFood(item: any): boolean {
+export function isFightFood(item: any): boolean {
     return Number(item?.heal_amount) > 0 && !item?.buff_effect
 }
 
@@ -139,6 +139,14 @@ export interface FightView {
     weapon: string
     /** What this creature is weak to and shrugs off, once the Bestiary tells it (10 kills). */
     stances: Stances | null
+    /** Every kill of the current creature's kind, ever (the Bestiary's count); `kills` is this fight's. */
+    totalKills: number
+    /**
+     * Milliseconds until the current creature closes in, from when this view
+     * was made. Relative, so the client's countdown does not depend on its
+     * clock agreeing with the server's (`engageAt` is kept for ordering).
+     */
+    engageInMs: number
     /** The player's side of the face-off: their name and forum avatar, if they have one. */
     you: { name: string; avatarUrl: string | null }
 }
@@ -398,8 +406,9 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     }
 
     const foe = creatureCombatant(creature)
+    const totalKills = ended ? 0 : await killsOf(trx, playerId, creature.id)
     const knownStances = ended ? null
-        : (await killsOf(trx, playerId, creature.id)) >= BESTIARY_STEPS.stances ? stancesOf(creature) : null
+        : totalKills >= BESTIARY_STEPS.stances ? stancesOf(creature) : null
     return {
         playerId,
         locationId: action.location_id ?? null,
@@ -419,6 +428,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             frozen: frozen || froze,
             weapon,
             stances: knownStances,
+            totalKills,
+            engageInMs: Math.max(0, clock.engageAt - Date.now()),
             you: { name: player.username, avatarUrl: player.avatar_url ?? null },
         },
     }
@@ -636,6 +647,7 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
 
             const max = maxHp(levels.constitution)
             const foe = creatureCombatant(creature)
+            const totalKills = await killsOf(trx, playerId, creature.id)
             logger.info(`Player ${playerId} started fighting at ${spot.name} (${creature.name})`)
             return {
                 success: true as const,
@@ -649,7 +661,9 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
                     kills: 0,
                     frozen: false,
                     weapon: me.weaponName,
-                    stances: (await killsOf(trx, playerId, creature.id)) >= BESTIARY_STEPS.stances ? stancesOf(creature) : null,
+                    stances: totalKills >= BESTIARY_STEPS.stances ? stancesOf(creature) : null,
+                    totalKills,
+                    engageInMs: Math.max(0, clock.engageAt - Date.now()),
                     you: { name: player.username, avatarUrl: player.avatar_url ?? null },
                 },
             }
@@ -754,7 +768,7 @@ export async function fightState(playerId: number): Promise<{
         .andWhere('items.heal_amount', '>', 0)
         .whereNull('items.buff_effect')
         .andWhere('player_inventory.quantity', '>', 0)
-        .orderBy('items.heal_amount')
+        .orderBy([{ column: 'items.heal_amount', order: 'desc' }, 'items.name'])
         .select('items.id as itemId', 'items.name', 'player_inventory.quantity', 'items.heal_amount as heal')
     return { fight: report?.view ?? null, hp, food }
 }

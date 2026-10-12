@@ -104,6 +104,22 @@
   scrollbar-width: thin;
 }
 
+/* The fight's own overlay: the whole scene, no transform, so FightView can
+   fill the height and lay itself out without a scrollbar. */
+.scene-fight-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) var(--space-lg);
+  box-sizing: border-box;
+  z-index: 2;
+  overflow: hidden;
+  /* FightView sizes itself by the scene's height, not the window's. */
+  container-type: size;
+  container-name: fight-scene;
+}
+
 .scene-action-text {
   font-size: 24px;
   font-style: italic;

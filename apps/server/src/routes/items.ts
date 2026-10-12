@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { gateSkill } from './equipment';
 import { isForm } from '../services/combat';
 import { FORMS } from '../lib/combatMath';
+import { isFightFood } from '../services/combatFights';
 
 const router = Router();
 
@@ -56,6 +57,7 @@ router.get('/tooltips', requireAuth, async (_req: AuthRequest, res: Response) =>
                     'aim',
                     'power',
                     'armour',
+                    'heal_amount',
                 );
             // What the client must not work out for itself: the skill a level
             // requirement is checked against (routes/equipment.ts) and a
@@ -64,6 +66,10 @@ router.get('/tooltips', requireAuth, async (_req: AuthRequest, res: Response) =>
                 row.requires_skill = row.level_required > 1 ? gateSkill(row) : null;
                 const form: unknown = row.weapon_form;
                 row.swing_seconds = isForm(form) ? FORMS[form].swingSeconds : null;
+                // How much it mends, by the fight's own rule (buff dishes mend
+                // nothing), so a tooltip never promises a heal the game refuses.
+                row.mends = isFightFood(row) ? Number(row.heal_amount) : null;
+                delete row.heal_amount;
             }
             cache = { rows, at: Date.now() };
         }

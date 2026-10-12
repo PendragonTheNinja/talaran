@@ -15,6 +15,14 @@ export interface FightLogLine {
     at?: number
 }
 
+/** The last kill's pay: what GameView keeps as lastResult for a kill. */
+export interface FightSpoils {
+    message?: string
+    xpAwards?: { skill: string; xp: number }[]
+    drops?: { name: string; quantity: number; notable?: boolean }[]
+    eventXp?: number
+}
+
 /** How long a fallen creature stays on screen, greyed, before the next one shows. */
 const FALLEN_MS = 1500
 
@@ -23,6 +31,8 @@ interface FightViewProps {
     hp: Hp | null
     log: FightLogLine[]
     food: FightFood[]
+    /** The last kill's XP and drops, shown in the fight rather than below it. */
+    spoils: FightSpoils | null
     sceneText: string
     fleeLabel: string
     busy: boolean
@@ -59,18 +69,41 @@ function Portrait({ src, name, flashKey, state }: { src: string | null; name: st
     )
 }
 
+/** An item as a tile: the icon grid every surface uses, with its tooltip. */
+function Tile({ name, quantity, className, hover, onClick }: {
+    name: string; quantity: number; className?: string; hover: Record<string, unknown>; onClick?: () => void
+}) {
+    return (
+        <div className={`inventory-slot occupied ${className ?? ''}`} {...hover} onClick={onClick}>
+            <img
+                src={getItemIcon(name)}
+                alt={name}
+                className="inventory-item-icon"
+                onError={e => {
+                    e.currentTarget.style.display = 'none'
+                    e.currentTarget.nextElementSibling?.removeAttribute('style')
+                }}
+            />
+            <span className="inventory-item-text" style={{ display: 'none' }}>{name}</span>
+            {quantity > 1 && <span className="inventory-item-qty">{quantity}</span>}
+        </div>
+    )
+}
+
 /**
  * The fight, while it runs (docs/combat-spec.md §9, §10): food along the top,
- * a tap eats one; both health bars; the swings as they land; and the way out.
- * Everything shown comes from the server's pushes (GameView listens).
+ * a tap eats one; the face-off with both health bars; the last kill's pay; the
+ * swings as they land; and the way out. Everything shown comes from the
+ * server's pushes (GameView listens). It fills the scene and never scrolls:
+ * the swing log takes whatever height is left.
  */
-export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, busy, onEat, onFlee }: FightViewProps) {
+export default function FightView({ fight, hp, log, food, spoils, sceneText, fleeLabel, busy, onEat, onFlee }: FightViewProps) {
     const { hoverProps, tooltipEl } = useItemTooltip()
 
-    // The approach is the only thing that counts down on the client, and it
-    // only counts toward a time the server set.
+    // The approach is the only thing that counts down on the client, toward a
+    // moment the server set, on this browser's clock (localizeFight).
     const [now, setNow] = useState(() => Date.now())
-    const engageAt = fight ? new Date(fight.engageAt).getTime() : 0
+    const engageAt = fight?.engageAtLocal ?? 0
     const approaching = !!fight && engageAt > now
     const fighting = !!fight
     useEffect(() => {
@@ -88,36 +121,31 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
     const fallen = lastKill?.creature && lastKill.at && now - lastKill.at < FALLEN_MS ? lastKill.creature : null
     const foeName = fallen ?? fight?.creature.name ?? null
 
+    // Most mending first, always, so a meal stays where you last saw it.
+    const meals = [...food].sort((a, b) => b.heal - a.heal || a.name.localeCompare(b.name))
+
+    const xp = (spoils?.xpAwards ?? []).filter(a => a.xp > 0)
+
     return (
         <div className="fight-view">
-            <p className="scene-action-text gold-text">{sceneText}</p>
+            <p className="fight-scene-text gold-text">{sceneText}</p>
 
             <div className="fight-food">
-                {food.length === 0 ? (
+                {meals.length === 0 ? (
                     <span className="fight-food-empty muted-text">You carry nothing that mends.</span>
-                ) : food.map(f => (
-                    <div
+                ) : meals.map(f => (
+                    <Tile
                         key={f.itemId}
-                        className={`inventory-slot occupied fight-food-slot ${busy ? 'busy' : ''}`}
-                        {...hoverProps({ name: f.name }, `Click to eat (mends ${f.heal})`)}
+                        name={f.name}
+                        quantity={f.quantity}
+                        className={`fight-food-slot ${busy ? 'busy' : ''}`}
+                        hover={hoverProps({ name: f.name }, 'Click to eat one')}
                         onClick={() => !busy && onEat(f.itemId)}
-                    >
-                        <img
-                            src={getItemIcon(f.name)}
-                            alt={f.name}
-                            className="inventory-item-icon"
-                            onError={e => {
-                                e.currentTarget.style.display = 'none'
-                                e.currentTarget.nextElementSibling?.removeAttribute('style')
-                            }}
-                        />
-                        <span className="inventory-item-text" style={{ display: 'none' }}>{f.name}</span>
-                        <span className="inventory-item-qty">{f.quantity}</span>
-                    </div>
+                    />
                 ))}
             </div>
 
-            <div className="fight-sides">
+            <div className="fight-faceoff">
                 <div className="fight-side">
                     <Portrait
                         src={fight?.you.avatarUrl ?? null}
@@ -128,6 +156,18 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
                     {hp ? <Bar current={hp.current} max={hp.max} kind="you" /> : <div className="fight-bar" />}
                     {fight?.weapon && <span className="fight-side-note muted-text">{fight.weapon}</span>}
                 </div>
+
+                <div className="fight-middle">
+                    {approaching ? (
+                        <>
+                            <span className="fight-countdown tabular-num">{Math.max(1, Math.ceil((engageAt - now) / 1000))}</span>
+                            <span className="fight-middle-label muted-text">closing in</span>
+                        </>
+                    ) : (
+                        <span className="fight-vs">vs</span>
+                    )}
+                </div>
+
                 <div className="fight-side">
                     {foeName
                         ? <Portrait
@@ -138,14 +178,12 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
                         />
                         : <div className="fight-portrait" />}
                     <span className="fight-side-name">
-                        {fight ? `${fight.creature.name}` : '...'}
+                        {fight ? fight.creature.name : '...'}
                         {fight && <span className="muted-text"> (level {fight.creature.level})</span>}
                     </span>
-                    {fight && !approaching
+                    {fight
                         ? <Bar current={fight.enemyHp} max={fight.enemyMaxHp} kind="foe" />
-                        : <div className="fight-bar"><span className="fight-bar-label">
-                            {fight ? `Closing in, ${Math.max(1, Math.ceil((engageAt - now) / 1000))}s` : ''}
-                        </span></div>}
+                        : <div className="fight-bar" />}
                     {fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (
                         <span className="fight-side-note">
                             {fight.stances.weak.length > 0 && <span className="fight-weak">Weak to {fight.stances.weak.join(', ')}</span>}
@@ -155,7 +193,7 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
                     )}
                     {fight && (
                         <span className="fight-side-note muted-text">
-                            {fight.kills} {fight.kills === 1 ? 'kill' : 'kills'} ·{' '}
+                            {fight.kills} {fight.kills === 1 ? 'kill' : 'kills'}, {(fight.totalKills ?? fight.kills).toLocaleString()} total ·{' '}
                             <button className="fight-bestiary-link" onClick={() => openBestiary(fight.creature.id)}>Bestiary</button>
                         </span>
                     )}
@@ -166,15 +204,46 @@ export default function FightView({ fight, hp, log, food, sceneText, fleeLabel, 
                 <p className="fight-frozen gold-text">You catch your breath. Answer the question to carry on.</p>
             )}
 
+            <div className="fight-spoils">
+                {spoils ? (
+                    <>
+                        <div className="fight-spoils-head">
+                            <span className="fight-spoils-message">{spoils.message}</span>
+                            <span className="fight-spoils-xp">
+                                {xp.map(a => (
+                                    <span key={a.skill} className="fight-xp-chip tabular-num">+{a.xp} {a.skill}</span>
+                                ))}
+                                {spoils.eventXp ? <span className="fight-xp-chip event tabular-num">+{spoils.eventXp} event</span> : null}
+                            </span>
+                        </div>
+                        {(spoils.drops?.length ?? 0) > 0 && (
+                            <div className="fight-spoils-drops">
+                                {spoils.drops!.map((d, i) => (
+                                    <Tile
+                                        key={`${d.name}-${i}`}
+                                        name={d.name}
+                                        quantity={d.quantity}
+                                        className={`fight-drop-slot ${d.notable ? 'notable' : ''}`}
+                                        hover={hoverProps({ name: d.name }, d.notable ? 'A find worth keeping' : null)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <span className="fight-spoils-empty muted-text">What your first kill earns shows here.</span>
+                )}
+            </div>
+
             <div className="fight-log">
                 {log.length === 0
                     ? <p className="fight-log-line info muted-text">You wait for the first blow.</p>
-                    : [...log].reverse().slice(0, 8).map(line => (
+                    : [...log].reverse().slice(0, 12).map(line => (
                         <p key={line.id} className={`fight-log-line ${line.kind}`}>{line.text}</p>
                     ))}
             </div>
 
-            <button className="btn btn-red scene-cancel-btn" disabled={busy} onClick={onFlee}>{fleeLabel}</button>
+            <button className="btn btn-red scene-cancel-btn fight-flee" disabled={busy} onClick={onFlee}>{fleeLabel}</button>
             {tooltipEl}
         </div>
     )

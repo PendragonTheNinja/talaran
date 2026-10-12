@@ -37,6 +37,8 @@ export interface ItemDetail {
     swing_seconds: number | null
     /** The skill level_required is checked against, from the server; null when ungated. */
     requires_skill: string | null
+    /** Health it mends when eaten, by the fight's food rule; null when it mends nothing. */
+    mends: number | null
 }
 
 let byName: Map<string, ItemDetail> | null = null
