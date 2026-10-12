@@ -7,6 +7,7 @@ import EquipmentPanel, { type CombatProfile } from './EquipmentPanel'
 import ConfirmModal from './ConfirmModal'
 import BuffPanel from './BuffPanel'
 import { useItemTooltip } from './ItemTooltip'
+import { announceHp, type Hp } from '../lib/combat'
 
 interface InventoryItem {
   id: number
@@ -21,6 +22,8 @@ interface InventoryItem {
   buff_skill?: string | null
   buff_magnitude?: number | null
   buff_seconds?: number | null
+  /** HP a meal mends. Food that heals and does nothing else can be eaten any time (combat-spec §10). */
+  heal_amount?: number | null
   quantity: number
   slot?: string
   /** Open liquid containers are not real inventory rows — see routes/inventory. */
@@ -336,6 +339,27 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     }
   }
 
+  /** Food that mends and nothing else: eaten through the fight's own door, in a fight or out. */
+  const isMendingFood = (item: InventoryItem) => Number(item.heal_amount) > 0 && !item.buff_effect
+
+  const eatMeal = async (item: InventoryItem) => {
+    try {
+      const res = await apiFetch<{ healed: number; itemName: string; hp: Hp }>('/api/combat/eat', {
+        method: 'POST',
+        body: JSON.stringify({ itemId: item.item_id }),
+      })
+      announceHp(res.hp)
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: `You eat the ${res.itemName} and mend ${res.healed}.`, type: 'success' },
+      }))
+      onInventoryUpdate()
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: (err as { message?: string }).message || 'You cannot eat that.', type: 'error' },
+      }))
+    }
+  }
+
   const doEat = async (itemName: string) => {
     try {
       const res = await apiFetch<{ message: string }>('/api/buffs/eat', {
@@ -404,6 +428,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                 onDropItem(item.item_id, qty)
               } else if (isFirewood(item)) {
                 askLightCampfire(item.name)
+              } else if (isMendingFood(item)) {
+                eatMeal(item)
               } else if (item.subtype === 'provision') {
                 // Provisions are eaten, not worn. Falling through to handleEquip
                 // told the player a pasty "cannot be equipped", which is true and
@@ -619,9 +645,17 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                   Manual
                 </button>
               )}
-              {/* Provisions are the only edible thing for now. Cooked food
-                  carries a heal_amount but there is no health to restore until
-                  combat exists, so offering Eat on a fish would do nothing. */}
+              {/* Food that mends is eaten for health (combat-spec §10);
+                  provisions for their buff, below. */}
+              {isMendingFood(contextMenu.item) && (
+                <button className="context-menu-item" onClick={() => {
+                  const item = contextMenu.item
+                  setContextMenu(null)
+                  eatMeal(item)
+                }}>
+                  Eat
+                </button>
+              )}
               {isFirewood(contextMenu.item) && (
                 <button className="context-menu-item" onClick={() => {
                   const name = contextMenu.item.name
