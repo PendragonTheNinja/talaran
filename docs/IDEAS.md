@@ -68,3 +68,7 @@ soil a step. Manure restores worn soil; Bonemeal preserves good soil (bone meal
 is a slow-release fertiliser), so a farmer can grow hungry crops back to back
 on rich ground. Not part of combat: combat creatures do not drop Bones.
 
+## The Worn Collar (combat, parked 2026-10-12)
+
+A Feral Dog at Novita now and then drops a worn leather collar with a name scratched into it. A small quest: find who lost the dog. Cut from the first combat release because a drop needs a real use, and this one's use is the quest.
+

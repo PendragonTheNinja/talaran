@@ -154,6 +154,12 @@ interface KillReport {
     xpAfter: Record<string, number>
     /** Gear that broke on this kill (§13). */
     broken: string[]
+    /** Where it fell, for a vein it may open. */
+    locationId: number
+    /** People carry coins (creatures.coin_*). */
+    coins: { oneIn: number; min: number; max: number } | null
+    /** A kill that may open a vein (creatures.vein_*). */
+    vein: { oneIn: number; ore: string; min: number; max: number } | null
 }
 
 interface FightReport {
@@ -289,6 +295,13 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                 creatureKey: creature.key, creatureName: creature.name, spotKey: spot.key, xp,
                 xpAfter: await skillXps(trx, playerId),
                 broken,
+                locationId: spot.location_id,
+                coins: creature.coin_chance_one_in
+                    ? { oneIn: creature.coin_chance_one_in, min: creature.coin_min ?? 1, max: creature.coin_max ?? creature.coin_min ?? 1 }
+                    : null,
+                vein: creature.vein_chance_one_in && creature.vein_ore_name
+                    ? { oneIn: creature.vein_chance_one_in, ore: creature.vein_ore_name, min: creature.vein_min ?? 1, max: creature.vein_max ?? creature.vein_min ?? 1 }
+                    : null,
             })
 
             // Something broke: the kill stands, and the fight waits for the
@@ -407,6 +420,23 @@ async function afterFight(report: FightReport | null): Promise<void> {
                 ...await rollSecondaryDrops(playerId, `combat:${kill.creatureKey}`, COMBAT_SKILLS.melee),
                 ...await rollSecondaryDrops(playerId, `combat:${kill.creatureKey}@${kill.spotKey}`, COMBAT_SKILLS.melee),
             ]
+            // People carry coins, on top of the normal gold find (§8).
+            if (kill.coins && Math.random() * kill.coins.oneIn < 1) {
+                const amount = kill.coins.min + Math.floor(Math.random() * (kill.coins.max - kill.coins.min + 1))
+                const { creditGold } = await import('./gold')
+                const { GOLD_DROP_NAME } = await import('./goldFinds')
+                await creditGold({ playerId, amount, reason: 'combat_coins', refType: 'action', refId: null })
+                drops.push({ name: GOLD_DROP_NAME, quantity: amount, notable: true })
+            }
+            // Knockers knock where the ore runs rich: now and then a kill
+            // opens a vein where it fell, as a Granite find would, if none of
+            // that ore is open there.
+            if (kill.vein && Math.random() * kill.vein.oneIn < 1) {
+                const ore = await db('items').where({ name: kill.vein.ore }).select('id', 'name').first()
+                const { openVein } = await import('./mining')
+                if (ore) await openVein(playerId, kill.locationId, ore, kill.vein.min, kill.vein.max)
+            }
+
             const meleeTotal = kill.xpAfter[COMBAT_SKILLS.melee] ?? kill.xp.melee
             const level = levelFromXp(meleeTotal)
             await emitCompletion(stub, {

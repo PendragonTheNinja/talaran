@@ -284,8 +284,31 @@ async function main(): Promise<void> {
     // priced at actionValue * chance_one_in with the parent action found by the
     // source_key's second-ish token matched against node names.
     const nodes = await readTable('resource_nodes');
+    // Combat drops ('combat:<creature>' or 'combat:<creature>@<spot>') hang off
+    // a kill, which is worth the creature's XP per kill like any action: a
+    // 1-in-2,000 rare weapon prices at 2,000 kills' worth. They price only
+    // combat's OWN kinds of item, and only where nothing else does (applied at
+    // 9a). A Jumper's Charc or a Granary Rat's grain is a side road to
+    // something with a main source; Charc's (the kiln) is not modelled here,
+    // so a fallback alone would have let a 1-in-10 drop set its price.
+    const COMBAT_NATIVE_SUBTYPES = new Set(['rare_weapon', 'shell_armor', 'trophy']);
+    const subtypeByName = new Map(items.map((i) => [i.name, i.subtype]));
+    const combatProposals: [string, Derived][] = [];
+    const creaturesByKey = new Map((await readTable('creatures')).map((c: any) => [String(c.key), c]));
     for (const e of await readTable('drop_table_entries')) {
         const key = String(e.source_key);                 // 'woodcutting:lanai', 'mining:rock:granite'
+        if (key.startsWith('combat:')) {
+            const creature = creaturesByKey.get(key.slice('combat:'.length).split('@')[0]);
+            const name = itemById.get(Number(e.item_id));
+            if (!creature || !name || !COMBAT_NATIVE_SUBTYPES.has(String(subtypeByName.get(name)))) continue;
+            const avgQty = ((Number(e.min_qty) || 1) + (Number(e.max_qty) || 1)) / 2;
+            combatProposals.push([name, {
+                value: (Number(creature.xp_per_kill) / VALUE_DIVISOR) * Math.max(1, Number(e.chance_one_in)) / avgQty,
+                method: 'byproduct', level: creature.level,
+                basis: `1-in-${e.chance_one_in} from a ${creature.name} (level ${creature.level})`,
+            }]);
+            continue;
+        }
         const parts = key.split(':');
         const word = parts[parts.length - 1];
         const parent = nodes.find((n) => String(n.name).toLowerCase().includes(word));
@@ -459,6 +482,10 @@ async function main(): Promise<void> {
     // fixpoint something to stand on; anything a recipe DOES produce is left
     // alone here so its real cost wins.
     const recipeOutputs = new Set<string>(pseudo.map((r) => r.output));
+    // Combat's own items, where nothing else priced them (see section 4).
+    for (const [name, d] of combatProposals) {
+        if (!best.has(name) || best.get(name)!.method === 'byproduct') propose(name, d);
+    }
     for (const i of items) {
         if (best.has(i.name) || recipeOutputs.has(i.name)) continue;
         const tier = Number(i.tier);

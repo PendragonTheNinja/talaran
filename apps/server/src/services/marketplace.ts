@@ -218,6 +218,8 @@ const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
 // Armour by who makes it: the anvil's plate and rings, the leatherworker's boots.
 const ARMOR_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     metal_armor: 'smith',
+    // Crabshell is taken off the Dawncrest crabs whole; no trade makes it.
+    shell_armor: 'pawnbroker',
 };
 
 export function merchantForItem(item: { type?: string | null; subtype?: string | null }): MerchantKey {
@@ -226,6 +228,8 @@ export function merchantForItem(item: { type?: string | null; subtype?: string |
 
     if (type === 'tool' && TOOL_SUBTYPE_DOMAINS[subtype]) return TOOL_SUBTYPE_DOMAINS[subtype]!;
     if (type === 'armor' && ARMOR_SUBTYPE_DOMAINS[subtype]) return ARMOR_SUBTYPE_DOMAINS[subtype]!;
+    // Rare weapons are dropped, never forged, so the smith does not claim them.
+    if (type === 'weapon' && subtype === 'rare_weapon') return 'pawnbroker';
     if (type === 'material' && MATERIAL_SUBTYPE_DOMAINS[subtype]) return MATERIAL_SUBTYPE_DOMAINS[subtype]!;
     if (TYPE_DOMAINS[type]) return TYPE_DOMAINS[type]!;
     return 'pawnbroker';
@@ -249,6 +253,8 @@ export function buyRateFor(merchantKey: MerchantKey, itemMerchant: MerchantKey):
 const PAWN_ONLY_TYPES = new Set(['collectible']);
 const PAWN_ONLY_SUBTYPES = new Set([
     'trophy', 'curio', 'gem', 'container', 'container_locked',
+    // Combat drops nobody makes (docs/combat-spec.md §8).
+    'rare_weapon', 'shell_armor',
 ]);
 
 export interface UnmappedItem {

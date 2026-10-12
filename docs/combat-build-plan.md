@@ -114,6 +114,8 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 
 **Test:** with chances raised in a scratch database, every drop lands and every item works (equips, smelts, opens).
 
+**Built 2026-10-12** (migration `20261012140000_combat_special_drops`, approved by Nathan the same day). Hodag Horn (1 in 2,000), Wrecker's Cutlass and Gouger's Legbone (1 in 1,500): next tier's power and aim for their form, gated at the creature's level, 1,500 uses then 0.2%. The Crabshell set (1 in 100 a piece; 11/11/15 from the Shore Crab, 19/19/24 from Ol' Shellback; Defense 7 to 12; 600 uses then 0.4%). Trophies at 1 in 750: Jackalope Antler, Wolf Fang, Wrecker's Lantern, Knocker's Hammer, Agropelter Knuckle (shaped like Hunting's). Coins and veins are creature rows: `coin_chance_one_in` / `coin_min` / `coin_max` (Wreckers 1 in 4 for 3 to 12, Jumpers 1 in 4 for 5 to 15, ledger reason `combat_coins`) and `vein_*` (Knockers 1 in 150, a Burgh vein of 50 to 100 where they fall, through `openVein` in `services/mining.ts`, the same path as a Granite find). Rare weapons and Crabshell go to the pawnbroker only. `values:derive` prices combat's own items (rare weapons, Crabshell, trophies) from the creature's XP per kill and the chance, and only where nothing else prices them; a Jumper's Charc never sets Charc's price. The Worn Collar was cut until its quest exists (`docs/IDEAS.md`).
+
 ## Step 9: the Bestiary
 
 - Kills per creature per player; unlock steps 1 / 10 / 50 / 250 / 1,000 (spec §8); a little Exploration XP on a first kill.

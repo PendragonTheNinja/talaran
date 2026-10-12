@@ -387,14 +387,37 @@ async function discoverVein(
     if (eligibleOres.length === 0) return null;
 
     const ore = eligibleOres[Math.floor(Math.random() * eligibleOres.length)];
+    return await openVein(playerId, locationId, ore, node.min_vein_quantity, node.max_vein_quantity);
+  } catch (err) {
+    logger.error(`Vein discovery error: ${err}`);
+    return null;
+  }
+}
 
+/**
+ * Open a vein of `ore` at a location, found by `playerId`, sized min..max.
+ * Refused (null) if one of that ore is already open there: one open vein per
+ * ore per location. Private to the finder for the announce delay, as always.
+ *
+ * Shared by a Granite find (discoverVein, sized by the node it was found on)
+ * and a Knocker kill (services/combatFights.ts, sized by the creature row), so
+ * there is one way a vein comes into the world.
+ */
+export async function openVein(
+  playerId: number,
+  locationId: number,
+  ore: { id: number; name: string },
+  minQuantity: number,
+  maxQuantity: number,
+): Promise<{ oreName: string } | null> {
+  try {
     const existingVein = await db('ore_veins')
       .where({ location_id: locationId, is_depleted: false, ore_item_id: ore.id })
       .first();
 
     if (existingVein) return null;
 
-    const quantity = Math.floor(Math.random() * (node.max_vein_quantity - node.min_vein_quantity + 1)) + node.min_vein_quantity;
+    const quantity = Math.floor(Math.random() * (maxQuantity - minQuantity + 1)) + minQuantity;
     const now = new Date();
     const announceAt = new Date(now.getTime() + VEIN_ANNOUNCE_DELAY);
 
