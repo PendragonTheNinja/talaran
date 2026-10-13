@@ -228,7 +228,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
         // but a whisper prefix). It used to overwrite the box, so a whisper
         // arriving mid-sentence threw the sentence away.
         const typed = inputRef.current?.value ?? ''
-        if (typed.trim() === '' || /^\w+@\s*$/.test(typed)) {
+        if (typed.trim() === '' || /^[A-Za-z0-9 _-]{1,32}@\s*$/.test(typed)) {
           setInput(`${data.from}@`)
           inputRef.current?.focus()
         }
@@ -296,16 +296,16 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
     if (!trimmed) return
 
     try {
-      await apiFetch('/api/chat/send', {
+      const sent = await apiFetch<{ whisperTo?: string }>('/api/chat/send', {
         method: 'POST',
         body: JSON.stringify({ channel: activeChannel, message: trimmed }),
       })
       // A whisper keeps its "Name@" so the conversation carries on without
       // retyping it. Only what was sent is cleared: anything typed while the
       // request was on its way stays.
-      // Same rule as the server's (routes/chat.ts): name@message.
-      const whisperTo = /^(\w+)@./.exec(trimmed)?.[1]
-      const next = whisperTo ? `${whisperTo}@` : ''
+      // The server says whether it was a whisper (names can hold spaces, and
+      // only it knows whether "Old Tom" is a player).
+      const next = sent?.whisperTo ? `${sent.whisperTo}@` : ''
       setInput(cur => (cur === input ? next : cur))
     } catch (err: any) {
       const errorMsg: ChatMessage = {

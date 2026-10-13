@@ -220,7 +220,19 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
   // field and the whisper parsed afterwards, so a guest could whisper anyone by
   // posting on Help, and a muted guild member by posting on Guild (audit M7).
   // A whisper is its own channel, and every rule below judges that one.
-  const whisperMatch = message.match(/^(\w+)@(.+)$/);
+  //
+  // Names may hold single spaces and hyphens (cleanUsername), so the name is
+  // everything before the first @. A one-word name is a whisper whether or not
+  // anyone has it, so a typo is told "not found"; a name with a space or a
+  // hyphen ("Old Tom@hello") is a whisper only when that player exists, so an
+  // ordinary line such as "selling oak@5g each" still posts where it was sent.
+  // Matched case-insensitively: usernames are unique regardless of case.
+  const at = /^([A-Za-z0-9 _-]{1,32})@([\s\S]+)$/.exec(message);
+  let whisperMatch: { typedName: string; body: string; target: any } | null = null;
+  if (at && at[1] === at[1].trim()) {
+    const target = await db('players').whereRaw('LOWER(username) = LOWER(?)', [at[1]]).first();
+    if (target || /^\w+$/.test(at[1])) whisperMatch = { typedName: at[1], body: at[2], target };
+  }
   const effectiveChannel: string = whisperMatch ? 'whisper' : channel;
 
   // Guests get Help, and nothing that broadcasts to the whole island. Silencing
@@ -268,16 +280,11 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
     const location = await db('locations').where({ id: player.current_location_id }).first();
     const region = location?.region || 'Unknown';
 
-    // Whisper syntax (playername@message), matched once, above.
+    // Whisper syntax (playername@message), matched and looked up once, above.
     if (whisperMatch) {
-      const typedName = whisperMatch[1];
-      const whisperMessage = whisperMatch[2].trim();
-      // Case-insensitive: usernames are unique regardless of case, so there is no
-      // ambiguity to resolve, and making someone match the capitalisation of a
-      // name they only ever saw in chat is a needless way to fail.
-      const targetPlayer = await db('players')
-        .whereRaw('LOWER(username) = LOWER(?)', [typedName])
-        .first();
+      const typedName = whisperMatch.typedName;
+      const whisperMessage = whisperMatch.body.trim();
+      const targetPlayer = whisperMatch.target;
 
       if (!targetPlayer) {
         res.status(404).json({ error: `Player "${typedName}" not found` });
@@ -329,7 +336,8 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       // Send back to sender
       pushToPlayer(playerId, 'whisper_sent', whisperData);
 
-      res.json({ success: true });
+      // Who it went to, so the chat box can keep "Name@" for the next line.
+      res.json({ success: true, whisperTo: targetName });
       return;
     }
 
