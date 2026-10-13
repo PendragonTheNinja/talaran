@@ -1,2 +1,6 @@
 packages:
   - 'apps/*'
+# Patched releases for advisories in packages we only reach through a
+# dependency that pins an older one (concurrently 9 pins shell-quote 1.9).
+overrides:
+  shell-quote: ^1.11.0

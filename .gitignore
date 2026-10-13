@@ -21,3 +21,6 @@ Thumbs.db
 # pnpm
 .pnpm-store/
 *:Zone.Identifier
+
+# Player uploads (avatars): live data, not source. Back these up.
+apps/server/uploads/

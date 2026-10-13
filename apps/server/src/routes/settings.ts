@@ -10,6 +10,10 @@ import { sendEmail, emailChangedEmail } from '../lib/email';
 import { OFFLINE_GRACE_MS } from '../lib/presence';
 import { DEATH_PILE_PRIVATE_MINUTES } from '../services/groundItems';
 import { COMBAT_BOT_CHECK_MINUTES, DEFAULT_COMBAT_BOT_CHECK_MINUTES } from '../services/botCheck';
+import express from 'express';
+import { avatarLimit } from '../middleware/rateLimit';
+import { AVATAR_MAX_UPLOAD_BYTES, clearAvatar, setAvatar } from '../services/avatars';
+import { failureStatus } from '../lib/serviceResult';
 
 // What the fight-on-while-away warning quotes, so the popup states the real
 // rules rather than a copy of them.
@@ -39,7 +43,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
                 paletteName = palette.name;
             }
         }
+        const me = await db('players').where({ id: playerId }).select('avatar_url', 'avatar_blocked').first();
         res.json({
+            avatarUrl: me?.avatar_url ?? null,
+            avatarBlocked: !!me?.avatar_blocked,
             mutedChannels: settings?.muted_channels ? JSON.parse(settings.muted_channels) : [],
             showTravelLog: settings?.show_travel_log ?? true,
             showItemAnimation: settings?.show_item_animation ?? true,
@@ -232,6 +239,38 @@ router.post('/travel-log', requireAuth, async (req: AuthRequest, res: Response) 
 // Fight on through a disconnect (docs/combat-spec.md §9). Off by default: a
 // dropped connection flees, so it never costs anyone their kit. On, the fight
 // runs under the normal 30-minute absence rule like any other action.
+// Your picture (services/avatars.ts). The body is the original file itself,
+// not JSON; the square you chose on it rides in the query string
+// (?x=&y=&size=, in the original's pixels). The size cap is checked here, by
+// the parser, before anything is decoded.
+router.post(
+    '/avatar',
+    requireAuth,
+    avatarLimit,
+    express.raw({ type: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], limit: AVATAR_MAX_UPLOAD_BYTES }),
+    async (req: AuthRequest, res: Response) => {
+        if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+            res.status(400).json({ error: 'Use a PNG, JPEG, WebP or GIF.' });
+            return;
+        }
+        const result = await setAvatar(req.player!.playerId, req.body, req.query as Record<string, unknown>);
+        if (!result.ok) {
+            res.status(failureStatus(result.error)).json({ error: result.error });
+            return;
+        }
+        res.json({ success: true, avatarUrl: result.avatarUrl });
+    },
+);
+
+router.delete('/avatar', requireAuth, async (req: AuthRequest, res: Response) => {
+    const result = await clearAvatar(req.player!.playerId);
+    if (!result.ok) {
+        res.status(failureStatus(result.error)).json({ error: result.error });
+        return;
+    }
+    res.json({ success: true });
+});
+
 router.post('/combat-offline', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { combatContinueOffline } = req.body;

@@ -10,6 +10,7 @@ import { runBalanceChecks } from '../services/balanceChecks';
 import { onlinePlayers, pushToAll, pushToPlayer } from '../lib/realtime';
 import { endSessions, forgetSession } from '../lib/sessions';
 import { maskEmail } from '../lib/email';
+import { clearAvatar } from '../services/avatars';
 
 const router = Router();
 
@@ -157,6 +158,8 @@ router.get('/players/:id', requireAuth, async (req: AuthRequest, res: Response) 
                 'players.strike_count',
                 'players.created_at',
                 'players.last_login',
+                'players.avatar_url',
+                'players.avatar_blocked',
                 'locations.name as location_name',
             )
             .first();
@@ -675,6 +678,54 @@ router.post('/ban', requireAuth, async (req: AuthRequest, res: Response) => {
         res.json({ success: true });
     } catch (err) {
         logger.error(`Ban error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// A player's picture (services/avatars.ts). `action`: 'clear' removes it,
+// 'block' removes it and stops them choosing another, 'unblock' lets them
+// again. Chat moderators can do it: a picture is public, like a chat line.
+router.post('/avatar', requireAuth, async (req: AuthRequest, res: Response) => {
+    const staffId = req.player!.playerId;
+    const targetId = Math.floor(Number(req.body?.targetId));
+    const action = String(req.body?.action ?? '');
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+    try {
+        if (!await hasPermission(staffId, 'can_moderate_chat')) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        if (!Number.isFinite(targetId) || targetId <= 0 || !['clear', 'block', 'unblock'].includes(action)) {
+            res.status(400).json({ error: 'Bad request.' });
+            return;
+        }
+        const target = await db('players').where({ id: targetId }).select('username').first();
+        if (!target) {
+            res.status(404).json({ error: 'Player not found.' });
+            return;
+        }
+
+        if (action === 'unblock') {
+            await db('players').where({ id: targetId }).update({ avatar_blocked: false });
+        } else {
+            const result = await clearAvatar(targetId, action === 'block' ? { block: true } : {});
+            if (!result.ok) {
+                res.status(500).json({ error: result.error });
+                return;
+            }
+            await sendSystemMessage(
+                targetId,
+                'Your Picture Was Removed',
+                `A member of staff removed your picture.\n\nReason: ${reason || 'No reason given.'}`
+                + (action === 'block' ? '\n\nYou cannot choose a new one for now.' : '\n\nYou may choose another in Settings.'),
+            );
+        }
+
+        const staff = await db('players').where({ id: staffId }).select('username').first();
+        logger.info(`${staff?.username} avatar ${action} on ${target.username}: ${reason || 'no reason'}`);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Admin avatar error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

@@ -137,6 +137,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
           // one is that other people see it.
           'players.worn_title',
           'players.worn_badge',
+          // Their picture: public, like the forum shows it.
+          'players.avatar_url',
           // failed_bot_checks is self-only. It is a joke, and a joke about
           // yourself lands differently from one somebody else can point at.
           ...(isSelf ? ['players.last_login', 'players.total_seconds_played', 'players.failed_bot_checks'] : []),

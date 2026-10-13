@@ -122,3 +122,15 @@ export const guestLimit = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
+
+// Avatar uploads: 10 an hour per player. Each one decodes and re-encodes an
+// image of up to 4 MB (services/avatars.ts), which is the most CPU any single
+// request here costs, and nobody needs more than a few tries to pick a picture.
+export const avatarLimit = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    keyGenerator: playerKey,
+    message: { error: 'You have changed your picture a lot just now. Try again in a while.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});

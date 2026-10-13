@@ -69,6 +69,7 @@ import tanningRoutes from './routes/tanning';
 import trappingRoutes from './routes/trapping';
 import fishingRoutes from './routes/fishing';
 import lootLogRoutes from './routes/lootLog';
+import { AVATAR_DIR, AVATAR_URL_PREFIX } from './services/avatars';
 
 dotenv.config();
 
@@ -102,6 +103,16 @@ app.use(express.json({
   },
 }));
 app.set('trust proxy', 1);
+// Player avatars (services/avatars.ts). Mounted ahead of the API's no-store
+// header and rate limit: a forum page shows a dozen at once, and each file's
+// name carries its content hash, so it never changes and may be cached for good.
+app.use(AVATAR_URL_PREFIX, express.static(AVATAR_DIR, {
+  immutable: true,
+  maxAge: '365d',
+  index: false,
+  fallthrough: false,
+  setHeaders: (res) => { res.setHeader('X-Content-Type-Options', 'nosniff'); },
+}));
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
   next()
