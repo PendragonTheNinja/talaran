@@ -72,6 +72,17 @@ export const COMBAT = {
     // unweighted it gave a shield-bearer only ~32% Defense; at 2 it is ~50% with
     // a shield and ~33% without (combatSim.ts ledger).
     ABSORBED_XP_WEIGHT: 2,
+    // A blow that misses counts for Defense too, early on (Nathan, 2026-10-13):
+    // each missed blow's would-be damage counts this much at Defense 1, fading
+    // to nothing by DODGED_XP_FADE_LEVEL. Defense is paid for what armour
+    // absorbs, and early armour is a few pieces or none (each piece waits on
+    // its own Defense level), so Defense earned 8% of the defensive XP at
+    // combat 1, and nothing at all with no armour on. With this it earns about
+    // a third early (no armour: 28% at 1), and from Defense 13, when a full
+    // first set can be worn, the split is exactly what it was (combatSim.ts
+    // ledger). The pool is shared, so Constitution gives up what Defense gains.
+    DODGED_XP_WEIGHT: 0.5,
+    DODGED_XP_FADE_LEVEL: 13,
 
     // §13 wear: the weapon wears every kill; this many worn armour pieces,
     // chosen at random, wear per kill (decided 2026-10-04).
@@ -223,9 +234,15 @@ export function combatLevel(l: CombatLevels): number {
  * against what landed. Nothing absorbed or landed (the enemy missed or never
  * swung): an even split.
  */
-export function defenseShare(absorbed: number, landed: number, c: CombatConstants = COMBAT): number {
-    const weighted = c.ABSORBED_XP_WEIGHT * absorbed
+export function defenseShare(absorbed: number, landed: number, c: CombatConstants = COMBAT, dodged = 0, defenseLevel = c.DODGED_XP_FADE_LEVEL): number {
+    const weighted = c.ABSORBED_XP_WEIGHT * absorbed + dodgedWeight(defenseLevel, c) * dodged
     return weighted + landed > 0 ? weighted / (weighted + landed) : 0.5
+}
+
+/** What a missed blow's would-be damage counts for in Defense's share, by Defense level: fading to 0. */
+export function dodgedWeight(defenseLevel: number, c: CombatConstants = COMBAT): number {
+    const span = c.DODGED_XP_FADE_LEVEL - 1
+    return c.DODGED_XP_WEIGHT * Math.max(0, Math.min(1, (c.DODGED_XP_FADE_LEVEL - defenseLevel) / span))
 }
 
 /**
@@ -236,10 +253,10 @@ export function defenseShare(absorbed: number, landed: number, c: CombatConstant
  *     ledger (defenseShare): Defense takes what armour absorbed, Constitution
  *     what landed
  */
-export function killXp(xp: number, absorbed: number, landed: number, c: CombatConstants = COMBAT): CombatLevels {
+export function killXp(xp: number, absorbed: number, landed: number, c: CombatConstants = COMBAT, dodged = 0, defenseLevel = c.DODGED_XP_FADE_LEVEL): CombatLevels {
     const out: CombatLevels = { melee: xp, defense: 0, constitution: 0 }
     const defensive = c.DEFENSIVE_XP_MULTIPLE * xp
-    out.defense = defensive * defenseShare(absorbed, landed, c)
+    out.defense = defensive * defenseShare(absorbed, landed, c, dodged, defenseLevel)
     out.constitution = defensive - out.defense
     return out
 }
@@ -356,6 +373,8 @@ export interface KillResult {
     absorbed: number
     /** Constitution's share of the ledger. */
     landed: number
+    /** What the creature's missed blows would have done: Defense's early credit (dodgedWeight). */
+    dodged: number
 }
 
 /**
@@ -375,7 +394,7 @@ export function fightOne(
     let hp = playerHp
     let nextPlayer = 0
     let nextEnemy = enemy.swingSeconds
-    const out: KillResult = { seconds: 0, playerDied: false, playerHpLeft: hp, playerSwings: 0, enemySwings: 0, absorbed: 0, landed: 0 }
+    const out: KillResult = { seconds: 0, playerDied: false, playerHpLeft: hp, playerSwings: 0, enemySwings: 0, absorbed: 0, landed: 0, dodged: 0 }
     for (;;) {
         if (nextPlayer <= nextEnemy) {
             const s = swing(rng, player, enemy, stanceMultiplier, c)
@@ -388,6 +407,7 @@ export function fightOne(
             out.enemySwings++
             out.landed += s.landed
             out.absorbed += s.absorbed
+            if (!s.hit) out.dodged += s.rolled
             hp -= s.landed
             if (hp <= 0) { out.seconds = nextEnemy; out.playerDied = true; break }
             nextEnemy += enemy.swingSeconds

@@ -410,26 +410,27 @@ function pacing(): void {
 function ledger(): void {
     const c = COMBAT
     const rows: (string | number)[][] = []
-    for (const level of [3, 12, 25, 50, 100]) {
+    // Defense level taken as the combat level: the early miss credit fades by it.
+    const tally = (level: number, below: number, player: Combatant) => {
+        const enemy = enemyStats(Math.max(1, Math.round(level * (1 - below / 100))), c)
+        const rng = mulberry32(level * 31 + below)
+        let absorbed = 0, landed = 0, dodged = 0
+        for (let i = 0; i < 4000; i++) {
+            const s = swing(rng, enemy, player, 1, c)
+            absorbed += s.absorbed
+            landed += s.landed
+            if (!s.hit) dodged += s.rolled
+        }
+        return defenseShare(absorbed, landed, c, dodged, level)
+    }
+    for (const level of [1, 3, 6, 12, 25, 50, 100]) {
         for (const form of FORM_LIST) {
             const kit = kitAt(level, form, 'slash', c)
-            const cells: string[] = []
-            for (const below of [0, 25]) {
-                const enemy = enemyStats(Math.max(1, Math.round(level * (1 - below / 100))), c)
-                const rng = mulberry32(level * 31 + below)
-                let absorbed = 0
-                let landed = 0
-                for (let i = 0; i < 4000; i++) {
-                    const s = swing(rng, enemy, kit.player, 1, c)
-                    absorbed += s.absorbed
-                    landed += s.landed
-                }
-                cells.push(pct(defenseShare(absorbed, landed, c)))
-            }
-            rows.push([level, FORM_LABEL[form], ...cells, `${pct(DEFENSE_SHARE[form])}`])
+            rows.push([level, FORM_LABEL[form], pct(tally(level, 0, kit.player)), pct(tally(level, 25, kit.player)),
+                pct(tally(level, 0, { ...kit.player, absorb: 0 })), `${pct(DEFENSE_SHARE[form])}`])
         }
     }
-    table(['combat', 'form', 'even foe', 'foe 25% below', 'progression assumes'], rows)
+    table(['combat', 'form', 'even foe', 'foe 25% below', 'no armour', 'progression assumes'], rows)
 }
 
 // ── fit ──────────────────────────────────────────────────────────────────────

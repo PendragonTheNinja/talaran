@@ -16,9 +16,10 @@ export interface FightClock {
     engageAt: number
     playerNextAt: number
     enemyNextAt: number
-    /** This kill's ledger (§2): what armour stopped, and what got through. */
+    /** This kill's ledger (§2): what armour stopped, what got through, and what missed. */
     absorbed: number
     landed: number
+    dodged: number
 }
 
 export interface SwingEvent {
@@ -52,6 +53,7 @@ export function engage(enemy: Combatant, at: number): FightClock {
         enemyNextAt: at + enemy.swingSeconds * 1000,
         absorbed: 0,
         landed: 0,
+        dodged: 0,
     }
 }
 
@@ -96,6 +98,7 @@ export function settle(
             hp -= s.landed
             out.absorbed += s.absorbed
             out.landed += s.landed
+            if (!s.hit) out.dodged += s.rolled
             events.push({ at, by: 'enemy', hit: s.hit, damage: s.landed, absorbed: s.absorbed })
             out.enemyNextAt = at + enemy.swingSeconds * 1000
             if (hp <= 0) {

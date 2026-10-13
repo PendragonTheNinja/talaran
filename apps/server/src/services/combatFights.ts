@@ -226,6 +226,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
         enemyNextAt: ms(fight.enemy_next_at),
         absorbed: fight.kill_absorbed,
         landed: fight.kill_landed,
+        dodged: Number(fight.kill_dodged ?? 0),
     }
     let settledAt = ms(fight.settled_at)
     let frozen: boolean = fight.frozen
@@ -276,7 +277,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
 
             // The kill (§2): Melee the creature's XP; the defensive side twice
             // that, split by what armour stopped against what got through.
-            const split = killXp(creature.xp_per_kill, clock.absorbed, clock.landed)
+            // Misses count for Defense early on, fading by Defense 13 (dodgedWeight).
+            const split = killXp(creature.xp_per_kill, clock.absorbed, clock.landed, COMBAT, clock.dodged, levels.defense)
             const xp: CombatLevels = {
                 melee: Math.round(split.melee), defense: Math.round(split.defense), constitution: Math.round(split.constitution),
             }
@@ -392,6 +394,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             settled_at: new Date(settledAt),
             kill_absorbed: clock.absorbed,
             kill_landed: clock.landed,
+            kill_dodged: clock.dodged,
             kills: killCount,
             frozen: frozen || froze,
         })

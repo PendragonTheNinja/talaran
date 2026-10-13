@@ -65,7 +65,13 @@ function Entry({ entry, steps }: { entry: BestiaryEntry; steps: BestiaryData['st
                             </div>
                         ))}
                     </div>
-                ) : <p className="bestiary-line muted-text">Nothing worth the carrying.</p>
+                ) : (
+                    // Before the full list, an empty one only means nothing
+                    // common: "nothing at all" would give away the rare ones.
+                    <p className="bestiary-line muted-text">
+                        {entry.allDrops ? 'Nothing worth the carrying.' : 'Nothing it carries often.'}
+                    </p>
+                )
             ) : (
                 <p className="bestiary-line muted-text">Kill {steps.commonDrops} to learn what it carries.</p>
             )}

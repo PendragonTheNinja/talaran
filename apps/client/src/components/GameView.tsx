@@ -132,6 +132,7 @@ export default function GameView({
   const [log, setLog] = useState<LogEntry[]>([])
   const [botCheckPending, setBotCheckPending] = useState(false)
   const botCheckInputRef = useRef<HTMLInputElement>(null)
+  const skillXpListenerRef = useRef<((p: { skillName: string; level: number; leveledUp: boolean }) => void) | null>(null)
   const [botCheckAnswer, setBotCheckAnswer] = useState('')
   const [botCheckQuestion, setBotCheckQuestion] = useState({ a: 0, b: 0 })
   const [veins, setVeins] = useState<any[]>([])
@@ -165,7 +166,15 @@ export default function GameView({
     /** A card that is only its ended line: a fight that ended before any kill. */
     noDetails?: boolean
   } | null>(null)
-  const [levelUpSkill, setLevelUpSkill] = useState<{ name: string; level: number } | null>(null)
+  // Level-ups queue: one kill can raise Melee, Defense and Constitution at
+  // once, and each gets its own popup in turn. Setting null closes the
+  // current one and shows the next.
+  const [levelUpQueue, setLevelUpQueue] = useState<{ name: string; level: number }[]>([])
+  const levelUpSkill = levelUpQueue[0] ?? null
+  const setLevelUpSkill = (next: { name: string; level: number } | null) => setLevelUpQueue(q => {
+    if (!next) return q.slice(1)
+    return q.some(x => x.name === next.name && x.level === next.level) ? q : [...q, next]
+  })
   const [actionsCompleted, setActionsCompleted] = useState(0)
 
   // ── A fight (docs/combat-spec.md §9) ──────────────────────────────
@@ -797,6 +806,17 @@ export default function GameView({
 
       // Every settle of a fight: the swings since the last one, any kills,
       // where both sides stand, and whether it ended.
+      // Defense and Constitution level from a kill, but the kill card speaks
+      // for Melee alone, so their level-ups come from awardXp's push. (Every
+      // other skill's popup rides on its own result card.)
+      const onSkillXp = (p: { skillName: string; level: number; leveledUp: boolean }) => {
+        if (p.leveledUp && (p.skillName === 'Defense' || p.skillName === 'Constitution')) {
+          setLevelUpSkill({ name: p.skillName, level: p.level })
+        }
+      }
+      socket.on('skill_xp_changed', onSkillXp)
+      skillXpListenerRef.current = onSkillXp
+
       socket.on('combat_update', (data: CombatUpdate) => {
         const lines: Omit<FightLogLine, 'id'>[] = []
         for (const e of data.events || []) {
@@ -864,6 +884,8 @@ export default function GameView({
         socket.off('action_switched')
         socket.off('action_limit_reached')
         socket.off('combat_update')
+        // Only this view's listener: the feats panel listens to the same push.
+        if (skillXpListenerRef.current) socket.off('skill_xp_changed', skillXpListenerRef.current)
         socket.off('hp_changed')
         socket.off('force_refresh')
       }
@@ -947,7 +969,19 @@ export default function GameView({
   }, [travelStatus])
 
   // ── Restore timer on refresh ──────────────────────────────────────
+  // Restored from player data fetched AFTER this view mounted, never from the
+  // copy it mounted with. Switching between the desktop and phone layouts
+  // remounts this view while App still holds the player data from page load,
+  // so the action started since was missing (the scene sat empty until the
+  // server next pushed something) or a finished one came back.
+  const mountedWith = useRef(playerData)
   useEffect(() => {
+    onPlayerDataUpdate()
+    // Once, on mount: the refresh is the point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    if (playerData === mountedWith.current) return
     if (!playerData?.currentAction) return
     if (currentAction) return
     if (playerData.currentAction.bot_check_pending) return
