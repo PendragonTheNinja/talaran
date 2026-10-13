@@ -296,6 +296,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 - **Adding `.count()` to a `.select()`** makes Knex infer only the aggregate shape. Type the call (`.select<{ player_id: number }[]>(…)`) rather than using `any`.
 - **`fish_species` holds fish AND salvage** (`kind`). Every query needs a `kind` filter; hiding salvage in the client alone had to be fixed in four places.
 - **`training-path` in `routes/manual.ts` reads only `resource_nodes` and `recipes`.** A skill whose progression lives in its own table renders an empty manual table until it gets a branch.
+- **Every level gate is listed in `services/unlocks.ts`** (`unlocksAt`, the level-up popup's "Now open to you"): nodes, recipes, crops, fish, habitats, huntable animals, traps, husbandry species, wearable gear (by `gateSkill` in `services/equipGates.ts`, shared with equipping and item pages) and roads. A new level-gated table needs a branch there, or its level-ups say nothing.
 - **A reset to a reusable state must clear every field the last use wrote.** A trap reset that kept `bait_category` aimed every later catch.
 - **`quests.skill` is nullable.** Client renders must guard it.
 - **Dialogue actions carry the quest ID** (`start_quest:12`). Names are a warned fallback. `complete_talk_objective` **requires** a payload after the colon.

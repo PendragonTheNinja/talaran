@@ -6,6 +6,7 @@ import { Request } from 'express';
 import { logger } from '../lib/logger';
 import { onlinePlayers } from '../lib/realtime';
 import { combatStanding } from '../services/combat';
+import { unlocksAt } from '../services/unlocks';
 
 const router = Router();
 
@@ -112,6 +113,23 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       await db('players').where({ id: playerId }).update({ has_seen_welcome: true });
       res.json({ success: true });
     } catch (err) {
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  // What a level of a skill opens, for the level-up popup (services/unlocks.ts).
+  // Public knowledge: the Manual's training paths show the same ladder.
+  router.get('/unlocks/:skill/:level', requireAuth, async (req: AuthRequest, res: Response) => {
+    const skill = String(req.params.skill ?? '').slice(0, 60);
+    const level = Math.floor(Number(req.params.level));
+    if (!skill || !Number.isFinite(level) || level < 1 || level > 120) {
+      res.status(400).json({ error: 'Bad request.' });
+      return;
+    }
+    try {
+      res.json({ unlocks: await unlocksAt(skill, level) });
+    } catch (err) {
+      logger.error(`Unlocks error (${skill} ${level}): ${err}`);
       res.status(500).json({ error: 'Server error' });
     }
   });

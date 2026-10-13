@@ -9,6 +9,7 @@ import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
+import LevelUpUnlocks from './LevelUpUnlocks'
 import { announceHp, describeSwing, fetchFightState, localizeFight, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
 
 interface Node {
@@ -2114,6 +2115,7 @@ export default function GameView({
             </div>
             <p className="levelup-skill">{levelUpSkill.name}</p>
             <p className="levelup-level">Level <span className="levelup-level-num">{levelUpSkill.level}</span></p>
+            <LevelUpUnlocks key={`${levelUpSkill.name}-${levelUpSkill.level}`} skill={levelUpSkill.name} level={levelUpSkill.level} />
             <button
               className="levelup-share"
               onClick={() => {

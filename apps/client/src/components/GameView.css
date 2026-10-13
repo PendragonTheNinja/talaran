@@ -690,3 +690,49 @@
   padding: var(--space-lg);
   box-shadow: var(--shadow-lg);
 }
+
+/* What the new level opens (LevelUpUnlocks.tsx). */
+.levelup-unlocks {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-gold);
+  max-width: 280px;
+}
+
+.levelup-unlocks-title {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  margin-bottom: 6px;
+}
+
+.levelup-unlocks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.levelup-unlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 15px;
+  color: var(--color-text-bright);
+}
+
+.levelup-unlock-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.levelup-unlocks-more {
+  font-size: 13px;
+  margin-top: 4px;
+}

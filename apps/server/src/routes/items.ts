@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { gateSkill } from './equipment';
+import { gateSkill } from '../services/equipGates';
 import { isForm } from '../services/combat';
 import { FORMS } from '../lib/combatMath';
 import { isFightFood } from '../services/combatFights';
