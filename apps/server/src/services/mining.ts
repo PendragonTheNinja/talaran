@@ -194,14 +194,13 @@ export async function processMiningRock(
       .first();
 
     if (!alreadyDiscovered) {
-      const explorationXp = node.required_level * 5;
+      // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
       await db('player_exploration').insert({
         player_id: playerId,
         discovery_type: 'resource_node',
         discovery_key: discoveryKey,
-        xp_awarded: explorationXp,
+        xp_awarded: 0,
       });
-      await awardXp(playerId, 'Exploration', explorationXp);
     }
 
     await incrementStats(playerId, {
@@ -310,14 +309,13 @@ export async function processMiningVein(
       .first();
 
     if (!alreadyDiscovered) {
-      const explorationXp = ore.level_required * 8;
+      // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
       await db('player_exploration').insert({
         player_id: playerId,
         discovery_type: 'ore',
         discovery_key: discoveryKey,
-        xp_awarded: explorationXp,
+        xp_awarded: 0,
       });
-      await awardXp(playerId, 'Exploration', explorationXp);
     }
 
     await incrementStats(playerId, {

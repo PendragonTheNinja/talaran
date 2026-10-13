@@ -7,7 +7,6 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Exploration XP for the first time a player pulls a given item from a given
 // habitat. Flat, because the discovery is the achievement, not the item.
-const FORAGING_DISCOVERY_XP = 10;
 
 // Foraging (docs/foraging-spec.md). A habitat is a gatherable patch; each cycle
 // is a WEIGHTED PICK of one find from its drop_table. Gloves gate the prickly
@@ -194,8 +193,8 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         if (!already) {
             await db('player_foraging_discoveries')
                 .insert({ player_id: playerId, habitat_id: habitatId, item_name: pick.itemName });
+            // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
             firstDiscovery = true;
-            await awardXp(playerId, 'Exploration', FORAGING_DISCOVERY_XP);
         }
 
         return { success: true, itemName: pick.itemName, quantity: qty, xp: pick.xp, notable: !!pick.notable, firstDiscovery };

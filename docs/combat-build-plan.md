@@ -137,3 +137,6 @@ Granary Rats were checked against their sources (2026-10-11): a drawn Novita fig
 ## Decided while planning
 
 - A Jumper drops ore directly, a few Ambren or Burgh Ore within a range (decided 2026-10-10); no sack item.
+- Breakage stops you until you re-equip; no auto re-equip for now (2026-10-13).
+- Dock Rat drops Bones 1 in 5 and Linen Cloth 1 in 200 (2026-10-13, migration `20261013130000_dock_rat_drops`).
+- Early Defense: missed blows count for Defense, 0.5 at Defense 1 fading to 0 by Defense 13 (2026-10-13, `dodgedWeight`).

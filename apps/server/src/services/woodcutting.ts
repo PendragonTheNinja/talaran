@@ -268,17 +268,14 @@ export async function processWoodcuttingAction(
     });
 
     if (!alreadyDiscovered) {
-      const explorationXp = node.required_level * 5;
+      // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
       await db('player_exploration').insert({
         player_id: playerId,
         discovery_type: 'resource_node',
         discovery_key: discoveryKey,
-        xp_awarded: explorationXp,
+        xp_awarded: 0,
       });
-
-      await awardXp(playerId, 'Exploration', explorationXp);
-
-      logger.info(`Player ${playerId} discovered ${node.name} — awarded ${explorationXp} Exploration XP`);
+      logger.info(`Player ${playerId} discovered ${node.name}`);
     }
 
     // Two keys, rolled independently. The wood key carries anything that comes

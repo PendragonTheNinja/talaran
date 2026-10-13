@@ -52,7 +52,6 @@ const SALVAGE_CHANCE_BAITED_PCT = 2;
 const SALVAGE_XP_FRACTION = 0.5;
 const TIER_BONUS_PER_TIER = 0.05;       // (tier - 1) x 5%: the island's own rod is the baseline
 const TIER_BONUS_CAP = 0.5;
-const DISCOVERY_EXPLORATION_XP = 10;    // matches foraging's first-find bonus
 
 export const BAIT_CATEGORIES = ['grain', 'cheese', 'egg', 'spawn', 'meat'] as const;
 export type BaitCategory = typeof BAIT_CATEGORIES[number];
@@ -410,8 +409,8 @@ async function recordDiscovery(trx: any, playerId: number, species: string): Pro
     const already = await trx('player_fishing_discoveries')
         .where({ player_id: playerId, species }).first();
     if (already) return false;
+    // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
     await trx('player_fishing_discoveries').insert({ player_id: playerId, species });
-    await awardSkillXp(trx, playerId, 'Exploration', DISCOVERY_EXPLORATION_XP);
     return true;
 }
 
