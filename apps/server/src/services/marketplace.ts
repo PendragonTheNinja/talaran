@@ -376,8 +376,14 @@ function seededRandom(seed: string): () => number {
     };
 }
 
-export const ROTATING_LINES_MIN = 3;
-export const ROTATING_LINES_MAX = 5;
+/**
+ * Lines on a merchant's shelf each day (Nathan, 2026-10-13): drawn by date from
+ * everything they carry, each with its own daily units (merchant_stock min_qty
+ * to max_qty, 1 to 3 from the seed). A line marked is_core is on the shelf
+ * every day and takes one of the 8; none is marked today, and it is there for
+ * when tools can break.
+ */
+export const DAILY_LINES = 8;
 
 export interface StockLine {
     itemId: number;
@@ -392,11 +398,9 @@ export interface StockLine {
 }
 
 /**
- * Today's shelf for one merchant, for one player.
- *
- * Core lines are always present, which is what makes tools breaking survivable:
- * a player whose only pickaxe snaps can always replace it, even on a day the
- * rotation favours something else.
+ * Today's shelf for one merchant, for one player: DAILY_LINES lines, every
+ * is_core line first and the rest drawn by date from everything else they
+ * carry, so the shelf is the same all day and for everyone.
  */
 export async function getStock(merchantId: number, playerId: number, now: Date = new Date()): Promise<StockLine[]> {
     const dayKey = gameDayKey(now);
@@ -431,8 +435,7 @@ export async function getStock(merchantId: number, playerId: number, now: Date =
         const j = Math.floor(rand() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    const lineCount = ROTATING_LINES_MIN + Math.floor(rand() * (ROTATING_LINES_MAX - ROTATING_LINES_MIN + 1));
-    const rotating = shuffled.slice(0, lineCount);
+    const rotating = shuffled.slice(0, Math.max(0, DAILY_LINES - core.length));
 
     const selected = [...core, ...rotating];
     if (selected.length === 0) return [];

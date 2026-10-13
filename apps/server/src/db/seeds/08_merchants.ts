@@ -31,10 +31,17 @@ interface MerchantSeed {
     sells: boolean;
     is_active: boolean;
     display_order: number;
-    /** Always in stock. The safety net that makes tools breaking survivable. */
-    core: string[];
-    /** Candidates for the daily rotation. Empty is fine. */
-    rotating?: string[];
+    /**
+     * Everything this merchant carries. Each day DAILY_LINES of these are on
+     * the shelf, chosen by date (getStock in services/marketplace.ts), each
+     * with its own 1 to 3 units per player (Nathan, 2026-10-13).
+     */
+    stock: string[];
+    /**
+     * On the shelf every day, on top of the daily draw's share of the 8.
+     * Empty for now: the breakage safety net, kept for when tools can break.
+     */
+    always?: string[];
 }
 
 const LOCATION = 'Talador';
@@ -52,7 +59,7 @@ const MERCHANTS: MerchantSeed[] = [
         sells: true,
         is_active: true,
         display_order: 1,
-        core: [
+        stock: [
             'Ambren Pickaxe',
             'Ambren Hatchet',
             'Ambren Hammer',
@@ -70,14 +77,10 @@ const MERCHANTS: MerchantSeed[] = [
             'Ambren Meat Cleaver',
             'Ambren Ladle',
             'Ambren Flesh Hook',
-        ],
-        // His own forge work beyond the tools, a few pieces a day (3 to 5 of
-        // these, chosen by date: getStock in services/marketplace.ts), so a
-        // fighter who does not smith can still buy a blade or a helm, just not
-        // whichever one they like on any given morning (Nathan, 2026-10-13).
-        // Nails and arrows are left out: they are bought by the hundred, and
-        // a daily line allows a handful.
-        rotating: [
+            // His forge work beyond the tools, so a fighter who does not smith
+            // can still buy a blade or a helm, just not whichever one they like
+            // on any given morning. Nails and arrows are left out: they are
+            // bought by the hundred, and a daily line allows a handful.
             'Ambren Anvil',
             'Ambren Daggers', 'Ambren Hand Axes', 'Ambren War Hammers',
             'Ambren Spear', 'Ambren Scimitar', 'Ambren Mace',
@@ -96,7 +99,7 @@ const MERCHANTS: MerchantSeed[] = [
         sells: true,
         is_active: true,
         display_order: 2,
-        core: [
+        stock: [
             'Lanai Mallet',
             'Lanai Bucket',
             'Lanai Sawhorse',
@@ -116,7 +119,7 @@ const MERCHANTS: MerchantSeed[] = [
         sells: true,
         is_active: true,
         display_order: 3,
-        core: [
+        stock: [
             'Leather Boots',
             'Leather Foraging Gloves',
             'Halter & Lead',
@@ -148,7 +151,7 @@ const MERCHANTS: MerchantSeed[] = [
         sells: false,
         is_active: true,
         display_order: 4,
-        core: [],
+        stock: [],
     },
     {
         key: 'pawnbroker',
@@ -160,14 +163,14 @@ const MERCHANTS: MerchantSeed[] = [
         sells: false,
         is_active: true,
         display_order: 5,
-        core: [],
+        stock: [],
     },
 ];
 
-// Units of a given tool one player may buy per day. Rolled per item per day
-// between these, so the shelf is stable for a whole Eastern day.
-const TOOL_MIN_QTY = 1;
-const TOOL_MAX_QTY = 5;
+// Units of a line one player may buy per day. Rolled per item per day between
+// these, so the shelf is stable for a whole Eastern day (Nathan, 2026-10-13).
+const LINE_MIN_QTY = 1;
+const LINE_MAX_QTY = 3;
 
 export async function seed(knex: Knex): Promise<void> {
     const location = await knex('locations').where({ name: LOCATION }).first();
@@ -176,7 +179,7 @@ export async function seed(knex: Knex): Promise<void> {
     // Resolve every name up front so a typo fails before anything is written.
     const wanted = new Set<string>();
     for (const m of MERCHANTS) {
-        for (const n of [...m.core, ...(m.rotating ?? [])]) wanted.add(n);
+        for (const n of [...m.stock, ...(m.always ?? [])]) wanted.add(n);
     }
 
     const items = await knex('items').whereIn('name', [...wanted]).select('id', 'name');
@@ -211,8 +214,8 @@ export async function seed(knex: Knex): Promise<void> {
         const merchant = await knex('merchants').where({ key: m.key }).first();
 
         const lines = [
-            ...m.core.map(name => ({ name, is_core: true })),
-            ...(m.rotating ?? []).map(name => ({ name, is_core: false })),
+            ...(m.always ?? []).map(name => ({ name, is_core: true })),
+            ...m.stock.map(name => ({ name, is_core: false })),
         ];
 
         for (const line of lines) {
@@ -221,8 +224,8 @@ export async function seed(knex: Knex): Promise<void> {
                 merchant_id: merchant.id,
                 item_id: itemId,
                 is_core: line.is_core,
-                min_qty: TOOL_MIN_QTY,
-                max_qty: TOOL_MAX_QTY,
+                min_qty: LINE_MIN_QTY,
+                max_qty: LINE_MAX_QTY,
                 is_active: true,
             };
 

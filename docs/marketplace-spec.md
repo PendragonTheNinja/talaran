@@ -191,11 +191,12 @@ Price = `ceil(value × 1.75)`.
 Stock is **per player, per day**, so every player sees the same shop and nobody
 races anyone. Two layers:
 
-- **Core stock, always available.** The entry tools for every skill, at 3 to 7
-  units per player per day depending on the tool. This is the breakage safety
-  net, and it is the reason tools breaking outright is survivable.
-- **Rotating stock, 3 to 5 extra lines per merchant per day**, drawn from a pool
-  of consumables and sundries.
+- **Eight lines a day per merchant** (Nathan, 2026-10-13, replacing core plus
+  rotating): drawn by date from everything the merchant carries, each line with
+  its own 1 to 3 units per player per day. Nothing is guaranteed today; a line
+  marked `is_core` (`always` in the seed) would be on the shelf every day and
+  take one of the eight. That flag is the breakage safety net to bring back when
+  tools can break.
 
 **Implementation note that matters:** seed the daily rotation from the date
 string, not `Math.random()`, so the shop is stable across server restarts. A
