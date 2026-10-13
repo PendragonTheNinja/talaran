@@ -2,6 +2,7 @@ import db from '../db'
 import { logger } from '../lib/logger'
 import { levelFromXp } from './xp'
 import { SERVER_ERROR } from '../lib/serviceResult'
+import { combatStanding } from './combat'
 
 // ── Feats ─────────────────────────────────────────────────────────
 //
@@ -95,7 +96,22 @@ async function snapshot(playerId: number) {
         museumRows.rows.map((r: any) => [r.key, { given: r.given, total: r.total }]),
     )
 
-    return { stats, levels, totalLevel, tradeCount, museums }
+    // Combat level, from the three combat skills' levels (a missing row reads
+    // as level 1, as everywhere else in combat).
+    const combatLevel = combatStanding(levels, 0).combatLevel
+
+    // The Bestiary's counts: kills of each creature still in the world, for
+    // 'bestiary_one' (the most of any one creature) and 'bestiary_all' (how
+    // many creatures reach a bar, against how many there are today).
+    const killRows = await db('creatures as c')
+        .leftJoin('player_creature_kills as k', function () {
+            this.on('k.creature_id', '=', 'c.id').andOn('k.player_id', '=', db.raw('?', [playerId]))
+        })
+        .where('c.is_active', true)
+        .select<{ kills: number | null }[]>('k.kills')
+    const creatureKills = killRows.map(r => Number(r.kills ?? 0))
+
+    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills }
 }
 
 /**
@@ -109,6 +125,9 @@ function targetOf(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number
     // Every case on show in that museum, however many there are today: a new
     // item found for the first time raises it, and switching one off lowers it.
     if (feat.criterion_kind === 'museum_complete') return snap.museums.get(feat.criterion_target)?.total ?? 0
+    // Every creature in the world today: a new creature raises it. Earned
+    // feats are never taken back (player_feats rows stay).
+    if (feat.criterion_kind === 'bestiary_all') return snap.creatureKills.length
     return Number(feat.criterion_value)
 }
 
@@ -136,6 +155,17 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
         // criterion_target is the museum's key ('taiar').
         case 'museum_complete':
             return snap.museums.get(feat.criterion_target)?.given ?? 0
+        case 'combat_level':
+            return snap.combatLevel
+        // The most kills of any one creature, against criterion_value
+        // (1,000 is the Bestiary's last step, BESTIARY_STEPS.mastery).
+        case 'bestiary_one':
+            return snap.creatureKills.reduce((m, k) => Math.max(m, k), 0)
+        // How many creatures have at least criterion_target kills.
+        case 'bestiary_all': {
+            const bar = Number(feat.criterion_target) || 1
+            return snap.creatureKills.filter(k => k >= bar).length
+        }
         default:
             return 0
     }

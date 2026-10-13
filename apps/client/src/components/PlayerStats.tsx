@@ -58,6 +58,15 @@ export default function PlayerStats({ playerId }: PlayerStatsProps) {
                 <div className="stat-row"><span>Total Level</span><span className="gold-text">{data.totalLevel}</span></div>
                 <div className="stat-row"><span>Total XP</span><span className="gold-text">{Number(data.totalXp).toLocaleString()}</span></div>
             </div>
+
+            <div className="stats-section">
+                <p className="stats-section-title">Combat</p>
+                <div className="stat-row"><span>Combat level</span><span className="gold-text">{data.combatLevel ?? 1}</span></div>
+                <div className="stat-row"><span>Creatures killed</span><span>{Number(data.combat?.creaturesKilled ?? 0).toLocaleString()}</span></div>
+                {data.combat?.deaths !== undefined && (
+                    <div className="stat-row"><span>Times killed by creatures</span><span>{Number(data.combat.deaths).toLocaleString()}</span></div>
+                )}
+            </div>
         </div>
     )
 }

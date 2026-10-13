@@ -200,7 +200,16 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       // Combat level is public, like any level; HP is not shown on a profile.
       const { combatLevel } = combatStanding(new Map(skillsWithLevels.map(s => [s.name, s.level])), 0);
 
-      res.json({ player, skills: skillsWithLevels, equipment, totalLevel, totalXp, combatLevel });
+      // Kills are public, like a level. Deaths are yours alone, for the same
+      // reason failed bot checks are.
+      const stats = await db('player_stats').where({ player_id: targetId })
+        .first('total_creatures_killed', 'total_combat_deaths');
+      const combat = {
+        creaturesKilled: Number(stats?.total_creatures_killed ?? 0),
+        ...(isSelf ? { deaths: Number(stats?.total_combat_deaths ?? 0) } : {}),
+      };
+
+      res.json({ player, skills: skillsWithLevels, equipment, totalLevel, totalXp, combatLevel, combat });
     } catch (err) {
       logger.error(`Profile error: ${err}`);
       res.status(500).json({ error: 'Server error' });

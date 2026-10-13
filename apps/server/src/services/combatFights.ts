@@ -504,17 +504,22 @@ async function afterFight(report: FightReport | null): Promise<void> {
             })
 
             // Defense and Constitution level too, and the result card speaks
-            // for Melee only: their firsts and feats are claimed here.
+            // for Melee only: their firsts are claimed here (feats below).
             for (const skill of [COMBAT_SKILLS.defense, COMBAT_SKILLS.constitution]) {
                 const after = kill.xpAfter[skill] ?? 0
                 const gained = skill === COMBAT_SKILLS.defense ? kill.xp.defense : kill.xp.constitution
                 if (gained > 0 && levelFromXp(after - gained) < levelFromXp(after)) {
                     const { claimSkillMilestone } = await import('./records')
                     await claimSkillMilestone(playerId, skill, levelFromXp(after))
-                    const { evaluateFeats } = await import('./feats')
-                    for (const feat of await evaluateFeats(playerId)) pushToPlayer(playerId, 'feat_earned', feat)
                 }
             }
+        }
+
+        // Feats: kill counts, combat level, the Bestiary, a first fall. Once
+        // per settle that killed or died, after everything above has landed.
+        if (report.kills.length || report.ended === 'died') {
+            const { evaluateFeats } = await import('./feats')
+            for (const feat of await evaluateFeats(playerId)) pushToPlayer(playerId, 'feat_earned', feat)
         }
 
         // "Kill ten Dock Rats" (quest objective type 'kill', target the creature's name).
