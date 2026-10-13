@@ -1,31 +1,59 @@
-/* The fight fills the scene and never scrolls: everything above the swing log
-   keeps its size, and the log takes whatever height is left
-   (.scene-fight-overlay in GameView.css holds it). */
+/* The fight fills the scene and never scrolls. Food runs down the scene's
+   edges (left first, then right) and the fight keeps the middle; in the
+   middle, everything above the swing log keeps its size and the log takes
+   whatever height is left (.scene-fight-overlay in GameView.css holds it). */
 .fight-view {
+    --food-tile: 44px;
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-sm);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.fight-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 560px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-sm);
-    width: 100%;
-    max-width: 560px;
     height: 100%;
     min-height: 0;
 }
 
 
-/* ── Food ── */
-.fight-food {
+/* ── Food: a column down each edge, more stepping inward ── */
+.fight-food-side {
+    flex: 0 0 auto;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: row;
     gap: var(--space-xs);
-    justify-content: center;
-    align-items: center;
-    flex-shrink: 0;
+    min-width: var(--food-tile);
+    height: 100%;
+    min-height: 0;
+}
+
+.fight-food-col {
+    flex: 0 0 var(--food-tile);
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    /* Clear of the scene's corner buttons (journal and bot check). */
+    padding-bottom: 56px;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .fight-food-slot {
-    width: 44px;
-    height: 44px;
+    width: var(--food-tile);
+    height: var(--food-tile);
+    flex-shrink: 0;
     border: 1px solid var(--color-border-gold);
     cursor: pointer;
 }
@@ -37,6 +65,8 @@
 
 .fight-food-empty {
     font-size: 13px;
+    text-align: center;
+    flex-shrink: 0;
 }
 
 /* ── The face-off: you, the countdown, the creature ── */
@@ -326,9 +356,8 @@
     }
 
 
-    .fight-food-slot {
-        width: 38px;
-        height: 38px;
+    .fight-view {
+        --food-tile: 38px;
     }
 }
 
@@ -350,6 +379,13 @@
 @media (max-width: 520px) {
     .fight-view {
         --fight-portrait: 80px;
+        --food-tile: 36px;
+        gap: var(--space-xs);
+    }
+
+    /* The middle is narrower beside the food: names wrap rather than clip. */
+    .fight-side-name {
+        white-space: normal;
     }
 
     .fight-faceoff {
