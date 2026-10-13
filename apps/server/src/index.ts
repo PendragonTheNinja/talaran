@@ -70,6 +70,7 @@ import trappingRoutes from './routes/trapping';
 import fishingRoutes from './routes/fishing';
 import lootLogRoutes from './routes/lootLog';
 import { AVATAR_DIR, AVATAR_URL_PREFIX } from './services/avatars';
+import { fillMissingCases } from './services/museum';
 
 dotenv.config();
 
@@ -421,6 +422,11 @@ if (require.main === module) {
   // Inside this block because it reads the database: it used to run on every
   // import of this file, so any script that imported `io` ran it too.
   void logBalanceChecksAtStartup();
+
+  // Every obtainable item gets its museum case, so new content (and anything
+  // values:derive just priced) shows its empty silhouette. Adds only what is
+  // missing; never throws.
+  void fillMissingCases();
 
   // Start the game tick
   startGameTick(io);

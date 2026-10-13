@@ -171,6 +171,49 @@ export async function donate(playerId: number, caseIdRaw: unknown): Promise<
 }
 
 /**
+ * Give every obtainable item a case, as the museum's first fill did
+ * (migration 20260930040000): active, priced (an item with no price has no way
+ * to be had), not gold, and claimed by an exhibit. Items added after that fill
+ * only got a case when someone first found them, so whole sets (the Ambren
+ * arms and armour) were missing their empty silhouettes. Run at startup, after
+ * a deploy's `values:derive` has priced anything new; it adds only what is
+ * missing, at the end of each exhibit, and never moves a case or touches a
+ * donation.
+ *
+ * Only while there is one museum: an item belongs to the island it is found
+ * on, and nothing records that until someone finds it (placeNewItem).
+ */
+export async function fillMissingCases(): Promise<number> {
+    try {
+        const museums = await db('museums').select('id', 'name');
+        if (museums.length !== 1) return 0;
+        const exhibits = await db('museum_exhibits').where({ museum_id: museums[0].id });
+        const items = await db('items as i')
+            .leftJoin('museum_cases as c', 'c.item_id', 'i.id')
+            .whereNull('c.id')
+            .where('i.is_active', true).where('i.value', '>', 0).whereNot('i.name', 'Gold')
+            .orderBy([{ column: 'i.tier' }, { column: 'i.name' }])
+            .select('i.id', 'i.name', 'i.type', 'i.subtype');
+        let added = 0;
+        for (const item of items) {
+            const exhibitId = exhibitFor(item, exhibits);
+            if (exhibitId === null) continue;
+            const [{ max }] = await db('museum_cases').where({ exhibit_id: exhibitId }).max('display_order as max');
+            const inserted = await db('museum_cases')
+                .insert({ exhibit_id: exhibitId, item_id: item.id, display_order: Number(max ?? -1) + 1 })
+                .onConflict('item_id').ignore()
+                .returning('id');
+            added += inserted.length;
+        }
+        if (added) logger.info(`[museum] ${added} missing case(s) added to ${museums[0].name}`);
+        return added;
+    } catch (err) {
+        logger.error(`[museum] filling missing cases failed: ${err}`);
+        return 0;
+    }
+}
+
+/**
  * A new item found for the first time anywhere is added to the museum of the
  * island it was found on, on the exhibit its kind belongs to, at the end.
  * Nothing happens if it already has a case (in any museum), is gold or
