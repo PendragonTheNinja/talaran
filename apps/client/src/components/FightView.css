@@ -121,8 +121,10 @@
 .fight-portrait {
     position: relative;
     align-self: center;
-    width: var(--fight-portrait, 104px);
-    height: var(--fight-portrait, 104px);
+    /* Never wider than its column, however narrow the scene gets. */
+    width: min(var(--fight-portrait, 104px), 100%);
+    height: auto;
+    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -376,7 +378,9 @@
     }
 }
 
-@media (max-width: 520px) {
+/* Narrow by the fight's own width, not the window's: a desktop window just
+   above the phone layout leaves the scene as narrow as a phone. */
+@container fight-scene (max-width: 520px) {
     .fight-view {
         --fight-portrait: 80px;
         --food-tile: 36px;
@@ -393,4 +397,23 @@
         gap: var(--space-xs);
     }
 
+    .fight-countdown {
+        font-size: 24px;
+    }
+
+    .fight-middle-label {
+        white-space: normal;
+        font-size: 10px;
+    }
+}
+
+@container fight-scene (max-width: 380px) {
+    .fight-view {
+        --fight-portrait: 64px;
+        --food-tile: 32px;
+    }
+
+    .fight-portrait-initial {
+        font-size: 28px;
+    }
 }
