@@ -104,7 +104,12 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
     // moment the server set, on this browser's clock (localizeFight).
     const [now, setNow] = useState(() => Date.now())
     const engageAt = fight?.engageAtLocal ?? 0
-    const approaching = !!fight && engageAt > now
+    // A bot check freezes the fight between kills. The next creature's
+    // approach is not running then (the server restarts it from the answer),
+    // so nothing counts down and nothing new is shown until the check is
+    // answered: one approach, after it, rather than one during and another after.
+    const frozen = !!fight?.frozen
+    const approaching = !!fight && !frozen && engageAt > now
     const fighting = !!fight
     useEffect(() => {
         if (!fighting) return
@@ -123,7 +128,7 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
     // whatever comes, nobody knows what is coming, so it is a "?" with no
     // health; at a spot where the player chose, the picture shows faded and
     // the health bar waits.
-    const unknown = approaching && !fallen && fight?.spot.kind !== 'chosen'
+    const unknown = (approaching || frozen) && !fallen && fight?.spot.kind !== 'chosen'
     const foeName = fallen ?? (unknown ? null : fight?.creature.name) ?? null
 
     // Most mending first, always, so a meal stays where you last saw it.
@@ -161,7 +166,9 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
                 </div>
 
                 <div className="fight-middle">
-                    {approaching ? (
+                    {frozen ? (
+                        <span className="fight-middle-label muted-text">resting</span>
+                    ) : approaching ? (
                         <>
                             <span className="fight-countdown tabular-num">{Math.max(1, Math.ceil((engageAt - now) / 1000))}</span>
                             <span className="fight-middle-label muted-text">closing in</span>
@@ -177,14 +184,14 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
                             src={getCreatureImage(foeName)}
                             name={foeName}
                             flashKey={fallen ? null : lastHit('you')}
-                            state={fallen ? 'fallen' : approaching ? 'approaching' : undefined}
+                            state={fallen ? 'fallen' : approaching || frozen ? 'approaching' : undefined}
                         />
                         : <div className="fight-portrait approaching"><span className="fight-portrait-initial">?</span></div>}
                     <span className="fight-side-name">
-                        {!fight ? '...' : unknown ? 'Something comes' : fight.creature.name}
+                        {!fight ? '...' : unknown ? (frozen ? 'Nothing yet' : 'Something comes') : fight.creature.name}
                         {fight && !unknown && <span className="muted-text"> (level {fight.creature.level})</span>}
                     </span>
-                    {fight && !approaching
+                    {fight && !approaching && !frozen
                         ? <Bar current={fight.enemyHp} max={fight.enemyMaxHp} kind="foe" />
                         : <div className="fight-bar" />}
                     {!unknown && fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (

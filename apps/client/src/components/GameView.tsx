@@ -103,6 +103,62 @@ const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita', 'Phoenw
 // rendered no flavour text and no cancel button and failed silently. They are
 // rows now: see lib/actionPresentation.ts and the action_presentation table.
 
+/** What the result card shows after an action completes (a kill's pay among them). */
+type LastResult = {
+  itemName: string
+  xpAwarded: number
+  totalXp: number
+  level: number
+  xpToNext: number
+  xpAtLevel: number
+  skillName: string
+  remainingQuantity?: number
+  quantity?: number
+  ingredientsRemaining?: { name: string; quantity: number }[]
+  outputTotal?: number
+  ended?: 'limit' | 'materials' | 'unavailable'
+  /** A world event's bonus, shown beside the normal XP. */
+  eventXp?: number
+  /** The server's own sentence for why it stopped, shown instead of a guess. */
+  endedReason?: string
+  drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[]
+  notable?: boolean
+  firstDiscovery?: boolean
+  firstEver?: boolean
+  message?: string
+  /** Every skill an action paid, where it paid more than one (a kill). */
+  xpAwards?: { skill: string; xp: number }[]
+  /** A card that is only its ended line: a fight that ended before any kill. */
+  noDetails?: boolean
+}
+
+/**
+ * The fight log and the last kill's pay, kept outside the component: GameView
+ * is rebuilt when the layout switches (desktop and phone are different trees),
+ * and both used to vanish mid-fight while the fight itself carried on. A page
+ * reload still starts them empty. Kept per player, so a different login in the
+ * same tab never inherits someone else's fight.
+ */
+const fightMemory: { playerId: number | null; log: FightLogLine[]; lastId: number; spoils: LastResult | null } = {
+  playerId: null, log: [], lastId: 0, spoils: null,
+}
+
+/** Whose game this tab is showing (set at login). */
+function signedInPlayerId(): number | null {
+  try {
+    return Number(JSON.parse(localStorage.getItem('talaran_player') ?? 'null')?.id) || null
+  } catch {
+    return null
+  }
+}
+
+/** This player's remembered fight, or an empty one. */
+function rememberedFight() {
+  const id = signedInPlayerId()
+  if (fightMemory.playerId !== id) Object.assign(fightMemory, { playerId: id, log: [], lastId: 0, spoils: null })
+  return fightMemory
+}
+
 export default function GameView({
   locationData,
   playerData,
@@ -139,33 +195,7 @@ export default function GameView({
   const [veinNotification, setVeinNotification] = useState<string | null>(null)
   const [farmKind, setFarmKind] = useState<string>('till')
   const [husbandryKind, setHusbandryKind] = useState<string>('feed')
-  const [lastResult, setLastResult] = useState<{
-    itemName: string
-    xpAwarded: number
-    totalXp: number
-    level: number
-    xpToNext: number
-    xpAtLevel: number
-    skillName: string
-    remainingQuantity?: number
-    quantity?: number
-    ingredientsRemaining?: { name: string; quantity: number }[]
-    outputTotal?: number
-    ended?: 'limit' | 'materials' | 'unavailable'
-    /** A world event's bonus, shown beside the normal XP. */
-    eventXp?: number
-    /** The server's own sentence for why it stopped, shown instead of a guess. */
-    endedReason?: string
-    drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[]
-    notable?: boolean
-    firstDiscovery?: boolean
-    firstEver?: boolean
-    message?: string
-    /** Every skill an action paid, where it paid more than one (a kill). */
-    xpAwards?: { skill: string; xp: number }[]
-    /** A card that is only its ended line: a fight that ended before any kill. */
-    noDetails?: boolean
-  } | null>(null)
+  const [lastResult, setLastResult] = useState<LastResult | null>(null)
   // Level-ups queue: one kill can raise Melee, Defense and Constitution at
   // once, and each gets its own popup in turn. Setting null closes the
   // current one and shows the next.
@@ -183,9 +213,19 @@ export default function GameView({
   const [fight, setFight] = useState<FightState | null>(null)
   const [fightHp, setFightHp] = useState<Hp | null>(null)
   const [fightFood, setFightFood] = useState<FightFood[]>([])
-  const [fightLog, setFightLog] = useState<FightLogLine[]>([])
+  // Starts from fightMemory, so a layout switch's rebuild keeps the log.
+  const [fightLog, setFightLog] = useState<FightLogLine[]>(() => rememberedFight().log)
   const [fightBusy, setFightBusy] = useState(false)
-  const fightLogIdRef = useRef(0)
+  const fightLogIdRef = useRef(rememberedFight().lastId)
+  // Kept outside the component so a layout switch keeps them (fightMemory).
+  useEffect(() => {
+    const m = rememberedFight()
+    m.log = fightLog
+    m.lastId = fightLogIdRef.current
+  }, [fightLog])
+  useEffect(() => {
+    if (lastResult && Array.isArray(lastResult.xpAwards)) rememberedFight().spoils = lastResult
+  }, [lastResult])
   const fightCreatureRef = useRef<string | null>(null)
 
   const [travelLogOpen, setTravelLogOpen] = useState(false)
@@ -259,6 +299,7 @@ export default function GameView({
     try {
       if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
       setLastResult(null)
+      rememberedFight().spoils = null
       setCurrentAction(null)
       setActiveNodeId(null)
       setTimerSeconds(0)
@@ -1150,11 +1191,16 @@ export default function GameView({
         break
 
       // A fight has no timer to restore: it is re-read, settled to now.
-      case 'combat':
+      // The log and the last kill's pay come back from fightMemory after a
+      // layout switch; a fresh page has neither.
+      case 'combat': {
         setCurrentAction('combat')
-        setFightLog([])
+        const m = rememberedFight()
+        setFightLog(m.log)
+        if (m.spoils) setLastResult(m.spoils)
         refreshFight()
         break
+      }
 
       case 'traveling':
         break
