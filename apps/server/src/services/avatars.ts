@@ -69,13 +69,12 @@ function cleanCrop(raw: Record<string, unknown>): Crop | null {
 export async function processAvatar(buf: Buffer, rawCrop: Record<string, unknown>): Promise<{ ok: true; data: Buffer } | { ok: false; error: string }> {
     const crop = cleanCrop(rawCrop)
     if (!crop) return { ok: false, error: 'Choose a part of the picture to use.' }
-    let meta: sharp.Metadata
-    try {
-        // limitInputPixels guards against a tiny file that decodes to a huge one.
-        meta = await sharp(buf, { animated: true, limitInputPixels: 40_000_000 }).metadata()
-    } catch {
-        return { ok: false, error: 'That file is not a picture we can read.' }
-    }
+    // limitInputPixels guards against a tiny file that decodes to a huge one.
+    // The type comes from the call, not sharp's namespace: sharp ships separate
+    // type files for import and require, and ts-node and tsc can pick
+    // different ones.
+    const meta = await sharp(buf, { animated: true, limitInputPixels: 40_000_000 }).metadata().catch(() => null)
+    if (!meta) return { ok: false, error: 'That file is not a picture we can read.' }
     if (!meta.format || !FORMATS.has(meta.format)) return { ok: false, error: 'Use a PNG, JPEG, WebP or GIF.' }
     const pages = meta.pages ?? 1
     if (pages > MAX_FRAMES) return { ok: false, error: `That animation is too long (${MAX_FRAMES} frames at most).` }
