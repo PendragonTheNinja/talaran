@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // The Dock Rat carried nothing (Nathan, 2026-10-13):
 //
@@ -14,6 +15,8 @@ const DROPS: [string, number, number, number][] = [
 ];
 
 export async function up(knex: Knex): Promise<void> {
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
     if (!(await knex('creatures').where({ key: 'dock_rat' }).first())) throw new Error('dock_rat_drops: creature dock_rat not found');
     for (const [name, oneIn, min, max] of DROPS) {
         const item = await knex('items').where({ name }).first();

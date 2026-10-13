@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // Combat, step 9: the Bestiary (docs/combat-spec.md §8).
 //
@@ -37,6 +38,8 @@ export async function up(knex: Knex): Promise<void> {
     if (!(await knex.schema.hasColumn('creatures', 'lore'))) {
         await knex.schema.alterTable('creatures', t => { t.text('lore').nullable(); });
     }
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
     for (const [key, lore] of LORE) {
         const updated = await knex('creatures').where({ key }).update({ lore });
         if (updated !== 1) throw new Error(`bestiary: creature ${key} not found`);

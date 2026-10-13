@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // Combat drop rates, first pass (Nathan, 2026-10-11). Forward-fix on
 // 20261010140000_taiar_creatures, which was already delivered.
@@ -43,6 +44,8 @@ async function apply(knex: Knex, before: boolean): Promise<void> {
 }
 
 export async function up(knex: Knex): Promise<void> {
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
     await apply(knex, false);
 }
 

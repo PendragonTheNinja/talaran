@@ -309,6 +309,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 - **Knex orders by filename.** A migration saved without its timestamp prefix sorts last and runs last. Filenames must match between local and prod.
 - **A completed migration's file must stay on disk**, or Knex refuses to run ("migration directory is corrupt"). `20260726020000_guild_forum_categories.ts` is abandoned but kept deliberately.
 - Guard schema alters with `hasColumn` so a half-failed migration can be re-run.
+- **A content migration must survive a fresh database.** CI (and any new server) runs every migration BEFORE `content:import`, with no skills, items or locations. Create tables and columns unconditionally, then `if (!(await hasContent(knex))) return;` (`lib/migrationContent.ts`) before any lookup that throws on a missing row. The combat migrations lacked this and CI was red from step 1 until 2026-10-13. Check the branch's CI after every push; a red run is news.
 - **`:Zone.Identifier` files** appear when a browser download is dragged in via Explorer. One attached itself to a migration filename once.
 
 ---

@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // Combat, step 8: the special drops (docs/combat-spec.md §8, §13; approved by
 // Nathan 2026-10-12).
@@ -100,6 +101,9 @@ export async function up(knex: Knex): Promise<void> {
     ] as const) {
         if (!(await knex.schema.hasColumn('creatures', name))) await knex.schema.alterTable('creatures', add);
     }
+
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
 
     for (const item of [...RARE, ...CRABSHELL, ...TROPHIES]) {
         const existing = await knex('items').where({ name: item.name }).first();

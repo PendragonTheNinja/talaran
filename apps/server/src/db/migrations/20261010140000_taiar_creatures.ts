@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // Combat, step 3 (docs/combat-spec.md §8, docs/combat-build-plan.md).
 //
@@ -132,19 +133,6 @@ const DROPS: [string, string, number, number, number][] = [
 ];
 
 export async function up(knex: Knex): Promise<void> {
-    const itemIds = new Map<string, number>();
-    for (const name of new Set(DROPS.map(d => d[1]))) {
-        const item = await knex('items').where({ name }).first();
-        if (!item) throw new Error(`taiar_creatures: drop item ${name} not found`);
-        itemIds.set(name, item.id);
-    }
-    const locationIds = new Map<string, number>();
-    for (const name of new Set(SPOTS.map(s => s.location))) {
-        const location = await knex('locations').where({ name }).first();
-        if (!location) throw new Error(`taiar_creatures: location ${name} not found`);
-        locationIds.set(name, location.id);
-    }
-
     if (!(await knex.schema.hasTable('creatures'))) {
         await knex.schema.createTable('creatures', t => {
             t.increments('id').primary();
@@ -200,6 +188,21 @@ export async function up(knex: Knex): Promise<void> {
             t.unique(['spot_id', 'creature_id']);
         });
         await knex.raw('ALTER TABLE fighting_spot_creatures ADD CONSTRAINT fighting_spot_creatures_weight_positive CHECK (weight > 0)');
+    }
+
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
+    const itemIds = new Map<string, number>();
+    for (const name of new Set(DROPS.map(d => d[1]))) {
+        const item = await knex('items').where({ name }).first();
+        if (!item) throw new Error(`taiar_creatures: drop item ${name} not found`);
+        itemIds.set(name, item.id);
+    }
+    const locationIds = new Map<string, number>();
+    for (const name of new Set(SPOTS.map(s => s.location))) {
+        const location = await knex('locations').where({ name }).first();
+        if (!location) throw new Error(`taiar_creatures: location ${name} not found`);
+        locationIds.set(name, location.id);
     }
 
     const creatureIds = new Map<string, number>();

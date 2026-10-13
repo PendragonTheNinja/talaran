@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // Combat, step 2 (docs/combat-spec.md §6, §7; docs/combat-build-plan.md).
 //
@@ -127,10 +128,6 @@ async function upsert(knex: Knex, table: string, row: Record<string, unknown>) {
 }
 
 export async function up(knex: Knex): Promise<void> {
-    for (const name of INPUT_ITEMS) {
-        if (!(await knex('items').where({ name }).first())) throw new Error(`ambren_combat_gear: input item ${name} not found`);
-    }
-
     const columns: [string, (t: Knex.AlterTableBuilder) => void][] = [
         ['weapon_form', t => { t.string('weapon_form', 10).nullable(); }],
         ['damage_type', t => { t.string('damage_type', 10).nullable(); }],
@@ -140,6 +137,12 @@ export async function up(knex: Knex): Promise<void> {
     ];
     for (const [name, add] of columns) {
         if (!(await knex.schema.hasColumn('items', name))) await knex.schema.alterTable('items', add);
+    }
+
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
+    for (const name of INPUT_ITEMS) {
+        if (!(await knex('items').where({ name }).first())) throw new Error(`ambren_combat_gear: input item ${name} not found`);
     }
 
     for (const w of WEAPONS) {

@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { hasContent } from '../../lib/migrationContent';
 
 // Combat, step 1 (docs/combat-spec.md §2, docs/combat-build-plan.md).
 //
@@ -28,6 +29,16 @@ const OLD = {
 };
 
 export async function up(knex: Knex): Promise<void> {
+    if (!(await knex.schema.hasColumn('players', 'hp_missing'))) {
+        await knex.schema.alterTable('players', t => {
+            t.integer('hp_missing').notNullable().defaultTo(0);
+        });
+        await knex.raw('ALTER TABLE players ADD CONSTRAINT players_hp_missing_nonnegative CHECK (hp_missing >= 0)');
+    }
+
+    // A fresh database before content:import (lib/migrationContent.ts): schema only.
+    if (!(await hasContent(knex))) return;
+
     const strength = await knex('skills').where({ name: 'Strength' }).first();
     if (strength) {
         const banked = await knex('player_skills').where({ skill_id: strength.id }).andWhere('xp', '>', 0).count({ c: '*' }).first();
@@ -50,13 +61,6 @@ export async function up(knex: Knex): Promise<void> {
     for (const [name, description, display_order] of rows) {
         const updated = await knex('skills').where({ name }).update({ description, display_order, is_implemented: true });
         if (updated !== 1) throw new Error(`combat_skills: skill ${name} not found`);
-    }
-
-    if (!(await knex.schema.hasColumn('players', 'hp_missing'))) {
-        await knex.schema.alterTable('players', t => {
-            t.integer('hp_missing').notNullable().defaultTo(0);
-        });
-        await knex.raw('ALTER TABLE players ADD CONSTRAINT players_hp_missing_nonnegative CHECK (hp_missing >= 0)');
     }
 }
 
