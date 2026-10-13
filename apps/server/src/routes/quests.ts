@@ -100,13 +100,13 @@ router.post('/:id/start', requireAuth, async (req: AuthRequest, res: Response) =
  */
 export async function grantQuestItems(
     playerId: number,
-    itemsJson: string | null,
+    itemsJson: string | { itemName: string; qty: number }[] | null,
     x: Knex | Knex.Transaction = db,
 ): Promise<{ itemName: string; quantity: number }[]> {
     if (!itemsJson) return [];
     let items: { itemName: string; qty: number }[];
     try {
-        items = JSON.parse(itemsJson);
+        items = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
     } catch {
         logger.error(`grantQuestItems: bad JSON for player ${playerId}`);
         return [];
@@ -130,12 +130,59 @@ export async function grantQuestItems(
     return granted;
 }
 
+export interface QuestXpAward {
+    skill: string;
+    xp: number;
+}
+
 export interface QuestRewardSummary {
     questName: string;
     items: Array<{ itemName: string; quantity: number }>;
+    /** The first of xpAwards, for anything that only knows one skill. */
     xp: number;
     skill: string | null;
+    /** Every skill the quest pays, in order. */
+    xpAwards: QuestXpAward[];
     gold: number;
+}
+
+/**
+ * Every skill a quest pays on completion: its own `skill` and `reward_xp`,
+ * then each entry of `reward_skill_xp` (a JSON list of { skill, xp }), for a
+ * quest that teaches more than one skill at once, as Georold's does.
+ */
+export function questXpAwards(quest: any): QuestXpAward[] {
+    const awards: QuestXpAward[] = [];
+    if (quest?.skill && Number(quest.reward_xp) > 0) awards.push({ skill: quest.skill, xp: Number(quest.reward_xp) });
+    if (quest?.reward_skill_xp) {
+        try {
+            const extra = typeof quest.reward_skill_xp === 'string' ? JSON.parse(quest.reward_skill_xp) : quest.reward_skill_xp;
+            for (const e of Array.isArray(extra) ? extra : []) {
+                const xp = Math.floor(Number(e?.xp));
+                if (typeof e?.skill === 'string' && Number.isFinite(xp) && xp > 0) awards.push({ skill: e.skill, xp });
+            }
+        } catch {
+            logger.error(`questXpAwards: bad reward_skill_xp JSON on quest ${quest.id}`);
+        }
+    }
+    return awards;
+}
+
+/**
+ * A quest's start choices: [{ key, label, items: [{ itemName, qty }] }], from
+ * `quests.start_choices`. Accepting such a quest names one key
+ * ("start_quest:<id>:<key>"), and that choice's items are handed over beside
+ * the quest's own start_items.
+ */
+export function questStartChoices(quest: any): { key: string; label?: string; items: { itemName: string; qty: number }[] }[] {
+    if (!quest?.start_choices) return [];
+    try {
+        const parsed = typeof quest.start_choices === 'string' ? JSON.parse(quest.start_choices) : quest.start_choices;
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        logger.error(`questStartChoices: bad start_choices JSON on quest ${quest.id}`);
+        return [];
+    }
 }
 
 /**
@@ -180,8 +227,8 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
 
         const granted = await grantQuestItems(playerId, quest.reward_items, trx);
 
-        if (quest.reward_xp && quest.skill) {
-            await awardXp(playerId, quest.skill, quest.reward_xp, trx);
+        for (const award of questXpAwards(quest)) {
+            await awardXp(playerId, award.skill, award.xp, trx);
         }
 
         const gold = Number(quest.reward_gold ?? 0);
@@ -197,25 +244,23 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
 
     if (!outcome || !quest) return null;
 
+    const xpAwards = questXpAwards(quest);
+    const summary: QuestRewardSummary = {
+        questName: quest.name,
+        items: outcome.granted,
+        xp: xpAwards[0]?.xp ?? 0,
+        skill: xpAwards[0]?.skill ?? quest.skill ?? null,
+        xpAwards,
+        gold: outcome.gold,
+    };
+
     // After the commit, never inside it.
-    if (outcome.granted.length > 0 || quest.reward_xp || outcome.gold > 0) {
-        pushToPlayer(playerId, 'quest_rewards', {
-            questName: quest.name,
-            items: outcome.granted,
-            xp: quest.reward_xp || 0,
-            gold: outcome.gold,
-            skill: quest.skill,
-        });
+    if (outcome.granted.length > 0 || xpAwards.length > 0 || outcome.gold > 0) {
+        pushToPlayer(playerId, 'quest_rewards', summary);
     }
 
     logger.info(`Player ${playerId} completed quest ${questId}`);
-    return {
-        questName: quest.name,
-        items: outcome.granted,
-        xp: quest.reward_xp || 0,
-        skill: quest.skill ?? null,
-        gold: outcome.gold,
-    };
+    return summary;
 }
 
 
@@ -260,6 +305,15 @@ export async function backfillQuestObjectives(playerId: number, questId: number)
                 .where({ player_id: playerId, species: obj.target_item })
                 .first();
             satisfied = !!record && Number(record.catches) >= obj.required_amount;
+        } else if (obj.type === 'kill') {
+            // Kills before the quest count, as catches do: the Bestiary's
+            // lifetime count per creature answers it.
+            const row = await db('player_creature_kills as k')
+                .join('creatures as c', 'c.id', 'k.creature_id')
+                .where('k.player_id', playerId)
+                .where('c.name', obj.target_item)
+                .first('k.kills');
+            satisfied = !!row && Number(row.kills) >= obj.required_amount;
         }
 
         if (satisfied) {
@@ -290,18 +344,21 @@ export async function updateQuestObjectiveProgress(
                 .orderBy('order', 'asc');
 
             for (const obj of objectives) {
-                const playerObj = await db('player_quest_objectives')
+                // Relative and conditional in one statement (CLAUDE.md §4
+                // rule 1): two progress calls at once (a kill settled by the
+                // tick while an eat settles the next) both count.
+                const [row] = await db('player_quest_objectives')
                     .where({ player_id: playerId, objective_id: obj.id })
-                    .first();
+                    .whereRaw('is_complete IS NOT TRUE')
+                    .update({
+                        current_amount: db.raw('LEAST(COALESCE(current_amount, 0) + ?, ?)', [amount, obj.required_amount]),
+                        is_complete: db.raw('COALESCE(current_amount, 0) + ? >= ?', [amount, obj.required_amount]),
+                    })
+                    .returning(['current_amount', 'is_complete']);
+                if (!row) continue;
 
-                if (!playerObj || playerObj.is_complete) continue;
-
-                const newAmount = Math.min((playerObj.current_amount || 0) + amount, obj.required_amount);
-                const isComplete = newAmount >= obj.required_amount;
-
-                await db('player_quest_objectives')
-                    .where({ player_id: playerId, objective_id: obj.id })
-                    .update({ current_amount: newAmount, is_complete: isComplete });
+                const newAmount = Number(row.current_amount);
+                const isComplete = !!row.is_complete;
 
                 if (isComplete) {
                     await checkQuestCompletion(playerId, pq.quest_id);

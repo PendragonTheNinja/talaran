@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { updateQuestObjectiveProgress, checkQuestCompletion } from './quests';
+import { updateQuestObjectiveProgress, checkQuestCompletion, questStartChoices, questXpAwards } from './quests';
 
 const router = Router();
 
@@ -84,9 +84,13 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
                 } catch { items = []; }
 
                 const gold = Number(quest.reward_gold ?? 0);
-                const xp = Number(quest.reward_xp ?? 0);
-                if (items.length || gold > 0 || xp > 0) {
-                    pendingRewards = { questName: quest.name, items, gold, xp, skill: quest.skill ?? null };
+                const xpAwards = questXpAwards(quest);
+                if (items.length || gold > 0 || xpAwards.length > 0) {
+                    pendingRewards = {
+                        questName: quest.name, items, gold,
+                        xp: xpAwards[0]?.xp ?? 0, skill: xpAwards[0]?.skill ?? quest.skill ?? null,
+                        xpAwards,
+                    };
                 }
             }
         }
@@ -150,9 +154,23 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
 
         // Handle start_quest action
         if (action.startsWith('start_quest:')) {
-            const quest = await resolveActionQuest(action.replace('start_quest:', ''), npcId);
+            // "start_quest:<id>" or, for a quest that offers a choice on accept,
+            // "start_quest:<id>:<choice key>" (Georold's mace or spear). The
+            // action string was already checked against what this NPC offers;
+            // the key is checked again against the quest's own choices, so a
+            // dialogue row that names a key the quest does not have refuses
+            // rather than starting the quest empty-handed.
+            const payload = action.replace('start_quest:', '');
+            const withChoice = /^(\d+):([a-z0-9_-]+)$/.exec(payload.trim());
+            const quest = await resolveActionQuest(withChoice ? withChoice[1] : payload, npcId);
             if (!quest) {
                 res.status(404).json({ error: 'Quest not found.' });
+                return;
+            }
+            const choices = questStartChoices(quest);
+            const chosen = withChoice ? choices.find(c => c.key === withChoice[2]) : null;
+            if (choices.length ? !chosen : !!withChoice) {
+                res.status(400).json({ error: choices.length ? 'Choose one first.' : 'Quest not found.' });
                 return;
             }
 
@@ -184,9 +202,12 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                     });
                 }
 
-                // Items handed over on accept (Geonsen's bow, etc.)
+                // Items handed over on accept (Geonsen's bow, etc.), and the
+                // chosen one's, if the quest offers a choice.
                 const { grantQuestItems } = await import('./quests');
-                return grantQuestItems(playerId, quest.start_items, trx);
+                const granted = await grantQuestItems(playerId, quest.start_items, trx);
+                if (chosen) granted.push(...await grantQuestItems(playerId, chosen.items, trx));
+                return granted;
             });
 
             if (started === null) {

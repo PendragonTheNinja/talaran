@@ -517,6 +517,14 @@ async function afterFight(report: FightReport | null): Promise<void> {
             }
         }
 
+        // "Kill ten Dock Rats" (quest objective type 'kill', target the creature's name).
+        if (report.kills.length) {
+            const byCreature = new Map<string, number>()
+            for (const k of report.kills) byCreature.set(k.creatureName, (byCreature.get(k.creatureName) ?? 0) + 1)
+            const { updateQuestObjectiveProgress } = await import('../routes/quests')
+            for (const [name, n] of byCreature) await updateQuestObjectiveProgress(playerId, 'kill', name, n)
+        }
+
         pushToPlayer(playerId, 'combat_update', {
             events: report.events.map(e => ({ ...e, at: new Date(e.at).toISOString() })),
             kills: report.kills.map(k => ({ creature: k.creatureName, xp: k.xp, broken: k.broken })),

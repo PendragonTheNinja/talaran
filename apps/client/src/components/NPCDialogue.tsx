@@ -40,6 +40,8 @@ interface QuestRewards {
     items: Array<{ itemName: string; quantity: number }>
     xp: number
     skill: string | null
+    /** Every skill the quest pays; xp/skill are its first entry. */
+    xpAwards?: Array<{ skill: string; xp: number }>
     gold: number
 }
 
@@ -208,12 +210,14 @@ export default function NPCDialogue({ npcId, onClose, onInteraction }: NPCDialog
                                                 <span className="npc-rewards-amt">{data.pendingRewards.gold.toLocaleString()}g</span>
                                             </li>
                                         )}
-                                        {data.pendingRewards.xp > 0 && (
-                                            <li>
-                                                <span>{data.pendingRewards.skill} experience</span>
-                                                <span className="npc-rewards-amt">{data.pendingRewards.xp.toLocaleString()}</span>
+                                        {(data.pendingRewards.xpAwards
+                                            ?? (data.pendingRewards.xp > 0 ? [{ skill: data.pendingRewards.skill ?? '', xp: data.pendingRewards.xp }] : [])
+                                        ).map(a => (
+                                            <li key={`x${a.skill}`}>
+                                                <span>{a.skill} experience</span>
+                                                <span className="npc-rewards-amt">{a.xp.toLocaleString()}</span>
                                             </li>
-                                        )}
+                                        ))}
                                     </ul>
                                 </div>
                             )}

@@ -780,7 +780,7 @@ export default function GameView({
         addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
       })
 
-      socket.on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; gold?: number; skill: string }) => {
+      socket.on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; gold?: number; skill: string; xpAwards?: { skill: string; xp: number }[] }) => {
         // A record in the log, not an announcement. The rewards themselves are
         // shown at the foot of the conversation that earned them (NPCDialogue).
         // These used to persist forever, which meant a gold block sat in the
@@ -789,7 +789,9 @@ export default function GameView({
           addLog(`You received ${item.quantity}× ${item.itemName}.`, 'success')
         }
         if (data.gold && data.gold > 0) addLog(`You received ${data.gold.toLocaleString()} gold.`, 'success')
-        if (data.xp > 0) addLog(`+${data.xp} ${data.skill} experience.`, 'success')
+        for (const a of data.xpAwards ?? (data.xp > 0 ? [{ skill: data.skill, xp: data.xp }] : [])) {
+          addLog(`+${a.xp.toLocaleString()} ${a.skill} experience.`, 'success')
+        }
       })
 
       // Throttled server-side to once every few minutes per shop, so a busy

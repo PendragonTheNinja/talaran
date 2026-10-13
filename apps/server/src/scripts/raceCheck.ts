@@ -620,12 +620,15 @@ const SCENARIOS: Scenario[] = [
         id: 'H3', name: 'hand in one finished quest twenty times at once', rounds: 10,
         run: async (ctx) => {
             // The completion every hand-in goes through. It must flip the quest
-            // once and pay 100 gold, two planks and 500 XP exactly once.
+            // once and pay 100 gold, two planks, 500 Woodcutting XP and 300
+            // Melee XP (reward_skill_xp) exactly once.
             const w = await world(ctx);
             const woodcutting = await ctx.seed.row('skills', { name: 'Woodcutting' });
+            const melee = await ctx.seed.row('skills', { name: 'Melee', type: 'combat' });
             const quest = await ctx.seed.row('quests', {
                 name: 'The Plank Run', description: 'Bring planks.', npc_name: 'Geonsen', location_id: w.town.id,
                 skill: 'Woodcutting', reward_xp: 500, reward_gold: 100,
+                reward_skill_xp: JSON.stringify([{ skill: 'Melee', xp: 300 }]),
                 reward_items: JSON.stringify([{ itemName: 'Oak Plank', qty: 2 }]),
             });
             const objective = await ctx.seed.row('quest_objectives', {
@@ -640,11 +643,51 @@ const SCENARIOS: Scenario[] = [
             const results = await Promise.allSettled(Array.from({ length: 20 }, () => checkQuestCompletion(w.player.id, quest.id)));
             const paid = results.filter((r) => r.status === 'fulfilled' && r.value).length;
             const xp = await ctx.db('player_skills').where({ player_id: w.player.id, skill_id: woodcutting.id }).first();
+            const meleeXp = await ctx.db('player_skills').where({ player_id: w.player.id, skill_id: melee.id }).first();
             return (paid === 1 ? null : `${paid} hand-ins were paid`)
                 ?? changed('gold', 100, await goldOf(ctx, w.player.id))
                 ?? changed('reward planks', 2, await ctx.itemTotal(w.plank.id))
                 ?? changed('Woodcutting XP', 500, Number(xp?.xp ?? 0))
+                ?? changed('Melee XP', 300, Number(meleeXp?.xp ?? 0))
                 ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'quest', name: 'accept a quest that offers a choice ten times at once, mace and spear alternating', rounds: 10,
+        run: async (ctx) => {
+            // Georold's start (routes/npcs.ts): one start, one weapon of the
+            // two, one helping of fish. The insert into player_quests is the
+            // gate, and the chosen weapon must be granted behind it too.
+            const w = await world(ctx);
+            const fish = await ctx.seed.row('items', { name: 'Cooked Whiting', type: 'food', heal_amount: 10 });
+            const mace = await ctx.seed.row('items', { name: 'Ambren Mace', type: 'weapon', slot: 'mainhand', level_required: 1 });
+            const spear = await ctx.seed.row('items', { name: 'Ambren Spear', type: 'weapon', slot: 'mainhand', level_required: 1 });
+            const quest = await ctx.seed.row('quests', {
+                name: "The Warden's Count", description: 'Ten rats.', npc_name: 'Georold', location_id: w.town.id,
+                start_items: JSON.stringify([{ itemName: 'Cooked Whiting', qty: 5 }]),
+                start_choices: JSON.stringify([
+                    { key: 'mace', items: [{ itemName: 'Ambren Mace', qty: 1 }] },
+                    { key: 'spear', items: [{ itemName: 'Ambren Spear', qty: 1 }] },
+                ]),
+            });
+            await ctx.seed.row('quest_objectives', { quest_id: quest.id, description: 'Kill 10 Dock Rats', type: 'kill', target_item: 'Dock Rat', required_amount: 10 });
+            const npc = await ctx.seed.row('npcs', { name: 'Georold', location_id: w.town.id, is_active: true });
+            await ctx.seed.row('npc_dialogues', {
+                npc_id: npc.id, stage_key: 'intro', text_lines: ['Pick one.'],
+                options: JSON.stringify([
+                    { label: 'Mace', next_stage: null, action: `start_quest:${quest.id}:mace` },
+                    { label: 'Spear', next_stage: null, action: `start_quest:${quest.id}:spear` },
+                ]),
+            });
+            const st = await ctx.burst(w.player.id, 10, (i) =>
+                ctx.post(w.player.id, `/npcs/${npc.id}/interact`, { action: `start_quest:${quest.id}:${i % 2 ? 'spear' : 'mace'}` }));
+            const starts = Number((await ctx.db('player_quests').where({ player_id: w.player.id }).count('* as c').first())!.c);
+            const weapons = await ctx.itemTotal(mace.id) + await ctx.itemTotal(spear.id);
+            const errors = st.filter((s) => s >= 500).length;
+            return (starts === 1 ? null : `${starts} starts`)
+                ?? changed('weapons handed over', 1, weapons)
+                ?? changed('fish handed over', 5, await ctx.itemTotal(fish.id))
+                ?? (errors ? `${errors} request(s) hit a server error (statuses ${st.join(',')})` : null);
         },
     },
     {
