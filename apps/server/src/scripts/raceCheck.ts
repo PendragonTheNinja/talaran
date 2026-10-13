@@ -1218,6 +1218,35 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'ground', name: 'take back a death pile while picking it up, at once', rounds: 20,
+        run: async (ctx) => {
+            // Four private stacks of the player's own, and one already public.
+            // Three take-backs and three single pickups land together: every
+            // stack reaches the pack exactly once, and the public one, which
+            // take-back must leave alone, stays on the ground.
+            const w = await world(ctx);
+            const later = new Date(Date.now() + 15 * 60_000);
+            const mine: { id: number }[] = [];
+            for (let i = 0; i < 4; i++) {
+                mine.push(await ctx.seed.row('ground_items', {
+                    item_id: w.plank.id, quantity: 2, location_id: w.town.id, dropped_by_player_id: w.player.id,
+                    dropped_at: new Date(), visible_to_all_at: later,
+                }));
+            }
+            const gone = await ctx.seed.row('ground_items', {
+                item_id: w.plank.id, quantity: 1, location_id: w.town.id, dropped_by_player_id: w.player.id,
+                dropped_at: new Date(Date.now() - 20 * 60_000), visible_to_all_at: new Date(Date.now() - 5 * 60_000),
+            });
+            const st = await ctx.burst(w.player.id, 6, (i) => i < 3
+                ? ctx.post(w.player.id, '/ground-items/take-back', {})
+                : ctx.post(w.player.id, '/ground-items/pickup', { groundItemId: mine[i - 3].id }));
+            const stillThere = await ctx.db('ground_items').where({ id: gone.id }).first();
+            return changed('planks', 9, await ctx.itemTotal(w.plank.id))
+                ?? (stillThere ? null : 'take-back took a stack that had already gone public')
+                ?? noServerErrors(st);
+        },
+    },
+    {
         id: 'fight', name: 'equip a replacement as the old blade breaks on a kill', rounds: 40,
         run: async (ctx, round) => {
             // A blade past its guarantee that always breaks, the killing

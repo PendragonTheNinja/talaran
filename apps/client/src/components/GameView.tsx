@@ -1900,7 +1900,6 @@ export default function GameView({
                 log={fightLog}
                 food={fightFood}
                 spoils={lastResult && Array.isArray(lastResult.xpAwards) ? lastResult : null}
-                sceneText={sceneTextFor(presentation, currentAction, null, null)}
                 fleeLabel={cancelLabelFor(presentation, currentAction, null)}
                 busy={fightBusy}
                 onEat={eatInFight}

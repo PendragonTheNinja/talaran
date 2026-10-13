@@ -33,7 +33,6 @@ interface FightViewProps {
     food: FightFood[]
     /** The last kill's XP and drops, shown in the fight rather than below it. */
     spoils: FightSpoils | null
-    sceneText: string
     fleeLabel: string
     busy: boolean
     onEat: (itemId: number) => void
@@ -97,7 +96,7 @@ function Tile({ name, quantity, className, hover, onClick }: {
  * server's pushes (GameView listens). It fills the scene and never scrolls:
  * the swing log takes whatever height is left.
  */
-export default function FightView({ fight, hp, log, food, spoils, sceneText, fleeLabel, busy, onEat, onFlee }: FightViewProps) {
+export default function FightView({ fight, hp, log, food, spoils, fleeLabel, busy, onEat, onFlee }: FightViewProps) {
     const { hoverProps, tooltipEl } = useItemTooltip()
 
     // The approach is the only thing that counts down on the client, toward a
@@ -119,7 +118,12 @@ export default function FightView({ fight, hp, log, food, spoils, sceneText, fle
     }
     const lastKill = [...log].reverse().find(l => l.kind === 'kill')
     const fallen = lastKill?.creature && lastKill.at && now - lastKill.at < FALLEN_MS ? lastKill.creature : null
-    const foeName = fallen ?? fight?.creature.name ?? null
+    // The next creature is not shown until it closes in: at a spot that sends
+    // whatever comes, nobody knows what is coming, so it is a "?" with no
+    // health; at a spot where the player chose, the picture shows faded and
+    // the health bar waits.
+    const unknown = approaching && !fallen && fight?.spot.kind !== 'chosen'
+    const foeName = fallen ?? (unknown ? null : fight?.creature.name) ?? null
 
     // Most mending first, always, so a meal stays where you last saw it.
     const meals = [...food].sort((a, b) => b.heal - a.heal || a.name.localeCompare(b.name))
@@ -128,8 +132,6 @@ export default function FightView({ fight, hp, log, food, spoils, sceneText, fle
 
     return (
         <div className="fight-view">
-            <p className="fight-scene-text gold-text">{sceneText}</p>
-
             <div className="fight-food">
                 {meals.length === 0 ? (
                     <span className="fight-food-empty muted-text">You carry nothing that mends.</span>
@@ -176,22 +178,22 @@ export default function FightView({ fight, hp, log, food, spoils, sceneText, fle
                             flashKey={fallen ? null : lastHit('you')}
                             state={fallen ? 'fallen' : approaching ? 'approaching' : undefined}
                         />
-                        : <div className="fight-portrait" />}
+                        : <div className="fight-portrait approaching"><span className="fight-portrait-initial">?</span></div>}
                     <span className="fight-side-name">
-                        {fight ? fight.creature.name : '...'}
-                        {fight && <span className="muted-text"> (level {fight.creature.level})</span>}
+                        {!fight ? '...' : unknown ? 'Something comes' : fight.creature.name}
+                        {fight && !unknown && <span className="muted-text"> (level {fight.creature.level})</span>}
                     </span>
-                    {fight
+                    {fight && !approaching
                         ? <Bar current={fight.enemyHp} max={fight.enemyMaxHp} kind="foe" />
                         : <div className="fight-bar" />}
-                    {fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (
+                    {!unknown && fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (
                         <span className="fight-side-note">
                             {fight.stances.weak.length > 0 && <span className="fight-weak">Weak to {fight.stances.weak.join(', ')}</span>}
                             {fight.stances.weak.length > 0 && fight.stances.resists.length > 0 && ' · '}
                             {fight.stances.resists.length > 0 && <span className="muted-text">shrugs off {fight.stances.resists.join(', ')}</span>}
                         </span>
                     )}
-                    {fight && (
+                    {fight && !unknown && (
                         <span className="fight-side-note muted-text">
                             {fight.kills} {fight.kills === 1 ? 'kill' : 'kills'}, {(fight.totalKills ?? fight.kills).toLocaleString()} total ·{' '}
                             <button className="fight-bestiary-link" onClick={() => openBestiary(fight.creature.id)}>Bestiary</button>

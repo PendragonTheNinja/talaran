@@ -190,4 +190,50 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
+// Take back everything you dropped here, while it is still yours alone.
+//
+// For a death pile (services/groundItems.ts dropEverythingWithin): one request
+// instead of one per stack, which ran players into the request limit (Nathan,
+// 2026-10-12). Only stacks this player dropped, at this location, that are
+// still inside their private window: once a stack is public it is picked up
+// one at a time, by anyone, the dropper included. The private window is the
+// whole point of this route, so the server enforces it, not just the button.
+//
+// The DELETE is the claim: it returns exactly the rows this request removed,
+// so two take-backs, or a take-back racing a single pickup, never hand the same
+// stack out twice (race:check "ground", take back while picking up).
+router.post('/take-back', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const taken = await db.transaction(async (trx) => {
+            const player = await trx('players').where({ id: playerId }).select('current_location_id').first();
+            if (!player?.current_location_id) return [];
+            const now = new Date();
+            const rows: { item_id: number; quantity: number }[] = await trx('ground_items')
+                .where({ location_id: player.current_location_id, dropped_by_player_id: playerId })
+                .where('visible_to_all_at', '>', now)
+                .where('dropped_at', '>', new Date(now.getTime() - GROUND_ITEM_LIFETIME_MINUTES * 60_000))
+                .delete()
+                .returning(['item_id', 'quantity']);
+            // Item-id order, so two of these never lock pack rows in opposite orders.
+            rows.sort((x, y) => x.item_id - y.item_id);
+            for (const r of rows) await addItemToInventoryWithin(trx, playerId, r.item_id, r.quantity);
+            return rows;
+        });
+        if (!taken.length) {
+            res.status(400).json({ error: 'There is nothing here that is still yours alone to take back.' });
+            return;
+        }
+        notifyInventoryChanged(playerId);
+        const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+        if (player?.current_location_id) announceGroundChange(player.current_location_id);
+        const count = taken.reduce((n, r) => n + Number(r.quantity), 0);
+        logger.info(`Player ${playerId} took back ${taken.length} stacks (${count} items)`);
+        res.json({ success: true, stacks: taken.length, items: count });
+    } catch (err) {
+        logger.error(`Take back error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 export default router;

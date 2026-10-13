@@ -837,7 +837,7 @@ export const extraQueries: Record<string, QueryHandler> = {
             { key: 'learn', label: 'You learn' },
         ],
         rows: [
-            { kills: BESTIARY_STEPS.found, learn: 'Its name, its look, its level and where it lives. A little Exploration XP for the finding.' },
+            { kills: BESTIARY_STEPS.found, learn: 'Its name, its look, its level and where it lives.' },
             { kills: BESTIARY_STEPS.stances, learn: 'What it is weak to and what it shrugs off. The fight shows it from then on.' },
             { kills: BESTIARY_STEPS.commonDrops, learn: 'What it usually carries.' },
             { kills: BESTIARY_STEPS.allDrops, learn: 'Everything it carries, the rare things included.' },

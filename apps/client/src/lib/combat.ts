@@ -54,7 +54,10 @@ export interface FightState {
  * where the fight arrives, never during a render.
  */
 export function localizeFight(f: FightState): FightState {
-    return { ...f, engageAtLocal: Date.now() + (f.engageInMs ?? 0) }
+    // Nothing closing in is no approach at all, not one that ends "now": a
+    // render before the view's clock ticks would read "now" as the future
+    // and flash a countdown between every pair of swings.
+    return { ...f, engageAtLocal: (f.engageInMs ?? 0) > 0 ? Date.now() + f.engageInMs : 0 }
 }
 
 export type DamageType = 'pierce' | 'slash' | 'crush'

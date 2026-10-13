@@ -165,9 +165,8 @@ interface KillReport {
     coins: { oneIn: number; min: number; max: number } | null
     /** A kill that may open a vein (creatures.vein_*). */
     vein: { oneIn: number; ore: string; min: number; max: number } | null
-    /** The first of its kind this player has killed: a Bestiary entry, and Exploration XP. */
+    /** The first of its kind this player has killed: a new Bestiary entry. */
     firstKill: boolean
-    explorationXp: number
     /** This kill passed a Bestiary step past the first (10, 50, 250, 1,000). */
     bestiaryStep: boolean
 }
@@ -287,8 +286,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             killCount++
 
             // The Bestiary counts every kill (services/bestiary.ts). The first
-            // of a kind is a find, and finds pay a little Exploration, as a
-            // first resource node does (level x 5).
+            // of a kind is a new entry. No Exploration: that skill is not built
+            // yet and pays nothing (Nathan, 2026-10-12).
             const [counted] = await trx('player_creature_kills')
                 .insert({ player_id: playerId, creature_id: creature.id, kills: 1 })
                 .onConflict(['player_id', 'creature_id'])
@@ -296,8 +295,6 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                 .returning('kills')
             const killsOfKind = Number(counted?.kills ?? 1)
             const firstKill = killsOfKind === 1
-            const explorationXp = firstKill ? creature.level * 5 : 0
-            if (explorationXp) await awardXp(playerId, 'Exploration', explorationXp, trx, { eventBonus: false })
             const bestiaryStep = !firstKill && (Object.values(BESTIARY_STEPS) as number[]).includes(killsOfKind)
 
             // Wear (§13): the weapon every kill, and ARMOUR_PIECES_WORN_PER_KILL
@@ -329,7 +326,6 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                     ? { oneIn: creature.vein_chance_one_in, ore: creature.vein_ore_name, min: creature.vein_min ?? 1, max: creature.vein_max ?? creature.vein_min ?? 1 }
                     : null,
                 firstKill,
-                explorationXp,
                 bestiaryStep,
             })
 
@@ -486,7 +482,6 @@ async function afterFight(report: FightReport | null): Promise<void> {
                         { skill: COMBAT_SKILLS.melee, xp: kill.xp.melee },
                         { skill: COMBAT_SKILLS.defense, xp: kill.xp.defense },
                         { skill: COMBAT_SKILLS.constitution, xp: kill.xp.constitution },
-                        ...(kill.explorationXp ? [{ skill: 'Exploration', xp: kill.explorationXp }] : []),
                     ],
                     // Coins are priced from the Melee XP alone (services/goldFinds.ts PAYOUT_SCALE).
                     goldBasisXp: [kill.xp.melee],

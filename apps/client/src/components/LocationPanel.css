@@ -147,6 +147,18 @@
   color: var(--color-gold);
 }
 
+.ground-take-back {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+  font-size: 12px;
+}
+
+.ground-take-back .btn {
+  width: 100%;
+}
+
 .ground-items-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

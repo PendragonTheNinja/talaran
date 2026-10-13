@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { coalesce } from '../lib/coalesce'
 import { apiFetch } from '../lib/api'
 import { getSocket } from '../lib/socket'
 import { getItemIcon } from '../lib/items'
@@ -84,8 +85,9 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
     useEffect(() => {
         const socket = getSocket()
         if (!socket) return
-        socket.on('inventory_changed', load)
-        return () => { socket.off('inventory_changed', load) }
+        const reload = coalesce(() => { load() })
+        socket.on('inventory_changed', reload)
+        return () => { socket.off('inventory_changed', reload) }
     }, [load])
 
     /**

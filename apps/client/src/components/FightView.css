@@ -12,14 +12,6 @@
     min-height: 0;
 }
 
-.fight-scene-text {
-    margin: 0;
-    font-size: 19px;
-    font-style: italic;
-    text-align: center;
-    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
-    flex-shrink: 0;
-}
 
 /* ── Food ── */
 .fight-food {
@@ -249,7 +241,8 @@
     padding: 1px 8px;
     border: 1px solid var(--color-border-mid);
     border-radius: 999px;
-    color: var(--color-text-bright);
+    /* The colour every other skill's experience is shown in (.last-result-xp). */
+    color: var(--color-xp);
     background: rgba(0, 0, 0, 0.35);
 }
 
@@ -332,9 +325,6 @@
         gap: 6px;
     }
 
-    .fight-scene-text {
-        font-size: 17px;
-    }
 
     .fight-food-slot {
         width: 38px;
@@ -367,7 +357,4 @@
         gap: var(--space-xs);
     }
 
-    .fight-scene-text {
-        font-size: 16px;
-    }
 }

@@ -3,6 +3,7 @@ import GameLayout from './components/GameLayout'
 import AuthScreen from './components/AuthScreen'
 import { Player } from './types'
 import { connectSocket, disconnectSocket, getSocket } from './lib/socket'
+import { coalesce } from './lib/coalesce'
 import { apiFetch } from './lib/api'
 import WelcomeModal from './components/WelcomeModal'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
@@ -250,9 +251,9 @@ function App() {
       // The server announces any change to the pack, so items granted outside a
       // completed action — quest rewards, NPC gifts, storage, pickups — appear
       // without the player having to refresh the page.
-      socket.on('inventory_changed', () => {
-        loadInventory()
-      })
+      // Coalesced: a burst of changes (a pile picked up stack by stack)
+      // reloads the pack once.
+      socket.on('inventory_changed', coalesce(() => { loadInventory() }))
 
       // Worn gear changed without the player touching it: a death leaves it
       // on the ground (services/groundItems.ts dropEverythingWithin).

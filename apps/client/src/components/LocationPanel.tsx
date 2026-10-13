@@ -127,6 +127,39 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     } catch (err) { }
   }
 
+  // Your own stacks here that only you can see yet: a death pile, taken back
+  // in one go while it is still private (POST /api/ground-items/take-back).
+  // Once the window closes the button goes, for you as for anyone, and stacks
+  // are picked up one at a time (Nathan, 2026-10-12).
+  // Read at once whenever the list changes, then every few seconds, while any
+  // stack here is the player's own.
+  const [groundClock, setGroundClock] = useState(0)
+  const ownStacks = groundItems.filter(i => i.dropped_by_player_id === currentPlayerId)
+  const ownPrivate = ownStacks.filter(i => new Date(i.visible_to_all_at).getTime() > groundClock)
+  const privateUntil = ownPrivate.reduce((t, i) => Math.max(t, new Date(i.visible_to_all_at).getTime()), 0)
+  const showTakeBack = groundClock > 0 && ownPrivate.length >= 2
+  useEffect(() => {
+    if (!ownStacks.length) return
+    const tick = () => setGroundClock(Date.now())
+    const first = window.setTimeout(tick, 0)
+    const t = window.setInterval(tick, 5000)
+    return () => { clearTimeout(first); clearInterval(t) }
+  }, [ownStacks.length, groundItems])
+  const [takingBack, setTakingBack] = useState(false)
+  const takeBack = async () => {
+    setTakingBack(true)
+    try {
+      await apiFetch('/api/ground-items/take-back', { method: 'POST' })
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: (err instanceof Error && err.message) || 'That did not work.', type: 'error' },
+      }))
+    } finally {
+      setTakingBack(false)
+      loadGroundItems()
+    }
+  }
+
   useEffect(() => {
     loadGroundItems()
   }, [locationData, groundItemsKey])
@@ -170,8 +203,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         method: 'POST',
         body: JSON.stringify({ groundItemId }),
       })
+      // The pack refreshes from the server's inventory_changed push.
       loadGroundItems()
-      onInventoryUpdate?.()
     } catch (err: any) {
       console.error('Pickup failed:', err.message)
     }
@@ -821,6 +854,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         <div className="panel-title">
           <span>On the Ground</span>
         </div>
+        {showTakeBack && (
+          <div className="ground-take-back">
+            <button className="btn btn-gold" disabled={takingBack} onClick={takeBack}>
+              Take back your things ({ownPrivate.length})
+            </button>
+            <span className="muted-text">
+              Only you can see these for {Math.max(1, Math.ceil((privateUntil - groundClock) / 60000))} more minute{Math.ceil((privateUntil - groundClock) / 60000) > 1 ? 's' : ''}.
+            </span>
+          </div>
+        )}
         {groundItems.length === 0 ? (
           <p className="location-panel-empty">Nothing on the ground.</p>
         ) : (
