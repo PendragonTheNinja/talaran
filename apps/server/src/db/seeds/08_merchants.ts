@@ -71,6 +71,20 @@ const MERCHANTS: MerchantSeed[] = [
             'Ambren Ladle',
             'Ambren Flesh Hook',
         ],
+        // His own forge work beyond the tools, a few pieces a day (3 to 5 of
+        // these, chosen by date: getStock in services/marketplace.ts), so a
+        // fighter who does not smith can still buy a blade or a helm, just not
+        // whichever one they like on any given morning (Nathan, 2026-10-13).
+        // Nails and arrows are left out: they are bought by the hundred, and
+        // a daily line allows a handful.
+        rotating: [
+            'Ambren Anvil',
+            'Ambren Daggers', 'Ambren Hand Axes', 'Ambren War Hammers',
+            'Ambren Spear', 'Ambren Scimitar', 'Ambren Mace',
+            'Ambren Atgeir', 'Ambren Greatsword', 'Ambren Maul',
+            'Ambren Bracers', 'Ambren Boots', 'Ambren Coif', 'Ambren Buckler', 'Ambren Chausses', 'Ambren Hauberk',
+            'Ambren Gauntlets', 'Ambren Sabatons', 'Ambren Helm', 'Ambren Kite Shield', 'Ambren Greaves', 'Ambren Cuirass',
+        ],
     },
     {
         key: 'carpenter',
