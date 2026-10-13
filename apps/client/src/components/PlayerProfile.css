@@ -125,3 +125,32 @@
   color: var(--color-gold-dim);
   margin-top: 2px;
 }
+
+/* Their picture, beside the name (services/avatars.ts). */
+.profile-header {
+    display: flex;
+    gap: var(--space-lg);
+    align-items: flex-start;
+}
+
+.profile-header-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-avatar {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-deep);
+}
+
+@media (max-width: 520px) {
+    .profile-avatar {
+        width: 64px;
+        height: 64px;
+    }
+}

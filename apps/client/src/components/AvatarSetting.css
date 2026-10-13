@@ -1,0 +1,92 @@
+/* Settings > Profile: your picture and its cropper (AvatarSetting.tsx). */
+.avatar-setting {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.avatar-current {
+    display: flex;
+    gap: var(--space-lg);
+    align-items: flex-start;
+}
+
+.avatar-frame {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.avatar-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-empty {
+    font-size: 12px;
+}
+
+.avatar-current-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.avatar-buttons {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.avatar-cropper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.avatar-crop-view {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--color-border-gold);
+    background: var(--color-bg-deepest);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.avatar-crop-view:active {
+    cursor: grabbing;
+}
+
+.avatar-crop-view img {
+    position: absolute;
+    max-width: none;
+    pointer-events: none;
+}
+
+.avatar-zoom {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 240px;
+    font-size: 13px;
+}
+
+.avatar-zoom input {
+    flex: 1;
+}
+
+.avatar-error {
+    color: var(--color-red-glow);
+    font-size: 13px;
+}

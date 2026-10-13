@@ -284,6 +284,9 @@ export default function GameLayout({
   const [adminClosing, setAdminClosing] = useState(false)
 
   const [showSettings, setShowSettings] = useState(false)
+  // Settings opened at a tab from elsewhere (lib/avatar.ts openSettings), e.g.
+  // the Change link under your picture on the Stats screen.
+  const [settingsTab, setSettingsTab] = useState<'profile' | undefined>(undefined)
   const [showSupport, setShowSupport] = useState(false)
   const [settingsClosing, setSettingsClosing] = useState(false)
 
@@ -590,6 +593,16 @@ export default function GameLayout({
     const onOpen = (e: Event) => setBestiary({ creatureId: (e as CustomEvent<{ creatureId?: number }>).detail?.creatureId })
     window.addEventListener('talaran:open-bestiary', onOpen)
     return () => window.removeEventListener('talaran:open-bestiary', onOpen)
+  }, [])
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab
+      setSettingsTab(tab === 'profile' ? 'profile' : undefined)
+      setShowStatsModal(false)
+      setShowSettings(true)
+    }
+    window.addEventListener('talaran:open-settings', onOpen)
+    return () => window.removeEventListener('talaran:open-settings', onOpen)
   }, [])
 
   useEffect(() => {
@@ -1238,8 +1251,10 @@ export default function GameLayout({
 
       {showSettings && (
         <SettingsPanel
-          onClose={() => closePanel(setSettingsClosing, setShowSettings)}
+          key={settingsTab ?? 'default'}
+          onClose={() => { closePanel(setSettingsClosing, setShowSettings); setSettingsTab(undefined) }}
           closing={settingsClosing}
+          initialTab={settingsTab}
         />
       )}
 

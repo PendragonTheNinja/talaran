@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { avatarSrc } from '../lib/avatar'
 import { getCreatureImage, getItemIcon } from '../lib/items'
 import { openBestiary, type FightFood, type FightState, type Hp } from '../lib/combat'
 import { useItemTooltip } from './ItemTooltip'
@@ -150,7 +151,7 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
             <div className="fight-faceoff">
                 <div className="fight-side">
                     <Portrait
-                        src={fight?.you.avatarUrl ?? null}
+                        src={avatarSrc(fight?.you.avatarUrl)}
                         name={fight?.you.name ?? 'You'}
                         flashKey={lastHit('foe')}
                     />

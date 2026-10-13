@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { avatarSrc } from '../lib/avatar'
 import Badge from './Badge'
 import { formatGameDate, formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
@@ -654,7 +655,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                     <div className="forum-post-sidebar">
                                         <div className="forum-post-avatar">
                                             {post.avatar_url ? (
-                                                <img src={post.avatar_url} alt={post.author_name} />
+                                                <img src={avatarSrc(post.avatar_url)!} alt={post.author_name} />
                                             ) : (
                                                 <div className="forum-post-avatar-placeholder">
                                                     {post.author_name.charAt(0).toUpperCase()}

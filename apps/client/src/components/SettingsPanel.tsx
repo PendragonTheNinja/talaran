@@ -10,14 +10,20 @@ import PaletteEditor from './PaletteEditor'
 import PaletteGallery from './PaletteGallery'
 import CombatAwaySetting from './CombatAwaySetting'
 import CombatBotCheckSetting from './CombatBotCheckSetting'
+import AvatarSetting from './AvatarSetting'
+
+type SettingsTab = 'profile' | 'account' | 'chat' | 'game' | 'combat' | 'themes'
 
 interface SettingsPanelProps {
     onClose: () => void
     closing?: boolean
+    /** Open at this tab (lib/avatar.ts openSettings). */
+    initialTab?: SettingsTab
 }
 
-export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) {
-    const [tab, setTab] = useState<'account' | 'chat' | 'game' | 'combat' | 'themes'>('account')
+export default function SettingsPanel({ onClose, closing, initialTab }: SettingsPanelProps) {
+    // GameLayout remounts the panel (key) when it is asked to open at a tab.
+    const [tab, setTab] = useState<SettingsTab>(initialTab ?? 'account')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
 
@@ -268,6 +274,7 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
     }
 
     const TABS = [
+        { key: 'profile', label: 'Profile' },
         { key: 'account', label: 'Account' },
         { key: 'chat', label: 'Chat' },
         { key: 'game', label: 'Game' },
@@ -514,6 +521,13 @@ export default function SettingsPanel({ onClose, closing }: SettingsPanelProps) 
                             onApplied={setActiveTheme}
                             onError={setError}
                         />
+                    </div>
+                )}
+
+                {tab === 'profile' && (
+                    <div className="settings-section">
+                        <h4 className="settings-section-title">Profile</h4>
+                        <AvatarSetting />
                     </div>
                 )}
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { AVATAR_CHANGED, avatarSrc, openSettings } from '../lib/avatar'
 import './PlayerStats.css'
 
 interface PlayerStatsProps {
@@ -30,6 +31,16 @@ export default function PlayerStats({ playerId }: PlayerStatsProps) {
             .catch(() => setError('Could not load stats.'))
     }, [playerId])
 
+    // Your own picture changes in Settings while this is open.
+    useEffect(() => {
+        const onChanged = (e: Event) => {
+            const url = (e as CustomEvent<string | null>).detail
+            setData(d => d ? { ...d, player: { ...d.player, avatar_url: url } } : d)
+        }
+        window.addEventListener(AVATAR_CHANGED, onChanged)
+        return () => window.removeEventListener(AVATAR_CHANGED, onChanged)
+    }, [])
+
     if (error) return <div className="player-stats-view panel"><p className="muted-text">{error}</p></div>
     if (!data) return <div className="player-stats-view panel"><p className="muted-text">Loading stats…</p></div>
 
@@ -37,7 +48,20 @@ export default function PlayerStats({ playerId }: PlayerStatsProps) {
 
     return (
         <div className="player-stats-view panel">
-            <h3 className="gold-text">{p.username}</h3>
+            <div className="stats-header">
+                <div className="stats-avatar">
+                    {avatarSrc(p.avatar_url)
+                        ? <img src={avatarSrc(p.avatar_url)!} alt={p.username} />
+                        : <span className="muted-text">{p.username.charAt(0).toUpperCase()}</span>}
+                </div>
+                <div className="stats-header-info">
+                    <h3 className="gold-text">{p.username}</h3>
+                    {/* This screen is always your own. */}
+                    <button className="stats-avatar-change" onClick={() => openSettings('profile')}>
+                        {p.avatar_url ? 'Change picture' : 'Choose a picture'}
+                    </button>
+                </div>
+            </div>
 
             <div className="stats-section">
                 <p className="stats-section-title">Account</p>

@@ -7,6 +7,7 @@ import PaletteGallery from './PaletteGallery'
 import { apiFetch as apiFetchPalettes } from '../lib/api'
 import './PlayerProfile.css'
 import { useSkillTooltip } from './SkillTooltip'
+import { avatarSrc } from '../lib/avatar'
 
 interface ProfileSkill {
     name: string
@@ -30,6 +31,7 @@ interface ProfileData {
         badge_glyph: string | null
         forum_post_count: number
         created_at: string
+        avatar_url?: string | null
     }
     skills: ProfileSkill[]
     equipment: Record<string, string | null>
@@ -94,6 +96,10 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                     <>
                         {/* Header */}
                         <div className="profile-header">
+                            {avatarSrc(profile.player.avatar_url) && (
+                                <img className="profile-avatar" src={avatarSrc(profile.player.avatar_url)!} alt={profile.player.username} />
+                            )}
+                            <div className="profile-header-main">
                             <div className="profile-username">
                                 <span className="gold-text" style={{ fontSize: '22px', fontFamily: 'var(--font-heading)' }}>
                                     {profile.player.username}
@@ -133,6 +139,7 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                     <span className="muted-text" style={{ fontSize: '12px' }}>Total XP</span>
                                     <span className="gold-text" style={{ fontSize: '18px', fontFamily: 'var(--font-heading)' }}>{profile.totalXp.toLocaleString()}</span>
                                 </div>
+                            </div>
                             </div>
                         </div>
 

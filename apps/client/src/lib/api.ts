@@ -1,5 +1,10 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
+/** A server path as a full URL, for things the browser fetches itself (an <img src>). */
+export function apiUrl(path: string): string {
+  return `${BASE_URL}${path}`
+}
+
 function getToken(): string | null {
   return localStorage.getItem('talaran_token')
 }

@@ -6,6 +6,7 @@ import AdminBalanceCalculator from './AdminBalanceCalculator'
 import AdminBalanceChecks from './AdminBalanceChecks'
 import AdminManualEditor from './AdminManualEditor'
 import AdminEvents from './AdminEvents'
+import { avatarSrc } from '../lib/avatar'
 import './AdminPanel.css'
 
 interface PlayerInfo {
@@ -25,6 +26,8 @@ interface PlayerInfo {
     created_at: string
     last_login: string
     location_name: string
+    avatar_url: string | null
+    avatar_blocked: boolean
 }
 
 interface Warning {
@@ -96,6 +99,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     const [muteType, setMuteType] = useState<'chat' | 'forum'>('chat')
     const [muteDuration, setMuteDuration] = useState('')
     const [muteReason, setMuteReason] = useState('')
+    const [avatarReason, setAvatarReason] = useState('')
     const [banDuration, setBanDuration] = useState('')
     const [banReason, setBanReason] = useState('')
     const [msgSubject, setMsgSubject] = useState('')
@@ -246,6 +250,22 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             await loadPlayer(selectedPlayer.id)
         } catch (err: any) {
             setError(err.message)
+        }
+    }
+
+    // A player's picture: clear it, clear it and stop them choosing another, or lift that.
+    const handleAvatar = async (action: 'clear' | 'block' | 'unblock') => {
+        if (!selectedPlayer) return
+        try {
+            await apiFetch('/api/admin/avatar', {
+                method: 'POST',
+                body: JSON.stringify({ targetId: selectedPlayer.id, action, reason: avatarReason }),
+            })
+            setSuccess(action === 'unblock' ? 'They may choose a picture again.' : action === 'block' ? 'Picture removed, and new ones blocked.' : 'Picture removed.')
+            setAvatarReason('')
+            await loadPlayer(selectedPlayer.id)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'That did not work.')
         }
     }
 
@@ -602,6 +622,31 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                         style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
                                     />
                                     <button className="btn" style={{ fontSize: '13px' }} onClick={handleMute}>Apply</button>
+                                </div>
+
+                                {/* Picture */}
+                                <div className="admin-action-card">
+                                    <p className="admin-section-title">🖼 Picture</p>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '6px' }}>
+                                        {avatarSrc(selectedPlayer.avatar_url)
+                                            ? <img src={avatarSrc(selectedPlayer.avatar_url)!} alt="" style={{ width: '64px', height: '64px', objectFit: 'cover', border: '1px solid var(--color-border-gold)' }} />
+                                            : <span className="muted-text" style={{ fontSize: '13px' }}>No picture.</span>}
+                                        {selectedPlayer.avatar_blocked && <span style={{ color: 'var(--color-red-glow)', fontSize: '13px' }}>Blocked from choosing one</span>}
+                                    </div>
+                                    <input
+                                        className="chat-input"
+                                        type="text"
+                                        value={avatarReason}
+                                        onChange={e => setAvatarReason(e.target.value)}
+                                        placeholder="Reason (sent to them)..."
+                                        style={{ fontSize: '14px', marginBottom: '6px', width: '100%' }}
+                                    />
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                        <button className="btn" style={{ fontSize: '13px' }} disabled={!selectedPlayer.avatar_url} onClick={() => handleAvatar('clear')}>Remove</button>
+                                        {selectedPlayer.avatar_blocked
+                                            ? <button className="btn" style={{ fontSize: '13px' }} onClick={() => handleAvatar('unblock')}>Allow Again</button>
+                                            : <button className="btn" style={{ fontSize: '13px' }} onClick={() => handleAvatar('block')}>Remove and Block</button>}
+                                    </div>
                                 </div>
 
                                 {/* Ban */}

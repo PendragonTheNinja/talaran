@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { avatarSrc } from '../lib/avatar'
 import { apiFetch } from '../lib/api'
 import MarkdownRenderer from './MarkdownRenderer'
 import { formatGameDateTime, formatGameDate } from '../lib/time'
@@ -348,7 +349,7 @@ function ThreadView({ threadId, onBack }: { threadId: number; onBack: () => void
                         <div className="forum-post-sidebar">
                             <div className="forum-post-avatar">
                                 {post.avatar_url ? (
-                                    <img src={post.avatar_url} alt={post.author_name} />
+                                    <img src={avatarSrc(post.avatar_url)!} alt={post.author_name} />
                                 ) : (
                                     <div className="forum-post-avatar-placeholder">
                                         {post.author_name.charAt(0).toUpperCase()}
