@@ -224,8 +224,14 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           isWhisper: true,
         }
         addMessages([msg], true)
-        setInput(`${data.from}@`)
-        inputRef.current?.focus()
+        // Ready to reply, but only into an empty box (or one holding nothing
+        // but a whisper prefix). It used to overwrite the box, so a whisper
+        // arriving mid-sentence threw the sentence away.
+        const typed = inputRef.current?.value ?? ''
+        if (typed.trim() === '' || /^\w+@\s*$/.test(typed)) {
+          setInput(`${data.from}@`)
+          inputRef.current?.focus()
+        }
       })
 
       socket.on('whisper_sent', (data: any) => {
@@ -294,7 +300,13 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
         method: 'POST',
         body: JSON.stringify({ channel: activeChannel, message: trimmed }),
       })
-      setInput('')
+      // A whisper keeps its "Name@" so the conversation carries on without
+      // retyping it. Only what was sent is cleared: anything typed while the
+      // request was on its way stays.
+      // Same rule as the server's (routes/chat.ts): name@message.
+      const whisperTo = /^(\w+)@./.exec(trimmed)?.[1]
+      const next = whisperTo ? `${whisperTo}@` : ''
+      setInput(cur => (cur === input ? next : cur))
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: Date.now(),
