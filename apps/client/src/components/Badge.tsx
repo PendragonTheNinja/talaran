@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { badgeHover, useBadgeInfo } from '../lib/badges'
 
 interface BadgeProps {
     /** Stable key, and the image filename. */
@@ -7,6 +8,7 @@ interface BadgeProps {
     glyph?: string | null
     /** Roughly a capital letter in chat, larger in a picker. */
     size?: number
+    /** Hover text when the badge's own feat is not known (lib/badges.ts says what it is otherwise). */
     title?: string
 }
 
@@ -22,8 +24,11 @@ interface BadgeProps {
  * gap even when hidden, and a badge sits inline in a chat line where a gap
  * shows.
  */
-export default function Badge({ badgeKey, glyph, size = 14, title }: BadgeProps) {
+export default function Badge({ badgeKey, glyph, size = 14, title: fallbackTitle }: BadgeProps) {
     const [failed, setFailed] = useState(false)
+    // Its title and the feat behind it, rather than a bare "A feat badge".
+    const info = useBadgeInfo(badgeKey)
+    const title = info ? badgeHover(info) : fallbackTitle
 
     if (!badgeKey) return null
 

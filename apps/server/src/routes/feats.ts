@@ -1,4 +1,5 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
+import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { listFeats, wearTitle, wearBadge } from '../services/feats';
@@ -18,6 +19,27 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         res.json(await listFeats(req.player!.playerId));
     } catch (err) {
         logger.error(`List feats error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/**
+ * GET /api/feats/badges - what each badge is, for the hover on a badge worn in
+ * chat, the location list, the forum and profiles (client lib/badges.ts).
+ *
+ * Public, with no login: badges show on pages a logged-out visitor can read,
+ * and answering those with a 401 would send them home (CLAUDE.md §7). Hidden
+ * feats are left out, so nothing here gives one away.
+ */
+router.get('/badges', async (_req: Request, res: Response) => {
+    try {
+        const rows = await db('feats')
+            .whereNotNull('badge_key').where({ is_active: true, is_hidden: false })
+            .select('badge_key as key', 'name', 'title', 'description');
+        res.set('Cache-Control', 'public, max-age=300');
+        res.json({ badges: rows });
+    } catch (err) {
+        logger.error(`Badge list error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

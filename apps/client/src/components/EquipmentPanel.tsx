@@ -194,14 +194,20 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                             <span className="cstat-label">Max hit</span>
                             <span className="cstat-value tabular-num">{combat?.maxHit ?? '-'}</span>
                         </div>
-                        <div className="cstat-tile" title="How often blows miss you">
+                        {/* Defence is how hard you are to hit: your Defense level plus
+                            the armour you wear. Armour also softens the blows
+                            that do land, which is what Absorbs counts. One
+                            armour total feeds both, so it is shown as the part
+                            of each rather than as a third number. */}
+                        <div className="cstat-tile" title="How hard you are to hit: your Defense level, plus the armour you wear">
                             <span className="cstat-label">Defence</span>
                             <span className="cstat-value tabular-num">{combat?.defence ?? '-'}</span>
+                            {combat && <span className="cstat-sub tabular-num">{combat.armour} from armour</span>}
                         </div>
-                        <div className="cstat-tile" title="What your armour takes off every blow that lands">
-                            <span className="cstat-label">Armour</span>
-                            <span className="cstat-value tabular-num">{combat?.armour ?? '-'}</span>
-                            {combat && <span className="cstat-sub tabular-num">stops {combat.absorb} a hit</span>}
+                        <div className="cstat-tile" title="Taken off every blow that does land, by the armour you wear">
+                            <span className="cstat-label">Absorbs</span>
+                            <span className="cstat-value tabular-num">{combat?.absorb ?? '-'}</span>
+                            {combat && <span className="cstat-sub">a hit</span>}
                         </div>
                     </div>
                 </div>
