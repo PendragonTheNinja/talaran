@@ -175,18 +175,35 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 your fists, and the server says so. */}
             <div className="combat-stats panel-inset">
                 <div className="panel-title">Combat Stats</div>
-                <div className="stat-row">
-                    <span>Weapon</span>
-                    <span>{combat
-                        ? `${combat.weapon.unarmed ? 'Fists' : FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}, ${capitalise(combat.weapon.damageType)}, ${combat.weapon.swingSeconds}s`
-                        : '-'}</span>
-                </div>
-                <div className="stat-row"><span>Aim</span><span>{combat?.aim ?? '-'}</span></div>
-                <div className="stat-row"><span>Max hit</span><span>{combat?.maxHit ?? '-'}</span></div>
-                <div className="stat-row"><span>Defence</span><span>{combat?.defence ?? '-'}</span></div>
-                <div className="stat-row">
-                    <span>Armour</span>
-                    <span>{combat ? `${combat.armour} (stops ${combat.absorb} a hit)` : '-'}</span>
+                <div className="cstat-body">
+                    <div className="cstat-weapon" title="What you fight with: how it is held, the kind of blow it lands, and how often it swings">
+                        {combat ? (
+                            <>
+                                <span className="cstat-chip">{combat.weapon.unarmed ? 'Fists' : FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}</span>
+                                <span className="cstat-chip">{capitalise(combat.weapon.damageType)}</span>
+                                <span className="cstat-chip tabular-num">{combat.weapon.swingSeconds}s</span>
+                            </>
+                        ) : <span className="cstat-chip">-</span>}
+                    </div>
+                    <div className="cstat-grid">
+                        <div className="cstat-tile" title="How often your blows land">
+                            <span className="cstat-label">Aim</span>
+                            <span className="cstat-value tabular-num">{combat?.aim ?? '-'}</span>
+                        </div>
+                        <div className="cstat-tile" title="Your hardest blow">
+                            <span className="cstat-label">Max hit</span>
+                            <span className="cstat-value tabular-num">{combat?.maxHit ?? '-'}</span>
+                        </div>
+                        <div className="cstat-tile" title="How often blows miss you">
+                            <span className="cstat-label">Defence</span>
+                            <span className="cstat-value tabular-num">{combat?.defence ?? '-'}</span>
+                        </div>
+                        <div className="cstat-tile" title="What your armour takes off every blow that lands">
+                            <span className="cstat-label">Armour</span>
+                            <span className="cstat-value tabular-num">{combat?.armour ?? '-'}</span>
+                            {combat && <span className="cstat-sub tabular-num">stops {combat.absorb} a hit</span>}
+                        </div>
+                    </div>
                 </div>
             </div>
             {tooltipEl}

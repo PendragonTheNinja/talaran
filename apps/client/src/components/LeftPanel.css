@@ -45,6 +45,67 @@
   flex-shrink: 0;
 }
 
+/* Combat Stats: the weapon as three tags, then the four numbers as tiles. */
+.cstat-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+}
+
+.cstat-weapon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cstat-chip {
+  font-size: 12px;
+  padding: 1px 8px;
+  border: 1px solid var(--color-border-mid);
+  border-radius: 999px;
+  color: var(--color-text-bright);
+  background: var(--color-bg-raised);
+}
+
+.cstat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.cstat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.cstat-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.cstat-value {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--color-gold-bright);
+}
+
+.cstat-sub {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .stat-bars {
   display: flex;
   flex-direction: column;

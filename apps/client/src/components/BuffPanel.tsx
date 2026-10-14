@@ -177,6 +177,7 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
                 />
             )}
             <div className="panel-title">Provisions</div>
+            <div className="buff-body">
 
             {buff ? (
                 <button className="buff-active" onClick={() => setOpen(o => !o)} title="Change provision">
@@ -220,6 +221,7 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
                     )}
                 </div>
             )}
+            </div>
         </div>
     )
 }

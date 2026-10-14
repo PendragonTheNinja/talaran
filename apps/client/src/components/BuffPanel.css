@@ -5,8 +5,16 @@
 .buff-panel {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Same inner padding as Combat Stats above it. */
+.buff-body {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  padding: var(--space-xs);
+  padding: var(--space-sm);
 }
 
 .buff-active,
@@ -26,11 +34,14 @@
 }
 
 .buff-empty {
-  border-color: var(--color-border-dark);
+  border-color: var(--color-border-mid);
   border-style: dashed;
+  background: transparent;
   color: var(--color-text-muted);
   font-size: 12px;
+  font-style: italic;
   justify-content: center;
+  padding: 6px;
 }
 
 .buff-active:hover,
