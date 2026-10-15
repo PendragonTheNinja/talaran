@@ -158,7 +158,13 @@ const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
       .first();
 
     if (frozen) {
-      await db('player_actions').where({ id: frozen.id }).update({ bot_check_pending: false });
+      // Due now at the latest: a frozen action was always due when it froze.
+      // LEAST also releases any action frozen before the tick stopped leaving
+      // its claim's five-minute lease on it.
+      await db('player_actions').where({ id: frozen.id }).update({
+        bot_check_pending: false,
+        completes_at: db.raw('LEAST(completes_at, now())'),
+      });
       res.json({ success: true, resumed: true });
       return;
     }
