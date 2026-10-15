@@ -1,3 +1,5 @@
+import iconOverrides from './iconOverrides.json'
+
 /**
  * Art whose filename does not follow from the item's name.
  *
@@ -8,13 +10,11 @@
  *
  * Without this the icon simply 404s and the item shows up blank everywhere it
  * appears, inventory and shops included, not only in the manual. Add a line
- * here rather than renaming an item that recipes refer to by name.
+ * to iconOverrides.json rather than renaming an item that recipes refer to by
+ * name. The server reads the same file to cut museum silhouettes
+ * (services/museumSilhouettes.ts), so it is the one list for both.
  */
-const ICON_OVERRIDES: Record<string, string> = {
-  'Milk': 'Bucket_of_Milk',
-  'Boar Hide': 'Boarhide',
-  'Deer Hide': 'Deerhide',
-}
+const ICON_OVERRIDES: Record<string, string> = iconOverrides
 
 export function getItemIcon(itemName: string): string {
   const override = ICON_OVERRIDES[itemName]

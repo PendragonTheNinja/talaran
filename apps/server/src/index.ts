@@ -71,6 +71,7 @@ import fishingRoutes from './routes/fishing';
 import lootLogRoutes from './routes/lootLog';
 import { AVATAR_DIR, AVATAR_URL_PREFIX } from './services/avatars';
 import { fillMissingCases } from './services/museum';
+import { caseSilhouette, SILHOUETTE_URL_PREFIX } from './services/museumSilhouettes';
 
 dotenv.config();
 
@@ -114,6 +115,23 @@ app.use(AVATAR_URL_PREFIX, express.static(AVATAR_DIR, {
   fallthrough: false,
   setHeaders: (res) => { res.setHeader('X-Content-Type-Options', 'nosniff'); },
 }));
+// Museum silhouettes (services/museumSilhouettes.ts): the outline in a case a
+// player has not filled, at an address that names only the case. Ahead of the
+// no-store header and rate limit for the same reason as avatars: an exhibit
+// shows dozens at once, and an outline only changes when its art does.
+app.get(`${SILHOUETTE_URL_PREFIX}:file`, async (req, res) => {
+  const match = /^(\d+)\.png$/.exec(String(req.params.file));
+  const png = match ? await caseSilhouette(Number(match[1])) : null;
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (!png) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.end(png);
+});
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
   // This server's clock, in ms. Timers are sent as moments on this clock

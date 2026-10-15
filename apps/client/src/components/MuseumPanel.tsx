@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { apiFetch } from '../lib/api'
+import { apiFetch, apiUrl } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import { useItemTooltip } from './ItemTooltip'
 import ConfirmModal from './ConfirmModal'
@@ -7,16 +7,21 @@ import './FarmPanel.css'
 import './MuseumPanel.css'
 
 // An island museum (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2). One modal, a tab
-// per exhibit, a case per item. A case is the item's own icon drawn black until
-// you have given yours; the plaque under it names whoever gave one first.
+// per exhibit, a case per item. A case shows the item's outline until you have
+// given yours; the plaque under it names whoever gave one first.
 // Until you have given it, a case says nothing else about what it holds: no
-// name and no tooltip (Nathan, 2026-10-12). The silhouette is the only clue.
-// One you carry lights up so you can give it, and the confirmation names it.
+// name and no tooltip (Nathan, 2026-10-12). The outline is the only clue, and
+// the server cuts it and sends no name with it (services/museumSilhouettes.ts),
+// so the page holds nothing to read it from. One you carry lights up so you can
+// give it, and the confirmation names it.
 
 interface MuseumCase {
     caseId: number
-    itemId: number
-    name: string
+    /** Only once you have given one or carry one. */
+    itemId: number | null
+    name: string | null
+    /** The outline's address while the case is unfilled. */
+    silhouette: string | null
     donated: boolean
     held: number
     firstDonor: string | null
@@ -51,9 +56,9 @@ function CaseIcon({ c, hover }: { c: MuseumCase; hover: Record<string, unknown> 
     if (failed) return <span className="museum-case-blank" {...hover}>?</span>
     return (
         <img
-            className={`inventory-item-icon ${c.donated ? '' : 'museum-silhouette'}`}
-            src={getItemIcon(c.name)}
-            alt={c.donated ? c.name : ''}
+            className="inventory-item-icon"
+            src={c.donated && c.name ? getItemIcon(c.name) : apiUrl(c.silhouette ?? '')}
+            alt={c.donated && c.name ? c.name : ''}
             onError={() => setFailed(true)}
             {...hover}
         />
@@ -153,7 +158,7 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                             {exhibit.cases.map(c => (
                                 <div key={c.caseId} className={`museum-case ${c.donated ? 'given' : c.held > 0 ? 'can-give' : ''} ${c.yourFirst ? 'your-first' : ''}`}>
                                     <button className="inventory-slot occupied museum-slot" onClick={() => pick(c)}>
-                                        <CaseIcon c={c} hover={c.donated ? hoverProps({ name: c.name }, 'Given') : {}} />
+                                        <CaseIcon c={c} hover={c.donated ? hoverProps({ name: c.name ?? '' }, 'Given') : {}} />
                                         {!c.donated && c.held > 0 && <span className="museum-held tabular-num">{c.held}</span>}
                                     </button>
                                     <span className="museum-case-name">{c.donated ? c.name : '?'}</span>
@@ -173,7 +178,7 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
 
             {giving && (
                 <ConfirmModal
-                    message={`Give one ${giving.name} to the ${museum?.name ?? 'museum'}? It stays in the case for good.`}
+                    message={`Give one ${giving.name ?? 'of these'} to the ${museum?.name ?? 'museum'}? It stays in the case for good.`}
                     confirmLabel="Give It"
                     onConfirm={() => give(giving)}
                     onCancel={() => setGiving(null)}

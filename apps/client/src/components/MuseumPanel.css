@@ -45,13 +45,6 @@
   border-color: var(--color-gold);
 }
 
-/* The item's own shape in black: every icon has a transparent background,
-   so one filter draws any case, present or future, with no new art. */
-.museum-silhouette {
-  filter: brightness(0);
-  opacity: 0.6;
-}
-
 .museum-case-blank {
   color: var(--color-text-muted);
   font-size: 22px;

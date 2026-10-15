@@ -6,6 +6,7 @@ import { takeItemsWithin, notifyInventoryChanged } from './inventory';
 import { announceMuseumFirst } from './records';
 import { evaluateFeats } from './feats';
 import { pushToPlayer } from '../lib/realtime';
+import { silhouetteUrl } from './museumSilhouettes';
 
 // Island Museums (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2).
 //
@@ -17,8 +18,15 @@ import { pushToPlayer } from '../lib/realtime';
 
 export interface MuseumCase {
     caseId: number
-    itemId: number
-    name: string
+    /**
+     * What the case holds, sent only once the player has given one or carries
+     * one: an unfilled case shows no name (Nathan, 2026-10-12), and sending it
+     * anyway let anyone read it from the response or the icon's address.
+     */
+    itemId: number | null
+    name: string | null
+    /** The outline to draw while the case is unfilled (services/museumSilhouettes.ts). */
+    silhouette: string | null
     donated: boolean
     /** How many the player carries, so the panel can offer to donate. */
     held: number
@@ -102,14 +110,20 @@ export async function museumState(playerId: number, museumId: number) {
         name: e.name,
         description: e.description,
         completedBy: completedBy.get(e.id) ?? 0,
-        cases: cases.filter((c: any) => c.exhibit_id === e.id).map((c: any) => ({
-            caseId: c.id, itemId: c.item_id, name: c.name,
-            donated: c.donation_id !== null,
-            held: Number(c.held ?? 0),
-            firstDonor: c.first_donor ?? null,
-            yourFirst: c.first_donor_id === playerId,
-            firstDonatedAt: c.first_donated_at ?? null,
-        })),
+        cases: cases.filter((c: any) => c.exhibit_id === e.id).map((c: any) => {
+            const donated = c.donation_id !== null;
+            const held = Number(c.held ?? 0);
+            const known = donated || held > 0;
+            return {
+                caseId: c.id, itemId: known ? c.item_id : null, name: known ? c.name : null,
+                silhouette: donated ? null : silhouetteUrl(c.id),
+                donated,
+                held,
+                firstDonor: c.first_donor ?? null,
+                yourFirst: c.first_donor_id === playerId,
+                firstDonatedAt: c.first_donated_at ?? null,
+            };
+        }),
     })).filter((e: MuseumExhibit) => e.cases.length > 0);
 
     const total = shaped.reduce((n, e) => n + e.cases.length, 0);
