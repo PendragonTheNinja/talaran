@@ -116,6 +116,10 @@ app.use(AVATAR_URL_PREFIX, express.static(AVATAR_DIR, {
 }));
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
+  // This server's clock, in ms. Timers are sent as moments on this clock
+  // (completesAt), so the client measures how far its own clock is from it
+  // (lib/serverClock.ts) and counts down on ours, not the player's.
+  res.setHeader('X-Server-Time', String(Date.now()))
   next()
 })
 
@@ -137,6 +141,7 @@ app.use((req, res, next) => {
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Expose-Headers', 'X-Server-Time');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;

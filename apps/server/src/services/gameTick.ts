@@ -239,18 +239,23 @@ let ticking = false;
  * this tick's alone until they are rescheduled or deleted.
  */
 export async function claimDueActions(): Promise<any[]> {
+  // "Due" is measured on this process's clock, the one every completes_at is
+  // written from (new Date() + timer), not the database's now(): two clocks
+  // that disagree by a second or two finish every action early or late by that
+  // much against the timer the player was shown.
+  const now = new Date();
   const result = await db.raw(
     `UPDATE player_actions
-        SET completes_at = now() + interval '${CLAIM_LEASE}'
+        SET completes_at = ?::timestamptz + interval '${CLAIM_LEASE}'
       WHERE id IN (
             SELECT id FROM player_actions
-             WHERE completes_at <= now()
+             WHERE completes_at <= ?
                AND bot_check_pending = false
              ORDER BY completes_at
              LIMIT ?
              FOR UPDATE SKIP LOCKED)
       RETURNING *`,
-    [CLAIM_BATCH],
+    [now, now, CLAIM_BATCH],
   );
   return result.rows ?? [];
 }
@@ -395,7 +400,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // for up to five minutes after a correct answer, and a refresh showed that
       // five minutes as the timer (players' "botcheck freezing my timer" and
       // "refreshing makes my timer 10x", 2026-10-15).
-      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true, completes_at: db.fn.now() });
+      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true, completes_at: now });
       return;
     }
 

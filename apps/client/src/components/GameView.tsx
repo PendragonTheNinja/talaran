@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import FireIndicator from './FireIndicator'
 import { apiFetch } from '../lib/api'
+import { serverNow } from '../lib/serverClock'
 import { flyItemToPack, setItemAnimationEnabled } from '../lib/itemFly'
 import { getSocket } from '../lib/socket'
 import './GameView.css'
@@ -433,8 +434,11 @@ export default function GameView({
       ? new Date(completesAt).getTime()
       : Date.now() + seconds * 1000
 
+    // completesAt is on the server's clock (lib/serverClock.ts); seconds alone
+    // start from here.
+    const clock = completesAt ? serverNow : Date.now
     const tick = () => {
-      const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000))
+      const remaining = Math.max(0, Math.round((endTime - clock()) / 1000))
       setTimerSeconds(remaining)
       if (remaining <= 0 && timerRef.current) {
         clearInterval(timerRef.current)
@@ -451,7 +455,7 @@ export default function GameView({
       if (document.visibilityState === 'visible' && playerData?.currentAction) {
         const action = playerData.currentAction
         const completesAt = new Date(action.completes_at).getTime()
-        const secondsLeft = Math.max(0, Math.round((completesAt - Date.now()) / 1000))
+        const secondsLeft = Math.max(0, Math.round((completesAt - serverNow()) / 1000))
         setTimerSeconds(secondsLeft)
       }
     }
@@ -1031,7 +1035,7 @@ export default function GameView({
     if (playerData.currentAction.bot_check_pending) return
 
     const action = playerData.currentAction
-    const now = new Date().getTime()
+    const now = serverNow()
     const completesAt = new Date(action.completes_at).getTime()
     const secondsLeft = Math.max(0, Math.round((completesAt - now) / 1000))
 

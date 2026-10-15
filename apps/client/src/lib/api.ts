@@ -1,3 +1,5 @@
+import { noteServerTime } from './serverClock'
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 /** A server path as a full URL, for things the browser fetches itself (an <img src>). */
@@ -12,6 +14,7 @@ function getToken(): string | null {
 export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('talaran_token')
 
+  const sentAt = Date.now()
   const res = await fetch(`${BASE_URL}${url}`, {
     ...options,
     headers: {
@@ -20,6 +23,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
       ...options?.headers,
     },
   })
+  noteServerTime(res.headers.get('x-server-time'), sentAt, Date.now())
 
   if (res.status === 401) {
     localStorage.removeItem('talaran_token')

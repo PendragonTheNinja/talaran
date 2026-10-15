@@ -166,7 +166,7 @@ const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
       // its claim's five-minute lease on it.
       await db('player_actions').where({ id: frozen.id }).update({
         bot_check_pending: false,
-        completes_at: db.raw('LEAST(completes_at, now())'),
+        completes_at: db.raw('LEAST(completes_at, ?::timestamptz)', [new Date()]),
       });
       res.json({ success: true, resumed: true });
       return;
