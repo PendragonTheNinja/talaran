@@ -389,8 +389,13 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
     if (player && isBotCheckDue(player, now)) {
       await issueBotCheck(action.player_id);
-      // Freeze this action so the tick stops reprocessing it until they answer.
-      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true });
+      // Freeze this action so the tick stops reprocessing it until they answer,
+      // and give back the claim's lease: the action was due, so it is due now.
+      // Leaving the lease on it (completes_at five minutes out) froze the timer
+      // for up to five minutes after a correct answer, and a refresh showed that
+      // five minutes as the timer (players' "botcheck freezing my timer" and
+      // "refreshing makes my timer 10x", 2026-10-15).
+      await db('player_actions').where({ id: action.id }).update({ bot_check_pending: true, completes_at: db.fn.now() });
       return;
     }
 
