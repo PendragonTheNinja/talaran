@@ -24,3 +24,6 @@ Thumbs.db
 
 # Player uploads (avatars): live data, not source. Back these up.
 apps/server/uploads/
+
+# Source art lives in art/; anything in public/ is published to the site
+apps/client/public/**/*.psd
