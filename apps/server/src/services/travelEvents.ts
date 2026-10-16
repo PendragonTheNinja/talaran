@@ -1,4 +1,4 @@
-// Travel find-events. Travel-type-agnostic (Agility/Equitation/Sailing all use this).
+// Travel find-events. Travel-type-agnostic (walking on Wayfaring now; Sailing later).
 // Adding a new find = append one entry. region 'global' = any island.
 
 export interface TravelEvent {
@@ -94,7 +94,7 @@ export interface RolledEvent {
  * segments = ceil(baseTime / 60): roll 1 = sec 1-60, roll 2 = 61-120, etc.
  * Each segment rolls every eligible event (region match OR global) against its
  * own rarity; the RAREST success in that segment wins. Segments can yield nothing.
- * agilityLevel gives a small nudge to odds (effective rarity shrinks slightly w/ level).
+ * The Wayfaring level gives a small nudge to odds (effective rarity shrinks slightly w/ level).
  */
 export function rollTravelEvents(baseTime: number, region: string, level: number = 1): RolledEvent[] {
     const segments = Math.max(1, Math.ceil(baseTime / 60))

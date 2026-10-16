@@ -24,8 +24,8 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Defense', type: 'combat', display_order: 13, description: 'Take the blow on your armour and not on yourself. The more you turn aside, the heavier the armour you can carry.' },
     { name: 'Constitution', type: 'combat', display_order: 14, description: 'Bear the blows that get through. A hardy body has more to lose before it falls.' },
     // Utility
-    { name: 'Agility', type: 'utility', display_order: 16, description: 'Increases movement speed and unlocks shortcuts.' },
-    { name: 'Equitation', type: 'utility', display_order: 17, description: 'The art of riding mounts. Higher levels increase mounted speed.' },
+    // Wayfaring replaced Agility and Equitation in 20261016130000_wayfaring.
+    { name: 'Wayfaring', type: 'utility', display_order: 16, description: 'The road, on foot or in the saddle. Walking teaches more and finds more by the wayside; a horse gets you there sooner.' },
     { name: 'Sailing', type: 'utility', display_order: 18, description: 'Navigate the seas between islands and continents.' },
     { name: 'Thieving', type: 'utility', display_order: 19, description: "Pick pockets, unlock doors, and take what isn't yours." },
     { name: 'Exploration', type: 'utility', display_order: 20, description: 'Discover new locations, resources, and creatures. The world reveals itself to those who seek it.' },

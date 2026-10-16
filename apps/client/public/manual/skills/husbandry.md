@@ -69,7 +69,7 @@ Mounts are raised in a paddock like anything else, and then they are not.
 
 When a horse comes of age you put a **halter** on it, and at that moment it stops being an animal in your paddock and becomes a horse in your keeping. It will not age further. It will not slow. It is simply, permanently, your horse.
 
-The **rouncey** is an honest all-purpose animal you may raise from your first day. The **palfrey** is smooth-gaited and bred for distance, and wants Husbandry 13 to raise, and separately, **Equitation 13 to ride**. Note the two gates. Raising a horse and being fit to ride one are different accomplishments, and it is entirely possible to stand in your own paddock beside an animal you have fed for two days and cannot yet get on.
+The **rouncey** is an honest all-purpose animal you may raise from your first day. The **palfrey** is smooth-gaited and bred for distance, and wants Husbandry 13 to raise, and separately, **Wayfaring 13 to ride**. Note the two gates. Raising a horse and being fit to ride one are different accomplishments, and it is entirely possible to stand in your own paddock beside an animal you have fed for two days and cannot yet get on.
 
 ## Tools, which must be equipped
 

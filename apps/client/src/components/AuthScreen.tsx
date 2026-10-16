@@ -25,7 +25,7 @@ const SLIDE_MS = 5000
    not built, so they are named in the note under the grid instead. */
 const TRADES = [
     'Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting', 'Carpentry',
-    'Smithing', 'Farming', 'Husbandry', 'Crafting', 'Agility', 'Equitation',
+    'Smithing', 'Farming', 'Husbandry', 'Crafting', 'Wayfaring',
 ]
 
 const DISCORD_URL = 'https://discord.gg/ceHFe8nEAB'
@@ -529,7 +529,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
             <section className="home-band home-band-alt">
                 <div className="home-wrap">
                     <div className="home-sec-head">
-                        <span className="home-sec-title">Twelve skills, available now</span>
+                        <span className="home-sec-title">Eleven skills, available now</span>
                         <span className="home-sec-rule" />
                     </div>
                     <div className="home-trades">

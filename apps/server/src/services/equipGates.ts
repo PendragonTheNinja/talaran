@@ -21,10 +21,10 @@ const SUBTYPE_SKILL: Record<string, string> = {
     foraging_basket: 'Foraging',
     fishing_rod: 'Fishing',
     fishing_net: 'Fishing',
-    // Mounts are raised in Husbandry but ridden on Equitation — the dual gate.
+    // Mounts are raised in Husbandry but ridden on Wayfaring — the dual gate.
     // Without these the Palfrey's level_required would never be checked.
-    horse: 'Equitation',
-    pony: 'Equitation',
+    horse: 'Wayfaring',
+    pony: 'Wayfaring',
 }
 
 /**

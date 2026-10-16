@@ -90,7 +90,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - Juvenile → Adult → Elder. Elders produce slower and never die, but **butcher at full value**. Only XP is weighted by life lived: `xp_slaughter × min(1, life_accrued / full_lifespan)`. Mounts are a flat payout.
 - **XP parity:** a full pen earns what a full plot earns. Per-animal rate `(0.12 / pen_capacity) × band(species level)`.
 - A pen holds one species, locked on first placement, released when the last head leaves.
-- **Mounts leave the pen as items, and items do not age.** Dual gate: Husbandry to raise, Equitation to ride (`SUBTYPE_SKILL` in `routes/equipment.ts`).
+- **Mounts leave the pen as items, and items do not age.** Dual gate: Husbandry to raise, Wayfaring to ride (`services/equipGates.ts`). **Wayfaring** (2026-10-16, migration `20261016130000`) replaced Agility and Equitation: every journey over land pays it, walking at `FOOT_XP_RATE` with travel finds, riding at `MOUNT_XP_RATE` without; one level drives both speed curves in `services/travel.ts`. Sailing will be its own skill.
 - **Growing up is paid on read** (`payMaturityXp`, inside `getHusbandryState`), so it is reported: the state carries `matured`, and the Animals tab logs a line per animal. A caller that only wants a number passes `?peek=1` (`settleMaturity: false`), or the XP lands where nobody sees it.
 - **No breeding, on purpose.** Young come only from Trapping and Hunting. That is what sends homestead players back into the world.
 

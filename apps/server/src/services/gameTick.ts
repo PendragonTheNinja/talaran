@@ -23,7 +23,7 @@ import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
 import { shouldCancelForAbsence } from '../lib/presence';
 import { recordLoot } from './lootLog';
-import { AGILITY_XP_RATE, EQUITATION_XP_RATE } from './travel'
+import { FOOT_XP_RATE, MOUNT_XP_RATE, TRAVEL_SKILL } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
@@ -677,8 +677,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
       const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
       const hasMountEquipped = equipment?.mount_item_id !== null && equipment?.mount_item_id !== undefined;
-      const skillName = hasMountEquipped ? 'Equitation' : 'Agility';
-      const rate = hasMountEquipped ? EQUITATION_XP_RATE : AGILITY_XP_RATE;
+      // Walked or ridden, the journey trains Wayfaring; walking pays more per trip.
+      const skillName = TRAVEL_SKILL;
+      const rate = hasMountEquipped ? MOUNT_XP_RATE : FOOT_XP_RATE;
       const travelXp = Math.round(baseTime * rate);
 
       // The row is still read below for the arrival screen's level display.
@@ -693,7 +694,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // road, so a rider and a walker cover the same distance on the same
       // route. Recording the shortened time would mean a good mount made the
       // world smaller.
-      // Distance, plus which way you got there. Agility and Equitation had no
+      // Distance, plus which way you got there. The travel skills had no
       // counter of any kind before this, so neither could carry a feat.
       await incrementStats(action.player_id, {
         total_distance_traveled: baseTime,
@@ -729,10 +730,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // ── Travel find-events ────────────────────────────────────────
       // Region of the destination drives the eligible event pool.
       const destRegion = destination?.region || 'Taiar Island'
-      const agiLevelForLuck = skillName === 'Agility' ? lvl : 1  // mounted: no foraging luck for now
-      const rolledEvents = skillName === 'Agility'
-        ? rollTravelEvents(baseTime, destRegion, agiLevelForLuck)
-        : []  // Equitation finds come later; Sailing will use this too
+      // Finds are for walkers: a rider covers the ground too fast to see them.
+      const rolledEvents = hasMountEquipped
+        ? []
+        : rollTravelEvents(baseTime, destRegion, lvl)
 
       // Add any found items to inventory (mirrors the gathering inventory-add pattern)
       for (const ev of rolledEvents) {

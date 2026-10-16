@@ -1,6 +1,6 @@
 Every trade in Talaran climbs the same ladder.
 
-I want to state that plainly before the numbers arrive, because it is the most useful fact in this appendix and it is easy to lose among the figures. Mining and Cooking and Equitation and Hunting do not have separate ladders of differing steepness. There is one ladder, and it is the same on every island this world will ever have. What differs between the trades is only how quickly you earn the rungs.
+I want to state that plainly before the numbers arrive, because it is the most useful fact in this appendix and it is easy to lose among the figures. Mining and Cooking and Wayfaring and Hunting do not have separate ladders of differing steepness. There is one ladder, and it is the same on every island this world will ever have. What differs between the trades is only how quickly you earn the rungs.
 
 Which means a level in a trade you find tedious costs exactly what a level in your favourite costs. Talaran plays no favourites and holds no grudges.
 

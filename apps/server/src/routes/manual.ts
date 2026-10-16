@@ -662,14 +662,14 @@ const registry: Record<string, QueryHandler> = {
             rows.push({
                 field: 'Travel',
                 value: floor !== null
-                    ? `${start}% of journey time, falling to ${floor}% as Equitation rises`
+                    ? `${start}% of journey time, falling to ${floor}% as Wayfaring rises`
                     : `${start}% of journey time`,
             });
         }
         if (item.agility_reduction) {
             rows.push({
                 field: 'On foot',
-                value: `−${Math.round(Number(item.agility_reduction) * 100)}% of the journey time Agility has not already saved`,
+                value: `−${Math.round(Number(item.agility_reduction) * 100)}% of the journey time Wayfaring has not already saved`,
             });
         }
 

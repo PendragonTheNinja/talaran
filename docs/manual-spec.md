@@ -45,9 +45,9 @@ Four sections, in this order. Slugs are kebab-case and **stable forever** (deep-
 ### Skills
 One page per skill, identical template (§5). Landing page is a card grid built from the manifest (icon, name, one-line hook). Order = canonical build order, then the rest:
 
-Carpentry, Crafting, Hunting, Husbandry, Foraging, Farming, Fishing, Cooking, Combat, Mining, Woodcutting, Smithing, Tanning, Agility, Equitation.
+Carpentry, Crafting, Hunting, Husbandry, Foraging, Farming, Fishing, Cooking, Combat, Mining, Woodcutting, Smithing, Tanning, Wayfaring.
 
-Slugs: lowercase skill name (`farming`, `equitation`, …). Ship pages only for skills that exist in game; the manifest is the gate.
+Slugs: lowercase skill name (`farming`, `wayfaring`, …). Ship pages only for skills that exist in game; the manifest is the gate.
 
 ### Systems
 Features that aren't self-explanatory at face value:

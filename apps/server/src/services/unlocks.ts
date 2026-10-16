@@ -4,7 +4,7 @@
 // Every level gate in the game, in one place, by the skill that owns it:
 // gathering nodes, recipes, crops, fish, foraging spots, huntable animals and
 // traps (Hunting), animals to raise, gear to wear (the skill gateSkill names:
-// Melee for weapons, Defense for armour, Equitation for mounts, the trade for
+// Melee for weapons, Defense for armour, Wayfaring for mounts, the trade for
 // its tools), and roads that need a level. A new gated table belongs here, or
 // its level-ups say nothing about it.
 

@@ -1,5 +1,6 @@
 import db from '../db'
 import { levelFromXp } from './xp'
+
 import { buffTravelBonus } from './buffs'
 
 // ── The travel curve ────────────────────────────────────────────────────────
@@ -12,29 +13,38 @@ import { buffTravelBonus } from './buffs'
 // model subtracted Agility/Equitation levels straight off base and then clamped
 // at 10%, which meant a maxed runner hit the clamp with no mount at all and
 // every mount tier above the third was invisible. Here the mount decides where
-// you end up and Equitation decides how fast you get there, so both stay
+// you end up and Wayfaring decides how fast you get there, so both stay
 // legible for the whole game.
+//
+// One skill, Wayfaring, drives both curves (Nathan, 2026-10-16). It replaced
+// Agility (on foot) and Equitation (mounted), so a player no longer has to pick
+// one way of travelling to train. Walking pays more XP per trip and finds
+// things on the road; riding gets there sooner.
 //
 // Deliberately unbounded above level 100: skills level past the cap, and this
 // keeps paying (ever less) instead of flattening to nothing.
 //
-// On foot  → start 1.00, floor FOOT_FLOOR, tuned so Agility 100 lands on
+// On foot  → start 1.00, floor FOOT_FLOOR, tuned so Wayfaring 100 lands on
 //            FOOT_AT_100. Gear closes a share of whatever gap is left.
 // Mounted  → start and floor are per-mount columns (travel_speed_modifier and
-//            travel_floor); Equitation closes the gap between them.
+//            travel_floor); Wayfaring closes the gap between them.
 
 export const FOOT_START = 1.0
 export const FOOT_FLOOR = 0.10              // asymptote on foot; approached, never reached
-export const FOOT_AT_100 = 0.30             // where Agility 100 actually lands
-export const MOUNT_GAP_LEFT_AT_100 = 0.03   // Equitation 100 closes 97% of a mount's gap
+export const FOOT_AT_100 = 0.30             // where Wayfaring 100 lands on foot
+export const MOUNT_GAP_LEFT_AT_100 = 0.03   // Wayfaring 100 closes 97% of a mount's gap
 export const DEFAULT_MOUNT_FLOOR = 0.40     // for a mount row with no travel_floor set
 export const MIN_TRAVEL_SECONDS = 1         // a 5s hop must not round to nothing
 
-export const AGILITY_RATE = Math.pow((FOOT_AT_100 - FOOT_FLOOR) / (FOOT_START - FOOT_FLOOR), 1 / 100)
-export const EQUITATION_RATE = Math.pow(MOUNT_GAP_LEFT_AT_100, 1 / 100)
+export const FOOT_RATE = Math.pow((FOOT_AT_100 - FOOT_FLOOR) / (FOOT_START - FOOT_FLOOR), 1 / 100)
+export const MOUNT_RATE = Math.pow(MOUNT_GAP_LEFT_AT_100, 1 / 100)
 
-export const AGILITY_XP_RATE = 0.7
-export const EQUITATION_XP_RATE = 0.45
+/** The skill every journey over land trains, walked or ridden. */
+export const TRAVEL_SKILL = 'Wayfaring'
+
+// XP per second of the road's base time. Walking pays more per trip.
+export const FOOT_XP_RATE = 0.7
+export const MOUNT_XP_RATE = 0.45
 
 /** floor + (start - floor) * rate^level */
 function approach(start: number, floor: number, rate: number, level: number): number {
@@ -50,8 +60,8 @@ async function skillLevel(playerId: number, skillName: string): Promise<number> 
 
 /**
  * Computes the actual travel time for a trip, given the player's mount/gear/levels.
- * On foot  → Agility level, then staff/boots close a share of the remaining gap.
- * Mounted  → the mount's start/floor pair, closed by Equitation level.
+ * On foot  → Wayfaring level, then staff/boots close a share of the remaining gap.
+ * Mounted  → the mount's start/floor pair, closed by Wayfaring level.
  * XP (awarded elsewhere) is always based on baseTime, never this reduced value.
  */
 export async function computeTravelTime(playerId: number, baseTime: number): Promise<{
@@ -75,6 +85,7 @@ export async function computeTravelTime(playerId: number, baseTime: number): Pro
     }
 
     let fraction: number
+    const level = await skillLevel(playerId, TRAVEL_SKILL)
 
     if (mounted) {
         const mount = await db('items').where({ id: mountId }).first()
@@ -85,15 +96,13 @@ export async function computeTravelTime(playerId: number, baseTime: number): Pro
         const start = mount?.travel_speed_modifier !== null && mount?.travel_speed_modifier !== undefined
             ? Number(mount.travel_speed_modifier)
             : 1.0
-        const equiLevel = await skillLevel(playerId, 'Equitation')
-        fraction = approach(Math.max(start, floor), floor, EQUITATION_RATE, equiLevel)
+        fraction = approach(Math.max(start, floor), floor, MOUNT_RATE, level)
     } else {
-        const agiLevel = await skillLevel(playerId, 'Agility')
-        fraction = approach(FOOT_START, FOOT_FLOOR, AGILITY_RATE, agiLevel)
+        fraction = approach(FOOT_START, FOOT_FLOOR, FOOT_RATE, level)
 
         // On-foot gear (staff mainhand, boots feet) closes a share of the gap
         // that is still open. A flat cut off base would have pushed past the
-        // floor at high Agility; this keeps the staff worth carrying forever.
+        // floor at high Wayfaring; this keeps the staff worth carrying forever.
         const gearIds = [equipment?.mainhand_item_id, equipment?.feet_item_id].filter(Boolean)
         if (gearIds.length) {
             const gear = await db('items').whereIn('id', gearIds).select('agility_reduction')
