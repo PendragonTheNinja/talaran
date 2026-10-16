@@ -81,7 +81,11 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
       .leftJoin('feats as bf', 'bf.badge_key', 'p.worn_badge')
       .where('cm.channel', channel)
       .where('cm.sent_at', '>=', cutoff)
-      .orderBy('cm.sent_at', 'asc')
+      // The NEWEST 200, put back in order below. Ascending with a limit kept
+      // the day's first 200, so on a busy day a refresh showed chat up to
+      // mid-afternoon and nothing after (2026-10-17).
+      .orderBy('cm.sent_at', 'desc')
+      .orderBy('cm.id', 'desc')
       .limit(200)
       .select('cm.*', 'p.worn_badge as badgeKey', 'bf.badge as badge');
 
@@ -103,7 +107,7 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
       query = query.where('cm.player_id', playerId);
     }
 
-    const messages = await query;
+    const messages = (await query).reverse();
 
     // Badges are resolved at read time from whoever sent the line, not stored
     // on it. A stored badge would freeze whatever the player wore that day, and
