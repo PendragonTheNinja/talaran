@@ -6,6 +6,8 @@ import { logger } from '../lib/logger';
 import { announceGroundChange, GROUND_ITEM_PRIVATE_SECONDS, GROUND_ITEM_LIFETIME_MINUTES } from '../services/groundItems';
 import { failureStatus } from '../lib/serviceResult';
 import { addItemToInventoryWithin, notifyInventoryChanged } from '../services/inventory';
+import { ensureEquipmentRow, restoreDeathLoadoutWithin } from '../services/equipment';
+import { pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -159,20 +161,32 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
         // dropEverythingWithin) left the increment matching nothing, and the
         // picked-up stack was gone from the ground and never reached the pack.
         // addItemToInventoryWithin is one atomic upsert (CLAUDE.md §4 rule 13).
+        // The player's own stack, still private to them: if it came off them
+        // when they died, what they wore goes back on, as with Take back.
+        const ownPrivate = groundItem.dropped_by_player_id === playerId && new Date(groundItem.visible_to_all_at) > now;
         const claimed = await db.transaction(async (trx) => {
+            // Equipment before the pack, the equip button's order, so the two
+            // never deadlock (restoreDeathLoadoutWithin).
+            if (ownPrivate) {
+                await ensureEquipmentRow(playerId, trx);
+                await trx('player_equipment').where({ player_id: playerId }).forUpdate().first();
+            }
             const n = await trx('ground_items')
                 .where({ id: groundItemId })
                 .where('dropped_at', '>', new Date(Date.now() - GROUND_ITEM_LIFETIME_MINUTES * 60_000))
                 .delete();
-            if (n === 0) return false;
+            if (n === 0) return null;
             await addItemToInventoryWithin(trx, playerId, groundItem.item_id, groundItem.quantity);
-            return true;
+            return ownPrivate
+                ? await restoreDeathLoadoutWithin(trx, playerId, groundItem.location_id, [groundItem])
+                : [];
         });
         if (!claimed) {
             res.status(404).json({ error: 'It is already gone.' });
             return;
         }
         notifyInventoryChanged(playerId);
+        if (claimed.length) pushToPlayer(playerId, 'equipment_changed');
 
         // The claim above already deleted the row; this is where the old
         // read-then-delete used to happen.
@@ -183,7 +197,7 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
         announceGroundChange(groundItem.location_id);
 
         logger.info(`Player ${playerId} picked up ${groundItem.quantity}x ${item.name}`);
-        res.json({ success: true, itemName: item.name, quantity: groundItem.quantity });
+        res.json({ success: true, itemName: item.name, quantity: groundItem.quantity, reequipped: claimed });
     } catch (err) {
         logger.error(`Pickup error: ${err}`);
         res.status(500).json({ error: 'Server error' });
@@ -205,31 +219,38 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
 router.post('/take-back', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
-        const taken = await db.transaction(async (trx) => {
+        const { taken, reequipped } = await db.transaction(async (trx) => {
             const player = await trx('players').where({ id: playerId }).select('current_location_id').first();
-            if (!player?.current_location_id) return [];
+            if (!player?.current_location_id) return { taken: [], reequipped: [] };
+            // Equipment before the pack, the equip button's order, so a take-back
+            // and an equip sent together never deadlock (race:check "ground").
+            await ensureEquipmentRow(playerId, trx);
+            await trx('player_equipment').where({ player_id: playerId }).forUpdate().first();
             const now = new Date();
-            const rows: { item_id: number; quantity: number }[] = await trx('ground_items')
+            const rows: { item_id: number; quantity: number; dropped_at: Date }[] = await trx('ground_items')
                 .where({ location_id: player.current_location_id, dropped_by_player_id: playerId })
                 .where('visible_to_all_at', '>', now)
                 .where('dropped_at', '>', new Date(now.getTime() - GROUND_ITEM_LIFETIME_MINUTES * 60_000))
                 .delete()
-                .returning(['item_id', 'quantity']);
+                .returning(['item_id', 'quantity', 'dropped_at']);
             // Item-id order, so two of these never lock pack rows in opposite orders.
             rows.sort((x, y) => x.item_id - y.item_id);
             for (const r of rows) await addItemToInventoryWithin(trx, playerId, r.item_id, r.quantity);
-            return rows;
+            // What they wore when they died goes back on (Nathan, 2026-10-17).
+            const back = await restoreDeathLoadoutWithin(trx, playerId, player.current_location_id, rows);
+            return { taken: rows, reequipped: back };
         });
         if (!taken.length) {
             res.status(400).json({ error: 'There is nothing here that is still yours alone to take back.' });
             return;
         }
         notifyInventoryChanged(playerId);
+        if (reequipped.length) pushToPlayer(playerId, 'equipment_changed');
         const player = await db('players').where({ id: playerId }).select('current_location_id').first();
         if (player?.current_location_id) announceGroundChange(player.current_location_id);
         const count = taken.reduce((n, r) => n + Number(r.quantity), 0);
         logger.info(`Player ${playerId} took back ${taken.length} stacks (${count} items)`);
-        res.json({ success: true, stacks: taken.length, items: count });
+        res.json({ success: true, stacks: taken.length, items: count, reequipped });
     } catch (err) {
         logger.error(`Take back error: ${err}`);
         res.status(500).json({ error: 'Server error' });

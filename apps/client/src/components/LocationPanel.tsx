@@ -146,10 +146,22 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     return () => { clearTimeout(first); clearInterval(t) }
   }, [ownStacks.length, groundItems])
   const [takingBack, setTakingBack] = useState(false)
+  // Gear worn at death goes back on when its stack is taken back while still
+  // private, by the button or one at a time (services/equipment.ts
+  // restoreDeathLoadoutWithin). The paper doll refreshes from the server's
+  // equipment_changed push; this only says so.
+  const announceReequipped = (names?: string[]) => {
+    if (!names?.length) return
+    const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    window.dispatchEvent(new CustomEvent('talaran:notice', {
+      detail: { message: `You put your ${list} back on.`, type: 'success' },
+    }))
+  }
   const takeBack = async () => {
     setTakingBack(true)
     try {
-      await apiFetch('/api/ground-items/take-back', { method: 'POST' })
+      const data = await apiFetch<{ reequipped?: string[] }>('/api/ground-items/take-back', { method: 'POST' })
+      announceReequipped(data.reequipped)
     } catch (err) {
       window.dispatchEvent(new CustomEvent('talaran:notice', {
         detail: { message: (err instanceof Error && err.message) || 'That did not work.', type: 'error' },
@@ -199,10 +211,11 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   const handlePickup = async (groundItemId: number) => {
     try {
-      const data = await apiFetch<{ itemName: string; quantity: number }>('/api/ground-items/pickup', {
+      const data = await apiFetch<{ itemName: string; quantity: number; reequipped?: string[] }>('/api/ground-items/pickup', {
         method: 'POST',
         body: JSON.stringify({ groundItemId }),
       })
+      announceReequipped(data.reequipped)
       // The pack refreshes from the server's inventory_changed push.
       loadGroundItems()
     } catch (err: any) {

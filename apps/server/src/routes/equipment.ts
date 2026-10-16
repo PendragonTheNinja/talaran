@@ -1,32 +1,16 @@
 import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
-import { addItemToInventoryWithin, removeItemFromInventoryWithin } from '../services/inventory';
-import { combatLevels, combatProfile, holdsBothHands, CombatProfile, COMBAT_SKILLS } from '../services/combat';
-import { gateSkill } from '../services/equipGates';
+import { addItemToInventoryWithin } from '../services/inventory';
+import { combatLevels, combatProfile, CombatProfile, COMBAT_SKILLS } from '../services/combat';
+import { VALID_SLOTS, ensureEquipmentRow, equipLevelRefusal, wearFromPackWithin } from '../services/equipment';
 
 const router = Router();
 
-// Get player equipment
-// The only slots that exist. `slot` reaches a column name in both equip and
-// unequip, so it must never come from the client or an item row unchecked.
-const VALID_SLOTS = [
-  'head', 'neck', 'back', 'chest', 'mainhand', 'offhand',
-  'legs', 'hands', 'feet', 'finger', 'mount', 'trophy',
-] as const;
+// The slots, the level gate and the swap itself live in services/equipment.ts,
+// shared with gear going back on after a death (restoreDeathLoadoutWithin).
 
-// Which skill gates an item's level_required: services/equipGates.ts, shared
-// with the item pages and the level-up popup (services/unlocks.ts).
-
-/**
- * The player's equipment row, created if absent.
- *
- * player_equipment.player_id is unique, so a plain insert-then-select races: two
- * simultaneous requests from a brand-new player both see no row and both insert,
- * and one gets a unique violation. onConflict makes it idempotent.
- */
 /**
  * A refusal from inside an equipment transaction.
  *
@@ -39,18 +23,6 @@ class EquipAbort extends Error {
   constructor(message: string, public status = 400) {
     super(message);
   }
-}
-
-async function ensureEquipmentRow(playerId: number) {
-  const existing = await db('player_equipment').where({ player_id: playerId }).first();
-  if (existing) return existing;
-
-  await db('player_equipment')
-    .insert({ player_id: playerId })
-    .onConflict(['player_id'])
-    .ignore();
-
-  return db('player_equipment').where({ player_id: playerId }).first();
 }
 
 /**
@@ -148,31 +120,10 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (item.level_required > 1) {
-      const skillName = gateSkill(item);
-
-      if (!skillName) {
-        // Allowed rather than refused, so adding an item cannot silently make it
-        // unequippable — but logged, because the gate is not being enforced and
-        // somebody should add the subtype to SUBTYPE_SKILL.
-        logger.warn(
-          `Item ${item.id} (${item.name}) requires level ${item.level_required} but `
-          + `subtype "${item.subtype}" maps to no skill; level gate NOT enforced`,
-        );
-      }
-
-      if (skillName) {
-        const skill = await db('skills').where({ name: skillName }).first();
-        const playerSkill = await db('player_skills')
-          .where({ player_id: playerId, skill_id: skill.id })
-          .first();
-        const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0);
-
-        if (playerLevel < item.level_required) {
-          res.status(403).json({ error: `You need ${skillName} level ${item.level_required} to equip this` });
-          return;
-        }
-      }
+    const refusal = await equipLevelRefusal(playerId, item);
+    if (refusal) {
+      res.status(403).json({ error: refusal });
+      return;
     }
 
     // The row must exist before it can be locked: forUpdate() on a missing row
@@ -190,51 +141,11 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
     // equipment changes, so the second request waits and then sees the slot as
     // the first one left it.
     const outcome = await db.transaction(async (trx) => {
-      const equipment = await trx('player_equipment')
-        .where({ player_id: playerId })
-        .forUpdate()
-        .first();
-      const currentItemId = equipment?.[`${item.slot}_item_id`] ?? null;
-
-      // Already wearing this exact item. A pair of daggers is one item, so
-      // the right answer is to change nothing. (This branch once destroyed a
-      // spare copy: the swap-out was skipped but the removal still ran.) No
-      // write has happened, so returning here commits nothing.
-      if (currentItemId === itemId) return { unchanged: true, otherHandItemId: null };
-
-      // Take the incoming item first. If it is no longer held (spent in another
-      // tab), refuse before anything has moved.
-      const took = await removeItemFromInventoryWithin(trx, playerId, itemId, 1);
-      if (!took) throw new EquipAbort('You do not have this item');
-
-      // Whatever was worn goes back to the pack.
-      if (currentItemId) {
-        await addItemToInventoryWithin(trx, playerId, currentItemId, 1);
-      }
-      const update: Record<string, number | null> = { [`${item.slot}_item_id`]: itemId };
-
-      // Dual and two-hand weapons take both hands (docs/combat-spec.md §6).
-      // Read from the locked row, like the slot itself: a weapon going into
-      // the main hand empties the offhand, and anything going into the offhand
-      // puts such a weapon away. Either way it lands in the pack.
-      let otherHand: 'offhand' | 'mainhand' | null = null;
-      if (item.slot === 'mainhand' && holdsBothHands(item)) {
-        otherHand = 'offhand';
-      } else if (item.slot === 'offhand' && equipment?.mainhand_item_id) {
-        const held = await trx('items').where({ id: equipment.mainhand_item_id }).first();
-        if (holdsBothHands(held)) otherHand = 'mainhand';
-      }
-      const otherHandItemId: number | null = otherHand ? equipment?.[`${otherHand}_item_id`] ?? null : null;
-      if (otherHand && otherHandItemId) {
-        await addItemToInventoryWithin(trx, playerId, otherHandItemId, 1);
-        update[`${otherHand}_item_id`] = null;
-      }
-
-      await trx('player_equipment')
-        .where({ player_id: playerId })
-        .update(update);
-
-      return { unchanged: false, otherHandItemId };
+      const worn = await wearFromPackWithin(trx, playerId, item);
+      // Nothing has moved on either refusal, so returning or throwing is the same.
+      if (worn.status === 'missing') throw new EquipAbort('You do not have this item');
+      if (worn.status === 'unchanged') return { unchanged: true, otherHandItemId: null };
+      return { unchanged: false, otherHandItemId: worn.otherHandItemId };
     });
 
     if (outcome.unchanged) {

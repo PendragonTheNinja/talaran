@@ -107,15 +107,26 @@ export async function dropEverythingWithin(
     const add = (itemId: number, quantity: number) => totals.set(itemId, (totals.get(itemId) ?? 0) + quantity);
 
     const worn = await trx('player_equipment').where({ player_id: playerId }).forUpdate().first();
+    // What was on, slot by slot, so taking the pile back puts it on again
+    // (restoreDeathLoadoutWithin in services/equipment.ts). The pile below
+    // merges worn and carried into one stack per item, which loses this.
+    const loadout: { player_id: number; slot: string; item_id: number; location_id: number; died_at: Date }[] = [];
     if (worn) {
         const cleared: Record<string, null> = {};
         for (const [column, itemId] of Object.entries(worn)) {
             if (!column.endsWith('_item_id') || !itemId || column === 'trophy_item_id') continue;
             add(Number(itemId), 1);
             cleared[column] = null;
+            loadout.push({
+                player_id: playerId, slot: column.slice(0, -'_item_id'.length), item_id: Number(itemId),
+                location_id: locationId, died_at: at,
+            });
         }
         if (Object.keys(cleared).length) await trx('player_equipment').where({ player_id: playerId }).update(cleared);
     }
+    // A new death replaces the last one's outfit, even when nothing was worn.
+    await trx('death_loadouts').where({ player_id: playerId }).delete();
+    if (loadout.length) await trx('death_loadouts').insert(loadout);
 
     const carried: { item_id: number; quantity: number }[] = await trx('player_inventory')
         .where({ player_id: playerId })

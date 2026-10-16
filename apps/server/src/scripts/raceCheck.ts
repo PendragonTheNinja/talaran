@@ -1289,6 +1289,52 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'ground', name: 'take back a death pile that puts gear back on, while equipping, at once', rounds: 20,
+        run: async (ctx) => {
+            // Died wearing the hatchet: it lies in the private pile with some
+            // planks and a spare crude axe, the hatchet remembered as worn.
+            // Since respawning the player wears another crude axe and carries a
+            // chipped one. The spare in the pile is what makes the race real:
+            // the take-back holds the crude axe's pack row while an equip,
+            // holding the equipment row, puts the worn crude axe into the pack. Take-backs, a pickup of the
+            // hatchet's stack and equips of the chipped axe all land together.
+            // The hatchet goes back on once, whatever it replaces lands in the
+            // pack, and no axe is made or lost. Restoring took the equipment
+            // lock after the pack's, against the equip button's order, and the
+            // two deadlocked (a 500 here).
+            const w = await world(ctx);
+            const diedAt = new Date(Date.now() - 60_000);
+            const later = new Date(diedAt.getTime() + 15 * 60_000);
+            const hatchetStack = await ctx.seed.row('ground_items', {
+                item_id: w.hatchet.id, quantity: 1, location_id: w.town.id, dropped_by_player_id: w.player.id,
+                dropped_at: diedAt, visible_to_all_at: later,
+            });
+            await ctx.seed.row('ground_items', {
+                item_id: w.plank.id, quantity: 5, location_id: w.town.id, dropped_by_player_id: w.player.id,
+                dropped_at: diedAt, visible_to_all_at: later,
+            });
+            await ctx.seed.row('ground_items', {
+                item_id: w.axeA.id, quantity: 1, location_id: w.town.id, dropped_by_player_id: w.player.id,
+                dropped_at: diedAt, visible_to_all_at: later,
+            });
+            await ctx.seed.row('death_loadouts', {
+                player_id: w.player.id, slot: 'mainhand', item_id: w.hatchet.id, location_id: w.town.id, died_at: diedAt,
+            });
+            await wearing(ctx, w.player.id, 'mainhand_item_id', w.axeA.id);
+            await inPack(ctx, w.player.id, w.axeB.id, 1);
+            const st = await ctx.burst(w.player.id, 6, (i) => i < 2
+                ? ctx.post(w.player.id, '/ground-items/take-back', {})
+                : i < 4
+                    ? ctx.post(w.player.id, '/ground-items/pickup', { groundItemId: hatchetStack.id })
+                    : ctx.post(w.player.id, '/equipment/equip', { itemId: w.axeB.id }));
+            return changed('hatchets', 1, await ctx.itemTotal(w.hatchet.id))
+                ?? changed('crude axes', 2, await ctx.itemTotal(w.axeA.id))
+                ?? changed('chipped axes', 1, await ctx.itemTotal(w.axeB.id))
+                ?? changed('planks', 5, await ctx.itemTotal(w.plank.id))
+                ?? noServerErrors(st);
+        },
+    },
+    {
         id: 'fight', name: 'equip a replacement as the old blade breaks on a kill', rounds: 40,
         run: async (ctx, round) => {
             // A blade past its guarantee that always breaks, the killing
