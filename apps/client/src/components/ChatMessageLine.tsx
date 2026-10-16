@@ -6,6 +6,7 @@
 // the panels.
 
 import Badge from './Badge'
+import type { ReactNode } from 'react'
 
 export interface ChatMessage {
     id: number
@@ -42,16 +43,48 @@ export const CHANNEL_SHORT: Record<string, string> = {
     server: 'S',
 }
 
-/** Turns [[FORUMLINK|id|label]] markers into clickable spans. */
+// Web addresses in a message: http(s) or a bare www. Nothing else becomes a
+// link, so a javascript: or data: address stays plain text. The match stops at
+// whitespace, and trailing punctuation that ends a sentence is left outside.
+const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"]+/gi
+const URL_TRAILING = /[.,!?;:'")\]]+$/
+
+/**
+ * Plain text with its web addresses as links that open in a new tab. Built as
+ * React elements, never HTML, so a message cannot inject markup.
+ */
+function linkify(text: string, keyPrefix: string): ReactNode[] {
+    const nodes: ReactNode[] = []
+    let lastIndex = 0
+    let n = 0
+    for (const match of text.matchAll(URL_PATTERN)) {
+        const start = match.index ?? 0
+        const raw = match[0]
+        const url = raw.replace(URL_TRAILING, '')
+        if (!url.includes('.')) continue
+        if (start > lastIndex) nodes.push(text.slice(lastIndex, start))
+        const href = /^https?:\/\//i.test(url) ? url : `https://${url}`
+        nodes.push(
+            <a key={`${keyPrefix}-u${n++}`} className="chat-link" href={href} target="_blank" rel="noopener noreferrer nofollow">
+                {url}
+            </a>,
+        )
+        lastIndex = start + url.length
+    }
+    if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+    return nodes
+}
+
+/** Turns [[FORUMLINK|id|label]] markers into clickable spans, and web addresses into links. */
 export function renderMessageText(text: string, onOpenForum?: (threadId: number) => void) {
-    const nodes: any[] = []
+    const nodes: ReactNode[] = []
     const regex = /\[\[FORUMLINK\|(\d+)\|(.*?)\]\]/g
     let lastIndex = 0
     let match: RegExpExecArray | null
     let key = 0
 
     while ((match = regex.exec(text)) !== null) {
-        if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
+        if (match.index > lastIndex) nodes.push(...linkify(text.slice(lastIndex, match.index), `t${key}`))
         const threadId = parseInt(match[1])
         nodes.push(
             <span
@@ -66,7 +99,7 @@ export function renderMessageText(text: string, onOpenForum?: (threadId: number)
         lastIndex = regex.lastIndex
     }
 
-    if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+    if (lastIndex < text.length) nodes.push(...linkify(text.slice(lastIndex), 'end'))
     return nodes
 }
 

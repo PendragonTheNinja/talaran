@@ -114,6 +114,17 @@
   text-decoration: underline;
 }
 
+/* A web address in a message (renderMessageText): the channel's colour, underlined. */
+.chat-link {
+  color: inherit;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.chat-link:hover {
+  color: var(--color-text-bright);
+}
+
 .chat-input option,
 .chat-input optgroup {
   background: var(--color-bg-deep);

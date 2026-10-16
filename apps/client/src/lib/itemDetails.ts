@@ -42,6 +42,8 @@ export interface ItemDetail {
 }
 
 let byName: Map<string, ItemDetail> | null = null
+/** When byName arrived, so a long-open tab picks up changed items. */
+let loadedAt = 0
 let inFlight: Promise<Map<string, ItemDetail>> | null = null
 /** Bumped on every load so hooks holding a lookup re-render when it arrives. */
 let generation = 0
@@ -57,33 +59,51 @@ export function itemDetailsGeneration(): number {
 }
 
 /**
- * Load the table, once.
+ * How old the table may get before a lookup quietly fetches it again. It was
+ * loaded once per page, so a tab open across a content change kept the old
+ * rows: raw food went on sale as food, and its tooltip still said nothing
+ * about mending until a refresh (2026-10-16). The server caches its copy for
+ * five minutes (routes/items.ts), so a change shows within about fifteen.
+ */
+const STALE_MS = 10 * 60 * 1000
+
+/**
+ * Load the table, once, and again in the background once it is STALE_MS old.
  *
  * A failure resolves to an empty map rather than rejecting: a tooltip with just
  * a name is the old behaviour and perfectly survivable, and the next call
  * retries.
  */
 export function loadItemDetails(): Promise<Map<string, ItemDetail>> {
-    if (byName) return Promise.resolve(byName)
+    if (byName && Date.now() - loadedAt < STALE_MS) return Promise.resolve(byName)
     if (inFlight) return inFlight
+    // Stale: answer with what we have and refresh behind it.
+    const stale = byName
 
     inFlight = apiFetch<{ items: ItemDetail[] }>('/api/items/tooltips')
         .then(data => {
             const map = new Map<string, ItemDetail>()
             for (const item of data.items || []) map.set(item.name, item)
             byName = map
+            loadedAt = Date.now()
             generation++
             listeners.forEach(fn => fn())
             return map
         })
-        .catch(() => new Map<string, ItemDetail>())
+        .catch(() => {
+            // Keep what we had, and try again in a minute rather than on
+            // every tooltip until the server answers.
+            if (byName) loadedAt = Date.now() - STALE_MS + 60_000
+            return byName ?? new Map<string, ItemDetail>()
+        })
         .finally(() => { inFlight = null })
 
-    return inFlight
+    return stale ? Promise.resolve(stale) : inFlight
 }
 
 /** What is known about an item right now. Null before the load lands. */
 export function itemDetail(name: string | null | undefined): ItemDetail | null {
     if (!name) return null
+    if (byName && Date.now() - loadedAt >= STALE_MS) void loadItemDetails()
     return byName?.get(name) ?? null
 }
