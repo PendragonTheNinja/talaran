@@ -9,6 +9,7 @@ import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { useDraft } from '../lib/drafts'
+import { TEXT_LIMITS } from '../lib/textLimits'
 
 interface NewsPost {
     id: number
@@ -190,6 +191,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                             onChange={e => setNewBody(e.target.value)}
                             placeholder="Write your update..."
                             rows={12}
+                            maxLength={TEXT_LIMITS.newsBody}
                             style={{ width: '100%', resize: 'vertical', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                         />
                     </div>

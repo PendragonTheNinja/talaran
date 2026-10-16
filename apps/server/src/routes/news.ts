@@ -2,6 +2,7 @@ import { Router, Response, Request } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
@@ -42,6 +43,12 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
 
     if (!title?.trim() || !body?.trim()) {
       res.status(400).json({ error: 'Title and body are required.' });
+      return;
+    }
+    // Capped so its Announcements copy stays editable (TEXT_LIMITS.newsBody).
+    const cleanBody = readText(body, { label: 'Body', max: TEXT_LIMITS.newsBody });
+    if (!cleanBody.ok) {
+      res.status(400).json({ error: cleanBody.error });
       return;
     }
 

@@ -663,21 +663,26 @@ router.post('/threads/:id/lock', requireAuth, async (req: AuthRequest, res: Resp
 router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const postId = parseInt(req.params.postId as string);
-    const cleanContent = readText(req.body?.content, { label: 'Post', max: TEXT_LIMITS.forumPost });
-    if (!cleanContent.ok) {
-        res.status(400).json({ error: cleanContent.error });
-        return;
-    }
 
     try {
+        const player = await db('players').where({ id: playerId }).first();
+        const isStaff = player.is_admin || player.is_mod;
+        // Staff get the longer cap: they edit the Announcements copies of news
+        // posts, which run past a player's (TEXT_LIMITS.staffPost).
+        const cleanContent = readText(req.body?.content, {
+            label: 'Post', max: isStaff ? TEXT_LIMITS.staffPost : TEXT_LIMITS.forumPost,
+        });
+        if (!cleanContent.ok) {
+            res.status(400).json({ error: cleanContent.error });
+            return;
+        }
+
         const post = await db('forum_posts').where({ id: postId, is_deleted: false }).first();
         if (!post) {
             res.status(404).json({ error: 'Post not found.' });
             return;
         }
 
-        const player = await db('players').where({ id: playerId }).first();
-        const isStaff = player.is_admin || player.is_mod;
         const canEdit = post.author_id === playerId || isStaff;
 
         if (!canEdit) {

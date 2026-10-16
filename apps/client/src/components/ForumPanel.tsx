@@ -695,7 +695,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                     value={editContent}
                                                     onChange={e => setEditContent(e.target.value)}
                                                     rows={8}
-                                                    maxLength={TEXT_LIMITS.forumPost}
+                                                    // Staff edit the Announcements copies of news posts,
+                                                    // which run past a player's cap. A box already over
+                                                    // its maxLength refuses every keystroke.
+                                                    maxLength={isAdmin || isMod ? TEXT_LIMITS.staffPost : TEXT_LIMITS.forumPost}
                                                 />
                                                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                                     <button className="btn btn-gold" style={{ fontSize: '13px' }} onClick={() => handleEditPost(post.id)}>

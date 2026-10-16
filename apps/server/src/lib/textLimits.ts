@@ -19,6 +19,14 @@ export const TEXT_LIMITS = {
     // Public forum
     forumTitle: 200,          // forum_threads.title varchar(200)
     forumPost: 10_000,        // forum_posts.content text
+    // Staff editing a post (admins and mods). A news post becomes the first
+    // post of its Announcements thread, and patch notes run past forumPost:
+    // the 1.21 notes landed over the limit, so the edit box refused every
+    // keystroke and the server would have refused the save (2026-10-16).
+    staffPost: 50_000,
+    // A news post's body, with room left under staffPost for the line the
+    // Announcements copy adds (routes/news.ts), so it can always be edited.
+    newsBody: 49_000,
     pollQuestion: 300,        // forum_polls.question varchar(300)
     pollOption: 200,          // forum_poll_options.option_text varchar(200)
     pollOptionsMin: 2,

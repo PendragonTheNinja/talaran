@@ -5,6 +5,8 @@
 export const TEXT_LIMITS = {
     forumTitle: 200,
     forumPost: 10_000,
+    staffPost: 50_000,
+    newsBody: 49_000,
     pollQuestion: 300,
     pollOption: 200,
     pollOptionsMax: 6,
