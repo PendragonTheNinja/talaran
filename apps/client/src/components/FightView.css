@@ -1,7 +1,8 @@
 /* The fight fills the scene and never scrolls. Food runs down the scene's
-   edges (left first, then right) and the fight keeps the middle; in the
-   middle, everything above the swing log keeps its size and the log takes
-   whatever height is left (.scene-fight-overlay in GameView.css holds it). */
+   left edge in one column, scrolling on its own when it is long, and the fight
+   keeps the middle; in the middle, everything above the swing log keeps its
+   size and the log takes whatever height is left (.scene-fight-overlay in
+   GameView.css holds it). */
 .fight-view {
     --food-tile: 44px;
     display: flex;
@@ -26,28 +27,31 @@
 }
 
 
-/* ── Food: a column down each edge, more stepping inward ── */
+/* ── Food: one column down the left edge, most mending first ── */
 .fight-food-side {
     flex: 0 0 auto;
     display: flex;
     flex-direction: row;
-    gap: var(--space-xs);
-    min-width: var(--food-tile);
+    /* Room for the column's scrollbar (6px, index.css) beside the tiles. */
+    width: calc(var(--food-tile) + 10px);
     height: 100%;
     min-height: 0;
 }
 
 .fight-food-col {
-    flex: 0 0 var(--food-tile);
-    height: 100%;
-    box-sizing: border-box;
+    flex: 1 1 auto;
+    /* Stops above the scene's corner buttons (journal and bot check), so a
+       scrolled tile never slides under them. */
+    height: calc(100% - 56px);
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
-    /* Clear of the scene's corner buttons (journal and bot check). */
-    padding-bottom: 56px;
-    min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* The game's scrollbar (index.css styles it for WebKit); Firefox's own. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-gold) var(--color-bg-deep);
 }
 
 .fight-food-slot {

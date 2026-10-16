@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { avatarSrc } from '../lib/avatar'
 import { getCreatureImage, getItemIcon } from '../lib/items'
 import { openBestiary, type FightFood, type FightState, type Hp } from '../lib/combat'
@@ -138,33 +138,11 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
     const foe = unknown || fallen ? null : fight?.creature ?? null
     const foeName = fallen ?? foe?.name ?? null
 
-    // Least mending first, always, so a meal stays where you last saw it
-    // (Nathan, 2026-10-13): top of the left edge down, then the right edge.
-    const meals = [...food].sort((a, b) => a.heal - b.heal || a.name.localeCompare(b.name))
-    // How many tiles fit down one edge, measured, so the left fills first.
-    const leftRef = useRef<HTMLDivElement>(null)
-    const [perSide, setPerSide] = useState(8)
-    useEffect(() => {
-        const el = leftRef.current
-        if (!el) return
-        const measure = () => {
-            const style = getComputedStyle(el)
-            const tile = parseFloat(style.getPropertyValue('--food-tile')) || 44
-            const gap = parseFloat(style.rowGap) || 4
-            const room = el.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
-            setPerSide(Math.max(1, Math.floor((room + gap) / (tile + gap))))
-        }
-        measure()
-        const ro = new ResizeObserver(measure)
-        ro.observe(el)
-        return () => ro.disconnect()
-    }, [])
-    // Columns of perSide: the first down the left edge, the second down the
-    // right, and any more step inward, left side first.
-    const columns: FightFood[][] = []
-    for (let i = 0; i < meals.length; i += perSide) columns.push(meals.slice(i, i + perSide))
-    const leftColumns = columns.filter((_, i) => i % 2 === 0)
-    const rightColumns = columns.filter((_, i) => i % 2 === 1)
+    // One column down the left edge, most mending first, scrolling when it
+    // runs past the scene (Nathan, 2026-10-17). It used to fill the left edge
+    // least-first, then the right, then step inward, and a pack with many
+    // foods crowded the fight.
+    const meals = [...food].sort((a, b) => b.heal - a.heal || a.name.localeCompare(b.name))
     const mealTile = (f: FightFood) => (
         <Tile
             key={f.itemId}
@@ -180,10 +158,9 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
 
     return (
         <div className="fight-view">
-            {/* Food down the left edge, overflow down the right; the fight keeps the middle. */}
+            {/* Food down the left edge, scrolling; the fight keeps the middle. */}
             <div className="fight-food-side">
-                <div className="fight-food-col" ref={leftRef}>{(leftColumns[0] ?? []).map(mealTile)}</div>
-                {leftColumns.slice(1).map((c, i) => <div key={i} className="fight-food-col">{c.map(mealTile)}</div>)}
+                <div className="fight-food-col">{meals.map(mealTile)}</div>
             </div>
             <div className="fight-main">
                 {meals.length === 0 && (
@@ -292,9 +269,8 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
 
                 <button className="btn btn-red scene-cancel-btn fight-flee" disabled={busy} onClick={onFlee}>{fleeLabel}</button>
             </div>
-            <div className="fight-food-side right">
-                {rightColumns.map((c, i) => <div key={i} className="fight-food-col">{c.map(mealTile)}</div>).reverse()}
-            </div>
+            {/* As wide as the food column, empty, so the face-off stays centred. */}
+            <div className="fight-food-side" aria-hidden="true" />
             {tooltipEl}
         </div>
     )
