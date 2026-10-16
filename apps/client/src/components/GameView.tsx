@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import FireIndicator from './FireIndicator'
 import { apiFetch } from '../lib/api'
 import { serverNow } from '../lib/serverClock'
@@ -191,10 +191,8 @@ export default function GameView({
   const [log, setLog] = useState<LogEntry[]>([])
   const [botCheckPending, setBotCheckPending] = useState(false)
   const botCheckInputRef = useRef<HTMLInputElement>(null)
-  const skillXpListenerRef = useRef<((p: { skillName: string; level: number; leveledUp: boolean }) => void) | null>(null)
   const [botCheckAnswer, setBotCheckAnswer] = useState('')
   const [botCheckQuestion, setBotCheckQuestion] = useState({ a: 0, b: 0 })
-  const [veins, setVeins] = useState<any[]>([])
   const [veinNotification, setVeinNotification] = useState<string | null>(null)
   const [farmKind, setFarmKind] = useState<string>('till')
   const [husbandryKind, setHusbandryKind] = useState<string>('feed')
@@ -465,34 +463,24 @@ export default function GameView({
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [playerData])
 
-  // ── Load veins ────────────────────────────────────────────────────
-  const loadVeins = useCallback(async () => {
-    try {
-      const data = await apiFetch<{ veins: any[] }>('/api/mining/veins')
-      setVeins(data.veins)
-    } catch (err) {
-      console.error('Failed to load veins:', err)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadVeins()
-  }, [locationData, loadVeins])
-
   // ── Socket listeners ──────────────────────────────────────────────
+  // Every handler this view adds is remembered and removed by reference on
+  // cleanup. socket.off('action_complete') with no handler removes EVERY
+  // listener for the event, App's included, so after the first remount (a
+  // layout switch) App stopped refreshing the location on a swing, and a vein's
+  // "(7)" in the location menu never counted down (2026-10-16).
   useEffect(() => {
+    const bound: [string, (...args: any[]) => void][] = []
     const interval = setInterval(() => {
       const socket = getSocket()
       if (!socket) return
       clearInterval(interval)
+      const on = (event: string, handler: (...args: any[]) => void) => {
+        socket.on(event, handler)
+        bound.push([event, handler])
+      }
 
-      socket.on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
-        // Keep the vein counter honest. Veins were only refetched when one was
-        // discovered or ran out, so the "(7 left)" on the action link sat stale
-        // through every swing in between and only corrected itself when the vein
-        // vanished. Every completed swing changes that number, so every completed
-        // swing should refresh it.
-        if ((data as any).actionType === 'mining_vein') loadVeins()
+      on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
 
         // A kill: Melee's XP on the card, with Defense and Constitution beside
         // it (xpAwards). The fight itself carries on; combat_update draws it.
@@ -727,7 +715,7 @@ export default function GameView({
         }
       })
 
-      socket.on('travel_complete', (data: { result: any }) => {
+      on('travel_complete', (data: { result: any }) => {
         if (data?.result) {
           setLastResult({
             firstEver: (data as any).firstEver,
@@ -762,9 +750,9 @@ export default function GameView({
         }
       })
 
-      socket.on('force_refresh', () => window.location.reload())
+      on('force_refresh', () => window.location.reload())
 
-      socket.on('action_failed', (data: { error: string; info?: boolean }) => {
+      on('action_failed', (data: { error: string; info?: boolean }) => {
         // A fight's end goes on the result card below, which stays; the same
         // sentence in the log as well printed it twice, one over the other.
         if (!(data.info && currentActionRef.current === 'combat')) {
@@ -791,31 +779,34 @@ export default function GameView({
         if (timerRef.current) clearInterval(timerRef.current)
       })
 
-      socket.on('bot_check_required', (data: { a: number; b: number }) => {
+      on('bot_check_required', (data: { a: number; b: number }) => {
         setBotCheckQuestion({ a: data.a, b: data.b })
         setBotCheckPending(true)
       })
 
-      socket.on('vein_discovered', (data: { oreName: string; quantity: number; privateWindow: number }) => {
+      on('vein_discovered', (data: { oreName: string; quantity: number; privateWindow: number }) => {
         setVeinNotification(`You discovered a ${data.oreName} vein! You have ${data.privateWindow} minutes before it's announced.`)
         setTimeout(() => setVeinNotification(null), 10000)
-        loadVeins()
       })
 
-      socket.on('vein_announced', () => {
-        loadVeins()
-      })
-
-      socket.on('vein_depleted', (data: { oreName: string }) => {
-        addLog(`The ${data.oreName} vein has been depleted.`, 'error')
+      // Two pushes share this name. With a veinId it went to everyone at the
+      // location (services/mining.ts), so it is news, not a reason to stop
+      // whatever this player is doing: someone else emptying a vein used to
+      // blank a woodcutter's timer while the server carried on. Without one it
+      // is this player's own vein run dry (the tick), and action_switched
+      // follows when there is a rock to fall back to.
+      on('vein_depleted', (data: { oreName: string; veinId?: number }) => {
+        if (data.veinId !== undefined) {
+          addLog(`The ${data.oreName} vein has been depleted.`, 'error')
+          return
+        }
         setCurrentAction(null)
         setActiveNodeId(null)
         setTimerSeconds(0)
         if (timerRef.current) clearInterval(timerRef.current)
-        loadVeins()
       })
 
-      socket.on('action_switched', (data: { newActionType: string; nodeName: string; timerSeconds: number }) => {
+      on('action_switched', (data: { newActionType: string; nodeName: string; timerSeconds: number }) => {
         setCurrentAction(data.newActionType)
         setTimerMax(data.timerSeconds)
         // No completesAt available here, use seconds only
@@ -823,7 +814,7 @@ export default function GameView({
         addLog(`Vein depleted. Returning to mining ${data.nodeName}.`, 'info')
       })
 
-      socket.on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; gold?: number; skill: string; xpAwards?: { skill: string; xp: number }[] }) => {
+      on('quest_rewards', (data: { questName: string; items: { itemName: string; quantity: number }[]; xp: number; gold?: number; skill: string; xpAwards?: { skill: string; xp: number }[] }) => {
         // A record in the log, not an announcement. The rewards themselves are
         // shown at the foot of the conversation that earned them (NPCDialogue).
         // These used to persist forever, which meant a gold block sat in the
@@ -840,11 +831,11 @@ export default function GameView({
       // Throttled server-side to once every few minutes per shop, so a busy
       // shop mentions itself occasionally rather than once per sale. The
       // figures live in the shop's History; this is only a nudge.
-      socket.on('shop_traded', (data: { message: string }) => {
+      on('shop_traded', (data: { message: string }) => {
         addLog(data.message, 'success')
       })
 
-      socket.on('trap_sprung', () => {
+      on('trap_sprung', () => {
         addLog('Something has sprung one of your traps!')
         onTrapsChanged?.()
       })
@@ -859,10 +850,9 @@ export default function GameView({
           setLevelUpSkill({ name: p.skillName, level: p.level })
         }
       }
-      socket.on('skill_xp_changed', onSkillXp)
-      skillXpListenerRef.current = onSkillXp
+      on('skill_xp_changed', onSkillXp)
 
-      socket.on('combat_update', (data: CombatUpdate) => {
+      on('combat_update', (data: CombatUpdate) => {
         const lines: Omit<FightLogLine, 'id'>[] = []
         for (const e of data.events || []) {
           if (fightCreatureRef.current !== e.creature) {
@@ -895,13 +885,13 @@ export default function GameView({
         }
       })
 
-      socket.on('hp_changed', (data: { hp: Hp }) => {
+      on('hp_changed', (data: { hp: Hp }) => {
         if (!data?.hp) return
         setFightHp(data.hp)
         announceHp(data.hp)
       })
 
-      socket.on('action_limit_reached', (data: { message: string }) => {
+      on('action_limit_reached', (data: { message: string }) => {
         addLog(data.message, 'info')
         setLastResult(prev => prev ? { ...prev, ended: 'limit' } : prev)
         setCurrentAction(null)
@@ -915,27 +905,9 @@ export default function GameView({
     return () => {
       clearInterval(interval)
       const socket = getSocket()
-      if (socket) {
-        socket.off('action_complete')
-        socket.off('travel_complete')
-        socket.off('bot_check_required')
-        socket.off('action_failed')
-        socket.off('trap_sprung')
-        socket.off('quest_rewards')
-        socket.off('shop_traded')
-        socket.off('vein_discovered')
-        socket.off('vein_announced')
-        socket.off('vein_depleted')
-        socket.off('action_switched')
-        socket.off('action_limit_reached')
-        socket.off('combat_update')
-        // Only this view's listener: the feats panel listens to the same push.
-        if (skillXpListenerRef.current) socket.off('skill_xp_changed', skillXpListenerRef.current)
-        socket.off('hp_changed')
-        socket.off('force_refresh')
-      }
+      if (socket) for (const [event, handler] of bound) socket.off(event, handler)
     }
-  }, [onPlayerDataUpdate, loadVeins])
+  }, [onPlayerDataUpdate])
 
   // The same prompt, delivered over HTTP rather than the socket. apiFetch
   // raises this whenever a request comes back 423, so a player whose socket is

@@ -198,6 +198,13 @@ function App() {
       socket.on('vein_depleted', () => {
         loadLocationData()
       })
+      // A swing on a vein here, by anyone (services/mining.ts). Veins only
+      // ever go down, so the lower count wins when two swings' pushes cross.
+      socket.on('vein_changed', (data: { veinId: number; remaining: number }) => {
+        setVeinsData(veins => veins.map(v => v.id === data.veinId
+          ? { ...v, remaining_quantity: Math.min(Number(v.remaining_quantity), data.remaining) }
+          : v))
+      })
       socket.on('new_message', () => {
         // Will be handled by MessagesPanel when open
         // Just increment the count

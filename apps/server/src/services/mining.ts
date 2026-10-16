@@ -301,6 +301,14 @@ export async function processMiningVein(
         locationId: vein.location_id,
       });
       logger.info(`Vein ${veinId} (${ore.name}) depleted at location ${vein.location_id}`);
+    } else {
+      // The count, live, for everyone who can see the vein: the whole location
+      // once it is announced, only its finder before (getActiveVeins hides a
+      // private vein from everyone else, so its count must not travel either).
+      // Sent after the commit, so it never announces an ore a rollback took back.
+      const notice = { veinId, remaining: newRemaining };
+      if (vein.is_announced) pushToRoom(`location_${vein.location_id}`, 'vein_changed', notice);
+      else pushToPlayer(vein.discovered_by_player_id, 'vein_changed', notice);
     }
 
     const discoveryKey = `mining_ore_${ore.subtype}`;
