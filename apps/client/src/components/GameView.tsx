@@ -44,6 +44,7 @@ interface LocationData {
 interface ActionResult {
   itemName: string
   xpAwarded: number
+  skillName?: string
   eventXp?: number
   remainingQuantity?: number
 }
@@ -687,14 +688,10 @@ export default function GameView({
         }
 
         if (data.result?.itemName) {
-          // Recipe crafts carry their own skill — the executor is skill-agnostic, so
-          // the action type can't imply it. Legacy actions still infer from the type.
-          const skillName =
-            (data.result as any).skillName ||
-            (currentActionRef.current === 'mining_rock' || currentActionRef.current === 'mining_vein' ? 'Mining' :
-              currentActionRef.current === 'smelting' || currentActionRef.current === 'smithing' || currentActionRef.current === 'kiln_collect' ? 'Smithing' :
-                currentActionRef.current === 'sawing' || currentActionRef.current === 'woodworking' ? 'Carpentry' :
-                  'Woodcutting')
+          // The server names the skill on every result (emitActionComplete in
+          // services/gameTick.ts). Guessing from the running action read
+          // Woodcutting for a Granite swing after a reload during a bot check.
+          const skillName = data.result.skillName || ''
 
           setLastResult({
             firstEver: (data as any).firstEver,

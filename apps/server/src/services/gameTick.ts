@@ -74,8 +74,8 @@ const GOLD_FIND_ACTIONS: Record<string, string> = {
   combat: 'combat',
 };
 
-// The skill a result paid, for the older results that do not name it (the
-// client makes the same inference for its label).
+// The skill a result paid, for the older results that do not name it.
+// emitActionComplete writes it onto the result, so the client never infers.
 const SKILL_BY_ACTION: Record<string, string> = {
   woodcutting: 'Woodcutting',
   mining_rock: 'Mining',
@@ -90,11 +90,20 @@ const SKILL_BY_ACTION: Record<string, string> = {
 async function emitActionComplete(io: Server | null, action: any, payload: any): Promise<void> {
   const result = payload?.result;
 
+  // Every result goes out naming the skill it paid. The older resolvers
+  // (woodcutting, mining, smelting, sawing) never did, so the client guessed
+  // from the action it thought was running and fell back to Woodcutting; after
+  // a reload during a bot check it thought nothing was running, and a Granite
+  // swing read "+7 Woodcutting experience" while paying Mining (2026-10-16).
+  if (result && !result.skillName && SKILL_BY_ACTION[action.action_type]) {
+    result.skillName = SKILL_BY_ACTION[action.action_type];
+  }
+
   // A world event's bonus, shown beside the normal XP rather than folded into
   // it (services/worldEvents.ts). Services report their XP before awardXp
   // raises it, so the level-up check that was made from it is redone here with
   // the bonus counted.
-  const eventXp = takeEventXp(action.player_id, result?.skillName ?? SKILL_BY_ACTION[action.action_type]);
+  const eventXp = takeEventXp(action.player_id, result?.skillName);
   if (result && eventXp > 0) {
     result.eventXp = eventXp;
     const info = payload.xpInfo;
