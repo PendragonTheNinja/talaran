@@ -268,6 +268,15 @@ function App() {
         loadEquipment()
       })
 
+      // The Combat Stats panel's numbers come with the equipment
+      // (services/combat.ts reads the combat levels), so a level-up must reload
+      // them too, or they sat stale until a refresh (forum, 2026-10). Any skill:
+      // which levels feed the numbers is the server's business, and a level-up
+      // is rare enough that one extra read costs nothing.
+      socket.on('skill_xp_changed', (p: { leveledUp?: boolean }) => {
+        if (p?.leveledUp) loadEquipment()
+      })
+
       socket.on('trade_completed', () => {
         window.dispatchEvent(new CustomEvent('trade_completed'))
         loadInventory()

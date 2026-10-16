@@ -229,6 +229,7 @@ const registry: Record<string, QueryHandler> = {
         const crops = skill.toLowerCase() === 'farming'
             ? await db('crops').where({ is_active: true }).select(
                 'name',
+                'seed_item_name',
                 'produce_item_name',
                 'plant_level',
                 'grow_seconds',
@@ -291,8 +292,15 @@ const registry: Record<string, QueryHandler> = {
                 };
             }),
             ...crops.map((c) => {
+                // The row names what its picture shows and its link opens: the
+                // harvest. It used to name the crop, so the Wild Grain crop's
+                // row showed Grain Sheaves and linked to Grain Sheaves under the
+                // words "Wild Grain" (forum, 2026-09). Where the two differ, the
+                // seed is said in words instead.
                 const notes = [
-                    `Sow · ${fmtSeconds(c.grow_seconds)} to grow`,
+                    c.name !== c.produce_item_name
+                        ? `Sow ${c.seed_item_name} · ${fmtSeconds(c.grow_seconds)} to grow`
+                        : `Sow · ${fmtSeconds(c.grow_seconds)} to grow`,
                     `${c.yield_per_seed} per seed`,
                     // Per seed, which is how it is paid. A perennial pays that in
                     // full on its first harvest and a fifth of it on every
@@ -311,7 +319,7 @@ const registry: Record<string, QueryHandler> = {
 
                 return {
                     level: c.plant_level,
-                    unlock: c.name,
+                    unlock: c.produce_item_name,
                     // grows_anywhere crops ignore the island lock, so they belong
                     // to no island in particular.
                     island: c.grows_anywhere ? '' : (c.region || ''),

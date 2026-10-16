@@ -24,8 +24,8 @@ export interface FightSpoils {
     eventXp?: number
 }
 
-/** How long a fallen creature stays on screen, greyed, before the next one shows. */
-const FALLEN_MS = 1500
+/** How long a fallen creature stays on screen, greyed, before the "?" (Nathan, 2026-10-16). */
+const FALLEN_MS = 3000
 
 interface FightViewProps {
     fight: FightState | null
@@ -128,8 +128,15 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
     // whatever comes, nobody knows what is coming, so it is a "?" with no
     // health; at a spot where the player chose, the picture shows faded and
     // the health bar waits.
-    const unknown = (approaching || frozen) && !fallen && fight?.spot.kind !== 'chosen'
-    const foeName = fallen ?? (unknown ? null : fight?.creature.name) ?? null
+    //
+    // While one has fallen, everything on that side is the fallen one's: the
+    // name, level, weaknesses and Bestiary line used to switch to the next
+    // creature the moment the last died, under the greyed portrait (forum,
+    // 2026-10). The server sends no creature at all while an unknown one
+    // approaches, so there is nothing to show early either way.
+    const unknown = !fight?.creature || ((approaching || frozen) && fight.spot.kind !== 'chosen')
+    const foe = unknown || fallen ? null : fight?.creature ?? null
+    const foeName = fallen ?? foe?.name ?? null
 
     // Least mending first, always, so a meal stays where you last saw it
     // (Nathan, 2026-10-13): top of the left edge down, then the right edge.
@@ -218,23 +225,23 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
                             />
                             : <div className="fight-portrait approaching"><span className="fight-portrait-initial">?</span></div>}
                         <span className="fight-side-name">
-                            {!fight ? '...' : unknown ? (frozen ? 'Nothing yet' : 'Something comes') : fight.creature.name}
-                            {fight && !unknown && <span className="muted-text"> (level {fight.creature.level})</span>}
+                            {!fight ? '...' : fallen ?? (foe ? foe.name : frozen ? 'Nothing yet' : 'Something comes')}
+                            {foe && <span className="muted-text"> (level {foe.level})</span>}
                         </span>
                         {fight && !approaching && !frozen
                             ? <Bar current={fight.enemyHp} max={fight.enemyMaxHp} kind="foe" />
                             : <div className="fight-bar" />}
-                        {!unknown && fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (
+                        {foe && fight?.stances && (fight.stances.weak.length > 0 || fight.stances.resists.length > 0) && (
                             <span className="fight-side-note">
                                 {fight.stances.weak.length > 0 && <span className="fight-weak">Weak to {fight.stances.weak.join(', ')}</span>}
                                 {fight.stances.weak.length > 0 && fight.stances.resists.length > 0 && ' · '}
                                 {fight.stances.resists.length > 0 && <span className="muted-text">shrugs off {fight.stances.resists.join(', ')}</span>}
                             </span>
                         )}
-                        {fight && !unknown && (
+                        {fight && foe && (
                             <span className="fight-side-note muted-text">
                                 {fight.kills} {fight.kills === 1 ? 'kill' : 'kills'}, {(fight.totalKills ?? fight.kills).toLocaleString()} total ·{' '}
-                                <button className="fight-bestiary-link" onClick={() => openBestiary(fight.creature.id)}>Bestiary</button>
+                                <button className="fight-bestiary-link" onClick={() => openBestiary(foe.id)}>Bestiary</button>
                             </span>
                         )}
                     </div>

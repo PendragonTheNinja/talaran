@@ -26,7 +26,8 @@ export interface FightingSpot {
 
 export interface FightState {
     spot: { id: number; key: string; name: string; kind: string }
-    creature: { id: number; name: string; level: number }
+    /** Null while an unknown creature is still closing in (services/combatFights.ts FightView). */
+    creature: { id: number; name: string; level: number } | null
     enemyHp: number
     enemyMaxHp: number
     /** When the current creature closes in; in the future while it approaches. */

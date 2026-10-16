@@ -128,7 +128,13 @@ export function isFightFood(item: any): boolean {
 
 export interface FightView {
     spot: { id: number; key: string; name: string; kind: string }
-    creature: { id: number; name: string; level: number }
+    /**
+     * Null while the next creature at a spot that sends whatever comes is still
+     * closing in (or the fight waits on a bot check between kills): nobody knows
+     * what is coming until it arrives (Nathan, 2026-10-16), so nothing about it,
+     * its health included, is sent until then. At a chosen spot it is known.
+     */
+    creature: { id: number; name: string; level: number } | null
     enemyHp: number
     enemyMaxHp: number
     /** ISO time the current creature closes in; in the future while it approaches. */
@@ -405,8 +411,9 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     }
 
     const foe = creatureCombatant(creature)
-    const totalKills = ended ? 0 : await killsOf(trx, playerId, creature.id)
-    const knownStances = ended ? null
+    const hidden = !ended && spot.kind !== 'chosen' && (frozen || froze || clock.engageAt > Date.now())
+    const totalKills = ended || hidden ? 0 : await killsOf(trx, playerId, creature.id)
+    const knownStances = ended || hidden ? null
         : totalKills >= BESTIARY_STEPS.stances ? stancesOf(creature) : null
     return {
         playerId,
@@ -419,9 +426,9 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
         hp: { current: died ? max : Math.max(0, max - missing), max },
         view: ended ? null : {
             spot: { id: spot.id, key: spot.key, name: spot.name, kind: spot.kind },
-            creature: { id: creature.id, name: creature.name, level: creature.level },
-            enemyHp: Math.max(0, Math.ceil(clock.enemyHp)),
-            enemyMaxHp: Math.round(foe.hp),
+            creature: hidden ? null : { id: creature.id, name: creature.name, level: creature.level },
+            enemyHp: hidden ? 0 : Math.max(0, Math.ceil(clock.enemyHp)),
+            enemyMaxHp: hidden ? 0 : Math.round(foe.hp),
             engageAt: new Date(clock.engageAt).toISOString(),
             kills: killCount,
             frozen: frozen || froze,

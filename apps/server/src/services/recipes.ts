@@ -11,6 +11,13 @@ import { buffTimerBonus, timerCut } from './buffs'
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
+/** The player_stats counter each recipe skill's crafts add to (Cooking has its own, burns apart). */
+const RECIPE_COUNTERS: Record<string, string> = {
+    Crafting: 'total_items_crafted',
+    Smithing: 'total_items_forged',
+    Carpentry: 'total_items_built',
+}
+
 // ── Generic recipe executor (docs/trapping-spec.md §4) ────────────
 // Recipes are rows in the `recipes` table; this service runs any of them.
 // First tenants: Fletch Arrows (Smithing), Tie Snare (Crafting).
@@ -477,15 +484,18 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             // Crafting XP banks against the hidden skill until it launches.
             if (skillId) await awardXp(playerId, skillId, xpAwarded, trx)
 
-            // Per-skill counters, so Cooking and Crafting have something to
-            // build feats on. Burns count separately: ruining a hundred dinners
-            // is its own kind of achievement.
+            // Per-skill counters, so each bench skill has something to build
+            // feats on. Burns count separately: ruining a hundred dinners is
+            // its own kind of achievement. Smithing and Carpentry were missing,
+            // so once forging and bench building moved onto recipes their feats
+            // (Struck While Hot, Raised and Pegged) sat at 0 (forum, 2026-09;
+            // backfilled in 20261016140000).
             const tally: Record<string, number> = { total_actions_completed: 1 }
             if (recipe.skill === 'Cooking') {
                 if (burnt) tally.total_meals_burnt = 1
                 else tally.total_meals_cooked = 1
-            } else if (recipe.skill === 'Crafting') {
-                tally.total_items_crafted = 1
+            } else if (RECIPE_COUNTERS[recipe.skill]) {
+                tally[RECIPE_COUNTERS[recipe.skill]] = 1
             }
             await incrementStats(playerId, tally, trx)
 

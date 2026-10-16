@@ -272,7 +272,7 @@ export default function GameView({
       setFightHp(d.hp)
       setFightFood(d.food)
       announceHp(d.hp)
-      if (d.fight) fightCreatureRef.current = d.fight.creature.name
+      if (d.fight?.creature) fightCreatureRef.current = d.fight.creature.name
       return d
     } catch {
       return null
@@ -315,9 +315,12 @@ export default function GameView({
       setFight(localizeFight(res.fight))
       setFightHp(res.hp)
       announceHp(res.hp)
-      fightCreatureRef.current = res.fight.creature.name
+      fightCreatureRef.current = res.fight.creature?.name ?? null
       fightLogIdRef.current += 1
-      setFightLog([{ id: fightLogIdRef.current, text: `A ${res.fight.creature.name} closes in.`, kind: 'info' }])
+      // Unknown until it arrives: the first swing's push names it instead.
+      setFightLog(res.fight.creature
+        ? [{ id: fightLogIdRef.current, text: `A ${res.fight.creature.name} closes in.`, kind: 'info' }]
+        : [])
       refreshFight()
     } catch (err) {
       const e = err as { status?: number; message?: string }

@@ -464,7 +464,23 @@ function productUnits(animal: any, species: any, stage: string): number {
     const interval = productInterval(species, stage);
     if (!isFinite(interval) || interval <= 0) return 0;
     const cap = species.product_max_stored ?? 4;
-    return Math.min(cap, Math.floor(animal.product_seconds_accrued / interval));
+    return Math.min(cap, Math.floor(productSeconds(animal, species) / interval));
+}
+
+/**
+ * Fed-seconds that count toward products: only those lived grown.
+ *
+ * accrue() runs the growth and product clocks together from placement, and the
+ * product clock used to count from then too, so a calf banked milk through its
+ * whole childhood and came of age holding a near-full pail (forum, 2026-10).
+ * Both clocks start at 0 together, so time lived as a grown animal is the
+ * growth clock past grow_seconds. Clamped on read, which also corrects an
+ * animal that already matured with a banked childhood. Bees (grow_seconds 0)
+ * are unaffected. Every reader of product_seconds_accrued goes through this.
+ */
+function productSeconds(animal: any, species: any): number {
+    const grownFor = Math.max(0, animal.grow_seconds_accrued - (species.grow_seconds || 0));
+    return Math.min(animal.product_seconds_accrued, grownFor);
 }
 
 function productReady(animal: any, species: any, stage: string): boolean {
@@ -478,7 +494,7 @@ function productReady(animal: any, species: any, stage: string): boolean {
 function accruedAfterCollect(animal: any, species: any, stage: string, units: number): number {
     const cap = species.product_max_stored ?? 4;
     if (units >= cap) return 0;
-    return animal.product_seconds_accrued - units * productInterval(species, stage);
+    return productSeconds(animal, species) - units * productInterval(species, stage);
 }
 
 /**
@@ -646,7 +662,7 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
                 if (soonest === null || at < soonest) soonest = at;
             } else if (species.product_item_name) {
                 const interval = productInterval(species, stage);
-                const left = Math.max(0, interval - a.product_seconds_accrued);
+                const left = Math.max(0, interval - productSeconds(a, species));
                 const at = now + left * 1000;
                 if (soonest === null || at < soonest) soonest = at;
             }
@@ -798,7 +814,7 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
                 productUnits: productUnits(a, sp, stage),
                 productMax: sp.product_max_stored ?? 4,
                 productProgress: sp.product_seconds && stage !== 'juvenile'
-                    ? Math.min(1, a.product_seconds_accrued / interval) : 0,
+                    ? Math.min(1, productSeconds(a, sp) / interval) : 0,
                 growProgress: stage === 'juvenile'
                     ? Math.min(1, a.grow_seconds_accrued / sp.grow_seconds) : 1,
                 // Remaining fed-seconds to the next stage, so the client can show
