@@ -227,6 +227,13 @@
     font-size: 12px;
 }
 
+/* A seasonal theme's last day on sale: the one urgent line on the card. */
+.settings-theme-season {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--color-red-bright);
+}
+
 .settings-theme-actions {
     display: flex;
     gap: 6px;

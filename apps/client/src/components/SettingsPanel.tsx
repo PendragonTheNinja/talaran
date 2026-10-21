@@ -41,7 +41,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
         try { return localStorage.getItem('talaran-theme') ?? currentTheme() } catch { return currentTheme() }
     })
     const [previewing, setPreviewing] = useState<ThemeId | null>(null)
-    const [store, setStore] = useState<{ balance: number; items: { key: string; name: string; price: number; effectivePrice: number; grants: string[]; available: boolean; owned: boolean }[] } | null>(null)
+    const [store, setStore] = useState<{ balance: number; items: { key: string; name: string; price: number; effectivePrice: number; grants: string[]; available: boolean; seasonal: boolean; saleEndsAt: string | null; owned: boolean }[] } | null>(null)
 
     useEffect(() => {
         apiFetch<NonNullable<typeof store>>('/api/store')
@@ -57,6 +57,15 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
 
     const themePrice = (id: ThemeId): number | null =>
         store?.items.find(i => i.key === `theme:${id}`)?.price ?? null
+
+    // A seasonal theme's last day on sale, as '31 October' (UTC, the store's
+    // clock), or null when it is not on sale.
+    const themeSaleLastDay = (id: ThemeId): string | null => {
+        const ends = store?.items.find(i => i.key === `theme:${id}`)?.saleEndsAt
+        if (!ends) return null
+        return new Date(new Date(ends).getTime() - 1)
+            .toLocaleDateString(undefined, { day: 'numeric', month: 'long', timeZone: 'UTC' })
+    }
 
     const handleThemeSelect = async (id: ThemeId) => {
         if (!themeOwned(id)) return
@@ -456,6 +465,9 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                             {THEMES.map(t => {
                                 const owned = themeOwned(t.id)
                                 const price = t.premium ? themePrice(t.id) : null
+                                const saleLastDay = t.seasonal ? themeSaleLastDay(t.id) : null
+                                // Out of season, a seasonal theme is shown only to those who own it.
+                                if (t.seasonal && !owned && !saleLastDay) return null
                                 return (
                                     <div
                                         key={t.id}
@@ -473,6 +485,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                                             {t.premium && !owned && <span className="settings-theme-price gold-text"> · {price ?? 300} Talers</span>}
                                         </span>
                                         <span className="muted-text" style={{ fontSize: '12px' }}>{t.description}</span>
+                                        {saleLastDay && !owned && <span className="settings-theme-season">On sale until {saleLastDay}</span>}
                                         {activeTheme === t.id && <span className="settings-theme-active gold-text">✓ Active</span>}
                                         {!owned && (
                                             <span className="settings-theme-actions">

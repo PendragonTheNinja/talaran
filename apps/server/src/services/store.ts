@@ -19,6 +19,51 @@ export interface StoreItem {
     available: boolean;         // coming-soon items render but can't be bought
     perMissingPricing?: boolean; // bundles: charge (price / grants) x missing, so
                                  // partial owners complete the set at the bundle rate
+    onSale?: SaleWindow;        // seasonal: sold only inside this window each year.
+                                 // What was bought is kept for good; only buying ends.
+}
+
+/**
+ * A yearly sale window, both days inclusive, as 'MM-DD' in UTC (one clock for
+ * every player, wherever they are). A window may cross the new year
+ * ('12-20' to '01-02').
+ */
+export interface SaleWindow {
+    from: string;
+    until: string;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const monthDay = (d: Date) => `${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+
+/** When the sale that is open at `now` closes, or null if none is open. */
+export function saleEndsAt(window: SaleWindow, now: Date): Date | null {
+    const today = monthDay(now);
+    const wraps = window.from > window.until;
+    const open = wraps
+        ? today >= window.from || today <= window.until
+        : today >= window.from && today <= window.until;
+    if (!open) return null;
+    // The closing day belongs to this year, or to next year when the window
+    // crosses the new year and we are still on its December side.
+    const year = now.getUTCFullYear() + (wraps && today >= window.from ? 1 : 0);
+    const [m, d] = window.until.split('-').map(Number);
+    return new Date(Date.UTC(year, m - 1, d + 1));   // midnight after the last day
+}
+
+/** Can this item be bought at `now`? Seasonal items only inside their window. */
+export function onSaleNow(item: StoreItem, now: Date = new Date()): boolean {
+    if (!item.available) return false;
+    return !item.onSale || saleEndsAt(item.onSale, now) !== null;
+}
+
+/** Every theme the store sells, by id ('moonveil', ...): the list the theme
+ *  setting checks ownership against, so a new theme is added in one place. */
+export function premiumThemeIds(): string[] {
+    const ids = STORE_ITEMS.flatMap(i => i.grants)
+        .filter(g => g.startsWith('theme:'))
+        .map(g => g.slice('theme:'.length));
+    return [...new Set(ids)];
 }
 
 /** What this player actually pays for an item right now. */
@@ -54,6 +99,17 @@ export const STORE_ITEMS: StoreItem[] = [
         available: true,
     },
     {
+        // Halloween. Sold the week before and on the day itself; never part of
+        // the bundle or the palette perk, which would make it a year-round buy.
+        key: 'theme:hallowtide',
+        name: 'Hallowtide',
+        description: 'Pumpkin lanterns and bone-white candles in the last nights of October.',
+        price: 300,
+        grants: ['theme:hallowtide'],
+        available: true,
+        onSale: { from: '10-24', until: '10-31' },
+    },
+    {
         key: 'bundle:themes',
         name: 'Theme Bundle',
         description: 'All three premium themes together — Moonveil, Mosswood, and Forgeheart.',
@@ -65,7 +121,7 @@ export const STORE_ITEMS: StoreItem[] = [
     {
         key: 'perk:custom_palette',
         name: 'Custom Palettes',
-        description: 'Paint your own Talaran: a full palette editor, every premium theme included, and the ability to share your palettes with fellow customizers.',
+        description: 'Paint your own Talaran: a full palette editor, the three year-round premium themes, and the ability to share your palettes with fellow customizers.',
         price: 1500,
         grants: ['perk:custom_palette', 'theme:moonveil', 'theme:mosswood', 'theme:forgeheart'],
         available: true,
@@ -85,13 +141,16 @@ export function hasUnlock(unlocks: string[], key: string): boolean {
  * Purchase a store item: one transaction covering the balance check, the
  * debit, and every granted unlock. Refuses if everything is already owned.
  */
-export async function purchaseItem(playerId: number, itemKey: string): Promise<
+export async function purchaseItem(playerId: number, itemKey: string, now: Date = new Date()): Promise<
     { ok: true; balance: number; granted: string[] } |
     { ok: false; error: string; balance: number }
 > {
     const item = STORE_ITEMS.find(i => i.key === itemKey);
     if (!item || !item.available) {
         return { ok: false, error: 'That item is not available.', balance: await getTalerBalance(playerId) };
+    }
+    if (!onSaleNow(item, now)) {
+        return { ok: false, error: 'That is not on sale right now.', balance: await getTalerBalance(playerId) };
     }
 
     const result: { error?: string; granted?: string[] } = await db.transaction(async (trx) => {

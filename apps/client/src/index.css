@@ -532,6 +532,59 @@ body {
 }
 
 
+/* HALLOWTIDE — Halloween. Violet-black dusk, pumpkin-lantern gold, bone-white
+   candles. Sold only in the last week of October (services/store.ts onSale);
+   once bought it is worn all year. Kept apart from Forgeheart, the other
+   orange: that one is red-brown iron, this one is purple night. */
+:root[data-theme='hallowtide'] {
+  --color-bg-deepest: #0e0a12;
+  --color-bg-deep: #130e18;
+  --color-bg-dark: #19121f;
+  --color-bg-mid: #201727;
+  --color-bg-panel: #261b2e;
+  --color-bg-raised: #2e2137;
+  --color-bg-hover: #3a2944;
+
+  --color-gold-dim: #9a5a24;
+  --color-gold: #e07a1f;
+  --color-gold-bright: #f39a3a;
+  --color-gold-shine: #ffc06a;
+
+  --color-red-dark: #5e1426;
+  --color-red: #7d1a33;
+  --color-red-bright: #a62842;
+  --color-red-glow: #cf3a55;
+
+  --color-text-dim: #6c5f74;
+  --color-text-muted: #93859a;
+  --color-text-base: #cbbfae;
+  --color-text-bright: #ece0c8;
+  --color-text-white: #f8f0e0;
+
+  --color-border-dark: #2c2034;
+  --color-border-mid: #4a3456;
+  --color-border-gold: #6e4426;
+  --color-border-bright: #e07a1f;
+
+  --color-health: #c8343e;
+  --color-mana: #8a5ad0;
+  --color-xp: #7cb342;
+
+  --shadow-sm: 0 1px 3px rgba(6, 2, 10, 0.6);
+  --shadow-md: 0 2px 8px rgba(6, 2, 10, 0.75);
+  --shadow-lg: 0 4px 16px rgba(6, 2, 10, 0.9);
+  --shadow-gold: 0 0 10px rgba(224, 122, 31, 0.4);
+  --shadow-red: 0 0 10px rgba(166, 40, 66, 0.45);
+}
+
+/* A lantern set low in the scene: a faint pumpkin glow rising from the
+   bottom edge, under the usual vignette. */
+:root[data-theme='hallowtide'] .game-scene {
+  background:
+    radial-gradient(ellipse at 50% 115%, rgba(224, 122, 31, 0.13), transparent 60%),
+    radial-gradient(ellipse at center, var(--color-bg-mid) 0%, var(--color-bg-deepest) 100%);
+}
+
 /* Scriptorium structural touches: light themes need borders where dark
    themes used elevation, and a handful of rules written for the dark themes
    hard-code black glass or a glow. Each is answered here rather than in its

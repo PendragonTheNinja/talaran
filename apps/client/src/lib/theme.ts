@@ -7,7 +7,7 @@ import { applyPaletteTokens, clearPaletteTokens, initPaletteFromStorage, type Pa
 // is just setting data-theme on <html>. Premium themes and custom palettes
 // (Phase C) build on this same mechanism.
 
-export type ThemeId = 'tavern' | 'scriptorium' | 'moonveil' | 'mosswood' | 'forgeheart'
+export type ThemeId = 'tavern' | 'scriptorium' | 'moonveil' | 'mosswood' | 'forgeheart' | 'hallowtide'
 
 export interface ThemeMeta {
     id: ThemeId
@@ -17,6 +17,9 @@ export interface ThemeMeta {
     swatches: [string, string, string, string]
     /** Premium themes require the 'theme:<id>' unlock, sold in the store */
     premium?: boolean
+    /** Sold only in a yearly window (the store item's onSale). The picker shows
+     *  it to owners always, to everyone else only while it is on sale. */
+    seasonal?: boolean
 }
 
 export const THEMES: ThemeMeta[] = [
@@ -52,6 +55,14 @@ export const THEMES: ThemeMeta[] = [
         description: 'Coal-black iron and living ember — the smithy after dark.',
         swatches: ['#0b0a0a', '#241e1d', '#e6dcd4', '#cf5530'],
         premium: true,
+    },
+    {
+        id: 'hallowtide',
+        name: 'Hallowtide',
+        description: 'Pumpkin lanterns and bone-white candles in the last nights of October.',
+        swatches: ['#0e0a12', '#261b2e', '#ece0c8', '#e07a1f'],
+        premium: true,
+        seasonal: true,
     },
 ]
 

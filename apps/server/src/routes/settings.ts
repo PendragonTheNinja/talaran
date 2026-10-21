@@ -14,6 +14,7 @@ import express from 'express';
 import { avatarLimit } from '../middleware/rateLimit';
 import { AVATAR_MAX_UPLOAD_BYTES, clearAvatar, setAvatar } from '../services/avatars';
 import { failureStatus } from '../lib/serviceResult';
+import { premiumThemeIds } from '../services/store';
 
 // What the fight-on-while-away warning quotes, so the popup states the real
 // rules rather than a copy of them.
@@ -360,9 +361,11 @@ router.post('/tally-link', requireAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Update theme preference. Free themes for everyone; premium themes require
-// the matching player_unlocks row ('theme:<id>').
+// the matching player_unlocks row ('theme:<id>'). The store catalog names them.
+// Ownership is checked, never the sale window: a seasonal theme bought once is
+// worn all year.
 const FREE_THEMES = ['tavern', 'scriptorium'];
-const PREMIUM_THEMES = ['moonveil', 'mosswood', 'forgeheart'];
+const PREMIUM_THEMES = premiumThemeIds();
 router.post('/theme', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const { theme } = req.body;

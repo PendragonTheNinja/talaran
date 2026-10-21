@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
-import { STORE_ITEMS, getUnlocks, purchaseItem, effectivePrice } from '../services/store';
+import { STORE_ITEMS, getUnlocks, purchaseItem, effectivePrice, onSaleNow, saleEndsAt } from '../services/store';
 import { getTalerBalance } from '../services/talers';
 import { failureStatus } from '../lib/serviceResult';
 
@@ -13,6 +13,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const [unlocks, balance] = await Promise.all([getUnlocks(playerId), getTalerBalance(playerId)]);
+        const now = new Date();
         res.json({
             balance,
             unlocks,
@@ -23,7 +24,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
                 price: i.price,
                 effectivePrice: effectivePrice(i, unlocks),
                 grants: i.grants,
-                available: i.available,
+                available: onSaleNow(i, now),
+                // Seasonal items: when this year's sale closes (null outside it).
+                seasonal: !!i.onSale,
+                saleEndsAt: i.onSale ? saleEndsAt(i.onSale, now)?.toISOString() ?? null : null,
                 owned: i.grants.every(g => unlocks.includes(g)),
             })),
         });
