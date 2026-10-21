@@ -56,5 +56,5 @@
 
 .dock-btn.active {
     background: var(--color-gold-dim);
-    color: var(--color-bg-deepest);
+    color: var(--color-on-gold);
 }

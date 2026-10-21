@@ -70,6 +70,10 @@
   --color-gold: #c8922a;
   --color-gold-bright: #e8b84b;
   --color-gold-shine: #f5d97a;
+  /* Lettering on a gold fill (gold buttons, active toggles, badges). Dark
+     themes cut it from the page colour; a light theme, whose page is pale,
+     sets its own so the words do not vanish into the gilt. */
+  --color-on-gold: var(--color-bg-deepest);
 
   /* Red accents */
   --color-red-dark: #5c1a1a;
@@ -141,54 +145,61 @@
    ============================================ */
 
 :root[data-theme='scriptorium'] {
-  /* Core palette — elevation goes lighter, like pages on a desk */
-  --color-bg-deepest: #d2c29a;
-  --color-bg-deep: #e0d3b2;
-  --color-bg-dark: #e6dabc;
-  --color-bg-mid: #ebe1c6;
-  --color-bg-panel: #f1e8d2;
-  --color-bg-raised: #f6efdd;
-  --color-bg-hover: #e4d3a8;
+  /* Core palette — elevation goes lighter, like pages on a desk. Low
+     saturation on purpose: the first cut was a yellow-khaki page under cream
+     panels, and every tint laid over it (chat, the scene's vignette) turned
+     to mud. These are linen and vellum, close enough in value that the
+     screen reads as one desk, far enough apart that panels still lift. */
+  --color-bg-deepest: #d9d0bd;
+  --color-bg-deep: #e4dccb;
+  --color-bg-dark: #e9e2d3;
+  --color-bg-mid: #eee8db;
+  --color-bg-panel: #f5f0e5;
+  --color-bg-raised: #faf6ee;
+  --color-bg-hover: #ece0c4;
 
-  /* Gold tones — gold leaf: deeper and inked for contrast on light */
-  --color-gold-dim: #ab8f55;
-  --color-gold: #926c17;
-  --color-gold-bright: #7c5a0e;
-  --color-gold-shine: #a87f1e;
+  /* Gold tones — gold leaf: deeper and inked for contrast on light. Browner
+     than before; the old mustard was the loudest thing on the page. */
+  --color-gold-dim: #a3864e;
+  --color-gold: #86672b;
+  --color-gold-bright: #6d521c;
+  --color-gold-shine: #b08d45;
+  --color-on-gold: #fbf7ee;
 
   /* Red accents — rubrication reds */
   --color-red-dark: #9c3a32;
   --color-red: #8f2a24;
   --color-red-bright: #a83226;
-  --color-red-glow: #c0392b;
+  --color-red-glow: #b5372a;
 
   /* Text — iron-gall ink; "brighter" means stronger ink on parchment */
-  --color-text-dim: #8a795c;
-  --color-text-muted: #6f5d40;
-  --color-text-base: #3d2f1c;
-  --color-text-bright: #2a1f10;
-  --color-text-white: #1c1408;
+  --color-text-dim: #857862;
+  --color-text-muted: #6b5c45;
+  --color-text-base: #3b2f20;
+  --color-text-bright: #2a2014;
+  --color-text-white: #1c150b;
 
-  /* Borders */
-  --color-border-dark: #b8a678;
-  --color-border-mid: #94804a;
-  --color-border-gold: #8a6a28;
-  --color-border-bright: #6f5310;
+  /* Borders — ruled in faded ink, not drawn in ochre */
+  --color-border-dark: #cfc4ab;
+  --color-border-mid: #ad9d7c;
+  --color-border-gold: #a08454;
+  --color-border-bright: #6f5520;
 
   /* Status colors — kept vivid enough to read as bars on parchment */
   --color-health: #a02c22;
-  --color-mana: #7448b0;
-  --color-xp: #1f8b4c;
+  --color-mana: #6a4ea6;
+  --color-xp: #237a48;
 
-  /* Ink wash instead of black glass over parchment */
-  --color-overlay: rgba(61, 47, 28, 0.14);
-  --color-overlay-soft: rgba(61, 47, 28, 0.08);
+  /* A lighter sheet laid over the desk, not a stain on it. A dark wash on a
+     light page reads as dirt (the chat box was olive). */
+  --color-overlay: rgba(255, 252, 245, 0.45);
+  --color-overlay-soft: rgba(255, 252, 245, 0.7);
 
   /* Shadows — daylight is soft; ink-brown, never black */
   --shadow-sm: 0 1px 3px rgba(61, 47, 28, 0.18);
   --shadow-md: 0 2px 8px rgba(61, 47, 28, 0.22);
   --shadow-lg: 0 4px 16px rgba(61, 47, 28, 0.3);
-  --shadow-gold: 0 0 8px rgba(146, 108, 23, 0.28);
+  --shadow-gold: 0 0 8px rgba(134, 103, 43, 0.28);
   --shadow-red: 0 0 8px rgba(160, 44, 34, 0.3);
 }
 
@@ -320,12 +331,12 @@ body {
 .btn-gold {
   background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dim) 100%);
   border-color: var(--color-gold-shine);
-  color: var(--color-bg-deepest);
+  color: var(--color-on-gold);
 }
 
 .btn-gold:hover {
   background: linear-gradient(180deg, var(--color-gold-bright) 0%, var(--color-gold) 100%);
-  color: var(--color-bg-deepest);
+  color: var(--color-on-gold);
 }
 
 .btn-red {
@@ -522,18 +533,136 @@ body {
 
 
 /* Scriptorium structural touches: light themes need borders where dark
-   themes used elevation. The equipment slot art is dark by design, so on
-   parchment it gets framed as a deliberate leather squire's board. */
-:root[data-theme='scriptorium'] .equipment-grid {
-  background: #2b2317;
-  border: 1px solid var(--color-border-gold);
-  border-radius: var(--radius-md);
-  padding: 6px;
-  box-shadow: var(--shadow-sm);
+   themes used elevation, and a handful of rules written for the dark themes
+   hard-code black glass or a glow. Each is answered here rather than in its
+   own file so the whole light theme can be read in one place. */
+
+/* Empty equipment slots. The slot art is a grey outline on solid black, which
+   made a black board in the middle of the page. Brightened, inverted and
+   multiplied, the black drops out entirely and the outline is left as a
+   faint pencil drawing on the slot's own parchment. */
+:root[data-theme='scriptorium'] .equipment-slot-icon {
+  filter: brightness(2.2) invert(1) sepia(0.5);
+  mix-blend-mode: multiply;
 }
 
 :root[data-theme='scriptorium'] .top-nav {
   border-bottom: 1px solid var(--color-border-gold);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme='scriptorium'] .home-masthead {
+  box-shadow: var(--shadow-md);
+}
+
+/* .btn-red letters in --color-text-white, which is the darkest ink here. */
+:root[data-theme='scriptorium'] .btn-red {
+  color: var(--color-on-gold);
+}
+
+/* Glows and drop shadows on lettering. On a dark page they read as light; on
+   parchment they read as a smudge around every heading. */
+:root[data-theme='scriptorium'] .panel-title,
+:root[data-theme='scriptorium'] .top-nav-title,
+:root[data-theme='scriptorium'] .scene-location-name,
+:root[data-theme='scriptorium'] .scene-action-text,
+:root[data-theme='scriptorium'] .scene-timer-label,
+:root[data-theme='scriptorium'] .scene-log-entry,
+:root[data-theme='scriptorium'] .fight-countdown,
+:root[data-theme='scriptorium'] .levelup-level,
+:root[data-theme='scriptorium'] .home-wordmark {
+  text-shadow: none;
+}
+
+/* Numbers printed over artwork (skill icons, item and loot tiles) sit on
+   whatever colour the art is, not on the page, so they keep the light gold
+   and the hard dark outline in every theme. The theme's own gold-bright is
+   dark ink here and vanished into the icons. */
+:root[data-theme='scriptorium'] .skill-level,
+:root[data-theme='scriptorium'] .inventory-item-qty,
+:root[data-theme='scriptorium'] .loot-tile-count {
+  color: #f5d97a;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+
+/* Labels laid across a bar are dark ink here, so they want a pale halo, not
+   a black one. */
+:root[data-theme='scriptorium'] .fight-bar-label,
+:root[data-theme='scriptorium'] .skills-table-bar-pct {
+  text-shadow: 0 0 3px rgba(255, 252, 245, 0.9);
+}
+
+/* Cards and bars that sit inside the scene were black glass. On parchment
+   they become a raised sheet with a ruled edge. */
+:root[data-theme='scriptorium'] .scene-last-result,
+:root[data-theme='scriptorium'] .fight-spoils,
+:root[data-theme='scriptorium'] .bot-check,
+:root[data-theme='scriptorium'] .action-limit-bar {
+  background: var(--color-bg-raised);
+  border-color: var(--color-border-gold);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme='scriptorium'] .scene-timer-bar,
+:root[data-theme='scriptorium'] .npc-progress-bar {
+  background: var(--color-bg-deep);
+  box-shadow: inset 0 1px 2px rgba(61, 47, 28, 0.18);
+}
+
+/* Health and Tal. The empty channel was near-black glass; here it is a pale
+   trace of the bar's own colour, pressed into the page. */
+:root[data-theme='scriptorium'] .vital-track {
+  box-shadow: inset 0 1px 3px rgba(61, 47, 28, 0.3);
+}
+
+:root[data-theme='scriptorium'] .vital-bar.hp .vital-track {
+  background: linear-gradient(180deg, rgba(160, 44, 34, 0.2), rgba(160, 44, 34, 0.08));
+}
+
+:root[data-theme='scriptorium'] .vital-bar.tal .vital-track {
+  background: linear-gradient(180deg, rgba(106, 78, 166, 0.2), rgba(106, 78, 166, 0.08));
+}
+
+:root[data-theme='scriptorium'] .vital-fill.health {
+  background-color: var(--color-health);
+  box-shadow: none;
+}
+
+:root[data-theme='scriptorium'] .vital-fill.mana {
+  background-color: var(--color-mana);
+  box-shadow: none;
+}
+
+:root[data-theme='scriptorium'] .fight-xp-chip {
+  background: var(--color-bg-panel);
+}
+
+:root[data-theme='scriptorium'] .quest-card,
+:root[data-theme='scriptorium'] .ev-card {
+  background: var(--color-bg-raised);
+}
+
+/* Scene notices: tinted sheets, ink-coloured words. */
+:root[data-theme='scriptorium'] .scene-external-message {
+  box-shadow: var(--shadow-md);
+}
+
+:root[data-theme='scriptorium'] .scene-external-success {
+  background: #e6efe0;
+  border-color: var(--color-xp);
+  color: var(--color-xp);
+}
+
+:root[data-theme='scriptorium'] .scene-external-error {
+  background: #f4e1dc;
+  border-color: var(--color-red-bright);
+  color: var(--color-red-bright);
+}
+
+:root[data-theme='scriptorium'] .scene-external-info {
+  background: var(--color-bg-raised);
+  border-color: var(--color-border-gold);
+  color: var(--color-gold-bright);
 }
 
 /* Station tags: the small parenthesised notes beside workstation links.

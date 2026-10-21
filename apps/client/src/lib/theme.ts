@@ -30,7 +30,7 @@ export const THEMES: ThemeMeta[] = [
         id: 'scriptorium',
         name: 'Scriptorium',
         description: 'Daylight and parchment. Iron-gall ink on cream pages, leafed in gold.',
-        swatches: ['#d8c9a4', '#f2e8d3', '#3d2f1c', '#926c17'],
+        swatches: ['#d9d0bd', '#f5f0e5', '#3b2f20', '#86672b'],
     },
     {
         id: 'moonveil',

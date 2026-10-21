@@ -614,7 +614,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-bg-deepest);
+  color: var(--color-on-gold);
   background: linear-gradient(180deg, var(--color-gold-bright), var(--color-gold));
   border: 1px solid var(--color-gold-shine);
   border-radius: var(--radius-md);

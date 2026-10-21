@@ -5,7 +5,7 @@
 .store-amt-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-muted); }
 .store-amt { width: 62px; background: var(--color-bg-dark); color: var(--color-text-bright); border: 1px solid var(--color-border-mid); border-radius: var(--radius-sm); padding: 4px; font-size: 13px; }
 .store-mode-btn { background: var(--color-bg-raised); color: var(--color-text-muted); border: 1px solid var(--color-border-mid); border-radius: var(--radius-sm); padding: 5px 12px; font-family: var(--font-heading); font-size: 12px; cursor: pointer; }
-.store-mode-btn.active { background: var(--color-gold); color: var(--color-bg-deepest); border-color: var(--color-border-gold); }
+.store-mode-btn.active { background: var(--color-gold); color: var(--color-on-gold); border-color: var(--color-border-gold); }
 .store-note { color: var(--color-text-muted); font-size: 12px; font-style: italic; text-align: center; margin: 0; }
 .store-error { color: var(--color-red-glow); font-size: 13px; text-align: center; }
 

@@ -200,7 +200,7 @@
 
 .farm-btn.primary {
   background: var(--color-gold);
-  color: var(--color-bg-deepest);
+  color: var(--color-on-gold);
   border: none;
 }
 

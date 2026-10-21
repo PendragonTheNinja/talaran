@@ -101,7 +101,7 @@
 
 .foraging-go {
     background: var(--color-gold);
-    color: var(--color-bg-deepest);
+    color: var(--color-on-gold);
     border: none;
     border-radius: var(--radius-sm);
     padding: 6px 16px;

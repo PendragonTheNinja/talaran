@@ -268,12 +268,12 @@
 .home-btn-gold {
     background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dim) 100%);
     border-color: var(--color-gold-shine);
-    color: var(--color-bg-deepest);
+    color: var(--color-on-gold);
 }
 
 .home-btn-gold:hover {
     background: linear-gradient(180deg, var(--color-gold-bright) 0%, var(--color-gold) 100%);
-    color: var(--color-bg-deepest);
+    color: var(--color-on-gold);
 }
 
 .home-btn-gold:disabled {

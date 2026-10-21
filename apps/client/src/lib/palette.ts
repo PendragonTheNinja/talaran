@@ -134,13 +134,13 @@ export const BUILTIN_PALETTES: Record<string, PaletteTokens> = {
         'health': '#c0392b', 'mana': '#6a5acd', 'xp': '#4caf50',
     },
     scriptorium: {
-        'bg-deepest': '#d2c29a', 'bg-deep': '#e0d3b2', 'bg-dark': '#e6dabc', 'bg-mid': '#ebe1c6',
-        'bg-panel': '#f1e8d2', 'bg-raised': '#f6efdd', 'bg-hover': '#e4d3a8',
-        'gold-dim': '#ab8f55', 'gold': '#926c17', 'gold-bright': '#7c5a0e', 'gold-shine': '#a87f1e',
-        'red-dark': '#9c3a32', 'red': '#8f2a24', 'red-bright': '#a83226', 'red-glow': '#c0392b',
-        'text-dim': '#8a795c', 'text-muted': '#6f5d40', 'text-base': '#3d2f1c', 'text-bright': '#2a1f10', 'text-white': '#1c1408',
-        'border-dark': '#b8a678', 'border-mid': '#94804a', 'border-gold': '#8a6a28', 'border-bright': '#6f5310',
-        'health': '#a02c22', 'mana': '#7448b0', 'xp': '#1f8b4c',
+        'bg-deepest': '#d9d0bd', 'bg-deep': '#e4dccb', 'bg-dark': '#e9e2d3', 'bg-mid': '#eee8db',
+        'bg-panel': '#f5f0e5', 'bg-raised': '#faf6ee', 'bg-hover': '#ece0c4',
+        'gold-dim': '#a3864e', 'gold': '#86672b', 'gold-bright': '#6d521c', 'gold-shine': '#b08d45',
+        'red-dark': '#9c3a32', 'red': '#8f2a24', 'red-bright': '#a83226', 'red-glow': '#b5372a',
+        'text-dim': '#857862', 'text-muted': '#6b5c45', 'text-base': '#3b2f20', 'text-bright': '#2a2014', 'text-white': '#1c150b',
+        'border-dark': '#cfc4ab', 'border-mid': '#ad9d7c', 'border-gold': '#a08454', 'border-bright': '#6f5520',
+        'health': '#a02c22', 'mana': '#6a4ea6', 'xp': '#237a48',
     },
 }
 
@@ -165,6 +165,9 @@ export function applyPaletteTokens(tokens: PaletteTokens, remember: { id: number
     el.style.setProperty('--color-overlay-soft', dark ? 'rgba(0, 0, 0, 0.3)' : `rgba(${shadowBase}, 0.08)`)
     const gold = tokens['gold'] ?? '#c8922a'
     el.style.setProperty('--shadow-gold', `0 0 8px ${gold}55`)
+    // Lettering on gold: the page colour on a dark palette, the palest paper
+    // on a light one (a light page colour on gilt cannot be read).
+    el.style.setProperty('--color-on-gold', dark ? (tokens['bg-deepest'] ?? '#0d0a07') : (tokens['bg-raised'] ?? '#faf6ee'))
 
     if (remember) {
         try {
@@ -178,7 +181,7 @@ export function applyPaletteTokens(tokens: PaletteTokens, remember: { id: number
 export function clearPaletteTokens() {
     const el = document.documentElement
     for (const key of PALETTE_TOKENS) el.style.removeProperty(`--color-${key}`)
-    for (const extra of ['--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-gold', '--color-overlay', '--color-overlay-soft']) {
+    for (const extra of ['--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-gold', '--color-overlay', '--color-overlay-soft', '--color-on-gold']) {
         el.style.removeProperty(extra)
     }
     try { localStorage.removeItem(PALETTE_STORAGE_KEY) } catch { /* private mode */ }

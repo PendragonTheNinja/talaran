@@ -226,7 +226,7 @@
 .fishing-go {
     flex: 1;
     background: var(--color-gold);
-    color: var(--color-bg-deepest);
+    color: var(--color-on-gold);
     border: none;
     border-radius: var(--radius-sm);
     padding: 9px 16px;
