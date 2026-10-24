@@ -64,7 +64,7 @@ Gems differ by tier only, never by kind of effect. Higher gems come from higher 
 
 At 15 to 20 s a swing, 1 in 200 is about **one quartz per hour** of granite, and 1 in 800 about one garnet per four hours. A Knocker hunter finds about half a quartz an hour (Knockers are 30% of the Old Workings draws); creatures are a supplement, never the main source. **knob** for the creature rates.
 
-**Before the rate change ships:** total the Rough Quartz on live (packs, property storage, shop listings, ground) to see how big the 1-in-50 stockpile is. It is a head start on launch day; decide with the number in hand.
+**The 1-in-50 stockpile already on live stays** (alpha; players know things change, Nathan, 2026-10-24). It is a head start on launch day.
 
 ### Cutting (Crafting)
 
@@ -72,7 +72,7 @@ One Crafting action per rough gem, at a lapidary station (a `workstations` type,
 
 Because cutting is a roll with three outputs, it is not a plain `recipes` row (one output). It sits beside sawing and smelting as a bespoke action paying out through the drop system (`drops: [...]`), or `recipes` grows a weighted-output column. Decide at build time by reading `resolveSaw`.
 
-Items: `Rough X`, `Cut X`, `Polished X`, `Flawless X`, and a charged form of each grade (§3). Naming of the charged form is open (§13).
+Items: `Rough X`, `Cut X`, `Polished X`, `Flawless X`, and a charged form of each grade with its own name (§3). Names are open (§13); Nathan's candidates: **Lit X** (from Cut), **Charged X** (from Polished), **Brimming X** (from Flawless, wants a better word).
 
 ---
 
@@ -85,14 +85,14 @@ Items: `Rough X`, `Cut X`, `Polished X`, `Flawless X`, and a charged form of eac
 
 | Gem | Holds (Talar) | Fill time | Notes |
 |---|---|---|---|
-| Cut Quartz | 100 | ~60 min | XP at the T1 band, ~2,200 per gem at Talar 1 |
-| Polished Quartz | 125 | ~75 min | |
-| Flawless Quartz | 160 | ~96 min | |
-| Cut Garnet | 250 | ~2 h | Talar 13; T2 band |
-| Polished Garnet | 312 | ~2.5 h | |
-| Flawless Garnet | 400 | ~3.2 h | |
+| Cut Quartz | 100 | 60 min | 100 Talar/h; T1 band, ~2,200 XP per gem at Talar 1 |
+| Polished Quartz | 150 | 86 min | fills 5% faster; ~3,140 XP |
+| Flawless Quartz | 300 | 161 min | fills 12% faster; ~5,890 XP |
+| Cut Garnet | 200 | 80 min | 150 Talar/h; Talar 13; T2 band |
+| Polished Garnet | 300 | 114 min | 5% faster |
+| Flawless Garnet | 600 | 214 min | 12% faster |
 
-**knob** for all of it. Quality buys more Talar and XP from the same rough stone, and a longer fill per click. A small fill-speed edge for better grades (5 to 10%) is allowed; more would make Flawless mandatory.
+**Grades hold 1 : 1.5 : 3** (Nathan, 2026-10-24, with the 5% / 12% fill-speed edge). The clean ratio is what lets jewelry take any grade (§8): three Cut, two Polished or one Flawless carry the same Talar. Flawless is the jackpot: three gems' worth from one stone, about 12% more XP an hour while it fills. Expected Talar per rough quartz: ~110 at the unlock level (85 / 13 / 2), ~150 three tiers above (45 / 40 / 15), so a better cutter gets half again as much from the same stone. A higher gem pours faster (150 Talar/h for garnet) so its fills stay inside a session. **knob** for the times and rates.
 
 XP band: the gem's unlock level, gathering policy ×1.0 (`xp = target × timer / 3600`). Filling a quartz at Talar 20 pays the T1 band, as a lower node does.
 
@@ -105,7 +105,7 @@ XP band: the gem's unlock level, gathering policy ×1.0 (`xp = target × timer /
 Every player has an internal reservoir of Talar.
 
 - **Absorb** a charged gem to pour it in: instant, anywhere, the gem is used up. A gem that would overflow is refused (no partial pours) until there is room.
-- **Capacity grows with Talar level.** **knob:** `200 + 20 × level` (220 at 1, 460 at 13, 600 at 20, 640 at 22), always enough for your highest spell and your biggest gem.
+- **Capacity grows with Talar level.** **knob:** `300 + 25 × level` (325 at 1, 625 at 13, 800 at 20, 850 at 22), always enough for your highest spell and the biggest gem you can fill (a Flawless Quartz at 1, a Flawless Garnet at 13).
 - **Never leaks.** No decay, nothing lost while away.
 - **Kept on death**, like gold: it is inside you. This is what lets Tether (§6) be cast after dying.
 - Stored as a whole number of hundredths, so jewelry's fractional draw (§8) is exact.
@@ -216,7 +216,7 @@ The slots pair so a fighter can wear both combat pieces. T1 sits at food's T1 sc
 
 **Wear gate:** Talar 1 for T1, Talar 13 for T2, through `gateSkill` in `services/equipGates.ts` (the skill that owns the sub-system gates it). **Make gate:** Crafting level, set when the recipes are placed.
 
-**Which grade goes in?** One item per effect per tier is twelve items; a version per gem grade would be thirty-six. Proposal: each recipe takes a **charged Polished** gem, which gives Polished a market of its own, while Flawless is always worth more absorbed. (This replaces the earlier idea that grade lowers the drain, which needed a version per grade.) Open, §13.
+**Any grade goes in (proposal).** Each piece has three recipes with the same output: **3 charged Cut, 2 charged Polished or 1 charged Flawless** of the tier's gem, plus the metal. All three carry the same Talar (300 at T1), so no grade is wasted and none is required; a better cutter simply needs fewer stones. Twelve jewelry items, thirty-six recipe rows (rows are cheap and `RecipeList` already groups them). A version of each piece per grade would have been thirty-six items and thirty-six icons. (Replaces both earlier ideas: grade lowering the drain, and Polished only.) Jewelry has no durability: it is a lasting item, which is why it costs three gems' worth.
 
 ---
 
@@ -287,16 +287,14 @@ New tables (first draft): `player_talar` (reservoir), `player_talar_open_gem`, `
 
 ## 13. Open
 
-1. **Charged gem naming:** "Charged Cut Quartz" is clear and ugly. Alternatives: "Lit", "Brimming", "Talar-filled". Player-facing, so it wants the house voice.
-2. **Jewelry input grade:** charged Polished only (proposal), or any grade?
-3. **Fill-speed edge** for Polished and Flawless: 0, 5% or 10%?
-4. **Live quartz stockpile** query before the rate change.
-5. **Georome's quest:** shape and reward (a first rough quartz to cut, fill, absorb and spend on Wearsight is the obvious path through the whole loop).
-6. All **knobs** above, after the sim pass.
+1. **Charged gem names**, one per grade: Lit / Charged / Brimming are the candidates; a better word than Brimming is wanted.
+2. **Jewelry input:** 3 Cut, 2 Polished or 1 Flawless (proposal).
+3. **Georome's quest:** shape and reward (a first rough quartz to cut, fill, absorb and spend on Wearsight is the obvious path through the whole loop).
+4. All **knobs** above, after the sim pass.
 
 ## 14. Build order (one step at a time, Nathan testing between)
 
-1. Creature drops migration (§9) and the quartz/garnet rates (§2), with the stockpile number in hand.
+1. Creature drops migration (§9) and the quartz/garnet rates (§2). The live 1-in-50 stockpile stays as it is (alpha; Nathan, 2026-10-24).
 2. Gem items and cutting (Crafting, lapidary station).
 3. Reservoir, filling at the Rift, Talar `is_implemented`, Georome, the church.
 4. Spells, T1 first (Wearsight, Daily Step, Larder Ward, Tether), then T2 (Sending, Kindle, Portal).
