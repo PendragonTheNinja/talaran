@@ -72,7 +72,7 @@ One Crafting action per rough gem, at a lapidary station (a `workstations` type,
 
 Because cutting is a roll with three outputs, it is not a plain `recipes` row (one output). It sits beside sawing and smelting as a bespoke action paying out through the drop system (`drops: [...]`), or `recipes` grows a weighted-output column. Decide at build time by reading `resolveSaw`.
 
-Items: `Rough X`, `Cut X`, `Polished X`, `Flawless X`, and a charged form of each grade with its own name (§3). Names are open (§13); Nathan's candidates: **Lit X** (from Cut), **Charged X** (from Polished), **Brimming X** (from Flawless, wants a better word).
+Items: `Rough X`, `Cut X`, `Polished X`, `Flawless X`, and a charged form of each grade with its own name (Nathan, 2026-10-25): **Lit X** (a filled Cut gem), **Bright X** (Polished), **Radiant X** (Flawless). So `Lit Quartz`, `Bright Garnet`, `Radiant Quartz`.
 
 ---
 
@@ -216,7 +216,7 @@ The slots pair so a fighter can wear both combat pieces. T1 sits at food's T1 sc
 
 **Wear gate:** Talar 1 for T1, Talar 13 for T2, through `gateSkill` in `services/equipGates.ts` (the skill that owns the sub-system gates it). **Make gate:** Crafting level, set when the recipes are placed.
 
-**Any grade goes in (proposal).** Each piece has three recipes with the same output: **3 charged Cut, 2 charged Polished or 1 charged Flawless** of the tier's gem, plus the metal. All three carry the same Talar (300 at T1), so no grade is wasted and none is required; a better cutter simply needs fewer stones. Twelve jewelry items, thirty-six recipe rows (rows are cheap and `RecipeList` already groups them). A version of each piece per grade would have been thirty-six items and thirty-six icons. (Replaces both earlier ideas: grade lowering the drain, and Polished only.) Jewelry has no durability: it is a lasting item, which is why it costs three gems' worth.
+**Any grade goes in (proposal).** Each piece has three recipes with the same output: **3 Lit, 2 Bright or 1 Radiant** gems of the tier, plus the metal. All three carry the same Talar (300 at T1), so no grade is wasted and none is required; a better cutter simply needs fewer stones. Twelve jewelry items, thirty-six recipe rows (rows are cheap and `RecipeList` already groups them). A version of each piece per grade would have been thirty-six items and thirty-six icons. (Replaces both earlier ideas: grade lowering the drain, and Polished only.) Jewelry has no durability: it is a lasting item, which is why it costs three gems' worth.
 
 ---
 
@@ -287,10 +287,9 @@ New tables (first draft): `player_talar` (reservoir), `player_talar_open_gem`, `
 
 ## 13. Open
 
-1. **Charged gem names**, one per grade: Lit / Charged / Brimming are the candidates; a better word than Brimming is wanted.
-2. **Jewelry input:** 3 Cut, 2 Polished or 1 Flawless (proposal).
-3. **Georome's quest:** shape and reward (a first rough quartz to cut, fill, absorb and spend on Wearsight is the obvious path through the whole loop).
-4. All **knobs** above, after the sim pass.
+1. **Jewelry input:** 3 Cut, 2 Polished or 1 Flawless (proposal).
+2. **Georome's quest:** shape and reward (a first rough quartz to cut, fill, absorb and spend on Wearsight is the obvious path through the whole loop).
+3. All **knobs** above, after the sim pass.
 
 ## 14. Build order (one step at a time, Nathan testing between)
 
