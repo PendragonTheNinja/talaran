@@ -33,3 +33,27 @@ export function rollGrade(levelsOver: number, roll: number = Math.random() * 100
     if (roll < cut + polished) return 1
     return 2
 }
+
+/** A cut gem's grade by its items.quality, worst first: the index used above. */
+export const CUT_QUALITIES = ['cut', 'polished', 'flawless'] as const
+
+/** What each grade is called once filled (Nathan, 2026-10-25): Lit, Bright, Radiant. */
+export const CHARGED_PREFIXES = ['Lit', 'Bright', 'Radiant'] as const
+
+/**
+ * How much faster each grade fills, against a Cut gem of its kind
+ * (docs/talar-spec.md §3: 5% and 12%). With the 1 : 1.5 : 3 holding, Polished
+ * and Flawless take longer in all but pour quicker while they do.
+ */
+export const GRADE_FILL_SPEED = [1, 1.05, 1.12] as const
+
+/** The grade index of a cut gem's quality, or -1 if it is not a cut gem. */
+export function cutGradeOf(quality: string | null | undefined): number {
+    return CUT_QUALITIES.indexOf((quality ?? '') as typeof CUT_QUALITIES[number])
+}
+
+/** 'Polished Garnet' (grade 1) -> 'Bright Garnet'. The gem's own word follows the grade word. */
+export function chargedNameFor(cutName: string, grade: number): string {
+    const gem = cutName.split(' ').slice(1).join(' ')
+    return `${CHARGED_PREFIXES[grade]} ${gem}`
+}

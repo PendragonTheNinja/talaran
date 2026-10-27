@@ -433,6 +433,17 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         ))}
 
+        {/* A rift: gems are filled here (services/talar.ts). The flag is the
+            location row's own, so any later rift gets this with no client change. */}
+        {location?.is_rift && (
+          <button
+            className={`location-action-btn ${currentAction === 'talar_fill' ? 'active' : ''}`}
+            onClick={() => onStartAction('talar_fill_menu', 0)}
+          >
+            Fill a Gem →
+          </button>
+        )}
+
         {huntableAnimals.length > 0 && (
           <button
             className={`location-action-btn`}

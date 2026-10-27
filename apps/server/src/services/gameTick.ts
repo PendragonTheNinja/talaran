@@ -19,6 +19,7 @@ import { buffTimerBonus } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements, veinNode } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } from './smithing';
 import { processingTimerFor } from './recipes';
+import { resolveFillCycle, FILL_CYCLE_SECONDS } from './talar';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
@@ -452,6 +453,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'foraging':
         result = await processForagingAction(action.player_id, action.action_data);
+        break;
+      case 'talar_fill':
+        result = await resolveFillCycle(action.player_id);
         break;
       case 'fishing_rod':
         // action_data carries the chosen bait category (empty string = none).
@@ -931,6 +935,53 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       io.to(`player_${action.player_id}`).emit('action_failed', {
         error: result.error || 'Action failed',
       });
+      return;
+    }
+
+    // Filling a gem at a rift (services/talar.ts): a cycle pours Talar and pays
+    // XP; it carries on while a gem is open, and ends when the last is full or
+    // the player has left the rift.
+    if (action.action_type === 'talar_fill') {
+      if (!result || !result.success) {
+        await db('player_actions').where({ id: action.id }).delete();
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: result?.error || 'Your filling ended.',
+        });
+        return;
+      }
+
+      const talarSkill = await db('skills').where({ name: 'Talar' }).first();
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: talarSkill?.id }).first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const leveledUp = currentLevel > levelFromXp(previousXp);
+      const xpInfo = { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) };
+
+      if (result.carryOn) {
+        const nextCompletion = new Date(now.getTime() + FILL_CYCLE_SECONDS * 1000);
+        await db('player_actions').where({ id: action.id }).update({
+          completes_at: nextCompletion,
+          last_timer_seconds: FILL_CYCLE_SECONDS,
+        });
+        await emitActionComplete(io, action, {
+          firstEver,
+          actionType: action.action_type,
+          result,
+          nextCompletes: nextCompletion,
+          timerSeconds: FILL_CYCLE_SECONDS,
+          xpInfo,
+        });
+      } else {
+        await db('player_actions').where({ id: action.id }).delete();
+        await emitActionComplete(io, action, {
+          firstEver,
+          actionType: action.action_type,
+          result,
+          xpInfo,
+        });
+      }
       return;
     }
 

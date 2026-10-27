@@ -12,6 +12,7 @@ import './GameLayout.css'
 import ForgeMenu from './ForgeMenu'
 import CarpentryMenu from './CarpentryMenu'
 import CraftingMenu from './CraftingMenu'
+import TalarFillMenu from './TalarFillMenu'
 import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
 import ForumPanel from './ForumPanel'
@@ -71,6 +72,8 @@ interface LocationData {
     region: string
     type: string
     description: string
+    /** Gems are filled here (services/talar.ts). */
+    is_rift?: boolean
   } | null
   nodes: {
     id: number
@@ -225,6 +228,7 @@ export default function GameLayout({
   const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
   const [showCraftingMenu, setShowCraftingMenu] = useState(false)
   const [showLapidaryMenu, setShowLapidaryMenu] = useState(false)
+  const [showTalarFill, setShowTalarFill] = useState(false)
   const [showCookingMenu, setShowCookingMenu] = useState(false)
   const [cookingAtFire, setCookingAtFire] = useState(false)
   const [carpentryStationActive, setCarpentryStationActive] = useState(false)
@@ -496,6 +500,8 @@ export default function GameLayout({
       setShowCraftingMenu(true)
     } else if (type === 'lapidary_menu') {
       setShowLapidaryMenu(true)
+    } else if (type === 'talar_fill_menu') {
+      setShowTalarFill(true)
     } else if (type === 'shop_build') {
       // Raising a shopfront is Carpentry construction, so it borrows the
       // farming timer the farmstead already uses. id carries the seconds.
@@ -1014,6 +1020,13 @@ export default function GameLayout({
           title="Crafting Bench"
           station={null}
           playerLevel={playerData?.skills?.find((s: any) => s.name === 'Crafting')?.level || 1}
+        />
+      )}
+
+      {showTalarFill && (
+        <TalarFillMenu
+          onClose={() => setShowTalarFill(false)}
+          onStartFill={(itemId) => setGameViewAction({ type: 'talar_fill', id: itemId ?? 0 })}
         />
       )}
 

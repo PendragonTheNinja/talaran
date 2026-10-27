@@ -1407,6 +1407,26 @@ const SCENARIOS: Scenario[] = [
                 ?? succeeded(st, 3);
         },
     },
+    {
+        id: 'talar', name: 'start filling five times at once with a half-full gem already open', rounds: 10,
+        run: async (ctx) => {
+            // A stone is already open at 40 Talar and one more waits in the
+            // pack. Five starts at the rift: one may start, and it must resume
+            // the open stone. Opening the pack's stone instead would overwrite
+            // the half-full one and lose it.
+            const w = await world(ctx);
+            const rift = await ctx.seed.row('locations', { name: 'Racecheck Rift', is_rift: true });
+            await ctx.db('players').where({ id: w.player.id }).update({ current_location_id: rift.id });
+            const cut = await ctx.seed.row('items', { name: 'Cut Quartz', type: 'gem', subtype: 'quartz', quality: 'cut', tier: 1, talar: 100, talar_per_hour: 100 });
+            await inPack(ctx, w.player.id, cut.id, 1);
+            await ctx.seed.row('player_talar_open_gem', { player_id: w.player.id, item_id: cut.id, filled_hundredths: 4000 });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/talar/fill/start', { itemId: cut.id }));
+            const open = await ctx.db('player_talar_open_gem').where({ player_id: w.player.id }).first();
+            return changed('Cut Quartz in the pack', 1, await ctx.itemTotal(cut.id))
+                ?? changed('the open stone\'s Talar (hundredths)', 4000, Number(open?.filled_hundredths ?? -1))
+                ?? succeeded(st, 1);
+        },
+    },
 ];
 
 main().catch((err) => {

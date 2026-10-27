@@ -2,8 +2,12 @@ import db from '../db'
 import { logger } from '../lib/logger'
 import { pushToPlayerAfterCommit } from '../lib/realtime'
 import { SERVER_ERROR } from '../lib/serviceResult'
-import { notifyInventoryChanged, takeItemsWithin } from './inventory'
-import { playerSkillLevel } from './xp'
+import { addItemToInventoryWithin, notifyInventoryChanged, takeItemsWithin } from './inventory'
+import { awardXp, playerSkillLevel } from './xp'
+import { incrementStats } from './stats'
+import { activeXpForSeconds } from './farming'
+import { rungOfTier } from '../lib/tiers'
+import { GRADE_FILL_SPEED, chargedNameFor, cutGradeOf } from '../lib/gemGrades'
 
 // The reservoir (docs/talar-spec.md §4). Every player carries Talar inside
 // them: poured in from charged gems, spent on spells, drawn on by jewelry.
@@ -107,6 +111,225 @@ export async function absorbGem(
     } catch (err) {
         if (err instanceof TalarAbort) return { success: false, error: err.message }
         logger.error(`absorbGem error (player ${playerId}): ${err}`)
+        return { success: false, error: SERVER_ERROR }
+    }
+}
+
+// ── Filling at a rift (docs/talar-spec.md §3) ────────────────────────────────
+//
+// One repeating action. Each cycle pours Talar into the open gem and pays a
+// slice of XP at the gem's own band (gathering x1.0, the level its tier opens
+// at), so a quartz pays the T1 band at Talar 20 as a lower node would. A full
+// gem becomes its charged form in the pack and the next of the same kind is
+// opened, until none are left.
+//
+// The open gem has LEFT the pack (player_talar_open_gem), as an open bucket has
+// (services/liquids.ts): never held twice, never traded or dropped, and kept on
+// death because it has no pack row to drop. Stopping keeps it; the next start
+// resumes it.
+
+export const FILL_CYCLE_SECONDS = 60
+
+/** Hundredths of Talar one cycle pours into a gem of this rate and grade. */
+export function pourPerCycle(talarPerHour: number, grade: number): number {
+    return Math.round(talarPerHour * GRADE_FILL_SPEED[grade] * HUNDREDTHS * FILL_CYCLE_SECONDS / 3600)
+}
+
+/** Whole minutes to fill a gem from empty. */
+export function minutesToFill(talar: number, talarPerHour: number, grade: number): number {
+    return Math.ceil((talar * HUNDREDTHS) / pourPerCycle(talarPerHour, grade)) * FILL_CYCLE_SECONDS / 60
+}
+
+/** The level a gem can first be filled at: the level its tier opens at. */
+function fillLevel(tier: number): number {
+    return rungOfTier(Number(tier) || 1)
+}
+
+async function atRift(playerId: number): Promise<boolean> {
+    const row = await db('players as p').join('locations as l', 'l.id', 'p.current_location_id')
+        .where('p.id', playerId).first('l.is_rift')
+    return !!row?.is_rift
+}
+
+const CUT_GEM_COLUMNS = ['i.id', 'i.name', 'i.quality', 'i.tier', 'i.talar', 'i.talar_per_hour']
+
+export interface FillOption {
+    itemId: number
+    name: string
+    quantity: number
+    talar: number
+    minutes: number
+    level: number
+    canFill: boolean
+}
+
+/** What the fill menu shows: the gem already open, and every cut gem in the pack. */
+export async function fillOptions(playerId: number): Promise<{
+    atRift: boolean
+    open: { itemId: number; name: string; filled: number; talar: number } | null
+    gems: FillOption[]
+}> {
+    const [rift, level, openRow, packRows] = await Promise.all([
+        atRift(playerId),
+        playerSkillLevel(playerId, 'Talar'),
+        db('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
+            .where('o.player_id', playerId).first('i.id', 'i.name', 'i.talar', 'o.filled_hundredths'),
+        db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+            .where('pi.player_id', playerId).where('pi.quantity', '>', 0)
+            .where('i.type', 'gem').whereNotNull('i.talar_per_hour')
+            .orderBy([{ column: 'i.tier' }, { column: 'i.talar' }])
+            .select(...CUT_GEM_COLUMNS, 'pi.quantity'),
+    ])
+    return {
+        atRift: rift,
+        open: openRow ? {
+            itemId: openRow.id, name: openRow.name, talar: Number(openRow.talar),
+            filled: Math.floor(Number(openRow.filled_hundredths) / HUNDREDTHS),
+        } : null,
+        gems: packRows.map((g: any) => ({
+            itemId: g.id, name: g.name, quantity: Number(g.quantity), talar: Number(g.talar),
+            minutes: minutesToFill(Number(g.talar), Number(g.talar_per_hour), Math.max(0, cutGradeOf(g.quality))),
+            level: fillLevel(g.tier),
+            canFill: level >= fillLevel(g.tier),
+        })),
+    }
+}
+
+/**
+ * Start filling: resume the open gem, or open `itemId` from the pack. The gem
+ * moves and the action is inserted in one transaction, so a refused start
+ * (another action already running) leaves the pack as it was.
+ */
+export async function startFill(
+    playerId: number,
+    itemId: number | null,
+): Promise<{ ok: true; timerSeconds: number; gemName: string } | { ok: false; error: string; status: number }> {
+    try {
+        if (!(await atRift(playerId))) return { ok: false, status: 400, error: 'Gems are filled at a rift, where the light comes up out of the ground.' }
+        const level = await playerSkillLevel(playerId, 'Talar')
+
+        const gemName = await db.transaction(async trx => {
+            const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
+            const open = await trx('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
+                .where('o.player_id', playerId).forUpdate('o').first('i.name')
+            let name: string
+            if (open) {
+                name = open.name
+            } else {
+                const id = Math.floor(Number(itemId))
+                const gem = Number.isFinite(id) && id > 0
+                    ? await trx('items as i').where('i.id', id).first(...CUT_GEM_COLUMNS)
+                    : null
+                if (!gem || !gem.talar_per_hour || cutGradeOf(gem.quality) < 0) throw new TalarAbort('That stone will not take any light.')
+                if (level < fillLevel(gem.tier)) throw new TalarAbort(`You need Talar level ${fillLevel(gem.tier)} to fill that.`)
+                const taken = await takeItemsWithin(trx, playerId, [{ name: gem.name, quantity: 1 }])
+                if (!taken.ok) throw new TalarAbort(`You have no ${gem.name}.`)
+                await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: gem.id, filled_hundredths: 0 })
+                name = gem.name
+            }
+
+            const now = new Date()
+            await trx('player_actions').insert({
+                player_id: playerId,
+                action_type: 'talar_fill',
+                action_data: null,
+                location_id: player.current_location_id,
+                started_at: now,
+                completes_at: new Date(now.getTime() + FILL_CYCLE_SECONDS * 1000),
+                auto_restart: true,
+                last_timer_seconds: FILL_CYCLE_SECONDS,
+                last_bot_check: now,
+                bot_check_pending: false,
+            })
+            return name
+        })
+
+        notifyInventoryChanged(playerId)
+        return { ok: true, timerSeconds: FILL_CYCLE_SECONDS, gemName }
+    } catch (err: any) {
+        if (err instanceof TalarAbort) return { ok: false, status: 400, error: err.message }
+        // The unique index on player_actions.player_id is the real guard (CLAUDE.md §9).
+        if (err?.code === '23505') return { ok: false, status: 409, error: 'You are already performing an action' }
+        logger.error(`startFill error (player ${playerId}): ${err}`)
+        return { ok: false, status: 500, error: SERVER_ERROR }
+    }
+}
+
+export interface FillCycleResult {
+    success: boolean
+    error?: string
+    xpAwarded?: number
+    skillName?: string
+    /** Set when a gem filled: the charged stone that went into the pack. */
+    itemName?: string
+    quantity?: number
+    message?: string
+    /** Whether there is a gem open to go on filling. */
+    carryOn?: boolean
+}
+
+/** One cycle at the rift, for the tick. Re-checks where the player stands every time. */
+export async function resolveFillCycle(playerId: number): Promise<FillCycleResult> {
+    try {
+        if (!(await atRift(playerId))) return { success: false, error: 'You have left the Rift.' }
+
+        const outcome = await db.transaction(async trx => {
+            const open = await trx('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
+                .where('o.player_id', playerId).forUpdate('o')
+                .first('o.filled_hundredths', ...CUT_GEM_COLUMNS)
+            if (!open) throw new TalarAbort('There is no stone in your hand to fill.')
+
+            const grade = Math.max(0, cutGradeOf(open.quality))
+            const capacity = Number(open.talar) * HUNDREDTHS
+            const filled = Math.min(capacity, Number(open.filled_hundredths) + pourPerCycle(Number(open.talar_per_hour), grade))
+
+            const xp = activeXpForSeconds(fillLevel(open.tier), FILL_CYCLE_SECONDS)
+            await awardXp(playerId, 'Talar', xp, trx)
+            await incrementStats(playerId, { total_actions_completed: 1 }, trx)
+
+            const gemWord = String(open.name).split(' ').slice(1).join(' ').toLowerCase()
+            if (filled < capacity) {
+                await trx('player_talar_open_gem').where({ player_id: playerId })
+                    .update({ filled_hundredths: filled, updated_at: trx.fn.now() })
+                return {
+                    xp, carryOn: true, itemName: undefined as string | undefined,
+                    message: `The ${gemWord} takes in a little more light. ${Math.floor(filled / HUNDREDTHS)} of ${open.talar}.`,
+                }
+            }
+
+            // Full: the charged stone goes into the pack, and the next of the
+            // same kind is opened if there is one.
+            const chargedName = chargedNameFor(open.name, grade)
+            const charged = await trx('items').where({ name: chargedName }).first('id')
+            if (!charged) throw new Error(`no charged item ${chargedName}`)
+            await trx('player_talar_open_gem').where({ player_id: playerId }).delete()
+            await addItemToInventoryWithin(trx, playerId, charged.id, 1)
+
+            const next = await takeItemsWithin(trx, playerId, [{ name: open.name, quantity: 1 }])
+            if (next.ok) {
+                await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: open.id, filled_hundredths: 0 })
+            }
+            return {
+                xp, carryOn: next.ok, itemName: chargedName,
+                message: next.ok
+                    ? `The ${gemWord} is full and glowing. You take up the next.`
+                    : `The ${gemWord} is full and glowing. That was your last ${open.name}.`,
+            }
+        })
+
+        notifyInventoryChanged(playerId)
+        return {
+            success: true,
+            xpAwarded: outcome.xp,
+            skillName: 'Talar',
+            itemName: outcome.itemName,
+            quantity: outcome.itemName ? 1 : undefined,
+            message: outcome.message,
+            carryOn: outcome.carryOn,
+        }
+    } catch (err) {
+        if (err instanceof TalarAbort) return { success: false, error: err.message }
+        logger.error(`resolveFillCycle error (player ${playerId}): ${err}`)
         return { success: false, error: SERVER_ERROR }
     }
 }

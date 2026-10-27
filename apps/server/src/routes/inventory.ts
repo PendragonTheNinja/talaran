@@ -62,6 +62,32 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // The gem being filled at a rift has left the pack the same way
+    // (services/talar.ts), so it rides along as a pinned tile too.
+    const openGem = await db('player_talar_open_gem as o')
+      .join('items as i', 'i.id', 'o.item_id')
+      .where('o.player_id', playerId)
+      .first('i.name', 'i.subtype', 'i.quality', 'i.tier', 'i.talar', 'o.filled_hundredths');
+    if (openGem) {
+      const filled = Math.floor(Number(openGem.filled_hundredths) / 100);
+      openContainers.push({
+        id: 'open-gem',
+        synthetic: true,
+        quantity: filled,
+        capacity: Number(openGem.talar),
+        item_id: null,
+        name: `${openGem.name} (filling)`,
+        iconName: openGem.name,
+        type: 'gem',
+        subtype: openGem.subtype,
+        quality: openGem.quality,
+        tier: openGem.tier,
+        slot: null,
+        level_required: 1,
+        description: `A ${openGem.name.toLowerCase()} taking in light: ${filled} of ${openGem.talar} Talar so far. It stays in your hand until it is full.`,
+      });
+    }
+
     res.json({ inventory, openContainers });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

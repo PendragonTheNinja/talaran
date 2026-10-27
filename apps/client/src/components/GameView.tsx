@@ -1141,6 +1141,12 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'talar_fill':
+        setCurrentAction('talar_fill')
+        setTimerMax(secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'fishing_rod':
       case 'fishing_net':
       case 'fishing_cut_bait':
@@ -1183,6 +1189,33 @@ export default function GameView({
         break
     }
   }, [playerData])
+
+  // Filling a gem at a rift (services/talar.ts). Same start shape as foraging:
+  // stop what is running, clear the last result card, then start.
+  const startTalarFill = async (itemId: number | null) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number }>('/api/talar/fill/start', {
+        method: 'POST',
+        body: JSON.stringify({ itemId }),
+      })
+      setCurrentAction('talar_fill')
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds)
+      onInventoryUpdate()
+    } catch (err) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 423) { rememberPendingAction(() => startTalarFill(itemId)); return }
+      addLog(e.message || 'The light will not take.', 'error')
+    }
+  }
 
   // ── External action handler ───────────────────────────────────────
   useEffect(() => {
@@ -1255,6 +1288,9 @@ export default function GameView({
       startHunt(externalAction.id as number)
     } else if (externalAction.type === 'foraging') {
       startForage(externalAction.id as number)
+    } else if (externalAction.type === 'talar_fill') {
+      // id 0: resume the stone already open.
+      startTalarFill((externalAction.id as number) || null)
     } else if (externalAction.type === 'fishing_rod') {
       // id carries the bait category, or an empty string for an unbaited cast.
       startRodFishing((externalAction.id as string) || null)
