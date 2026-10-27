@@ -738,6 +738,9 @@ export async function publicStationAllows(stationType: string, recipe: any): Pro
     // whole skill.
     if (parseRequiredTools(recipe).length === 0) return true
 
+    // A keeper who lends his tools for any job (the lapidary).
+    if (PUBLIC_STATIONS[stationType]?.lendsAll) return true
+
     const output = recipe?.output_item_name
     if (!output) return true
 
@@ -920,6 +923,7 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
     const stationLabel = recipe.station === 'cooking' ? 'hearth'
         : recipe.station === 'smithing' ? 'forge'
         : recipe.station === 'carpentry' ? 'workshop'
+        : recipe.station === 'lapidary' ? 'lapidary'
         : 'workstation'
     const owner = PUBLIC_STATIONS[recipe.station]
     if (owner) {
@@ -948,10 +952,14 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
  * it". Kept as one function so a second island can add public benches by
  * adding rows rather than by editing this.
  */
-export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string }> = {
+export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string; lendsAll?: boolean }> = {
     smithing: { location: 'Emberra', quest: "The Blacksmith's Bargain", keeper: 'Geoffrey' },
     carpentry: { location: 'Verdale', quest: "The Carpenter's Commission", keeper: 'Geossica' },
     cooking: { location: 'Phoenwick', quest: "The Cook's Conundrum", keeper: 'Geomima' },
+    // Geosper lends his wheel and chisel for every cut, not only for making
+    // tools: cutting is the whole station, and his bench is how a new cutter
+    // starts before owning either (Nathan, 2026-10-27).
+    lapidary: { location: 'Caliwen', quest: "The Lapidary's Lesson", keeper: 'Geosper', lendsAll: true },
 }
 
 export async function locationHasPublicStation(playerId: number, locationId: number, stationType: string): Promise<boolean> {

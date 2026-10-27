@@ -91,6 +91,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // status route, since that already reports whether the rack is complete.
   const [cookingStation, setCookingStation] = useState<any>(null)
   const [cookQuestStatus, setCookQuestStatus] = useState<string | null>(null)
+  const [lapidaryStation, setLapidaryStation] = useState<any>(null)
+  const [lapidaryQuestStatus, setLapidaryQuestStatus] = useState<string | null>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
   const [cookhouseOpen, setCookhouseOpen] = useState(false)
   const [farmsteadOpen, setFarmsteadOpen] = useState(false)
@@ -311,6 +313,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         if (q) setCookQuestStatus(q.status)
       }).catch(() => {})
     }
+    if (isCaliwen) {
+      apiFetch<any>('/api/workstations/lapidary').then(setLapidaryStation).catch(() => setLapidaryStation(null))
+      apiFetch<any>('/api/quests').then(data => {
+        const q = data.quests?.find((x: any) => x.name === "The Lapidary's Lesson")
+        if (q) setLapidaryQuestStatus(q.status)
+      }).catch(() => {})
+    }
   }
 
   /**
@@ -325,6 +334,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const hasHearth = !!cookingStation?.exists && !cookingStation?.isTemporary
 
   const cookUnlocked = cookQuestStatus === 'active' || cookQuestStatus === 'completed' || !!cookingStation?.exists
+
+  // Geosper's wheel is open from accepting his quest; a lapidary of your own
+  // (any tool socketed) is yours whatever the quest says.
+  const lapidaryUnlocked = lapidaryQuestStatus === 'active' || lapidaryQuestStatus === 'completed' || !!lapidaryStation?.exists
 
   const locked = (npcName: string) => () => {
     window.dispatchEvent(new CustomEvent('talaran:notice', {
@@ -793,19 +806,41 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   Crafting Bench →
                 </button>
 
-                {/* Lapidary: gems are cut here, and later set into jewelry. */}
-                <button
-                  className="location-action-btn sub"
-                  onClick={() => onStartAction('workstation_lapidary', 0)}
-                >
-                  Your Lapidary
-                </button>
-                <button
-                  className="location-action-btn sub"
-                  onClick={() => onStartAction('lapidary_menu', 0)}
-                >
-                  Lapidary →
-                </button>
+                {/* Lapidary: gems are cut here, and later set into jewelry.
+                    Gated on Geosper's quest like the other keepers' benches. */}
+                {lapidaryUnlocked ? (
+                  <>
+                    <button
+                      className="location-action-btn sub"
+                      onClick={() => onStartAction('workstation_lapidary', 0)}
+                    >
+                      Your Lapidary
+                      {!lapidaryStation?.isActive && (
+                        <span className="station-tag warn">(incomplete)</span>
+                      )}
+                    </button>
+                    <button
+                      className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
+                      onClick={() => onStartAction('lapidary_menu', 0)}
+                    >
+                      Lapidary →
+                      {!lapidaryStation?.isActive && (
+                        <span className="station-tag warn">(Geosper's wheel)</span>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="location-action-btn sub locked" onClick={locked('Geosper')}>
+                      Your Lapidary
+                      <span className="station-tag locked">(locked)</span>
+                    </button>
+                    <button className="location-action-btn sub locked" onClick={locked('Geosper')}>
+                      Lapidary →
+                      <span className="station-tag locked">(locked)</span>
+                    </button>
+                  </>
+                )}
 
               </div>
             )}
