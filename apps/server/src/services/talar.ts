@@ -130,9 +130,13 @@ export async function absorbGem(
 
 export const FILL_CYCLE_SECONDS = 60
 
-/** Hundredths of Talar one cycle pours into a gem of this rate and grade. */
+/**
+ * Hundredths of Talar one cycle pours into a gem of this rate and grade.
+ * Rounded up, so a gem never takes a cycle longer than its rate says
+ * (200 an hour is 333.3 a minute; rounding down left a 30-minute quartz at 31).
+ */
 export function pourPerCycle(talarPerHour: number, grade: number): number {
-    return Math.round(talarPerHour * GRADE_FILL_SPEED[grade] * HUNDREDTHS * FILL_CYCLE_SECONDS / 3600)
+    return Math.ceil(talarPerHour * GRADE_FILL_SPEED[grade] * HUNDREDTHS * FILL_CYCLE_SECONDS / 3600)
 }
 
 /** Whole minutes to fill a gem from empty. */

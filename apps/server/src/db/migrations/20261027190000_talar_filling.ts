@@ -11,12 +11,16 @@ import { hasContent } from '../../lib/migrationContent';
 //                            One per player; stopping keeps it, starting again
 //                            resumes it. Hundredths, like the reservoir.
 //   items.talar_per_hour     how fast a gem of this kind fills, on its cut
-//                            grades: Quartz 100, Garnet 150 (§3). Each grade
-//                            pours a little faster (GRADE_FILL_SPEED).
+//                            grades: Quartz 200, Garnet 300, twice the spec's
+//                            first numbers (Nathan, 2026-10-27: gems are the
+//                            only way to win Talar back, and an hour a quartz
+//                            was too long). Each grade pours a little faster
+//                            (GRADE_FILL_SPEED). XP is paid by the minute, so
+//                            a gem pays half what it did: ~1,110 a Cut Quartz.
 //   action_presentation      the scene line and Stop button for 'talar_fill'.
 //   Talar is implemented     filling is the way to train it.
 
-const RATES: Record<string, number> = { quartz: 100, garnet: 150 };
+const RATES: Record<string, number> = { quartz: 200, garnet: 300 };
 const RIFT = 'Talar Rift';
 const PRESENTATION = {
     action_type: 'talar_fill',

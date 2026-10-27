@@ -30,7 +30,9 @@ The magic seeps up from below and gathers where the land is broken open: craters
 
 **Laranism** is the faith at the Talar Rift. Laranists hold that the world was made in two halves (they say earth and sky) and joined, and the Rift is the seam. The light that seeps out is what was left between them. They are right that the world was made, that there were two, and that something lies at the seam; they are wrong about what. The faith's name keeps a fragment of a word none of them understand.
 
-**Georome** (Jerome → Georome; checked unused) is the Laranist priest and the Talar tutor. He keeps a **church at the Talar Rift**: a building opened from the location's action menu, on the museum's pattern (`/api/museum/here`, `LocationPanel.tsx`), with Georome in the location's NPC list as usual.
+**Georome** (Jerome → Georome; kept by Nathan, 2026-10-27, despite the likeness to Georemy the fishing tutor) is the Laranist priest and the Talar tutor. He keeps a **church at the Talar Rift**: a building opened from the location's action menu, on the museum's pattern (`/api/museum/here`, `LocationPanel.tsx`), with Georome in the location's NPC list as usual. **The church is a lore building** first (Laranist writing), built so more can be added later; **spells are learned at churches** (Nathan, 2026-10-27), so step 4 adds that to it.
+
+**Georome's quest** (Nathan, 2026-10-27): he gives a Cut Quartz; fill it at the Rift and absorb the Lit Quartz into yourself. Pays Talar XP and a second Lit Quartz, so the reservoir has something in it when spells arrive. A later step can add casting Wearsight.
 
 ---
 
@@ -85,14 +87,16 @@ Items: `Rough X`, `Cut X`, `Polished X`, `Flawless X`, and a charged form of eac
 
 | Gem | Holds (Talar) | Fill time | Notes |
 |---|---|---|---|
-| Cut Quartz | 100 | 60 min | 100 Talar/h; T1 band, ~2,200 XP per gem at Talar 1 |
-| Polished Quartz | 150 | 86 min | fills 5% faster; ~3,140 XP |
-| Flawless Quartz | 300 | 161 min | fills 12% faster; ~5,890 XP |
-| Cut Garnet | 200 | 80 min | 150 Talar/h; Talar 13; T2 band |
-| Polished Garnet | 300 | 114 min | 5% faster |
-| Flawless Garnet | 600 | 214 min | 12% faster |
+| Cut Quartz | 100 | 30 min | 200 Talar/h; T1 band, ~1,110 XP per gem at Talar 1 |
+| Polished Quartz | 150 | 43 min | fills 5% faster; ~1,590 XP |
+| Flawless Quartz | 300 | 81 min | fills 12% faster; ~3,000 XP |
+| Cut Garnet | 200 | 40 min | 300 Talar/h; Talar 13; T2 band |
+| Polished Garnet | 300 | 58 min | 5% faster |
+| Flawless Garnet | 600 | 107 min | 12% faster |
 
-**Grades hold 1 : 1.5 : 3** (Nathan, 2026-10-24, with the 5% / 12% fill-speed edge). The clean ratio is what lets jewelry take any grade (§8): three Cut, two Polished or one Flawless carry the same Talar. Flawless is the jackpot: three gems' worth from one stone, about 12% more XP an hour while it fills. Expected Talar per rough quartz: ~110 at the unlock level (85 / 13 / 2), ~150 three tiers above (45 / 40 / 15), so a better cutter gets half again as much from the same stone. A higher gem pours faster (150 Talar/h for garnet) so its fills stay inside a session. **knob** for the times and rates.
+**Fill rates doubled** (Nathan, 2026-10-27): gems are the only way to win Talar back, and an hour a quartz was too long. The first draft had 100 and 150 Talar an hour (60 and 80 minutes a Cut gem). XP is still paid by the minute at the gem's band, so a gem pays half the XP it did; filling still trains at the full band rate while it runs. Built: `items.talar_per_hour`, `services/talar.ts` (`pourPerCycle`, one 60 s cycle).
+
+**Grades hold 1 : 1.5 : 3** (Nathan, 2026-10-24, with the 5% / 12% fill-speed edge). The clean ratio is what lets jewelry take any grade (§8): three Cut, two Polished or one Flawless carry the same Talar. Flawless is the jackpot: three gems' worth from one stone, about 12% more XP an hour while it fills. Expected Talar per rough quartz: ~110 at the unlock level (85 / 13 / 2), ~150 three tiers above (45 / 40 / 15), so a better cutter gets half again as much from the same stone. A higher gem pours faster (300 Talar/h for garnet) so its fills stay inside a session.
 
 XP band: the gem's unlock level, gathering policy ×1.0 (`xp = target × timer / 3600`). Filling a quartz at Talar 20 pays the T1 band, as a lower node does.
 
@@ -195,7 +199,7 @@ cast xp = band(spell level) × W / 60,   W = clamp(cooldown minutes / 10, 2, 30)
 
 The band carries the tier; W carries the cooldown, from 2 minutes of band (spammable spells) to 30 (daily ones). Spells with no time cooldown (Tether) take the floor. Kindle and Portal add their per-other-player bonus.
 
-**Budget check (`talar_sim`):** a player casting every spell at its cooldown pace through an 8-hour day spends ~770 Talar (about eight Cut Quartz) and earns ~9,500 XP from casting, on top of ~17,600 from filling those eight gems at Talar 1. So a self-sufficient Talar player earns about **1.5× a normal skill's hour**, the same allowance combat has (`docs/combat-spec.md` §2), and it is gated by gem supply: those eight quartz are a miner's whole day. A player who buys charged gems and only casts trains at about half that rate: a real second route, never the main one. **Jewelry drain pays no XP**: it is passive.
+**Budget check (`talar_sim`):** a player casting every spell at its cooldown pace through an 8-hour day spends ~770 Talar (about eight Cut Quartz) and earns ~9,500 XP from casting, on top of ~8,900 from filling those eight gems at Talar 1 (four hours at the Rift since the fill rates doubled). So a self-sufficient Talar player earns about **1.5× a normal skill's hour**, the same allowance combat has (`docs/combat-spec.md` §2), and it is gated by gem supply: those eight quartz are a miner's whole day. A player who buys charged gems and only casts trains at about half that rate: a real second route, never the main one. **Jewelry drain pays no XP**: it is passive.
 
 ---
 
@@ -288,7 +292,7 @@ New tables (first draft): `player_talar` (reservoir), `player_talar_open_gem`, `
 ## 13. Open
 
 1. **Jewelry input:** 3 Cut, 2 Polished or 1 Flawless (proposal).
-2. **Georome's quest:** shape and reward (a first rough quartz to cut, fill, absorb and spend on Wearsight is the obvious path through the whole loop).
+2. ~~Georome's quest~~ decided 2026-10-27 (§1).
 3. All **knobs** above, after the sim pass.
 
 ## 14. Build order (one step at a time, Nathan testing between)
