@@ -362,13 +362,14 @@ export default function GameView({
   const eatInFight = async (itemId: number) => {
     setFightBusy(true)
     try {
-      const res = await apiFetch<{ healed: number; itemName: string; hp: Hp }>('/api/combat/eat', {
+      const res = await apiFetch<{ healed: number; itemName: string; hp: Hp; note?: string | null }>('/api/combat/eat', {
         method: 'POST',
         body: JSON.stringify({ itemId }),
       })
       setFightHp(res.hp)
       announceHp(res.hp)
-      addFightLines([{ text: `You eat the ${res.itemName} and mend ${res.healed}.`, kind: 'info' }])
+      // A Hearty Amulet's word rides on the same line (services/jewelry.ts).
+      addFightLines([{ text: `You eat the ${res.itemName} and mend ${res.healed}.${res.note ? ` ${res.note}` : ''}`, kind: 'info' }])
       onInventoryUpdate()
       refreshFight()
     } catch (err) {
@@ -796,6 +797,7 @@ export default function GameView({
       })
 
       on('travel_complete', (data: { result: any }) => {
+        setJewelryLines(Array.isArray(data?.result?.jewelry) ? data.result.jewelry : [])
         if (data?.result) {
           setLastResult({
             firstEver: (data as any).firstEver,

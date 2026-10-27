@@ -117,6 +117,8 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
     const [trapline, setTrapline] = useState<TraplineData | null>(null)
     const [reveal, setReveal] = useState<CollectResult | null>(null)
     const [trapError, setTrapError] = useState('')
+    // A word from the server after placing, when there is more to say than "placed" (a kept bait).
+    const [trapNote, setTrapNote] = useState('')
     const [baitData, setBaitData] = useState<TrapBaitData | null>(null)
     const [chosenBait, setChosenBait] = useState('')
     const [convertItem, setConvertItem] = useState('')
@@ -163,12 +165,13 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
 
     const doPlace = async (trapTypeId: number) => {
         if (busy) return
-        setBusy(true); setTrapError('')
+        setBusy(true); setTrapError(''); setTrapNote('')
         try {
-            await apiFetch('/api/trapping/place', {
+            const res = await apiFetch<{ message?: string }>('/api/trapping/place', {
                 method: 'POST',
                 body: JSON.stringify({ trapTypeId, bait: chosenBait || null }),
             })
+            if (res.message && res.message !== 'Trap placed.') setTrapNote(res.message)
             loadTrapline()
         } catch (err: any) {
             setTrapError(err.message || 'Could not place the trap.')
@@ -368,6 +371,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                 </div>
 
                 {trapError && <p className="trapline-error">{trapError}</p>}
+                {trapNote && <p className="last-result-jewelry">{trapNote}</p>}
             </div>
         )
     }

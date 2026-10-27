@@ -30,7 +30,7 @@ import { FOOT_XP_RATE, MOUNT_XP_RATE, TRAVEL_SKILL } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
-import { takeJewelryNotes } from './jewelry';
+import { takeJewelryNotes, jewelryAid } from './jewelry';
 import { realtimeServer } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
@@ -745,9 +745,14 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // Region of the destination drives the eligible event pool.
       const destRegion = destination?.region || 'Taiar Island'
       // Finds are for walkers: a rider covers the ground too fast to see them.
+      // A Wayfinder's Amulet (docs/talar-spec.md §8) draws for every minute
+      // of road walked, the unit the finds are rolled in, and raises the odds.
+      const wayfinder = hasMountEquipped
+        ? null
+        : await jewelryAid(db, action.player_id, 'road', Math.max(1, Math.ceil(baseTime / 60)))
       const rolledEvents = hasMountEquipped
         ? []
-        : rollTravelEvents(baseTime, destRegion, lvl)
+        : rollTravelEvents(baseTime, destRegion, lvl, wayfinder ? 1 + wayfinder.strength : 1)
 
       // Add any found items to inventory (mirrors the gathering inventory-add pattern)
       for (const ev of rolledEvents) {
@@ -802,6 +807,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           xpAtLevel: xpForLevel(lvl),
           destination: destination?.name || 'your destination',
           drops: rolledEvents.map(e => ({ name: e.itemName, quantity: e.quantity })),
+          jewelry: wayfinder && rolledEvents.length ? [`Your ${wayfinder.name} kept your eyes on the verge.`] : [],
           events: rolledEvents,  // ← full event log for this walk (message + item)
         },
         xpInfo: travelSkill ? {

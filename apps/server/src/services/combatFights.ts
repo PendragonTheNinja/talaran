@@ -42,6 +42,7 @@ import { armourSlotsWorn } from '../lib/combatMath'
 import { BESTIARY_STEPS, Stances, killsOf, stancesOf } from './bestiary'
 import { pushToPlayer } from '../lib/realtime'
 import { SERVER_ERROR } from '../lib/serviceResult'
+import { jewelryAid } from './jewelry'
 
 /** Where a fallen fighter wakes (spec §14). */
 const RESPAWN_LOCATION = 'Talador'
@@ -696,7 +697,7 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
 }
 
 export type EatResult =
-    | { success: true; healed: number; itemName: string; hp: { current: number; max: number }; fight: FightView | null }
+    | { success: true; healed: number; itemName: string; hp: { current: number; max: number }; fight: FightView | null; note?: string | null }
     | { success: false; error: string; status: number }
 
 /**
@@ -711,6 +712,7 @@ export async function eatFood(playerId: number, itemId: number): Promise<EatResu
         if (!isFightFood(item)) return { success: false, error: `${item.name} will not mend you.`, status: 400 }
 
         let report: FightReport | null = null
+        let note: string | null = null
         const out = await db.transaction(async trx => {
             report = await settleWithin(trx, playerId, Date.now(), null)
             if (report?.ended === 'died') {
@@ -725,11 +727,22 @@ export async function eatFood(playerId: number, itemId: number): Promise<EatResu
             }
             const took = await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: 1 }])
             if (!took.ok) return { success: false as const, error: `You have no ${item.name}.`, status: 400 }
-            const healed = Math.min(missing, Number(item.heal_amount))
+            // A Hearty Amulet (docs/talar-spec.md §8): food eaten in a fight
+            // mends more; the fraction of a point kept by chance, so the
+            // average is exact.
+            let heal = Number(item.heal_amount)
+            if (report) {
+                const amulet = await jewelryAid(trx, playerId, 'fight_food')
+                if (amulet) {
+                    heal = Math.floor(heal * (1 + amulet.strength) + Math.random())
+                    note = `Your ${amulet.name} made it go further.`
+                }
+            }
+            const healed = Math.min(missing, heal)
             await trx('players').where({ id: playerId }).update({ hp_missing: missing - healed })
             const hp = { current: max - (missing - healed), max }
             if (report) report.hp = hp
-            return { success: true as const, healed, itemName: item.name, hp, fight: report?.view ?? null }
+            return { success: true as const, healed, itemName: item.name, hp, fight: report?.view ?? null, note }
         })
         await afterFight(report)
         if (out.success) pushToPlayer(playerId, 'hp_changed', { hp: out.hp })

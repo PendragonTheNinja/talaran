@@ -272,6 +272,8 @@ In two halves (Nathan, 2026-10-28):
 1. Items, recipes, wear gate, the draw (`lib/jewelry.ts`, `services/jewelry.ts`), the three rings, museum case, a `race:check` scenario for the draw.
 2. The three amulets.
 
+**Built (2026-10-28):** both halves. Rings at Crafting 8 (156 XP), amulets at 10 (163). Hooks: `wearItem` (durability), `openVein` (mining), `harvestPlot` (farming), `eatFood` while a fight runs (combat), the walk's find roll in the tick's travel branch (`rollTravelEvents` takes a boost; the amulet draws once per road minute), `spendBait` (fishing and trapping). Lines reach the card through `noteJewelry`/`takeJewelryNotes`; a snare placed and a meal in a fight say it in their own replies. `race:check`: the draw.
+
 ## 9. Creature drops (ships with or before Talar)
 
 **Seeds**, matched to the creature's level against the crop's planting level:

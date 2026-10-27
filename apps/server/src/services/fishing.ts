@@ -4,6 +4,7 @@ import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { getTimeWindow, getSeason, nextWindowChange, TimeWindow, Season } from '../lib/gameTime';
 import { awardXp } from './xp';
+import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Fishing (docs/fishing-spec.md). Closest sibling is services/foraging.ts: a
@@ -357,10 +358,20 @@ export async function convertibleBait(playerId: number): Promise<Array<{
  * Exported because trapping draws from the same pouch: one bait store, one place
  * that knows how to take from it.
  */
-export async function spendBait(trx: any, playerId: number, category: string): Promise<number | null> {
+export async function spendBait(
+    trx: any, playerId: number, category: string,
+    /** Told the piece's name when a Baitkeeper's Amulet kept the bait. */
+    onKept?: (pieceName: string) => void,
+): Promise<number | null> {
     const row = await trx('player_bait')
         .where({ player_id: playerId, category }).forUpdate().first();
     if (!row || Number(row.amount) < 1) return null;
+    // A Baitkeeper's Amulet (docs/talar-spec.md §8): now and then the bait is not used.
+    const keeper = await jewelryAid(trx, playerId, 'bait');
+    if (keeper && Math.random() < keeper.strength) {
+        onKept?.(keeper.name);
+        return Number(row.amount);
+    }
     const remaining = Number(row.amount) - 1;
     await trx('player_bait').where({ id: row.id }).update({ amount: remaining });
     return remaining;
@@ -610,7 +621,8 @@ export async function processFishingCast(
             let baitRemaining: number | null = null;
             let baited = false;
             if (baitCategory) {
-                const remaining = await spendBait(trx, playerId, baitCategory);
+                const remaining = await spendBait(trx, playerId, baitCategory,
+                    (piece) => noteJewelry(trx, playerId, `Your ${piece} kept the bait.`));
                 if (remaining !== null) {
                     baited = true;
                     baitRemaining = remaining;

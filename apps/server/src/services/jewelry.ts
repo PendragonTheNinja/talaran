@@ -30,18 +30,20 @@ function inTransaction(x: Knex | Knex.Transaction): x is Knex.Transaction {
 /**
  * The worn piece that helps with `aid`, having drawn its Talar, or null when
  * none is worn or the reservoir is too low to pay. The caller rolls the chance
- * with the returned strength.
+ * with the returned strength. `actions` draws for several helped actions at
+ * once (a walk's minutes of road): all of them or, when short, none.
  */
-export async function jewelryAid(x: Knex | Knex.Transaction, playerId: number, aid: JewelryAid): Promise<JewelryHelp | null> {
+export async function jewelryAid(x: Knex | Knex.Transaction, playerId: number, aid: JewelryAid, actions = 1): Promise<JewelryHelp | null> {
     const worn = await x('player_equipment').where({ player_id: playerId }).first(...WORN_COLUMNS)
     const ids = WORN_COLUMNS.map(c => worn?.[c]).filter((id): id is number => !!id)
     if (!ids.length) return null
     const piece = await x('items').whereIn('id', ids).where({ jewelry_aid: aid }).first('name', 'tier')
     if (!piece) return null
 
+    const draw = DRAW_HUNDREDTHS * Math.max(1, Math.floor(actions))
     const paid = inTransaction(x)
-        ? await spendTalarWithin(x, playerId, DRAW_HUNDREDTHS)
-        : await db.transaction(trx => spendTalarWithin(trx, playerId, DRAW_HUNDREDTHS))
+        ? await spendTalarWithin(x, playerId, draw)
+        : await db.transaction(trx => spendTalarWithin(trx, playerId, draw))
     if (!paid) return null
     return { name: piece.name, strength: aidStrength(aid, Number(piece.tier) || 1) }
 }

@@ -107,8 +107,10 @@ export async function placeTrap(
     trapTypeId: number,
     locationId: number,
     baitCategory?: string | null,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; baitKeptBy?: string }> {
     try {
+        // Set when a Baitkeeper's Amulet kept the bait (services/fishing.ts spendBait).
+        let keptBy: string | null = null
         const check = await canPlaceTrap(playerId, trapTypeId, locationId)
         if (!check.allowed) return { success: false, error: check.reason }
 
@@ -139,7 +141,7 @@ export async function placeTrap(
             // Bait is spent when the snare is set and never comes back, not
             // even on dismantle: it is on the ground the moment you walk away.
             if (bait) {
-                const left = await spendBait(trx, playerId, bait)
+                const left = await spendBait(trx, playerId, bait, (piece) => { keptBy = piece })
                 if (left === null) throw new Error('NO_BAIT')
             }
 
@@ -155,7 +157,7 @@ export async function placeTrap(
             })
         })
 
-        return { success: true }
+        return keptBy ? { success: true, baitKeptBy: keptBy } : { success: true }
     } catch (err: any) {
         if (err.message === 'NO_TRAP_ITEM') return { success: false, error: 'You need that trap in your inventory.' }
         if (err.message === 'NO_BAIT') return { success: false, error: 'You have none of that bait in your pouch.' }

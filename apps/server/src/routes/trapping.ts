@@ -81,7 +81,7 @@ router.post('/place', requireAuth, async (req: AuthRequest, res: Response) => {
             res.status(failureStatus(result.error)).json({ error: result.error })
             return
         }
-        res.json({ message: 'Trap placed.' })
+        res.json({ message: result.baitKeptBy ? `Trap placed. Your ${result.baitKeptBy} kept the bait in your pouch.` : 'Trap placed.' })
     } catch (err) {
         logger.error('Trapping place error: ' + err)
         res.status(500).json({ error: 'Server error' })

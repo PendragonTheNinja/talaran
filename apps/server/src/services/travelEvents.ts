@@ -109,12 +109,13 @@ export interface RolledEvent {
  * own rarity; the RAREST success in that segment wins. Segments can yield nothing.
  * The Wayfaring level gives a small nudge to odds (effective rarity shrinks slightly w/ level).
  */
-export function rollTravelEvents(baseTime: number, region: string, level: number = 1): RolledEvent[] {
+export function rollTravelEvents(baseTime: number, region: string, level: number = 1, boost: number = 1): RolledEvent[] {
     const segments = Math.max(1, Math.ceil(baseTime / 60))
     const pool = TRAVEL_EVENTS.filter(e => e.region === region || e.region === 'global')
 
     // Level nudge: up to ~15% better odds by high level, capped. Tune freely.
-    const luck = 1 + Math.min(0.15, level * 0.0015)
+    // A Wayfinder's Amulet multiplies it (services/jewelry.ts).
+    const luck = (1 + Math.min(0.15, level * 0.0015)) * boost
 
     const results: RolledEvent[] = []
 
