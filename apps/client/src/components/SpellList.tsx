@@ -35,12 +35,13 @@ interface SpellTarget {
 }
 
 /** Spells that ask for a choice first. */
-const PICKS_TARGET = new Set(['daily_step', 'larder_ward', 'sending', 'kindle'])
+const PICKS_TARGET = new Set(['daily_step', 'larder_ward', 'sending', 'kindle', 'portal'])
 
 /** What a spell's cost says on its card, for those priced by what they cover. */
 function costText(s: SpellView): string {
     if (s.key === 'daily_step') return 'Talar by the road'
     if (s.key === 'larder_ward') return `${s.cost} Talar a head an hour`
+    if (s.key === 'portal') return `${s.cost} Talar and more by the road`
     return `${s.cost} Talar`
 }
 

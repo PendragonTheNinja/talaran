@@ -1,11 +1,11 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { failureStatus } from '../lib/serviceResult';
+import { failureStatus, SERVER_ERROR } from '../lib/serviceResult';
 import db from '../db';
 import { botCheckGate } from '../services/botCheck';
 import { absorbGem, fillOptions, getTalarState, startFill } from '../services/talar';
-import { castSpell, listSpells, spellTargets, startVigil } from '../services/spells';
+import { castSpell, listSpells, spellTargets, startVigil, portalsHere, stepThroughPortal } from '../services/spells';
 
 // Talar (docs/talar-spec.md): the reservoir now; filling and spells join it.
 
@@ -90,6 +90,23 @@ router.get('/spells/:key/targets', requireAuth, async (req: AuthRequest, res: Re
     const result = await spellTargets(req.player!.playerId, String(req.params.key));
     if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
     res.json({ targets: result.targets });
+});
+
+// GET /api/talar/portals/here   doorways open where the player stands (Portal)
+router.get('/portals/here', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        res.json({ portals: await portalsHere(req.player!.playerId) });
+    } catch (err) {
+        logger.error(`portals here error: ${err}`);
+        res.status(500).json({ error: SERVER_ERROR });
+    }
+});
+
+// POST /api/talar/portals/:id/step   go through; leaves the way travel does
+router.post('/portals/:id/step', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    const result = await stepThroughPortal(req.player!.playerId, Number(req.params.id));
+    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
+    res.json(result);
 });
 
 // POST /api/talar/spells/cast   { key, ...params } - instant; never takes the action slot

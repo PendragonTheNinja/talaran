@@ -316,3 +316,13 @@
   vertical-align: middle;
   display: inline-block;
 }
+/* A doorway someone opened here with Portal (PortalDoors.tsx). */
+.location-action-btn.portal-door {
+  color: #b6a8f0;
+}
+
+.portal-door-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

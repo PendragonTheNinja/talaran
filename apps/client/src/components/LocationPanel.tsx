@@ -10,6 +10,7 @@ import MarketplaceMenu from './MarketplaceMenu'
 import TravellingMerchantMenu from './TravellingMerchantMenu'
 import MuseumPanel from './MuseumPanel'
 import ChurchPanel from './ChurchPanel'
+import PortalDoors from './PortalDoors'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
 import { useItemTooltip } from './ItemTooltip'
@@ -514,6 +515,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {museum.name} →
           </button>
         )}
+
+        <PortalDoors key={location?.id} locationId={location?.id} />
 
         {church && (
           <button className="location-action-btn" onClick={() => setChurchOpen(true)}>

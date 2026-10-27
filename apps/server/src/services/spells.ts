@@ -10,7 +10,7 @@ import { loadDurabilityTiers, durabilityRule } from './durability'
 import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
-import { pushToPlayer, pushToPlayerAfterCommit } from '../lib/realtime'
+import { pushToPlayer, pushToPlayerAfterCommit, pushToRoom } from '../lib/realtime'
 import { wardableHead, wardFarmsteadWithin, settleWardsWithin } from './husbandry'
 import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
 import { eligibleLocations, eventsChanged } from './worldEvents'
@@ -215,35 +215,46 @@ function stepCost(spell: SpellRow, seconds: number): number {
     return Math.round(Number(spell.cost) * seconds * HUNDREDTHS) / HUNDREDTHS
 }
 
+/**
+ * Move a player to another place at once, leaving the way starting travel does
+ * (routes/travel.ts): their action ends and any open trade is called off. The
+ * fight, if any, must already be settled (endFightIfAny runs its own
+ * transaction, so callers do it first); one begun since is refused rather than
+ * left mid-swing. Shared by Daily Step and Portal. Returns where they left.
+ */
+async function stepIntoWithin(trx: any, playerId: number, to: { locationId: number; name: string }): Promise<string> {
+    const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
+    const left = await trx('locations').where({ id: me?.current_location_id ?? null }).first('name')
+    const action = await trx('player_actions').where({ player_id: playerId }).first()
+    if (action?.action_type === 'combat') throw new SpellAbort('You cannot step away in the middle of a fight.')
+    if (action) await trx('player_actions').where({ id: action.id }).delete()
+
+    const trade = await trx('trades')
+        .where(function (this: any) { this.where({ player1_id: playerId }).orWhere({ player2_id: playerId }) })
+        .whereIn('status', ['pending', 'active'])
+        .forUpdate()
+        .first()
+    if (trade) {
+        await trx('trades').where({ id: trade.id }).update({ status: 'cancelled' })
+        const otherId = trade.player1_id === playerId ? trade.player2_id : trade.player1_id
+        afterCommit(trx, () => pushToPlayer(otherId, 'trade_cancelled', { reason: 'The other player left the area.' }))
+    }
+
+    await trx('players').where({ id: playerId }).update({ current_location_id: to.locationId })
+    pushToPlayerAfterCommit(trx, playerId, 'stepped', { locationId: to.locationId, destination: to.name })
+    return left?.name ?? 'where you stood'
+}
+
 const dailyStep: SpellEffect = {
     prepare: async (playerId) => { await endFightIfAny(playerId) },
     targets: async (playerId, spell) => (await stepTargets(db, playerId)).targets
         .map(t => ({ label: t.name, cost: stepCost(spell, t.seconds), params: { locationId: t.locationId } })),
     cost: async (trx, playerId, spell, params) => stepCost(spell, (await stepTarget(trx, playerId, params)).seconds),
     cast: async (trx, playerId, _spell, params) => {
-        const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
-        const left = await trx('locations').where({ id: me?.current_location_id ?? null }).first('name')
+        await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id')
         const target = await stepTarget(trx, playerId, params)
-
-        // Settled in prepare; a fight begun since then is not left mid-swing.
-        const action = await trx('player_actions').where({ player_id: playerId }).first()
-        if (action?.action_type === 'combat') throw new SpellAbort('You cannot step away in the middle of a fight.')
-        if (action) await trx('player_actions').where({ id: action.id }).delete()
-
-        const trade = await trx('trades')
-            .where(function (this: any) { this.where({ player1_id: playerId }).orWhere({ player2_id: playerId }) })
-            .whereIn('status', ['pending', 'active'])
-            .forUpdate()
-            .first()
-        if (trade) {
-            await trx('trades').where({ id: trade.id }).update({ status: 'cancelled' })
-            const otherId = trade.player1_id === playerId ? trade.player2_id : trade.player1_id
-            afterCommit(trx, () => pushToPlayer(otherId, 'trade_cancelled', { reason: 'The other player left the area.' }))
-        }
-
-        await trx('players').where({ id: playerId }).update({ current_location_id: target.locationId })
-        pushToPlayerAfterCommit(trx, playerId, 'stepped', { locationId: target.locationId, destination: target.name })
-        return { message: `You step out of ${left?.name ?? 'where you stood'} and into ${target.name}.`, detail: { destination: target.name } }
+        const left = await stepIntoWithin(trx, playerId, target)
+        return { message: `You step out of ${left} and into ${target.name}.`, detail: { destination: target.name } }
     },
 }
 
@@ -486,6 +497,113 @@ export async function payKindler(kindlerId: number, uses: number): Promise<void>
     await awardXp(kindlerId, 'Talar', xp, db, { eventBonus: false })
 }
 
+// ── Portal (§6) ──────────────────────────────────────────────────────────────
+// A doorway from where the caster stands to anywhere on this island they have
+// walked to (Daily Step's places and roads). Open for a few minutes to anyone
+// at its near end, who steps through at once, leaving the way travel does.
+// Priced on the road it skips. The caster is paid a little for each other
+// person who goes through, up to five. A row in `portals` with its closing
+// time; anything past it is ignored on read.
+
+const PORTAL_RATE = 0.25
+const PORTAL_MINUTES = 5
+/** One minute more for every this many levels above the spell's. */
+const PORTAL_LEVELS_PER_MINUTE = 4
+const PORTAL_REWARD_SECONDS = 120
+const PORTAL_PAID_RIDERS = 5
+
+function portalCost(spell: SpellRow, seconds: number): number {
+    return Math.round((Number(spell.cost) + PORTAL_RATE * seconds) * HUNDREDTHS) / HUNDREDTHS
+}
+
+const portal: SpellEffect = {
+    targets: async (playerId, spell) => (await stepTargets(db, playerId)).targets
+        .map(t => ({ label: t.name, cost: portalCost(spell, t.seconds), params: { locationId: t.locationId } })),
+    cost: async (trx, playerId, spell, params) => portalCost(spell, (await stepTarget(trx, playerId, params)).seconds),
+    cast: async (trx, playerId, spell, params) => {
+        const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
+        const target = await stepTarget(trx, playerId, params)
+        const level = await playerSkillLevel(playerId, 'Talar')
+        const minutes = PORTAL_MINUTES + Math.floor(Math.max(0, level - spell.talar_level) / PORTAL_LEVELS_PER_MINUTE)
+        const from = Number(me.current_location_id)
+        await trx('portals').insert({
+            caster_id: playerId, from_location_id: from, to_location_id: target.locationId,
+            closes_at: new Date(Date.now() + minutes * 60_000),
+        })
+        afterCommit(trx, () => pushToRoom(`location_${from}`, 'portals_changed', { locationId: from }))
+        return {
+            message: `A doorway opens beside you onto ${target.name}. It will hold for ${minutes} minutes, for anyone here.`,
+            detail: { destination: target.name, minutes },
+        }
+    },
+}
+
+export interface PortalView { id: number; destination: string; caster: string; closesAt: string; mine: boolean }
+
+/** The doorways open where this player stands. */
+export async function portalsHere(playerId: number): Promise<PortalView[]> {
+    const me = await db('players').where({ id: playerId }).first('current_location_id')
+    if (!me?.current_location_id) return []
+    const rows = await db('portals as p')
+        .join('locations as l', 'l.id', 'p.to_location_id')
+        .join('players as c', 'c.id', 'p.caster_id')
+        .where('p.from_location_id', me.current_location_id)
+        .where('p.closes_at', '>', db.fn.now())
+        .orderBy('p.closes_at')
+        .select('p.id', 'l.name as destination', 'c.username as caster', 'p.closes_at', 'p.caster_id')
+    return rows.map((r: any) => ({
+        id: r.id, destination: r.destination, caster: r.caster,
+        closesAt: new Date(r.closes_at).toISOString(), mine: Number(r.caster_id) === playerId,
+    }))
+}
+
+/** Step through an open doorway where the player stands. */
+export async function stepThroughPortal(playerId: number, portalId: number): Promise<{ success: true; message: string } | { success: false; error: string }> {
+    try {
+        const id = Math.floor(Number(portalId))
+        if (!Number.isFinite(id) || id <= 0) return { success: false, error: 'There is no such doorway.' }
+        // A fight is settled first, as travel does; it runs its own transaction.
+        await endFightIfAny(playerId)
+
+        const out = await db.transaction(async trx => {
+            const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
+            const door = await trx('portals as p').join('locations as l', 'l.id', 'p.to_location_id')
+                .where('p.id', id).first('p.id', 'p.caster_id', 'p.from_location_id', 'p.to_location_id', 'p.closes_at', 'l.name as destination')
+            if (!door || new Date(door.closes_at).getTime() <= Date.now()) throw new SpellAbort('The doorway has closed.')
+            if (Number(door.from_location_id) !== Number(me?.current_location_id)) throw new SpellAbort('That doorway is not here.')
+
+            const left = await stepIntoWithin(trx, playerId, { locationId: Number(door.to_location_id), name: door.destination })
+
+            // Paid once a rider, for up to five riders who are not the caster.
+            const casterId = Number(door.caster_id)
+            const added = await trx('portal_riders').insert({ portal_id: door.id, player_id: playerId })
+                .onConflict(['portal_id', 'player_id']).ignore().returning('player_id')
+            if (added.length && casterId !== playerId) {
+                const others = await trx('portal_riders').where({ portal_id: door.id }).whereNot({ player_id: casterId }).count('* as c').first()
+                if (Number(others?.c ?? 0) <= PORTAL_PAID_RIDERS) {
+                    afterCommit(trx, () => {
+                        payPortalCaster(casterId).catch(err => logger.error(`[spells] portal reward failed: ${err}`))
+                    })
+                }
+            }
+            return { left, destination: door.destination as string, from: Number(door.from_location_id) }
+        })
+        logger.info(`[spells] player ${playerId} stepped through portal ${id}`)
+        return { success: true, message: `You step through the doorway, out of ${out.left} and into ${out.destination}.` }
+    } catch (err) {
+        if (err instanceof SpellAbort) return { success: false, error: err.message }
+        logger.error(`stepThroughPortal error (player ${playerId}, portal ${portalId}): ${err}`)
+        return { success: false, error: SERVER_ERROR }
+    }
+}
+
+async function payPortalCaster(casterId: number): Promise<void> {
+    const spell: SpellRow | undefined = await db('spells').where({ key: 'portal' }).first()
+    if (!spell) return
+    // Paid for someone else's journey, not an action of the caster's: never raised by an event.
+    await awardXp(casterId, 'Talar', activeXpForSeconds(spell.talar_level, PORTAL_REWARD_SECONDS), db, { eventBonus: false })
+}
+
 const EFFECTS: Record<string, SpellEffect> = {
     wearsight,
     daily_step: dailyStep,
@@ -493,6 +611,7 @@ const EFFECTS: Record<string, SpellEffect> = {
     larder_ward: larderWard,
     sending,
     kindle,
+    portal,
 }
 
 /** What a spell offers to cast at (Daily Step's destinations), or null for a spell that needs no choice. */
