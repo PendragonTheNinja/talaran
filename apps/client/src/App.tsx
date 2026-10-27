@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { announceTalar, type Talar } from './lib/talar'
 import GameLayout from './components/GameLayout'
 import AuthScreen from './components/AuthScreen'
 import { Player } from './types'
@@ -34,6 +35,8 @@ interface PlayerData {
   /** From the server (lib/combatMath.ts on the server); never worked out here. */
   combatLevel?: number
   hp?: { current: number; max: number }
+  /** The reservoir (services/talar.ts). */
+  talar?: { current: number; max: number }
   currentAction: any
 }
 
@@ -267,6 +270,9 @@ function App() {
       socket.on('equipment_changed', () => {
         loadEquipment()
       })
+
+      // The reservoir changed on the server (an absorb, a fill, later a spell).
+      socket.on('talar_changed', (t: Talar) => announceTalar(t))
 
       // The Combat Stats panel's numbers come with the equipment
       // (services/combat.ts reads the combat levels), so a level-up must reload

@@ -7,6 +7,7 @@ import { logger } from '../lib/logger';
 import { onlinePlayers } from '../lib/realtime';
 import { combatStanding } from '../services/combat';
 import { unlocksAt } from '../services/unlocks';
+import { getTalarState } from '../services/talar';
 
 const router = Router();
 
@@ -88,6 +89,9 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
     );
     delete player.hp_missing;
 
+    // The reservoir, for the bar beside health (services/talar.ts).
+    const talar = await getTalarState(playerId);
+
     // Get current action if any
     const currentAction = await db('player_actions')
       .where({ player_id: playerId })
@@ -100,6 +104,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       totalXp,
       combatLevel,
       hp,
+      talar,
       currentAction: currentAction || null,
     });
 

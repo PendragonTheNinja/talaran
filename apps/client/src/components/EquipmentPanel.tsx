@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Hp } from '../lib/combat'
+import type { Talar } from '../lib/talar'
 import { getItemIcon, getSlotIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { useItemTooltip } from './ItemTooltip'
@@ -39,6 +40,8 @@ interface EquipmentPanelProps {
     onInventoryUpdate: () => void
     /** Current and max HP, from the server. Absent while the player loads. */
     hp?: { current: number; max: number }
+    /** The reservoir, from the server (services/talar.ts). */
+    talar?: Talar
     /** Aim, defence, max hit and armour, from the server. Absent while equipment loads. */
     combat?: CombatProfile | null
 }
@@ -69,7 +72,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, combat }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, talar, combat }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
     // Mid-fight HP, announced by GameView as each swing lands (lib/combat.ts
     // announceHp), so the bar keeps up without refetching the whole player.
@@ -84,6 +87,19 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
         return () => window.removeEventListener('talaran:hp', onHp)
     }, [hp])
     const shownHp = liveHp && liveHp.over === hp ? liveHp.hp : hp
+
+    // The reservoir the same way: a pushed change shows at once, and a fresh
+    // figure from the server takes over again when it arrives.
+    const [liveTalar, setLiveTalar] = useState<{ talar: Talar; over: Talar | undefined } | null>(null)
+    useEffect(() => {
+        const onTalar = (e: Event) => {
+            const detail = (e as CustomEvent<Talar>).detail
+            if (detail) setLiveTalar({ talar: detail, over: talar })
+        }
+        window.addEventListener('talaran:talar', onTalar)
+        return () => window.removeEventListener('talaran:talar', onTalar)
+    }, [talar])
+    const shownTalar = liveTalar && liveTalar.over === talar ? liveTalar.talar : talar
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
 
@@ -159,9 +175,9 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 </div>
 
                 <div className="vital-bar tal">
-                    <span className="vital-readout">Talar 50 / 50</span>
+                    <span className="vital-readout">{shownTalar ? `Talar ${shownTalar.current} / ${shownTalar.max}` : 'Talar'}</span>
                     <div className="vital-track">
-                        <div className="vital-fill mana" style={{ height: '100%' }} />
+                        <div className="vital-fill mana" style={{ height: `${shownTalar && shownTalar.max > 0 ? Math.round(100 * shownTalar.current / shownTalar.max) : 0}%` }} />
                     </div>
                     <span className="vital-label">TAL</span>
                 </div>

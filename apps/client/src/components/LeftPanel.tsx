@@ -8,6 +8,7 @@ import ConfirmModal from './ConfirmModal'
 import BuffPanel from './BuffPanel'
 import { useItemTooltip } from './ItemTooltip'
 import { announceHp, type Hp } from '../lib/combat'
+import { announceTalar, CHARGED_QUALITIES, type Talar } from '../lib/talar'
 
 interface InventoryItem {
   id: number
@@ -66,6 +67,7 @@ interface LeftPanelProps {
   onDropAmountChange?: (amount: number) => void
   /** Current and max HP, from the server. */
   hp?: { current: number; max: number }
+  talar?: Talar
   combat?: CombatProfile | null
 }
 
@@ -127,7 +129,7 @@ function sortInventory(items: InventoryItem[], mode: SortMode, dir: SortDir, fil
   return dir === 'desc' ? sorted.reverse() : sorted
 }
 
-export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem, hp, combat }: LeftPanelProps) {
+export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem, hp, talar, combat }: LeftPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   // Set when eating would replace a running buff, so the player is warned first.
@@ -360,6 +362,27 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     }
   }
 
+  /** A charged gem: tapping it pours its light into the reservoir (services/talar.ts). */
+  const isChargedGem = (item: InventoryItem) => item.type === 'gem' && CHARGED_QUALITIES.includes(item.quality ?? '')
+
+  const absorbGem = async (item: InventoryItem) => {
+    try {
+      const res = await apiFetch<{ itemName: string; poured: number; talar: Talar }>('/api/talar/absorb', {
+        method: 'POST',
+        body: JSON.stringify({ itemId: item.item_id }),
+      })
+      announceTalar(res.talar)
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: `The light leaves the ${res.itemName} and settles in you. +${res.poured} Talar.`, type: 'success' },
+      }))
+      onInventoryUpdate()
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('talaran:notice', {
+        detail: { message: (err as { message?: string }).message || 'Nothing happens.', type: 'error' },
+      }))
+    }
+  }
+
   const doEat = async (itemName: string) => {
     try {
       const res = await apiFetch<{ message: string }>('/api/buffs/eat', {
@@ -430,6 +453,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                 askLightCampfire(item.name)
               } else if (isMendingFood(item)) {
                 eatMeal(item)
+              } else if (isChargedGem(item)) {
+                absorbGem(item)
               } else if (item.subtype === 'provision') {
                 // Provisions are eaten, not worn. Falling through to handleEquip
                 // told the player a pasty "cannot be equipped", which is true and
@@ -587,6 +612,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         onEquipmentUpdate={onEquipmentUpdate}
         onInventoryUpdate={onInventoryUpdate}
         hp={hp}
+        talar={talar}
         combat={combat}
       />
 

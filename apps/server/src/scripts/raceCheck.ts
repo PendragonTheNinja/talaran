@@ -1391,6 +1391,22 @@ const SCENARIOS: Scenario[] = [
                 ?? succeeded(st, 1);
         },
     },
+    {
+        id: 'talar', name: 'absorb five charged gems at once with room for three', rounds: 10,
+        run: async (ctx) => {
+            // Capacity at Talar 1 is 325 (services/talar.ts) and each stone holds
+            // 100: three may go in, two must be refused and stay in the pack, and
+            // no stone may be spent without its Talar landing, or poured twice.
+            const w = await world(ctx);
+            const lit = await ctx.seed.row('items', { name: 'Lit Quartz', type: 'gem', subtype: 'quartz', quality: 'lit', talar: 100 });
+            await inPack(ctx, w.player.id, lit.id, 5);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/talar/absorb', { itemId: lit.id }));
+            const held = Number((await ctx.db('player_talar').where({ player_id: w.player.id }).first())?.hundredths ?? 0);
+            return changed('Lit Quartz', 2, await ctx.itemTotal(lit.id))
+                ?? changed('reservoir hundredths', 30000, held)
+                ?? succeeded(st, 3);
+        },
+    },
 ];
 
 main().catch((err) => {

@@ -59,6 +59,8 @@ interface PlayerData {
   /** From the server (lib/combatMath.ts on the server); never worked out here. */
   combatLevel?: number
   hp?: { current: number; max: number }
+  /** The reservoir (services/talar.ts). */
+  talar?: { current: number; max: number }
   currentAction: any
 }
 
@@ -755,6 +757,7 @@ export default function GameLayout({
       tradeMode={tradeMode}
       tradeId={activeTrade?.tradeId}
       hp={playerData?.hp}
+      talar={playerData?.talar}
       combat={combatProfile}
     />
   )
@@ -768,6 +771,7 @@ export default function GameLayout({
       onEquipmentUpdate={onEquipmentUpdate}
       onInventoryUpdate={onInventoryUpdate}
       hp={playerData?.hp}
+      talar={playerData?.talar}
       combat={combatProfile}
     />
   )
