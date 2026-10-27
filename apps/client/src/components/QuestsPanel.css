@@ -118,3 +118,24 @@
 .quest-objective-progress {
     opacity: 0.7;
 }
+
+/* The tutorials fold: a section title that opens and closes like a quest card. */
+.quests-group-head {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.quests-group-count {
+    font-size: 11px;
+    font-family: var(--font-body);
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+/* "Active" is no longer the first title when the tutorials sit above it. */
+.quests-group + .quests-section-title {
+    margin-top: 20px;
+}

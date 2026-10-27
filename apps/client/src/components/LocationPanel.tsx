@@ -91,7 +91,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // status route, since that already reports whether the rack is complete.
   const [cookingStation, setCookingStation] = useState<any>(null)
   const [cookQuestStatus, setCookQuestStatus] = useState<string | null>(null)
-  const [lapidaryStation, setLapidaryStation] = useState<any>(null)
+  const [lapidaryStation, setLapidaryStation] = useState<{ exists: boolean; isActive: boolean } | null>(null)
   const [lapidaryQuestStatus, setLapidaryQuestStatus] = useState<string | null>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
   const [cookhouseOpen, setCookhouseOpen] = useState(false)
@@ -314,9 +314,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       }).catch(() => {})
     }
     if (isCaliwen) {
-      apiFetch<any>('/api/workstations/lapidary').then(setLapidaryStation).catch(() => setLapidaryStation(null))
-      apiFetch<any>('/api/quests').then(data => {
-        const q = data.quests?.find((x: any) => x.name === "The Lapidary's Lesson")
+      apiFetch<{ exists: boolean; isActive: boolean }>('/api/workstations/lapidary').then(setLapidaryStation).catch(() => setLapidaryStation(null))
+      apiFetch<{ quests?: { name: string; status: string }[] }>('/api/quests').then(data => {
+        const q = data.quests?.find(x => x.name === "The Lapidary's Lesson")
         if (q) setLapidaryQuestStatus(q.status)
       }).catch(() => {})
     }

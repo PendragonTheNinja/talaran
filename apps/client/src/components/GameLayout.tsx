@@ -1024,7 +1024,7 @@ export default function GameLayout({
           title="Lapidary"
           station="lapidary"
           stationType="lapidary"
-          playerLevel={playerData?.skills?.find((s: any) => s.name === 'Crafting')?.level || 1}
+          playerLevel={playerData?.skills?.find((s: { name: string }) => s.name === 'Crafting')?.level || 1}
         />
       )}
 

@@ -17,8 +17,13 @@ interface Quest {
     skill: string | null
     npc_name: string
     status: string
+    /** A tutor's quest: shown in its own folding group, apart from the rest. */
+    is_tutorial?: boolean
     objectives: QuestObjective[]
 }
+
+/** The tutorial group's last open/closed state, per browser. */
+const TUTORIALS_KEY = 'talaran-quests-tutorials-open'
 
 export default function QuestsView() {
     const [quests, setQuests] = useState<Quest[]>([])
@@ -40,8 +45,29 @@ export default function QuestsView() {
             .finally(() => setLoading(false))
     }, [])
 
-    const active = quests.filter(q => q.status === 'active')
-    const completed = quests.filter(q => q.status === 'completed')
+    // Tutorials fold away on their own, so the many quests to come are not
+    // buried under ten lessons a player finished in their first week.
+    const tutorials = quests
+        .filter(q => q.is_tutorial && (q.status === 'active' || q.status === 'completed'))
+        .sort((a, b) => (a.status === b.status ? 0 : a.status === 'active' ? -1 : 1))
+    const tutorialsActive = tutorials.filter(q => q.status === 'active').length
+    const active = quests.filter(q => !q.is_tutorial && q.status === 'active')
+    const completed = quests.filter(q => !q.is_tutorial && q.status === 'completed')
+
+    // Open by default while a lesson is under way, folded once they are all
+    // done; after that, whatever the player last chose.
+    const [tutorialsChoice, setTutorialsChoice] = useState<boolean | null>(() => {
+        try {
+            const v = localStorage.getItem(TUTORIALS_KEY)
+            return v === null ? null : v === 'true'
+        } catch { return null }
+    })
+    const tutorialsOpen = tutorialsChoice ?? tutorialsActive > 0
+    const toggleTutorials = () => {
+        const next = !tutorialsOpen
+        setTutorialsChoice(next)
+        try { localStorage.setItem(TUTORIALS_KEY, String(next)) } catch { /* private mode */ }
+    }
 
     const renderQuest = (q: Quest) => {
         const open = expanded.has(q.id)
@@ -78,6 +104,23 @@ export default function QuestsView() {
                 <p className="muted-text">Loading...</p>
             ) : (
                 <>
+                    {tutorials.length > 0 && (
+                        <div className="quests-group">
+                            <h4
+                                className="quests-section-title quests-group-head gold-text"
+                                onClick={toggleTutorials}
+                            >
+                                {tutorialsOpen ? '▾ ' : '▸ '}Tutorials
+                                <span className="quests-group-count muted-text">
+                                    {tutorialsActive > 0
+                                        ? `${tutorialsActive} under way, ${tutorials.length - tutorialsActive} done`
+                                        : `${tutorials.length} done`}
+                                </span>
+                            </h4>
+                            {tutorialsOpen && tutorials.map(renderQuest)}
+                        </div>
+                    )}
+
                     <h4 className="quests-section-title gold-text">Active</h4>
                     {active.length === 0
                         ? <p className="quests-empty muted-text">No active quests.</p>
