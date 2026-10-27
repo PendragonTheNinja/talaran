@@ -4,7 +4,7 @@ import { logger } from '../lib/logger';
 import { xpForLevel } from '../services/xp';
 import { plotCost, plotCapForLevel, FARMSTEAD_TOWN, PERENNIAL_REGROWTH_SHARE } from '../services/farming';
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
-import { extraQueries } from '../services/manualQueries';
+import { extraQueries, talarPathRows } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
 import { searchManual } from '../services/manualSearch';
 
@@ -128,6 +128,8 @@ const STATION_TOWNS: Record<string, string> = {
     carpentry: 'Verdale',
     tanning: 'Caliwen',
     cooking: 'Phoenwick',
+    // Geosper's public lapidary (services/workstations.ts PUBLIC_STATIONS).
+    lapidary: 'Caliwen',
 };
 
 /** The town a skill's recipe work belongs to, or null if the skill has none. */
@@ -269,7 +271,12 @@ const registry: Record<string, QueryHandler> = {
                 )
             : [];
 
+        // Talar's ladder is stones to fill, spells and jewelry, none of them
+        // nodes or recipes (services/manualQueries.ts).
+        const talar = skill.toLowerCase() === 'talar' ? await talarPathRows() : [];
+
         const rows = [
+            ...talar,
             ...fish.map((f) => {
                 const notes = [`${f.xp} XP`];
                 if (f.bait_category) notes.push(`takes ${f.bait_category}`);

@@ -101,6 +101,11 @@
           "slug": "constitution",
           "title": "Constitution",
           "blurb": "How much of you there is."
+        },
+        {
+          "slug": "talar",
+          "title": "Talar",
+          "blurb": "The light under the Rift, and what a person can do with it."
         }
       ]
     },

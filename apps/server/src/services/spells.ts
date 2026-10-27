@@ -628,6 +628,32 @@ export async function spellTargets(playerId: number, key: string): Promise<{ suc
     }
 }
 
+// ── Words for a spell's price and wait (the Manual; services/manualQueries.ts) ──
+// Spells priced by what they cover keep their rates in the code above, so the
+// words are said here, beside them, and nowhere else.
+
+export function spellCostWords(spell: Pick<SpellRow, 'key' | 'cost'>): string {
+    const cost = Number(spell.cost)
+    switch (spell.key) {
+        case 'daily_step': return `${cost} Talar per second of road skipped`
+        case 'larder_ward': return `${cost} Talar a head an hour`
+        case 'portal': return `${cost} Talar and ${PORTAL_RATE} more per second of road`
+        default: return `${cost} Talar`
+    }
+}
+
+export function spellCooldownWords(spell: Pick<SpellRow, 'cooldown_kind' | 'cooldown_seconds'>): string {
+    if (spell.cooldown_kind === 'daily') return 'once a day'
+    if (spell.cooldown_kind === 'per_death') return 'once after each fall'
+    const m = Math.round(Number(spell.cooldown_seconds ?? 0) / 60)
+    return m >= 60 ? `every ${m / 60 === Math.round(m / 60) ? m / 60 : (m / 60).toFixed(1)} h` : `every ${m} min`
+}
+
+/** Only spells that do something are listed anywhere. */
+export function spellIsLive(key: string): boolean {
+    return !!EFFECTS[key]
+}
+
 // ── Reading ──────────────────────────────────────────────────────────────────
 
 export interface SpellView {

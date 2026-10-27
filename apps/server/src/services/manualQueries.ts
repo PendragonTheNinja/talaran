@@ -20,6 +20,12 @@ import type { ManualTable } from '../routes/manual';
 import { FORMS, STANCE_MULTIPLIER, TYPE_AIM, COMBAT, maxHp, unarmedWeapon, UNARMED, type Form } from '../lib/combatMath';
 import { RUNGS } from '../lib/tiers';
 import { BESTIARY_STEPS } from './bestiary';
+import { minutesToFill, pourPerCycle, FILL_CYCLE_SECONDS, RESERVOIR_BASE, RESERVOIR_PER_LEVEL } from './talar';
+import { activeXpForSeconds } from './farming';
+import { rungOfTier } from '../lib/tiers';
+import { cutGradeOf } from '../lib/gemGrades';
+import { aidWords, isJewelryAid } from '../lib/jewelry';
+import { spellCostWords, spellCooldownWords, spellIsLive, castXp, type SpellRow } from './spells';
 
 type QueryHandler = (param?: string) => Promise<ManualTable | null>;
 
@@ -65,7 +71,127 @@ function seconds(s: number): string {
     return mm ? `${h}h ${mm}m` : `${h}h`;
 }
 
+// ── Talar (docs/talar-spec.md) ──────────────────────────────────────────────
+
+/** Where the light can be filled, by name: the rift locations. */
+async function riftNames(): Promise<string> {
+    const rifts = await db('locations').where({ is_rift: true }).orderBy('name').pluck('name');
+    return rifts.length ? rifts.join(', ') : 'a rift';
+}
+
+/** Where spells are taught: the churches, by name and place. */
+async function churchNames(): Promise<string> {
+    const rows = await db('churches as c').join('locations as l', 'l.id', 'c.location_id').orderBy('c.name').select('c.name', 'l.name as place');
+    return rows.length ? rows.map((r: any) => `${r.name}, ${r.place}`).join('; ') : 'a church';
+}
+
+/**
+ * Talar's ladder for training-path (routes/manual.ts): its progression is
+ * none of nodes, recipes or crops. What a level opens is a stone to fill, a
+ * spell to learn, and jewelry to wear.
+ */
+export async function talarPathRows(): Promise<{ level: number; unlock: string; island: string; where: string; iconName: string; details: string }[]> {
+    const [rift, church] = await Promise.all([riftNames(), churchNames()]);
+    const gems = await db('items').whereNotNull('talar_per_hour').where({ is_active: true, quality: 'cut' })
+        .orderBy([{ column: 'tier' }, { column: 'name' }]).select('name', 'tier', 'talar', 'talar_per_hour', 'quality');
+    const spells: SpellRow[] = (await db('spells').where({ is_active: true }).orderBy('talar_level')).filter((sp: SpellRow) => spellIsLive(sp.key));
+    const pieces = await db('items').where({ type: 'jewelry', is_active: true }).orderBy('name').select('name', 'tier', 'level_required', 'jewelry_aid');
+    return [
+        ...gems.map((g: any) => {
+            const level = rungOfTier(Number(g.tier) || 1);
+            return {
+                level, unlock: `Fill ${g.name}`, island: '', where: rift, iconName: g.name,
+                details: `${g.talar} Talar in ${minutesToFill(Number(g.talar), Number(g.talar_per_hour), Math.max(0, cutGradeOf(g.quality)))} min · ${activeXpForSeconds(level, FILL_CYCLE_SECONDS)} XP a minute`,
+            };
+        }),
+        ...spells.map(sp => ({
+            level: sp.talar_level, unlock: sp.name, island: '', where: church, iconName: sp.name,
+            details: `Spell · ${spellCostWords(sp)} · ${spellCooldownWords(sp)}`,
+        })),
+        ...pieces.map((p: any) => ({
+            level: Math.max(1, Number(p.level_required) || 1), unlock: `Wear ${p.name}`, island: '', where: 'Anywhere', iconName: p.name,
+            details: isJewelryAid(p.jewelry_aid) ? aidWords(p.jewelry_aid, Number(p.tier) || 1) : '',
+        })),
+    ];
+}
+
 export const extraQueries: Record<string, QueryHandler> = {
+
+    // ── Talar: the stones, the spells, the jewelry ───────────────────────────
+
+    'talar-gems': async () => {
+        const gems = await db('items').whereNotNull('talar_per_hour').where({ is_active: true })
+            .orderBy([{ column: 'tier' }, { column: 'talar' }]).select('name', 'tier', 'talar', 'talar_per_hour', 'quality');
+        return {
+            title: 'Stones the light will fill',
+            columns: [
+                { key: 'stone', label: 'Stone', icon: 'stone' },
+                { key: 'level', label: 'Talar', align: 'right' },
+                { key: 'holds', label: 'Holds', align: 'right' },
+                { key: 'time', label: 'To fill', align: 'right' },
+            ],
+            rows: gems.map((g: any) => {
+                const grade = Math.max(0, cutGradeOf(g.quality));
+                return {
+                    stone: g.name,
+                    level: rungOfTier(Number(g.tier) || 1),
+                    holds: `${g.talar} Talar`,
+                    time: seconds(Math.ceil(Number(g.talar) * 100 / pourPerCycle(Number(g.talar_per_hour), grade)) * FILL_CYCLE_SECONDS),
+                };
+            }),
+            note: `Filled at ${await riftNames()}. The reservoir holds ${RESERVOIR_BASE} Talar at level 1 and ${RESERVOIR_PER_LEVEL} more each level.`,
+        };
+    },
+
+    'spells': async () => {
+        const spells: SpellRow[] = (await db('spells').where({ is_active: true }).orderBy([{ column: 'talar_level' }, { column: 'display_order' }]))
+            .filter((sp: SpellRow) => spellIsLive(sp.key));
+        return {
+            title: 'Spells, and what each asks',
+            columns: [
+                { key: 'spell', label: 'Spell' },
+                { key: 'level', label: 'Talar', align: 'right' },
+                { key: 'cost', label: 'Costs' },
+                { key: 'wait', label: 'Cast' },
+                { key: 'vigil', label: 'Learned by' },
+                { key: 'xp', label: 'XP', align: 'right' },
+            ],
+            rows: spells.map(sp => ({
+                spell: sp.name,
+                level: sp.talar_level,
+                cost: spellCostWords(sp),
+                wait: cap(spellCooldownWords(sp)),
+                vigil: [`${sp.vigil_minutes} min vigil`, sp.offering_item_name, sp.writ_item_name].filter(Boolean).join(', '),
+                xp: castXp(sp),
+            })),
+            note: `Taught at ${await churchNames()}.`,
+        };
+    },
+
+    'jewelry': async () => {
+        const pieces = await db('items').where({ type: 'jewelry', is_active: true }).orderBy([{ column: 'subtype', order: 'desc' }, { column: 'name' }])
+            .select('name', 'subtype', 'tier', 'jewelry_aid');
+        const recipes = await db('recipes').where({ is_active: true }).whereIn('output_item_name', pieces.map((p: any) => p.name))
+            .select('output_item_name', 'required_level');
+        const makeAt = new Map<string, number>();
+        for (const r of recipes) makeAt.set(r.output_item_name, Math.min(makeAt.get(r.output_item_name) ?? Infinity, Number(r.required_level)));
+        return {
+            title: 'Rings and amulets',
+            columns: [
+                { key: 'piece', label: 'Piece', icon: 'piece' },
+                { key: 'slot', label: 'Worn' },
+                { key: 'make', label: 'Crafting', align: 'right' },
+                { key: 'does', label: 'Does' },
+            ],
+            rows: pieces.map((p: any) => ({
+                piece: p.name,
+                slot: p.subtype === 'ring' ? 'Finger' : 'Neck',
+                make: makeAt.get(p.name) ?? '',
+                does: isJewelryAid(p.jewelry_aid) ? cap(aidWords(p.jewelry_aid, Number(p.tier) || 1)) : '',
+            })),
+            note: 'Each draws 1 Talar for every 20 actions it helps with, and does nothing while the reservoir is empty.',
+        };
+    },
 
     // ── What carpentry builds ───────────────────────────────────────────────
     //

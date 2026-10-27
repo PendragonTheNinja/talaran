@@ -4,7 +4,7 @@ Some work does not belong to the smith, who deals in metal, nor to the carpenter
 
 I mean that admiringly. A trade defined by what it makes will always be narrow. A trade defined by *usefulness* has no ceiling at all.
 
-Crafting runs in disciplines, each with its own rhythm. Tanning is the one you will meet first.
+Crafting runs in disciplines, each with its own rhythm. Tanning is the patient one; the lapidary is the one that rewards a steady hand.
 
 {{tabs}}
 {{tab:Overview}}
@@ -21,7 +21,7 @@ This makes Crafting unusual in one important way: **it is almost never the first
 
 Each discipline has its own tempo and its own equipment. What they share is a level, so raising Crafting anywhere raises it everywhere.
 
-At present the discipline in the world is **Tanning**, described on the next tab. Others will follow, and this page will grow tabs as they do.
+At present there are two: **Tanning** and the **Lapidary**, each with a tab of its own. Others will follow, and this page will grow tabs as they do.
 
 ## Level does more than unlock recipes
 
@@ -76,13 +76,43 @@ A distinction that trips people up, so let me be plain.
 
 They are separate materials with separate uses. A recipe asking for one will not accept the other, however similar they look hanging on a rack.
 
+{{tab:Lapidary}}
+
+The lapidary is where a stone stops being a pebble with ambitions.
+
+## The bench
+
+A lapidary wants two tools to cut and a third to set:
+
+- A **Lanai Lap Wheel**, built by Carpentry: a wheel faced with ground granite, turned by a treadle.
+- An **Ambren Gem Chisel**, forged by Smithing, for splitting a stone along its grain.
+- **Ambren Jeweller's Pliers**, also forged, for closing a setting over a stone. Cutting does without them; setting does not.
+
+On Taiar, **Geosper** keeps a public lapidary in Caliwen and lends all three to anyone who has done his lesson. It runs at half speed, as every public bench does. Your own runs at full.
+
+## Cutting
+
+Hold a rough stone to the wheel and it comes off as one of three grades:
+
+- **Cut**, most of the time.
+- **Polished**, more often as your level climbs past the stone's.
+- **Flawless**, rarely, and a good deal less rarely for a practised hand.
+
+The grade matters because the light cares about it. A Polished stone holds half again what a Cut one does, and a Flawless one holds three times as much. The Talar page has the whole of that.
+
+## Setting
+
+Once a stone has been filled at the Rift, a crafter can set it in Ambren as a ring or an amulet. Each piece takes **three Lit, two Bright or one Radiant** stones, so a cutter who turns out a Flawless stone needs only one of them, and a cutter who never does needs three. Either way the piece comes out the same.
+
+What each piece does is on the Talar page, since the light is what makes them work.
+
 {{/tabs}}
 
 ## Connections
 
 - **Hunting** supplies the hides, and is the reason a hunter should never sell a raw skin.
 - **Husbandry** supplies the cattle, and therefore the tiered leather.
-- **Mining** turns up the gemstones.
+- **Mining** turns up the gemstones, and **Talar** fills them once you have cut them.
 - **Carpentry** builds the racks, barrels, and benches every discipline needs.
 
 {{details:The Geographer's ledgers}}
