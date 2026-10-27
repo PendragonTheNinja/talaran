@@ -12,6 +12,7 @@
 
 import type { Knex } from 'knex'
 import { Rng } from '../lib/combatMath'
+import { jewelryAid, noteJewelry } from './jewelry'
 
 export interface WearableItem {
     id: number
@@ -53,6 +54,12 @@ export async function wearItem(
     tiers: Map<number, DurabilityRule>,
     rng: Rng,
 ): Promise<boolean> {
+    // A Keeper's Band (docs/talar-spec.md §8): now and then a use does not count.
+    const band = await jewelryAid(trx, playerId, 'wear')
+    if (band && rng() < band.strength) {
+        noteJewelry(trx, playerId, `Your ${band.name} spared your ${item.name} a knock.`)
+        return false
+    }
     const [row] = await trx('player_item_wear')
         .insert({ player_id: playerId, item_id: item.id, uses: 1 })
         .onConflict(['player_id', 'item_id'])

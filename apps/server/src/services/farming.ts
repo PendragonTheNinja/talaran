@@ -6,6 +6,7 @@ import { updateQuestObjectiveProgress } from '../routes/quests';
 import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
 import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { takeItemsWithin } from './inventory';
+import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
@@ -876,6 +877,13 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
         + activeXp;
 
     await giveItem(playerId, crop.produce_item_name, yieldQty);
+
+    // A Seedsaver's Ring (docs/talar-spec.md §8): now and then a seed comes back.
+    const ring = await jewelryAid(db, playerId, 'harvest');
+    if (ring && crop.seed_item_name && Math.random() < ring.strength) {
+        await giveItem(playerId, crop.seed_item_name, 1);
+        noteJewelry(db, playerId, `Your ${ring.name} kept back one ${crop.seed_item_name} for next year.`);
+    }
 
     // Hungry crops take from the soil, legumes give back, bushes are neutral.
     const dir: -1 | 0 | 1 = crop.soil_effect === 'restore' ? 1 : crop.soil_effect === 'neutral' ? 0 : -1;

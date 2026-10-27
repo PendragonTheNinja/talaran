@@ -30,6 +30,7 @@ import { FOOT_XP_RATE, MOUNT_XP_RATE, TRAVEL_SKILL } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
+import { takeJewelryNotes } from './jewelry';
 import { realtimeServer } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
@@ -106,6 +107,10 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   // it (services/worldEvents.ts). Services report their XP before awardXp
   // raises it, so the level-up check that was made from it is redone here with
   // the bonus counted.
+  // What a worn piece of jewelry did during this action (services/jewelry.ts).
+  const jewelry = takeJewelryNotes(action.player_id);
+  if (result && jewelry.length) result.jewelry = jewelry;
+
   const eventXp = takeEventXp(action.player_id, result?.skillName);
   if (result && eventXp > 0) {
     result.eventXp = eventXp;

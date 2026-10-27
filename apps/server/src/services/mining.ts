@@ -7,6 +7,7 @@ import { awardXp } from './xp';
 import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin } from './inventory';
+import { jewelryAid, noteJewelry } from './jewelry';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
@@ -428,7 +429,15 @@ export async function openVein(
 
     if (existingVein) return null;
 
-    const quantity = Math.floor(Math.random() * (maxQuantity - minQuantity + 1)) + minQuantity;
+    let quantity = Math.floor(Math.random() * (maxQuantity - minQuantity + 1)) + minQuantity;
+    // A Prospector's Ring (docs/talar-spec.md §8): the vein runs larger, the
+    // fraction of an ore kept by chance so the average is exact.
+    const ring = await jewelryAid(db, playerId, 'vein');
+    if (ring) {
+      const larger = Math.floor(quantity * (1 + ring.strength) + Math.random());
+      if (larger > quantity) noteJewelry(db, playerId, `Your ${ring.name} led you to ${larger - quantity} more ${ore.name} in the seam.`);
+      quantity = larger;
+    }
     const now = new Date();
     const announceAt = new Date(now.getTime() + VEIN_ANNOUNCE_DELAY);
 

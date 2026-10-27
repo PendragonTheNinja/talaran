@@ -787,3 +787,11 @@
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
+/* What worn jewelry did during the action (services/jewelry.ts). */
+.last-result-jewelry {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  color: #b6a8f0;
+}

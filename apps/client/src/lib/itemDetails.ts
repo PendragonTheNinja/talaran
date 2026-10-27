@@ -39,6 +39,8 @@ export interface ItemDetail {
     requires_skill: string | null
     /** Health it mends when eaten, by the fight's food rule; null when it mends nothing. */
     mends: number | null
+    /** Jewelry: what it does, drawing on the wearer's Talar (docs/talar-spec.md §8). */
+    aids?: string | null
 }
 
 let byName: Map<string, ItemDetail> | null = null

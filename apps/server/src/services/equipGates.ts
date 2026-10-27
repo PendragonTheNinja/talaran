@@ -25,6 +25,9 @@ const SUBTYPE_SKILL: Record<string, string> = {
     // Without these the Palfrey's level_required would never be checked.
     horse: 'Wayfaring',
     pony: 'Wayfaring',
+    // Jewelry is worn on Talar, the skill that fills it (docs/talar-spec.md §8).
+    ring: 'Talar',
+    amulet: 'Talar',
 }
 
 /**

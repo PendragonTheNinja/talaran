@@ -1563,6 +1563,23 @@ const SCENARIOS: Scenario[] = [
                 ?? changed(`Neighbour's XP (30 awards, 20 raised)`, 30 * 100 + 20 * 50, await xpOf(other.id));
         },
     },
+    {
+        id: 'talar', name: 'a ring helps five actions at once with Talar for two', rounds: 10,
+        run: async (ctx) => {
+            // Jewelry draws 5 hundredths for every action it helps
+            // (services/jewelry.ts), in its own transaction when the action has
+            // none, as harvesting and vein finds do. Ten hundredths pay for two:
+            // two helps, three refusals, never below zero.
+            const w = await world(ctx);
+            const ring = await ctx.seed.row('items', { name: "Quartz Prospector's Ring", type: 'jewelry', subtype: 'ring', slot: 'finger', tier: 1, jewelry_aid: 'vein' });
+            await wearing(ctx, w.player.id, 'finger_item_id', ring.id);
+            await ctx.seed.row('player_talar', { player_id: w.player.id, hundredths: 10 });
+            const { jewelryAid } = await import('../services/jewelry');
+            const helps = await Promise.all([1, 2, 3, 4, 5].map(() => jewelryAid(ctx.db, w.player.id, 'vein')));
+            const held = Number((await ctx.db('player_talar').where({ player_id: w.player.id }).first())?.hundredths ?? -1);
+            return changed('reservoir hundredths', 0, held) ?? changed('actions helped', 2, helps.filter(Boolean).length);
+        },
+    },
 ];
 
 main().catch((err) => {

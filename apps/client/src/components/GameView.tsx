@@ -223,6 +223,8 @@ export default function GameView({
   const [farmKind, setFarmKind] = useState<string>('till')
   const [husbandryKind, setHusbandryKind] = useState<string>('feed')
   const [lastResult, setLastResult] = useState<LastResult | null>(null)
+  // What worn jewelry did on the last card (services/jewelry.ts): shown under it.
+  const [jewelryLines, setJewelryLines] = useState<string[]>([])
   // The stone in hand while filling at a rift (FillStone in services/talar.ts).
   const [fillStone, setFillStone] = useState<FillStone | null>(null)
   // Level-ups queue: one kill can raise Melee, Defense and Constitution at
@@ -512,6 +514,8 @@ export default function GameView({
       }
 
       on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
+        const jewelry = (data.result as { jewelry?: string[] } | undefined)?.jewelry ?? []
+        setJewelryLines(jewelry)
 
         // A kill: Melee's XP on the card, with Defense and Constitution beside
         // it (xpAwards). The fight itself carries on; combat_update draws it.
@@ -536,7 +540,8 @@ export default function GameView({
             xpToNext: kill.xpInfo?.xpToNext || 0,
             xpAtLevel: kill.xpInfo?.xpAtLevel || 0,
             skillName: r.skillName || 'Melee',
-            message: r.message,
+            // The fight view draws this card itself, so jewelry rides in its message.
+            message: [r.message, ...jewelry].filter(Boolean).join(' '),
             xpAwards: r.xpAwards,
             drops: r.drops || [],
             eventXp: r.eventXp,
@@ -2182,6 +2187,7 @@ export default function GameView({
               {lastResult && (
                 <div className="scene-last-result">
                   {renderResultDetails(lastResult)}
+                  {jewelryLines.map(line => <p key={line} className="last-result-jewelry">{line}</p>)}
                 </div>
               )}
             </div>

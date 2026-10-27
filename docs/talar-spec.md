@@ -219,7 +219,7 @@ A jewelry tier pairs **that tier's metal with that tier's gem**, the way weapons
 | T2 | Serph (tier 2 ore; nothing smelts it yet, not mined on Taiar) | Garnet | 20 (Nathan, 2026-10-28) | 13 | 1.5× |
 | T3+ | the tier's metal | the tier's gem | later islands | rung | +0.5× a tier (**knob**) |
 
-**Open: T2 on Taiar.** Garnet is on Taiar, Serph is not. Either (a) garnet jewelry waits for Serph smelting and the next island, so garnets on Taiar are for filling only, or (b) garnet pieces ship now on 4 Ambren Ingots and a migration moves them onto Serph when it arrives.
+**T2 waits for Serph** (Nathan, 2026-10-28). Garnet is on Taiar, Serph is not: garnet jewelry comes with Serph smelting and the next island, and garnets on Taiar are for filling until then. Only quartz pieces ship now.
 
 ### 8.3 The pieces
 
@@ -239,7 +239,7 @@ Item names carry the gem: *Quartz Keeper's Band*, *Garnet Keeper's Band*. Twelve
 ### 8.4 Recipes
 - **Any grade goes in** (Nathan, 2026-10-28): each piece has three recipes with the same output, taking **3 Lit, 2 Bright or 1 Radiant** gems of the tier, plus the metal. All three hold the same Talar (300 at T1), so no grade is wasted and none is required; a better cutter needs fewer stones.
 - Metal: **2 Ambren Ingots** a T1 piece (**knob**).
-- At the lapidary (`station: 'lapidary'`), through `RecipeList` like cutting. **Open: a jeweller's tool.** The lapidary has two slots (Lap Wheel, Gem Chisel). Jewelry can use the bench as it stands, or add a third slot for **Jeweller's Pliers** (Smithing, Ambren), so setting stones asks for its own tool.
+- At the lapidary (`station: 'lapidary'`), through `RecipeList` like cutting. **Jeweller's Pliers** (Nathan, 2026-10-28): a third lapidary slot, made in Smithing from Ambren. Jewelry recipes need it; cutting does not.
 - Rings at Crafting 8, amulets at 10 (T1), so the six open over a few levels rather than all at once (**knob**). T2 at 20 and 22.
 - Timer: 120 s a piece. XP by the law for finished goods: `1.8 × 1.10 × band(level) × 120 / 3600`, about 155 at Crafting 8. The gems are the gate, not the clock (three charged gems are an hour and a half at the Rift), so the XP is not raised for them, as husbandry is not for its animals.
 - Thirty-six recipe rows for T1 and T2 (three per piece). `for_skill: 'Talar'`, so they list under a Jewelry tab beside cutting.
@@ -249,7 +249,7 @@ Item names carry the gem: *Quartz Keeper's Band*, *Garnet Keeper's Band*. Twelve
 - Charged at the moment the piece is consulted for a helped action, through `spendTalarWithin` (`services/talar.ts`), inside the action's own transaction where there is one. **The effect applies only if the draw succeeded:** an empty reservoir means no draw and no bonus, never a debt.
 - One place decides it: `lib/jewelry.ts` (pure: which piece helps which action, at what strength) and `services/jewelry.ts` (reads what is worn, draws, answers yes or no). Each system calls one function (`jewelryHelps(trx, playerId, 'bait')` and similar) at its one decision point; no system reads `finger_item_id` itself.
 - **Jewelry drain pays no XP** (§7): it is passive.
-- Silent like wear (Nathan, 2026-10-12)? A piece that saves bait says so on the result card ("Your Baitkeeper's Amulet kept the bait"), because the player paid Talar for it and should see what it bought. The reservoir bar shows the draw.
+- **Saves are announced** (Nathan, 2026-10-28), unlike wear: a piece that does something says so on the result card ("Your Baitkeeper's Amulet kept the bait"), because the player paid Talar for it. The reservoir bar shows the draw.
 
 ### 8.6 Where each hook goes
 | Piece | Decision point |
@@ -339,7 +339,7 @@ New tables (first draft): `player_talar` (reservoir), `player_talar_open_gem`, `
 
 ## 13. Open
 
-1. ~~Jewelry input~~ decided 2026-10-28: 3 Lit, 2 Bright or 1 Radiant (§8.4). Open: T2 metal on Taiar (§8.2), a jeweller's tool (§8.4).
+1. ~~Jewelry~~ decided 2026-10-28 (§8): 3 Lit / 2 Bright / 1 Radiant, T2 waits for Serph, Jeweller's Pliers, saves announced.
 2. ~~Georome's quest~~ decided 2026-10-27 (§1).
 3. All **knobs** above, after the sim pass.
 

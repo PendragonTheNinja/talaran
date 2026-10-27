@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { gateSkill } from '../services/equipGates';
+import { aidWords, isJewelryAid } from '../lib/jewelry';
 import { isForm } from '../services/combat';
 import { FORMS } from '../lib/combatMath';
 import { isFightFood } from '../services/combatFights';
@@ -58,6 +59,8 @@ router.get('/tooltips', requireAuth, async (_req: AuthRequest, res: Response) =>
                     'power',
                     'armour',
                     'heal_amount',
+                    // Jewelry: what it helps with (docs/talar-spec.md §8).
+                    'jewelry_aid',
                 );
             // What the client must not work out for itself: the skill a level
             // requirement is checked against (routes/equipment.ts) and a
@@ -70,6 +73,9 @@ router.get('/tooltips', requireAuth, async (_req: AuthRequest, res: Response) =>
                 // nothing), so a tooltip never promises a heal the game refuses.
                 row.mends = isFightFood(row) ? Number(row.heal_amount) : null;
                 delete row.heal_amount;
+                // What a piece of jewelry does, in words, by the game's own numbers.
+                row.aids = isJewelryAid(row.jewelry_aid) ? aidWords(row.jewelry_aid, Number(row.tier) || 1) : null;
+                delete row.jewelry_aid;
             }
             cache = { rows, at: Date.now() };
         }

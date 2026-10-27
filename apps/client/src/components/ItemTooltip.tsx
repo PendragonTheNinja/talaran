@@ -172,6 +172,7 @@ export default function ItemTooltip({ x, y, item, hint }: ItemTooltipProps) {
                 </p>
             )}
             {cached?.mends ? <p className="item-tooltip-buff">Mends {cached.mends} health</p> : null}
+            {cached?.aids ? <p className="item-tooltip-buff">Draws on your Talar: {cached.aids}</p> : null}
             {gear.length > 0 && (
                 <p className="item-tooltip-buff">
                     {gear.map(line => <span key={line} style={{ display: 'block' }}>{line}</span>)}
