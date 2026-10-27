@@ -1505,6 +1505,38 @@ const SCENARIOS: Scenario[] = [
                 ?? changed('vigils that paid', 1, results.filter(r => r.success).length);
         },
     },
+    {
+        id: 'talar', name: 'send a stack to your store while depositing it at the chest, five at once', rounds: 10,
+        run: async (ctx, round) => {
+            // Sending (services/spells.ts) and the storage chest share one move
+            // (moveIntoStorageWithin in services/property.ts). Casts queue on
+            // the player's spell row, but a deposit does not, so the stack's
+            // own lock is what keeps the two from both moving it. Three casts
+            // and two deposits of the same 10 planks: exactly one may land,
+            // and the planks are never in both places or neither. On odd
+            // rounds the store has no free slot, so all five are refused and
+            // no Talar is spent.
+            const w = await world(ctx);
+            const property = await ctx.seed.row('player_properties', {
+                player_id: w.player.id, location_id: w.town.id, type: 'homestead', storage_slots: round % 2 ? 1 : 5,
+            });
+            if (round % 2) await ctx.seed.row('property_storage', { property_id: property.id, item_id: w.hatchet.id, quantity: 1 });
+            await inPack(ctx, w.player.id, w.plank.id, 10);
+            const spell = await ctx.seed.row('spells', { key: 'sending', name: 'Sending', talar_level: 1, cost: 20, cooldown_kind: 'timer', cooldown_seconds: 0 });
+            await ctx.seed.row('player_spells', { player_id: w.player.id, spell_id: spell.id });
+            await ctx.seed.row('player_talar', { player_id: w.player.id, hundredths: 100000 });
+            const st = await ctx.burst(w.player.id, 5, (i) => i % 2
+                ? ctx.post(w.player.id, '/property/storage/deposit', { itemId: w.plank.id, quantity: 10 })
+                : ctx.post(w.player.id, '/talar/spells/cast', { key: 'sending', propertyId: property.id, itemId: w.plank.id, quantity: 10, direction: 'store' }));
+            const held = Number((await ctx.db('player_talar').where({ player_id: w.player.id }).first())?.hundredths ?? 0);
+            const castsLanded = st.filter((code, i) => i % 2 === 0 && code === 200).length;
+            const landed = round % 2 ? 0 : 1;
+            return changed('planks anywhere', 10, await ctx.itemTotal(w.plank.id))
+                ?? changed('planks in store', landed * 10, await storedIn(ctx, property.id, w.plank.id))
+                ?? changed('reservoir hundredths', 100000 - castsLanded * 2000, held)
+                ?? succeeded(st, landed);
+        },
+    },
 ];
 
 main().catch((err) => {

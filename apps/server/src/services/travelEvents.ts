@@ -48,6 +48,19 @@ export const TRAVEL_EVENTS: TravelEvent[] = [
         ],
     },
     {
+        // Learning Sending needs one (Talar; services/spells.ts vigils).
+        id: 'writ_of_sending',
+        region: 'Taiar Island',
+        itemName: 'Writ of Sending',
+        quantity: 1,
+        rarity: 500,
+        messages: [
+            'A letter lay folded in the grass by the milestone, its grey seal unbroken. Nobody was in sight to claim it.',
+            'Caught in a bramble at the roadside was a sealed letter, weathered but whole. You worked it free.',
+            'A carrier had dropped something here once: a folded writ, still sealed, half-sunk in the verge.',
+        ],
+    },
+    {
         id: 'tarnished_coin',
         region: 'Taiar Island',
         itemName: 'Tarnished Coin',

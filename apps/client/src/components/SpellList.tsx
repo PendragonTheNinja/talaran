@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { announceTalar, type Talar } from '../lib/talar'
+import SendingPicker, { type SendingStore } from './SendingPicker'
 
 // Spells (server: services/spells.ts). One list in two places: the church,
 // where spells are learned, and the spellbook (the Talar bar), where they are
@@ -30,10 +31,11 @@ interface SpellTarget {
     label: string
     cost: number
     params: Record<string, unknown>
+    detail?: unknown
 }
 
 /** Spells that ask for a choice first. */
-const PICKS_TARGET = new Set(['daily_step', 'larder_ward'])
+const PICKS_TARGET = new Set(['daily_step', 'larder_ward', 'sending'])
 
 /** What a spell's cost says on its card, for those priced by what they cover. */
 function costText(s: SpellView): string {
@@ -58,6 +60,13 @@ function cooldownText(s: SpellView): string {
     return m >= 60 ? `Every ${Math.round(m / 60)} h` : `Every ${m} min`
 }
 
+/** "45 min", or "6 h 29 min" once it runs past an hour. */
+function waitText(minutes: number): string {
+    if (minutes < 60) return `${minutes} min`
+    const m = minutes % 60
+    return m ? `${Math.floor(minutes / 60)} h ${m} min` : `${minutes / 60} h`
+}
+
 function minutesUntil(iso: string): number {
     return Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / 60000))
 }
@@ -79,6 +88,8 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
     const [reading, setReading] = useState<{ key: string; detail: unknown } | null>(null)
     const [busy, setBusy] = useState(false)
     const [picking, setPicking] = useState<{ key: string; targets: SpellTarget[] } | null>(null)
+    // Sending: which of the player's stores is open in the picker.
+    const [sendTo, setSendTo] = useState<number | null>(null)
 
     const load = useCallback(() => {
         apiFetch<{ spells: SpellView[]; atChurch: boolean }>('/api/talar/spells')
@@ -92,6 +103,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
         try {
             const d = await apiFetch<{ targets: SpellTarget[] }>(`/api/talar/spells/${s.key}/targets`)
             setPicking({ key: s.key, targets: d.targets })
+            setSendTo(d.targets.length === 1 ? 0 : null)
         } catch (err) {
             setNote({ text: (err as { message?: string }).message || 'Nothing happens.', error: true })
         }
@@ -142,7 +154,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             {mode === 'cast' && (
                                 <button className="btn btn-gold" disabled={busy || waiting > 0}
                                     onClick={() => PICKS_TARGET.has(s.key) ? pickTarget(s) : cast(s)}>
-                                    {waiting > 0 ? `Ready in ${waiting} min` : 'Cast'}
+                                    {waiting > 0 ? `Ready in ${waitText(waiting)}` : 'Cast'}
                                 </button>
                             )}
                             {mode === 'learn' && s.learned && <span className="muted-text">Learned</span>}
@@ -160,14 +172,19 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             picking.targets.length === 0
                                 ? <p className="farm-empty">There is nowhere on this island you have walked to that you could step to from here.</p>
                                 : <ul className="spell-targets">
-                                    {picking.targets.map(t => (
+                                    {picking.targets.map((t, i) => (
                                         <li key={t.label}>
-                                            <button className="btn" disabled={busy} onClick={() => cast(s, t.params)}>
+                                            <button className={`btn ${s.key === 'sending' && sendTo === i ? 'btn-gold' : ''}`} disabled={busy}
+                                                onClick={() => s.key === 'sending' ? setSendTo(i) : cast(s, t.params)}>
                                                 {t.label} <span className="muted-text tabular-num">{t.cost} Talar</span>
                                             </button>
                                         </li>
                                     ))}
                                 </ul>
+                        )}
+                        {picking?.key === s.key && s.key === 'sending' && sendTo !== null && picking.targets[sendTo] && (
+                            <SendingPicker key={sendTo} store={picking.targets[sendTo] as SendingStore} busy={busy}
+                                onSend={params => cast(s, params)} />
                         )}
                         {reading?.key === s.key && s.key === 'wearsight' && Array.isArray(reading.detail) && (
                             <WearReading detail={reading.detail as { slot: string; name: string; word: string }[]} />

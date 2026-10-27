@@ -11,7 +11,8 @@ import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit } from '../lib/realtime'
-import { wardableHead, wardFarmsteadWithin } from './husbandry'
+import { wardableHead, wardFarmsteadWithin, settleWardsWithin } from './husbandry'
+import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
 import { takeItemsWithin, notifyInventoryChanged } from './inventory'
 
 // Spells (docs/talar-spec.md §5 to §7). A spell is a row (services' nouns);
@@ -77,7 +78,13 @@ export interface CastOutcome {
 }
 
 /** One choice in the spellbook: what it says, what it costs, and what is sent back to cast it. */
-export interface SpellTarget { label: string; cost: number; params: Record<string, unknown> }
+export interface SpellTarget {
+    label: string
+    cost: number
+    params: Record<string, unknown>
+    /** Anything else the spellbook needs to offer this choice (Sending: what is in that store). */
+    detail?: unknown
+}
 
 interface SpellEffect {
     /**
@@ -321,11 +328,87 @@ const larderWard: SpellEffect = {
     },
 }
 
+// ── Sending (§6) ─────────────────────────────────────────────────────────────
+// One stack between the pack and a store of the player's OWN, anywhere on the
+// island they stand on. Own storage only, so it never stands in for a trade.
+// The move is the storage route's own (moveIntoStorageWithin and
+// moveOutOfStorageWithin in services/property.ts): locked, relative, all or
+// nothing, and a full store refuses rather than destroys. A farmstead's Larder
+// Ward is settled first, as at the chest. It runs inside the cast, so a
+// refused move throws and the Talar comes back with it.
+
+const PROPERTY_WORD: Record<string, string> = { farmstead: 'Farmstead', shop: 'Shop', homestead: 'Homestead' }
+
+/** The player's properties on the island they stand on. */
+async function ownStoresHere(conn: any, playerId: number): Promise<any[]> {
+    const here = await conn('players as p').join('locations as l', 'l.id', 'p.current_location_id')
+        .where('p.id', playerId).first('l.region')
+    return conn('player_properties as pp').join('locations as l', 'l.id', 'pp.location_id')
+        .where('pp.player_id', playerId).where('l.region', here?.region ?? null)
+        .orderBy('pp.id')
+        .select('pp.id', 'pp.type', 'pp.storage_slots', 'l.name as location')
+}
+
+async function sendingStore(conn: any, playerId: number, params: Record<string, unknown>): Promise<any> {
+    const id = Math.floor(Number(params.propertyId))
+    const store = (await ownStoresHere(conn, playerId)).find(p => Number(p.id) === id)
+    if (!store) throw new SpellAbort('You can only send to a store of your own on this island.')
+    return store
+}
+
+const sending: SpellEffect = {
+    targets: async (playerId, spell) => {
+        const stores = await ownStoresHere(db, playerId)
+        if (!stores.length) throw new SpellAbort('You have no store of your own on this island to send to.')
+        const out: SpellTarget[] = []
+        for (const p of stores) {
+            const items = await db('property_storage as ps').join('items as i', 'i.id', 'ps.item_id')
+                .where('ps.property_id', p.id).where('ps.quantity', '>', 0).orderBy('i.name')
+                .select('i.id as itemId', 'i.name', 'ps.quantity')
+            out.push({
+                label: `${PROPERTY_WORD[p.type] ?? 'Store'}, ${p.location}`,
+                cost: Number(spell.cost),
+                params: { propertyId: Number(p.id) },
+                detail: { slots: Number(p.storage_slots ?? 50), used: items.length, items },
+            })
+        }
+        return out
+    },
+    cost: async (trx, playerId, spell, params) => {
+        await sendingStore(trx, playerId, params)
+        return Number(spell.cost)
+    },
+    cast: async (trx, playerId, _spell, params) => {
+        const store = await sendingStore(trx, playerId, params)
+        const itemId = Math.floor(Number(params.itemId))
+        const quantity = Math.floor(Number(params.quantity ?? Infinity))
+        if (!Number.isFinite(itemId) || itemId <= 0) throw new SpellAbort('Choose what to send.')
+        if (!(quantity > 0)) throw new SpellAbort('Choose how many to send.')
+        const fetch = params.direction === 'fetch'
+        if (params.direction !== 'store' && !fetch) throw new SpellAbort('Choose whether to send it away or fetch it back.')
+
+        if (store.type === 'farmstead') await settleWardsWithin(trx, playerId)
+        const moved = fetch
+            ? await moveOutOfStorageWithin(trx, playerId, store, itemId, quantity)
+            : await moveIntoStorageWithin(trx, playerId, store, itemId, quantity)
+        if (!moved.ok) throw new SpellAbort(moved.error)
+        afterCommit(trx, () => notifyInventoryChanged(playerId))
+        const where = `${(PROPERTY_WORD[store.type] ?? 'store').toLowerCase()} at ${store.location}`
+        return {
+            message: fetch
+                ? `${moved.quantity} ${moved.name} come to your hand from your ${where}.`
+                : `${moved.quantity} ${moved.name} leave your pack for your ${where}.`,
+            detail: { itemId, quantity: moved.quantity, direction: params.direction },
+        }
+    },
+}
+
 const EFFECTS: Record<string, SpellEffect> = {
     wearsight,
     daily_step: dailyStep,
     tether,
     larder_ward: larderWard,
+    sending,
 }
 
 /** What a spell offers to cast at (Daily Step's destinations), or null for a spell that needs no choice. */
