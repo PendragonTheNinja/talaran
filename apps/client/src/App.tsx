@@ -279,8 +279,13 @@ function App() {
       // them too, or they sat stale until a refresh (forum, 2026-10). Any skill:
       // which levels feed the numbers is the server's business, and a level-up
       // is rare enough that one extra read costs nothing.
-      socket.on('skill_xp_changed', (p: { leveledUp?: boolean }) => {
+      socket.on('skill_xp_changed', (p: { skillName?: string; leveledUp?: boolean }) => {
         if (p?.leveledUp) loadEquipment()
+        // The reservoir's size grows with Talar level (services/talar.ts), so a
+        // Talar level-up re-reads it or the bar keeps the old maximum.
+        if (p?.leveledUp && p.skillName === 'Talar') {
+          apiFetch<{ talar: Talar }>('/api/talar').then(d => announceTalar(d.talar)).catch(() => { })
+        }
       })
 
       socket.on('trade_completed', () => {
