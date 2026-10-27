@@ -301,5 +301,6 @@ New tables (first draft): `player_talar` (reservoir), `player_talar_open_gem`, `
 2. Gem items and cutting (Crafting, lapidary station).
 3. Reservoir, filling at the Rift, Talar `is_implemented`, Georome, the church.
 4. Spells, T1 first (Wearsight, Daily Step, Larder Ward, Tether), then T2 (Sending, Kindle, Portal).
+   **Built (T1, 2026-10-27):** `spells` + `player_spells`, `services/spells.ts` (one transaction per cast: the player's spell row locked, cost from the reservoir, effect, cooldown, §7 XP), learned at a church, cast from the spellbook on the Talar bar. Daily Step finds the shortest road in base seconds over `location_connections` and offers every visited place on the island with its price. Tether tells a death pile from a drop by its 15-minute private window and refuses a pile it already held. Larder Ward is cast at the farmstead for 4, 8 or 12 hours, priced on the head in the pens at the cast; `player_pens.warded_from`/`warded_until`, top-ups settled on read under the pen lock (`settleWardsWithin` in `services/husbandry.ts`), and farmstead deposits and withdrawals settle first. A top-up pays no feeding XP. `race:check` covers casting and the ward.
 5. Jewelry.
 6. Rift surge row, Manual page, patch notes.

@@ -1441,6 +1441,49 @@ const SCENARIOS: Scenario[] = [
             return changed('reservoir hundredths', 9500, held) ?? succeeded(st, 1);
         },
     },
+    {
+        id: 'talar', name: 'withdraw from a farmstead store five times at once while a warded trough has run dry', rounds: 10,
+        run: async (ctx) => {
+            // Larder Ward (services/husbandry.ts): a trough under the ward ran
+            // dry an hour ago, and the store holds 10 grain. Each withdrawal
+            // settles the ward first. Exactly one top-up (2 grain for two hens)
+            // may be taken, and the five withdrawals of 1 take 5 more: 3 left
+            // in store, 5 in the pack, the trough full for 12 hours from when
+            // it ran dry. Two top-ups would mean the pen was fed twice.
+            const w = await world(ctx);
+            const novita = await ctx.seed.row('locations', { name: 'Novita' });
+            await ctx.db('players').where({ id: w.player.id }).update({ current_location_id: novita.id });
+            const grain = await ctx.seed.row('items', { name: 'Racecheck Grain', type: 'material' });
+            const chick = await ctx.seed.row('items', { name: 'Racecheck Chick', type: 'material' });
+            const hen = await ctx.seed.row('animal_species', {
+                name: 'Racecheck Hen', pen_type: 'coop', husbandry_level: 1, baby_item_name: chick.name,
+                feed_item_name: grain.name, feed_qty: 1, grow_seconds: 3600, elder_seconds: 3600,
+                slaughter_table: JSON.stringify([]), is_active: true,
+            });
+            const farm = await ctx.seed.row('player_properties', { player_id: w.player.id, location_id: novita.id, type: 'farmstead', storage_slots: 20 });
+            const now = Date.now();
+            const dryAt = new Date(now - 3600_000);
+            const pen = await ctx.seed.row('player_pens', {
+                property_id: farm.id, slot_index: 0, pen_type: 'coop', species_id: hen.id, capacity: 6,
+                fed_until: dryAt, muck_due_at: new Date(now + 3600_000),
+                warded_from: new Date(now - 2 * 3600_000), warded_until: new Date(now + 6 * 3600_000),
+            });
+            for (const name of ['Ada', 'Bea']) {
+                await ctx.seed.row('player_animals', {
+                    player_id: w.player.id, pen_id: pen.id, species_id: hen.id, name,
+                    grow_seconds_accrued: 0, product_seconds_accrued: 0, accrued_at: dryAt, mature_xp_paid: false,
+                });
+            }
+            await ctx.seed.row('property_storage', { property_id: farm.id, item_id: grain.id, quantity: 10 });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/property/storage/withdraw', { itemId: grain.id, quantity: 1 }));
+            const after = await ctx.db('player_pens').where({ id: pen.id }).first();
+            const fedFor = Math.round((new Date(after.fed_until).getTime() - dryAt.getTime()) / 3600_000);
+            return changed('grain in store', 3, await storedIn(ctx, farm.id, grain.id))
+                ?? changed('grain anywhere', 8, await ctx.itemTotal(grain.id))
+                ?? changed('hours the trough is full for, from when it ran dry', 12, fedFor)
+                ?? succeeded(st, 5);
+        },
+    },
 ];
 
 main().catch((err) => {

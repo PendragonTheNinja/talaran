@@ -11,6 +11,7 @@ import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit } from '../lib/realtime'
+import { wardableHead, wardFarmsteadWithin } from './husbandry'
 
 // Spells (docs/talar-spec.md §5 to §7). A spell is a row (services' nouns);
 // what it does is an entry in EFFECTS below (verbs are code).
@@ -68,6 +69,9 @@ export interface CastOutcome {
     detail?: unknown
 }
 
+/** One choice in the spellbook: what it says, what it costs, and what is sent back to cast it. */
+export interface SpellTarget { label: string; cost: number; params: Record<string, unknown> }
+
 interface SpellEffect {
     /**
      * Work that cannot run inside the cast's transaction (settling a fight runs
@@ -76,7 +80,7 @@ interface SpellEffect {
      */
     prepare?: (playerId: number, spell: SpellRow, params: Record<string, unknown>) => Promise<void>
     /** Choices a cast needs (Daily Step's destinations), for the spellbook to offer. */
-    targets?: (playerId: number, spell: SpellRow) => Promise<unknown>
+    targets?: (playerId: number, spell: SpellRow) => Promise<SpellTarget[]>
     /** Talar this cast costs (may be fractional; charged in hundredths). Throws SpellAbort to refuse. */
     cost: (trx: any, playerId: number, spell: SpellRow, params: Record<string, unknown>) => Promise<number>
     /** Do it, inside the cast's transaction. Throws SpellAbort to refuse; the payment rolls back. */
@@ -198,7 +202,7 @@ function stepCost(spell: SpellRow, seconds: number): number {
 const dailyStep: SpellEffect = {
     prepare: async (playerId) => { await endFightIfAny(playerId) },
     targets: async (playerId, spell) => (await stepTargets(db, playerId)).targets
-        .map(t => ({ ...t, cost: stepCost(spell, t.seconds) })),
+        .map(t => ({ label: t.name, cost: stepCost(spell, t.seconds), params: { locationId: t.locationId } })),
     cost: async (trx, playerId, spell, params) => stepCost(spell, (await stepTarget(trx, playerId, params)).seconds),
     cast: async (trx, playerId, _spell, params) => {
         const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
@@ -267,20 +271,65 @@ const tether: SpellEffect = {
     },
 }
 
+// ── Larder Ward (§6) ─────────────────────────────────────────────────────────
+// Cast at the farmstead over every pen there, for some hours. The ward itself
+// is husbandry's (services/husbandry.ts); this is its price: the rate per
+// head-hour covered, for the head in the pens when it is cast.
+
+const WARD_HOURS = [4, 8, 12]
+const WARD_MAX_HOURS = 12
+
+function wardHours(params: Record<string, unknown>): number {
+    const hours = Math.floor(Number(params.hours))
+    if (!Number.isFinite(hours) || hours < 1 || hours > WARD_MAX_HOURS) throw new SpellAbort(`A ward holds from 1 to ${WARD_MAX_HOURS} hours.`)
+    return hours
+}
+
+async function wardHead(conn: any, playerId: number): Promise<number> {
+    const r = await wardableHead(playerId, conn)
+    if ('error' in r) throw new SpellAbort(r.error)
+    return r.head
+}
+
+const larderWard: SpellEffect = {
+    targets: async (playerId, spell) => {
+        const head = await wardHead(db, playerId)
+        return WARD_HOURS.map(h => ({
+            label: `${h} hours`, cost: Math.round(Number(spell.cost) * head * h * HUNDREDTHS) / HUNDREDTHS, params: { hours: h },
+        }))
+    },
+    cost: async (trx, playerId, spell, params) => {
+        const hours = wardHours(params)
+        return Math.round(Number(spell.cost) * (await wardHead(trx, playerId)) * hours * HUNDREDTHS) / HUNDREDTHS
+    },
+    cast: async (trx, playerId, _spell, params) => {
+        const hours = wardHours(params)
+        const r = await wardFarmsteadWithin(trx, playerId, hours)
+        if ('error' in r) throw new SpellAbort(r.error)
+        const fed = r.toppedUp ? ` ${r.toppedUp === 1 ? 'One empty trough fills' : `${r.toppedUp} empty troughs fill`} from your store.` : ''
+        return {
+            message: `You walk the pens and set the ward. ${r.pens === 1 ? 'The pen is' : `All ${r.pens} pens are`} looked after for the next ${hours} hours.${fed}`,
+            detail: r,
+        }
+    },
+}
+
 const EFFECTS: Record<string, SpellEffect> = {
     wearsight,
     daily_step: dailyStep,
     tether,
+    larder_ward: larderWard,
 }
 
 /** What a spell offers to cast at (Daily Step's destinations), or null for a spell that needs no choice. */
-export async function spellTargets(playerId: number, key: string): Promise<{ success: true; targets: unknown } | { success: false; error: string }> {
+export async function spellTargets(playerId: number, key: string): Promise<{ success: true; targets: SpellTarget[] | null } | { success: false; error: string }> {
     try {
         const spell: SpellRow | undefined = await db('spells').where({ key: String(key), is_active: true }).first()
         const effect = spell ? EFFECTS[spell.key] : undefined
         if (!spell || !effect) return { success: false, error: 'There is no such working.' }
         return { success: true, targets: effect.targets ? await effect.targets(playerId, spell) : null }
     } catch (err) {
+        if (err instanceof SpellAbort) return { success: false, error: err.message }
         logger.error(`spellTargets error (player ${playerId}, ${key}): ${err}`)
         return { success: false, error: SERVER_ERROR }
     }

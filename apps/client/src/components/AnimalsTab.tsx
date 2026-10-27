@@ -25,6 +25,8 @@ interface Pen {
     capacity: number; headCount: number
     fed: boolean; fedUntil: string | null; canFeed: boolean
     needsMucking: boolean; muckDueAt: string | null; canMuck: boolean
+    /** Larder Ward (a Talar spell): troughs refill from store, bedding waits, until then. */
+    wardedUntil?: string | null
     beddingCost: number; beddingItem: string
     readyUnits: number
     slaughterable: number
@@ -332,7 +334,14 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                                         ? null
                                         : pen.fed ? 'Fed' : pen.fedUntil ? 'Hungry—nothing is growing' : 'Not fed yet'}
                                 </span>
-                                {pen.needsMucking && <span className="pen-warn">Needs mucking out</span>}
+                                {pen.needsMucking && (pen.wardedUntil
+                                    ? <span className="pen-ok">Bedding due, the ward holds it</span>
+                                    : <span className="pen-warn">Needs mucking out</span>)}
+                                {pen.wardedUntil && (
+                                    <span className="pen-ok">
+                                        Warded until {new Date(pen.wardedUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                    </span>
+                                )}
                             </div>
                         )}
 

@@ -2,6 +2,7 @@ import db from '../db';
 import { notifyInventoryChanged } from './inventory';
 import { logger } from '../lib/logger';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { settleWards } from './husbandry';
 
 // Property storage. One SLOT holds one unique item stack of any size, so 50 slots
 // means 50 different items, not 50 things. Stores are per-property: what you keep
@@ -85,6 +86,11 @@ export async function depositItem(playerId: number, itemId: number, qtyRaw: numb
         const property = await propertyForPlayerHere(playerId, type);
         if (!property) return { success: false, error: 'You have nothing of your own here.' };
 
+        // A Larder Ward feeds pens from this store (services/husbandry.ts).
+        // Settle it first, so a trough that ran dry earlier eats from what was
+        // in store then, not from what is in store after this.
+        if (property.type === 'farmstead') await settleWards(playerId);
+
         const item = await db('items').where({ id: itemId }).first();
         if (!item) return { success: false, error: 'Unknown item.' };
 
@@ -155,6 +161,9 @@ export async function withdrawItem(playerId: number, itemId: number, qtyRaw: num
     try {
         const property = await propertyForPlayerHere(playerId, type);
         if (!property) return { success: false, error: 'You have nothing of your own here.' };
+
+        // See depositItem: a warded trough eats before the store changes.
+        if (property.type === 'farmstead') await settleWards(playerId);
 
         const item = await db('items').where({ id: itemId }).first();
         if (!item) return { success: false, error: 'Unknown item.' };

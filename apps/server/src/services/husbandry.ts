@@ -317,8 +317,15 @@ function penRunningUntil(pen: any, now: number): number {
     // how much is in bloom nearby.
     if (isApiary(pen.pen_type)) return now;
     const fed = pen.fed_until ? new Date(pen.fed_until).getTime() : 0;
-    const muckDue = pen.muck_due_at ? new Date(pen.muck_due_at).getTime() : Infinity;
+    // A Larder Ward holds the muck deadline off until it ends (see below).
+    const ward = pen.warded_until ? new Date(pen.warded_until).getTime() : 0;
+    const muckDue = pen.muck_due_at ? Math.max(new Date(pen.muck_due_at).getTime(), ward) : Infinity;
     return Math.min(fed, muckDue, now);
+}
+
+/** Is a Larder Ward over this pen at `now`? */
+function isWarded(pen: any, now: number): boolean {
+    return !!pen.warded_until && new Date(pen.warded_until).getTime() > now;
 }
 
 /**
@@ -538,9 +545,8 @@ function lifeFraction(animal: any, species: any): number {
     return Math.min(1, animal.grow_seconds_accrued / Math.max(1, full));
 }
 
-async function accrueAllInPen(pen: any, x: Ex = db) {
+async function accrueAllInPen(pen: any, x: Ex = db, now = Date.now()) {
     const animals = await x('player_animals').where({ pen_id: pen.id });
-    const now = Date.now();
     const out = [];
     for (const a of animals) out.push(await accrue(a, pen, now, x));
     return out;
@@ -591,6 +597,7 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
     what: string; where: string; island: string;
     status: 'ready' | 'working' | 'idle'; readyAt: string | null; detail: string;
 }[]> {
+    await settleWards(playerId);
     const pens = await db('player_pens')
         .join('player_properties', 'player_pens.property_id', 'player_properties.id')
         .leftJoin('locations', 'player_properties.location_id', 'locations.id')
@@ -629,7 +636,7 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
         // growing".
         const apiary = isApiary(pen.pen_type);
         const fed = apiary || (pen.fed_until && new Date(pen.fed_until).getTime() > now);
-        const needsMuck = !apiary && pen.muck_due_at && new Date(pen.muck_due_at).getTime() <= now;
+        const needsMuck = !apiary && !isWarded(pen, now) && pen.muck_due_at && new Date(pen.muck_due_at).getTime() <= now;
         // Counted as the game calls them: hives, not "Bees" (the species name
         // is already plural, so adding an s read "Beess").
         const head = apiary
@@ -691,6 +698,141 @@ export async function husbandryTallyEntries(playerId: number): Promise<{
     return out;
 }
 
+// ── Larder Ward (Talar; docs/talar-spec.md §6) ──────────────────────────────
+// A spell cast at the farmstead over every pen there, for some hours. While it
+// holds, a trough that runs dry is topped up from the FARMSTEAD'S STORAGE with
+// the species' normal feed, and the muck deadline waits until the ward ends
+// (penRunningUntil). Feed is still bought and eaten; Talar pays for the
+// convenience, never the food. A top-up pays no feeding XP: nobody fed them.
+//
+// It never makes a clock run faster, only removes downtime, so a warded pen
+// earns exactly what a fed pen earns and parity with Farming holds.
+//
+// Lazy, like the rest of this file: top-ups are settled on read, under the
+// pen's lock with the storage row locked, at the moment each trough ran dry.
+// warded_from is the earliest a top-up may happen. It starts at the cast and
+// moves up to "now" whenever a top-up finds the store short, so feed put in
+// later is never counted as eaten earlier. Deposits and withdrawals at the
+// farmstead settle first (services/property.ts) for the same reason.
+
+/** Feed from the farmstead's store, all or nothing; false when it is short. */
+async function takeFromStorage(trx: Knex.Transaction, propertyId: number, itemId: number, qty: number): Promise<boolean> {
+    const row = await trx('property_storage').where({ property_id: propertyId, item_id: itemId }).forUpdate().first();
+    if (!row || Number(row.quantity) < qty) return false;
+    if (Number(row.quantity) === qty) await trx('property_storage').where({ id: row.id }).delete();
+    else await trx('property_storage').where({ id: row.id }).decrement('quantity', qty);
+    return true;
+}
+
+/** Settle every warded trough that has run dry, inside the caller's transaction. Returns top-ups made. */
+export async function settleWardsWithin(trx: Knex.Transaction, playerId: number, nowMs = Date.now()): Promise<number> {
+    const { property } = await playerProperty(playerId, trx);
+    if (!property) return 0;
+    const now = new Date(nowMs);
+    // Locked, and filtered in the same statement: a second settle waiting on
+    // the lock re-reads the row, sees the trough already filled, and skips it.
+    const pens = await trx('player_pens')
+        .where({ property_id: property.id })
+        .whereNotNull('species_id')
+        .whereNotNull('warded_until')
+        // Dry by now (a trough empty at the very moment of the cast counts),
+        // and the ward begun and not yet over at the moment it ran dry.
+        .whereRaw('coalesce(fed_until, to_timestamp(0)) <= ?::timestamptz', [now])
+        .whereRaw('coalesce(fed_until, to_timestamp(0)) < warded_until')
+        .whereRaw('warded_from <= ?::timestamptz', [now])
+        .whereRaw('warded_from < warded_until')
+        .orderBy('id')
+        .forUpdate();
+
+    let topUps = 0;
+    for (const pen of pens) {
+        if (isApiary(pen.pen_type)) continue;
+        const species = await trx('animal_species').where({ id: pen.species_id }).first();
+        if (!species?.feed_item_name || !(species.feed_qty >= 1)) continue;
+        const feed = await itemByName(species.feed_item_name, trx);
+        if (!feed) continue;
+
+        const wardEnd = new Date(pen.warded_until).getTime();
+        let current = pen;
+        for (;;) {
+            const fed = current.fed_until ? new Date(current.fed_until).getTime() : 0;
+            const at = Math.max(fed, new Date(current.warded_from).getTime());
+            if (at > nowMs || at >= wardEnd) break;
+
+            // Up to the moment it ran dry, under the old trough.
+            const animals = await accrueAllInPen(current, trx, at);
+            if (!animals.length) break;
+            if (!(await takeFromStorage(trx, property.id, feed.id, species.feed_qty * animals.length))) {
+                await trx('player_pens').where({ id: pen.id }).update({ warded_from: now });
+                break;
+            }
+            const fedUntil = new Date(at + FED_SECONDS * 1000);
+            await trx('player_pens').where({ id: pen.id }).update({ fed_until: fedUntil });
+            // Nothing ran between the trough emptying and the top-up.
+            await trx('player_animals').where({ pen_id: pen.id }).update({ accrued_at: new Date(at) });
+            current = { ...current, fed_until: fedUntil };
+            topUps++;
+        }
+    }
+    return topUps;
+}
+
+/** Settle in a transaction of its own, before a read or an action. Never fails the caller. */
+export async function settleWards(playerId: number): Promise<void> {
+    try {
+        await db.transaction((trx) => settleWardsWithin(trx, playerId));
+    } catch (err) {
+        logger.error(`settleWards error (player ${playerId}): ${err}`);
+    }
+}
+
+/** Head a ward would cover: every animal in a pen that eats (not hives). */
+export async function wardableHead(playerId: number, x: Ex = db): Promise<{ error: string } | { head: number }> {
+    const player = await x('players').where({ id: playerId }).select('current_location_id').first();
+    const { novita, property } = await playerProperty(playerId, x);
+    if (!property || !novita) return { error: 'A Larder Ward is set over your own pens, and you have no farmstead.' };
+    if (player?.current_location_id !== novita.id) return { error: `A Larder Ward is set at your farmstead in ${HUSBANDRY_TOWN}.` };
+    const row = await x('player_animals as a')
+        .join('player_pens as p', 'p.id', 'a.pen_id')
+        .where('p.property_id', property.id)
+        .whereNot('p.pen_type', 'apiary')
+        .count({ c: '*' }).first();
+    const head = Number(row?.c ?? 0);
+    if (head < 1) return { error: 'There is nothing in your pens to ward.' };
+    return { head };
+}
+
+/**
+ * Lay the ward over every pen at the farmstead for `hours`, inside the cast's
+ * transaction. Every pen is folded to now first, and time a pen spent stopped
+ * before the cast is dropped, as feeding or mucking does, so holding the muck
+ * deadline off can never pay for time before the ward. Hungry troughs are then
+ * topped up straight away.
+ */
+export async function wardFarmsteadWithin(
+    trx: Knex.Transaction, playerId: number, hours: number, nowMs = Date.now(),
+): Promise<{ error: string } | { head: number; pens: number; toppedUp: number }> {
+    const { property } = await playerProperty(playerId, trx);
+    if (!property) return { error: 'You have no farmstead.' };
+    const pens = await trx('player_pens').where({ property_id: property.id }).orderBy('id').forUpdate();
+    const now = new Date(nowMs);
+    const until = new Date(nowMs + hours * H * 1000);
+    let head = 0;
+    let warded = 0;
+    for (const pen of pens) {
+        if (isApiary(pen.pen_type)) continue;
+        const animals = await accrueAllInPen(pen, trx, nowMs);
+        if (!animals.length) continue;
+        await trx('player_animals').where({ pen_id: pen.id }).update({ accrued_at: now });
+        await trx('player_pens').where({ id: pen.id }).update({ warded_from: now, warded_until: until });
+        head += animals.length;
+        warded++;
+    }
+    if (!head) return { error: 'There is nothing in your pens to ward.' };
+    const toppedUp = await settleWardsWithin(trx, playerId, nowMs);
+    return { head, pens: warded, toppedUp };
+}
+
 // ── state ───────────────────────────────────────────────────────────────────
 /** An animal that came of age since the pens were last looked at, and what it paid. */
 export interface MaturedAnimal { name: string; species: string; xp: number }
@@ -705,6 +847,7 @@ export interface MaturedAnimal { name: string; species: string; xp: number }
 export async function getHusbandryState(playerId: number, opts: { settleMaturity?: boolean } = {}) {
     const settleMaturity = opts.settleMaturity !== false;
     const matured: MaturedAnimal[] = [];
+    await settleWards(playerId);
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     const { novita, property } = await playerProperty(playerId);
     const atNovita = !!novita && player?.current_location_id === novita.id;
@@ -854,6 +997,8 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
             canFeed: !isApiary(pen.pen_type) && fedUntil <= now && animals.length > 0,
             needsMucking: !isApiary(pen.pen_type) && muckDue > 0 && muckDue <= now,
             muckDueAt: isApiary(pen.pen_type) ? null : pen.muck_due_at,
+            // Larder Ward: troughs refill from store and bedding waits until then.
+            wardedUntil: isWarded(pen, now) ? pen.warded_until : null,
             canMuck: !isApiary(pen.pen_type) && animals.length > 0 && (muckDue === 0 || muckDue <= now),
             beddingCost: animals.length * BEDDING.perHead,
             beddingItem: BEDDING.itemName,
@@ -1128,6 +1273,7 @@ export async function resolveDemolishPen(playerId: number, penIdRaw: string | nu
 // Instant, not timed: setting a chick down is not work. The animal's clock does
 // not start until the pen is fed.
 export async function placeAnimal(playerId: number, penId: number, speciesId: number): Promise<HusbandryActionResult> {
+    await settleWards(playerId);
     try {
         let name = '';
         let babyItem = '';
@@ -1223,6 +1369,7 @@ export async function renameAnimal(playerId: number, animalId: number, name: str
 
 // ── feed ────────────────────────────────────────────────────────────────────
 export async function startFeed(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    await settleWards(playerId);
     const pen = await ownedPen(playerId, penId);
     if (!pen) return { ok: false, error: 'That is not your pen.' };
     if (!pen.species_id) return { ok: false, error: 'There is nothing in that pen to feed.' };
@@ -1253,6 +1400,7 @@ export async function startFeed(playerId: number, penId: number): Promise<{ ok: 
 }
 
 export async function resolveFeed(playerId: number, penIdRaw: string | null): Promise<HusbandryActionResult> {
+    await settleWards(playerId);
     try {
         let xp = 0;
         let head = 0;
@@ -1408,6 +1556,7 @@ function muckRoundSeconds(pens: number): number {
 }
 
 export async function startFeedAll(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    await settleWards(playerId);
     if (!(await equippedTool(playerId, 'pail'))) {
         return { ok: false, error: 'You need a Feed Pail equipped to carry feed.' };
     }
@@ -1432,6 +1581,7 @@ export async function startFeedAll(playerId: number): Promise<{ ok: boolean; err
 }
 
 export async function resolveFeedAll(playerId: number): Promise<HusbandryActionResult> {
+    await settleWards(playerId);
     try {
         let xp = 0;
         let fedPens = 0;
@@ -1498,6 +1648,7 @@ export async function resolveFeedAll(playerId: number): Promise<HusbandryActionR
 }
 
 export async function startMuckAll(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    await settleWards(playerId);
     if (!(await equippedTool(playerId, 'fork'))) {
         return { ok: false, error: 'You need a Mucking Fork equipped.' };
     }
@@ -1519,6 +1670,7 @@ export async function startMuckAll(playerId: number): Promise<{ ok: boolean; err
 }
 
 export async function resolveMuckAll(playerId: number): Promise<HusbandryActionResult> {
+    await settleWards(playerId);
     try {
         let xp = 0;
         let muckedPens = 0;
@@ -1581,6 +1733,7 @@ export async function resolveMuckAll(playerId: number): Promise<HusbandryActionR
 
 // ── muck ────────────────────────────────────────────────────────────────────
 export async function startMuck(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    await settleWards(playerId);
     const pen = await ownedPen(playerId, penId);
     if (!pen) return { ok: false, error: 'That is not your pen.' };
     if (isApiary(pen.pen_type)) return { ok: false, error: 'Bees keep their own hive clean. It never needs mucking.' };
@@ -1611,6 +1764,7 @@ export async function startMuck(playerId: number, penId: number): Promise<{ ok: 
 }
 
 export async function resolveMuck(playerId: number, penIdRaw: string | null): Promise<HusbandryActionResult> {
+    await settleWards(playerId);
     try {
         let xp = 0;
         let qty = 0;
