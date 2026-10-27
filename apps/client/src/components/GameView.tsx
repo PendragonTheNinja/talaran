@@ -10,6 +10,7 @@ import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
+import { getItemIcon } from '../lib/items'
 import LevelUpUnlocks from './LevelUpUnlocks'
 import { announceHp, describeSwing, fetchFightState, localizeFight, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
 
@@ -107,6 +108,31 @@ const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita', 'Phoenw
 // rows now: see lib/actionPresentation.ts and the action_presentation table.
 
 /** What the result card shows after an action completes (a kill's pay among them). */
+/** The stone being filled at a rift, as the server describes it. */
+interface FillStone {
+  name: string
+  filled: number
+  capacity: number
+  secondsToFull: number
+  secondsTotal: number
+}
+
+/**
+ * When the running action's bar ends. Filling pours in 60-second cycles but
+ * its bar runs to the stone being full, which the row keeps in action_data.
+ */
+function actionEndsAt(action: { action_type: string; action_data?: string | null; completes_at: string }): string {
+  if (action.action_type === 'talar_fill' && action.action_data && !isNaN(Date.parse(action.action_data))) return action.action_data
+  return action.completes_at
+}
+
+/** A timer's label: seconds while short, minutes and seconds once long. */
+function timerLabel(seconds: number): string {
+  if (seconds < 120) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  return `${m}:${String(seconds % 60).padStart(2, '0')}`
+}
+
 type LastResult = {
   itemName: string
   xpAwarded: number
@@ -197,6 +223,8 @@ export default function GameView({
   const [farmKind, setFarmKind] = useState<string>('till')
   const [husbandryKind, setHusbandryKind] = useState<string>('feed')
   const [lastResult, setLastResult] = useState<LastResult | null>(null)
+  // The stone in hand while filling at a rift (FillStone in services/talar.ts).
+  const [fillStone, setFillStone] = useState<FillStone | null>(null)
   // Level-ups queue: one kill can raise Melee, Defense and Constitution at
   // once, and each gets its own popup in turn. Setting null closes the
   // current one and shows the next.
@@ -456,7 +484,7 @@ export default function GameView({
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && playerData?.currentAction) {
         const action = playerData.currentAction
-        const completesAt = new Date(action.completes_at).getTime()
+        const completesAt = new Date(actionEndsAt(action)).getTime()
         const secondsLeft = Math.max(0, Math.round((completesAt - serverNow()) / 1000))
         setTimerSeconds(secondsLeft)
       }
@@ -557,6 +585,50 @@ export default function GameView({
             setTimerSeconds(data.timerSeconds)
             setTimerMax(data.timerSeconds)
             startCountdown(data.timerSeconds, data.nextCompletes)
+          }
+          return
+        }
+
+        // Talar: a pour at the rift (repeats until the last stone is full) and
+        // the end of a vigil (once). A pour yields nothing until its stone is
+        // full, so neither can go through the itemName gate below.
+        const talar = data as unknown as {
+          actionType?: string
+          firstEver?: boolean
+          timerSeconds?: number
+          nextCompletes?: string
+          result: { itemName?: string; quantity?: number; xpAwarded?: number; message?: string; eventXp?: number; stone?: FillStone | null }
+          xpInfo?: XpInfo & { xpAtLevel?: number }
+        }
+        if (talar.actionType === 'talar_fill' || talar.actionType === 'spell_vigil') {
+          const r = talar.result
+          setLastResult({
+            firstEver: talar.firstEver,
+            itemName: r.itemName ?? '',
+            quantity: r.quantity,
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: talar.xpInfo?.totalXp || 0,
+            level: talar.xpInfo?.level || 1,
+            xpToNext: talar.xpInfo?.xpToNext || 0,
+            xpAtLevel: talar.xpInfo?.xpAtLevel || 0,
+            skillName: 'Talar',
+            message: r.message,
+            drops: r.itemName ? [{ name: r.itemName, quantity: 1 }] : [],
+            eventXp: r.eventXp,
+          })
+          if (talar.xpInfo?.leveledUp) setLevelUpSkill({ name: 'Talar', level: talar.xpInfo.level })
+          onPlayerDataUpdate()
+          onInventoryUpdate()
+          setActionsCompleted(prev => prev + 1)
+          if (talar.actionType === 'talar_fill') setFillStone(r.stone ?? null)
+          if (talar.timerSeconds && talar.nextCompletes && r.stone) {
+            setTimerMax(r.stone.secondsTotal)
+            startCountdown(talar.timerSeconds, talar.nextCompletes)
+          } else {
+            setCurrentAction(null)
+            setActiveNodeId(null)
+            setTimerSeconds(0)
+            if (timerRef.current) clearInterval(timerRef.current)
           }
           return
         }
@@ -1155,11 +1227,17 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
-      case 'talar_fill':
+      case 'talar_fill': {
+        // The bar runs to the stone being full (actionEndsAt), and the stone
+        // itself comes from the fill state.
+        const endsAt = actionEndsAt(action)
+        const toFull = Math.max(0, Math.round((new Date(endsAt).getTime() - serverNow()) / 1000))
         setCurrentAction('talar_fill')
-        setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft, action.completes_at)
+        setTimerMax(action.last_timer_seconds || toFull || 5)
+        startCountdown(toFull, endsAt)
+        apiFetch<{ stone: FillStone | null }>('/api/talar/fill').then(d => setFillStone(d.stone)).catch(() => { })
         break
+      }
 
       case 'spell_vigil':
         setCurrentAction('spell_vigil')
@@ -1222,13 +1300,14 @@ export default function GameView({
       onClearTravel()
       if (timerRef.current) clearInterval(timerRef.current)
 
-      const res = await apiFetch<{ timerSeconds: number }>('/api/talar/fill/start', {
+      const res = await apiFetch<{ timerSeconds: number; timerMax: number; fullAt: string; stone: FillStone }>('/api/talar/fill/start', {
         method: 'POST',
         body: JSON.stringify({ itemId }),
       })
       setCurrentAction('talar_fill')
-      setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds)
+      setFillStone(res.stone)
+      setTimerMax(res.timerMax)
+      startCountdown(res.timerSeconds, res.fullAt)
       onInventoryUpdate()
     } catch (err) {
       const e = err as { status?: number; message?: string }
@@ -2062,6 +2141,25 @@ export default function GameView({
               <p className="scene-action-text gold-text">
                 {sceneTextFor(presentation, currentAction, actionKind, liveSceneText)}
               </p>
+              {/* The stone in hand at the rift: it has left the pack, so it
+                  is shown here, where the work is (Nathan, 2026-10-27). */}
+              {currentAction === 'talar_fill' && fillStone && (
+                <div className="scene-fill-stone">
+                  <img
+                    src={getItemIcon(fillStone.name)}
+                    alt={fillStone.name}
+                    className="scene-fill-stone-icon"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                  <div className="scene-fill-stone-body">
+                    <span className="scene-fill-stone-name">{fillStone.name}</span>
+                    <div className="scene-fill-stone-bar">
+                      <div className="scene-fill-stone-fill" style={{ width: `${Math.min(100, (fillStone.filled / Math.max(1, fillStone.capacity)) * 100)}%` }} />
+                    </div>
+                    <span className="scene-fill-stone-count tabular-num">{fillStone.filled} / {fillStone.capacity} Talar</span>
+                  </div>
+                </div>
+              )}
               <div className="scene-timer">
                 <div className="scene-timer-bar">
                   <div
@@ -2070,7 +2168,7 @@ export default function GameView({
                     style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
                   />
                 </div>
-                <span className="scene-timer-label">{timerSeconds}s</span>
+                <span className="scene-timer-label">{timerLabel(timerSeconds)}</span>
               </div>
 
               {/* One button for every action type, including the ones that do

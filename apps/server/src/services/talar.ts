@@ -169,6 +169,35 @@ export function minutesToFill(talar: number, talarPerHour: number, grade: number
     return Math.ceil((talar * HUNDREDTHS) / pourPerCycle(talarPerHour, grade)) * FILL_CYCLE_SECONDS / 60
 }
 
+/**
+ * The stone being filled, as the scene shows it: how full it is, and how long
+ * until it is full. The tick still pours in 60-second cycles (each one is saved,
+ * so leaving loses nothing), but the player is shown the whole stone, not one
+ * cycle at a time (Nathan, 2026-10-27).
+ */
+export interface FillStone {
+    name: string
+    filled: number
+    capacity: number
+    /** Seconds until this stone is full, at whole cycles. */
+    secondsToFull: number
+    /** Seconds a stone like it takes from empty, for the bar's length. */
+    secondsTotal: number
+}
+
+function fillStone(gem: { name: string; talar: unknown; talar_per_hour: unknown; quality: unknown }, filledHundredths: number): FillStone {
+    const grade = Math.max(0, cutGradeOf(String(gem.quality)))
+    const capacity = Number(gem.talar) * HUNDREDTHS
+    const pour = pourPerCycle(Number(gem.talar_per_hour), grade)
+    return {
+        name: gem.name,
+        filled: Math.floor(filledHundredths / HUNDREDTHS),
+        capacity: Number(gem.talar),
+        secondsToFull: Math.ceil(Math.max(0, capacity - filledHundredths) / pour) * FILL_CYCLE_SECONDS,
+        secondsTotal: Math.ceil(capacity / pour) * FILL_CYCLE_SECONDS,
+    }
+}
+
 /** The level a gem can first be filled at: the level its tier opens at. */
 function fillLevel(tier: number): number {
     return rungOfTier(Number(tier) || 1)
@@ -196,13 +225,14 @@ export interface FillOption {
 export async function fillOptions(playerId: number): Promise<{
     atRift: boolean
     open: { itemId: number; name: string; filled: number; talar: number } | null
+    stone: FillStone | null
     gems: FillOption[]
 }> {
     const [rift, level, openRow, packRows] = await Promise.all([
         atRift(playerId),
         playerSkillLevel(playerId, 'Talar'),
         db('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
-            .where('o.player_id', playerId).first('i.id', 'i.name', 'i.talar', 'o.filled_hundredths'),
+            .where('o.player_id', playerId).first('i.id', 'i.name', 'i.talar', 'i.talar_per_hour', 'i.quality', 'o.filled_hundredths'),
         db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
             .where('pi.player_id', playerId).where('pi.quantity', '>', 0)
             .where('i.type', 'gem').whereNotNull('i.talar_per_hour')
@@ -215,6 +245,7 @@ export async function fillOptions(playerId: number): Promise<{
             itemId: openRow.id, name: openRow.name, talar: Number(openRow.talar),
             filled: Math.floor(Number(openRow.filled_hundredths) / HUNDREDTHS),
         } : null,
+        stone: openRow ? fillStone(openRow, Number(openRow.filled_hundredths)) : null,
         gems: packRows.map((g: any) => ({
             itemId: g.id, name: g.name, quantity: Number(g.quantity), talar: Number(g.talar),
             minutes: minutesToFill(Number(g.talar), Number(g.talar_per_hour), Math.max(0, cutGradeOf(g.quality))),
@@ -232,18 +263,18 @@ export async function fillOptions(playerId: number): Promise<{
 export async function startFill(
     playerId: number,
     itemId: number | null,
-): Promise<{ ok: true; timerSeconds: number; gemName: string } | { ok: false; error: string; status: number }> {
+): Promise<{ ok: true; timerSeconds: number; timerMax: number; fullAt: string; gemName: string; stone: FillStone } | { ok: false; error: string; status: number }> {
     try {
         if (!(await atRift(playerId))) return { ok: false, status: 400, error: 'Gems are filled at a rift, where the light comes up out of the ground.' }
         const level = await playerSkillLevel(playerId, 'Talar')
 
-        const gemName = await db.transaction(async trx => {
+        const stone = await db.transaction(async trx => {
             const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
             const open = await trx('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
-                .where('o.player_id', playerId).forUpdate('o').first('i.name')
-            let name: string
+                .where('o.player_id', playerId).forUpdate('o').first('o.filled_hundredths', ...CUT_GEM_COLUMNS)
+            let stone: FillStone
             if (open) {
-                name = open.name
+                stone = fillStone(open, Number(open.filled_hundredths))
             } else {
                 const id = Math.floor(Number(itemId))
                 const gem = Number.isFinite(id) && id > 0
@@ -254,27 +285,34 @@ export async function startFill(
                 const taken = await takeItemsWithin(trx, playerId, [{ name: gem.name, quantity: 1 }])
                 if (!taken.ok) throw new TalarAbort(`You have no ${gem.name}.`)
                 await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: gem.id, filled_hundredths: 0 })
-                name = gem.name
+                stone = fillStone(gem, 0)
             }
 
+            // The tick runs on the next cycle; the row also carries when the
+            // stone will be full and how long a stone takes, so a refresh draws
+            // the same bar (the restore case in GameView.tsx).
             const now = new Date()
             await trx('player_actions').insert({
                 player_id: playerId,
                 action_type: 'talar_fill',
-                action_data: null,
+                action_data: new Date(now.getTime() + stone.secondsToFull * 1000).toISOString(),
                 location_id: player.current_location_id,
                 started_at: now,
                 completes_at: new Date(now.getTime() + FILL_CYCLE_SECONDS * 1000),
                 auto_restart: true,
-                last_timer_seconds: FILL_CYCLE_SECONDS,
+                last_timer_seconds: stone.secondsTotal,
                 last_bot_check: now,
                 bot_check_pending: false,
             })
-            return name
+            return stone
         })
 
         notifyInventoryChanged(playerId)
-        return { ok: true, timerSeconds: FILL_CYCLE_SECONDS, gemName }
+        return {
+            ok: true, timerSeconds: stone.secondsToFull, timerMax: stone.secondsTotal,
+            fullAt: new Date(Date.now() + stone.secondsToFull * 1000).toISOString(),
+            gemName: stone.name, stone,
+        }
     } catch (err: any) {
         if (err instanceof TalarAbort) return { ok: false, status: 400, error: err.message }
         // The unique index on player_actions.player_id is the real guard (CLAUDE.md §9).
@@ -295,6 +333,8 @@ export interface FillCycleResult {
     message?: string
     /** Whether there is a gem open to go on filling. */
     carryOn?: boolean
+    /** The stone in hand after this cycle (the next one, once one fills); null when none is left. */
+    stone?: FillStone | null
 }
 
 /** One cycle at the rift, for the tick. Re-checks where the player stands every time. */
@@ -322,7 +362,8 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
                     .update({ filled_hundredths: filled, updated_at: trx.fn.now() })
                 return {
                     xp, carryOn: true, itemName: undefined as string | undefined,
-                    message: `The ${gemWord} takes in a little more light. ${Math.floor(filled / HUNDREDTHS)} of ${open.talar}.`,
+                    message: `The ${gemWord} takes in a little more light.`,
+                    stone: fillStone(open, filled) as FillStone | null,
                 }
             }
 
@@ -340,6 +381,7 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
             }
             return {
                 xp, carryOn: next.ok, itemName: chargedName,
+                stone: next.ok ? fillStone(open, 0) : null,
                 message: next.ok
                     ? `The ${gemWord} is full and glowing. You take up the next.`
                     : `The ${gemWord} is full and glowing. That was your last ${open.name}.`,
@@ -356,6 +398,7 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
             quantity: outcome.itemName ? 1 : undefined,
             message: outcome.message,
             carryOn: outcome.carryOn,
+            stone: outcome.stone,
         }
     } catch (err) {
         if (err instanceof TalarAbort) return { success: false, error: err.message }

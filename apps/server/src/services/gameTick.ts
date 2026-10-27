@@ -963,18 +963,23 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const leveledUp = currentLevel > levelFromXp(previousXp);
       const xpInfo = { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) };
 
-      if (result.carryOn) {
+      if (result.carryOn && result.stone) {
+        // The next cycle is the tick's; the player's bar runs to the stone
+        // being full (FillStone in services/talar.ts), so the row keeps that
+        // time and the stone's whole length for a refresh to redraw.
         const nextCompletion = new Date(now.getTime() + FILL_CYCLE_SECONDS * 1000);
+        const fullAt = new Date(now.getTime() + result.stone.secondsToFull * 1000);
         await db('player_actions').where({ id: action.id }).update({
           completes_at: nextCompletion,
-          last_timer_seconds: FILL_CYCLE_SECONDS,
+          action_data: fullAt.toISOString(),
+          last_timer_seconds: result.stone.secondsTotal,
         });
         await emitActionComplete(io, action, {
           firstEver,
           actionType: action.action_type,
           result,
-          nextCompletes: nextCompletion,
-          timerSeconds: FILL_CYCLE_SECONDS,
+          nextCompletes: fullAt,
+          timerSeconds: result.stone.secondsToFull,
           xpInfo,
         });
       } else {
