@@ -333,11 +333,16 @@ export async function processMiningVein(
       [`${ore.subtype}_ore_mined`]: 1,
     });
 
+    // Gems turn up in ore as they do in stone (docs/talar-spec.md §2), keyed by
+    // the ore's kind so a dense swing rolls the same table as a plain one.
+    const drops = await rollSecondaryDrops(playerId, `mining:ore:${ore.subtype}`, 'Mining');
+
     logger.info(`Player ${playerId} mined ${oreItem.name} from vein ${veinId} (${newRemaining} remaining)`);
     return {
       success: true,
       itemName: oreItem.name,
       xpAwarded: oreXp,
+      drops,
     };
 
   } catch (err) {

@@ -491,10 +491,12 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
     for (const d of secondary) {
         // 'woodcutting:lanai' and 'mining:rock:granite' are readable already;
         // they just need the punctuation turning into words.
+        // 'mining:ore:ambren' reads as 'Ambren Ore', the ore's own name.
         const parts = String(d.key).split(':');
         const skill = parts[0];
-        const rest = parts.slice(1).filter(p => p !== 'rock' && p !== 'saw');
-        const pretty = rest
+        const isOre = parts[1] === 'ore';
+        const rest = parts.slice(1).filter(p => p !== 'rock' && p !== 'saw' && p !== 'ore');
+        const pretty = [...rest, ...(isOre ? ['ore'] : [])]
             .map(w => w.charAt(0).toUpperCase() + w.slice(1))
             .join(' ');
 

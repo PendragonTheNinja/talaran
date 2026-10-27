@@ -292,6 +292,10 @@ async function main(): Promise<void> {
     // something with a main source; Charc's (the kiln) is not modelled here,
     // so a fallback alone would have let a 1-in-10 drop set its price.
     const COMBAT_NATIVE_SUBTYPES = new Set(['rare_weapon', 'shell_armor', 'trophy']);
+    // Items of a shared kind whose only road is a fight, by name, as the museum
+    // names its exceptions: a Wolf Pelt is a hide like any hunter's, but only
+    // a wolf gives it, so nothing else would ever price it.
+    const COMBAT_ONLY_ITEMS = new Set(['Wolf Pelt']);
     const subtypeByName = new Map(items.map((i) => [i.name, i.subtype]));
     const combatProposals: [string, Derived][] = [];
     const creaturesByKey = new Map((await readTable('creatures')).map((c: any) => [String(c.key), c]));
@@ -300,7 +304,8 @@ async function main(): Promise<void> {
         if (key.startsWith('combat:')) {
             const creature = creaturesByKey.get(key.slice('combat:'.length).split('@')[0]);
             const name = itemById.get(Number(e.item_id));
-            if (!creature || !name || !COMBAT_NATIVE_SUBTYPES.has(String(subtypeByName.get(name)))) continue;
+            if (!creature || !name) continue;
+            if (!COMBAT_NATIVE_SUBTYPES.has(String(subtypeByName.get(name))) && !COMBAT_ONLY_ITEMS.has(name)) continue;
             const avgQty = ((Number(e.min_qty) || 1) + (Number(e.max_qty) || 1)) / 2;
             combatProposals.push([name, {
                 value: (Number(creature.xp_per_kill) / VALUE_DIVISOR) * Math.max(1, Number(e.chance_one_in)) / avgQty,
