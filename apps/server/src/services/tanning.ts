@@ -119,7 +119,7 @@ export async function loadRack(playerId: number, locationId: number, recipeId: n
             return { success: false, error: `You need Crafting level ${recipe.required_level} to tan that.` }
         }
 
-        // Any count fits a vat — one hide is allowed, it's just a wasteful use of six hours.
+        // Any count fits a vat — one hide is allowed, it's just a wasteful use of a whole soak.
         if (!Number.isInteger(hideCount) || hideCount <= 0 || hideCount > HIDES_PER_VAT) {
             return { success: false, error: `A vat holds 1 to ${HIDES_PER_VAT} hides.` }
         }

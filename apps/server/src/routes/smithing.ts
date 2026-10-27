@@ -4,10 +4,11 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
   getWorkstation,
   loadKiln, collectKiln, getKilnStatus, getLogCountsByQuality,
-  smeltIngots, smithPart, getSmithingCost,
+  smeltIngots, smithPart,
   canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
 } from '../services/smithing';
 import { levelFromXp } from '../services/xp';
+import { processingTimerFor } from '../services/recipes';
 import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
 import { failureStatus } from '../lib/serviceResult';
@@ -153,9 +154,8 @@ router.post('/smelt/start', requireAuth, botCheckGate, async (req: AuthRequest, 
       return;
     }
 
-    // 2x timer if using blacksmith
-    const baseTimer = recipe.timer;
-    const timerSeconds = canSmith.usingBlacksmith ? baseTimer * 2 : baseTimer;
+    // 2x at the blacksmith's; levels over the recipe speed it up.
+    const timerSeconds = await processingTimerFor(playerId, 'Smithing', recipe, !!canSmith.usingBlacksmith);
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 
@@ -223,9 +223,7 @@ router.post('/smith/start', requireAuth, botCheckGate, async (req: AuthRequest, 
       }
     }
 
-    const smithCost = getSmithingCost(`${metalType}_${partType}`)
-    const baseTimer = smithCost.timer
-    const timerSeconds = canSmith.usingBlacksmith ? baseTimer * 2 : baseTimer
+    const timerSeconds = await processingTimerFor(playerId, 'Smithing', recipe, !!canSmith.usingBlacksmith)
     const now = new Date();
     const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 

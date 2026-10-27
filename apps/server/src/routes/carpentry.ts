@@ -7,6 +7,7 @@ import {
     SAW_RECIPES, WOODWORK_RECIPES,
 } from '../services/carpentry';
 import { levelFromXp } from '../services/xp';
+import { processingTimerFor } from '../services/recipes';
 
 const router = Router();
 
@@ -96,7 +97,7 @@ router.post('/saw/start', requireAuth, botCheckGate, async (req: AuthRequest, re
             return;
         }
 
-        const timerSeconds = access.usingBench ? recipe.timer * 2 : recipe.timer;
+        const timerSeconds = await processingTimerFor(playerId, 'Carpentry', recipe, !!access.usingBench);
         const now = new Date();
         const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 
@@ -167,7 +168,7 @@ router.post('/woodwork/start', requireAuth, botCheckGate, async (req: AuthReques
             return;
         }
 
-        const timerSeconds = access.usingBench ? recipe.timer * 2 : recipe.timer;
+        const timerSeconds = await processingTimerFor(playerId, 'Carpentry', recipe, !!access.usingBench);
         const now = new Date();
         const completesAt = new Date(now.getTime() + timerSeconds * 1000);
 

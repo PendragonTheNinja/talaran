@@ -41,6 +41,22 @@ export function levelFromXp(xp: number): number {
   return level;
 }
 
+/**
+ * A player's level in a skill, by name. 1 when the skill or their row is
+ * missing (rows ARE missing for skills added after a player registered).
+ */
+export async function playerSkillLevel(
+  playerId: number,
+  skillName: string,
+  x: Knex | Knex.Transaction = db,
+): Promise<number> {
+  const row = await x('player_skills as ps')
+    .join('skills as s', 's.id', 'ps.skill_id')
+    .where({ 'ps.player_id': playerId, 's.name': skillName })
+    .first('ps.xp');
+  return row ? levelFromXp(Number(row.xp)) : 1;
+}
+
 export function xpToNextLevel(xp: number): number {
   const currentLevel = levelFromXp(xp);
   return xpForLevel(currentLevel + 1) - xp;

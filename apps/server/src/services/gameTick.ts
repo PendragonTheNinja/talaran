@@ -17,7 +17,8 @@ import {
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { buffTimerBonus } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements, veinNode } from './mining';
-import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES, getSmithingCost } from './smithing';
+import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } from './smithing';
+import { processingTimerFor } from './recipes';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
@@ -1299,10 +1300,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
-      const baseTimer = action.action_type === 'smelting'
-        ? (SMELT_RECIPES[action.action_data]?.timer ?? 45)
-        : getSmithingCost(action.action_data || '').timer;
-      const timerSeconds = action.using_blacksmith ? baseTimer * 2 : baseTimer;
+      // The start route's own rule (processingTimerFor), so a repeat runs as
+      // fast as the first lap.
+      const timerSeconds = recipe
+        ? await processingTimerFor(action.player_id, 'Smithing', recipe, !!action.using_blacksmith)
+        : (action.using_blacksmith ? 90 : 45);
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({
@@ -1514,8 +1516,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
-      const baseTimer = recipe?.timer ?? 35;
-      const timerSeconds = action.using_blacksmith ? baseTimer * 2 : baseTimer;
+      const timerSeconds = recipe
+        ? await processingTimerFor(action.player_id, 'Carpentry', recipe, !!action.using_blacksmith)
+        : (action.using_blacksmith ? 70 : 35);
       const nextCompletion = new Date(now.getTime() + timerSeconds * 1000);
 
       await db('player_actions').where({ id: action.id }).update({

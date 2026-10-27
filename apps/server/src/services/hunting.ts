@@ -3,10 +3,9 @@ import db from '../db'
 /** Ammunition. One is spent per shot, and may be recovered on the roll. */
 export const HUNT_AMMO = 'Ambren Arrow';
 import { levelFromXp } from './xp'
+import { levelTimerFactor } from '../lib/actionTimers'
 
 // ── Tuning constants ──────────────────────────────────────────────
-const LEVEL_TIMER_REDUCTION = 0.005   // -0.5% timer per level over req (matches mining)
-const MAX_TIMER_REDUCTION = 0.5       // capped 50% faster
 const CATCH_PER_LEVEL = 0.5           // +0.5% catch chance per level over req
 const CATCH_CAP = 95                  // max catch %
 const BOW_TIER_CATCH_BONUS = 3        // +3% catch per bow tier above 1
@@ -57,9 +56,7 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
 
 /** Hunt timer with level reduction (mirrors mining). */
 export function calculateHuntTimer(baseTimer: number, minTimer: number, playerLevel: number, requiredLevel: number): number {
-    const levelsOver = Math.max(0, playerLevel - requiredLevel)
-    const reduction = Math.min(MAX_TIMER_REDUCTION, levelsOver * LEVEL_TIMER_REDUCTION)
-    return Math.max(minTimer, Math.round(baseTimer * (1 - reduction)))
+    return Math.max(minTimer, Math.round(baseTimer * levelTimerFactor(playerLevel, requiredLevel)))
 }
 
 /** Catch chance %: base + level-over scaling + bow tier, capped. */

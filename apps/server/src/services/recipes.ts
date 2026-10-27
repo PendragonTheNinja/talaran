@@ -2,7 +2,8 @@ import type { Knex } from 'knex'
 import db from '../db'
 import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory'
 import { isLiquid, liquidTotal, consumeLiquid } from './liquids'
-import { levelFromXp } from './xp'
+import { levelFromXp, playerSkillLevel } from './xp'
+import { levelTimerFactor, floorTimer, processingTimer } from '../lib/actionTimers'
 import { logger } from '../lib/logger'
 import { incrementStats } from './stats'
 import { updateQuestObjectiveProgress } from '../routes/quests'
@@ -143,16 +144,35 @@ export async function stationMultiplier(playerId: number, recipe: any): Promise<
     return check.multiplier
 }
 
-/** Effective timer for a recipe, station and tool tier included. */
+/**
+ * The timer for a processing action outside the recipes table (smelting,
+ * sawing, the legacy smithing and woodworking maps): levels over it, then the
+ * public bench's x2, held to the floor. The start routes and the tick's repeat
+ * both call this, so the second lap runs as fast as the first.
+ */
+export async function processingTimerFor(
+    playerId: number,
+    skillName: string,
+    recipe: { timer: number; requiredLevel: number },
+    usingPublicBench: boolean,
+): Promise<number> {
+    const level = await playerSkillLevel(playerId, skillName)
+    return processingTimer(recipe.timer, level, recipe.requiredLevel, usingPublicBench ? 2 : 1)
+}
+
+/** Effective timer for a recipe: levels over it, station and tool tier, buffs, the floor. */
 export async function recipeTimerFor(playerId: number, recipe: any): Promise<number> {
     // Read only. canStartRecipe already lit the fire if it needed lighting.
     const check = await checkStation(playerId, recipe, false)
+    // Levels over the recipe speed it up as they do a gathering node
+    // (lib/actionTimers.ts; Nathan, 2026-10-27). XP per craft is unchanged.
+    const level = await playerSkillLevel(playerId, recipe.skill)
     // Applied to the station-adjusted timer, not the base one. Borrowing
     // Geoffrey's slow forge doubles the job, and a percentage buff should come
     // off what you are actually standing there for.
     const buff = await buffTimerBonus(playerId, recipe.skill)
-    const base = Math.round(recipe.timer_seconds * check.multiplier)
-    return Math.max(1, base - timerCut(base, buff))
+    const base = Math.round(recipe.timer_seconds * levelTimerFactor(level, recipe.required_level ?? 1) * check.multiplier)
+    return floorTimer(base - timerCut(base, buff), recipe.timer_seconds)
 }
 
 /**

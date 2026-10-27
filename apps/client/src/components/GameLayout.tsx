@@ -1012,7 +1012,7 @@ export default function GameLayout({
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <h3 className="gold-text">Fill a Vat</h3>
             <p className="muted-text">
-              Hides soak in bark tannins for 6 hours. A vat holds up to {tanningStatus?.hidesPerVat ?? 10} hides
+              Hides soak in bark tannins for {Math.round((tanningStatus?.recipes?.[0]?.soakSeconds ?? 14400) / 3600)} hours. A vat holds up to {tanningStatus?.hidesPerVat ?? 10} hides
               of one kind — fewer is allowed, just a waste of a good soak.
             </p>
             <p className="muted-text">

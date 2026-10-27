@@ -7,10 +7,10 @@ import { addItemToInventoryWithin } from './inventory';
 import { timerCut } from './buffs';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { levelTimerFactor } from '../lib/actionTimers';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
-const LEVEL_TIMER_REDUCTION = 0.005;
 const LEVEL_QUALITY_SHIFT = 0.3;
 
 export interface WoodcuttingResult {
@@ -44,9 +44,7 @@ export function calculateTimer(
    */
   buffPercent = 0,
 ): number {
-  const levelsOver = Math.max(0, playerLevel - requiredLevel)
-  const levelReduction = Math.min(0.5, levelsOver * LEVEL_TIMER_REDUCTION)
-  let timer = baseTimer * (1 - levelReduction)
+  let timer = baseTimer * levelTimerFactor(playerLevel, requiredLevel)
 
   const tierDifference = playerToolTier - requiredToolTier
   if (tierDifference < 0) {
