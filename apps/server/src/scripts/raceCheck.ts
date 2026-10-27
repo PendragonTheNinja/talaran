@@ -1427,6 +1427,20 @@ const SCENARIOS: Scenario[] = [
                 ?? succeeded(st, 1);
         },
     },
+    {
+        id: 'talar', name: 'cast one spell five times at once', rounds: 10,
+        run: async (ctx) => {
+            // Wearsight has an hour's cooldown and costs 5: one cast may land,
+            // the reservoir pays once, and the other four are refused.
+            const w = await world(ctx);
+            const spell = await ctx.seed.row('spells', { key: 'wearsight', name: 'Wearsight', talar_level: 1, cost: 5, cooldown_kind: 'timer', cooldown_seconds: 3600 });
+            await ctx.seed.row('player_spells', { player_id: w.player.id, spell_id: spell.id });
+            await ctx.seed.row('player_talar', { player_id: w.player.id, hundredths: 10000 });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/talar/spells/cast', { key: 'wearsight' }));
+            const held = Number((await ctx.db('player_talar').where({ player_id: w.player.id }).first())?.hundredths ?? 0);
+            return changed('reservoir hundredths', 9500, held) ?? succeeded(st, 1);
+        },
+    },
 ];
 
 main().catch((err) => {

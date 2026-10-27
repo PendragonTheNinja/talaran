@@ -376,3 +376,61 @@
 .church-writing p + p {
     margin-top: var(--space-sm);
 }
+
+/* Spells (SpellList.tsx), in the church and the spellbook. */
+.spell-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md) var(--space-lg);
+}
+
+.spell-card {
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    background: var(--color-bg-raised);
+}
+
+.spell-card.locked {
+    opacity: 0.6;
+}
+
+.spell-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.spell-name {
+    font-family: var(--font-heading);
+    font-size: 16px;
+}
+
+.spell-meta {
+    font-size: 12px;
+}
+
+.spell-desc {
+    font-size: 14px;
+    margin: 4px 0 8px;
+    color: var(--color-text-base);
+}
+
+.spell-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.spell-actions .btn {
+    font-size: 11px;
+    padding: 3px 12px;
+}
+
+.spell-reading {
+    margin: 8px 0 0 18px;
+    font-size: 14px;
+}

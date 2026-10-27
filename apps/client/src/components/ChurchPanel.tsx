@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './FarmPanel.css'
+import SpellList from './SpellList'
 
 // A church (server: services/church.ts), on the museum's pattern: one modal,
-// a tab per writing. A lore building for now; spells are learned at churches
-// (docs/talar-spec.md §1), and they will come in as a tab of their own.
+// a tab per writing, and a Spells tab where spells are learned
+// (docs/talar-spec.md §1; Nathan, 2026-10-27).
 
 interface Writing {
     id: number
@@ -23,7 +24,8 @@ interface Church {
 export default function ChurchPanel({ churchId, onClose }: { churchId: number; onClose: () => void }) {
     const [church, setChurch] = useState<Church | null>(null)
     const [error, setError] = useState<string | null>(null)
-    const [tab, setTab] = useState<number | null>(null)
+    // A writing's id, or 'spells'.
+    const [tab, setTab] = useState<number | 'spells' | null>(null)
 
     useEffect(() => {
         apiFetch<Church>(`/api/church/${churchId}`)
@@ -52,8 +54,13 @@ export default function ChurchPanel({ churchId, onClose }: { churchId: number; o
                                 {w.title}
                             </button>
                         ))}
+                        <button className={`farm-tab ${tab === 'spells' ? 'active' : ''}`} onClick={() => setTab('spells')}>
+                            Spells
+                        </button>
                     </div>
                 )}
+
+                {tab === 'spells' && <SpellList mode="learn" />}
 
                 {writing && (
                     <div className="church-writing">

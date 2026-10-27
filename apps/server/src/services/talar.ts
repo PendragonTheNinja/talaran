@@ -66,6 +66,28 @@ async function lockReservoir(trx: any, playerId: number): Promise<number> {
 }
 
 /**
+ * Take `hundredths` of Talar out of the reservoir inside the caller's
+ * transaction (a spell's cost). Locked, relative, and conditional on there
+ * being enough: returns the state after, or null when the reservoir is short,
+ * having changed nothing. The caller throws on null, so its own writes roll
+ * back with it (CLAUDE.md §4 rule 3). The push waits for the commit.
+ */
+export async function spendTalarWithin(trx: any, playerId: number, hundredths: number): Promise<TalarState | null> {
+    const n = Math.ceil(hundredths)
+    if (!Number.isFinite(n) || n < 0) throw new Error(`spendTalarWithin: bad amount ${hundredths} for player ${playerId}`)
+    await lockReservoir(trx, playerId)
+    const [row] = await trx('player_talar')
+        .where({ player_id: playerId })
+        .where('hundredths', '>=', n)
+        .update({ hundredths: trx.raw('hundredths - ?', [n]), updated_at: trx.fn.now() })
+        .returning('hundredths')
+    if (!row) return null
+    const state = stateOf(Number(row.hundredths), reservoirCapacity(await playerSkillLevel(playerId, 'Talar', trx)))
+    pushToPlayerAfterCommit(trx, playerId, 'talar_changed', state)
+    return state
+}
+
+/**
  * Absorb one charged gem into the reservoir: the gem is used up, its Talar
  * poured in. Refused whole if it would overflow (no partial pours), so a
  * player tops up only when there is room for the stone.

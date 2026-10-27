@@ -69,6 +69,9 @@ export async function unlocksAt(skill: string, level: number): Promise<Unlock[]>
         for (const g of gems) {
             if (rungOfTier(Number(g.tier) || 1) === level) add(`Filling ${g.name.split(' ').slice(1).join(' ')}`, g.name)
         }
+        // Spells, learned at a church from their level (services/spells.ts).
+        const spells = await db('spells').where({ talar_level: level, is_active: true }).orderBy('display_order').select('name')
+        for (const sp of spells) add(sp.name, null)
     }
 
     // Gear: whatever this skill gates (services/equipGates.ts).

@@ -109,6 +109,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // A church and its writings (services/church.ts): authored lore.
     churches:                    { label: 'Churches',              group: 'World',      snapshot: true, editable: true },
     church_writings:             { label: 'Church Writings',       group: 'World',      snapshot: true, editable: true },
+    // Spells (services/spells.ts): the rows; what each does is code.
+    spells:                      { label: 'Spells',                group: 'Talar',      snapshot: true, editable: true },
 
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },

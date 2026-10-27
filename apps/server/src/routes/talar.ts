@@ -5,6 +5,7 @@ import { failureStatus } from '../lib/serviceResult';
 import db from '../db';
 import { botCheckGate } from '../services/botCheck';
 import { absorbGem, fillOptions, getTalarState, startFill } from '../services/talar';
+import { castSpell, learnSpell, listSpells } from '../services/spells';
 
 // Talar (docs/talar-spec.md): the reservoir now; filling and spells join it.
 
@@ -65,6 +66,31 @@ router.post('/fill/start', requireAuth, botCheckGate, async (req: AuthRequest, r
         logger.error(`Talar fill start error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
+});
+
+// GET /api/talar/spells - every spell, learned or not, and whether a church is here to learn at
+router.get('/spells', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        res.json(await listSpells(req.player!.playerId));
+    } catch (err) {
+        logger.error(`Spell list error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// POST /api/talar/spells/learn   { key } - at a church
+router.post('/spells/learn', requireAuth, async (req: AuthRequest, res: Response) => {
+    const result = await learnSpell(req.player!.playerId, String(req.body?.key ?? ''));
+    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
+    res.json(result);
+});
+
+// POST /api/talar/spells/cast   { key, ...params } - instant; never takes the action slot
+router.post('/spells/cast', requireAuth, async (req: AuthRequest, res: Response) => {
+    const { key, ...params } = (req.body ?? {}) as Record<string, unknown>;
+    const result = await castSpell(req.player!.playerId, String(key ?? ''), params);
+    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
+    res.json(result);
 });
 
 export default router;

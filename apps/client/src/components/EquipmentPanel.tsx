@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Hp } from '../lib/combat'
 import type { Talar } from '../lib/talar'
+import SpellList from './SpellList'
+import './FarmPanel.css'
 import { getItemIcon, getSlotIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { useItemTooltip } from './ItemTooltip'
@@ -100,6 +102,9 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
         return () => window.removeEventListener('talaran:talar', onTalar)
     }, [talar])
     const shownTalar = liveTalar && liveTalar.over === talar ? liveTalar.talar : talar
+
+    // The spellbook opens from the Talar bar: what you know, ready to cast.
+    const [spellbookOpen, setSpellbookOpen] = useState(false)
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
 
@@ -174,7 +179,7 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 })}
                 </div>
 
-                <div className="vital-bar tal">
+                <div className="vital-bar tal" style={{ cursor: 'pointer' }} onClick={() => setSpellbookOpen(true)} title="Your spellbook">
                     <span className="vital-readout">{shownTalar ? `Talar ${shownTalar.current} / ${shownTalar.max}` : 'Talar'}</span>
                     <div className="vital-track">
                         <div className="vital-fill mana" style={{ height: `${shownTalar && shownTalar.max > 0 ? Math.round(100 * shownTalar.current / shownTalar.max) : 0}%` }} />
@@ -182,6 +187,18 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                     <span className="vital-label">TAL</span>
                 </div>
             </div>
+
+            {spellbookOpen && (
+                <div className="farm-overlay" onClick={() => setSpellbookOpen(false)}>
+                    <div className="farm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="farm-header">
+                            <h2>Spellbook</h2>
+                            <button className="farm-close" onClick={() => setSpellbookOpen(false)}>✕</button>
+                        </div>
+                        <SpellList mode="cast" />
+                    </div>
+                </div>
+            )}
 
             <div className="divider" />
 
