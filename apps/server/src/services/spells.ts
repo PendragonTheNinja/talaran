@@ -13,6 +13,8 @@ import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit } from '../lib/realtime'
 import { wardableHead, wardFarmsteadWithin, settleWardsWithin } from './husbandry'
 import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
+import { eligibleLocations, eventsChanged } from './worldEvents'
+import { announceServer } from './records'
 import { takeItemsWithin, notifyInventoryChanged } from './inventory'
 
 // Spells (docs/talar-spec.md §5 to §7). A spell is a row (services' nouns);
@@ -403,12 +405,94 @@ const sending: SpellEffect = {
     },
 }
 
+// ── Kindle (§6) ──────────────────────────────────────────────────────────────
+// A small skill event where the caster stands, on the world-events machinery
+// (applyEventBonus in services/worldEvents.ts, inside awardXp). A smaller pool
+// than a scheduled event, and nobody draws more than a quarter of it, so it
+// takes four people to empty. Gathering skills only, from what can be done at
+// that spot. One per place, never on top of a live event for the same skill.
+// Whoever lit it earns Talar XP for every boosted action by someone else
+// (payKindler): the reward is for bringing people together.
+
+const KINDLE_SKILLS = ['Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting']
+const KINDLE_POOL = 80
+const KINDLE_SHARE = 20
+const KINDLE_MINUTES = 45
+const KINDLE_MULTIPLIER = 1.25
+/** Talar XP to the kindler per boosted action by someone else: this many seconds of the spell's band. */
+const KINDLE_REWARD_SECONDS = 30
+
+/** The gathering skills that can be worked where this player stands. */
+async function kindleSkillsHere(conn: any, playerId: number): Promise<{ locationId: number; place: string; skills: string[] }> {
+    const here = await conn('players as p').join('locations as l', 'l.id', 'p.current_location_id')
+        .where('p.id', playerId).first('l.id', 'l.name')
+    if (!here) throw new SpellAbort('You are nowhere the light can be kindled.')
+    const skills: string[] = []
+    for (const skill of KINDLE_SKILLS) {
+        if ((await eligibleLocations({ skill, location_ids: null })).includes(Number(here.id))) skills.push(skill)
+    }
+    if (!skills.length) throw new SpellAbort(`There is no gathering to be done at ${here.name}, so nothing to kindle.`)
+    return { locationId: Number(here.id), place: here.name, skills }
+}
+
+const kindle: SpellEffect = {
+    targets: async (playerId, spell) => {
+        const { skills } = await kindleSkillsHere(db, playerId)
+        return skills.map(skill => ({ label: skill, cost: Number(spell.cost), params: { skill } }))
+    },
+    cost: async (_trx, _playerId, spell) => Number(spell.cost),
+    cast: async (trx, playerId, _spell, params) => {
+        const { locationId, place, skills } = await kindleSkillsHere(trx, playerId)
+        const skill = skills.find(k => k.toLowerCase() === String(params.skill ?? '').toLowerCase())
+        if (!skill) throw new SpellAbort(`Choose the work to kindle: ${skills.join(', ')}.`)
+
+        // The place locked, so two people kindling it at once light it once.
+        await trx('locations').where({ id: locationId }).forNoKeyUpdate().first('id')
+        const burning = await trx('world_events')
+            .where({ location_id: locationId, kind: 'skill' })
+            .whereNull('ended_at').where('ends_at', '>', trx.fn.now())
+            .where(function (this: any) { this.whereNotNull('kindled_by').orWhereRaw('LOWER(skill) = ?', [skill.toLowerCase()]) })
+            .first('skill', 'kindled_by')
+        if (burning?.kindled_by) throw new SpellAbort(`The light is already kindled at ${place}.`)
+        if (burning) throw new SpellAbort(`${skill} at ${place} is already going further today. Kindle something else, or somewhere else.`)
+
+        const me = await trx('players').where({ id: playerId }).first('username')
+        const announcement = `${me?.username ?? 'Someone'} has kindled the light at ${place}. ${skill} goes further there for a while, for anyone who comes.`
+        await trx('world_events').insert({
+            type_id: null, name: 'Kindled Light', kind: 'skill', skill,
+            location_id: locationId, xp_multiplier: KINDLE_MULTIPLIER,
+            pool_total: KINDLE_POOL, pool_left: KINDLE_POOL, per_player_cap: KINDLE_SHARE,
+            ends_at: new Date(Date.now() + KINDLE_MINUTES * 60_000),
+            started_by: playerId, kindled_by: playerId, announcement,
+        })
+        afterCommit(trx, () => {
+            eventsChanged()
+                .then(() => announceServer(announcement))
+                .catch(err => logger.error(`[spells] kindle announce failed: ${err}`))
+        })
+        return {
+            message: `The ground at ${place} warms under your hands. ${skill} here goes further for ${KINDLE_MINUTES} minutes, ${KINDLE_SHARE} actions to a person. Bring people.`,
+            detail: { skill, place },
+        }
+    },
+}
+
+/** Talar XP for a kindler, for `uses` boosted actions by others at their light (services/worldEvents.ts). */
+export async function payKindler(kindlerId: number, uses: number): Promise<void> {
+    const spell: SpellRow | undefined = await db('spells').where({ key: 'kindle' }).first()
+    if (!spell || uses < 1) return
+    const xp = activeXpForSeconds(spell.talar_level, KINDLE_REWARD_SECONDS) * uses
+    // Paid for other people's work, not an action of the caster's: never raised by an event.
+    await awardXp(kindlerId, 'Talar', xp, db, { eventBonus: false })
+}
+
 const EFFECTS: Record<string, SpellEffect> = {
     wearsight,
     daily_step: dailyStep,
     tether,
     larder_ward: larderWard,
     sending,
+    kindle,
 }
 
 /** What a spell offers to cast at (Daily Step's destinations), or null for a spell that needs no choice. */
@@ -626,7 +710,9 @@ export async function castSpell(
             if (!own) throw new SpellAbort(`You have not learned ${spell.name}.`)
             if (own.ready_at && new Date(own.ready_at).getTime() > now.getTime()) {
                 const mins = Math.ceil((new Date(own.ready_at).getTime() - now.getTime()) / 60000)
-                throw new SpellAbort(`${spell.name} will not answer again for ${mins} more minute${mins === 1 ? '' : 's'}.`)
+                const wait = mins < 60 ? `${mins} more minute${mins === 1 ? '' : 's'}`
+                    : `${Math.ceil(mins / 60)} more hour${Math.ceil(mins / 60) === 1 ? '' : 's'}`
+                throw new SpellAbort(`${spell.name} will not answer again for ${wait}.`)
             }
 
             const cost = await effect.cost(trx, playerId, spell, params)

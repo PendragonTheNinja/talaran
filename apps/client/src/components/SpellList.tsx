@@ -35,7 +35,7 @@ interface SpellTarget {
 }
 
 /** Spells that ask for a choice first. */
-const PICKS_TARGET = new Set(['daily_step', 'larder_ward', 'sending'])
+const PICKS_TARGET = new Set(['daily_step', 'larder_ward', 'sending', 'kindle'])
 
 /** What a spell's cost says on its card, for those priced by what they cover. */
 function costText(s: SpellView): string {

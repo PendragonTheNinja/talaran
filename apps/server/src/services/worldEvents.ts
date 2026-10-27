@@ -30,7 +30,15 @@ const SCHEDULER_TICK_MS = 60_000;
 // nothing, so live events are held here, keyed by place and skill, and the
 // database is only touched when one could apply.
 
-interface LiveEvent { id: number; locationId: number; skill: string }
+interface LiveEvent {
+    id: number
+    locationId: number
+    skill: string
+    /** Most one player may draw from the pool (Kindle); null for no limit. */
+    cap: number | null
+    /** The player who lit it with Kindle, paid for others' use; null otherwise. */
+    kindledBy: number | null
+}
 let live = new Map<string, LiveEvent>();
 
 const liveKey = (locationId: number, skill: string) => `${locationId}:${skill.toLowerCase()}`;
@@ -43,9 +51,15 @@ export async function refreshLiveEvents(): Promise<void> {
         .where({ kind: 'skill' })
         .whereNotNull('location_id')
         .whereNotNull('skill')
-        .select('id', 'location_id', 'skill');
+        .select('id', 'location_id', 'skill', 'per_player_cap', 'kindled_by');
     const next = new Map<string, LiveEvent>();
-    for (const r of rows) next.set(liveKey(r.location_id, r.skill), { id: r.id, locationId: r.location_id, skill: r.skill });
+    for (const r of rows) {
+        next.set(liveKey(r.location_id, r.skill), {
+            id: r.id, locationId: r.location_id, skill: r.skill,
+            cap: r.per_player_cap == null ? null : Number(r.per_player_cap),
+            kindledBy: r.kindled_by == null ? null : Number(r.kindled_by),
+        });
+    }
     live = next;
 }
 
@@ -71,6 +85,11 @@ function changedAfterCommit(x: Knex | Knex.Transaction): void {
  * the event's pool atomically, or whatever is left if fewer, and only that
  * share of the award is raised. If the action rolls back, the pool gets its
  * units back. The last unit ends the event.
+ *
+ * A capped pool (Kindle) also holds each player to their share. Most awards
+ * arrive WITHOUT a transaction, so a locked read here would hold nothing: the
+ * share is taken in one statement of its own, as the pool is, before the pool,
+ * and whatever the pool could not cover is handed back to the share.
  */
 export async function applyEventBonus(
     playerId: number,
@@ -86,6 +105,25 @@ export async function applyEventBonus(
     if (!event) return xp;
 
     const want = Math.max(1, Math.floor(units));
+    let allowed = want;
+    if (event.cap !== null) {
+        await x('world_event_shares').insert({ event_id: event.id, player_id: playerId, taken: 0 })
+            .onConflict(['event_id', 'player_id']).ignore();
+        const { rows: share } = await x.raw(`
+            WITH cur AS (
+                SELECT taken FROM world_event_shares
+                WHERE event_id = ? AND player_id = ? AND taken < ?
+                FOR UPDATE
+            )
+            UPDATE world_event_shares s
+            SET taken = s.taken + LEAST(?, ? - cur.taken)
+            FROM cur
+            WHERE s.event_id = ? AND s.player_id = ?
+            RETURNING LEAST(?, ? - cur.taken) AS allowed`,
+            [event.id, playerId, event.cap, want, event.cap, event.id, playerId, want, event.cap]);
+        allowed = Number(share[0]?.allowed ?? 0);
+        if (allowed < 1) return xp;
+    }
     // One statement: lock the row, take min(want, left), and report how many
     // were taken. The locked read in the CTE sees the latest pool, so two
     // awards racing for the last few units split them rather than both
@@ -101,12 +139,30 @@ export async function applyEventBonus(
         FROM cur
         WHERE w.id = cur.id
         RETURNING LEAST(cur.pool_left, ?) AS taken, w.pool_left, w.xp_multiplier`,
-        [event.id, want, want]);
+        [event.id, allowed, allowed]);
     const taken = rows[0];
+    // What the pool could not cover goes back to the player's share.
+    const shortfall = allowed - Number(taken?.taken ?? 0);
+    if (event.cap !== null && shortfall > 0) {
+        await x('world_event_shares').where({ event_id: event.id, player_id: playerId }).decrement('taken', shortfall);
+    }
     if (!taken) {
         // Emptied or ended since the cache was filled.
         changedAfterCommit(x);
         return xp;
+    }
+    // Kindle pays whoever lit it for every boosted action by someone else.
+    // After the commit and through its own award: the caster's rows are not
+    // the gatherer's to lock (two kindlers working each other's light would
+    // otherwise wait on each other).
+    const kindler = event.kindledBy;
+    if (kindler !== null && kindler !== playerId) {
+        const uses = Number(taken.taken);
+        afterCommit(x, () => {
+            import('./spells')
+                .then(({ payKindler }) => payKindler(kindler, uses))
+                .catch((err) => logger.error(`[events] kindle reward failed: ${err}`));
+        });
     }
     if (Number(taken.pool_left) === 0) {
         await x('world_events').where({ id: event.id }).update({ ended_at: x.fn.now(), end_reason: 'pool' });

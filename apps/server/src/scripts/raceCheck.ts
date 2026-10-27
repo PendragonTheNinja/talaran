@@ -1537,6 +1537,32 @@ const SCENARIOS: Scenario[] = [
                 ?? succeeded(st, landed);
         },
     },
+    {
+        id: 'talar', name: 'two players work a kindled light thirty times each at once', rounds: 10,
+        run: async (ctx) => {
+            // Kindle (services/spells.ts) lights a pool of 80 with a share of 20
+            // a person (world_events.per_player_cap, applied in applyEventBonus).
+            // Two players each land thirty awards at once: each must be raised
+            // exactly twenty times, the pool must keep exactly forty, and the
+            // shares must say so.
+            const w = await world(ctx);
+            const other = await ctx.seed.row('players', { username: 'Neighbour', email: 'neighbour@racecheck.test', current_location_id: w.town.id });
+            await ctx.seed.row('skills', { name: 'Woodcutting' });
+            const event = await ctx.seed.row('world_events', {
+                name: 'Kindled Light', kind: 'skill', skill: 'Woodcutting', location_id: w.town.id, xp_multiplier: 1.5,
+                pool_total: 80, pool_left: 80, per_player_cap: 20, ends_at: new Date(Date.now() + 45 * 60_000),
+            });
+            const { refreshLiveEvents } = await import('../services/worldEvents');
+            const { awardXp } = await import('../services/xp');
+            await refreshLiveEvents();
+            await Promise.all([w.player.id, other.id].flatMap((id) => Array.from({ length: 30 }, () => awardXp(id, 'Woodcutting', 100))));
+            const xpOf = async (id: number) => Number((await ctx.db('player_skills').where({ player_id: id }).first())?.xp ?? 0);
+            const left = Number((await ctx.db('world_events').where({ id: event.id }).first()).pool_left);
+            return changed('pool left', 40, left)
+                ?? changed(`Pendragon's XP (30 awards, 20 raised)`, 30 * 100 + 20 * 50, await xpOf(w.player.id))
+                ?? changed(`Neighbour's XP (30 awards, 20 raised)`, 30 * 100 + 20 * 50, await xpOf(other.id));
+        },
+    },
 ];
 
 main().catch((err) => {
