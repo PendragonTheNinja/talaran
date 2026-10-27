@@ -205,24 +205,72 @@ The band carries the tier; W carries the cooldown, from 2 minutes of band (spamm
 
 ## 8. Jewelry
 
-Rings (finger slot) and amulets (neck slot), both columns already on `player_equipment` and unused. Made in Crafting from metal and a **charged** gem. **Always enchanted**: a piece draws on its wearer's reservoir **for each action it actually helps with** (not per lucky proc, so the cost is predictable), and goes quiet when the reservoir is empty. **knob:** 1 Talar per 20 helped actions, about a tenth of a quartz an hour.
+*Plan of record, drafted 2026-10-28 from the first sketch; decided points carry Nathan's date. Open points are marked **open**.*
 
-| Piece | Slot | Helps | T1 (Quartz) | T2 (Garnet) |
+### 8.1 What it is
+Rings (`finger_item_id`) and amulets (`neck_item_id`), both slots already on `player_equipment` and unused until now. Made in **Crafting at the lapidary** from metal and **charged** gems. **Always enchanted:** a piece draws on its wearer's reservoir for each action it actually helps with, never per lucky proc, so the cost is predictable; with the reservoir empty it does nothing and says so. One ring and one amulet at a time, so a player picks two of the six. **No XP pieces** (Nathan). **No durability:** jewelry lasts, which is why it costs three gems' worth.
+
+### 8.2 Tiers follow the metal ladder
+A jewelry tier pairs **that tier's metal with that tier's gem**, the way weapons pair a metal tier with its band (Nathan, 2026-10-28: "jewelry tiers with each metal tier"). The metal is the setting, the gem carries the enchantment.
+
+| Tier | Metal | Gem | Make (Crafting) | Wear (Talar) | Strength |
+|---|---|---|---|---|---|
+| T1 | Ambren Ingot (Ambren and Burgh ore smelted together) | Quartz | 8 (Nathan, 2026-10-28) | 1 | base |
+| T2 | Serph (tier 2 ore; nothing smelts it yet, not mined on Taiar) | Garnet | 20 (Nathan, 2026-10-28) | 13 | 1.5× |
+| T3+ | the tier's metal | the tier's gem | later islands | rung | +0.5× a tier (**knob**) |
+
+**Open: T2 on Taiar.** Garnet is on Taiar, Serph is not. Either (a) garnet jewelry waits for Serph smelting and the next island, so garnets on Taiar are for filling only, or (b) garnet pieces ship now on 4 Ambren Ingots and a migration moves them onto Serph when it arrives.
+
+### 8.3 The pieces
+
+| Piece | Slot | Helps (a "helped action") | T1 | T2 |
 |---|---|---|---|---|
-| **Keeper's Band** | ring | Combat: weapon and armour wear | 3% chance a use does not count | 4.5% |
-| **Prospector** | ring | Mining: veins | veins you find run 5% larger | 7.5% |
-| **Seed-saver** | ring | Farming: harvest | 3% chance a harvest returns a seed | 4.5% |
-| **Hearty** | amulet | Combat: food | fight food mends 5% more | 7.5% |
-| **Wayfinder** | amulet | Wayfaring: walking | +10% chance of a road find on foot | +15% |
-| **Bait-keeper** | amulet | Trapping and Fishing: bait | 5% chance bait is not used | 7.5% |
+| **Keeper's Band** | ring | each use of a worn weapon or armour piece that would count toward its wear | 3% chance the use does not count | 4.5% |
+| **Prospector's Ring** | ring | each vein the wearer finds | the vein runs 5% larger | 7.5% |
+| **Seedsaver's Ring** | ring | each plot harvested | 3% chance a harvest also returns a seed | 4.5% |
+| **Hearty Amulet** | amulet | each food eaten in a fight | the food mends 5% more | 7.5% |
+| **Wayfinder's Amulet** | amulet | each road segment walked (a minute of base road, the find roll's unit) | +10% chance of a road find | +15% |
+| **Baitkeeper's Amulet** | amulet | each bait spent, trapping or fishing | 5% chance the bait is not used | 7.5% |
 
-The slots pair so a fighter can wear both combat pieces. T1 sits at food's T1 scale (1% timer, 2 to 3% double, +10 to 15% rare); T2 is 1.5×, the meals' precedent. No XP rings (Nathan).
+The slots pair so a fighter can wear both combat pieces (Keeper's Band and Hearty Amulet). T1 sits at food's T1 scale (1% timer, 2 to 3% double, +10 to 15% rare); T2 is 1.5×, the meals' precedent.
 
-**Wear gate:** Talar 1 for T1, Talar 13 for T2, through `gateSkill` in `services/equipGates.ts` (the skill that owns the sub-system gates it). **Make gate:** Crafting level, set when the recipes are placed.
+Item names carry the gem: *Quartz Keeper's Band*, *Garnet Keeper's Band*. Twelve items per two tiers.
 
-**Any grade goes in (proposal).** Each piece has three recipes with the same output: **3 Lit, 2 Bright or 1 Radiant** gems of the tier, plus the metal. All three carry the same Talar (300 at T1), so no grade is wasted and none is required; a better cutter simply needs fewer stones. Twelve jewelry items, thirty-six recipe rows (rows are cheap and `RecipeList` already groups them). A version of each piece per grade would have been thirty-six items and thirty-six icons. (Replaces both earlier ideas: grade lowering the drain, and Polished only.) Jewelry has no durability: it is a lasting item, which is why it costs three gems' worth.
+### 8.4 Recipes
+- **Any grade goes in** (Nathan, 2026-10-28): each piece has three recipes with the same output, taking **3 Lit, 2 Bright or 1 Radiant** gems of the tier, plus the metal. All three hold the same Talar (300 at T1), so no grade is wasted and none is required; a better cutter needs fewer stones.
+- Metal: **2 Ambren Ingots** a T1 piece (**knob**).
+- At the lapidary (`station: 'lapidary'`), through `RecipeList` like cutting. **Open: a jeweller's tool.** The lapidary has two slots (Lap Wheel, Gem Chisel). Jewelry can use the bench as it stands, or add a third slot for **Jeweller's Pliers** (Smithing, Ambren), so setting stones asks for its own tool.
+- Rings at Crafting 8, amulets at 10 (T1), so the six open over a few levels rather than all at once (**knob**). T2 at 20 and 22.
+- Timer: 120 s a piece. XP by the law for finished goods: `1.8 × 1.10 × band(level) × 120 / 3600`, about 155 at Crafting 8. The gems are the gate, not the clock (three charged gems are an hour and a half at the Rift), so the XP is not raised for them, as husbandry is not for its animals.
+- Thirty-six recipe rows for T1 and T2 (three per piece). `for_skill: 'Talar'`, so they list under a Jewelry tab beside cutting.
 
----
+### 8.5 The draw
+- **1 Talar per 20 helped actions** (5 hundredths each; **knob**), about a tenth of a quartz an hour for an active wearer.
+- Charged at the moment the piece is consulted for a helped action, through `spendTalarWithin` (`services/talar.ts`), inside the action's own transaction where there is one. **The effect applies only if the draw succeeded:** an empty reservoir means no draw and no bonus, never a debt.
+- One place decides it: `lib/jewelry.ts` (pure: which piece helps which action, at what strength) and `services/jewelry.ts` (reads what is worn, draws, answers yes or no). Each system calls one function (`jewelryHelps(trx, playerId, 'bait')` and similar) at its one decision point; no system reads `finger_item_id` itself.
+- **Jewelry drain pays no XP** (§7): it is passive.
+- Silent like wear (Nathan, 2026-10-12)? A piece that saves bait says so on the result card ("Your Baitkeeper's Amulet kept the bait"), because the player paid Talar for it and should see what it bought. The reservoir bar shows the draw.
+
+### 8.6 Where each hook goes
+| Piece | Decision point |
+|---|---|
+| Keeper's Band | `services/durability.ts`, where a use is counted (combat today; tools when tools wear) |
+| Prospector's Ring | `openVein` in `services/mining.ts`, the vein's size |
+| Seedsaver's Ring | the four farming harvest resolvers (`services/farming.ts`) |
+| Hearty Amulet | `eatFood` (combat), the heal amount |
+| Wayfinder's Amulet | `rollTravelEvents` in `services/travelEvents.ts`, per segment, walkers only |
+| Baitkeeper's Amulet | bait spend in `services/trapping.ts` and `services/fishing.ts` |
+
+### 8.7 Gates, pages, museum
+- **Wear gate** through `gateSkill` in `services/equipGates.ts`: Talar, at the tier's rung (the skill that owns the sub-system gates it). Listed in `services/unlocks.ts` like all wearable gear.
+- Item pages say what a piece helps and what it draws, from the rows; the Manual's Talar page gets a Jewelry table.
+- Museum: a Jewelry case on the Taiar museum's list (`museum_exhibits` match `{ type: 'jewelry' }`).
+- New item type `jewelry`, subtype `ring` or `amulet`. `values:derive` prices them from the recipe XP; the gems inside are worth far more, so the pawnbroker and NPC walls need checking after (`validateWalls`).
+
+### 8.8 Build
+In two halves (Nathan, 2026-10-28):
+1. Items, recipes, wear gate, the draw (`lib/jewelry.ts`, `services/jewelry.ts`), the three rings, museum case, a `race:check` scenario for the draw.
+2. The three amulets.
 
 ## 9. Creature drops (ships with or before Talar)
 
@@ -291,7 +339,7 @@ New tables (first draft): `player_talar` (reservoir), `player_talar_open_gem`, `
 
 ## 13. Open
 
-1. **Jewelry input:** 3 Cut, 2 Polished or 1 Flawless (proposal).
+1. ~~Jewelry input~~ decided 2026-10-28: 3 Lit, 2 Bright or 1 Radiant (§8.4). Open: T2 metal on Taiar (§8.2), a jeweller's tool (§8.4).
 2. ~~Georome's quest~~ decided 2026-10-27 (§1).
 3. All **knobs** above, after the sim pass.
 
