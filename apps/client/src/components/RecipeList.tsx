@@ -51,6 +51,10 @@ interface RecipeListProps {
         single flat wall. Grouping by tool also answers "what does a cauldron
         get me", which the flat list never did. */
     groupBy?: 'skill' | 'tool'
+    /** Show only one station's recipes: a station type, or null for the ones
+        needing no station. Left out, every recipe of the skill shows. Caliwen
+        has a bench and a lapidary, and each lists only its own work. */
+    station?: string | null
 }
 
 // Recipes from the `recipes` table, grouped into tabs by WHO THE OUTPUT SERVES
@@ -85,7 +89,7 @@ function toolTabFor(r: TableRecipe): string {
     return 'Other'
 }
 
-export default function RecipeList({ skill, playerLevel, onStartRecipe, stationActive = true, groupBy = 'skill' }: RecipeListProps) {
+export default function RecipeList({ skill, playerLevel, onStartRecipe, stationActive = true, groupBy = 'skill', station }: RecipeListProps) {
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [recipes, setRecipes] = useState<TableRecipe[]>([])
@@ -94,10 +98,11 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
 
     useEffect(() => {
         apiFetch<{ recipes: TableRecipe[] }>('/api/recipes')
-            .then(data => setRecipes((data.recipes || []).filter(r => r.skill === skill)))
+            .then(data => setRecipes((data.recipes || []).filter(r =>
+                r.skill === skill && (station === undefined || (r.station ?? null) === station))))
             .catch(() => setRecipes([]))
             .finally(() => setLoading(false))
-    }, [skill])
+    }, [skill, station])
 
     // Tab order: the making skill first (its own gear), then the rest alphabetically
     const categories = useMemo(() => {

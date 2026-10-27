@@ -188,6 +188,8 @@ const TOOL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     mallet: 'carpenter', sawhorse: 'carpenter', staff: 'carpenter', bow: 'carpenter',
     bucket: 'carpenter', pail: 'carpenter', fork: 'carpenter',
     tanning_rack: 'carpenter', tanning_barrel: 'carpenter', fishing_rod: 'carpenter',
+    // The lapidary's two tools: the wheel is built, the chisel forged.
+    lap_wheel: 'carpenter', gem_chisel: 'smith',
     // Crafting's bench: leather, cordage, weaving and dressed stone.
     halter: 'leatherworker', foraging_gloves: 'leatherworker', fishing_net: 'leatherworker',
     trap: 'leatherworker', foraging_basket: 'leatherworker', skep: 'leatherworker',

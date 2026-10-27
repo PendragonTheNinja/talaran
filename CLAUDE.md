@@ -65,6 +65,8 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **`recipes.for_skill`** drives UI tabs (who the output *serves*, not who makes it).
 - **`recipes.station`** is a `workstations.type` (`'carpentry'`, `'smithing'`, `'tanning'`, …) or `null` for camp crafts. **Never a display name:** `'Tanning Rack'` saves and reads back fine and is invisible to `services/tanning.ts`. This has shipped twice.
 - Active workstation at your location = full speed; otherwise timer ×2 ("making do at the public bench"). `null` station = no penalty.
+- **Graded recipes** (`recipes.grade_outputs`, a JSON list, worst grade first): `resolveRecipe` rolls which grade comes out by levels over the recipe (`lib/gemGrades.ts`); `output_item_name` names the plainest grade, and `values:derive` prices the others by `GRADE_WORTH`. Gem cutting runs this way at the **lapidary** (`station: 'lapidary'`, slots `lap_wheel` + `gem_chisel`, Caliwen), where jewelry will be made too.
+- **`RecipeList` takes a `station` filter** (a station type, or `null` for station-less work). A station's menu passes its own, or it lists every recipe of the skill.
 - **New recipes set `flavor_text`.** `RECIPE_FLAVOR_BY_SKILL` in `GameView.tsx` is a net, not the plan, and needs an entry for any new recipe-owning skill.
 
 ### Property & homestead

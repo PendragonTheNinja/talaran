@@ -70,6 +70,7 @@ Module._load = function (request: string, ...rest: unknown[]) {
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { SAW_RECIPES, WOODWORK_RECIPES } = require('../services/carpentry');
 const { SMELT_RECIPES, SMITH_RECIPES } = require('../services/smithing');
+const { GRADE_WORTH } = require('../lib/gemGrades');
 /* eslint-enable @typescript-eslint/no-var-requires */
 
 const db = knexLib({ client: 'pg', connection: process.env.DATABASE_URL });
@@ -582,6 +583,25 @@ async function main(): Promise<void> {
             }
         }
         if (!changed) break;
+    }
+
+    // ---- 9b. Gem grades --------------------------------------------------
+    // A cut names its plainest grade as the output, so the loop above priced
+    // Cut X only. The better grades hold more Talar, 1 : 1.5 : 3
+    // (lib/gemGrades.ts), and are priced by what they hold.
+    for (const r of recipeRows) {
+        if (r.is_active === false || !r.grade_outputs) continue;
+        let grades: string[] = [];
+        try { grades = JSON.parse(r.grade_outputs); } catch { continue; }
+        const base = best.get(String(r.output_item_name));
+        if (!base || !Array.isArray(grades)) continue;
+        grades.forEach((name, i) => {
+            if (i === 0 || !GRADE_WORTH[i]) return;
+            propose(name, {
+                value: base.value * GRADE_WORTH[i], method: 'recipe', level: Number(r.required_level) || 1,
+                basis: `${GRADE_WORTH[i]}x ${r.output_item_name}, by the Talar it holds`,
+            });
+        });
     }
 
     // ---- 10. Everything left: tier estimate --------------------------------

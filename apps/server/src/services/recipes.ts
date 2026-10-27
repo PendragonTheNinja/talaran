@@ -4,6 +4,7 @@ import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inven
 import { isLiquid, liquidTotal, consumeLiquid } from './liquids'
 import { levelFromXp, playerSkillLevel } from './xp'
 import { levelTimerFactor, floorTimer, processingTimer } from '../lib/actionTimers'
+import { rollGrade } from '../lib/gemGrades'
 import { logger } from '../lib/logger'
 import { incrementStats } from './stats'
 import { updateQuestObjectiveProgress } from '../routes/quests'
@@ -118,6 +119,16 @@ function parseInputs(inputs: unknown): RecipeInput[] {
         } catch { return [] }
     }
     return []
+}
+
+/** A recipe's grade outputs, worst first, from the JSON column; empty when it has none. */
+function parseGradeOutputs(raw: unknown): string[] {
+    if (Array.isArray(raw)) return raw.map(String)
+    if (typeof raw !== 'string' || !raw) return []
+    try {
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed.map(String) : []
+    } catch { return [] }
 }
 
 async function skillInfo(playerId: number, skillName: string): Promise<{ skillId: number | null; level: number }> {
@@ -333,6 +344,8 @@ export async function getActiveRecipes() {
         // start endpoint returns it; the list did not, which left a reloaded
         // cook with a generic line and no fire.
         flavorText: r.flavor_text ?? null,
+        // A gem cut can come out as any of these, worst first.
+        gradeOutputs: parseGradeOutputs(r.grade_outputs),
     }))
 }
 
@@ -476,9 +489,19 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             const burntName = burntNameFor(recipe, intendedItem?.subtype ?? null)
             const burnt = !!burntName && Math.random() * 100 < burnChance(recipe, level)
 
+            // A graded recipe (a gem cut) rolls which grade comes off the wheel,
+            // better the further the cutter is over the recipe (lib/gemGrades.ts).
+            const grades = parseGradeOutputs(recipe.grade_outputs)
+            let graded: any = null
+            if (!burnt && grades.length > 0) {
+                const name = grades[Math.min(grades.length - 1, rollGrade(level - (recipe.required_level ?? 1)))]
+                graded = await trx('items').where({ name }).first()
+                if (!graded) throw new RecipeAbort(`Required item not found: ${name}`)
+            }
+
             const outputItem = burnt
                 ? await trx('items').where({ name: burntName }).first()
-                : intendedItem
+                : graded ?? intendedItem
             if (outputItem) {
                 await addItemToInventoryWithin(trx, playerId, outputItem.id, burnt ? 1 : recipe.output_qty)
             }
@@ -548,7 +571,7 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
         return {
             success: true,
             burnt,
-            itemName: burnt ? burntName! : recipe.output_item_name,
+            itemName: burnt ? burntName! : (outputItem?.name ?? recipe.output_item_name),
             quantity: burnt ? 1 : recipe.output_qty,
             xpAwarded,
             skillName: recipe.skill,

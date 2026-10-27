@@ -17,11 +17,13 @@ interface CraftingMenuProps {
         standing at instead of tagging every recipe card with it. */
     keeperName?: string
     ownerName?: string
+    /** Passed to RecipeList: only this station's recipes (null: station-less). */
+    station?: string | null
 }
 
 // Station bench menu. All recipe rendering lives in RecipeList so Caliwen's
 // bench, Verdale's woodworking tab and Emberra's fletching share one UI.
-export default function CraftingMenu({ onClose, onStartRecipe, skill, title, playerLevel, stationActive = true, groupBy = 'skill', keeperName, ownerName, stationType }: CraftingMenuProps) {
+export default function CraftingMenu({ onClose, onStartRecipe, skill, title, playerLevel, stationActive = true, groupBy = 'skill', keeperName, ownerName, stationType, station }: CraftingMenuProps) {
     /**
      * Whose bench this is, asked of the station itself.
      *
@@ -59,6 +61,7 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
                     playerLevel={playerLevel}
                     stationActive={stationActive}
                     groupBy={groupBy}
+                    station={station}
                     onStartRecipe={(recipeId, batches) => { onStartRecipe(recipeId, batches); onClose() }}
                 />
             </div>

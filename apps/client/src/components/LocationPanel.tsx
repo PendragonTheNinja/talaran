@@ -793,6 +793,20 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   Crafting Bench →
                 </button>
 
+                {/* Lapidary: gems are cut here, and later set into jewelry. */}
+                <button
+                  className="location-action-btn sub"
+                  onClick={() => onStartAction('workstation_lapidary', 0)}
+                >
+                  Your Lapidary
+                </button>
+                <button
+                  className="location-action-btn sub"
+                  onClick={() => onStartAction('lapidary_menu', 0)}
+                >
+                  Lapidary →
+                </button>
+
               </div>
             )}
           </div>

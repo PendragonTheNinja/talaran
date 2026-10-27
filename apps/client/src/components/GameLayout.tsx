@@ -222,6 +222,7 @@ export default function GameLayout({
 
   const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
   const [showCraftingMenu, setShowCraftingMenu] = useState(false)
+  const [showLapidaryMenu, setShowLapidaryMenu] = useState(false)
   const [showCookingMenu, setShowCookingMenu] = useState(false)
   const [cookingAtFire, setCookingAtFire] = useState(false)
   const [carpentryStationActive, setCarpentryStationActive] = useState(false)
@@ -431,6 +432,8 @@ export default function GameLayout({
       setOpenWorkstation({ type: 'carpentry', title: 'Carpentry Tool Rack' })
     } else if (type === 'workstation_cooking') {
       setOpenWorkstation({ type: 'cooking', title: 'Cookhouse Tool Rack' })
+    } else if (type === 'workstation_lapidary') {
+      setOpenWorkstation({ type: 'lapidary', title: 'Lapidary Tool Rack' })
     } else if (type === 'forge_menu') {
       apiFetch<any>('/api/smithing/status')
         .then(st => setSmithingStationActive(!!st?.workstation?.is_active))
@@ -489,6 +492,8 @@ export default function GameLayout({
       setShowCookingMenu(true)
     } else if (type === 'crafting_menu') {
       setShowCraftingMenu(true)
+    } else if (type === 'lapidary_menu') {
+      setShowLapidaryMenu(true)
     } else if (type === 'shop_build') {
       // Raising a shopfront is Carpentry construction, so it borrows the
       // farming timer the farmstead already uses. id carries the seconds.
@@ -1003,6 +1008,22 @@ export default function GameLayout({
           }}
           skill="Crafting"
           title="Crafting Bench"
+          station={null}
+          playerLevel={playerData?.skills?.find((s: any) => s.name === 'Crafting')?.level || 1}
+        />
+      )}
+
+      {showLapidaryMenu && (
+        <CraftingMenu
+          onClose={() => setShowLapidaryMenu(false)}
+          onStartRecipe={(recipeId) => {
+            setShowLapidaryMenu(false)
+            setGameViewAction({ type: 'recipe', id: recipeId })
+          }}
+          skill="Crafting"
+          title="Lapidary"
+          station="lapidary"
+          stationType="lapidary"
           playerLevel={playerData?.skills?.find((s: any) => s.name === 'Crafting')?.level || 1}
         />
       )}
