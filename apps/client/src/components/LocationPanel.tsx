@@ -9,6 +9,7 @@ import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
 import TravellingMerchantMenu from './TravellingMerchantMenu'
 import MuseumPanel from './MuseumPanel'
+import ChurchPanel from './ChurchPanel'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
 import { useItemTooltip } from './ItemTooltip'
@@ -376,6 +377,17 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     return () => { cancelled = true }
   }, [location?.id])
 
+  // The church standing here, if any (services/church.ts), the museum's way.
+  const [church, setChurch] = useState<{ id: number; name: string } | null>(null)
+  const [churchOpen, setChurchOpen] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    apiFetch<{ church: { id: number; name: string } | null }>('/api/church/here')
+      .then(d => { if (!cancelled) setChurch(d.church) })
+      .catch(() => { if (!cancelled) setChurch(null) })
+    return () => { cancelled = true }
+  }, [location?.id])
+
   const worldEvents = useWorldEvents()
   const eventsHere = worldEvents.live.filter(e => e.locationId === location?.id)
   const merchantHere = eventsHere.some(isMerchant)
@@ -500,6 +512,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {museum && (
           <button className="location-action-btn" onClick={() => setMuseumOpen(true)}>
             {museum.name} →
+          </button>
+        )}
+
+        {church && (
+          <button className="location-action-btn" onClick={() => setChurchOpen(true)}>
+            {church.name} →
           </button>
         )}
 
@@ -1014,6 +1032,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           onClose={() => { setMyShopOpen(false); refreshShopBadge() }}
           onChanged={handleGoldChanged}
         />
+      )}
+
+      {churchOpen && church && (
+        <ChurchPanel churchId={church.id} onClose={() => setChurchOpen(false)} />
       )}
 
       {museumOpen && museum && (

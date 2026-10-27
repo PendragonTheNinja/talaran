@@ -363,3 +363,16 @@
   font-size: 13px;
   padding: 4px var(--space-md);
 }
+
+/* A church's writings (ChurchPanel.tsx): read like a page, not a form. */
+.church-writing {
+    padding: var(--space-sm) var(--space-md) var(--space-lg);
+    max-width: 640px;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--color-text-base);
+}
+
+.church-writing p + p {
+    margin-top: var(--space-sm);
+}

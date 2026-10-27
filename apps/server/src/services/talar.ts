@@ -8,6 +8,7 @@ import { incrementStats } from './stats'
 import { activeXpForSeconds } from './farming'
 import { rungOfTier } from '../lib/tiers'
 import { GRADE_FILL_SPEED, chargedNameFor, cutGradeOf } from '../lib/gemGrades'
+import { updateQuestObjectiveProgress } from '../routes/quests'
 
 // The reservoir (docs/talar-spec.md §4). Every player carries Talar inside
 // them: poured in from charged gems, spent on spells, drawn on by jewelry.
@@ -106,6 +107,8 @@ export async function absorbGem(
         })
 
         notifyInventoryChanged(playerId)
+        // After the commit: quest progress writes through the global connection.
+        await updateQuestObjectiveProgress(playerId, 'talar_absorb', item.name, 1)
         logger.info(`[talar] player ${playerId} absorbed ${item.name} (+${poured}), now ${talar.current}/${talar.max}`)
         return { success: true, itemName: item.name, poured, talar }
     } catch (err) {
@@ -322,6 +325,7 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
         })
 
         notifyInventoryChanged(playerId)
+        if (outcome.itemName) await updateQuestObjectiveProgress(playerId, 'talar_fill', outcome.itemName, 1)
         return {
             success: true,
             xpAwarded: outcome.xp,
