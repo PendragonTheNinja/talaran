@@ -753,6 +753,20 @@ export default function GameView({
         }
       })
 
+      // Daily Step (server: services/spells.ts) moved the player and ended
+      // whatever they were doing, as starting travel does. The spellbook says
+      // where they went; the old result card no longer belongs here.
+      on('stepped', () => {
+        setLastResult(null)
+        setCurrentAction(null)
+        setTimerSeconds(0)
+        setTimerMax(0)
+        onClearTravel()
+        if (timerRef.current) clearInterval(timerRef.current)
+        onPlayerDataUpdate()
+        onLocationDataUpdate?.()
+      })
+
       on('force_refresh', () => window.location.reload())
 
       on('action_failed', (data: { error: string; info?: boolean }) => {

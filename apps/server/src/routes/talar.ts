@@ -5,7 +5,7 @@ import { failureStatus } from '../lib/serviceResult';
 import db from '../db';
 import { botCheckGate } from '../services/botCheck';
 import { absorbGem, fillOptions, getTalarState, startFill } from '../services/talar';
-import { castSpell, learnSpell, listSpells } from '../services/spells';
+import { castSpell, learnSpell, listSpells, spellTargets } from '../services/spells';
 
 // Talar (docs/talar-spec.md): the reservoir now; filling and spells join it.
 
@@ -83,6 +83,13 @@ router.post('/spells/learn', requireAuth, async (req: AuthRequest, res: Response
     const result = await learnSpell(req.player!.playerId, String(req.body?.key ?? ''));
     if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
     res.json(result);
+});
+
+// GET /api/talar/spells/:key/targets   what the spell can be cast at (Daily Step's places)
+router.get('/spells/:key/targets', requireAuth, async (req: AuthRequest, res: Response) => {
+    const result = await spellTargets(req.player!.playerId, String(req.params.key));
+    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
+    res.json({ targets: result.targets });
 });
 
 // POST /api/talar/spells/cast   { key, ...params } - instant; never takes the action slot

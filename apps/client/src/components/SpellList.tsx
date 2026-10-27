@@ -20,6 +20,14 @@ interface SpellView {
     xp: number
 }
 
+/** Somewhere Daily Step can go, with what it costs from here. */
+interface StepTarget {
+    locationId: number
+    name: string
+    seconds: number
+    cost: number
+}
+
 interface CastResult {
     spell: string
     message: string
@@ -56,6 +64,7 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
     const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null)
     const [reading, setReading] = useState<{ key: string; detail: unknown } | null>(null)
     const [busy, setBusy] = useState(false)
+    const [picking, setPicking] = useState<{ key: string; targets: StepTarget[] } | null>(null)
 
     const load = useCallback(() => {
         apiFetch<{ spells: SpellView[]; atChurch: boolean }>('/api/talar/spells')
@@ -75,10 +84,21 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
         } finally { setBusy(false) }
     }
 
-    const cast = async (s: SpellView) => {
+    // Daily Step asks where to first; the server says where it can go and what each costs.
+    const pickTarget = async (s: SpellView) => {
+        try {
+            const d = await apiFetch<{ targets: StepTarget[] }>(`/api/talar/spells/${s.key}/targets`)
+            setPicking({ key: s.key, targets: d.targets })
+        } catch (err) {
+            setNote({ text: (err as { message?: string }).message || 'Nothing happens.', error: true })
+        }
+    }
+
+    const cast = async (s: SpellView, params: Record<string, unknown> = {}) => {
         setBusy(true)
         try {
-            const res = await apiFetch<CastResult>('/api/talar/spells/cast', { method: 'POST', body: JSON.stringify({ key: s.key }) })
+            const res = await apiFetch<CastResult>('/api/talar/spells/cast', { method: 'POST', body: JSON.stringify({ key: s.key, ...params }) })
+            setPicking(null)
             announceTalar(res.talar)
             setNote({ text: `${res.message} +${res.xpAwarded} Talar experience.` })
             setReading({ key: s.key, detail: res.detail })
@@ -104,13 +124,14 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
                         <div className="spell-card-head">
                             <span className="spell-name gold-text">{s.name}</span>
                             <span className="spell-meta muted-text tabular-num">
-                                {s.cost} Talar · {cooldownText(s)} · Level {s.level}
+                                {s.key === 'daily_step' ? 'Talar by the road' : `${s.cost} Talar`} · {cooldownText(s)} · Level {s.level}
                             </span>
                         </div>
                         {s.description && <p className="spell-desc">{s.description}</p>}
                         <div className="spell-actions">
                             {mode === 'cast' && (
-                                <button className="btn btn-gold" disabled={busy || waiting > 0} onClick={() => cast(s)}>
+                                <button className="btn btn-gold" disabled={busy || waiting > 0}
+                                    onClick={() => s.key === 'daily_step' ? pickTarget(s) : cast(s)}>
                                     {waiting > 0 ? `Ready in ${waiting} min` : 'Cast'}
                                 </button>
                             )}
@@ -121,6 +142,19 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
                                     : <span className="station-tag locked">Talar level {s.level}</span>
                             )}
                         </div>
+                        {picking?.key === s.key && (
+                            picking.targets.length === 0
+                                ? <p className="farm-empty">There is nowhere on this island you have walked to that you could step to from here.</p>
+                                : <ul className="spell-targets">
+                                    {picking.targets.map(t => (
+                                        <li key={t.locationId}>
+                                            <button className="btn" disabled={busy} onClick={() => cast(s, { locationId: t.locationId })}>
+                                                {t.name} <span className="muted-text tabular-num">{t.cost} Talar</span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                        )}
                         {reading?.key === s.key && s.key === 'wearsight' && Array.isArray(reading.detail) && (
                             <WearReading detail={reading.detail as { slot: string; name: string; word: string }[]} />
                         )}

@@ -7,6 +7,10 @@ import { awardXp, playerSkillLevel } from './xp'
 import { HUNDREDTHS, spendTalarWithin, type TalarState } from './talar'
 import { churchHere } from './church'
 import { loadDurabilityTiers, durabilityRule } from './durability'
+import { endFightIfAny } from './combatFights'
+import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
+import { afterCommit } from '../lib/afterCommit'
+import { pushToPlayer, pushToPlayerAfterCommit } from '../lib/realtime'
 
 // Spells (docs/talar-spec.md §5 to §7). A spell is a row (services' nouns);
 // what it does is an entry in EFFECTS below (verbs are code).
@@ -65,6 +69,14 @@ export interface CastOutcome {
 }
 
 interface SpellEffect {
+    /**
+     * Work that cannot run inside the cast's transaction (settling a fight runs
+     * its own). Called only after an unlocked look says the cast would go
+     * ahead; the transaction checks everything again.
+     */
+    prepare?: (playerId: number, spell: SpellRow, params: Record<string, unknown>) => Promise<void>
+    /** Choices a cast needs (Daily Step's destinations), for the spellbook to offer. */
+    targets?: (playerId: number, spell: SpellRow) => Promise<unknown>
     /** Talar this cast costs (may be fractional; charged in hundredths). Throws SpellAbort to refuse. */
     cost: (trx: any, playerId: number, spell: SpellRow, params: Record<string, unknown>) => Promise<number>
     /** Do it, inside the cast's transaction. Throws SpellAbort to refuse; the payment rolls back. */
@@ -109,8 +121,169 @@ const wearsight: SpellEffect = {
     },
 }
 
+// ── Daily Step (§6) ──────────────────────────────────────────────────────────
+// One way, alone, to anywhere on this island the player has walked to before
+// (player_exploration 'location' rows, plus Talador, where everyone starts).
+// Priced by the road it skips: the rate times the shortest way there by road,
+// in base seconds. Leaves exactly as starting travel does (routes/travel.ts):
+// the fight is settled first (prepare), then the action and any trade end.
+// No Wayfaring XP, no finds on the road.
+
+const START_TOWN = 'Talador'
+
+interface StepTarget { locationId: number; name: string; seconds: number }
+
+/** Every place this player could step to from where they stand, with its road time. */
+async function stepTargets(conn: any, playerId: number): Promise<{ from: number | null; targets: StepTarget[] }> {
+    const player = await conn('players').where({ id: playerId }).select('current_location_id').first()
+    const from = player?.current_location_id ? Number(player.current_location_id) : null
+    if (!from) return { from, targets: [] }
+    const here = await conn('locations').where({ id: from }).select('region').first()
+    const island = await conn('locations').where({ region: here?.region ?? null }).select('id', 'name')
+    const onIsland = new Map<number, string>(island.map((l: any) => [Number(l.id), l.name]))
+
+    const visited = new Set<number>(
+        (await conn('player_exploration').where({ player_id: playerId, discovery_type: 'location' }).pluck('discovery_key'))
+            .map((k: string) => Number(String(k).split(':')[1])),
+    )
+    for (const [id, name] of onIsland) if (name === START_TOWN) visited.add(id)
+
+    // Shortest road time from here to every place on the island (Dijkstra; a
+    // few dozen places, so a plain scan for the nearest is plenty).
+    const roads = await conn('location_connections').select('from_location_id', 'to_location_id', 'base_travel_time', 'is_bidirectional')
+    const next = new Map<number, { to: number; s: number }[]>()
+    const link = (a: number, b: number, s: number) => {
+        if (!onIsland.has(a) || !onIsland.has(b)) return
+        if (!next.has(a)) next.set(a, [])
+        next.get(a)!.push({ to: b, s })
+    }
+    for (const r of roads) {
+        const s = Number(r.base_travel_time ?? 30)
+        link(Number(r.from_location_id), Number(r.to_location_id), s)
+        if (r.is_bidirectional) link(Number(r.to_location_id), Number(r.from_location_id), s)
+    }
+    const dist = new Map<number, number>([[from, 0]])
+    const done = new Set<number>()
+    for (;;) {
+        let at: number | null = null
+        for (const [id, d] of dist) if (!done.has(id) && (at === null || d < dist.get(at)!)) at = id
+        if (at === null) break
+        done.add(at)
+        for (const { to, s } of next.get(at) ?? []) {
+            const d = dist.get(at)! + s
+            if (d < (dist.get(to) ?? Infinity)) dist.set(to, d)
+        }
+    }
+
+    const targets = [...visited]
+        .filter(id => id !== from && onIsland.has(id) && dist.has(id))
+        .map(id => ({ locationId: id, name: onIsland.get(id)!, seconds: dist.get(id)! }))
+        .sort((a, b) => a.seconds - b.seconds || a.name.localeCompare(b.name))
+    return { from, targets }
+}
+
+async function stepTarget(conn: any, playerId: number, params: Record<string, unknown>): Promise<StepTarget> {
+    const want = Math.floor(Number(params.locationId))
+    if (!Number.isFinite(want) || want <= 0) throw new SpellAbort('Choose where to step to.')
+    const target = (await stepTargets(conn, playerId)).targets.find(t => t.locationId === want)
+    if (!target) throw new SpellAbort('You can only step to a place on this island you have walked to before.')
+    return target
+}
+
+/** Talar for a step of `seconds` of road, in whole hundredths. */
+function stepCost(spell: SpellRow, seconds: number): number {
+    return Math.round(Number(spell.cost) * seconds * HUNDREDTHS) / HUNDREDTHS
+}
+
+const dailyStep: SpellEffect = {
+    prepare: async (playerId) => { await endFightIfAny(playerId) },
+    targets: async (playerId, spell) => (await stepTargets(db, playerId)).targets
+        .map(t => ({ ...t, cost: stepCost(spell, t.seconds) })),
+    cost: async (trx, playerId, spell, params) => stepCost(spell, (await stepTarget(trx, playerId, params)).seconds),
+    cast: async (trx, playerId, _spell, params) => {
+        const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
+        const left = await trx('locations').where({ id: me?.current_location_id ?? null }).first('name')
+        const target = await stepTarget(trx, playerId, params)
+
+        // Settled in prepare; a fight begun since then is not left mid-swing.
+        const action = await trx('player_actions').where({ player_id: playerId }).first()
+        if (action?.action_type === 'combat') throw new SpellAbort('You cannot step away in the middle of a fight.')
+        if (action) await trx('player_actions').where({ id: action.id }).delete()
+
+        const trade = await trx('trades')
+            .where(function (this: any) { this.where({ player1_id: playerId }).orWhere({ player2_id: playerId }) })
+            .whereIn('status', ['pending', 'active'])
+            .forUpdate()
+            .first()
+        if (trade) {
+            await trx('trades').where({ id: trade.id }).update({ status: 'cancelled' })
+            const otherId = trade.player1_id === playerId ? trade.player2_id : trade.player1_id
+            afterCommit(trx, () => pushToPlayer(otherId, 'trade_cancelled', { reason: 'The other player left the area.' }))
+        }
+
+        await trx('players').where({ id: playerId }).update({ current_location_id: target.locationId })
+        pushToPlayerAfterCommit(trx, playerId, 'stepped', { locationId: target.locationId, destination: target.name })
+        return { message: `You step out of ${left?.name ?? 'where you stood'} and into ${target.name}.`, detail: { destination: target.name } }
+    },
+}
+
+// ── Tether (§6) ──────────────────────────────────────────────────────────────
+// Cast after a fall, from anywhere: the latest death pile stays private to its
+// owner DEATH_PILE_PRIVATE_MINUTES longer. Once per death: a pile already held
+// is refused, so the cooldown is the death itself and no clock is kept.
+// A death pile is told from an ordinary drop by its private window, which is
+// set to exactly DEATH_PILE_PRIVATE_MINUTES at the fall (dropEverythingWithin).
+
+const DEATH_WINDOW_SECONDS = DEATH_PILE_PRIVATE_MINUTES * 60
+
+const tether: SpellEffect = {
+    cost: async (_trx, _playerId, spell) => Number(spell.cost),
+    cast: async (trx, playerId) => {
+        const now = new Date()
+        const piles = trx('ground_items')
+            .where({ dropped_by_player_id: playerId })
+            .where('visible_to_all_at', '>', now)
+            .whereRaw('visible_to_all_at - dropped_at >= make_interval(secs => ?)', [DEATH_WINDOW_SECONDS])
+        const latest: { at: Date | null } | undefined = await piles.clone().max('dropped_at as at').first()
+        if (!latest?.at) throw new SpellAbort('Nothing of yours is lying anywhere to hold on to.')
+
+        const pile = await trx('ground_items')
+            .where({ dropped_by_player_id: playerId, dropped_at: latest.at })
+            .forUpdate()
+            .select('id', 'location_id', 'dropped_at', 'visible_to_all_at')
+        const held = pile.some((g: any) =>
+            new Date(g.visible_to_all_at).getTime() - new Date(g.dropped_at).getTime() > DEATH_WINDOW_SECONDS * 1000)
+        if (held) throw new SpellAbort('You are already holding on to what you dropped. It will not hold any tighter.')
+
+        await trx('ground_items').whereIn('id', pile.map((g: any) => g.id))
+            .update({ visible_to_all_at: trx.raw('visible_to_all_at + make_interval(mins => ?)', [DEATH_PILE_PRIVATE_MINUTES]) })
+        const where = Number(pile[0].location_id)
+        const place = await trx('locations').where({ id: where }).select('name').first()
+        afterCommit(trx, () => announceGroundChange(where))
+        return {
+            message: `You keep a hold on what you dropped at ${place?.name ?? 'the place you fell'}. It stays yours a quarter of an hour longer.`,
+            detail: { stacks: pile.length },
+        }
+    },
+}
+
 const EFFECTS: Record<string, SpellEffect> = {
     wearsight,
+    daily_step: dailyStep,
+    tether,
+}
+
+/** What a spell offers to cast at (Daily Step's destinations), or null for a spell that needs no choice. */
+export async function spellTargets(playerId: number, key: string): Promise<{ success: true; targets: unknown } | { success: false; error: string }> {
+    try {
+        const spell: SpellRow | undefined = await db('spells').where({ key: String(key), is_active: true }).first()
+        const effect = spell ? EFFECTS[spell.key] : undefined
+        if (!spell || !effect) return { success: false, error: 'There is no such working.' }
+        return { success: true, targets: effect.targets ? await effect.targets(playerId, spell) : null }
+    } catch (err) {
+        logger.error(`spellTargets error (player ${playerId}, ${key}): ${err}`)
+        return { success: false, error: SERVER_ERROR }
+    }
 }
 
 // ── Reading ──────────────────────────────────────────────────────────────────
@@ -190,6 +363,17 @@ export async function castSpell(
         const effect = spell ? EFFECTS[spell.key] : undefined
         if (!spell || !effect) return { success: false, error: 'There is no such working.' }
 
+        // A look before the transaction, for spells with work that cannot run
+        // inside it (prepare): only go ahead with that work if the cast would.
+        if (effect.prepare) {
+            const own = await db('player_spells').where({ player_id: playerId, spell_id: spell.id }).first()
+            if (own && !(own.ready_at && new Date(own.ready_at).getTime() > Date.now())) {
+                const cost = await effect.cost(db, playerId, spell, params).catch(() => null)
+                const res = await db('player_talar').where({ player_id: playerId }).first('hundredths')
+                if (cost !== null && Number(res?.hundredths ?? 0) >= Math.round(cost * HUNDREDTHS)) await effect.prepare(playerId, spell, params)
+            }
+        }
+
         const now = new Date()
         const out = await db.transaction(async trx => {
             // The player's own row for this spell, locked: the cooldown is read
@@ -202,7 +386,7 @@ export async function castSpell(
             }
 
             const cost = await effect.cost(trx, playerId, spell, params)
-            const talar = await spendTalarWithin(trx, playerId, cost * HUNDREDTHS)
+            const talar = await spendTalarWithin(trx, playerId, Math.round(cost * HUNDREDTHS))
             if (!talar) throw new SpellAbort(`${spell.name} takes ${Math.ceil(cost)} Talar, and you do not have it in you.`)
 
             const outcome = await effect.cast(trx, playerId, spell, params)

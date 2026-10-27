@@ -434,3 +434,19 @@
     margin: 8px 0 0 18px;
     font-size: 14px;
 }
+
+.spell-targets {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.spell-targets .btn {
+    font-size: 12px;
+    padding: 3px 10px;
+    display: inline-flex;
+    gap: 6px;
+}
