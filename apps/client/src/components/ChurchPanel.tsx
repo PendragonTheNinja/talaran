@@ -21,7 +21,12 @@ interface Church {
     writings: Writing[]
 }
 
-export default function ChurchPanel({ churchId, onClose }: { churchId: number; onClose: () => void }) {
+export default function ChurchPanel({ churchId, onClose, onKeepVigil }: {
+    churchId: number
+    onClose: () => void
+    /** Start the vigil that teaches a spell (a timed action, so it goes through the game view). */
+    onKeepVigil: (key: string) => void
+}) {
     const [church, setChurch] = useState<Church | null>(null)
     const [error, setError] = useState<string | null>(null)
     // A writing's id, or 'spells'.
@@ -60,7 +65,7 @@ export default function ChurchPanel({ churchId, onClose }: { churchId: number; o
                     </div>
                 )}
 
-                {tab === 'spells' && <SpellList mode="learn" />}
+                {tab === 'spells' && <SpellList mode="learn" onKeepVigil={onKeepVigil} />}
 
                 {writing && (
                     <div className="church-writing">

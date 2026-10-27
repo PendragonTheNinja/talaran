@@ -1035,7 +1035,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       )}
 
       {churchOpen && church && (
-        <ChurchPanel churchId={church.id} onClose={() => setChurchOpen(false)} />
+        <ChurchPanel churchId={church.id} onClose={() => setChurchOpen(false)}
+          onKeepVigil={(key) => { setChurchOpen(false); onStartAction('spell_vigil', key) }} />
       )}
 
       {museumOpen && museum && (

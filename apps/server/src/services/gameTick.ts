@@ -19,6 +19,7 @@ import { buffTimerBonus } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements, veinNode } from './mining';
 import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } from './smithing';
 import { processingTimerFor } from './recipes';
+import { resolveVigil } from './spells';
 import { resolveFillCycle, FILL_CYCLE_SECONDS } from './talar';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
@@ -456,6 +457,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'talar_fill':
         result = await resolveFillCycle(action.player_id);
+        break;
+      case 'spell_vigil':
+        result = await resolveVigil(action.player_id, action.action_data);
         break;
       case 'fishing_rod':
         // action_data carries the chosen bait category (empty string = none).
@@ -982,6 +986,32 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           xpInfo,
         });
       }
+      return;
+    }
+
+    // A vigil at a church (services/spells.ts): one sitting, then the spell is
+    // learned or the reason it was not is told. Never repeats.
+    if (action.action_type === 'spell_vigil') {
+      await db('player_actions').where({ id: action.id }).delete();
+      if (!result || !result.success) {
+        io.to(`player_${action.player_id}`).emit('action_failed', {
+          error: result?.error || 'The vigil came to nothing.',
+        });
+        return;
+      }
+      const talarSkill = await db('skills').where({ name: 'Talar' }).first();
+      const updatedSkill = await db('player_skills')
+        .where({ player_id: action.player_id, skill_id: talarSkill?.id }).first();
+      const currentXp = updatedSkill ? parseInt(updatedSkill.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const leveledUp = currentLevel > levelFromXp(previousXp);
+      await emitActionComplete(io, action, {
+        firstEver,
+        actionType: action.action_type,
+        result,
+        xpInfo: { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp, xpAtLevel: xpForLevel(currentLevel) },
+      });
       return;
     }
 

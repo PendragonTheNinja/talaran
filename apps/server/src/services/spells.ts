@@ -12,12 +12,14 @@ import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit } from '../lib/realtime'
 import { wardableHead, wardFarmsteadWithin } from './husbandry'
+import { takeItemsWithin, notifyInventoryChanged } from './inventory'
 
 // Spells (docs/talar-spec.md §5 to §7). A spell is a row (services' nouns);
 // what it does is an entry in EFFECTS below (verbs are code).
 //
 // Common rules, all enforced in castSpell:
-//  - Learned at a church, from the spell's Talar level (Nathan, 2026-10-27).
+//  - Learned by keeping a vigil at a church, from the spell's Talar level
+//    (startVigil / resolveVigil below; Nathan, 2026-10-27).
 //  - Every spell has its own cooldown per player (player_spells.ready_at),
 //    read and written on the player's locked row, so two parallel casts pay
 //    once and only one lands.
@@ -35,6 +37,11 @@ export interface SpellRow {
     cooldown_kind: 'timer' | 'daily' | 'per_death'
     cooldown_seconds: number | null
     display_order: number
+    vigil_minutes: number
+    /** A charged gem given up when the vigil ends. */
+    offering_item_name: string | null
+    /** A writing found in the world, given up with it; null for the first tier. */
+    writ_item_name: string | null
 }
 
 /** A refusal from inside the cast. Thrown, never returned (CLAUDE.md §4 rule 3). */
@@ -351,16 +358,25 @@ export interface SpellView {
     /** ISO time it is next ready, or null when ready now. */
     readyAt: string | null
     xp: number
+    vigilMinutes: number
+    offering: string | null
+    writ: string | null
+    /** Whether the pack holds the offering and the writ right now. */
+    hasOffering: boolean
+    hasWrit: boolean
 }
 
 /** Every spell, as this player stands with it. Only spells whose effect exists are offered. */
 export async function listSpells(playerId: number): Promise<{ spells: SpellView[]; atChurch: boolean }> {
-    const [rows, learned, level, church] = await Promise.all([
+    const [rows, learned, level, church, carried] = await Promise.all([
         db('spells').where({ is_active: true }).orderBy([{ column: 'talar_level' }, { column: 'display_order' }]),
         db('player_spells').where({ player_id: playerId }).select('spell_id', 'ready_at'),
         playerSkillLevel(playerId, 'Talar'),
         churchHere(playerId),
+        db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+            .where('pi.player_id', playerId).where('pi.quantity', '>', 0).pluck('i.name'),
     ])
+    const inPack = new Set<string>(carried)
     const mine = new Map(learned.map((l: any) => [Number(l.spell_id), l]))
     const now = Date.now()
     return {
@@ -374,25 +390,121 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 learned: !!own, canLearn: level >= s.talar_level,
                 readyAt: ready && ready.getTime() > now ? ready.toISOString() : null,
                 xp: castXp(s),
+                vigilMinutes: Number(s.vigil_minutes),
+                offering: s.offering_item_name, writ: s.writ_item_name,
+                hasOffering: !s.offering_item_name || inPack.has(s.offering_item_name),
+                hasWrit: !s.writ_item_name || inPack.has(s.writ_item_name),
             }
         }),
     }
 }
 
-// ── Learning ─────────────────────────────────────────────────────────────────
+// ── Learning: the vigil ──────────────────────────────────────────────────────
+// A timed action at a church ('spell_vigil', resolved by the tick). Nothing is
+// taken at the start: the offering and the writ are given up when the vigil
+// ends, in one transaction with the learning, so leaving early costs nothing
+// and nothing can be spent twice. The vigil pays the spell's band for its
+// minutes, like any timed work.
 
-export async function learnSpell(playerId: number, key: string): Promise<{ success: true; name: string } | { success: false; error: string }> {
+/** What is wrong with keeping this vigil now, or null. Read-only; the resolve checks again under lock. */
+async function vigilProblem(conn: any, playerId: number, spell: SpellRow): Promise<string | null> {
+    if (!(await churchHere(playerId))) return 'Spells are taught in a church.'
+    if ((await playerSkillLevel(playerId, 'Talar')) < spell.talar_level) {
+        return `You need Talar level ${spell.talar_level} to learn ${spell.name}.`
+    }
+    if (await conn('player_spells').where({ player_id: playerId, spell_id: spell.id }).first()) return `You already know ${spell.name}.`
+    for (const name of [spell.offering_item_name, spell.writ_item_name]) {
+        if (!name) continue
+        const held = await conn('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+            .where('pi.player_id', playerId).where('i.name', name).where('pi.quantity', '>', 0).first()
+        if (!held) return `To learn ${spell.name} you must bring ${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}.`
+    }
+    return null
+}
+
+async function learnableSpell(key: string): Promise<SpellRow | undefined> {
+    const spell: SpellRow | undefined = await db('spells').where({ key: String(key), is_active: true }).first()
+    return spell && EFFECTS[spell.key] ? spell : undefined
+}
+
+export async function startVigil(playerId: number, key: string): Promise<{ ok: true; timerSeconds: number; spell: string } | { ok: false; error: string; status: number }> {
     try {
-        const spell: SpellRow | undefined = await db('spells').where({ key: String(key), is_active: true }).first()
-        if (!spell || !EFFECTS[spell.key]) return { success: false, error: 'There is no such working to learn.' }
-        if (!(await churchHere(playerId))) return { success: false, error: 'Spells are taught in a church.' }
-        if ((await playerSkillLevel(playerId, 'Talar')) < spell.talar_level) {
-            return { success: false, error: `You need Talar level ${spell.talar_level} to learn ${spell.name}.` }
+        const spell = await learnableSpell(key)
+        if (!spell) return { ok: false, status: 400, error: 'There is no such working to learn.' }
+        const problem = await vigilProblem(db, playerId, spell)
+        if (problem) return { ok: false, status: 400, error: problem }
+
+        const seconds = Math.max(60, Number(spell.vigil_minutes) * 60)
+        const player = await db('players').where({ id: playerId }).first('current_location_id')
+        const now = new Date()
+        await db('player_actions').insert({
+            player_id: playerId,
+            action_type: 'spell_vigil',
+            action_data: spell.key,
+            location_id: player?.current_location_id ?? null,
+            started_at: now,
+            completes_at: new Date(now.getTime() + seconds * 1000),
+            auto_restart: false,
+            last_timer_seconds: seconds,
+            last_bot_check: now,
+            bot_check_pending: false,
+        })
+        return { ok: true, timerSeconds: seconds, spell: spell.name }
+    } catch (err: any) {
+        // The unique index on player_actions.player_id is the real guard (CLAUDE.md §9).
+        if (err?.code === '23505') return { ok: false, status: 409, error: 'You are already performing an action' }
+        logger.error(`startVigil error (player ${playerId}, ${key}): ${err}`)
+        return { ok: false, status: 500, error: SERVER_ERROR }
+    }
+}
+
+export interface VigilResult {
+    success: boolean
+    error?: string
+    xpAwarded?: number
+    skillName?: string
+    message?: string
+}
+
+/** The end of a vigil, for the tick: give up the offering and the writ, learn the spell, pay the vigil. */
+export async function resolveVigil(playerId: number, key: string | null): Promise<VigilResult> {
+    try {
+        const spell = await learnableSpell(String(key ?? ''))
+        if (!spell) return { success: false, error: 'There is no such working to learn.' }
+        if (!(await churchHere(playerId))) return { success: false, error: 'You left the church before the vigil was done.' }
+
+        const xp = await db.transaction(async trx => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id')
+            if ((await playerSkillLevel(playerId, 'Talar')) < spell.talar_level) {
+                throw new SpellAbort(`You need Talar level ${spell.talar_level} to learn ${spell.name}.`)
+            }
+            // Completion is the gate: only the request that adds the row goes on.
+            const added = await trx('player_spells').insert({ player_id: playerId, spell_id: spell.id })
+                .onConflict(['player_id', 'spell_id']).ignore().returning('spell_id')
+            if (!added.length) throw new SpellAbort(`You already know ${spell.name}.`)
+
+            const giving = [spell.offering_item_name, spell.writ_item_name]
+                .filter((n): n is string => !!n).map(name => ({ name, quantity: 1 }))
+            if (giving.length) {
+                const taken = await takeItemsWithin(trx, playerId, giving)
+                if (!taken.ok) throw new SpellAbort(`You no longer have what ${spell.name} asks of you. The vigil is wasted.`)
+            }
+
+            const paid = activeXpForSeconds(spell.talar_level, Number(spell.vigil_minutes) * 60)
+            await awardXp(playerId, 'Talar', paid, trx)
+            return paid
+        })
+
+        notifyInventoryChanged(playerId)
+        logger.info(`[spells] player ${playerId} learned ${spell.key}`)
+        const gave = [spell.offering_item_name, spell.writ_item_name].filter(Boolean).join(' and the ')
+        return {
+            success: true, xpAwarded: xp, skillName: 'Talar',
+            message: `The vigil ends${gave ? ` and the ${gave} ${spell.writ_item_name ? 'are' : 'is'} spent` : ''}. You know ${spell.name} now, and will not forget it.`,
         }
-        await db('player_spells').insert({ player_id: playerId, spell_id: spell.id }).onConflict(['player_id', 'spell_id']).ignore()
-        return { success: true, name: spell.name }
     } catch (err) {
-        logger.error(`learnSpell error (player ${playerId}, ${key}): ${err}`)
+        if (err instanceof SpellAbort) return { success: false, error: err.message }
+        logger.error(`resolveVigil error (player ${playerId}, ${key}): ${err}`)
         return { success: false, error: SERVER_ERROR }
     }
 }

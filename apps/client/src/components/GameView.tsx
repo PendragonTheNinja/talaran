@@ -1161,6 +1161,12 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'spell_vigil':
+        setCurrentAction('spell_vigil')
+        setTimerMax(action.last_timer_seconds || secondsLeft || 5)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'fishing_rod':
       case 'fishing_net':
       case 'fishing_cut_bait':
@@ -1228,6 +1234,32 @@ export default function GameView({
       const e = err as { status?: number; message?: string }
       if (e.status === 423) { rememberPendingAction(() => startTalarFill(itemId)); return }
       addLog(e.message || 'The light will not take.', 'error')
+    }
+  }
+
+  // A vigil at a church (services/spells.ts): one sitting that ends in
+  // learning a spell. Same start shape as filling.
+  const startVigil = async (key: string) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number }>('/api/talar/spells/vigil', {
+        method: 'POST',
+        body: JSON.stringify({ key }),
+      })
+      setCurrentAction('spell_vigil')
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds)
+    } catch (err) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 423) { rememberPendingAction(() => startVigil(key)); return }
+      addLog(e.message || 'You cannot keep that vigil.', 'error')
     }
   }
 
@@ -1305,6 +1337,8 @@ export default function GameView({
     } else if (externalAction.type === 'talar_fill') {
       // id 0: resume the stone already open.
       startTalarFill((externalAction.id as number) || null)
+    } else if (externalAction.type === 'spell_vigil') {
+      startVigil(String(externalAction.id))
     } else if (externalAction.type === 'fishing_rod') {
       // id carries the bait category, or an empty string for an unbaited cast.
       startRodFishing((externalAction.id as string) || null)

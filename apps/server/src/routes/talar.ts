@@ -5,7 +5,7 @@ import { failureStatus } from '../lib/serviceResult';
 import db from '../db';
 import { botCheckGate } from '../services/botCheck';
 import { absorbGem, fillOptions, getTalarState, startFill } from '../services/talar';
-import { castSpell, learnSpell, listSpells, spellTargets } from '../services/spells';
+import { castSpell, listSpells, spellTargets, startVigil } from '../services/spells';
 
 // Talar (docs/talar-spec.md): the reservoir now; filling and spells join it.
 
@@ -78,10 +78,10 @@ router.get('/spells', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-// POST /api/talar/spells/learn   { key } - at a church
-router.post('/spells/learn', requireAuth, async (req: AuthRequest, res: Response) => {
-    const result = await learnSpell(req.player!.playerId, String(req.body?.key ?? ''));
-    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
+// POST /api/talar/spells/vigil   { key } - at a church; a timed action that ends in learning the spell
+router.post('/spells/vigil', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    const result = await startVigil(req.player!.playerId, String(req.body?.key ?? ''));
+    if (!result.ok) { res.status(result.status).json({ error: result.error }); return; }
     res.json(result);
 });
 

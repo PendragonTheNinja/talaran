@@ -18,6 +18,11 @@ interface SpellView {
     canLearn: boolean
     readyAt: string | null
     xp: number
+    vigilMinutes: number
+    offering: string | null
+    writ: string | null
+    hasOffering: boolean
+    hasWrit: boolean
 }
 
 /** One choice a spell needs before it is cast (Daily Step's places, Larder Ward's hours). */
@@ -67,7 +72,7 @@ function WearReading({ detail }: { detail: { slot: string; name: string; word: s
     )
 }
 
-export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
+export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast'; onKeepVigil?: (key: string) => void }) {
     const [spells, setSpells] = useState<SpellView[] | null>(null)
     const [atChurch, setAtChurch] = useState(false)
     const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null)
@@ -81,17 +86,6 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
             .catch(() => setNote({ text: 'The words will not come just now.', error: true }))
     }, [])
     useEffect(() => { load() }, [load])
-
-    const learn = async (s: SpellView) => {
-        setBusy(true)
-        try {
-            await apiFetch('/api/talar/spells/learn', { method: 'POST', body: JSON.stringify({ key: s.key }) })
-            setNote({ text: `You have learned ${s.name}.` })
-            load()
-        } catch (err) {
-            setNote({ text: (err as { message?: string }).message || 'You could not learn that.', error: true })
-        } finally { setBusy(false) }
-    }
 
     // A spell that needs a choice asks first; the server says what can be chosen and what each costs.
     const pickTarget = async (s: SpellView) => {
@@ -137,6 +131,13 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
                             </span>
                         </div>
                         {s.description && <p className="spell-desc">{s.description}</p>}
+                        {mode === 'learn' && !s.learned && (s.offering || s.writ) && (
+                            <p className="spell-needs muted-text">
+                                {s.offering && <>Offer: <span className={s.hasOffering ? 'gold-text' : 'spell-missing'}>1 {s.offering}</span></>}
+                                {s.writ && <>{s.offering ? ' · ' : ''}Needs: <span className={s.hasWrit ? 'gold-text' : 'spell-missing'}>{s.writ}</span>
+                                    {!s.hasWrit && ' (not yet found)'}</>}
+                            </p>
+                        )}
                         <div className="spell-actions">
                             {mode === 'cast' && (
                                 <button className="btn btn-gold" disabled={busy || waiting > 0}
@@ -147,7 +148,11 @@ export default function SpellList({ mode }: { mode: 'learn' | 'cast' }) {
                             {mode === 'learn' && s.learned && <span className="muted-text">Learned</span>}
                             {mode === 'learn' && !s.learned && (
                                 s.canLearn
-                                    ? <button className="btn btn-gold" disabled={busy || !atChurch} onClick={() => learn(s)}>Learn</button>
+                                    ? <button className="btn btn-gold"
+                                        disabled={busy || !atChurch || !s.hasOffering || !s.hasWrit || !onKeepVigil}
+                                        onClick={() => onKeepVigil?.(s.key)}>
+                                        Keep vigil ({s.vigilMinutes} min)
+                                    </button>
                                     : <span className="station-tag locked">Talar level {s.level}</span>
                             )}
                         </div>

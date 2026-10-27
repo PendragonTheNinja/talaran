@@ -1484,6 +1484,27 @@ const SCENARIOS: Scenario[] = [
                 ?? succeeded(st, 5);
         },
     },
+    {
+        id: 'talar', name: 'a vigil resolved twice at once teaches once and spends one gem', rounds: 10,
+        run: async (ctx) => {
+            // The tick resolves a vigil (services/spells.ts); a second resolve
+            // racing it must find the spell already learned and take nothing.
+            const w = await world(ctx);
+            await ctx.seed.row('churches', { key: 'racecheck_chapel', location_id: w.town.id, name: 'Racecheck Chapel' });
+            const lit = await ctx.seed.row('items', { name: 'Lit Quartz', type: 'gem', subtype: 'quartz', quality: 'lit', talar: 100 });
+            await inPack(ctx, w.player.id, lit.id, 3);
+            await ctx.seed.row('spells', {
+                key: 'wearsight', name: 'Wearsight', talar_level: 1, cost: 5, cooldown_kind: 'timer', cooldown_seconds: 3600,
+                vigil_minutes: 10, offering_item_name: 'Lit Quartz',
+            });
+            const { resolveVigil } = await import('../services/spells');
+            const results = await Promise.all([1, 2, 3].map(() => resolveVigil(w.player.id, 'wearsight')));
+            const learned = await ctx.db('player_spells').where({ player_id: w.player.id }).count('* as c').first();
+            return changed('Lit Quartz', 2, await ctx.itemTotal(lit.id))
+                ?? changed('spells learned', 1, Number(learned?.c ?? 0))
+                ?? changed('vigils that paid', 1, results.filter(r => r.success).length);
+        },
+    },
 ];
 
 main().catch((err) => {
