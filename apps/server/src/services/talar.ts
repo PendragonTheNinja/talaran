@@ -59,7 +59,7 @@ export async function getTalarState(playerId: number): Promise<TalarState> {
  * forUpdate on a missing row locks nothing (CLAUDE.md §4 rule 4), so the row is
  * made to exist before it is read.
  */
-async function lockReservoir(trx: any, playerId: number): Promise<number> {
+export async function lockReservoir(trx: any, playerId: number): Promise<number> {
     await trx('player_talar').insert({ player_id: playerId, hundredths: 0 }).onConflict('player_id').ignore()
     const row = await trx('player_talar').where({ player_id: playerId }).forUpdate().first('hundredths')
     return Number(row.hundredths)

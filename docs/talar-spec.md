@@ -158,6 +158,7 @@ How pens work today: feeding lasts 12 h, mucking is due every 24 h, and an anima
 - Lazy, like everything in Husbandry: a `warded_until` on the pen, folded into the pause-aware math on read; top-ups are settled on read (as growing up is paid on read) inside the read's transaction, with storage locked. No tick sweep.
 - Hives never stop and crops run on wall-clock time, so the ward is for pens only.
 - Cost example: a full coop (6 head) for 12 h is 36 Talar; a full paddock (3) is 18.
+- **Animals added under a ward** (Nathan, 2026-10-29) pay their own share at placement: the rate times the hours the ward has left. Short of Talar, the animal goes in and that pen's ward ends (`placeAnimal`, which locks the reservoir before the pen, the cast's order).
 
 ### Tether
 Cast **after** dying, from wherever you respawned. Your death pile stays private for **+15 minutes** beyond `DEATH_PILE_PRIVATE_MINUTES`, **once per death**: it does not stack, so a player casts it once between deaths. Works because the reservoir is not dropped. XP is kept tiny so dying is never a way to farm it.

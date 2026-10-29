@@ -12,6 +12,7 @@ import { missingBuildTool as sharedMissingBuildTool } from './construction';
 import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { afterCommit } from '../lib/afterCommit';
+import { lockReservoir, spendTalarWithin, HUNDREDTHS } from './talar';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
 // beside the fields, then stocked with animals found in the wild: feed → collect
@@ -1277,8 +1278,12 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
     try {
         let name = '';
         let babyItem = '';
+        let wardNote = '';
 
         await db.transaction(async (trx) => {
+            // The reservoir before the pen, the order a Larder Ward cast takes
+            // them in (services/spells.ts), since a warded pen charges below.
+            await lockReservoir(trx, playerId);
             const pen = await ownedPen(playerId, penId, trx);
             if (!pen) throw new Error('NOT_YOURS');
             // Lock the pen so two simultaneous placements cannot both see a free slot.
@@ -1323,6 +1328,21 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
             // apiary too, so a day after its first skep went in, the hive
             // "needed mucking" on the Tally Board.
             if (!pen.muck_due_at && !isApiary(pen.pen_type)) patch.muck_due_at = new Date(Date.now() + MUCK_INTERVAL * 1000);
+            // A Larder Ward is priced on the head in the pens when it is cast, so
+            // a newcomer pays its own share of the time the ward has left, at
+            // the spell's rate. Short of Talar, it still goes in, and this pen's
+            // ward ends: nothing rides free, and nobody pays for an empty stall.
+            if (!isApiary(pen.pen_type) && isWarded(pen, Date.now())) {
+                const ward = await trx('spells').where({ key: 'larder_ward' }).first('cost');
+                const hoursLeft = (new Date(pen.warded_until).getTime() - Date.now()) / (H * 1000);
+                const owed = Math.ceil(Number(ward?.cost ?? 0) * hoursLeft * HUNDREDTHS);
+                if (owed > 0 && await spendTalarWithin(trx, playerId, owed)) {
+                    wardNote = ` The ward takes ${Math.round(owed) / HUNDREDTHS} Talar to cover ${name} too.`;
+                } else if (owed > 0) {
+                    patch.warded_until = new Date();
+                    wardNote = ' You have not the Talar to stretch the ward over another, so it lifts from this pen.';
+                }
+            }
             if (Object.keys(patch).length) await trx('player_pens').where({ id: pen.id }).update(patch);
 
             afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'place_animal', species.name, 1));
@@ -1330,7 +1350,7 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
 
         return {
             success: true, skillName: 'Husbandry',
-            message: `You set the ${babyItem.toLowerCase()} down in the pen. You decide to call it ${name}.`,
+            message: `You set the ${babyItem.toLowerCase()} down in the pen. You decide to call it ${name}.${wardNote}`,
         };
     } catch (err: any) {
         const m: string = err?.message ?? '';
