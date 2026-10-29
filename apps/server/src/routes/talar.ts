@@ -110,7 +110,7 @@ router.post('/portals/:id/step', requireAuth, botCheckGate, async (req: AuthRequ
 });
 
 // POST /api/talar/spells/cast   { key, ...params } - instant; never takes the action slot
-router.post('/spells/cast', requireAuth, async (req: AuthRequest, res: Response) => {
+router.post('/spells/cast', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const { key, ...params } = (req.body ?? {}) as Record<string, unknown>;
     const result = await castSpell(req.player!.playerId, String(key ?? ''), params);
     if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }

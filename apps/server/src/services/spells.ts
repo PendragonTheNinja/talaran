@@ -526,6 +526,8 @@ const portal: SpellEffect = {
         const level = await playerSkillLevel(playerId, 'Talar')
         const minutes = PORTAL_MINUTES + Math.floor(Math.max(0, level - spell.talar_level) / PORTAL_LEVELS_PER_MINUTE)
         const from = Number(me.current_location_id)
+        // Doorways long closed are only history: cleared here rather than by a timer.
+        await trx('portals').where('closes_at', '<', new Date(Date.now() - 24 * 3600_000)).delete()
         await trx('portals').insert({
             caster_id: playerId, from_location_id: from, to_location_id: target.locationId,
             closes_at: new Date(Date.now() + minutes * 60_000),

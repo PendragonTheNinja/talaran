@@ -1,6 +1,8 @@
 import db from '../db';
 import { codeSources, codeUses } from './itemUsageCode';
 import { buyPrice } from './marketplace';
+import { CHARGED_PREFIXES, CUT_QUALITIES, cutGradeOf } from '../lib/gemGrades';
+import { rungOfTier } from '../lib/tiers';
 
 // Item pages.
 //
@@ -177,6 +179,7 @@ const SKILL_PAGE: Record<string, string> = {
     Husbandry: 'skills/husbandry',
     Crafting: 'skills/crafting',
     Cooking: 'skills/cooking',
+    Talar: 'skills/talar',
 };
 
 export async function buildItemPage(itemName: string): Promise<ItemPage | null> {
@@ -646,6 +649,57 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             into: b.category,
             detail: `Worth ${b.bait_value}`,
             link: b.category?.toLowerCase().includes('fish') ? SKILL_PAGE.Fishing : SKILL_PAGE.Hunting,
+        });
+    }
+
+    // ── Talar (docs/talar-spec.md) ─────────────────────────────────────────
+    // Gems are graded by a roll, filled at a rift, taken in, offered; writs are
+    // given up at a vigil. None of it is a plain recipe output or input, so
+    // without this a Polished Quartz had no source and a writ no use.
+    const rifts: string = (await db('locations').where({ is_rift: true }).orderBy('name').pluck('name')).join(', ') || 'a rift';
+
+    // A better grade from the lapidary's roll (recipes.grade_outputs).
+    const graded = await db('recipes').where('is_active', true).whereNotNull('grade_outputs')
+        .select('name', 'skill', 'required_level', 'output_item_name', 'grade_outputs');
+    for (const r of graded) {
+        const grades = asArray(r.grade_outputs).map(String);
+        if (!grades.some(g => g.toLowerCase() === name.toLowerCase()) || r.output_item_name === name) continue;
+        sources.push({
+            kind: r.skill, from: r.name,
+            detail: `Level ${r.required_level} · by the luck of the cut, likelier as your level climbs`,
+            link: SKILL_PAGE[r.skill],
+        });
+    }
+
+    if (item.type === 'gem') {
+        // A cut stone the light will fill.
+        if (item.talar_per_hour && cutGradeOf(item.quality) >= 0) {
+            uses.push({
+                kind: 'Talar', into: `Filling at ${rifts}`,
+                detail: `Talar level ${rungOfTier(Number(item.tier) || 1)} · holds ${item.talar} Talar`,
+                link: SKILL_PAGE.Talar,
+            });
+        }
+        // A charged stone: filled from the cut stone of the same grade.
+        const charged = (CHARGED_PREFIXES as readonly string[]).indexOf(String(name).split(' ')[0]);
+        if (charged >= 0 && item.talar) {
+            const cutWord = CUT_QUALITIES[charged].charAt(0).toUpperCase() + CUT_QUALITIES[charged].slice(1);
+            const from = `${cutWord} ${String(name).split(' ').slice(1).join(' ')}`;
+            sources.push({ kind: 'Talar', from: `Filling a ${from}`, where: rifts, detail: `Holds ${item.talar} Talar`, link: SKILL_PAGE.Talar });
+            uses.push({ kind: 'Talar', into: 'Taking its light into yourself', detail: `${item.talar} Talar to your reservoir`, link: SKILL_PAGE.Talar });
+        }
+    }
+
+    // Offered, or read and given up, at a vigil (services/spells.ts).
+    const vigils = await db('spells').where({ is_active: true })
+        .where(q => q.whereRaw('LOWER(offering_item_name) = LOWER(?)', [name]).orWhereRaw('LOWER(writ_item_name) = LOWER(?)', [name]))
+        .orderBy('talar_level').select('name', 'talar_level', 'writ_item_name');
+    for (const sp of vigils) {
+        const isWrit = String(sp.writ_item_name || '').toLowerCase() === name.toLowerCase();
+        uses.push({
+            kind: 'Talar', into: `Learning ${sp.name}`,
+            detail: `Talar level ${sp.talar_level} · ${isWrit ? 'read and given up' : 'offered'} at the vigil`,
+            link: SKILL_PAGE.Talar,
         });
     }
 

@@ -188,8 +188,8 @@ const TOOL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     mallet: 'carpenter', sawhorse: 'carpenter', staff: 'carpenter', bow: 'carpenter',
     bucket: 'carpenter', pail: 'carpenter', fork: 'carpenter',
     tanning_rack: 'carpenter', tanning_barrel: 'carpenter', fishing_rod: 'carpenter',
-    // The lapidary's two tools: the wheel is built, the chisel forged.
-    lap_wheel: 'carpenter', gem_chisel: 'smith',
+    // The lapidary's tools: the wheel is built, the chisel and pliers forged.
+    lap_wheel: 'carpenter', gem_chisel: 'smith', jewelers_pliers: 'smith',
     // Crafting's bench: leather, cordage, weaving and dressed stone.
     halter: 'leatherworker', foraging_gloves: 'leatherworker', fishing_net: 'leatherworker',
     trap: 'leatherworker', foraging_basket: 'leatherworker', skep: 'leatherworker',
@@ -252,9 +252,12 @@ export function buyRateFor(merchantKey: MerchantKey, itemMerchant: MerchantKey):
  * count that is never zero is one nobody reads — which is how these checks got
  * ignored in the first place.
  */
-const PAWN_ONLY_TYPES = new Set(['collectible']);
+// Jewelry too (docs/talar-spec.md §8): no merchant on the island deals in it.
+const PAWN_ONLY_TYPES = new Set(['collectible', 'jewelry']);
 const PAWN_ONLY_SUBTYPES = new Set([
     'trophy', 'curio', 'gem', 'container', 'container_locked',
+    // Writs (Talar spells): found, never made.
+    'writ',
     // Combat drops nobody makes (docs/combat-spec.md §8).
     'rare_weapon', 'shell_armor',
 ]);

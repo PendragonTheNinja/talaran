@@ -62,6 +62,9 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             location_id: habitat.location_id,
             started_at: now,
             completes_at: completesAt,
+            // Checklist item 1 (CLAUDE.md §5): set on the initial insert, or a
+            // refresh has no timer length to draw the bar against.
+            last_timer_seconds: timerSeconds,
             auto_restart: true,
             last_bot_check: now,
             bot_check_pending: false,

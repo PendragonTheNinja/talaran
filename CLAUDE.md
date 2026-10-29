@@ -104,6 +104,14 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - `Milk` exists as an item row because recipes name it; it must never appear in an inventory. Do not "fix" this.
 - **Code that reads `recipe.inputs` against inventory must handle liquids** (`isLiquid()` first). Current sites: `hasInputs` (the tick's repeat check calls it; never re-implement that check), `inputsRemaining`, `affordability`, and the consume loop in `resolveRecipe`. Use `parseInputs`, which accepts the column as a string or an already-parsed array. Any new code that reads `recipe.inputs` and queries `player_inventory` directly is this bug again.
 
+### Talar (`docs/talar-spec.md` is the authority)
+- **Lore rule:** player-facing text never names what lies under the Rift (no "Tal", no "Aran"). It is "the light".
+- **Gems:** rough gems drop from mining (Granite, Ambren/Burgh ore) and creatures; cut at the lapidary (`station: 'lapidary'`, Geosper's public bench in Caliwen lends all tools) with a grade roll (`grade_outputs`, `lib/gemGrades.ts`); filled at a rift (`locations.is_rift`) by the `talar_fill` action: 60 s pours, the bar runs to the stone being full (`action_data` holds the full-at time). The open stone has LEFT the pack (`player_talar_open_gem`), like an open bucket.
+- **Reservoir:** `player_talar.hundredths`, capacity 300 + 25/level, kept on death. Every spend goes through `spendTalarWithin` (conditional, relative).
+- **Spells:** rows in `spells`, verbs in `EFFECTS` (`services/spells.ts`). One cast = one transaction on the player's locked `player_spells` row. Learned by a `spell_vigil` action at a church (charged gem offering; T2+ also a found writ, `curio`/`writ`). Work that cannot run inside the cast's transaction (settling a fight) goes in the effect's `prepare`.
+- **Jewelry:** `items.jewelry_aid` (what it helps), strength by tier in `lib/jewelry.ts`; `jewelryAid()` in `services/jewelry.ts` is the ONLY reader of worn rings/amulets and draws 5 hundredths per helped action (no draw, no help). Lines reach the card through `noteJewelry`/`takeJewelryNotes`. Tiers pair metal and gem (T1 Ambren + quartz); garnet pieces wait for Serph.
+- **World events** may cap one player's share of a pool (`world_events.per_player_cap`, Kindle); the share is taken in ONE statement because most awards carry no transaction.
+
 ### Materials & the circularity rule (locked)
 - **Leather** (Husbandry, cattle) is the mainline, five tiers. **Buckskin** (Hunting) is one item, yield-scaled by animal size, and cuts into tier-1 strips only.
 - **Feathers:** wild pheasant = trickle, farmed chickens = volume. Don't spread feathers to other skills.
