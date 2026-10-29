@@ -126,6 +126,39 @@ const OVERRIDES: Record<string, { value: number; why: string }> = {
     'Burnt Meat': { value: 1, why: 'A failed cook, not a product' },
     'Burnt Pottage': { value: 1, why: 'A failed cook, not a product' },
     'Burnt Pastry': { value: 1, why: 'A failed cook, not a product' },
+
+    // Talar stones (docs/talar-spec.md §3). The derivation reaches only the
+    // Cut grade, the recipe's named output: a better grade is the same stone
+    // with a luckier cut, and a charged stone comes from filling, neither of
+    // which is a recipe. Priced by the rule all the same: a better grade by the
+    // Talar it holds against the Cut stone (1.5x, 3x), a charged stone by its
+    // cut stone plus the filling's XP / 5 (quartz 37 XP a minute at Talar 1:
+    // 30, 43 and 81 minutes; garnet 49 at Talar 13: 40, 58 and 107 minutes).
+    // Jewelry then derives from these through its own recipes.
+    'Polished Quartz': { value: 400, why: 'Holds 1.5x a Cut Quartz' },
+    'Flawless Quartz': { value: 800, why: 'Holds 3x a Cut Quartz' },
+    'Lit Quartz': { value: 490, why: 'Cut Quartz 266 + 30 min filling (1,110 XP / 5)' },
+    'Bright Quartz': { value: 720, why: 'Polished Quartz 400 + 43 min filling (1,590 XP / 5)' },
+    'Radiant Quartz': { value: 1400, why: 'Flawless Quartz 800 + 81 min filling (3,000 XP / 5)' },
+    'Polished Garnet': { value: 1500, why: 'Holds 1.5x a Cut Garnet' },
+    'Flawless Garnet': { value: 3000, why: 'Holds 3x a Cut Garnet' },
+    'Lit Garnet': { value: 1390, why: 'Cut Garnet 1,001 + 40 min filling (1,960 XP / 5)' },
+    'Bright Garnet': { value: 2070, why: 'Polished Garnet 1,500 + 58 min filling (2,840 XP / 5)' },
+    'Radiant Garnet': { value: 4050, why: 'Flawless Garnet 3,000 + 107 min filling (5,240 XP / 5)' },
+    // Overrides land after the derivation, so jewelry cannot derive from the
+    // stones above: priced here from its cheapest recipe, one Radiant Quartz
+    // (1,400) + 2 Ambren Ingots (28) + setting labour (~32). Three Lit or two
+    // Bright cost about the same, which is the point of the 3 / 2 / 1 rule.
+    "Quartz Keeper's Band": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    "Quartz Prospector's Ring": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    "Quartz Seedsaver's Ring": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    "Quartz Hearty Amulet": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    "Quartz Wayfinder's Amulet": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    "Quartz Baitkeeper's Amulet": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    // Writs are found, never made, priced by the work it takes to find one.
+    // Kindling derives itself (1 in 1,500 mining swings, about 7.5 hours: 1,800).
+    'Writ of Sending': { value: 1800, why: '1 in 500 road minutes on foot, about 8 hours of walking: as Kindling' },
+    'Writ of the Open Door': { value: 800, why: '1 in 120 Hodag kills (1 in 200 Agropelter), about 2 to 3 hours: Hodag XP 120 x 32 / 5' },
 };
 
 const best = new Map<string, Derived>();
