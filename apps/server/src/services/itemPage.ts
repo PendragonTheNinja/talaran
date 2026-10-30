@@ -3,6 +3,7 @@ import { codeSources, codeUses } from './itemUsageCode';
 import { buyPrice } from './marketplace';
 import { CHARGED_PREFIXES, CUT_QUALITIES, cutGradeOf } from '../lib/gemGrades';
 import { rungOfTier } from '../lib/tiers';
+import { isFightFood } from './combatFights';
 
 // Item pages.
 //
@@ -53,6 +54,15 @@ export interface ItemPage {
     value: number | null;
     sources: ItemSource[];
     uses: ItemUse[];
+    /** Health it mends when eaten, by the fight's food rule; null when not food. */
+    mends: number | null;
+    /** What a provision does: its effect, skill, size and how long it lasts. */
+    provision: { effect: string; skill: string | null; magnitude: number; seconds: number } | null;
+    /**
+     * A creature carries it. Which one is the Bestiary's to tell (CLAUDE.md,
+     * Combat), so the page says only that, never the creature.
+     */
+    fromCreature: boolean;
 }
 
 /**
@@ -781,5 +791,12 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
         value: item.value ?? null,
         sources: finalSources,
         uses: finalUses,
+        mends: isFightFood(item) ? Number(item.heal_amount) : null,
+        provision: item.buff_effect
+            ? { effect: item.buff_effect, skill: item.buff_skill ?? null, magnitude: Number(item.buff_magnitude ?? 0), seconds: Number(item.buff_seconds ?? 0) }
+            : null,
+        fromCreature: !!(await db('drop_table_entries')
+            .where('item_id', item.id).where('is_active', true)
+            .where('source_key', 'like', 'combat:%').first('id')),
     };
 }

@@ -390,7 +390,7 @@ export default function ManualBrowser({
                             )}
                             <p className="manual-breadcrumb">Items</p>
                         </div>
-                        <ManualItem name={slug} onNavigate={go} onOpenItem={openItem} />
+                        <ManualItem name={slug} onNavigate={go} onOpenItem={openItem} inGame={variant === 'panel'} />
                     </article>
                 ) : loading ? (
                     <div className="manual-message">

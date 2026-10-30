@@ -106,9 +106,12 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
     // The spellbook opens from the Talar bar: what you know, ready to cast.
     const [spellbookOpen, setSpellbookOpen] = useState(false)
     // Item tooltips, shared with the pack.
-    const { hoverProps, tooltipEl } = useItemTooltip()
+    const { hoverProps, tooltipEl, hideTooltip } = useItemTooltip()
 
     const handleUnequip = async (slot: string) => {
+        // The emptied slot has no hover handlers left, so nothing would ever
+        // send the mouse-leave that hides the piece's tooltip (forum, 2026-10).
+        hideTooltip()
         try {
             // Awaited and ordered, for the same reason as equipping: two
             // un-awaited refreshes can resolve out of order and leave the panel

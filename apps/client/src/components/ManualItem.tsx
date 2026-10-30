@@ -1,5 +1,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import { getItemIcon } from '../lib/items'
+import { apiFetch } from '../lib/api'
+import { openBestiary } from '../lib/combat'
 import './ManualItem.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -27,6 +29,24 @@ interface ItemPage {
     value: number | null
     sources: Entry[]
     uses: Entry[]
+    /** Health it mends when eaten; null when it is not food. */
+    mends?: number | null
+    /** What a provision does. */
+    provision?: { effect: string; skill: string | null; magnitude: number; seconds: number } | null
+    /** A creature carries it; which one only the Bestiary tells. */
+    fromCreature?: boolean
+}
+
+/** A provision's effect, in the words the pack's tooltip uses. */
+function provisionWords(p: NonNullable<ItemPage['provision']>): string {
+    const where = p.skill || 'every skill'
+    const effect = p.effect === 'timer' ? `${p.magnitude}% faster at ${where}`
+        : p.effect === 'rare' ? `${p.magnitude}% better rare finds at ${where}`
+        : p.effect === 'double' ? `${p.magnitude}% chance of a double yield at ${where}`
+        : p.effect === 'travel' ? `${p.magnitude}% faster travel`
+        : `A boon to ${where}`
+    const mins = Math.round(p.seconds / 60)
+    return mins ? `${effect}, for ${mins >= 60 && mins % 60 === 0 ? `${mins / 60} h` : `${mins} min`}` : effect
 }
 
 const SLOT_WORDS: Record<string, string> = {
@@ -64,10 +84,13 @@ export default function ManualItem({
     name,
     onNavigate,
     onOpenItem,
+    inGame,
 }: {
     name: string
     onNavigate: (section: string, slug: string) => void
     onOpenItem: (item: string) => void
+    /** In the game's own panel, where the Bestiary can be opened. */
+    inGame?: boolean
 }) {
     const [page, setPage] = useState<ItemPage | null>(null)
     const [state, setState] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading')
@@ -118,6 +141,21 @@ export default function ManualItem({
     // docs/economy-spec.md. It is not what any particular merchant pays, so it
     // is labelled for what it is.
     if (page.value) facts.push(['Value', `${page.value} gold`])
+    if (page.mends) facts.push(['Mends', `${page.mends} health, in a fight or out of one`])
+    if (page.provision) facts.push(['Provision', provisionWords(page.provision)])
+
+    // A creature drop: the page never names the creature (the Bestiary's to
+    // tell), but in the game the Bestiary can be opened, at the creature itself
+    // when this player's kills have already revealed the drop there.
+    const openCarrier = async () => {
+        try {
+            const b = await apiFetch<{ entries: { id: number; drops: { name: string }[] | null }[] }>('/api/combat/bestiary')
+            const found = b.entries.find(e => e.drops?.some(d => d.name === page.name))
+            openBestiary(found?.id)
+        } catch {
+            openBestiary()
+        }
+    }
 
     const entryRow = (e: Entry, i: number, key: 'from' | 'into') => (
         <li key={i} className="mitem-entry">
@@ -194,6 +232,17 @@ export default function ManualItem({
                     <ul className="mitem-list">
                         {page.sources.map((e, i) => entryRow(e, i, 'from'))}
                     </ul>
+                ) : page.fromCreature ? (
+                    <p className="mitem-none">
+                        Carried by a creature somewhere in the wild. The Bestiary tells which, once
+                        you have killed enough of them to know.
+                        {inGame && (
+                            <>
+                                {' '}
+                                <button className="mitem-link mitem-link-inline" onClick={openCarrier}>Open the Bestiary</button>
+                            </>
+                        )}
+                    </p>
                 ) : (
                     <p className="mitem-none">
                         Nothing in the world produces this yet.
