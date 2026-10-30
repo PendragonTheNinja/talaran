@@ -45,6 +45,27 @@
   flex-shrink: 0;
 }
 
+/* The header is the fold: a click shows or hides the rest (EquipmentPanel). */
+.cstat-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cstat-caret {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.cstat-toggle:hover .cstat-caret {
+  color: var(--color-gold-bright);
+}
+
 /* Combat Stats: the weapon as three tags, then the four numbers as tiles. */
 .cstat-body {
   display: flex;
@@ -836,3 +857,7 @@
    width there: legibility matters more than the few pixels saved, and
    space-evenly handles the rest. */
 
+
+.combat-stats.is-shut .cstat-toggle {
+  border-bottom: 0;
+}

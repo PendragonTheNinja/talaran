@@ -105,6 +105,14 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
     // The spellbook opens from the Talar bar: what you know, ready to cast.
     const [spellbookOpen, setSpellbookOpen] = useState(false)
+    // Combat Stats folds to its header, remembered in this browser.
+    const [statsShut, setStatsShut] = useState(() => {
+        try { return localStorage.getItem('combatStatsCollapsed') === '1' } catch { return false }
+    })
+    const toggleStats = () => setStatsShut(shut => {
+        try { localStorage.setItem('combatStatsCollapsed', shut ? '0' : '1') } catch { /* private window: just this visit */ }
+        return !shut
+    })
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl, hideTooltip } = useItemTooltip()
 
@@ -209,9 +217,12 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 weapon and armour from the item rows, the level terms from
                 Melee and Defense. With no weapon in hand you fight with
                 your fists, and the server says so. */}
-            <div className="combat-stats panel-inset">
-                <div className="panel-title">Combat Stats</div>
-                <div className="cstat-body">
+            <div className={`combat-stats panel-inset${statsShut ? ' is-shut' : ''}`}>
+                <button className="panel-title cstat-toggle" onClick={toggleStats} aria-expanded={!statsShut}>
+                    <span>Combat Stats</span>
+                    <span className="cstat-caret" aria-hidden="true">{statsShut ? '▼' : '▲'}</span>
+                </button>
+                {!statsShut && <div className="cstat-body">
                     <div className="cstat-weapon" title="What you fight with: how it is held, the kind of blow it lands, and how often it swings">
                         {combat ? (
                             <>
@@ -246,7 +257,7 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                             {combat && <span className="cstat-sub">a hit</span>}
                         </div>
                     </div>
-                </div>
+                </div>}
             </div>
             {tooltipEl}
         </div>
