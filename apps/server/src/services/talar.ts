@@ -28,7 +28,8 @@ export const RESERVOIR_PER_LEVEL = 25
 
 /** The most Talar a player at this Talar level can hold. */
 export function reservoirCapacity(talarLevel: number): number {
-    return RESERVOIR_BASE + RESERVOIR_PER_LEVEL * Math.max(1, talarLevel)
+    // 300 at level 1, then 25 more for every level after it (Nathan, 2026-10-30).
+    return RESERVOIR_BASE + RESERVOIR_PER_LEVEL * (Math.max(1, talarLevel) - 1)
 }
 
 export interface TalarState {
@@ -40,6 +41,11 @@ export interface TalarState {
 
 /** A refusal from inside the transaction. Thrown, never returned (CLAUDE.md §4 rule 3). */
 class TalarAbort extends Error {}
+
+/** Absorbing would overflow: refused until the player says to go ahead, with what would be lost. */
+class WasteAbort extends TalarAbort {
+    constructor(message: string, readonly waste: number) { super(message) }
+}
 
 function stateOf(hundredths: number, max: number): TalarState {
     return { current: Math.floor(hundredths / HUNDREDTHS), max, hundredths }
@@ -95,7 +101,12 @@ export async function spendTalarWithin(trx: any, playerId: number, hundredths: n
 export async function absorbGem(
     playerId: number,
     itemId: number,
-): Promise<{ success: true; itemName: string; poured: number; talar: TalarState } | { success: false; error: string }> {
+    /** Take the stone in even though not all of it fits; the rest is lost. */
+    acceptWaste = false,
+): Promise<
+    | { success: true; itemName: string; poured: number; wasted: number; talar: TalarState }
+    | { success: false; error: string; waste?: number }
+> {
     try {
         const id = Math.floor(Number(itemId))
         if (!Number.isFinite(id) || id <= 0) return { success: false, error: 'Unknown item.' }
@@ -106,14 +117,19 @@ export async function absorbGem(
         }
         const poured = Number(item.talar)
 
+        // A stone that will not fit is the player's call (Nathan, 2026-10-30):
+        // asked first with what would be lost, then poured to the brim.
+        let wasted = 0
         const talar = await db.transaction(async trx => {
             const max = reservoirCapacity(await playerSkillLevel(playerId, 'Talar', trx))
             const held = await lockReservoir(trx, playerId)
-            if (held + poured * HUNDREDTHS > max * HUNDREDTHS) {
+            const fits = Math.max(0, Math.min(poured * HUNDREDTHS, max * HUNDREDTHS - held))
+            wasted = Math.ceil((poured * HUNDREDTHS - fits) / HUNDREDTHS)
+            if (wasted > 0 && !acceptWaste) {
                 const room = Math.floor((max * HUNDREDTHS - held) / HUNDREDTHS)
-                throw new TalarAbort(room > 0
-                    ? `That stone holds ${poured} Talar and you have room for ${room}.`
-                    : 'You are full. There is no room for more.')
+                throw new WasteAbort(room > 0
+                    ? `That stone holds ${poured} Talar and you have room for ${room}. ${wasted} would be lost.`
+                    : `You are full. All ${poured} Talar in that stone would be lost.`, wasted)
             }
 
             const taken = await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: 1 }])
@@ -121,7 +137,7 @@ export async function absorbGem(
 
             const [row] = await trx('player_talar')
                 .where({ player_id: playerId })
-                .update({ hundredths: trx.raw('hundredths + ?', [poured * HUNDREDTHS]), updated_at: trx.fn.now() })
+                .update({ hundredths: trx.raw('hundredths + ?', [fits]), updated_at: trx.fn.now() })
                 .returning('hundredths')
             const state = stateOf(Number(row.hundredths), max)
             pushToPlayerAfterCommit(trx, playerId, 'talar_changed', state)
@@ -131,9 +147,10 @@ export async function absorbGem(
         notifyInventoryChanged(playerId)
         // After the commit: quest progress writes through the global connection.
         await updateQuestObjectiveProgress(playerId, 'talar_absorb', item.name, 1)
-        logger.info(`[talar] player ${playerId} absorbed ${item.name} (+${poured}), now ${talar.current}/${talar.max}`)
-        return { success: true, itemName: item.name, poured, talar }
+        logger.info(`[talar] player ${playerId} absorbed ${item.name} (+${poured - wasted}, ${wasted} lost), now ${talar.current}/${talar.max}`)
+        return { success: true, itemName: item.name, poured: poured - wasted, wasted, talar }
     } catch (err) {
+        if (err instanceof WasteAbort) return { success: false, error: err.message, waste: err.waste }
         if (err instanceof TalarAbort) return { success: false, error: err.message }
         logger.error(`absorbGem error (player ${playerId}): ${err}`)
         return { success: false, error: SERVER_ERROR }

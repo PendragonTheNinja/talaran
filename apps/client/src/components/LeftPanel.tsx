@@ -134,6 +134,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: InventoryItem; mode?: 'drop' | 'trade' } | null>(null)
   // Set when eating would replace a running buff, so the player is warned first.
   const [confirmEat, setConfirmEat] = useState<{ item: string; running: string } | null>(null)
+  // A charged gem that will not all fit: asked first, with what would be lost.
+  const [confirmAbsorb, setConfirmAbsorb] = useState<{ item: InventoryItem; message: string } | null>(null)
   // Set when a log is clicked with a tinderbox in hand.
   const [confirmFire, setConfirmFire] = useState<{ item: string; cost: number } | null>(null)
   const [dropQuantity, setDropQuantity] = useState(1)
@@ -365,18 +367,28 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   /** A charged gem: tapping it pours its light into the reservoir (services/talar.ts). */
   const isChargedGem = (item: InventoryItem) => item.type === 'gem' && CHARGED_QUALITIES.includes(item.quality ?? '')
 
-  const absorbGem = async (item: InventoryItem) => {
+  const absorbGem = async (item: InventoryItem, acceptWaste = false) => {
     try {
-      const res = await apiFetch<{ itemName: string; poured: number; talar: Talar }>('/api/talar/absorb', {
+      const res = await apiFetch<{ itemName: string; poured: number; wasted: number; talar: Talar }>('/api/talar/absorb', {
         method: 'POST',
-        body: JSON.stringify({ itemId: item.item_id }),
+        body: JSON.stringify({ itemId: item.item_id, acceptWaste }),
       })
       announceTalar(res.talar)
       window.dispatchEvent(new CustomEvent('talaran:notice', {
-        detail: { message: `The light leaves the ${res.itemName} and settles in you. +${res.poured} Talar.`, type: 'success' },
+        detail: {
+          message: `The light leaves the ${res.itemName} and settles in you. +${res.poured} Talar.`
+            + (res.wasted ? ` The other ${res.wasted} spills away.` : ''),
+          type: 'success',
+        },
       }))
       onInventoryUpdate()
     } catch (err) {
+      // The server says how much would be lost; the player decides.
+      const e = err as { status?: number; message?: string; body?: { waste?: number } }
+      if (e.status === 409 && e.body?.waste) {
+        setConfirmAbsorb({ item, message: `${e.message} Take it in anyway?` })
+        return
+      }
       window.dispatchEvent(new CustomEvent('talaran:notice', {
         detail: { message: (err as { message?: string }).message || 'Nothing happens.', type: 'error' },
       }))
@@ -630,6 +642,19 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
             lightCampfire(it)
           }}
           onCancel={() => setConfirmFire(null)}
+        />
+      )}
+
+      {confirmAbsorb && (
+        <ConfirmModal
+          message={confirmAbsorb.message}
+          confirmLabel="Take It In"
+          onConfirm={() => {
+            const it = confirmAbsorb.item
+            setConfirmAbsorb(null)
+            absorbGem(it, true)
+          }}
+          onCancel={() => setConfirmAbsorb(null)}
         />
       )}
 

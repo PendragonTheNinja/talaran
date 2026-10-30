@@ -109,7 +109,8 @@ XP band: the gem's unlock level, gathering policy ×1.0 (`xp = target × timer /
 Every player has an internal reservoir of Talar.
 
 - **Absorb** a charged gem to pour it in: instant, anywhere, the gem is used up. A gem that would overflow is refused (no partial pours) until there is room.
-- **Capacity grows with Talar level.** **knob:** `300 + 25 × level` (325 at 1, 625 at 13, 800 at 20, 850 at 22), always enough for your highest spell and the biggest gem you can fill (a Flawless Quartz at 1, a Flawless Garnet at 13).
+- **A stone that will not all fit** can still be taken in (Nathan, 2026-10-30): the player is told how much would be lost and asked; only what fits goes in.
+- **Capacity grows with Talar level.** **knob:** `300 + 25 × (level − 1)` (300 at 1, 600 at 13, 775 at 20, 825 at 22; Nathan, 2026-10-30), always enough for your highest spell and the biggest gem you can fill (a Flawless Quartz at 1, a Flawless Garnet at 13).
 - **Never leaks.** No decay, nothing lost while away.
 - **Kept on death**, like gold: it is inside you. This is what lets Tether (§6) be cast after dying.
 - Stored as a whole number of hundredths, so jewelry's fractional draw (§8) is exact.

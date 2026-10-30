@@ -26,7 +26,7 @@ The light you take in sits inside you, in a reservoir. Three things about it, an
 - It does not leak, spoil, or fade while you sleep.
 - **It is not lost when you fall.** Your pack goes to the ground; your reservoir stays where it is, inside you.
 
-A stone that would overfill you is refused whole rather than half-poured, so take the light in when you have room for it.
+A stone that will not all fit can still be taken in, but whatever does not fit spills away and is gone. You are told how much before you agree, so the only way to waste a stone is on purpose.
 
 ## What it is spent on
 

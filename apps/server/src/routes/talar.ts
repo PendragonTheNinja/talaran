@@ -24,8 +24,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 // POST /api/talar/absorb   { itemId } - pour one charged gem into the reservoir
 router.post('/absorb', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-        const result = await absorbGem(req.player!.playerId, req.body?.itemId);
+        const result = await absorbGem(req.player!.playerId, req.body?.itemId, req.body?.acceptWaste === true);
         if (!result.success) {
+            // 409 with the waste: the client asks before trying again.
+            if (result.waste) { res.status(409).json({ error: result.error, waste: result.waste }); return; }
             res.status(failureStatus(result.error)).json({ error: result.error });
             return;
         }
