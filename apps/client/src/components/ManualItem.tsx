@@ -141,7 +141,7 @@ export default function ManualItem({
     // docs/economy-spec.md. It is not what any particular merchant pays, so it
     // is labelled for what it is.
     if (page.value) facts.push(['Value', `${page.value} gold`])
-    if (page.mends) facts.push(['Mends', `${page.mends} health, in a fight or out of one`])
+    if (page.mends) facts.push(['Mends', `${page.mends} health`])
     if (page.provision) facts.push(['Provision', provisionWords(page.provision)])
 
     // A creature drop: the page never names the creature (the Bestiary's to

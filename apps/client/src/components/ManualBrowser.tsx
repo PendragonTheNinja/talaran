@@ -8,10 +8,7 @@ import { apiFetch } from '../lib/api'
 import {
     loadManifest,
     loadPage,
-    buildCorpus,
-    searchCorpus,
     type ManualManifest,
-    type SearchHit,
 } from '../lib/manual'
 
 interface ManualBrowserProps {
@@ -65,11 +62,6 @@ export default function ManualBrowser({
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const [query, setQuery] = useState('')
-    const [hits, setHits] = useState<SearchHit[]>([])
-    // Handed to the full Search page, so it opens already searching. It also
-    // keys that page, so a second hand-off restarts it with the new words.
-    const [searchSeed, setSearchSeed] = useState('')
     const [navOpen, setNavOpen] = useState(false)
 
     // Where you were before. Following a cross-reference and wanting to come
@@ -161,8 +153,6 @@ export default function ManualBrowser({
         })
         setSection(nextSection)
         setSlug(nextSlug)
-        setQuery('')
-        setHits([])
         setNavOpen(false)
         onLocationChange?.(nextSection, nextSlug)
         // Panel scrolls its own body; the page scrolls the window.
@@ -188,23 +178,11 @@ export default function ManualBrowser({
             const previous = h[h.length - 1]
             setSection(previous.section)
             setSlug(previous.slug)
-            setQuery('')
-            setHits([])
             onLocationChange?.(previous.section, previous.slug)
             if (variant === 'page') window.scrollTo({ top: 0, behavior: 'smooth' })
             return h.slice(0, -1)
         })
     }, [onLocationChange, variant])
-
-    const onSearch = async (value: string) => {
-        setQuery(value)
-        if (!manifest || value.trim().length < 2) {
-            setHits([])
-            return
-        }
-        await buildCorpus(manifest)
-        setHits(searchCorpus(value))
-    }
 
     const currentSection = manifest?.sections.find(s => s.key === section) || null
     const currentPage = currentSection?.pages.find(p => p.slug === slug) || null
@@ -245,98 +223,52 @@ export default function ManualBrowser({
             )}
 
             <aside className={`manual-nav ${navOpen ? 'open' : ''}`}>
-                <div className="manual-search">
-                    <input
-                        type="text"
-                        className="manual-search-input"
-                        placeholder="Search the manual…"
-                        value={query}
-                        onChange={e => onSearch(e.target.value)}
-                    />
-                </div>
-
-                {/* This box finds Manual PAGES; items and tables are on the Search
-                    page. Players searched here for an item, got nothing, and took
-                    the item to be gone (Straw), so it hands the search on. */}
-                {query.trim().length >= 2 && (
+                {/* One search, on the Search page: pages, items and tables
+                    together. A second box here found pages only. */}
+                <nav className="manual-nav-tree">
                     <button
-                        className="manual-search-hit manual-search-handoff"
-                        onClick={() => {
-                            setSearchSeed(query.trim())
-                            setQuery('')
-                            setHits([])
-                            go('search', 'all')
-                        }}
+                        className={`manual-nav-home ${!slug ? 'active' : ''}`}
+                        onClick={() => go(null, null)}
                     >
-                        <span className="manual-search-hit-title">Search items and tables for “{query.trim()}” ›</span>
+                        Contents
                     </button>
-                )}
 
-                {hits.length > 0 ? (
-                    <div className="manual-search-results">
-                        <p className="manual-nav-label">
-                            {hits.length} {hits.length === 1 ? 'result' : 'results'}
-                        </p>
-                        {hits.map(hit => (
-                            <button
-                                key={`${hit.section}/${hit.slug}`}
-                                className="manual-search-hit"
-                                onClick={() => go(hit.section, hit.slug)}
-                            >
-                                <span className="manual-search-hit-title">{hit.title}</span>
-                                <span className="manual-search-hit-section">{hit.sectionTitle}</span>
-                                <span className="manual-search-hit-excerpt">{hit.excerpt}</span>
-                            </button>
-                        ))}
-                    </div>
-                ) : query.trim().length >= 2 ? (
-                    <p className="manual-nav-empty">No page mentions “{query}”.</p>
-                ) : (
-                    <nav className="manual-nav-tree">
-                        <button
-                            className={`manual-nav-home ${!slug ? 'active' : ''}`}
-                            onClick={() => go(null, null)}
-                        >
-                            Contents
-                        </button>
+                    {/* Sits with Contents rather than inside a section: it is
+                        not a page of the manual, it is the way into every
+                        item in the game. */}
+                    <button
+                        className={`manual-nav-home ${section === 'search' ? 'active' : ''}`}
+                        onClick={() => go('search', 'all')}
+                    >
+                        Search
+                    </button>
 
-                        {/* Sits with Contents rather than inside a section: it is
-                            not a page of the manual, it is the way into every
-                            item in the game. */}
-                        <button
-                            className={`manual-nav-home ${section === 'search' ? 'active' : ''}`}
-                            onClick={() => go('search', 'all')}
-                        >
-                            Search
-                        </button>
+                    <button
+                        className={`manual-nav-home ${section === 'item' ? 'active' : ''}`}
+                        onClick={() => go('item', null)}
+                    >
+                        Items
+                    </button>
 
-                        <button
-                            className={`manual-nav-home ${section === 'item' ? 'active' : ''}`}
-                            onClick={() => go('item', null)}
-                        >
-                            Items
-                        </button>
-
-                        {manifest?.sections.map(s => (
-                            <div key={s.key} className="manual-nav-section">
-                                <p className="manual-nav-label">{s.title}</p>
-                                {s.pages.length === 0 ? (
-                                    <p className="manual-nav-pending">Not yet written.</p>
-                                ) : (
-                                    s.pages.map(p => (
-                                        <button
-                                            key={p.slug}
-                                            className={`manual-nav-link ${section === s.key && slug === p.slug ? 'active' : ''}`}
-                                            onClick={() => go(s.key, p.slug)}
-                                        >
-                                            {p.title}
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                        ))}
-                    </nav>
-                )}
+                    {manifest?.sections.map(s => (
+                        <div key={s.key} className="manual-nav-section">
+                            <p className="manual-nav-label">{s.title}</p>
+                            {s.pages.length === 0 ? (
+                                <p className="manual-nav-pending">Not yet written.</p>
+                            ) : (
+                                s.pages.map(p => (
+                                    <button
+                                        key={p.slug}
+                                        className={`manual-nav-link ${section === s.key && slug === p.slug ? 'active' : ''}`}
+                                        onClick={() => go(s.key, p.slug)}
+                                    >
+                                        {p.title}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    ))}
+                </nav>
             </aside>
 
             <div
@@ -359,8 +291,6 @@ export default function ManualBrowser({
                             <p className="manual-breadcrumb">Search</p>
                         </div>
                         <ManualSearch
-                            key={searchSeed}
-                            initialQuery={searchSeed}
                             onOpenPage={(sec, sl) => go(sec, sl)}
                             onOpenItem={openItem}
                         />

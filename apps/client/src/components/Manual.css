@@ -120,31 +120,6 @@
     padding-right: var(--space-sm, 8px);
 }
 
-.manual-search {
-    margin-bottom: var(--space-lg, 16px);
-}
-
-.manual-search-input {
-    width: 100%;
-    box-sizing: border-box;
-    background: var(--color-bg-deep, #13100c);
-    border: 1px solid var(--color-border-mid, #4a3820);
-    border-radius: var(--radius-sm, 3px);
-    color: var(--color-text-bright, #e8d5a3);
-    font-family: var(--font-body, Georgia, serif);
-    font-size: 14px;
-    padding: var(--space-sm, 8px) var(--space-md, 12px);
-}
-
-.manual-search-input:focus {
-    outline: none;
-    border-color: var(--color-border-bright, #9a7840);
-}
-
-.manual-search-input::placeholder {
-    color: var(--color-text-dim, #6b5a3e);
-}
-
 .manual-nav-label {
     font-family: var(--font-heading);
     font-size: 12.5px;
@@ -194,8 +169,7 @@
     margin-bottom: var(--space-sm, 8px);
 }
 
-.manual-nav-pending,
-.manual-nav-empty {
+.manual-nav-pending {
     color: var(--color-text-dim, #6b5a3e);
     font-size: 13px;
     font-style: italic;
@@ -205,47 +179,6 @@
 
 .manual-nav-toggle {
     display: none;
-}
-
-/* Search results */
-
-.manual-search-hit {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: var(--color-bg-panel, #2a2118);
-    border: 1px solid var(--color-border-dark, #2e2418);
-    border-radius: var(--radius-sm, 3px);
-    padding: var(--space-sm, 8px) var(--space-md, 12px);
-    margin-bottom: var(--space-sm, 8px);
-    cursor: pointer;
-    transition: border-color 0.15s;
-}
-
-.manual-search-hit:hover {
-    border-color: var(--color-border-gold, #6b5030);
-}
-
-.manual-search-hit-title {
-    display: block;
-    color: var(--color-gold-bright, #e8b84b);
-    font-size: 14px;
-}
-
-.manual-search-hit-section {
-    display: block;
-    color: var(--color-text-dim, #6b5a3e);
-    font-size: 12.5px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin: 2px 0 4px;
-}
-
-.manual-search-hit-excerpt {
-    display: block;
-    color: var(--color-text-muted, #9a8060);
-    font-size: 12px;
-    line-height: 1.5;
 }
 
 /* ── Content column ───────────────────────────────────────────────────────── */
@@ -1075,7 +1008,7 @@
     margin-bottom: var(--space-xs, 4px);
     position: sticky;
     z-index: 5;
-    padding: var(--space-sm, 8px) 0;
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
     /* Opaque, or the article text scrolls through it. */
     background: var(--color-bg-dark, #1a1510);
     border-bottom: 1px solid var(--color-border-dark, #2e2418);
@@ -1517,11 +1450,4 @@
     color: var(--color-gold-bright, #e8b84b);
     border-bottom-style: solid;
     border-bottom-color: var(--color-gold, #c8922a);
-}
-
-/* "Search items and tables for …": the sidebar box handing a search to the
-   full Search page. Set apart from the page hits it sits above. */
-.manual-search-handoff {
-    margin-bottom: var(--space-sm, 8px);
-    border: 1px dashed var(--color-border-gold);
 }
