@@ -114,7 +114,10 @@
   padding: var(--space-md) var(--space-lg);
   box-sizing: border-box;
   z-index: 2;
-  overflow: hidden;
+  /* Scrolls when the fight is taller than the scene (a phone), so Flee is
+     always reachable (forum, 2026-10). */
+  overflow-x: hidden;
+  overflow-y: auto;
   /* FightView sizes itself by the scene's height, not the window's. */
   container-type: size;
   container-name: fight-scene;

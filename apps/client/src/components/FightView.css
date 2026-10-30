@@ -389,6 +389,10 @@
         --fight-portrait: 80px;
         --food-tile: 36px;
         gap: var(--space-xs);
+        /* Grow with its content rather than squeeze into the scene, and let
+           the scene scroll to the Flee button. */
+        height: auto;
+        min-height: 100%;
     }
 
     /* The middle is narrower beside the food: names wrap rather than clip. */

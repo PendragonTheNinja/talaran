@@ -653,7 +653,7 @@ type PriceChecked = { unitPrice?: number };
  */
 export async function buyFromShop(
     buyerId: number, listingId: number, quantity: number, expectedUnitPrice: number | null = null,
-): Promise<ShopResult & PriceChecked & { spent?: number; itemName?: string; shopId?: number }> {
+): Promise<ShopResult & PriceChecked & { spent?: number; itemName?: string; shopId?: number; trade?: ShopTrade }> {
     const qty = Math.floor(Number(quantity));
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'Invalid quantity.' };
 
@@ -731,6 +731,7 @@ export async function buyFromShop(
             return {
                 success: true, spent: gross, itemName: listing.itemName,
                 shopId: listing.shopId as number,
+                trade: { kind: 'sale' as const, counterpartyId: buyerId, itemName: listing.itemName as string, quantity: qty, gold: gross - tax },
                 message: `Bought ${qty.toLocaleString()} ${listing.itemName} for ${gross.toLocaleString()}g.`,
             };
         });
@@ -750,7 +751,7 @@ export async function buyFromShop(
  */
 export async function sellToShop(
     sellerId: number, orderId: number, quantity: number, expectedUnitPrice: number | null = null,
-): Promise<ShopResult & PriceChecked & { earned?: number; itemName?: string; shopId?: number }> {
+): Promise<ShopResult & PriceChecked & { earned?: number; itemName?: string; shopId?: number; trade?: ShopTrade }> {
     const qty = Math.floor(Number(quantity));
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'Invalid quantity.' };
 
@@ -861,6 +862,7 @@ export async function sellToShop(
             return {
                 success: true, earned: gross - tax, itemName: order.itemName,
                 shopId: order.shopId as number,
+                trade: { kind: 'purchase' as const, counterpartyId: sellerId, itemName: order.itemName as string, quantity: take, gold: gross },
                 message: `Sold ${take.toLocaleString()} ${order.itemName} for ${(gross - tax).toLocaleString()}g.${short}`,
             };
         });
@@ -1197,6 +1199,42 @@ export async function markTradesSeen(playerId: number): Promise<void> {
  * and a line per sale would make a busy shop unusable to be logged in beside.
  * Silently does nothing if the shop spoke recently.
  */
+export interface ShopTrade {
+    kind: 'sale' | 'purchase'
+    counterpartyId: number
+    itemName: string
+    quantity: number
+    /** Sale: what reached the till after the market's share. Purchase: what the buy fund paid. */
+    gold: number
+}
+
+/**
+ * A letter to the owner for every trade at their shop (Nathan, 2026-10-30,
+ * from the forum), so a sale is on record where they will see it rather than
+ * a line that flashes past. The inbox is quiet by design: an unread count, not
+ * a pop-up, so a busy shop does not bury its owner. Called after the commit.
+ */
+export async function messageOwnerOfTrade(shopId: number, trade: ShopTrade): Promise<void> {
+    try {
+        const shop = await db('player_shops as s').join('player_properties as p', 'p.id', 's.property_id')
+            .where('s.id', shopId).first('s.name', 'p.player_id');
+        if (!shop || Number(shop.player_id) === trade.counterpartyId) return;
+        const who = (await db('players').where({ id: trade.counterpartyId }).first('username'))?.username ?? 'Someone';
+        const what = `${trade.quantity.toLocaleString()} ${trade.itemName}`;
+        const { sendSystemMessage } = await import('../routes/messages');
+        if (trade.kind === 'sale') {
+            await sendSystemMessage(Number(shop.player_id), `A sale at ${shop.name}`,
+                `${who} bought ${what} from your shelf. ${trade.gold.toLocaleString()} gold is in your till, after the market's share.`);
+        } else {
+            await sendSystemMessage(Number(shop.player_id), `A delivery to ${shop.name}`,
+                `${who} sold you ${what} against your buy order. ${trade.gold.toLocaleString()} gold came out of your buy fund, and the goods are in your shop's storage.`);
+        }
+    } catch (err) {
+        // A letter is never worth failing a sale over.
+        logger.error(`messageOwnerOfTrade error: ${err}`);
+    }
+}
+
 export async function notifyOwnerOfTrade(shopId: number): Promise<void> {
     try {
         const shop = await db('player_shops').where({ id: shopId }).first();

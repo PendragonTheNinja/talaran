@@ -27,7 +27,7 @@ import {
     shopHistory,
     unseenTrades,
     markTradesSeen,
-    notifyOwnerOfTrade,
+    notifyOwnerOfTrade, messageOwnerOfTrade,
     buyFromShop,
     sellToShop,
     shopFor,
@@ -97,6 +97,7 @@ router.post('/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: R
         // After the transaction, never inside it: a socket message sent from
         // within announces something a rollback would undo.
         if (result.shopId) void notifyOwnerOfTrade(result.shopId);
+        if (result.shopId && result.trade) void messageOwnerOfTrade(result.shopId, result.trade);
         res.json({ message: result.message, spent: result.spent, gold: await getGold(playerId) });
     } catch (err) {
         logger.error(`Shop buy error: ${err}`);
@@ -123,6 +124,7 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
 
         notifyInventoryChanged(playerId);
         if (result.shopId) void notifyOwnerOfTrade(result.shopId);
+        if (result.shopId && result.trade) void messageOwnerOfTrade(result.shopId, result.trade);
         res.json({ message: result.message, earned: result.earned, gold: await getGold(playerId) });
     } catch (err) {
         logger.error(`Shop sell error: ${err}`);

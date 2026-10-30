@@ -85,9 +85,12 @@ export function calculateArrowRecovery(success: boolean, playerLevel: number, re
 export function rollDrops(
     dropTableJson: string,
     multipliers?: Map<string, number>,
+    /** Roll only these entries (a missed hunt's young animals). */
+    only?: Set<string>,
 ): { itemName: string; quantity: number; notable: boolean }[] {
     let table: DropEntry[]
     try { table = JSON.parse(dropTableJson) } catch { return [] }
+    if (only) table = table.filter(d => only.has(d.itemName))
     const drops: { itemName: string; quantity: number; notable: boolean }[] = []
     for (const d of table) {
         const chance = d.chance * (multipliers?.get(d.itemName) ?? 1)
@@ -161,7 +164,12 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     const success = Math.random() * 100 < catchChance
 
     const xp = success ? animal.xp_success : animal.xp_failure
-    const drops = success ? rollDrops(animal.drop_table, await babyFindMultiplier(playerId)) : []
+    // A young animal can be found whether or not the hunt itself succeeds
+    // (Nathan, 2026-10-30, from the forum): the quarry gets away, and a calf is
+    // standing in the bracken. Everything else, trophies included, still comes
+    // only from a kill. Young are whatever a husbandry species is raised from.
+    const young = new Set<string>(await db('animal_species').whereNotNull('baby_item_name').pluck('baby_item_name'))
+    const drops = rollDrops(animal.drop_table, await babyFindMultiplier(playerId), success ? undefined : young)
 
     // Arrow consumed; maybe recovered
     const recoveryChance = calculateArrowRecovery(success, level, animal.required_level)
