@@ -35,6 +35,9 @@ export interface TableRecipe {
     usingPublic?: boolean
     speedMultiplier?: number
     stationError?: string | null
+    /** The output's item type and subtype, from the server. */
+    outputType?: string | null
+    outputSubtype?: string | null
 }
 
 interface RecipeListProps {
@@ -89,12 +92,41 @@ function toolTabFor(r: TableRecipe): string {
     return 'Other'
 }
 
+/**
+ * Section headings for a bench whose list mixes kinds of work, by the output's
+ * "type/subtype" or type. The lapidary cuts stones and sets them in rings and
+ * amulets; one wall of tiles hid which was which. A tab whose recipes all fall
+ * in one section (or none) shows no headings.
+ */
+const SECTION_LABELS: Record<string, string> = {
+    gem: 'Cutting',
+    'jewelry/ring': 'Rings',
+    'jewelry/amulet': 'Amulets',
+}
+
+function sectionOf(r: TableRecipe): string | null {
+    return SECTION_LABELS[`${r.outputType}/${r.outputSubtype}`] ?? SECTION_LABELS[r.outputType ?? ''] ?? null
+}
+
+/** Recipes making the same thing, shown as one card with a pick between them. */
+interface RecipeGroup {
+    key: string
+    variants: TableRecipe[]
+    level: number
+    section: string | null
+}
+
+const inputLabel = (ing: TableRecipe['inputs'][number]) => ing.itemName ?? ing.label ?? ing.subtype ?? '?'
+const inputKey = (ing: TableRecipe['inputs'][number]) => `${inputLabel(ing)}×${ing.qty}`
+
 export default function RecipeList({ skill, playerLevel, onStartRecipe, stationActive = true, groupBy = 'skill', station }: RecipeListProps) {
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [recipes, setRecipes] = useState<TableRecipe[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState<string | null>(null)
+    // Which variant of a grouped card the player picked, by output name.
+    const [chosen, setChosen] = useState<Record<string, number>>({})
 
     useEffect(() => {
         apiFetch<{ recipes: TableRecipe[] }>('/api/recipes')
@@ -135,6 +167,141 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
         ? recipes.filter(r => toolTabFor(r) === category)
         : recipes.filter(r => (r.forSkill || r.skill) === category)
 
+    // One card per thing made. A ring that can be set from three Lit, two
+    // Bright or one Radiant stone is one ring, not three tiles (Nathan,
+    // 2026-10-30); the stones become a pick on the card.
+    const byOutput = new Map<string, TableRecipe[]>()
+    for (const r of shown) byOutput.set(r.outputItemName, [...(byOutput.get(r.outputItemName) ?? []), r])
+    const groups: RecipeGroup[] = [...byOutput.entries()].map(([key, variants]) => ({
+        key,
+        variants: [...variants].sort((a, b) => a.id - b.id),
+        level: Math.min(...variants.map(v => v.requiredLevel)),
+        section: sectionOf(variants[0]),
+    }))
+    // Sections in the order their first work opens, then level, then name.
+    const sectionStart = new Map<string, number>()
+    for (const g of groups) {
+        const k = g.section ?? ''
+        sectionStart.set(k, Math.min(sectionStart.get(k) ?? Infinity, g.level))
+    }
+    groups.sort((a, b) =>
+        (sectionStart.get(a.section ?? '')! - sectionStart.get(b.section ?? '')!)
+        || (a.section ?? '').localeCompare(b.section ?? '')
+        || a.level - b.level
+        || a.key.localeCompare(b.key))
+    const sectioned = new Set(groups.map(g => g.section)).size > 1
+
+    const usable = (r: TableRecipe) => playerLevel >= r.requiredLevel && r.available !== false && r.canAfford !== false
+    const pick = (g: RecipeGroup): TableRecipe =>
+        g.variants.find(v => v.id === chosen[g.key]) ?? g.variants.find(usable) ?? g.variants[0]
+
+    const card = (g: RecipeGroup) => {
+        const r = pick(g)
+        const locked = playerLevel < r.requiredLevel
+        // Prefer the server's answer; fall back to the old guess
+        // only for callers that have not been updated.
+        const blocked = r.available === false
+        // Short of materials is its own state, and a softer one:
+        // the bench is fine, the pack is not. It needs no label of
+        // its own — the missing ingredient goes red in the strip
+        // below, which is the same answer in less vertical space.
+        const short = r.canAfford === false
+        const missing = r.missingInputs ?? []
+        const shortNames = new Set(missing.map(m => m.name))
+        // The station error says you cannot; this says what to go
+        // and get. A rack with nothing in it should read as a
+        // shopping list rather than a wall of refusals.
+        // Prefer the tool list, which is precise and reads as a
+        // shopping list. The server error is the fallback for
+        // refusals that are not about a missing tool at all.
+        const wants = (r.missingTools ?? []).map(toolLabel)
+        const tip = !blocked
+            ? undefined
+            : wants.length
+                ? `Needs ${wants.join(', ')}.`
+                : r.stationError ?? undefined
+        // What every variant shares is listed once; what differs is the pick.
+        const shared = g.variants.length > 1
+            ? r.inputs.filter(ing => g.variants.every(v => v.inputs.some(o => inputKey(o) === inputKey(ing))))
+            : r.inputs
+        const sharedKeys = new Set(shared.map(inputKey))
+        return (
+            <div
+                key={g.key}
+                className={`smithing-recipe-card ${locked || blocked ? 'locked' : ''}${short && !locked && !blocked ? ' short' : ''}`}
+                title={tip ?? (short
+                    ? `Short of ${missing.map(m => `${m.name} (${m.have}/${m.need})`).join(', ')}.`
+                    : undefined)}
+                onClick={() => { if (!locked && !blocked) onStartRecipe(r.id, null) }}
+            >
+                <div
+                    className="smithing-recipe-image"
+                    {...hoverProps({ name: r.outputItemName })}
+                >
+                    <img
+                        src={getItemIcon(r.outputItemName)}
+                        alt={r.outputItemName}
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                </div>
+                {/* The name used to live inside the image div, which is
+                    64px wide, so every name wrapped inside a 64px box.
+                    "Cooked Black Bream" came out on three lines. */}
+                <span className="smithing-recipe-name">
+                    {r.outputItemName}{r.outputQty > 1 ? ` ×${r.outputQty}` : ''}
+                </span>
+                {/* On the card, not only in a native tooltip. A title
+                    attribute waits a second, shows nothing on touch,
+                    and is the first thing a player misses. If a dish
+                    is greyed out, the reason should be readable
+                    without hovering at all. */}
+                {blocked && wants.length > 0 && (
+                    <span className="station-tag locked">Needs {wants.join(', ')}</span>
+                )}
+
+                {g.variants.length > 1 && (
+                    <div className="recipe-variants">
+                        {g.variants.map(v => {
+                            const own = v.inputs.filter(ing => !sharedKeys.has(inputKey(ing)))
+                            return (
+                                <button
+                                    key={v.id}
+                                    type="button"
+                                    className={`recipe-variant${v.id === r.id ? ' active' : ''}${v.canAfford === false ? ' short' : ''}`}
+                                    onClick={e => { e.stopPropagation(); setChosen(c => ({ ...c, [g.key]: v.id })) }}
+                                >
+                                    {own.map(ing => `${ing.qty}× ${inputLabel(ing)}`).join(', ')}
+                                </button>
+                            )
+                        })}
+                    </div>
+                )}
+
+                <div className="smithing-recipe-ingredients">
+                    {shared.map((ing, i) => {
+                        const label = inputLabel(ing)
+                        return (
+                        <span
+                            key={i}
+                            className={`smithing-ingredient${shortNames.has(label) ? ' short' : ''}`}
+                        >
+                            {ing.qty}× {label}
+                        </span>
+                        )
+                    })}
+                </div>
+                {locked && <div className="smithing-locked-label">Level {r.requiredLevel}</div>}
+            </div>
+        )
+    }
+
+    const sections: { label: string | null; groups: RecipeGroup[] }[] = []
+    for (const g of groups) {
+        const last = sections[sections.length - 1]
+        if (last && last.label === g.section) last.groups.push(g)
+        else sections.push({ label: g.section, groups: [g] })
+    }
+
     return (
         <>
             {tabs.length > 1 && (
@@ -151,83 +318,14 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                 </div>
             )}
 
-            <div className="smithing-recipe-grid">
-                {shown.map(r => {
-                    const locked = playerLevel < r.requiredLevel
-                    // Prefer the server's answer; fall back to the old guess
-                    // only for callers that have not been updated.
-                    const blocked = r.available === false
-                    // Short of materials is its own state, and a softer one:
-                    // the bench is fine, the pack is not. It needs no label of
-                    // its own — the missing ingredient goes red in the strip
-                    // below, which is the same answer in less vertical space.
-                    const short = r.canAfford === false
-                    const missing = r.missingInputs ?? []
-                    const shortNames = new Set(missing.map(m => m.name))
-                    // The station error says you cannot; this says what to go
-                    // and get. A rack with nothing in it should read as a
-                    // shopping list rather than a wall of refusals.
-                    // Prefer the tool list, which is precise and reads as a
-                    // shopping list. The server error is the fallback for
-                    // refusals that are not about a missing tool at all.
-                    const wants = (r.missingTools ?? []).map(toolLabel)
-                    const tip = !blocked
-                        ? undefined
-                        : wants.length
-                            ? `Needs ${wants.join(', ')}.`
-                            : r.stationError ?? undefined
-                    return (
-                        <div
-                            key={r.id}
-                            className={`smithing-recipe-card ${locked || blocked ? 'locked' : ''}${short && !locked && !blocked ? ' short' : ''}`}
-                            title={tip ?? (short
-                                ? `Short of ${missing.map(m => `${m.name} (${m.have}/${m.need})`).join(', ')}.`
-                                : undefined)}
-                            onClick={() => { if (!locked && !blocked) onStartRecipe(r.id, null) }}
-                        >
-                            <div
-                                className="smithing-recipe-image"
-                                {...hoverProps({ name: r.outputItemName })}
-                            >
-                                <img
-                                    src={getItemIcon(r.outputItemName)}
-                                    alt={r.outputItemName}
-                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
-                                />
-                            </div>
-                            {/* The name used to live inside the image div, which is
-                                64px wide, so every name wrapped inside a 64px box.
-                                "Cooked Black Bream" came out on three lines. */}
-                            <span className="smithing-recipe-name">
-                                {r.outputItemName}{r.outputQty > 1 ? ` ×${r.outputQty}` : ''}
-                            </span>
-                            {/* On the card, not only in a native tooltip. A title
-                                attribute waits a second, shows nothing on touch,
-                                and is the first thing a player misses. If a dish
-                                is greyed out, the reason should be readable
-                                without hovering at all. */}
-                            {blocked && wants.length > 0 && (
-                                <span className="station-tag locked">Needs {wants.join(', ')}</span>
-                            )}
-
-                            <div className="smithing-recipe-ingredients">
-                                {r.inputs.map((ing, i) => {
-                                    const label = ing.itemName ?? ing.label ?? ing.subtype ?? '?'
-                                    return (
-                                    <span
-                                        key={i}
-                                        className={`smithing-ingredient${shortNames.has(label) ? ' short' : ''}`}
-                                    >
-                                        {ing.qty}× {label}
-                                    </span>
-                                    )
-                                })}
-                            </div>
-                            {locked && <div className="smithing-locked-label">Level {r.requiredLevel}</div>}
-                        </div>
-                    )
-                })}
-            </div>
+            {sections.map(sec => (
+                <div key={sec.label ?? 'all'}>
+                    {sectioned && sec.label && <h4 className="recipe-section-title">{sec.label}</h4>}
+                    <div className="smithing-recipe-grid">
+                        {sec.groups.map(card)}
+                    </div>
+                </div>
+            ))}
             {tooltipEl}
         </>
     )

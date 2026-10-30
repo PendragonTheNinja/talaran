@@ -318,7 +318,7 @@ export async function getActiveRecipes() {
         .leftJoin('items as out', 'out.name', 'r.output_item_name')
         .where({ 'r.is_active': true, 'r.mode': 'active' })
         .orderBy(['r.skill', 'r.required_level'])
-        .select('r.*', 'out.buff_effect as output_buff_effect')
+        .select('r.*', 'out.buff_effect as output_buff_effect', 'out.type as output_type', 'out.subtype as output_subtype')
     return recipes.map((r: any) => ({
         id: r.id,
         skill: r.skill,
@@ -340,6 +340,10 @@ export async function getActiveRecipes() {
         // Whether the output carries a buff, so the cookhouse can give
         // provisions their own tab rather than burying them among the heals.
         isProvision: !!r.output_buff_effect,
+        // What the output is, so a bench can section its list (the lapidary:
+        // cutting, rings, amulets) without guessing from names.
+        outputType: r.output_type ?? null,
+        outputSubtype: r.output_subtype ?? null,
         // So a refresh can recover the scene text for a running craft. The
         // start endpoint returns it; the list did not, which left a reloaded
         // cook with a generic line and no fire.

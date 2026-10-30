@@ -202,3 +202,48 @@
 .smithing-ingredient.short {
   color: var(--color-health);
 }
+
+/* RecipeList: one card for recipes making the same thing, with a pick between
+   their inputs (the lapidary's 3 Lit / 2 Bright / 1 Radiant), and section
+   headings for a bench that does more than one kind of work. */
+.recipe-variants {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.recipe-variant {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-mid);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.recipe-variant.active {
+  border-color: var(--color-gold);
+  color: var(--color-gold-bright);
+}
+
+.recipe-variant.short {
+  color: var(--color-health);
+}
+
+.recipe-variant.active.short {
+  border-color: var(--color-health);
+}
+
+.recipe-section-title {
+  margin: 12px 0 6px;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  border-bottom: 1px solid var(--color-border-mid);
+  padding-bottom: 3px;
+}
