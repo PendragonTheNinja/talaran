@@ -3,6 +3,7 @@ import path from 'path';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { runManualQuery, listManualQueries } from '../routes/manual';
+import { spellIndexRows } from './spellPage';
 
 // Manual search.
 //
@@ -166,8 +167,10 @@ async function build(): Promise<Index> {
         .where({ is_active: true })
         .orderBy('name')
         .select('name', 'type');
+    // Spells open a page through the item route, so they are found like items.
+    const spells = (await spellIndexRows()).map(sp => ({ name: sp.name, type: sp.type }));
 
-    return { built: Date.now(), pages, tables, items };
+    return { built: Date.now(), pages, tables, items: [...items, ...spells] };
 }
 
 async function getIndex(): Promise<Index> {

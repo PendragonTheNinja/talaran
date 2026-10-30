@@ -39,3 +39,14 @@ export async function buildSpellPage(name: string): Promise<SpellPage | null> {
         taughtAt: churches,
     };
 }
+
+/**
+ * Live spells as rows for the Manual's item index and search, beside the
+ * items, typed 'spell' so they group on their own. Their pages come from the
+ * item route's fallback above.
+ */
+export async function spellIndexRows(): Promise<{ name: string; type: 'spell'; subtype: null; tier: null; quality: null }[]> {
+    const spells: SpellRow[] = await db('spells').where({ is_active: true }).orderBy('name');
+    return spells.filter(sp => spellIsLive(sp.key))
+        .map(sp => ({ name: sp.name, type: 'spell' as const, subtype: null, tier: null, quality: null }));
+}

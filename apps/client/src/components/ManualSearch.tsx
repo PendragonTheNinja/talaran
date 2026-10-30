@@ -90,7 +90,7 @@ export default function ManualSearch({
 
             {results.items.length > 0 && (
                 <section className="msearch-group">
-                    <h2 className="msearch-group-title">Items</h2>
+                    <h2 className="msearch-group-title">{results.items.some(i => i.type === 'spell') ? 'Items and spells' : 'Items'}</h2>
                     <ul className="msearch-items">
                         {results.items.map(i => (
                             <li key={i.name}>

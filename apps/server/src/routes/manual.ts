@@ -6,7 +6,7 @@ import { plotCost, plotCapForLevel, FARMSTEAD_TOWN, PERENNIAL_REGROWTH_SHARE } f
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
 import { extraQueries, talarPathRows } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
-import { buildSpellPage } from '../services/spellPage';
+import { buildSpellPage, spellIndexRows } from '../services/spellPage';
 import { searchManual } from '../services/manualSearch';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
@@ -773,7 +773,8 @@ router.get('/items', async (_req: Request, res: Response) => {
             .where({ is_active: true })
             .orderBy('name')
             .select('name', 'type', 'subtype', 'tier', 'quality');
-        res.json({ items });
+        // Spells have pages of their own shape, reached the same way.
+        res.json({ items: [...items, ...(await spellIndexRows())] });
     } catch (err) {
         logger.error(`Manual item index error: ${err}`);
         res.status(500).json({ error: 'Server error' });
