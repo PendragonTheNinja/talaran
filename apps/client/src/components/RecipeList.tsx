@@ -136,16 +136,6 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
             .finally(() => setLoading(false))
     }, [skill, station])
 
-    // Tab order: the making skill first (its own gear), then the rest alphabetically
-    const categories = useMemo(() => {
-        const found = Array.from(new Set(recipes.map(r => r.forSkill || r.skill)))
-        return found.sort((a, b) => {
-            if (a === skill) return -1
-            if (b === skill) return 1
-            return a.localeCompare(b)
-        })
-    }, [recipes, skill])
-
     // Tool grouping keeps the tabs in a fixed order rather than alphabetical, so
     // "Over the Fire" is always first: it is the only tab a new cook can use.
     const toolCategories = useMemo(() => {
@@ -154,7 +144,10 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
         return TOOL_TAB_ORDER.filter(t => found.has(t))
     }, [recipes, groupBy])
 
-    const tabs = groupBy === 'tool' ? toolCategories : categories
+    // Skill grouping is one scrolling list with a heading per skill served
+    // (Nathan, 2026-10-30), like the lapidary's rows; only Cooking, with fifty
+    // dishes, keeps its tool tabs.
+    const tabs = toolCategories
 
     useEffect(() => {
         if (!category && tabs.length > 0) setCategory(tabs[0])
@@ -165,7 +158,7 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
 
     const shown = groupBy === 'tool'
         ? recipes.filter(r => toolTabFor(r) === category)
-        : recipes.filter(r => (r.forSkill || r.skill) === category)
+        : recipes
 
     // One card per thing made. A ring that can be set from three Lit, two
     // Bright or one Radiant stone is one ring, not three tiles (Nathan,
@@ -176,16 +169,21 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
         key,
         variants: [...variants].sort((a, b) => a.id - b.id),
         level: Math.min(...variants.map(v => v.requiredLevel)),
-        section: sectionOf(variants[0]),
+        // The kind of work where a bench mixes kinds (the lapidary), else the
+        // skill the output serves.
+        section: sectionOf(variants[0]) ?? (groupBy === 'tool' ? null : (variants[0].forSkill || variants[0].skill)),
     }))
-    // Sections in the order their first work opens, then level, then name.
+    // The bench's own skill first; then sections in the order their first
+    // work opens, then level, then name.
     const sectionStart = new Map<string, number>()
     for (const g of groups) {
         const k = g.section ?? ''
         sectionStart.set(k, Math.min(sectionStart.get(k) ?? Infinity, g.level))
     }
+    const own = (g: RecipeGroup) => (g.section === skill ? 0 : 1)
     groups.sort((a, b) =>
-        (sectionStart.get(a.section ?? '')! - sectionStart.get(b.section ?? '')!)
+        (own(a) - own(b))
+        || (sectionStart.get(a.section ?? '')! - sectionStart.get(b.section ?? '')!)
         || (a.section ?? '').localeCompare(b.section ?? '')
         || a.level - b.level
         || a.key.localeCompare(b.key))

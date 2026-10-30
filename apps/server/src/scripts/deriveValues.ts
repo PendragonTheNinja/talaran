@@ -770,6 +770,17 @@ async function main(): Promise<void> {
             n++;
         }
         console.log(`wrote items.value for ${n} items${skipped ? `, left ${skipped} locked value(s) alone` : ''}`);
+
+        // A newly priced item now qualifies for a museum case. The server
+        // fills missing cases at startup, but only for items priced by then, so
+        // a restart before this run left new items (the Wolfskin Cloak) off the
+        // walls until the next one. Fill them here, so the order of deploy
+        // steps does not matter.
+        const { fillMissingCases } = await import('../services/museum');
+        const appDb = (await import('../db')).default;
+        const cases = await fillMissingCases();
+        console.log(`museum: ${cases} missing case(s) added`);
+        await appDb.destroy();
     }
     await db.destroy();
 }
