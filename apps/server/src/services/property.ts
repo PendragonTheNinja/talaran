@@ -77,6 +77,7 @@ export async function getCarried(playerId: number) {
             'player_inventory.quantity as quantity',
             'items.name as name',
             'items.type as type',
+            'items.subtype as subtype',
         )
         .orderBy('items.name', 'asc');
 }

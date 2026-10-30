@@ -3,6 +3,8 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './MyShopMenu.css'
 import { useItemTooltip } from './ItemTooltip'
+import StoreSortBar from './StoreSortBar'
+import { sortItems, useStoreSort } from '../lib/itemSort'
 import { loadItemDetails, type ItemDetail } from '../lib/itemDetails'
 
 // The owner's side of a player shop (docs/marketplace-spec.md §4).
@@ -17,7 +19,7 @@ import { loadItemDetails, type ItemDetail } from '../lib/itemDetails'
 
 interface Listing { id: number; itemId: number; name: string; quantity: number; unitPrice: number }
 interface BuyOrder { id: number; itemId: number; name: string; wanted: number; unitPrice: number }
-interface StoredItem { itemId: number; name: string; quantity: number }
+interface StoredItem { itemId: number; name: string; quantity: number; type?: string; subtype?: string }
 
 interface MyShop {
     id: number
@@ -83,6 +85,8 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [tab, setTab] = useState<'storage' | 'manage' | 'history'>('storage')
+    // Search and sort for the storage tab, as the pack and the homestead have.
+    const [sort, setSort] = useStoreSort('shopStorageSort')
     const [history, setHistory] = useState<HistoryData | null>(null)
     const [shop, setShop] = useState<MyShop | null>(null)
     const [storage, setStorage] = useState<StorageState | null>(null)
@@ -262,10 +266,12 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
 
                         {!shop.atShop && <p className="msh-note">Come back to Talador to move anything.</p>}
 
+                        <StoreSortBar sort={sort} onChange={setSort} />
+
                         <p className="msh-section">In storage</p>
                         <div className="store-grid panel-inset">
                             {storage.items.length === 0 && <p className="store-empty">Nothing back here yet.</p>}
-                            {storage.items.map(item => {
+                            {sortItems(storage.items, sort.mode, sort.dir, sort.filter).map(item => {
                                 // Already on a shelf, so this can go straight back out
                                 // at the price it is already selling for. That is the
                                 // whole of the restock complaint: adding stock meant
@@ -305,7 +311,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                         <p className="msh-section">Carrying</p>
                         <div className="store-grid panel-inset">
                             {storage.carried.length === 0 && <p className="store-empty">Your pack is empty.</p>}
-                            {storage.carried.map(item => (
+                            {sortItems(storage.carried, sort.mode, sort.dir, sort.filter).map(item => (
                                 <div
                                     key={item.itemId}
                                     className="inventory-slot occupied store-slot"

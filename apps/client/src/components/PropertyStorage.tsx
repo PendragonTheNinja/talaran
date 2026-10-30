@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './PropertyStorage.css'
+import StoreSortBar from './StoreSortBar'
+import { sortItems, useStoreSort } from '../lib/itemSort'
 import { useItemTooltip } from './ItemTooltip'
 
 interface StoredItem { itemId: number; quantity: number; name: string; type: string; subtype?: string }
@@ -57,6 +59,7 @@ export default function PropertyStorage({
      * tapped to send items up, is how the shop already solves it.
      */
     const [carried, setCarried] = useState<CarriedItem[]>([])
+    const [sort, setSort] = useStoreSort('storageSort')
 
     const load = useCallback(() => {
         return Promise.all([
@@ -155,9 +158,11 @@ export default function PropertyStorage({
             {full && <p className="store-note">The store is full, though existing stacks can still be topped up.</p>}
             {error && <p className="store-error">{error}</p>}
 
+            <StoreSortBar sort={sort} onChange={setSort} />
+
             <div className="store-grid panel-inset">
                 {data.items.length === 0 && <p className="store-empty">Nothing stored here yet.</p>}
-                {data.items.map(item => (
+                {sortItems(data.items, sort.mode, sort.dir, sort.filter).map(item => (
                     <div
                         key={item.itemId}
                         className="inventory-slot occupied store-slot"
@@ -185,7 +190,7 @@ export default function PropertyStorage({
             <p className="store-section">Carrying</p>
             <div className="store-grid panel-inset">
                 {carried.length === 0 && <p className="store-empty">Your pack is empty.</p>}
-                {carried.map(item => (
+                {sortItems(carried, sort.mode, sort.dir, sort.filter).map(item => (
                     <div
                         key={item.item_id}
                         className="inventory-slot occupied store-slot"

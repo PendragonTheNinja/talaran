@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api'
 import './LeftPanel.css'
 import EquipmentPanel, { type CombatProfile } from './EquipmentPanel'
 import ConfirmModal from './ConfirmModal'
+import { sortItems } from '../lib/itemSort'
 import BuffPanel from './BuffPanel'
 import { useItemTooltip } from './ItemTooltip'
 import { announceHp, type Hp } from '../lib/combat'
@@ -84,49 +85,9 @@ export const SORT_OPTIONS: {
   { mode: 'recent', label: 'Recently gained', asc: 'Oldest first', desc: 'Newest first', defaultDir: 'desc' },
 ]
 
-/**
- * Display-only ordering. Nothing is written back, and inventory rows keep their
- * real identity — this only decides what order the grid paints them in.
- *
- * `category` sorts by type, then subtype, then name. Type alone is too coarse:
- * `material` is roughly half the item table, so without the subtype pass a
- * "sorted" bag is still one enormous undifferentiated block.
- */
+/** Display-only ordering (lib/itemSort.ts, shared with the storage grids). */
 function sortInventory(items: InventoryItem[], mode: SortMode, dir: SortDir, filter: string): InventoryItem[] {
-  const q = filter.trim().toLowerCase()
-  const filtered = q
-    ? items.filter(i =>
-        i.name.toLowerCase().includes(q) ||
-        (i.subtype || '').toLowerCase().includes(q) ||
-        (i.type || '').toLowerCase().includes(q))
-    : items
-
-  const byName = (a: InventoryItem, b: InventoryItem) => a.name.localeCompare(b.name)
-
-  // Comparators are written ascending; direction is applied once at the end, so
-  // every mode reverses consistently and there is only one place to get wrong.
-  let cmp: (a: InventoryItem, b: InventoryItem) => number
-  switch (mode) {
-    case 'name':
-      cmp = byName
-      break
-    case 'quantity':
-      cmp = (a, b) => (a.quantity - b.quantity) || byName(a, b)
-      break
-    case 'recent':
-      // player_inventory.id ascends with acquisition, so it doubles as age.
-      cmp = (a, b) => (a.id - b.id) || byName(a, b)
-      break
-    case 'category':
-    default:
-      cmp = (a, b) =>
-        (a.type || '').localeCompare(b.type || '') ||
-        (a.subtype || '').localeCompare(b.subtype || '') ||
-        byName(a, b)
-  }
-
-  const sorted = [...filtered].sort(cmp)
-  return dir === 'desc' ? sorted.reverse() : sorted
+  return sortItems(items, mode, dir, filter)
 }
 
 export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpdate, onInventoryUpdate, onDropItem, dropMode, onToggleDropMode, dropAmount, onDropAmountChange, tradeMode, tradeId, storeMode, storeAmount, onStoreItem, onOpenManualItem, hp, talar, combat }: LeftPanelProps) {
