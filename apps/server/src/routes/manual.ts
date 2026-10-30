@@ -6,6 +6,7 @@ import { plotCost, plotCapForLevel, FARMSTEAD_TOWN, PERENNIAL_REGROWTH_SHARE } f
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
 import { extraQueries, talarPathRows } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
+import { buildSpellPage } from '../services/spellPage';
 import { searchManual } from '../services/manualSearch';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
@@ -786,7 +787,9 @@ router.get('/items', async (_req: Request, res: Response) => {
 router.get('/item/:name', async (req: Request, res: Response) => {
     try {
         const raw = req.params.name;
-        const page = await buildItemPage(decodeURIComponent(Array.isArray(raw) ? raw[0] : raw));
+        const name = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw);
+        // A spell named in a Manual table links here like an item does.
+        const page = (await buildItemPage(name)) ?? (await buildSpellPage(name));
         if (!page) {
             res.status(404).json({ error: 'No such item.' });
             return;

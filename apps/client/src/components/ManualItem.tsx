@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { openBestiary } from '../lib/combat'
+import ManualSpell, { type SpellPage } from './ManualSpell'
 import './ManualItem.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -93,6 +94,8 @@ export default function ManualItem({
     inGame?: boolean
 }) {
     const [page, setPage] = useState<ItemPage | null>(null)
+    // The same route answers for a spell, which has a page of its own shape.
+    const [spell, setSpell] = useState<SpellPage | null>(null)
     const [state, setState] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading')
     const [broken, setBroken] = useState(false)
 
@@ -105,7 +108,11 @@ export default function ManualItem({
                 if (!r.ok) throw new Error('failed')
                 return r.json()
             })
-            .then(d => { if (d) { setPage(d); setState('ready') } })
+            .then(d => {
+                if (!d) return
+                if (d.kind === 'spell') { setSpell(d); setPage(null) } else { setPage(d); setSpell(null) }
+                setState('ready')
+            })
             .catch(() => setState('error'))
     }, [name])
 
@@ -119,6 +126,10 @@ export default function ManualItem({
                 <p>Nothing is recorded under that name.</p>
             </div>
         )
+    }
+
+    if (state === 'ready' && spell) {
+        return <ManualSpell page={spell} onNavigate={onNavigate} onOpenItem={onOpenItem} />
     }
 
     if (state === 'error' || !page) {

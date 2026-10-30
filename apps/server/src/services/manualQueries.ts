@@ -149,7 +149,7 @@ export const extraQueries: Record<string, QueryHandler> = {
         return {
             title: 'Spells, and what each asks',
             columns: [
-                { key: 'spell', label: 'Spell' },
+                { key: 'spell', label: 'Spell', icon: 'spell' },
                 { key: 'level', label: 'Talar', align: 'right' },
                 { key: 'cost', label: 'Costs' },
                 { key: 'wait', label: 'Cast' },
