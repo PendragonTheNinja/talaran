@@ -3,6 +3,7 @@ import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
 import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
+import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 import NPCDialogue from './NPCDialogue'
 import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
@@ -180,6 +181,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     loadGroundItems()
   }, [locationData, groundItemsKey])
 
+  const loadTanning = () => {
+    apiFetch<any>('/api/tanning/status').then(data => {
+      setTanningStatus(data)
+    }).catch(() => setTanningStatus(null))
+  }
+
   useEffect(() => {
     setPlayersHere([])
     apiFetch<{ players: PlayerAtLocation[] }>('/api/location/players-here')
@@ -188,11 +195,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
     refreshStations()
 
-    if (isCaliwen) {
-      apiFetch<any>('/api/tanning/status').then(data => {
-        setTanningStatus(data)
-      }).catch(() => setTanningStatus(null))
-    }
+    if (isCaliwen) loadTanning()
 
     // Sprung traps at this location — surfaces on the Hunting Grounds button
     apiFetch<any>('/api/trapping/traps')
@@ -392,6 +395,21 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const worldEvents = useWorldEvents()
   const eventsHere = worldEvents.live.filter(e => e.locationId === location?.id)
   const merchantHere = eventsHere.some(isMerchant)
+
+  // Kiln and vat timers count down on their own, and the panel re-reads its
+  // station when one finishes so the Collect button appears without a reload.
+  const kiln = smithingStatus?.kilnStatus
+  const soaking: { readyAt: string }[] = (tanningStatus?.vats || []).filter((v: { isReady: boolean }) => !v.isReady)
+  const clock = useCountdownClock((!!kiln && !kiln.isReady) || soaking.length > 0)
+  const kilnDone = !!kiln && !kiln.isReady && minutesUntil(kiln.readyAt, clock) === 0
+  const vatDone = soaking.some(v => minutesUntil(v.readyAt, clock) === 0)
+  useEffect(() => {
+    if (kilnDone) refreshStations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kilnDone])
+  useEffect(() => {
+    if (vatDone) loadTanning()
+  }, [vatDone])
 
   return (
     <aside className={`location-panel panel location-panel--${layout}`}>
@@ -607,7 +625,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                       </button>
                     ) : (
                       <div className="location-action-info">
-                        Kiln burning... {smithingStatus.kilnStatus.minutesRemaining}m
+                        Kiln burning... {waitWords(minutesUntil(smithingStatus.kilnStatus.readyAt, clock))}
                       </div>
                     )
                   ) : (
@@ -814,7 +832,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                         </button>
                       ) : (
                         <div key={vat.id} className="location-action-info">
-                          {vat.hideCount} hide{vat.hideCount > 1 ? 's' : ''} soaking... {vat.minutesRemaining}m
+                          {vat.hideCount} hide{vat.hideCount > 1 ? 's' : ''} soaking... {waitWords(minutesUntil(vat.readyAt, clock))}
                         </div>
                       )
                     ))}

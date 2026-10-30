@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { announceTalar, type Talar } from '../lib/talar'
 import SendingPicker, { type SendingStore } from './SendingPicker'
 import SpellCastPopup, { type SpellCast } from './SpellCastPopup'
+import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 
 // Spells (server: services/spells.ts). One list in two places: the church,
 // where spells are learned, and the spellbook (the Talar bar), where they are
@@ -65,15 +66,6 @@ function cooldownText(s: SpellView): string {
 }
 
 /** "45 min", or "6 h 29 min" once it runs past an hour. */
-function waitText(minutes: number): string {
-    if (minutes < 60) return `${minutes} min`
-    const m = minutes % 60
-    return m ? `${Math.floor(minutes / 60)} h ${m} min` : `${minutes / 60} h`
-}
-
-function minutesUntil(iso: string): number {
-    return Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / 60000))
-}
 
 /** Wearsight's reading: a line per worn piece. */
 function WearReading({ detail }: { detail: { slot: string; name: string; word: string }[] }) {
@@ -131,6 +123,9 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
         } finally { setBusy(false) }
     }
 
+    // Cooldowns count down while the book is open, and a spell turns ready on its own.
+    const now = useCountdownClock(!!spells?.some(s => s.readyAt))
+
     if (!spells) return <p className="farm-empty">{note?.text ?? 'Turning the pages…'}</p>
 
     const shown = mode === 'cast' ? spells.filter(s => s.learned) : spells
@@ -142,7 +137,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                 <p className="farm-empty">You know no workings yet. They are taught in a church.</p>
             )}
             {shown.map(s => {
-                const waiting = s.readyAt ? minutesUntil(s.readyAt) : 0
+                const waiting = s.readyAt ? minutesUntil(s.readyAt, now) : 0
                 return (
                     <div key={s.key} className={`spell-card ${!s.learned && !s.canLearn ? 'locked' : ''}`}>
                         <div className="spell-card-head">
@@ -166,7 +161,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             {mode === 'cast' && (
                                 <button className="btn btn-gold" disabled={busy || waiting > 0 || s.armed}
                                     onClick={() => PICKS_TARGET.has(s.key) ? pickTarget(s) : cast(s)}>
-                                    {s.armed ? 'Holding' : waiting > 0 ? `Ready in ${waitText(waiting)}` : 'Cast'}
+                                    {s.armed ? 'Holding' : waiting > 0 ? `Ready in ${waitWords(waiting)}` : 'Cast'}
                                 </button>
                             )}
                             {mode === 'learn' && s.learned && <span className="muted-text">Learned</span>}
