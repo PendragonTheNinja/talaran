@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { tallyReport, buildTallyBoard, shouldShowLocationLink , buyLicence } from '../services/tally';
+import { tallyReport, buildTallyBoard, tearDownTallyBoard, shouldShowLocationLink , buyLicence } from '../services/tally';
 import { logger } from '../lib/logger';
 import { failureStatus } from '../lib/serviceResult';
 
@@ -67,6 +67,16 @@ router.post('/build', requireAuth, async (req: AuthRequest, res: Response) => {
         logger.error(`Tally build error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
+});
+
+// Take down the board where you stand: materials back, no XP.
+router.post('/teardown', requireAuth, async (req: AuthRequest, res: Response) => {
+    const result = await tearDownTallyBoard(req.player!.playerId);
+    if (!result.success) {
+        res.status(failureStatus(result.error)).json({ error: result.error });
+        return;
+    }
+    res.json(result);
 });
 
 export default router;

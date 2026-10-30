@@ -9,7 +9,7 @@ import './TallyBoard.css'
 // scavenger penalty is a designed mechanic rather than an oversight.
 
 interface TallyEntry {
-    kind: 'field' | 'vat' | 'kiln' | 'pen'
+    kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire'
     what: string
     where: string
     island: string
@@ -22,7 +22,8 @@ interface TallyReport {
     hasBoard: boolean
     boardLocationName: string | null
     atBoard: boolean
-    boards: { locationId: number; locationName: string; island: string; here: boolean }[]
+    /** First raised first; movesNext marks the one a new board would take. */
+    boards: { locationId: number; locationName: string; island: string; here: boolean; movesNext: boolean }[]
     boardCap: number
     entries: TallyEntry[]
     readyCount: number
@@ -88,9 +89,9 @@ function Licence({ report, busy, onBought }: {
     return (
         <div className="tally-licence">
             <p className="tally-licence-line">
-                Room for {licence.boardNumber === 2 ? 'a second' : `a ${licence.boardNumber}th`} board
+                Room for {licence.boardNumber === 2 ? 'a second' : `a ${ordinal(licence.boardNumber)}`} board
                 costs <span className="gold-text">{licence.cost.toLocaleString()} gold</span>
-                {' '}and total level {licence.totalLevelRequired}.
+                {' '}and a total level of {licence.totalLevelRequired} outside combat.
             </p>
             {licence.canBuy ? (
                 <button className="btn btn-gold" onClick={buy} disabled={buying || busy}>
@@ -108,6 +109,14 @@ const KIND_MARK: Record<TallyEntry['kind'], string> = {
     vat: '◍',
     kiln: '▲',
     pen: '⌂',
+    fire: '✺',
+}
+
+/** "2nd", "3rd", "11th". */
+function ordinal(n: number): string {
+    const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th'
+        : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th'
+    return `${n}${suffix}`
 }
 
 function untilText(readyAt: string | null): string {
@@ -174,16 +183,15 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                     <Raise report={report} busy={busy} onRaise={raise} />
                 ) : !report.atBoard ? (
                     <div className="tally-elsewhere">
-                        <p>
-                            {report.boards.length === 1 ? 'Your tally board stands at ' : 'Your boards stand at '}
-                            {report.boards.map((b, i) => (
-                                <span key={b.locationId}>
-                                    {i > 0 && (i === report.boards.length - 1 ? ' and ' : ', ')}
+                        <p>{report.boards.length === 1 ? 'Your tally board stands at:' : 'Your boards stand at, first raised first:'}</p>
+                        <ol className="tally-board-list">
+                            {report.boards.map(b => (
+                                <li key={b.locationId}>
                                     <span className="gold-text">{b.locationName}</span>
-                                </span>
+                                    {b.movesNext && <span className="muted-text"> (moves if you raise one here)</span>}
+                                </li>
                             ))}
-                            .
-                        </p>
+                        </ol>
                         <p className="muted-text">
                             A board is a board. You will have to go and look at one.
                         </p>
@@ -202,7 +210,10 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                         />
                     </div>
                 ) : (
-                    <Report report={report} />
+                    <>
+                        <Report report={report} />
+                        <TearDown busy={busy} setBusy={setBusy} setError={setError} onDone={onClose} />
+                    </>
                 )}
             </div>
         </div>
@@ -305,6 +316,46 @@ function Report({ report }: { report: TallyReport }) {
     )
 }
 
+/** Take down the board where you stand: the materials come back, no XP. */
+function TearDown({ busy, setBusy, setError, onDone }: {
+    busy: boolean
+    setBusy: (b: boolean) => void
+    setError: (e: string | null) => void
+    onDone: () => void
+}) {
+    const [asking, setAsking] = useState(false)
+    const [note, setNote] = useState<string | null>(null)
+    const go = async () => {
+        setBusy(true)
+        setError(null)
+        try {
+            const res = await apiFetch<{ message: string }>('/api/tally/teardown', { method: 'POST' })
+            setNote(res.message)
+            window.dispatchEvent(new CustomEvent('talaran:notice', { detail: { message: res.message, type: 'success' } }))
+            onDone()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'The board would not come down.')
+        } finally {
+            setBusy(false)
+            setAsking(false)
+        }
+    }
+    if (note) return <p className="muted-text">{note}</p>
+    return (
+        <div className="tally-teardown">
+            {asking ? (
+                <>
+                    <span className="muted-text">Take this board down? Its planks and nails come back to you.</span>
+                    <button className="btn btn-gold" disabled={busy} onClick={go}>Take it down</button>
+                    <button className="btn" disabled={busy} onClick={() => setAsking(false)}>Leave it</button>
+                </>
+            ) : (
+                <button className="btn" disabled={busy} onClick={() => setAsking(true)}>Take this board down</button>
+            )}
+        </div>
+    )
+}
+
 function Raise({
     report, busy, onRaise, relocating,
 }: {
@@ -349,8 +400,9 @@ function Raise({
 
             {relocating && (
                 <p className="muted-text tally-relocate-note">
-                    You have as many boards as your Carpentry allows, so this one moves your
-                    oldest rather than adding to it. The materials are owed either way.
+                    You have as many boards as your licences allow, so this one moves your
+                    oldest{report.boards[0] ? `, at ${report.boards[0].locationName},` : ''} rather than adding to it.
+                    The materials are owed either way.
                 </p>
             )}
             {!relocating && report.hasBoard && (

@@ -3,6 +3,7 @@ import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { getGold, debitGoldWithin } from './gold';
 import { husbandryTallyEntries } from './husbandry';
+import { takeItemsWithin, addItemToInventoryWithin } from './inventory';
 
 // The Tally Board (see 20260726060000_tally_board for the design rationale).
 //
@@ -90,7 +91,9 @@ export async function licenceOffer(playerId: number): Promise<LicenceOffer> {
     const [have, gold] = await Promise.all([totalLevel(playerId), getGold(playerId)]);
 
     let reason: string | undefined;
-    if (have < need) reason = `A licence for a ${ordinal(boardNumber)} board wants total level ${need}. Yours is ${have}.`;
+    // Combat skills are left out of this total (see totalLevel), so it is named
+    // as such: a player comparing it with the Skills page saw two numbers.
+    if (have < need) reason = `A licence for a ${ordinal(boardNumber)} board wants a total level of ${need} outside combat. Yours is ${have}.`;
     else if (gold < cost) reason = `That licence costs ${cost} gold. You have ${gold}.`;
 
     return {
@@ -99,7 +102,7 @@ export async function licenceOffer(playerId: number): Promise<LicenceOffer> {
     };
 }
 
-function ordinal(n: number): string {
+export function ordinal(n: number): string {
     const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th'
         : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';
     return `${n}${suffix}`;
@@ -153,7 +156,7 @@ export const BUILD_COST = [
 ];
 
 export interface TallyEntry {
-    kind: 'field' | 'vat' | 'kiln' | 'pen';
+    kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire';
     what: string;
     where: string;
     island: string;
@@ -169,8 +172,8 @@ export interface TallyReport {
     boardLocationId: number | null;
     boardLocationName: string | null;
     atBoard: boolean;
-    /** Every board this player keeps, for the "your boards" list. */
-    boards: { locationId: number; locationName: string; island: string; here: boolean }[];
+    /** Every board this player keeps, first raised first, for the "your boards" list. */
+    boards: { locationId: number; locationName: string; island: string; here: boolean; movesNext: boolean }[];
     boardCap: number;
     licence: LicenceOffer;
     entries: TallyEntry[];
@@ -304,6 +307,28 @@ export async function passiveWork(playerId: number): Promise<TallyEntry[]> {
         });
     }
 
+    // ── Fires ───────────────────────────────────────────────────────────────
+    // A cookhouse hearth burns its fuel down (fuel_until) and a campfire goes
+    // out (expires_at); either is worth knowing before you walk to it.
+    const fires = await db('workstations')
+        .leftJoin('locations', 'workstations.location_id', 'locations.id')
+        .where('workstations.player_id', playerId)
+        .where(q => q.where('workstations.fuel_until', '>', new Date(now)).orWhere('workstations.expires_at', '>', new Date(now)))
+        .select('workstations.type', 'workstations.fuel_until', 'workstations.expires_at', 'locations.name as location_name', 'locations.region as island');
+    for (const f of fires) {
+        const campfire = !!f.expires_at;
+        const outAt = campfire ? f.expires_at : f.fuel_until;
+        entries.push({
+            kind: 'fire',
+            what: campfire ? 'Campfire' : 'Hearth fire',
+            where: f.location_name || 'Unknown',
+            island: f.island || '',
+            status: 'working',
+            readyAt: new Date(outAt).toISOString(),
+            detail: 'Burning; the time is when it goes out',
+        });
+    }
+
     // ── Pens ────────────────────────────────────────────────────────────────
     // Summarised by services/husbandry, which owns the pause-aware clocks.
     for (const pen of await husbandryTallyEntries(playerId)) {
@@ -332,13 +357,16 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
             'locations.name as location_name',
             'locations.region as island',
         )
-        .orderBy('locations.name');
+        // First raised first: the oldest is the one a new board would move.
+        .orderBy('tally_boards.id');
 
-    const boards = boardRows.map((b) => ({
+    const capForOrder = await boardCapFor(playerId);
+    const boards = boardRows.map((b, i) => ({
         locationId: b.location_id,
         locationName: b.location_name ?? 'Unknown',
         island: b.island ?? '',
         here: b.location_id === player?.current_location_id,
+        movesNext: i === 0 && boardRows.length >= capForOrder,
     }));
 
     const boardHere = boards.find((b) => b.here) ?? null;
@@ -456,26 +484,16 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
             }
         }
 
-        // Materials and placement together: a partial build would leave a player
-        // charged for a board that does not exist.
+        // Materials and placement together, with the player's row locked so two
+        // builds at once cannot both pass the cap or both spend the planks.
         await db.transaction(async (trx) => {
-            for (const c of BUILD_COST) {
-                const row = await trx('player_inventory')
-                    .join('items', 'player_inventory.item_id', 'items.id')
-                    .where({ 'player_inventory.player_id': playerId, 'items.name': c.itemName })
-                    .select('player_inventory.id', 'player_inventory.quantity')
-                    .first();
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+            const now = await trx('tally_boards').where({ player_id: playerId }).orderBy('id', 'asc');
+            if (now.some((b: any) => b.location_id === player.current_location_id)) throw new Error('ALREADY_HERE');
+            if (now.length !== boards.length) throw new Error('RACE');
 
-                if (!row || Number(row.quantity) < c.qty) {
-                    throw new Error(`insufficient ${c.itemName}`);
-                }
-
-                if (Number(row.quantity) === c.qty) {
-                    await trx('player_inventory').where({ id: row.id }).delete();
-                } else {
-                    await trx('player_inventory').where({ id: row.id }).decrement('quantity', c.qty);
-                }
-            }
+            const taken = await takeItemsWithin(trx, playerId, BUILD_COST.map(c => ({ name: c.itemName, quantity: c.qty })));
+            if (!taken.ok) throw new Error(`insufficient materials`);
 
             if (displaced) {
                 await trx('tally_boards').where({ id: displaced.id }).delete();
@@ -490,8 +508,46 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
         );
         return { success: true, relocated: relocating };
     } catch (err) {
+        const m = String(err);
+        if (m.includes('ALREADY_HERE')) return { success: false, error: 'Your tally board already stands here.' };
+        if (m.includes('RACE')) return { success: false, error: 'Try that again.' };
+        if (m.includes('insufficient')) return { success: false, error: 'You no longer have the materials.' };
         logger.error(`Tally board build error: ${err}`);
         return { success: false, error: 'The board could not be raised.' };
+    }
+}
+
+/**
+ * Take down the board where the player stands (Nathan, 2026-10-30, from the
+ * forum). Everything that went into it comes back and it pays no XP, as with
+ * pulling down a pen, so raising and razing boards is never a way to train.
+ * The DELETE is the claim: two take-downs at once refund once.
+ */
+export async function tearDownTallyBoard(playerId: number): Promise<{ success: boolean; error?: string; message?: string }> {
+    try {
+        const done = await db.transaction(async (trx) => {
+            const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id');
+            const removed = await trx('tally_boards')
+                .where({ player_id: playerId, location_id: player?.current_location_id ?? null })
+                .delete()
+                .returning('id');
+            if (!removed.length) return false;
+            for (const c of BUILD_COST) {
+                const item = await trx('items').where({ name: c.itemName }).first('id');
+                if (!item) throw new Error(`no item ${c.itemName}`);
+                await addItemToInventoryWithin(trx, playerId, item.id, c.qty);
+            }
+            return true;
+        });
+        if (!done) return { success: false, error: 'You have no tally board here.' };
+        logger.info(`Player ${playerId} took down a tally board`);
+        return {
+            success: true,
+            message: `You draw the nails and stack the planks. ${BUILD_COST.map(c => `${c.qty} ${c.itemName}`).join(' and ')} come back to you.`,
+        };
+    } catch (err) {
+        logger.error(`Tally board teardown error: ${err}`);
+        return { success: false, error: 'The board would not come down.' };
     }
 }
 

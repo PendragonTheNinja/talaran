@@ -1586,6 +1586,23 @@ const SCENARIOS: Scenario[] = [
             return changed('reservoir hundredths', 0, held) ?? changed('actions helped', 2, helps.filter(Boolean).length);
         },
     },
+    {
+        id: 'tally', name: 'take down a tally board five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/tally.ts tearDownTallyBoard: the DELETE is the claim, so
+            // the 50 planks and 100 nails come back once whatever the count.
+            const w = await world(ctx);
+            const planks = await ctx.seed.row('items', { name: 'Lanai Planks', type: 'plank' });
+            const nails = await ctx.seed.row('items', { name: 'Ambren Nails', type: 'material' });
+            await ctx.seed.row('tally_boards', { player_id: w.player.id, location_id: w.town.id });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/tally/teardown', {}));
+            const boards = await ctx.db('tally_boards').where({ player_id: w.player.id }).count('* as c').first();
+            return changed('Lanai Planks', 50, await ctx.itemTotal(planks.id))
+                ?? changed('Ambren Nails', 100, await ctx.itemTotal(nails.id))
+                ?? changed('boards', 0, Number(boards?.c ?? -1))
+                ?? succeeded(st, 1);
+        },
+    },
 ];
 
 main().catch((err) => {
