@@ -109,7 +109,10 @@ export const TYPE_AIM: Record<DamageType, number> = { pierce: 110, slash: 100, c
 export const TIER1_POWER: Record<Form, Record<DamageType, number>> = {
     dual: { pierce: 41, slash: 43, crush: 44 },
     onehand: { pierce: 37, slash: 38, crush: 40 },
-    twohand: { pierce: 61, slash: 64, crush: 66 },
+    // +8% (Nathan, 2026-10-30, from the forum): at 61 / 64 / 66 two-hand killed
+    // exactly as fast as dual while swinging slower and wasting more on the
+    // killing blow, so nothing rewarded choosing it. Now ~5% ahead of dual.
+    twohand: { pierce: 66, slash: 69, crush: 71 },
 }
 
 /**
@@ -252,10 +255,22 @@ export function dodgedWeight(defenseLevel: number, c: CombatConstants = COMBAT):
  *   - the defensive side gets DEFENSIVE_XP_MULTIPLE × `xp`, split by the
  *     ledger (defenseShare): Defense takes what armour absorbed, Constitution
  *     what landed
+ *   - a clean kill, where nothing landed or was absorbed, moves half of that
+ *     defensive pool to Melee
  */
 export function killXp(xp: number, absorbed: number, landed: number, c: CombatConstants = COMBAT, dodged = 0, defenseLevel = c.DODGED_XP_FADE_LEVEL): CombatLevels {
     const out: CombatLevels = { melee: xp, defense: 0, constitution: 0 }
     const defensive = c.DEFENSIVE_XP_MULTIPLE * xp
+    // A clean kill (Nathan, 2026-10-30, from the forum): nothing reached you,
+    // not even a blow your armour took, so it was won by the weapon. Half the
+    // defensive pool goes to Melee and the rest splits evenly. What a kill pays
+    // in all never changes.
+    if (absorbed <= 0 && landed <= 0) {
+        out.melee = xp + defensive / 2
+        out.defense = defensive / 4
+        out.constitution = defensive / 4
+        return out
+    }
     out.defense = defensive * defenseShare(absorbed, landed, c, dodged, defenseLevel)
     out.constitution = defensive - out.defense
     return out

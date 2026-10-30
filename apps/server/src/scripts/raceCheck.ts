@@ -25,6 +25,7 @@
  *
  * Exit code 0 when every scenario holds, 1 when any fails.
  */
+import { killXp } from '../lib/combatMath';
 import 'dotenv/config';
 import { execFileSync } from 'child_process';
 import type { AddressInfo } from 'net';
@@ -1386,7 +1387,8 @@ const SCENARIOS: Scenario[] = [
             const kills = Number((await ctx.db('player_stats').where({ player_id: w.player.id }).first())?.total_creatures_killed ?? 0);
             const left = await ctx.db('player_actions').where({ player_id: w.player.id }).first();
             return changed('kills', 1, kills)
-                ?? changed('Melee XP', 26, Number(melee?.xp ?? 0))
+                // The blade one-shots the rat: a clean kill, paid by killXp's rule.
+                ?? changed('Melee XP', Math.round(killXp(26, 0, 0).melee), Number(melee?.xp ?? 0))
                 ?? (left ? 'the fight is still running after a flee' : null)
                 ?? succeeded(st, 1);
         },
