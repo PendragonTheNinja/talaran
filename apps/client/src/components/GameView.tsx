@@ -90,7 +90,12 @@ interface LogEntry {
   id: number
   message: string
   type: 'success' | 'info' | 'error' | 'level'
+  /** Stays LASTING_LOG_MS with a close button: worth reading, often written while a panel covers the scene. */
+  lasting?: boolean
 }
+
+/** How long a lasting log line stays before it clears itself. */
+const LASTING_LOG_MS = 60_000
 
 // Where the Action Limit bar is offered. `recipe` covers every bench craft the
 // shared executor runs — Caliwen crafting, and the Farming and Husbandry
@@ -309,18 +314,22 @@ export default function GameView({
     }
   }
 
-  const addLog = (message: string, type: LogEntry['type'] = 'info', persist = false) => {
+  // `persist` keeps a line until the log is cleared; 'lasting' keeps it a
+  // minute with a close button (a spell cast, which happens behind the
+  // spellbook, was gone before the book was shut).
+  const addLog = (message: string, type: LogEntry['type'] = 'info', persist: boolean | 'lasting' = false) => {
     logIdRef.current += 1
     const id = logIdRef.current
+    const lasting = persist === 'lasting'
     setLog(prev => {
       if (prev.length > 0 && prev[prev.length - 1].message === message) return prev
-      return [...prev.slice(-20), { id, message, type }]
+      return [...prev.slice(-20), { id, message, type, lasting }]
     })
 
-    if (!persist) {
+    if (persist !== true) {
       setTimeout(() => {
         setLog(prev => prev.filter(entry => entry.id !== id))
-      }, 5000)
+      }, lasting ? LASTING_LOG_MS : 5000)
     }
   }
 
@@ -950,7 +959,7 @@ export default function GameView({
 
       // Talar paid for other people's use of your Kindle or Portal (services/spells.ts).
       on('talar_reward', (p: { message: string }) => {
-        if (p?.message) addLog(p.message, 'success')
+        if (p?.message) addLog(p.message, 'success', 'lasting')
       })
 
       on('combat_update', (data: CombatUpdate) => {
@@ -1046,8 +1055,8 @@ export default function GameView({
     // Generic notice channel, so a panel deep in the tree can put a line in the
     // log without threading a callback down to it.
     const onNotice = (e: Event) => {
-      const d = (e as CustomEvent<{ message: string; type?: 'info' | 'error' | 'success' }>).detail
-      if (d?.message) addLog(d.message, d.type === 'error' || d.type === 'success' ? d.type : 'info')
+      const d = (e as CustomEvent<{ message: string; type?: 'info' | 'error' | 'success'; lasting?: boolean }>).detail
+      if (d?.message) addLog(d.message, d.type === 'error' || d.type === 'success' ? d.type : 'info', d.lasting ? 'lasting' : false)
     }
     // A feat is worth a line in the log and nothing more intrusive. It is not
     // an interruption, it is a note that something you were already doing
@@ -2249,8 +2258,12 @@ export default function GameView({
           {log.length > 0 && (
             <div className="scene-log">
               {[...log].reverse().slice(0, 3).map(entry => (
-                <p key={entry.id} className={`scene-log-entry log-${entry.type}`}>
+                <p key={entry.id} className={`scene-log-entry log-${entry.type}${entry.lasting ? ' is-lasting' : ''}`}>
                   {entry.message}
+                  {entry.lasting && (
+                    <button className="scene-log-close" aria-label="Dismiss"
+                      onClick={() => setLog(prev => prev.filter(x => x.id !== entry.id))}>✕</button>
+                  )}
                 </p>
               ))}
             </div>

@@ -479,6 +479,37 @@
   color: var(--color-gold-bright);
 }
 
+/* A line worth reading (a spell cast, a Talar reward): it stays a minute and
+   can be closed. Boxed so a long sentence reads against any scene. */
+.scene-log-entry.is-lasting {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm, 8px);
+  max-width: min(640px, 90vw);
+  font-size: 17px;
+  text-align: left;
+  padding: 6px 8px 6px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--color-border-mid);
+  border-radius: var(--radius-sm, 3px);
+  pointer-events: auto;
+}
+
+.scene-log-close {
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.scene-log-close:hover {
+  color: var(--color-text-bright);
+}
+
 .action-limit-display {
   position: absolute;
   top: var(--space-md);

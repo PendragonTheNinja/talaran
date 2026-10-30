@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { announceTalar, type Talar } from '../lib/talar'
 import SendingPicker, { type SendingStore } from './SendingPicker'
+import SpellCastPopup, { type SpellCast } from './SpellCastPopup'
 
 // Spells (server: services/spells.ts). One list in two places: the church,
 // where spells are learned, and the spellbook (the Talar bar), where they are
@@ -89,6 +90,9 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
     const [atChurch, setAtChurch] = useState(false)
     const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null)
     const [reading, setReading] = useState<{ key: string; detail: unknown } | null>(null)
+    // What the last cast did, shown in a popup until it is closed.
+    const [lastCast, setLastCast] = useState<SpellCast | null>(null)
+    const closeCast = useCallback(() => setLastCast(null), [])
     const [busy, setBusy] = useState(false)
     const [picking, setPicking] = useState<{ key: string; targets: SpellTarget[] } | null>(null)
     // Sending: which of the player's stores is open in the picker.
@@ -118,11 +122,8 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
             const res = await apiFetch<CastResult>('/api/talar/spells/cast', { method: 'POST', body: JSON.stringify({ key: s.key, ...params }) })
             setPicking(null)
             announceTalar(res.talar)
-            setNote({ text: `${res.message} +${res.xpAwarded} Talar experience.` })
-            // And in the activity log, where it is seen wherever the spellbook was scrolled to.
-            window.dispatchEvent(new CustomEvent('talaran:notice', {
-                detail: { message: `${s.name}: ${res.message} +${res.xpAwarded} Talar experience.`, type: 'success' },
-            }))
+            setNote(null)
+            setLastCast({ spell: s.name, message: res.message, xp: res.xpAwarded, talar: res.talar })
             setReading({ key: s.key, detail: res.detail })
             load()
         } catch (err) {
@@ -135,6 +136,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
     const shown = mode === 'cast' ? spells.filter(s => s.learned) : spells
     return (
         <div className="spell-list">
+            {lastCast && <SpellCastPopup cast={lastCast} onClose={closeCast} />}
             {note && <p className={note.error ? 'farm-error' : 'farm-note'}>{note.text}</p>}
             {mode === 'cast' && shown.length === 0 && (
                 <p className="farm-empty">You know no workings yet. They are taught in a church.</p>
