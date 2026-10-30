@@ -18,6 +18,8 @@ interface SpellView {
     learned: boolean
     canLearn: boolean
     readyAt: string | null
+    /** Cast ahead and waiting to take effect (Tether, until the next fall). */
+    armed: boolean
     xp: number
     vigilMinutes: number
     offering: string | null
@@ -56,7 +58,7 @@ interface CastResult {
 /** What a spell's cooldown says on its card. */
 function cooldownText(s: SpellView): string {
     if (s.cooldownKind === 'daily') return 'Once a day'
-    if (s.cooldownKind === 'per_death') return 'Once after each fall'
+    if (s.cooldownKind === 'per_death') return 'One fall at a time'
     const m = Math.round((s.cooldownSeconds ?? 0) / 60)
     return m >= 60 ? `Every ${Math.round(m / 60)} h` : `Every ${m} min`
 }
@@ -117,6 +119,10 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
             setPicking(null)
             announceTalar(res.talar)
             setNote({ text: `${res.message} +${res.xpAwarded} Talar experience.` })
+            // And in the activity log, where it is seen wherever the spellbook was scrolled to.
+            window.dispatchEvent(new CustomEvent('talaran:notice', {
+                detail: { message: `${s.name}: ${res.message} +${res.xpAwarded} Talar experience.`, type: 'success' },
+            }))
             setReading({ key: s.key, detail: res.detail })
             load()
         } catch (err) {
@@ -144,6 +150,9 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             </span>
                         </div>
                         {s.description && <p className="spell-desc">{s.description}</p>}
+                        {mode === 'cast' && s.armed && (
+                            <p className="spell-needs gold-text">Active: it waits for your next fall.</p>
+                        )}
                         {mode === 'learn' && !s.learned && (s.offering || s.writ) && (
                             <p className="spell-needs muted-text">
                                 {s.offering && <>Offer: <span className={s.hasOffering ? 'gold-text' : 'spell-missing'}>1 {s.offering}</span></>}
@@ -153,9 +162,9 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                         )}
                         <div className="spell-actions">
                             {mode === 'cast' && (
-                                <button className="btn btn-gold" disabled={busy || waiting > 0}
+                                <button className="btn btn-gold" disabled={busy || waiting > 0 || s.armed}
                                     onClick={() => PICKS_TARGET.has(s.key) ? pickTarget(s) : cast(s)}>
-                                    {waiting > 0 ? `Ready in ${waitText(waiting)}` : 'Cast'}
+                                    {s.armed ? 'Holding' : waiting > 0 ? `Ready in ${waitText(waiting)}` : 'Cast'}
                                 </button>
                             )}
                             {mode === 'learn' && s.learned && <span className="muted-text">Learned</span>}

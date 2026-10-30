@@ -134,7 +134,17 @@ export async function dropEverythingWithin(
         .returning(['item_id', 'quantity']);
     for (const row of carried) if (Number(row.quantity) > 0) add(row.item_id, Number(row.quantity));
 
-    const visibleAt = new Date(at.getTime() + DEATH_PILE_PRIVATE_MINUTES * 60_000);
+    // A Tether cast beforehand (services/spells.ts) holds this pile twice as
+    // long, and is spent by it: cleared in one conditional statement, inside
+    // the death's transaction, so it holds exactly one fall.
+    const tethered = await trx('player_spells')
+        .where({ player_id: playerId })
+        .whereNotNull('armed_at')
+        .whereIn('spell_id', trx('spells').where({ key: 'tether' }).select('id'))
+        .update({ armed_at: null })
+        .returning('spell_id');
+    const privateMinutes = DEATH_PILE_PRIVATE_MINUTES * (tethered.length ? 2 : 1);
+    const visibleAt = new Date(at.getTime() + privateMinutes * 60_000);
     const rows = [...totals].map(([itemId, quantity]) => ({
         item_id: itemId, quantity, location_id: locationId,
         dropped_by_player_id: playerId, dropped_at: at, visible_to_all_at: visibleAt,

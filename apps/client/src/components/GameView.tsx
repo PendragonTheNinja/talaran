@@ -948,6 +948,11 @@ export default function GameView({
       }
       on('skill_xp_changed', onSkillXp)
 
+      // Talar paid for other people's use of your Kindle or Portal (services/spells.ts).
+      on('talar_reward', (p: { message: string }) => {
+        if (p?.message) addLog(p.message, 'success')
+      })
+
       on('combat_update', (data: CombatUpdate) => {
         const lines: Omit<FightLogLine, 'id'>[] = []
         for (const e of data.events || []) {

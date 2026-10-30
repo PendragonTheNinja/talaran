@@ -259,9 +259,12 @@ const dailyStep: SpellEffect = {
 }
 
 // ── Tether (§6) ──────────────────────────────────────────────────────────────
-// Cast after a fall, from anywhere: the latest death pile stays private to its
-// owner DEATH_PILE_PRIVATE_MINUTES longer. Once per death: a pile already held
-// is refused, so the cooldown is the death itself and no clock is kept.
+// A death pile stays private to its owner DEATH_PILE_PRIVATE_MINUTES longer.
+// Cast after a fall, it holds the pile already lying there. Cast beforehand it
+// is insurance (Nathan, 2026-10-30): player_spells.armed_at is set, and the
+// next fall spends it (dropEverythingWithin in services/groundItems.ts). One
+// fall at a time: while it waits, or once a pile is held, it is refused, so
+// the cooldown is the fall itself and no clock is kept.
 // A death pile is told from an ordinary drop by its private window, which is
 // set to exactly DEATH_PILE_PRIVATE_MINUTES at the fall (dropEverythingWithin).
 
@@ -276,15 +279,30 @@ const tether: SpellEffect = {
             .where('visible_to_all_at', '>', now)
             .whereRaw('visible_to_all_at - dropped_at >= make_interval(secs => ?)', [DEATH_WINDOW_SECONDS])
         const latest: { at: Date | null } | undefined = await piles.clone().max('dropped_at as at').first()
-        if (!latest?.at) throw new SpellAbort('Nothing of yours is lying anywhere to hold on to.')
-
-        const pile = await trx('ground_items')
-            .where({ dropped_by_player_id: playerId, dropped_at: latest.at })
-            .forUpdate()
-            .select('id', 'location_id', 'dropped_at', 'visible_to_all_at')
+        const pile = latest?.at
+            ? await trx('ground_items')
+                .where({ dropped_by_player_id: playerId, dropped_at: latest.at })
+                .forUpdate()
+                .select('id', 'location_id', 'dropped_at', 'visible_to_all_at')
+            : []
         const held = pile.some((g: any) =>
             new Date(g.visible_to_all_at).getTime() - new Date(g.dropped_at).getTime() > DEATH_WINDOW_SECONDS * 1000)
-        if (held) throw new SpellAbort('You are already holding on to what you dropped. It will not hold any tighter.')
+
+        if (!pile.length || held) {
+            // Nothing lying unheld: it waits for the next fall. The conditional
+            // write is the gate, so two casts cannot both pay for one tether.
+            const armed = await trx('player_spells')
+                .where({ player_id: playerId })
+                .whereNull('armed_at')
+                .whereIn('spell_id', trx('spells').where({ key: 'tether' }).select('id'))
+                .update({ armed_at: now })
+                .returning('spell_id')
+            if (!armed.length) throw new SpellAbort('Your Tether already holds. It waits for your next fall.')
+            return {
+                message: 'You tie a thread to everything you carry. If you fall, what you drop stays yours a quarter of an hour longer.',
+                detail: { armed: true },
+            }
+        }
 
         await trx('ground_items').whereIn('id', pile.map((g: any) => g.id))
             .update({ visible_to_all_at: trx.raw('visible_to_all_at + make_interval(mins => ?)', [DEATH_PILE_PRIVATE_MINUTES]) })
@@ -488,19 +506,38 @@ const kindle: SpellEffect = {
     },
 }
 
-/** Talar XP for a kindler, for `uses` boosted actions by others at their light (services/worldEvents.ts). */
-export async function payKindler(kindlerId: number, uses: number): Promise<void> {
+/**
+ * Talar XP for a kindler, for `uses` boosted actions by others at their light
+ * (services/worldEvents.ts). Each one pays; the kindler is told in their log
+ * when someone new starts working by it, not at every action, which would be
+ * up to eighty lines a light.
+ */
+export async function payKindler(
+    kindlerId: number,
+    uses: number,
+    newcomer: { playerId: number; locationId: number; skill: string } | null,
+): Promise<void> {
     const spell: SpellRow | undefined = await db('spells').where({ key: 'kindle' }).first()
     if (!spell || uses < 1) return
-    const xp = activeXpForSeconds(spell.talar_level, KINDLE_REWARD_SECONDS) * uses
+    const each = activeXpForSeconds(spell.talar_level, KINDLE_REWARD_SECONDS)
     // Paid for other people's work, not an action of the caster's: never raised by an event.
-    await awardXp(kindlerId, 'Talar', xp, db, { eventBonus: false })
+    await awardXp(kindlerId, 'Talar', each * uses, db, { eventBonus: false })
+    if (newcomer) {
+        const [who, place] = await Promise.all([
+            db('players').where({ id: newcomer.playerId }).first('username'),
+            db('locations').where({ id: newcomer.locationId }).first('name'),
+        ])
+        pushToPlayer(kindlerId, 'talar_reward', {
+            message: `${who?.username ?? 'Someone'} is working ${newcomer.skill} by your light at ${place?.name ?? 'your Kindle'}. You earn ${each} Talar experience for each action of theirs it helps.`,
+        })
+    }
 }
 
 // ── Portal (§6) ──────────────────────────────────────────────────────────────
-// A doorway from where the caster stands to anywhere on this island they have
-// walked to (Daily Step's places and roads). Open for a few minutes to anyone
-// at its near end, who steps through at once, leaving the way travel does.
+// A doorway between where the caster stands and anywhere on this island they
+// have walked to (Daily Step's places and roads). It works both ways: open for
+// a few minutes to anyone at either end, who steps through at once to the
+// other, leaving the way travel does (Nathan, 2026-10-30).
 // Priced on the road it skips. The caster is paid a little for each other
 // person who goes through, up to five. A row in `portals` with its closing
 // time; anything past it is ignored on read.
@@ -532,9 +569,12 @@ const portal: SpellEffect = {
             caster_id: playerId, from_location_id: from, to_location_id: target.locationId,
             closes_at: new Date(Date.now() + minutes * 60_000),
         })
-        afterCommit(trx, () => pushToRoom(`location_${from}`, 'portals_changed', { locationId: from }))
+        afterCommit(trx, () => {
+            pushToRoom(`location_${from}`, 'portals_changed', { locationId: from })
+            pushToRoom(`location_${target.locationId}`, 'portals_changed', { locationId: target.locationId })
+        })
         return {
-            message: `A doorway opens beside you onto ${target.name}. It will hold for ${minutes} minutes, for anyone here.`,
+            message: `A doorway opens beside you onto ${target.name}. It will hold for ${minutes} minutes, both ways, for anyone at either end.`,
             detail: { destination: target.name, minutes },
         }
     },
@@ -542,19 +582,21 @@ const portal: SpellEffect = {
 
 export interface PortalView { id: number; destination: string; caster: string; closesAt: string; mine: boolean }
 
-/** The doorways open where this player stands. */
+/** The doorways open where this player stands, at either end; each leads to its other end. */
 export async function portalsHere(playerId: number): Promise<PortalView[]> {
     const me = await db('players').where({ id: playerId }).first('current_location_id')
     if (!me?.current_location_id) return []
+    const here = Number(me.current_location_id)
     const rows = await db('portals as p')
-        .join('locations as l', 'l.id', 'p.to_location_id')
+        .join('locations as lf', 'lf.id', 'p.from_location_id')
+        .join('locations as lt', 'lt.id', 'p.to_location_id')
         .join('players as c', 'c.id', 'p.caster_id')
-        .where('p.from_location_id', me.current_location_id)
+        .where(q => q.where('p.from_location_id', here).orWhere('p.to_location_id', here))
         .where('p.closes_at', '>', db.fn.now())
         .orderBy('p.closes_at')
-        .select('p.id', 'l.name as destination', 'c.username as caster', 'p.closes_at', 'p.caster_id')
+        .select('p.id', 'p.from_location_id', 'lf.name as from_name', 'lt.name as to_name', 'c.username as caster', 'p.closes_at', 'p.caster_id')
     return rows.map((r: any) => ({
-        id: r.id, destination: r.destination, caster: r.caster,
+        id: r.id, destination: Number(r.from_location_id) === here ? r.to_name : r.from_name, caster: r.caster,
         closesAt: new Date(r.closes_at).toISOString(), mine: Number(r.caster_id) === playerId,
     }))
 }
@@ -569,14 +611,23 @@ export async function stepThroughPortal(playerId: number, portalId: number): Pro
 
         const out = await db.transaction(async trx => {
             const me = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
-            const door = await trx('portals as p').join('locations as l', 'l.id', 'p.to_location_id')
-                .where('p.id', id).first('p.id', 'p.caster_id', 'p.from_location_id', 'p.to_location_id', 'p.closes_at', 'l.name as destination')
+            const door = await trx('portals as p')
+                .join('locations as lf', 'lf.id', 'p.from_location_id')
+                .join('locations as lt', 'lt.id', 'p.to_location_id')
+                .where('p.id', id).first('p.id', 'p.caster_id', 'p.from_location_id', 'p.to_location_id', 'p.closes_at', 'lf.name as from_name', 'lt.name as to_name')
             if (!door || new Date(door.closes_at).getTime() <= Date.now()) throw new SpellAbort('The doorway has closed.')
-            if (Number(door.from_location_id) !== Number(me?.current_location_id)) throw new SpellAbort('That doorway is not here.')
+            // Either end leads to the other.
+            const here = Number(me?.current_location_id)
+            const fromEnd = Number(door.from_location_id), toEnd = Number(door.to_location_id)
+            if (here !== fromEnd && here !== toEnd) throw new SpellAbort('That doorway is not here.')
+            const there = here === fromEnd
+                ? { locationId: toEnd, name: door.to_name as string }
+                : { locationId: fromEnd, name: door.from_name as string }
 
-            const left = await stepIntoWithin(trx, playerId, { locationId: Number(door.to_location_id), name: door.destination })
+            const left = await stepIntoWithin(trx, playerId, there)
 
-            // Paid once a rider, for up to five riders who are not the caster.
+            // Paid once a rider, whichever way and however often they go, for up
+            // to five riders who are not the caster.
             const casterId = Number(door.caster_id)
             const added = await trx('portal_riders').insert({ portal_id: door.id, player_id: playerId })
                 .onConflict(['portal_id', 'player_id']).ignore().returning('player_id')
@@ -584,11 +635,11 @@ export async function stepThroughPortal(playerId: number, portalId: number): Pro
                 const others = await trx('portal_riders').where({ portal_id: door.id }).whereNot({ player_id: casterId }).count('* as c').first()
                 if (Number(others?.c ?? 0) <= PORTAL_PAID_RIDERS) {
                     afterCommit(trx, () => {
-                        payPortalCaster(casterId).catch(err => logger.error(`[spells] portal reward failed: ${err}`))
+                        payPortalCaster(casterId, playerId, there.name).catch(err => logger.error(`[spells] portal reward failed: ${err}`))
                     })
                 }
             }
-            return { left, destination: door.destination as string, from: Number(door.from_location_id) }
+            return { left, destination: there.name, from: here }
         })
         logger.info(`[spells] player ${playerId} stepped through portal ${id}`)
         return { success: true, message: `You step through the doorway, out of ${out.left} and into ${out.destination}.` }
@@ -599,11 +650,16 @@ export async function stepThroughPortal(playerId: number, portalId: number): Pro
     }
 }
 
-async function payPortalCaster(casterId: number): Promise<void> {
+async function payPortalCaster(casterId: number, riderId: number, destination: string): Promise<void> {
     const spell: SpellRow | undefined = await db('spells').where({ key: 'portal' }).first()
     if (!spell) return
+    const xp = activeXpForSeconds(spell.talar_level, PORTAL_REWARD_SECONDS)
     // Paid for someone else's journey, not an action of the caster's: never raised by an event.
-    await awardXp(casterId, 'Talar', activeXpForSeconds(spell.talar_level, PORTAL_REWARD_SECONDS), db, { eventBonus: false })
+    await awardXp(casterId, 'Talar', xp, db, { eventBonus: false })
+    const who = await db('players').where({ id: riderId }).first('username')
+    pushToPlayer(casterId, 'talar_reward', {
+        message: `${who?.username ?? 'Someone'} stepped through your doorway into ${destination}. +${xp} Talar experience.`,
+    })
 }
 
 const EFFECTS: Record<string, SpellEffect> = {
@@ -646,7 +702,7 @@ export function spellCostWords(spell: Pick<SpellRow, 'key' | 'cost'>): string {
 
 export function spellCooldownWords(spell: Pick<SpellRow, 'cooldown_kind' | 'cooldown_seconds'>): string {
     if (spell.cooldown_kind === 'daily') return 'once a day'
-    if (spell.cooldown_kind === 'per_death') return 'once after each fall'
+    if (spell.cooldown_kind === 'per_death') return 'one fall at a time'
     const m = Math.round(Number(spell.cooldown_seconds ?? 0) / 60)
     return m >= 60 ? `every ${m / 60 === Math.round(m / 60) ? m / 60 : (m / 60).toFixed(1)} h` : `every ${m} min`
 }
@@ -671,6 +727,8 @@ export interface SpellView {
     canLearn: boolean
     /** ISO time it is next ready, or null when ready now. */
     readyAt: string | null
+    /** Cast ahead and waiting to take effect (Tether, until the next fall). */
+    armed: boolean
     xp: number
     vigilMinutes: number
     offering: string | null
@@ -684,7 +742,7 @@ export interface SpellView {
 export async function listSpells(playerId: number): Promise<{ spells: SpellView[]; atChurch: boolean }> {
     const [rows, learned, level, church, carried] = await Promise.all([
         db('spells').where({ is_active: true }).orderBy([{ column: 'talar_level' }, { column: 'display_order' }]),
-        db('player_spells').where({ player_id: playerId }).select('spell_id', 'ready_at'),
+        db('player_spells').where({ player_id: playerId }).select('spell_id', 'ready_at', 'armed_at'),
         playerSkillLevel(playerId, 'Talar'),
         churchHere(playerId),
         db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
@@ -703,6 +761,7 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 cost: Number(s.cost), cooldownKind: s.cooldown_kind, cooldownSeconds: s.cooldown_seconds,
                 learned: !!own, canLearn: level >= s.talar_level,
                 readyAt: ready && ready.getTime() > now ? ready.toISOString() : null,
+                armed: !!own?.armed_at,
                 xp: castXp(s),
                 vigilMinutes: Number(s.vigil_minutes),
                 offering: s.offering_item_name, writ: s.writ_item_name,

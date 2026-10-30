@@ -136,7 +136,7 @@ Every player has an internal reservoir of Talar.
 | **Wearsight** | 1 | 5 | 1 h | 6 min of band (~220) |
 | **Daily Step** | 5 | 0.1 per base second skipped (4 to 38 on Taiar) | once a day | 30 min (~1,210) |
 | **Larder Ward** | 8 | 0.5 per head-hour covered | 12 h | 30 min (~1,300) |
-| **Tether** | 10 | 25 | once per death | 2 min (~90) |
+| **Tether** | 10 | 25 | one fall at a time | 2 min (~90) |
 | **Sending** | 15 | 20 | 10 min | 2 min (~100) |
 | **Kindle** | 20 | 300 | 24 h | 30 min (~1,730) + others' use |
 | **Portal** | 22 | 20 + 0.25 per base second skipped (29 to 115 on Taiar) | 2 h | 12 min (~725) + riders |
@@ -162,7 +162,7 @@ How pens work today: feeding lasts 12 h, mucking is due every 24 h, and an anima
 - **Animals added under a ward** (Nathan, 2026-10-29) pay their own share at placement: the rate times the hours the ward has left. Short of Talar, the animal goes in and that pen's ward ends (`placeAnimal`, which locks the reservoir before the pen, the cast's order).
 
 ### Tether
-Cast **after** dying, from wherever you respawned. Your death pile stays private for **+15 minutes** beyond `DEATH_PILE_PRIVATE_MINUTES`, **once per death**: it does not stack, so a player casts it once between deaths. Works because the reservoir is not dropped. XP is kept tiny so dying is never a way to farm it.
+Your death pile stays private for **+15 minutes** beyond `DEATH_PILE_PRIVATE_MINUTES`, **one fall at a time**: it does not stack. Cast **after** dying, from wherever you respawned, it holds the pile already lying there (works because the reservoir is not dropped). Cast **beforehand** it is insurance (Nathan, 2026-10-30): `player_spells.armed_at` is set, the next fall spends it (`dropEverythingWithin`), and while it waits the spellbook shows it active and refuses another cast. XP is kept tiny so dying is never a way to farm it.
 
 ### Sending
 Moves **one stack** between your pack and **your own** property storage, from anywhere on the island. Own storage only, so it never bypasses a trade. One slot = one unique stack, as storage already works; a full storage refuses rather than destroys. Locked, relative, all-or-nothing, and a `race:check` scenario (pack + storage total unchanged under parallel casts).
@@ -182,9 +182,9 @@ Needs one new thing in the events core: a per-player cap on a pool. A `race:chec
 ### Portal
 Opens a portal **from where you stand to anywhere you have visited on this island**. Portals are per island; they never cross the sea (Sailing's job).
 
-- **Open for a while, for anyone:** **knob:** 5 minutes at the unlock level, +1 minute per 4 levels above it. Any player at the origin sees it in the location panel and can step through. Stepping through is instant, and settles and cancels their current action the way travel does.
+- **Open for a while, for anyone:** **knob:** 5 minutes at the unlock level, +1 minute per 4 levels above it. It works **both ways** (Nathan, 2026-10-30): any player at either end sees it in the location panel and can step through to the other end. Stepping through is instant, and settles and cancels their current action the way travel does.
 - **Cost scales with the road time skipped** (shortest path in base seconds).
-- **The caster earns a little extra XP per other rider** (**knob:** 2 minutes of band each, up to five).
+- **The caster earns a little extra XP per other rider** (**knob:** 2 minutes of band each, up to five), once per rider per portal whichever way and however often they go.
 - A `portals` table: caster, island, from, to, opened, closes. Expired rows are ignored on read and swept later; no `setTimeout`.
 
 **Taiar is small.** Since the road shortening (`20261016120000`) the longest walk on the island is 380 base seconds (Dawncrest to the Rift), the median 178. A portal here saves minutes, so it is priced cheap and its pull on Taiar is convenience and company. Later islands get longer roads, so the same formula makes portals both dearer and far more valuable there.
@@ -199,7 +199,7 @@ Nathan's rule: every cast pays a worthwhile amount, scaled by its cooldown and t
 cast xp = band(spell level) × W / 60,   W = clamp(cooldown minutes / 10, 2, 30) minutes
 ```
 
-The band carries the tier; W carries the cooldown, from 2 minutes of band (spammable spells) to 30 (daily ones). Spells with no time cooldown (Tether) take the floor. Kindle and Portal add their per-other-player bonus.
+The band carries the tier; W carries the cooldown, from 2 minutes of band (spammable spells) to 30 (daily ones). Spells with no time cooldown (Tether) take the floor. Kindle and Portal add their per-other-player bonus; the caster's activity log says who (Portal: every paid rider; Kindle: each person's first action by the light, not every action).
 
 **Budget check (`talar_sim`):** a player casting every spell at its cooldown pace through an 8-hour day spends ~770 Talar (about eight Cut Quartz) and earns ~9,500 XP from casting, on top of ~8,900 from filling those eight gems at Talar 1 (four hours at the Rift since the fill rates doubled). So a self-sufficient Talar player earns about **1.5× a normal skill's hour**, the same allowance combat has (`docs/combat-spec.md` §2), and it is gated by gem supply: those eight quartz are a miner's whole day. A player who buys charged gems and only casts trains at about half that rate: a real second route, never the main one. **Jewelry drain pays no XP**: it is passive.
 

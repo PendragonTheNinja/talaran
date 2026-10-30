@@ -106,9 +106,12 @@ export async function applyEventBonus(
 
     const want = Math.max(1, Math.floor(units));
     let allowed = want;
+    // A first share is a newcomer at the light: a kindler is told who (payKindler).
+    let newcomer = false;
     if (event.cap !== null) {
-        await x('world_event_shares').insert({ event_id: event.id, player_id: playerId, taken: 0 })
-            .onConflict(['event_id', 'player_id']).ignore();
+        const opened = await x('world_event_shares').insert({ event_id: event.id, player_id: playerId, taken: 0 })
+            .onConflict(['event_id', 'player_id']).ignore().returning('player_id');
+        newcomer = opened.length > 0;
         const { rows: share } = await x.raw(`
             WITH cur AS (
                 SELECT taken FROM world_event_shares
@@ -158,9 +161,10 @@ export async function applyEventBonus(
     const kindler = event.kindledBy;
     if (kindler !== null && kindler !== playerId) {
         const uses = Number(taken.taken);
+        const locationId = Number(player.current_location_id);
         afterCommit(x, () => {
             import('./spells')
-                .then(({ payKindler }) => payKindler(kindler, uses))
+                .then(({ payKindler }) => payKindler(kindler, uses, newcomer ? { playerId, locationId, skill: skillName } : null))
                 .catch((err) => logger.error(`[events] kindle reward failed: ${err}`));
         });
     }
