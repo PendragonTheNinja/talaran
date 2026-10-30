@@ -39,7 +39,7 @@ Two things, at present. **Spells**, which are learned at a church and spent deli
 Rough stones turn up in the work of other trades. On Taiar:
 
 - **Miners** find quartz and, more rarely, garnet, both in Granite and in Ambren and Burgh ore.
-- **Fighters** take them off the Knockers, Jumpers, Sidehill Gougers and Hodags who had swallowed them.
+- **Fighters** find them now and then in the creatures they kill. Which ones, the Bestiary will tell you once you have killed enough.
 
 A rough stone is no use to the light. It must be cut first, at a lapidary. That is Crafting's work, done at Geosper's bench in Caliwen or at your own, and it is described on the Crafting page.
 
@@ -70,7 +70,7 @@ Learning one is not a matter of being told the words. You keep a **vigil**: some
 
 You may not keep a vigil for a spell beyond your level, and you need not hurry. A spell learned is never forgotten.
 
-Writs turn up in the ordinary work of other trades. The Writ of Sending is found on the road by those who walk it. The Writ of Kindling is found in the rock. The Writ of the Open Door is carried by the larger beasts of the island's wild places. All of them can be traded.
+Writs turn up in the ordinary work of other trades. The Writ of Sending is found on the road by those who walk it. The Writ of Kindling is found in the rock. The Writ of the Open Door is carried by something with claws. All of them can be traded.
 
 ## Casting
 
