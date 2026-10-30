@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect } from 'react'
 import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { openBestiary } from '../lib/combat'
@@ -170,19 +170,23 @@ export default function ManualItem({
                 )}
                 {e.where && <span className="mitem-entry-where">{e.where}</span>}
             </span>
-            {e.detail && <span className="mitem-entry-detail">{e.detail}</span>}
-            {e.inputs && e.inputs.length > 0 && (
+            {/* One column for the level and the ingredients, stacked, so a long
+                recipe grows downward instead of crushing the name beside it. */}
+            {(e.detail || (e.inputs && e.inputs.length > 0)) && (
                 <span className="mitem-entry-detail">
-                    From{' '}
-                    {e.inputs.map((input, n) => (
-                        <Fragment key={input.name}>
-                            {n > 0 && ', '}
-                            {input.qty} ×{' '}
-                            <button className="mitem-link mitem-link-inline" onClick={() => onOpenItem(input.name)}>
-                                {input.name}
-                            </button>
-                        </Fragment>
-                    ))}
+                    {e.detail && <span className="mitem-entry-level">{e.detail}</span>}
+                    {e.inputs && e.inputs.length > 0 && (
+                        <ul className="mitem-inputs">
+                            {e.inputs.map(input => (
+                                <li key={input.name}>
+                                    {input.qty} ×{' '}
+                                    <button className="mitem-link mitem-link-inline" onClick={() => onOpenItem(input.name)}>
+                                        {input.name}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </span>
             )}
             {e.link && (

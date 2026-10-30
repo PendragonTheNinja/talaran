@@ -126,7 +126,7 @@
    give way and wrap instead of overlapping. */
 .mitem-entry {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1.6fr) auto;
+    grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1fr) auto;
     align-items: start;
     gap: var(--space-sm, 8px) var(--space-md, 12px);
     padding: 11px 2px;
@@ -172,6 +172,21 @@
     text-align: left;
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.mitem-entry-level {
+    display: block;
+}
+
+/* Ingredients, one to a line. */
+.mitem-inputs {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+}
+
+.mitem-inputs li {
+    margin: 1px 0;
 }
 
 .mitem-entry-more {
