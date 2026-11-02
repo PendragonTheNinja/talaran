@@ -62,7 +62,7 @@ import inventoryRoutes from './routes/inventory';
 import tradeRoutes from './routes/trades';
 import questRoutes from './routes/quests';
 import npcRoutes from './routes/npcs';
-import { issueBotCheck } from './services/botCheck';
+import { issueBotCheck, hasPendingBotCheck } from './services/botCheck';
 import { markOffline, markOnline, recordSeen } from './lib/presence';
 import huntingRoutes from './routes/hunting';
 import combatRoutes from './routes/combat';
@@ -331,6 +331,8 @@ io.use((socket, next) => {
 // Put each player in their own room for targeted messages
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id}`);
+  // When this tab last had a waiting bot check sent to it (see page_visibility).
+  let lastVisibleResend = 0;
 
   // The client still emits 'join', but its argument is ignored: the id comes
   // from the verified handshake. No client change is needed.
@@ -349,6 +351,7 @@ io.on('connection', (socket) => {
     try {
       const player = await db('players').where({ id: playerId }).first();
       if (player && player.bot_check_answer !== null) {
+        lastVisibleResend = Date.now();   // the visibility report just behind this needn't send it again
         await issueBotCheck(playerId);
         logger.info(`Re-sent bot check to reconnecting player ${playerId}`);
       }
@@ -369,9 +372,22 @@ io.on('connection', (socket) => {
 
   // The page reports whether it is on screen, so push notifications go only to
   // a player who is not looking (services/pushNotify.ts).
-  socket.on('page_visibility', (visible: unknown) => {
+  // Coming back to the game shows a waiting bot check straight away. A phone
+  // that put the browser away often keeps (or quietly restores) its socket, so
+  // the reconnect re-send above never fires and the check stayed hidden until
+  // the player started something (Nathan, 2026-11-02). Throttled per tab.
+  socket.on('page_visibility', async (visible: unknown) => {
     const playerId: number = socket.data.playerId;
-    if (playerId) setPageVisibility(socket.id, playerId, visible === true);
+    if (!playerId) return;
+    setPageVisibility(socket.id, playerId, visible === true);
+    if (visible !== true || Date.now() - lastVisibleResend < 10_000) return;
+    lastVisibleResend = Date.now();
+    try {
+      const player = await db('players').where({ id: playerId }).first('bot_check_answer');
+      if (player && hasPendingBotCheck(player)) await issueBotCheck(playerId);
+    } catch (err) {
+      logger.warn(`bot check re-send on return failed for player ${playerId}: ${err}`);
+    }
   });
 
   socket.on('disconnect', async () => {
