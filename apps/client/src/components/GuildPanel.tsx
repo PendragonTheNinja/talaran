@@ -286,8 +286,8 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
             await apiFetch('/api/guilds/rank', { method: 'POST', body: JSON.stringify({ targetPlayerId: targetId, role }) })
             setSuccess('Rank changed.')
             await loadGuildData()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError((err as { message?: string }).message ?? 'That did not save.')
         }
     }
 
@@ -302,8 +302,8 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
             await apiFetch('/api/guilds/permissions', { method: 'PUT', body: JSON.stringify({ rankPermissions: rankPerms }) })
             setSuccess('Rank permissions saved.')
             loadGuildData()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError((err as { message?: string }).message ?? 'That did not save.')
         }
     }
 
