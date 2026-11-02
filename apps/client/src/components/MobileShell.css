@@ -374,27 +374,175 @@
     text-align: center;
 }
 
+/* ---- Full-screen panels on a phone ----
+   Every one of these keeps its desktop position and width otherwise: a
+   right-hand drawer 700-800px wide (max 95vw) that started below a desktop
+   top bar, so on a phone it sat off the left edge and ran past the right. */
+.mobile-modals .messages-panel,
+.mobile-modals .news-panel,
+.mobile-modals .forum-panel,
+.mobile-modals .hs-panel,
+.mobile-modals .admin-panel {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    border-left: none;
+    border-top: none;
+}
+
+/* A back button for panels whose list and reading pane take turns on a
+   phone. Hidden everywhere else. */
+.mobile-back-btn { display: none; }
+.mobile-modals .mobile-back-btn {
+    display: inline-flex;
+    align-self: flex-start;
+    margin: 0 0 var(--space-sm);
+    font-size: 12px;
+}
+
+/* ---- Messages and News: list or reading, one at a time ---- */
+.mobile-modals .messages-body,
+.mobile-modals .news-body {
+    flex-direction: column;
+}
+.mobile-modals .messages-list,
+.mobile-modals .news-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    border-right: none !important;
+    flex: 1;
+}
+.mobile-modals .messages-body:not(.reading) .messages-content { display: none; }
+.mobile-modals .messages-body.reading .messages-list { display: none; }
+.mobile-modals .news-body.reading .news-sidebar { display: none; }
+.mobile-modals .news-body.listing .news-content { display: none; }
+.mobile-modals .messages-content,
+.mobile-modals .news-content {
+    width: 100%;
+    padding: var(--space-md) !important;
+}
+.mobile-modals .news-content h2 { font-size: 22px; line-height: 1.2; }
+
 /* ---- Forum: mobile reflow ---- */
 .mobile-modals .forum-panel {
     top: 0;
 }
 
 .mobile-modals .forum-home {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: var(--space-lg) !important;
 }
+/* Grid and flex children default to their content's width; on a phone that is
+   wider than the screen, so every forum column is told it may shrink. */
+.mobile-modals .forum-home > *,
+.mobile-modals .forum-categories-list,
+.mobile-modals .forum-recent,
+.mobile-modals .forum-category-row,
+.mobile-modals .forum-thread-row,
+.mobile-modals .forum-recent-row,
+.mobile-modals .forum-post,
+.mobile-modals .forum-posts-list {
+    min-width: 0;
+    max-width: 100%;
+}
+.mobile-modals .forum-body { padding: var(--space-md) !important; }
+.mobile-modals .forum-section-title { font-size: 22px !important; }
+.mobile-modals .forum-recent-row { font-size: 14px !important; }
+.mobile-modals .forum-recent-row * { overflow-wrap: anywhere; }
 
 .mobile-modals .forum-post {
     flex-direction: column !important;
 }
 
+/* The author card: a compact header above the post on a phone, small avatar
+   then the name, and everything else as one wrapped line of small print. */
 .mobile-modals .forum-post-sidebar {
     width: 100% !important;
     min-width: 0 !important;
     flex-direction: row !important;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-sm);
+    gap: 2px 10px !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-border-dark);
+    text-align: left !important;
 }
+.mobile-modals .forum-post-avatar,
+.mobile-modals .forum-post-avatar img,
+.mobile-modals .forum-post-avatar-placeholder {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+.mobile-modals .forum-post-author { font-size: 17px !important; }
+.mobile-modals .forum-post-sidebar > span:not(.forum-post-author) {
+    font-size: 12px !important;
+}
+.mobile-modals .forum-post-title { font-size: 12px !important; }
+.mobile-modals .forum-post-badge { padding: 0 6px !important; }
+.mobile-modals .forum-post-content { padding: var(--space-md) !important; min-width: 0; }
+
+/* Category and thread rows: name first, stats underneath, nothing wider than the screen. */
+.mobile-modals .forum-category-row,
+.mobile-modals .forum-thread-row {
+    flex-wrap: wrap;
+    gap: 4px 10px !important;
+    padding: var(--space-sm) var(--space-md) !important;
+}
+.mobile-modals .forum-category-info,
+.mobile-modals .forum-thread-info {
+    flex: 1 1 0;
+    min-width: 0;
+}
+.mobile-modals .forum-category-name,
+.mobile-modals .forum-thread-title { font-size: 17px !important; }
+.mobile-modals .forum-category-desc { font-size: 14px !important; }
+.mobile-modals .forum-category-stats,
+.mobile-modals .forum-thread-stats {
+    flex-basis: 100%;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 2px 10px !important;
+    align-items: baseline !important;
+    text-align: left !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+}
+.mobile-modals .forum-category-stats span,
+.mobile-modals .forum-thread-stats span { font-size: 12px !important; }
+.mobile-modals .forum-category-icon { font-size: 22px !important; }
+
+/* The header: crumbs on one line, the thread's own title left to the heading below. */
+.mobile-modals .forum-header {
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md) !important;
+}
+.mobile-modals .forum-breadcrumb {
+    min-width: 0;
+    flex: 1;
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 15px !important;
+}
+.mobile-modals .forum-breadcrumb-item {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px !important;
+}
+.mobile-modals .forum-breadcrumb-item.muted-text { display: none; }
+.mobile-modals .forum-header-actions { flex-shrink: 0; }
+.mobile-modals .forum-header-actions .btn { font-size: 11px; padding: 4px 8px; }
 
 .mobile-modals .forum-recent-title,
 .mobile-modals .forum-recent-row {
@@ -404,4 +552,90 @@
 .mobile-modals .forum-body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+}
+/* ---- Highscores: everything inside the screen ---- */
+.mobile-modals .hs-panel-skill-tab {
+    font-size: 13px !important;
+    padding: 3px 8px !important;
+}
+.mobile-modals .hs-panel-table { width: 100%; table-layout: auto; }
+.mobile-modals .hs-panel-th,
+.mobile-modals .hs-panel-td {
+    padding: 6px 4px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+}
+.mobile-modals .hs-panel-th { font-size: 10px !important; letter-spacing: 0.02em !important; }
+.mobile-modals .hs-panel-td span { font-size: 14px !important; }
+.mobile-modals .hs-panel-td .muted-text { font-size: 11px !important; }
+.mobile-modals .hs-panel-td:nth-child(2) { white-space: normal; word-break: break-word; }
+.mobile-modals .hs-panel-pagination .btn { padding: 4px 10px; }
+
+/* ---- Admin: one column, the player list and a player taking turns ---- */
+.mobile-modals .admin-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md) !important;
+}
+.mobile-modals .admin-header-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    width: 100%;
+}
+.mobile-modals .admin-tabs {
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 100%;
+}
+.mobile-modals .admin-tab { font-size: 12px !important; padding: 4px 10px !important; }
+.mobile-modals .admin-body { flex-direction: column; overflow-y: auto; }
+.mobile-modals .admin-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-right: none !important;
+    max-height: none !important;
+}
+.mobile-modals .admin-body.admin-view-player .admin-sidebar { display: none; }
+.mobile-modals .admin-body.admin-view-online .admin-main { display: none; }
+.mobile-modals .admin-main { width: 100%; padding: var(--space-md) !important; min-width: 0; }
+.mobile-modals .admin-info-grid,
+.mobile-modals .admin-perms-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.mobile-modals .admin-actions-grid { grid-template-columns: minmax(0, 1fr) !important; }
+.mobile-modals .admin-action-card { min-width: 0; }
+.mobile-modals .admin-action-card input,
+.mobile-modals .admin-action-card select,
+.mobile-modals .admin-action-card textarea { max-width: 100%; min-width: 0; }
+/* The header stacks on a phone; its close button stays a button in the corner. */
+.mobile-modals .admin-header { position: relative; }
+.mobile-modals .admin-header > .modal-close-btn,
+.mobile-modals .admin-header > button:last-child {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-md);
+    width: auto;
+    align-self: auto;
+}
+
+/* Admin content tables are spreadsheets: they scroll inside their own box on a
+   phone, never the page. */
+.mobile-modals .admin-content-table-wrap,
+.mobile-modals .admin-content-scroll {
+    min-width: 0;
+    max-width: 100%;
+}
+.mobile-modals .admin-content-scroll { -webkit-overflow-scrolling: touch; }
+
+/* The balance calculator's inputs, one per line. */
+.mobile-modals .admin-balance-form {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: var(--space-sm) !important;
+}
+.mobile-modals .admin-balance-field,
+.mobile-modals .admin-balance-field input,
+.mobile-modals .admin-balance-field select {
+    width: 100% !important;
+    min-width: 0 !important;
 }

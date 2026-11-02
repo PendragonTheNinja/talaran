@@ -188,7 +188,8 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
             {error && <p className="guild-error">{error}</p>}
             {success && <p className="guild-success">{success}</p>}
 
-            <div className="messages-body">
+            {/* On a phone the list and the reading pane take turns (MobileShell.css). */}
+            <div className={`messages-body ${view !== 'inbox' ? 'reading' : ''}`}>
                 {/* Inbox list */}
                 <div className="messages-list">
                     <div className="messages-list-header">
@@ -246,6 +247,11 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
 
                 {/* Message content / compose */}
                 <div className="messages-content">
+                    {view !== 'inbox' && (
+                        <button className="btn mobile-back-btn" onClick={() => { setView('inbox'); setSelected(null) }}>
+                            ← Back to messages
+                        </button>
+                    )}
                     {view === 'inbox' && !selected && (
                         <p className="muted-text" style={{ padding: '16px', textAlign: 'center', fontStyle: 'italic' }}>
                             Select a message to read it.

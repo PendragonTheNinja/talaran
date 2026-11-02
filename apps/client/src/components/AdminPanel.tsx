@@ -397,7 +397,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     return (
         <div className={`admin-panel ${closing ? 'closing' : ''}`}>
             <div className="admin-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div className="admin-header-main">
                     <h3 className="gold-text">Admin Panel</h3>
                     {isAdmin && (
                         <div className="admin-tabs">
@@ -449,7 +449,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             ) :
             mainTab === 'manual' ? <AdminManualEditor /> :
             mainTab === 'events' ? <AdminEvents /> : (
-            <div className="admin-body">
+            <div className={`admin-body admin-view-${view}`}>
+                {/* On a phone the player list and a player's page take turns (MobileShell.css). */}
                 {/* Sidebar */}
                 <div className="admin-sidebar">
 

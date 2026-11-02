@@ -28,6 +28,9 @@ interface NewsPanelProps {
 }
 
 export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: NewsPanelProps) {
+    // On a phone the list and the post take turns: the latest post first,
+    // "All updates" for the list (MobileShell.css). Desktop shows both.
+    const [showList, setShowList] = useState(false)
     const [posts, setPosts] = useState<NewsPost[]>([])
     const [selected, setSelected] = useState<NewsPost | null>(null)
     const [view, setView] = useState<'list' | 'create'>('list')
@@ -119,7 +122,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             {view === 'list' && (
-                <div className="news-body">
+                <div className={`news-body ${showList ? 'listing' : 'reading'}`}>
                     {/* Sidebar - post list */}
                     <div className="news-sidebar">
                         <p className="muted-text" style={{ fontSize: '12px', padding: '4px var(--space-sm)' }}>All Updates</p>
@@ -127,7 +130,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                             <div
                                 key={post.id}
                                 className={`news-sidebar-item ${selected?.id === post.id ? 'active' : ''}`}
-                                onClick={() => setSelected(post)}
+                                onClick={() => { setSelected(post); setShowList(false) }}
                             >
                                 <span className="news-sidebar-title">{post.title}</span>
                                 <span className="news-sidebar-date muted-text">{formatDate(post.published_at)}</span>
@@ -137,6 +140,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
 
                     {/* Main content */}
                     <div className="news-content">
+                        <button className="btn mobile-back-btn" onClick={() => setShowList(true)}>← All updates</button>
                         {selected ? (
                             <>
                                 <div className="news-post-header">

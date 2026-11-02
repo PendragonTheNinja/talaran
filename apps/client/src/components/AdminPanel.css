@@ -636,3 +636,5 @@
     min-height: 0;
     overflow-y: auto;
 }
+
+.admin-header-main { display: flex; align-items: center; gap: 20px; min-width: 0; }
