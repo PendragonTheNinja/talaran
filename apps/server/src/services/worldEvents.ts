@@ -154,6 +154,18 @@ export async function applyEventBonus(
         changedAfterCommit(x);
         return xp;
     }
+    // Who did the work, for the place's standings (eventStandingsAt). In the
+    // award's own transaction, so an action that rolls back counts nothing.
+    if (Number(taken.taken) > 0) {
+        const guild = await x('players').where({ id: playerId }).first('guild_id');
+        await x('world_event_participation')
+            .insert({ event_id: event.id, player_id: playerId, guild_id: guild?.guild_id ?? null, actions: Number(taken.taken) })
+            .onConflict(['event_id', 'player_id'])
+            .merge({
+                actions: x.raw('world_event_participation.actions + EXCLUDED.actions'),
+                guild_id: x.raw('EXCLUDED.guild_id'),
+            });
+    }
     // Kindle pays whoever lit it for every boosted action by someone else.
     // After the commit and through its own award: the caster's rows are not
     // the gatherer's to lock (two kindlers working each other's light would
@@ -391,6 +403,57 @@ export function startWorldEventScheduler(): void {
  * What the Events panel shows: live events, those that ended in the last day,
  * and when the travelling merchant is next due (null while he is out, or off).
  */
+/**
+ * The standings a place shows: its most recent skill event, live or ended,
+ * with the ten players who did the most and the ten guilds whose members did.
+ * It stays until the next event there takes its place. Null when the place
+ * has had no event with anyone in it.
+ */
+export async function eventStandingsAt(locationId: number): Promise<{
+    name: string
+    skill: string | null
+    live: boolean
+    endedAt: string | null
+    players: { name: string; guildTag: string | null; actions: number }[]
+    guilds: { name: string; tag: string; actions: number; members: number }[]
+} | null> {
+    const event = await db('world_events')
+        .where({ location_id: locationId, kind: 'skill' })
+        .whereExists(function () {
+            this.select(db.raw('1')).from('world_event_participation as p').whereRaw('p.event_id = world_events.id');
+        })
+        .orderBy('starts_at', 'desc')
+        .first('id', 'name', 'skill', 'ends_at', 'ended_at');
+    if (!event) return null;
+
+    const players = await db('world_event_participation as p')
+        .join('players as pl', 'pl.id', 'p.player_id')
+        .leftJoin('guilds as g', 'g.id', 'p.guild_id')
+        .where('p.event_id', event.id)
+        .orderBy([{ column: 'p.actions', order: 'desc' }, { column: 'pl.username', order: 'asc' }])
+        .limit(10)
+        .select('pl.username as name', 'g.tag as guild_tag', 'p.actions');
+    const guilds = await db('world_event_participation as p')
+        .join('guilds as g', 'g.id', 'p.guild_id')
+        .where('p.event_id', event.id)
+        .groupBy('g.id', 'g.name', 'g.tag')
+        .orderBy('actions', 'desc')
+        .limit(10)
+        .select('g.name', 'g.tag')
+        .sum({ actions: 'p.actions' })
+        .count({ members: 'p.player_id' });
+
+    const live = !event.ended_at && new Date(event.ends_at).getTime() > Date.now();
+    return {
+        name: event.name,
+        skill: event.skill,
+        live,
+        endedAt: event.ended_at ? new Date(event.ended_at).toISOString() : (live ? null : new Date(event.ends_at).toISOString()),
+        players: players.map((r: any) => ({ name: r.name, guildTag: r.guild_tag ?? null, actions: Number(r.actions) })),
+        guilds: guilds.map((r: any) => ({ name: r.name, tag: r.tag, actions: Number(r.actions), members: Number(r.members) })),
+    };
+}
+
 export async function listEvents(): Promise<{ live: any[]; recent: any[]; merchantNextAt: string | null }> {
     const columns = [
         'e.id', 'e.name', 'e.kind', 'e.skill', 'e.xp_multiplier', 'e.pool_total', 'e.pool_left',

@@ -1,0 +1,25 @@
+/* A place's event standings, under its description in the idle scene. */
+.event-standings {
+    margin-top: var(--space-md);
+    width: min(560px, 100%);
+    background: rgba(8, 6, 8, 0.55);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+:root[data-theme='scriptorium'] .event-standings,
+:root[data-tone='light'] .event-standings {
+    background: var(--color-bg-raised);
+}
+
+.event-standings-title { margin: 0 0 6px; text-align: center; }
+.event-standings-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 20px; }
+.event-standings-list { margin: 0; padding-left: 22px; }
+.event-standings-list li { display: flex; justify-content: space-between; gap: 8px; color: var(--color-text-base); padding: 1px 0; }
+.event-standings-list li::marker { color: var(--color-gold-dim); }
+.event-standings-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-standings-num { font-variant-numeric: tabular-nums; color: var(--color-gold); }
+.event-standings .muted-text { font-size: inherit; }
+.event-standings-list:nth-child(2) .event-standings-name { white-space: normal; }

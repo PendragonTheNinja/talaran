@@ -10,6 +10,7 @@ import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import BellButton from './BellButton'
 import FillingGem from './FillingGem'
+import EventStandings, { type Standings } from './EventStandings'
 import { ringForCountdown } from '../lib/bell'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
@@ -2194,6 +2195,7 @@ export default function GameView({
           {!currentAction && (
             <div className="scene-idle">
               <p className="scene-description">{locationDesc || 'You stand ready.'}</p>
+              <EventStandings standings={(locationData as { eventStandings?: Standings | null } | null)?.eventStandings} />
               {lastResult?.ended && (
                 <div className="scene-last-result action-ended-summary">
                   <p className="last-result-ended-title gold-text">

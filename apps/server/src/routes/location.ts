@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { onlinePlayers } from '../lib/realtime';
+import { eventStandingsAt } from '../services/worldEvents';
 
 const router = Router();
 
@@ -125,9 +126,14 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .where({ 'gm.player_id': playerId, 'h.location_id': player.current_location_id })
       .first('h.id'));
 
+    // This place's last world event: its ten busiest players and guilds,
+    // shown under the description until the next event here.
+    const eventStandings = await eventStandingsAt(player.current_location_id);
+
     res.json({
       location: currentLocation,
       guildHallHere,
+      eventStandings,
       nodes,
       connections,
       allLocations,
