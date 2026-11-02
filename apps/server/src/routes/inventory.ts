@@ -65,16 +65,18 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // The gem being filled at a rift has left the pack the same way
-    // (services/talar.ts), so it rides along as a pinned tile too.
-    const openGem = await db('player_talar_open_gem as o')
+    // Gems part-filled at a rift have left the pack the same way
+    // (services/talar.ts), so each rides along as a pinned tile too: one per
+    // kind, since a player may set one stone down and take up another.
+    const openGems = await db('player_talar_open_gem as o')
       .join('items as i', 'i.id', 'o.item_id')
       .where('o.player_id', playerId)
-      .first('i.name', 'i.subtype', 'i.quality', 'i.tier', 'i.talar', 'o.filled_hundredths');
-    if (openGem) {
+      .orderBy([{ column: 'i.tier' }, { column: 'i.talar' }])
+      .select('i.id as item_id', 'i.name', 'i.subtype', 'i.quality', 'i.tier', 'i.talar', 'o.filled_hundredths');
+    for (const openGem of openGems) {
       const filled = Math.floor(Number(openGem.filled_hundredths) / 100);
       openContainers.push({
-        id: 'open-gem',
+        id: `open-gem-${openGem.item_id}`,
         synthetic: true,
         quantity: filled,
         capacity: Number(openGem.talar),

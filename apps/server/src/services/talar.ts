@@ -165,10 +165,12 @@ export async function absorbGem(
 // gem becomes its charged form in the pack and the next of the same kind is
 // opened, until none are left.
 //
-// The open gem has LEFT the pack (player_talar_open_gem), as an open bucket has
+// An open gem has LEFT the pack (player_talar_open_gem), as an open bucket has
 // (services/liquids.ts): never held twice, never traded or dropped, and kept on
-// death because it has no pack row to drop. Stopping keeps it; the next start
-// resumes it.
+// death because it has no pack row to drop. Stopping keeps it. A player may
+// hold one open stone of each kind (migration 20261102120000): starting a kind
+// that is already open resumes it, starting another opens a fresh one beside
+// it, and is_filling marks the one the running action pours into.
 
 export const FILL_CYCLE_SECONDS = 60
 
@@ -238,31 +240,51 @@ export interface FillOption {
     canFill: boolean
 }
 
-/** What the fill menu shows: the gem already open, and every cut gem in the pack. */
+export interface OpenStone {
+    itemId: number
+    name: string
+    filled: number
+    talar: number
+    /** Whole minutes still to pour before it is full. */
+    minutesLeft: number
+    /** The stone the running fill is pouring into. */
+    filling: boolean
+}
+
+/** What the fill menu shows: every part-filled stone, and every cut gem in the pack. */
 export async function fillOptions(playerId: number): Promise<{
     atRift: boolean
-    open: { itemId: number; name: string; filled: number; talar: number } | null
+    open: OpenStone[]
+    /** The stone being filled, as the scene draws it; null when none is. */
     stone: FillStone | null
     gems: FillOption[]
 }> {
-    const [rift, level, openRow, packRows] = await Promise.all([
+    const [rift, level, openRows, packRows] = await Promise.all([
         atRift(playerId),
         playerSkillLevel(playerId, 'Talar'),
         db('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
-            .where('o.player_id', playerId).first('i.id', 'i.name', 'i.talar', 'i.talar_per_hour', 'i.quality', 'o.filled_hundredths'),
+            .where('o.player_id', playerId)
+            .orderBy([{ column: 'i.tier' }, { column: 'i.talar' }])
+            .select('i.id', 'i.name', 'i.talar', 'i.talar_per_hour', 'i.quality', 'o.filled_hundredths', 'o.is_filling'),
         db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
             .where('pi.player_id', playerId).where('pi.quantity', '>', 0)
             .where('i.type', 'gem').whereNotNull('i.talar_per_hour')
             .orderBy([{ column: 'i.tier' }, { column: 'i.talar' }])
             .select(...CUT_GEM_COLUMNS, 'pi.quantity'),
     ])
+    const filling = openRows.find((r: any) => r.is_filling)
     return {
         atRift: rift,
-        open: openRow ? {
-            itemId: openRow.id, name: openRow.name, talar: Number(openRow.talar),
-            filled: Math.floor(Number(openRow.filled_hundredths) / HUNDREDTHS),
-        } : null,
-        stone: openRow ? fillStone(openRow, Number(openRow.filled_hundredths)) : null,
+        open: openRows.map((r: any) => {
+            const stone = fillStone(r, Number(r.filled_hundredths))
+            return {
+                itemId: r.id, name: r.name, talar: Number(r.talar),
+                filled: stone.filled,
+                minutesLeft: Math.ceil(stone.secondsToFull / 60),
+                filling: !!r.is_filling,
+            }
+        }),
+        stone: filling ? fillStone(filling, Number(filling.filled_hundredths)) : null,
         gems: packRows.map((g: any) => ({
             itemId: g.id, name: g.name, quantity: Number(g.quantity), talar: Number(g.talar),
             minutes: minutesToFill(Number(g.talar), Number(g.talar_per_hour), Math.max(0, cutGradeOf(g.quality))),
@@ -273,9 +295,11 @@ export async function fillOptions(playerId: number): Promise<{
 }
 
 /**
- * Start filling: resume the open gem, or open `itemId` from the pack. The gem
- * moves and the action is inserted in one transaction, so a refused start
- * (another action already running) leaves the pack as it was.
+ * Start filling `itemId`: resume the open stone of that kind if there is one,
+ * otherwise open one from the pack beside any others already open. With no
+ * itemId (an older client), resume the stone last filled. The gem moves and
+ * the action is inserted in one transaction, so a refused start (another
+ * action already running) leaves the pack as it was.
  */
 export async function startFill(
     playerId: number,
@@ -286,22 +310,34 @@ export async function startFill(
         const level = await playerSkillLevel(playerId, 'Talar')
 
         const stone = await db.transaction(async trx => {
+            // The player row first: it serialises this player's starts, so two
+            // at once cannot both find a kind unopened and both open one.
             const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id')
-            const open = await trx('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
-                .where('o.player_id', playerId).forUpdate('o').first('o.filled_hundredths', ...CUT_GEM_COLUMNS)
+            const id = Math.floor(Number(itemId))
+            const chosen = Number.isFinite(id) && id > 0 ? id : null
+            const openQuery = trx('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
+                .where('o.player_id', playerId)
+            const open = await (chosen
+                ? openQuery.where('o.item_id', chosen)
+                : openQuery.orderBy('o.is_filling', 'desc').orderBy('o.updated_at', 'desc')
+            ).forUpdate('o').first('o.filled_hundredths', ...CUT_GEM_COLUMNS)
+
+            // Whatever was being filled before is set down, open, where it was.
+            await trx('player_talar_open_gem').where({ player_id: playerId, is_filling: true })
+                .update({ is_filling: false })
+
             let stone: FillStone
             if (open) {
+                await trx('player_talar_open_gem').where({ player_id: playerId, item_id: open.id })
+                    .update({ is_filling: true, updated_at: trx.fn.now() })
                 stone = fillStone(open, Number(open.filled_hundredths))
             } else {
-                const id = Math.floor(Number(itemId))
-                const gem = Number.isFinite(id) && id > 0
-                    ? await trx('items as i').where('i.id', id).first(...CUT_GEM_COLUMNS)
-                    : null
+                const gem = chosen ? await trx('items as i').where('i.id', chosen).first(...CUT_GEM_COLUMNS) : null
                 if (!gem || !gem.talar_per_hour || cutGradeOf(gem.quality) < 0) throw new TalarAbort('That stone will not take any light.')
                 if (level < fillLevel(gem.tier)) throw new TalarAbort(`You need Talar level ${fillLevel(gem.tier)} to fill that.`)
                 const taken = await takeItemsWithin(trx, playerId, [{ name: gem.name, quantity: 1 }])
                 if (!taken.ok) throw new TalarAbort(`You have no ${gem.name}.`)
-                await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: gem.id, filled_hundredths: 0 })
+                await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: gem.id, filled_hundredths: 0, is_filling: true })
                 stone = fillStone(gem, 0)
             }
 
@@ -361,7 +397,7 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
 
         const outcome = await db.transaction(async trx => {
             const open = await trx('player_talar_open_gem as o').join('items as i', 'i.id', 'o.item_id')
-                .where('o.player_id', playerId).forUpdate('o')
+                .where({ 'o.player_id': playerId, 'o.is_filling': true }).forUpdate('o')
                 .first('o.filled_hundredths', ...CUT_GEM_COLUMNS)
             if (!open) throw new TalarAbort('There is no stone in your hand to fill.')
 
@@ -375,7 +411,7 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
 
             const gemWord = String(open.name).split(' ').slice(1).join(' ').toLowerCase()
             if (filled < capacity) {
-                await trx('player_talar_open_gem').where({ player_id: playerId })
+                await trx('player_talar_open_gem').where({ player_id: playerId, item_id: open.id })
                     .update({ filled_hundredths: filled, updated_at: trx.fn.now() })
                 return {
                     xp, carryOn: true, itemName: undefined as string | undefined,
@@ -389,12 +425,14 @@ export async function resolveFillCycle(playerId: number): Promise<FillCycleResul
             const chargedName = chargedNameFor(open.name, grade)
             const charged = await trx('items').where({ name: chargedName }).first('id')
             if (!charged) throw new Error(`no charged item ${chargedName}`)
-            await trx('player_talar_open_gem').where({ player_id: playerId }).delete()
+            await trx('player_talar_open_gem').where({ player_id: playerId, item_id: open.id }).delete()
             await addItemToInventoryWithin(trx, playerId, charged.id, 1)
 
+            // The next of the same kind. Its row was just deleted, so the key
+            // (player, kind) is free; other kinds left open stay as they are.
             const next = await takeItemsWithin(trx, playerId, [{ name: open.name, quantity: 1 }])
             if (next.ok) {
-                await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: open.id, filled_hundredths: 0 })
+                await trx('player_talar_open_gem').insert({ player_id: playerId, item_id: open.id, filled_hundredths: 0, is_filling: true })
             }
             return {
                 xp, carryOn: next.ok, itemName: chargedName,

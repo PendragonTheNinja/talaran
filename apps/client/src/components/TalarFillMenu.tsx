@@ -18,15 +18,25 @@ interface FillOption {
     canFill: boolean
 }
 
+/** A part-filled stone set down at the Rift (one per kind may wait). */
+interface OpenStone {
+    itemId: number
+    name: string
+    filled: number
+    talar: number
+    minutesLeft: number
+    filling: boolean
+}
+
 interface FillOptions {
     atRift: boolean
-    open: { itemId: number; name: string; filled: number; talar: number } | null
+    open: OpenStone[]
     gems: FillOption[]
 }
 
 interface TalarFillMenuProps {
     onClose: () => void
-    /** Start (or resume) filling: the gem's item id, or null to resume the open one. */
+    /** Start filling this kind: resumes its open stone if there is one, else opens one from the pack. */
     onStartFill: (itemId: number | null) => void
 }
 
@@ -61,47 +71,61 @@ export default function TalarFillMenu({ onClose, onStartFill }: TalarFillMenuPro
                 {error && <p className="muted-text" style={{ textAlign: 'center', padding: '12px' }}>{error}</p>}
                 {!data && !error && <p className="muted-text" style={{ textAlign: 'center', padding: '12px' }}>Looking into the light…</p>}
 
-                {data?.open && (
-                    <div className="smithing-recipe-grid">
-                        <div className="smithing-recipe-card" onClick={() => start(null)}>
-                            <div className="smithing-recipe-image" {...hoverProps({ name: data.open.name })}>
-                                <img src={getItemIcon(data.open.name)} alt={data.open.name} onError={e => { e.currentTarget.style.display = 'none' }} />
-                            </div>
-                            <span className="smithing-recipe-name">{data.open.name}</span>
-                            <div className="smithing-recipe-ingredients">
-                                <span className="smithing-ingredient">{data.open.filled} of {data.open.talar} Talar</span>
-                            </div>
-                            <span className="station-tag warn">Carry on filling</span>
+                {data && data.open.length > 0 && (
+                    <>
+                        <h4 className="recipe-section-title">Part-filled</h4>
+                        <div className="smithing-recipe-grid">
+                            {data.open.map(o => (
+                                <div key={o.itemId} className="smithing-recipe-card" onClick={() => start(o.itemId)}>
+                                    <div className="smithing-recipe-image" {...hoverProps({ name: o.name })}>
+                                        <img src={getItemIcon(o.name)} alt={o.name} onError={e => { e.currentTarget.style.display = 'none' }} />
+                                    </div>
+                                    <span className="smithing-recipe-name">{o.name}</span>
+                                    <div className="smithing-recipe-ingredients">
+                                        <span className="smithing-ingredient">{o.filled} of {o.talar} Talar</span>
+                                        <span className="smithing-ingredient">{duration(o.minutesLeft)} to go</span>
+                                    </div>
+                                    <span className="station-tag warn">{o.filling ? 'Carry on filling' : 'Take it up again'}</span>
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    </>
                 )}
 
-                {data && !data.open && data.gems.length === 0 && (
+                {data && data.gems.length === 0 && data.open.length === 0 && (
                     <p className="muted-text" style={{ textAlign: 'center', padding: '12px' }}>
                         You have no cut stones to fill. Rough ones must go to a lapidary first.
                     </p>
                 )}
 
-                {data && !data.open && data.gems.length > 0 && (
-                    <div className="smithing-recipe-grid">
-                        {data.gems.map(g => (
-                            <div
-                                key={g.itemId}
-                                className={`smithing-recipe-card ${g.canFill ? '' : 'locked'}`}
-                                onClick={() => { if (g.canFill) start(g.itemId) }}
-                            >
-                                <div className="smithing-recipe-image" {...hoverProps({ name: g.name })}>
-                                    <img src={getItemIcon(g.name)} alt={g.name} onError={e => { e.currentTarget.style.display = 'none' }} />
-                                </div>
-                                <span className="smithing-recipe-name">{g.name} ×{g.quantity}</span>
-                                <div className="smithing-recipe-ingredients">
-                                    <span className="smithing-ingredient">Holds {g.talar} Talar</span>
-                                    <span className="smithing-ingredient">{duration(g.minutes)} each</span>
-                                </div>
-                                {!g.canFill && <div className="smithing-locked-label">Level {g.level}</div>}
-                            </div>
-                        ))}
-                    </div>
+                {data && data.gems.length > 0 && (
+                    <>
+                        {data.open.length > 0 && <h4 className="recipe-section-title">In your pack</h4>}
+                        <div className="smithing-recipe-grid">
+                            {data.gems.map(g => {
+                                // A kind already part-filled is carried on, not opened twice.
+                                const openOne = data.open.find(o => o.itemId === g.itemId)
+                                return (
+                                    <div
+                                        key={g.itemId}
+                                        className={`smithing-recipe-card ${g.canFill ? '' : 'locked'}`}
+                                        onClick={() => { if (g.canFill) start(g.itemId) }}
+                                    >
+                                        <div className="smithing-recipe-image" {...hoverProps({ name: g.name })}>
+                                            <img src={getItemIcon(g.name)} alt={g.name} onError={e => { e.currentTarget.style.display = 'none' }} />
+                                        </div>
+                                        <span className="smithing-recipe-name">{g.name} ×{g.quantity}</span>
+                                        <div className="smithing-recipe-ingredients">
+                                            <span className="smithing-ingredient">Holds {g.talar} Talar</span>
+                                            <span className="smithing-ingredient">{duration(g.minutes)} each</span>
+                                        </div>
+                                        {!g.canFill && <div className="smithing-locked-label">Level {g.level}</div>}
+                                        {g.canFill && openOne && <span className="station-tag warn">Finishes the open one first</span>}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </>
                 )}
                 {tooltipEl}
             </div>

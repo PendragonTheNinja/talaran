@@ -1434,6 +1434,34 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'talar', name: 'set a half-full stone down and start another kind, five times at once', rounds: 10,
+        run: async (ctx) => {
+            // A Cut Quartz is open at 40 Talar and being filled; two Flawless
+            // wait in the pack. Five starts of Flawless at the rift: one may
+            // start, it must open exactly one Flawless beside the Cut stone,
+            // and the Cut stone must be left exactly as it was, set down. One
+            // stone per player was the rule until 20261102120000, so the old
+            // code resumed the Cut stone and opened nothing.
+            const w = await world(ctx);
+            const rift = await ctx.seed.row('locations', { name: 'Racecheck Rift', is_rift: true });
+            await ctx.db('players').where({ id: w.player.id }).update({ current_location_id: rift.id });
+            const cut = await ctx.seed.row('items', { name: 'Cut Quartz', type: 'gem', subtype: 'quartz', quality: 'cut', tier: 1, talar: 100, talar_per_hour: 100 });
+            const flawless = await ctx.seed.row('items', { name: 'Flawless Quartz', type: 'gem', subtype: 'quartz', quality: 'flawless', tier: 1, talar: 100, talar_per_hour: 100 });
+            await inPack(ctx, w.player.id, flawless.id, 2);
+            await ctx.seed.row('player_talar_open_gem', { player_id: w.player.id, item_id: cut.id, filled_hundredths: 4000, is_filling: true });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/talar/fill/start', { itemId: flawless.id }));
+            const open = await ctx.db('player_talar_open_gem').where({ player_id: w.player.id });
+            const cutRow = open.find((r: any) => r.item_id === cut.id);
+            const flawlessRows = open.filter((r: any) => r.item_id === flawless.id);
+            return changed('Flawless Quartz in the pack', 1, await ctx.itemTotal(flawless.id))
+                ?? changed('open Flawless stones', 1, flawlessRows.length)
+                ?? changed('the Cut stone\'s Talar (hundredths)', 4000, Number(cutRow?.filled_hundredths ?? -1))
+                ?? changed('stones marked filling', 1, open.filter((r: any) => r.is_filling).length)
+                ?? changed('the filling stone is the Flawless', 1, flawlessRows.filter((r: any) => r.is_filling).length)
+                ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'talar', name: 'cast one spell five times at once', rounds: 10,
         run: async (ctx) => {
             // Wearsight has an hour's cooldown and costs 5: one cast may land,
