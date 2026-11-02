@@ -9,6 +9,7 @@ import LogPanel from './LogPanel'
 import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import BellButton from './BellButton'
+import FillingGem from './FillingGem'
 import { ringForCountdown } from '../lib/bell'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
@@ -118,6 +119,8 @@ const PROCESSING_LOCATIONS = ['Emberra', 'Verdale', 'Caliwen', 'Novita', 'Phoenw
 /** The stone being filled at a rift, as the server describes it. */
 interface FillStone {
   name: string
+  /** What it becomes when full, so the picture fills toward it (FillingGem). */
+  chargedName?: string
   filled: number
   capacity: number
   secondsToFull: number
@@ -2190,11 +2193,11 @@ export default function GameView({
                   is shown here, where the work is (Nathan, 2026-10-27). */}
               {currentAction === 'talar_fill' && fillStone && (
                 <div className="scene-fill-stone">
-                  <img
-                    src={getItemIcon(fillStone.name)}
-                    alt={fillStone.name}
+                  <FillingGem
+                    cutName={fillStone.name}
+                    chargedName={fillStone.chargedName}
+                    fraction={fillStone.filled / Math.max(1, fillStone.capacity)}
                     className="scene-fill-stone-icon"
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
                   <div className="scene-fill-stone-body">
                     <span className="scene-fill-stone-name">{fillStone.name}</span>

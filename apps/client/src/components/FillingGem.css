@@ -1,0 +1,15 @@
+/* The cut stone and, over it, the charged stone uncovered from the bottom up
+   (FillingGem.tsx). Both pictures fill the same box, so they line up exactly. */
+.filling-gem {
+    position: relative;
+    display: inline-block;
+}
+
+.filling-gem-base,
+.filling-gem-light {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}

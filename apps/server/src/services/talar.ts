@@ -196,6 +196,8 @@ export function minutesToFill(talar: number, talarPerHour: number, grade: number
  */
 export interface FillStone {
     name: string
+    /** What it becomes when full ('Lit Quartz'), so the picture can fill toward it. */
+    chargedName: string
     filled: number
     capacity: number
     /** Seconds until this stone is full, at whole cycles. */
@@ -210,6 +212,7 @@ function fillStone(gem: { name: string; talar: unknown; talar_per_hour: unknown;
     const pour = pourPerCycle(Number(gem.talar_per_hour), grade)
     return {
         name: gem.name,
+        chargedName: chargedNameFor(gem.name, grade),
         filled: Math.floor(filledHundredths / HUNDREDTHS),
         capacity: Number(gem.talar),
         secondsToFull: Math.ceil(Math.max(0, capacity - filledHundredths) / pour) * FILL_CYCLE_SECONDS,

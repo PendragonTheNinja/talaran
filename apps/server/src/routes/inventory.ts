@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { LIQUIDS, openUnits } from '../services/liquids';
+import { chargedNameFor, cutGradeOf } from '../lib/gemGrades';
 
 const router = Router();
 
@@ -83,6 +84,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         item_id: null,
         name: `${openGem.name} (filling)`,
         iconName: openGem.name,
+        // What it becomes when full, so the tile can fill toward it (FillingGem.tsx).
+        fillIconName: chargedNameFor(openGem.name, Math.max(0, cutGradeOf(openGem.quality))),
         type: 'gem',
         subtype: openGem.subtype,
         quality: openGem.quality,

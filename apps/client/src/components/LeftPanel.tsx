@@ -9,6 +9,7 @@ import { sortItems } from '../lib/itemSort'
 import BuffPanel from './BuffPanel'
 import { useItemTooltip } from './ItemTooltip'
 import { announceHp, type Hp } from '../lib/combat'
+import FillingGem from './FillingGem'
 import { announceTalar, CHARGED_QUALITIES, type Talar } from '../lib/talar'
 
 interface InventoryItem {
@@ -34,6 +35,8 @@ interface InventoryItem {
   synthetic?: boolean
   capacity?: number
   iconName?: string
+  /** A gem filling at the Rift: the charged stone it is becoming (FillingGem). */
+  fillIconName?: string
 }
 
 interface EquipmentData {
@@ -500,20 +503,31 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
           className="inventory-slot occupied open-container"
           {...hoverProps(item)}
         >
-          <img
-            src={getItemIcon(item.iconName || item.name)}
-            alt={item.name}
-            className="inventory-item-icon"
-            onLoad={e => {
-              e.currentTarget.style.display = ''
-              e.currentTarget.nextElementSibling?.setAttribute('style', 'display: none')
-            }}
-            onError={e => {
-              e.currentTarget.style.display = 'none'
-              e.currentTarget.nextElementSibling?.removeAttribute('style')
-            }}
-          />
-          <span className="inventory-item-text" style={{ display: 'none' }}>{item.name.split(' ')[0]}</span>
+          {item.fillIconName ? (
+            <FillingGem
+              cutName={item.iconName || item.name}
+              chargedName={item.fillIconName}
+              fraction={item.quantity / Math.max(1, item.capacity ?? 1)}
+              className="inventory-item-icon"
+            />
+          ) : (
+            <>
+              <img
+                src={getItemIcon(item.iconName || item.name)}
+                alt={item.name}
+                className="inventory-item-icon"
+                onLoad={e => {
+                  e.currentTarget.style.display = ''
+                  e.currentTarget.nextElementSibling?.setAttribute('style', 'display: none')
+                }}
+                onError={e => {
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.nextElementSibling?.removeAttribute('style')
+                }}
+              />
+              <span className="inventory-item-text" style={{ display: 'none' }}>{item.name.split(' ')[0]}</span>
+            </>
+          )}
           <span className="inventory-item-qty open-container-qty">{item.quantity}/{item.capacity}</span>
         </div>
       ))}
