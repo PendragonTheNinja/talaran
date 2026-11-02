@@ -9,6 +9,7 @@ import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
 import { startPlaytimeTracking } from './services/playtime';
 import { startGroundItemSweep } from './services/groundItems';
+import { startInventoryNotices } from './lib/inventoryNotify';
 import { startWorldEventScheduler } from './services/worldEvents';
 import eventRoutes from './routes/events';
 import travelRoutes from './routes/travel';
@@ -460,6 +461,8 @@ if (require.main === module) {
   startPlaytimeTracking();
   startGroundItemSweep();
   startWorldEventScheduler();
+  // Every committed pack change refreshes that player's pack (migration 20261102130000).
+  startInventoryNotices();
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
