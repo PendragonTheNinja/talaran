@@ -13,7 +13,6 @@ import FillingGem from './FillingGem'
 import { ringForCountdown } from '../lib/bell'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
-import { getItemIcon } from '../lib/items'
 import LevelUpUnlocks from './LevelUpUnlocks'
 import { announceHp, describeSwing, fetchFightState, localizeFight, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
 
