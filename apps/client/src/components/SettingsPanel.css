@@ -287,6 +287,14 @@
     padding: 3px 10px;
 }
 
+.settings-more-themes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+}
+
 .settings-theme-bundle {
     display: flex;
     justify-content: space-between;

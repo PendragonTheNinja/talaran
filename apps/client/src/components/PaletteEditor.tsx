@@ -147,7 +147,7 @@ export default function PaletteEditor({ hasPerk, perkPrice, onPurchasePerk, acti
                     all three premium themes.
                 </p>
                 <button className="btn btn-gold" style={{ marginTop: '8px' }} onClick={onPurchasePerk}>
-                    Unlock for {perkPrice.toLocaleString()} Talers
+                    {perkPrice.toLocaleString()} Talers, in Support
                 </button>
             </div>
         )

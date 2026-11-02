@@ -42,6 +42,7 @@ import FishingMenu from './FishingMenu'
 import FarmPanel from './FarmPanel'
 import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
+import type { SupportTab } from '../lib/talerStore'
 
 interface Skill {
   id: number
@@ -293,8 +294,11 @@ export default function GameLayout({
   const [showSettings, setShowSettings] = useState(false)
   // Settings opened at a tab from elsewhere (lib/avatar.ts openSettings), e.g.
   // the Change link under your picture on the Stats screen.
-  const [settingsTab, setSettingsTab] = useState<'profile' | undefined>(undefined)
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'themes' | 'chat' | undefined>(undefined)
   const [showSupport, setShowSupport] = useState(false)
+  // Support opened at a tab from elsewhere (lib/talerStore.ts openSupport),
+  // e.g. "More themes" in Settings. Bumped so asking again remounts at the tab.
+  const [supportTab, setSupportTab] = useState<{ tab?: SupportTab; n: number }>({ n: 0 })
   const [settingsClosing, setSettingsClosing] = useState(false)
 
   const skillsPanelEl = (
@@ -610,12 +614,23 @@ export default function GameLayout({
   useEffect(() => {
     const onOpen = (e: Event) => {
       const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab
-      setSettingsTab(tab === 'profile' ? 'profile' : undefined)
+      setSettingsTab(tab === 'profile' || tab === 'themes' || tab === 'chat' ? tab : undefined)
       setShowStatsModal(false)
+      setShowSupport(false)
       setShowSettings(true)
     }
     window.addEventListener('talaran:open-settings', onOpen)
     return () => window.removeEventListener('talaran:open-settings', onOpen)
+  }, [])
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const tab = (e as CustomEvent<{ tab?: SupportTab }>).detail?.tab
+      setSupportTab(prev => ({ tab, n: prev.n + 1 }))
+      setShowSettings(false)
+      setShowSupport(true)
+    }
+    window.addEventListener('talaran:open-support', onOpen)
+    return () => window.removeEventListener('talaran:open-support', onOpen)
   }, [])
 
   useEffect(() => {
@@ -825,7 +840,7 @@ export default function GameLayout({
     // simply never got one, so the manual was unreachable on a phone.
     { label: 'Manual', onClick: () => { closeAllPanels(); setManualTarget(null); setShowManual(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
-    { label: 'Support', onClick: () => { closeAllPanels(); setShowSupport(true) } },
+    { label: 'Support', onClick: () => { closeAllPanels(); setSupportTab(p => ({ n: p.n + 1 })); setShowSupport(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
     { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
     // Feats shipped as a fourth tab on the desktop panel, and the mobile drawer
@@ -1299,6 +1314,8 @@ export default function GameLayout({
 
       {showSupport && (
         <SupportPanel
+          key={supportTab.n}
+          initialTab={supportTab.tab}
           playerId={player.id}
           isGuest={player.is_guest ?? playerData?.player?.is_guest}
           onClose={() => setShowSupport(false)}
@@ -1413,7 +1430,7 @@ export default function GameLayout({
         }}
         onSupportClick={() => {
           if (showSupport) setShowSupport(false)
-          else { closeAllPanels(); setShowSupport(true) }
+          else { closeAllPanels(); setSupportTab(p => ({ n: p.n + 1 })); setShowSupport(true) }
         }}
       />
       <div className="game-body">

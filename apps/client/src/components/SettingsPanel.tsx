@@ -6,7 +6,8 @@ import './ChatPanel.css'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
-import { THEMES, applyTheme, previewTheme, currentTheme, initTheme, saveTheme, type ThemeId } from '../lib/theme'
+import { THEMES, applyTheme, currentTheme, saveTheme, type ThemeId } from '../lib/theme'
+import { useTalerStore, openSupport } from '../lib/talerStore'
 import PaletteEditor from './PaletteEditor'
 import PaletteGallery from './PaletteGallery'
 import CombatAwaySetting from './CombatAwaySetting'
@@ -43,71 +44,23 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
     const [activeTheme, setActiveTheme] = useState<string>(() => {
         try { return localStorage.getItem('talaran-theme') ?? currentTheme() } catch { return currentTheme() }
     })
-    const [previewing, setPreviewing] = useState<ThemeId | null>(null)
-    const [store, setStore] = useState<{ balance: number; items: { key: string; name: string; price: number; effectivePrice: number; grants: string[]; available: boolean; seasonal: boolean; saleEndsAt: string | null; owned: boolean }[] } | null>(null)
-
-    useEffect(() => {
-        apiFetch<NonNullable<typeof store>>('/api/store')
-            .then(setStore)
-            .catch(() => { /* store optional; picker degrades to free themes */ })
-    }, [])
+    // The store, for what is owned. Buying lives in Support (lib/talerStore.ts).
+    const { store, owns } = useTalerStore()
+    const hasPalettePerk = owns('perk:custom_palette')
 
     const themeOwned = (id: ThemeId): boolean => {
         const meta = THEMES.find(t => t.id === id)
-        if (!meta?.premium) return true
-        return !!store?.items.find(i => i.key === `theme:${id}`)?.owned
-    }
-
-    const themePrice = (id: ThemeId): number | null =>
-        store?.items.find(i => i.key === `theme:${id}`)?.price ?? null
-
-    // A seasonal theme's last day on sale, as '31 October' (UTC, the store's
-    // clock), or null when it is not on sale.
-    const themeSaleLastDay = (id: ThemeId): string | null => {
-        const ends = store?.items.find(i => i.key === `theme:${id}`)?.saleEndsAt
-        if (!ends) return null
-        return new Date(new Date(ends).getTime() - 1)
-            .toLocaleDateString(undefined, { day: 'numeric', month: 'long', timeZone: 'UTC' })
+        return !meta?.premium || owns(`theme:${id}`)
     }
 
     const handleThemeSelect = async (id: ThemeId) => {
         if (!themeOwned(id)) return
         applyTheme(id)            // instant, live
         setActiveTheme(id)
-        setPreviewing(null)
         try {
             await saveTheme(id)   // persists across devices
         } catch {
-            setError('Theme applied but could not be saved — it may reset on another device.')
-        }
-    }
-
-    const handlePreview = (id: ThemeId) => {
-        previewTheme(id)          // visual only — nothing saved
-        setPreviewing(id)
-    }
-
-    const endPreview = () => {
-        initTheme()               // restores the saved theme, palettes included
-        setPreviewing(null)
-    }
-
-    const handleBuy = async (key: string, name: string, price: number) => {
-        if (!window.confirm(`Unlock ${name} for ${price} Talers?`)) return
-        try {
-            const res = await apiFetch<{ balance: number }>('/api/store/purchase', {
-                method: 'POST',
-                body: JSON.stringify({ key }),
-            })
-            const refreshed = await apiFetch<NonNullable<typeof store>>('/api/store')
-            setStore({ ...refreshed, balance: res.balance })
-            setError(null)
-            // Buying a single theme? Wear it immediately.
-            if (key.startsWith('theme:')) handleThemeSelect(key.slice(6) as ThemeId)
-        } catch (err: any) {
-            setError(err.message === 'Not enough Talers.'
-                ? 'Not enough Talers. You can get more in Support, at the top of the screen.'
-                : err.message || 'Purchase failed.')
+            setError('Theme applied but could not be saved. It may reset on another device.')
         }
     }
 
@@ -483,85 +436,42 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                 {/* Game tab */}
                 {tab === 'themes' && (
                     <div className="settings-section">
-                        <h4 className="settings-section-title">
-                            Theme
-                            {store && <span className="muted-text settings-theme-balance">Your Talers: <span className="gold-text">{store.balance.toLocaleString()}</span></span>}
-                        </h4>
-                        {previewing && (
-                            <p className="settings-previewing">
-                                Previewing <span className="gold-text">{THEMES.find(t => t.id === previewing)?.name}</span> — nothing saved yet.
-                                <button className="btn" style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 8px' }} onClick={endPreview}>Revert</button>
+                        <h4 className="settings-section-title">Theme</h4>
+                        <div className="settings-theme-grid">
+                            {THEMES.filter(t => themeOwned(t.id)).map(t => (
+                                <div
+                                    key={t.id}
+                                    className={`settings-theme-card ${activeTheme === t.id ? 'active' : ''}`}
+                                    onClick={() => handleThemeSelect(t.id)}
+                                    role="button"
+                                >
+                                    <span className="settings-theme-swatches">
+                                        {t.swatches.map((c, i) => (
+                                            <span key={i} className="settings-theme-swatch" style={{ background: c }} />
+                                        ))}
+                                    </span>
+                                    <span className="settings-theme-name">{t.name}</span>
+                                    <span className="muted-text" style={{ fontSize: '12px' }}>{t.description}</span>
+                                    {activeTheme === t.id && <span className="settings-theme-active gold-text">✓ Active</span>}
+                                </div>
+                            ))}
+                        </div>
+                        {store && THEMES.some(t => !themeOwned(t.id) && !t.seasonal) && (
+                            <p className="muted-text settings-more-themes">
+                                More themes can be tried on and unlocked in Support.
+                                <button className="btn" onClick={() => openSupport('themes')}>See themes</button>
                             </p>
                         )}
-                        <div className="settings-theme-grid">
-                            {THEMES.map(t => {
-                                const owned = themeOwned(t.id)
-                                const price = t.premium ? themePrice(t.id) : null
-                                const saleLastDay = t.seasonal ? themeSaleLastDay(t.id) : null
-                                // Out of season, a seasonal theme is shown only to those who own it.
-                                if (t.seasonal && !owned && !saleLastDay) return null
-                                return (
-                                    <div
-                                        key={t.id}
-                                        className={`settings-theme-card ${activeTheme === t.id ? 'active' : ''} ${!owned ? 'locked' : ''}`}
-                                        onClick={owned ? () => handleThemeSelect(t.id) : undefined}
-                                        role="button"
-                                    >
-                                        <span className="settings-theme-swatches">
-                                            {t.swatches.map((c, i) => (
-                                                <span key={i} className="settings-theme-swatch" style={{ background: c }} />
-                                            ))}
-                                        </span>
-                                        <span className="settings-theme-name">
-                                            {t.name}
-                                            {t.premium && !owned && <span className="settings-theme-price gold-text"> · {price ?? 300} Talers</span>}
-                                        </span>
-                                        <span className="muted-text" style={{ fontSize: '12px' }}>{t.description}</span>
-                                        {saleLastDay && !owned && <span className="settings-theme-season">On sale until {saleLastDay}</span>}
-                                        {activeTheme === t.id && <span className="settings-theme-active gold-text">✓ Active</span>}
-                                        {!owned && (
-                                            <span className="settings-theme-actions">
-                                                <button className="btn" onClick={(e) => { e.stopPropagation(); handlePreview(t.id) }}>Try it</button>
-                                                <button className="btn btn-gold" onClick={(e) => { e.stopPropagation(); handleBuy(`theme:${t.id}`, t.name, price ?? 300) }}>Unlock</button>
-                                            </span>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                        {store && (() => {
-                            const bundle = store.items.find(i => i.key === 'bundle:themes')
-                            if (!bundle || bundle.owned) return null
-                            const missing = bundle.grants.filter(g => !store.items.find(i => i.key === g)?.owned).length
-                            const individually = missing * 300
-                            const label = missing === bundle.grants.length
-                                ? `All three premium themes — save ${individually - bundle.effectivePrice} Talers`
-                                : `Complete the set (${missing} remaining) — save ${individually - bundle.effectivePrice} Talers`
-                            return (
-                                <div className="settings-theme-bundle">
-                                    <span>
-                                        <span className="settings-theme-name">{bundle.name}</span>
-                                        <span className="muted-text" style={{ fontSize: '12px', marginLeft: '8px' }}>{label}</span>
-                                    </span>
-                                    <button className="btn btn-gold" onClick={() => handleBuy(bundle.key, bundle.name, bundle.effectivePrice)}>
-                                        {bundle.effectivePrice} Talers
-                                    </button>
-                                </div>
-                            )
-                        })()}
                         <PaletteEditor
-                            hasPerk={!!store?.items.find(i => i.key === 'perk:custom_palette')?.owned}
+                            hasPerk={hasPalettePerk}
                             perkPrice={store?.items.find(i => i.key === 'perk:custom_palette')?.effectivePrice ?? 1500}
-                            onPurchasePerk={() => {
-                                const perk = store?.items.find(i => i.key === 'perk:custom_palette')
-                                if (perk) handleBuy(perk.key, perk.name, perk.effectivePrice)
-                            }}
+                            onPurchasePerk={() => openSupport('perks')}
                             activeTheme={activeTheme}
                             onApplied={setActiveTheme}
                             onError={setError}
                         />
                         <PaletteGallery
-                            hasPerk={!!store?.items.find(i => i.key === 'perk:custom_palette')?.owned}
+                            hasPerk={hasPalettePerk}
                             activeTheme={activeTheme}
                             onApplied={setActiveTheme}
                             onError={setError}
