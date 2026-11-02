@@ -229,7 +229,7 @@ A jewelry tier pairs **that tier's metal with that tier's gem**, the way weapons
 |---|---|---|---|---|
 | **Keeper's Band** | ring | each use of a worn weapon or armour piece that would count toward its wear | 3% chance the use does not count | 4.5% |
 | **Prospector's Ring** | ring | each vein the wearer finds | the vein runs 5% larger | 7.5% |
-| **Seedsaver's Ring** | ring | each plot harvested | 3% chance a harvest also returns a seed | 4.5% |
+| **Seedsaver's Ring** | ring | each harvest of a sown plot | +3 points on each sown seed's chance to come back (crops.seed_return_chance; capped at 90%) | +4.5 points |
 | **Hearty Amulet** | amulet | each food eaten in a fight | the food mends 5% more | 7.5% |
 | **Wayfinder's Amulet** | amulet | each road segment walked (a minute of base road, the find roll's unit) | +10% chance of a road find | +15% |
 | **Baitkeeper's Amulet** | amulet | each bait spent, trapping or fishing | 5% chance the bait is not used | 7.5% |

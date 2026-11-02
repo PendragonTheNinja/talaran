@@ -237,6 +237,7 @@ const registry: Record<string, QueryHandler> = {
                 'plant_level',
                 'grow_seconds',
                 'yield_per_seed',
+                'seed_return_chance',
                 'xp_per_seed',
                 'soil_effect',
                 'is_perennial',
@@ -310,6 +311,9 @@ const registry: Record<string, QueryHandler> = {
                         ? `Sow ${c.seed_item_name} · ${fmtSeconds(c.grow_seconds)} to grow`
                         : `Sow · ${fmtSeconds(c.grow_seconds)} to grow`,
                     `${c.yield_per_seed} per seed`,
+                    ...(Number(c.seed_return_chance) > 0
+                        ? [`about ${Math.round(Number(c.seed_return_chance) * 10)} in 10 seeds come back`]
+                        : []),
                     // Per seed, which is how it is paid. A perennial pays that in
                     // full on its first harvest and a fifth of it on every
                     // regrowth, since it only ever used one seed.

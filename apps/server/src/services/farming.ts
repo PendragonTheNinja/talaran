@@ -320,6 +320,8 @@ export async function getFarmState(playerId: number) {
             id: c.id, name: c.name, seedItem: c.seed_item_name, produceItem: c.produce_item_name,
             plantLevel: c.plant_level, growSeconds: c.grow_seconds, yieldPerSeed: c.yield_per_seed,
             cropType: c.crop_type, isPerennial: !!c.is_perennial,
+            // Out of ten seeds sown, about how many come back at harvest.
+            seedReturnTenths: Math.round((Number(c.seed_return_chance) || 0) * 10),
             unlocked,
             seedsHeld: await inventoryQty(playerId, c.seed_item_name),
             // Per seed, on a first harvest (which is every harvest of an annual).
@@ -846,6 +848,22 @@ export async function resolveSow(playerId: number, dataRaw: string | null): Prom
     }
 }
 
+/** No crop gives back every seed, ring or no ring: a field never seeds more fields than it took. */
+export const SEED_RETURN_MAX = 0.9;
+
+/** How many of `n` seeds come back, each on its own `chance`. */
+export function rollSeeds(n: number, chance: number): number {
+    if (n <= 0 || chance <= 0) return 0;
+    let back = 0;
+    for (let i = 0; i < n; i++) if (Math.random() < chance) back++;
+    return back;
+}
+
+/** "6 Wild Grain kept back for sowing." or nothing. */
+function seedsLine(n: number, seedItem: string): string {
+    return n > 0 ? ` ${n} ${seedItem} kept back for sowing.` : '';
+}
+
 /**
  * One plot's harvest: the produce, the plot's next state, and what it paid.
  *
@@ -862,6 +880,8 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
     activeXp: number;
     crop: any;
     yieldQty: number;
+    /** Seed that came back with the crop, crop chance and ring together. */
+    seedsBack: number;
     soilChange: -1 | 0 | 1;
 } | null> {
     if (plot.state !== 'growing' || !plot.crop_id) return null;
@@ -878,11 +898,26 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
 
     await giveItem(playerId, crop.produce_item_name, yieldQty);
 
-    // A Seedsaver's Ring (docs/talar-spec.md §8): now and then a seed comes back.
-    const ring = await jewelryAid(db, playerId, 'harvest');
-    if (ring && crop.seed_item_name && Math.random() < ring.strength) {
-        await giveItem(playerId, crop.seed_item_name, 1);
-        noteJewelry(db, playerId, `Your ${ring.name} kept back one ${crop.seed_item_name} for next year.`);
+    // Seed kept back: each seed sown comes back with the crop's own chance, and
+    // a Seedsaver's Ring (docs/talar-spec.md §8) adds its strength to that.
+    // Only the seeds that took a sowing: a perennial's regrowth sowed nothing.
+    let seedsBack = 0;
+    if (crop.seed_item_name) {
+        const sown = Number(plot.harvests_since_sow) > 0 ? 0 : Number(plot.seed_count) || 0;
+        const base = Math.min(SEED_RETURN_MAX, Math.max(0, Number(crop.seed_return_chance) || 0));
+        seedsBack = rollSeeds(sown, base);
+        const ring = sown > 0 ? await jewelryAid(db, playerId, 'harvest') : null;
+        if (ring) {
+            // The ring's seeds come from those the crop did not give back, at
+            // the chance that makes the total base + strength (capped).
+            const total = Math.min(SEED_RETURN_MAX, base + ring.strength);
+            const extra = rollSeeds(sown - seedsBack, base >= 1 ? 0 : (total - base) / (1 - base));
+            if (extra > 0) {
+                seedsBack += extra;
+                noteJewelry(db, playerId, `Your ${ring.name} kept back ${extra} more ${crop.seed_item_name} for next year.`);
+            }
+        }
+        if (seedsBack > 0) await giveItem(playerId, crop.seed_item_name, seedsBack);
     }
 
     // Hungry crops take from the soil, legumes give back, bushes are neutral.
@@ -906,7 +941,7 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
 
     await updateQuestObjectiveProgress(playerId, 'harvest', crop.produce_item_name, 1);
 
-    return { xp, activeXp, crop, yieldQty, soilChange: soilAfter === soilBefore ? 0 : dir };
+    return { xp, activeXp, crop, yieldQty, seedsBack, soilChange: soilAfter === soilBefore ? 0 : dir };
 }
 
 export async function resolveHarvest(playerId: number, plotIdRaw: string | null): Promise<FarmActionResult> {
@@ -940,7 +975,8 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
                     ? ' The ground is the better for having held it.'
                     : done.soilChange < 0
                         ? ' The soil is poorer for the taking.'
-                        : ''),
+                        : '')
+                + seedsLine(done.seedsBack, crop.seed_item_name),
         };
     } catch (err) {
         logger.error(`resolveHarvest error: ${err}`);
@@ -1010,6 +1046,7 @@ export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | n
         let totalYield = 0;
         const brought = new Map<string, number>();
         const goldBasisXp: number[] = [];
+        const seedsKept = new Map<string, number>();
 
         for (const id of ids) {
             // Re-read each plot: it may have been uprooted, or harvested one by
@@ -1024,6 +1061,10 @@ export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | n
             goldBasisXp.push(done.activeXp);
             const name = done.crop.produce_item_name;
             brought.set(name, (brought.get(name) ?? 0) + done.yieldQty);
+            if (done.seedsBack > 0) {
+                const seed = done.crop.seed_item_name;
+                seedsKept.set(seed, (seedsKept.get(seed) ?? 0) + done.seedsBack);
+            }
         }
 
         if (brought.size === 0) return { success: false, error: 'The fields had nothing left to give.' };
@@ -1043,7 +1084,10 @@ export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | n
             itemName: sorted[0][0], quantity: sorted[0][1],
             goldBasisXp,
             message: `You bring in ${fields} field${fields === 1 ? '' : 's'}: `
-                + sorted.map(([n, q]) => `${q} ${n}`).join(', ') + '.',
+                + sorted.map(([n, q]) => `${q} ${n}`).join(', ') + '.'
+                + (seedsKept.size > 0
+                    ? ` Kept back for sowing: ${[...seedsKept.entries()].map(([n, q]) => `${q} ${n}`).join(', ')}.`
+                    : ''),
         };
     } catch (err) {
         logger.error(`resolveHarvestAll error: ${err}`);

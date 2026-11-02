@@ -9,6 +9,7 @@ import './FarmPanel.css'
 interface CropDef {
     id: number; name: string; seedItem: string; produceItem: string
     plantLevel: number; growSeconds: number; yieldPerSeed: number
+    seedReturnTenths?: number
     cropType: string; isPerennial: boolean; unlocked: boolean; seedsHeld: number
     /** XP per seed at this player's level, from the harvest's own maths. */
     xpPerSeed?: number | null
@@ -380,7 +381,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                     <span>{c.name}{c.isPerennial ? ' 🌳' : ''}</span>
                                     <span className="farm-crop-meta tabular-num">
                                         {c.unlocked
-                                            ? `${c.seedsHeld} seed${c.seedsHeld === 1 ? '' : 's'} · ${fmtDuration(c.growSeconds)} · ${c.yieldPerSeed}×`
+                                            ? `${c.seedsHeld} seed${c.seedsHeld === 1 ? '' : 's'} · ${fmtDuration(c.growSeconds)} · ${c.yieldPerSeed}×${c.seedReturnTenths ? ` · ${c.seedReturnTenths} in 10 back` : ''}`
                                             : `Lv ${c.plantLevel} · ${c.seedsHeld} seed${c.seedsHeld === 1 ? '' : 's'}`}
                                     </span>
                                     {c.unlocked && c.xpPerSeed != null && (

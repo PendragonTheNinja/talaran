@@ -12,7 +12,7 @@ export type JewelryAid = 'wear' | 'vein' | 'harvest' | 'fight_food' | 'road' | '
 export const AID_STRENGTH: Record<JewelryAid, number> = {
     wear: 0.03,         // a use of worn gear does not count toward its wear
     vein: 0.05,         // a vein found runs this much larger
-    harvest: 0.03,      // a harvest also returns a seed
+    harvest: 0.03,      // added to each sown seed's chance of coming back at harvest
     fight_food: 0.05,   // food eaten in a fight mends this much more
     road: 0.10,         // the road-find chance is raised by this much of itself
     bait: 0.05,         // bait is not used
@@ -38,7 +38,7 @@ export function aidWords(aid: JewelryAid, tier: number): string {
     switch (aid) {
         case 'wear': return `${pct} chance a use of your worn gear does not wear it`
         case 'vein': return `veins you find run ${pct} larger`
-        case 'harvest': return `${pct} chance a harvest gives back a seed`
+        case 'harvest': return `each seed you sow is ${pct} likelier to come back at harvest`
         case 'fight_food': return `food eaten in a fight mends ${pct} more`
         case 'road': return `${pct} better chance of a find on the road, on foot`
         case 'bait': return `${pct} chance your bait is not used`
