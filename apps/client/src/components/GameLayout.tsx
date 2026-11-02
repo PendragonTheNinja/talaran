@@ -294,7 +294,7 @@ export default function GameLayout({
   const [showSettings, setShowSettings] = useState(false)
   // Settings opened at a tab from elsewhere (lib/avatar.ts openSettings), e.g.
   // the Change link under your picture on the Stats screen.
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'themes' | 'chat' | undefined>(undefined)
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'themes' | 'chat' | 'game' | undefined>(undefined)
   const [showSupport, setShowSupport] = useState(false)
   // Support opened at a tab from elsewhere (lib/talerStore.ts openSupport),
   // e.g. "More themes" in Settings. Bumped so asking again remounts at the tab.
@@ -614,7 +614,7 @@ export default function GameLayout({
   useEffect(() => {
     const onOpen = (e: Event) => {
       const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab
-      setSettingsTab(tab === 'profile' || tab === 'themes' || tab === 'chat' ? tab : undefined)
+      setSettingsTab(tab === 'profile' || tab === 'themes' || tab === 'chat' || tab === 'game' ? tab : undefined)
       setShowStatsModal(false)
       setShowSupport(false)
       setShowSettings(true)

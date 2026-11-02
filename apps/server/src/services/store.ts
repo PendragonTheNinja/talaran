@@ -126,6 +126,17 @@ export const STORE_ITEMS: StoreItem[] = [
         grants: ['perk:custom_palette', 'theme:moonveil', 'theme:mosswood', 'theme:forgeheart'],
         available: true,
     },
+    {
+        // The timer bell's own sound (client lib/bell.ts). The file stays on
+        // the player's device and is never uploaded: only they hear it, so
+        // there is nothing to moderate or back up. The perk is what is sold.
+        key: 'perk:custom_sound',
+        name: 'Custom Sound',
+        description: 'Ring the timer bell with a sound of your own: a short clip of up to three seconds, kept on your device.',
+        price: 500,
+        grants: ['perk:custom_sound'],
+        available: true,
+    },
 ];
 
 export async function getUnlocks(playerId: number): Promise<string[]> {

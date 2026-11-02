@@ -313,3 +313,33 @@
   color: var(--color-text-muted);
   margin: 0 0 var(--space-sm);
 }
+
+/* The timer bell (BellSetting.tsx). */
+.bell-setting .settings-toggle-info {
+    gap: 6px;
+}
+
+.bell-setting-sub {
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.bell-setting-volume {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bell-setting-volume input[type='range'] {
+    flex: 1 1 140px;
+    max-width: 240px;
+    accent-color: var(--color-gold);
+}
+
+.bell-setting-custom {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}

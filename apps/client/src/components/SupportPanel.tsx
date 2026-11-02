@@ -48,6 +48,7 @@ function lastSaleDay(saleEndsAt: string | null): string | null {
 /** Where a perk is used, once owned: the Settings tab that holds it. */
 const PERK_SETTINGS: Record<string, string> = {
     'perk:custom_palette': 'themes',
+    'perk:custom_sound': 'game',
 }
 
 const REASON_LABELS: Record<string, string> = {

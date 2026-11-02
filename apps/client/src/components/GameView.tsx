@@ -8,6 +8,8 @@ import './GameView.css'
 import LogPanel from './LogPanel'
 import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
+import BellButton from './BellButton'
+import { ringForCountdown } from '../lib/bell'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
 import { getItemIcon } from '../lib/items'
@@ -534,6 +536,13 @@ export default function GameView({
       }
 
       on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
+        // The timer bell (lib/bell.ts) rings at the end of each countdown.
+        // At the Rift the countdown on screen runs to the stone being full,
+        // not to each minute's pour, so only a full stone rings there.
+        {
+          const d = data as unknown as { actionType?: string; result?: { itemName?: string } }
+          if (d.actionType !== 'talar_fill' || d.result?.itemName) ringForCountdown()
+        }
         const jewelry = (data.result as { jewelry?: string[] } | undefined)?.jewelry ?? []
         setJewelryLines(jewelry)
 
@@ -816,6 +825,7 @@ export default function GameView({
       })
 
       on('travel_complete', (data: { result: any }) => {
+        ringForCountdown()
         setJewelryLines(Array.isArray(data?.result?.jewelry) ? data.result.jewelry : [])
         if (data?.result) {
           setLastResult({
@@ -868,6 +878,8 @@ export default function GameView({
       on('force_refresh', () => window.location.reload())
 
       on('action_failed', (data: { error: string; info?: boolean }) => {
+        // An action that stopped on its own wants the player back.
+        ringForCountdown()
         // A fight's end goes on the result card below, which stays; the same
         // sentence in the log as well printed it twice, one over the other.
         if (!(data.info && currentActionRef.current === 'combat')) {
@@ -895,6 +907,7 @@ export default function GameView({
       })
 
       on('bot_check_required', (data: { a: number; b: number }) => {
+        ringForCountdown()
         setBotCheckQuestion({ a: data.a, b: data.b })
         setBotCheckPending(true)
       })
@@ -1012,6 +1025,7 @@ export default function GameView({
       })
 
       on('action_limit_reached', (data: { message: string }) => {
+        ringForCountdown()
         addLog(data.message, 'info')
         setLastResult(prev => prev ? { ...prev, ended: 'limit' } : prev)
         setCurrentAction(null)
@@ -2289,6 +2303,7 @@ export default function GameView({
           />
 
           {onForceBotCheck && <BotCheckFab onClick={onForceBotCheck} />}
+          <BellButton />
 
         </div>
       </div>

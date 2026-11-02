@@ -1,0 +1,62 @@
+/* Beside the bot-check button (BotCheckFab.css), same size and shelf. The
+   outline says the mode: grey off, amber for one countdown, green for every
+   one. The icon is greyed while off so the state reads at a glance. */
+.bell-fab {
+    position: absolute;
+    bottom: 12px;
+    right: 60px;
+    z-index: 24;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-raised);
+    border: 2px solid var(--color-border-mid);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    transition: background 0.15s, transform 0.15s, border-color 0.15s;
+}
+
+.bell-fab:hover {
+    background: var(--color-bg-hover);
+    transform: translateY(-2px);
+}
+
+.bell-fab:active {
+    transform: translateY(0);
+}
+
+.bell-icon {
+    font-size: 19px;
+    line-height: 1;
+}
+
+.bell-off .bell-icon {
+    filter: grayscale(1);
+    opacity: 0.55;
+}
+
+.bell-once {
+    border-color: #d9a520;
+}
+
+.bell-always {
+    border-color: #4caf50;
+}
+
+/* "1" for one countdown, "∞" for every one, in the corner. */
+.bell-mark {
+    position: absolute;
+    right: 2px;
+    bottom: 0;
+    font-family: var(--font-num);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text-bright);
+}
