@@ -56,6 +56,10 @@ export default function AdminManualEditor() {
     // What was last loaded or saved, for the unsaved-changes guard.
     const [baseline, setBaseline] = useState<Draft>(EMPTY)
 
+    // On a phone the page list and the editor take turns (MobileShell.css);
+    // this says which one is showing. Going back keeps the draft as it is.
+    const [paneOpen, setPaneOpen] = useState(false)
+
     const refresh = useCallback(async () => {
         try {
             const d = await apiFetch<{ pages: OverrideRow[] }>('/api/admin/manual/pages')
@@ -103,7 +107,10 @@ export default function AdminManualEditor() {
     }
 
     const openPage = async (section: string, slug: string) => {
+        // The page already open: just show it again, unsaved work and all.
+        if (draft.section === section && draft.slug === slug) { setPaneOpen(true); return }
         if (!leaveGuard()) return
+        setPaneOpen(true)
         setError(null)
         setMessage(null)
         setPreview(false)
@@ -277,6 +284,7 @@ export default function AdminManualEditor() {
 
     const startNew = () => {
         if (!leaveGuard()) return
+        setPaneOpen(true)
         const blank = { ...EMPTY, section: manifest?.sections[0]?.key || '' }
         setDraft(blank)
         setBaseline(blank)
@@ -291,7 +299,7 @@ export default function AdminManualEditor() {
     const hasOverride = edited.has(`${draft.section}/${draft.slug}`)
 
     return (
-        <div className="admin-manual">
+        <div className={`admin-manual ${paneOpen ? 'admin-pane-open' : 'admin-pane-list'}`}>
             <aside className="admin-manual-list">
                 <button className="btn btn-gold admin-manual-new" onClick={startNew}>
                     + New page
@@ -324,6 +332,9 @@ export default function AdminManualEditor() {
             </aside>
 
             <div className="admin-manual-editor">
+                <button className="btn mobile-back-btn" onClick={() => setPaneOpen(false)}>
+                    ‹ Pages
+                </button>
                 {error && <p className="guild-error">{error}</p>}
                 {message && <p className="guild-success">{message}</p>}
 

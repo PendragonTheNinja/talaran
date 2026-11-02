@@ -427,7 +427,8 @@ export default function AdminContentBrowser() {
     const toggleGroup = (group: string) => setOpenGroups(g => ({ ...g, [group]: !isGroupOpen(group) }))
 
     return (
-        <div className="admin-body">
+        <div className={`admin-body ${selected ? 'admin-pane-open' : 'admin-pane-list'}`}>
+            {/* On a phone the table list and the open table take turns (MobileShell.css). */}
             {/* Table list sidebar */}
             <div className="admin-sidebar">
                 <div className="admin-section">
@@ -514,6 +515,9 @@ export default function AdminContentBrowser() {
 
             {/* Main pane */}
             <div className="admin-main">
+                <button className="btn mobile-back-btn" onClick={() => { setSelected(null); setUsageItem(null) }}>
+                    ‹ Tables
+                </button>
                 {error && <p className="guild-error">{error}</p>}
                 {warning && <p style={{ color: '#e8a030', fontSize: '14px', marginBottom: '8px' }}>⚠ {warning}</p>}
                 {!selected && !error && (
@@ -722,7 +726,7 @@ export default function AdminContentBrowser() {
                                     onClick={() => setConfirmDelete(null)}>Cancel</button>
                             </div>
                         )}
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '8px' }}>
+                        <div className="admin-content-head" style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '8px' }}>
                             <p className="admin-section-title" style={{ marginBottom: 0 }}>{data.label}</p>
                             <span className="muted-text" style={{ fontSize: '13px' }}>
                                 {filter.trim() ? `${sortedRows.length} of ${data.rows.length}` : `${data.rows.length}`} row{data.rows.length === 1 ? '' : 's'}{data.truncated ? ' (truncated at 1000)' : ''}

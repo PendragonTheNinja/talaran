@@ -382,7 +382,11 @@
 .mobile-modals .news-panel,
 .mobile-modals .forum-panel,
 .mobile-modals .hs-panel,
-.mobile-modals .admin-panel {
+.mobile-modals .admin-panel,
+.mobile-modals .settings-panel,
+.mobile-modals .support-panel-window,
+.mobile-modals .guild-panel,
+.mobile-modals .ev-panel {
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
@@ -639,3 +643,36 @@
     width: 100% !important;
     min-width: 0 !important;
 }
+
+/* ---- Admin Content and Manual: the list and what is open take turns ---- */
+.mobile-modals .admin-body.admin-pane-list .admin-main { display: none; }
+.mobile-modals .admin-body.admin-pane-open .admin-sidebar { display: none; }
+.mobile-modals .admin-manual {
+    flex-direction: column;
+    padding: var(--space-md);
+    overflow-y: auto;
+}
+.mobile-modals .admin-manual-list {
+    flex: 1 1 auto;
+    border-right: none;
+    padding-right: 0;
+}
+.mobile-modals .admin-manual.admin-pane-list .admin-manual-editor { display: none; }
+.mobile-modals .admin-manual.admin-pane-open .admin-manual-list { display: none; }
+.mobile-modals .admin-manual-editor { overflow: visible; }
+.mobile-modals .admin-manual-fields { grid-template-columns: minmax(0, 1fr); }
+.mobile-modals .admin-manual-fields input,
+.mobile-modals .admin-manual-fields select { font-size: 16px; min-width: 0; }
+.mobile-modals .admin-manual-textarea { min-height: 50vh; font-size: 14px; }
+.mobile-modals .admin-manual-actions { flex-wrap: wrap; }
+
+/* ---- Settings and Support: every tab in sight ---- */
+.mobile-modals .settings-tabs,
+.mobile-modals .support-tabs { flex-wrap: wrap; }
+.mobile-modals .settings-tab { padding: 8px 12px; }
+.mobile-modals .settings-body { padding: var(--space-md); }
+.mobile-modals .support-panel { padding: var(--space-md); }
+.mobile-modals .settings-theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* The open table's title, row count, filter and New Row: wrap, filter on its own line. */
+.mobile-modals .admin-content-head { flex-wrap: wrap; row-gap: 6px !important; }
+.mobile-modals .admin-content-head .admin-filter-input { order: 3; flex: 1 1 100%; min-width: 0; }

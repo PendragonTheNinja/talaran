@@ -247,7 +247,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                     <>
                         <p className="support-pitch">
                             Themes repaint every panel in the game. Try one on before you buy it; nothing is
-                            charged or saved until you unlock it. Pick between the ones you own in Settings.
+                            charged or saved until you buy it. Pick between the ones you own in Settings.
                         </p>
                         {previewing && (
                             <p className="settings-previewing">
@@ -285,7 +285,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                                             ) : (
                                                 <>
                                                     <button className="btn" onClick={() => tryTheme(t.id)}>Try it</button>
-                                                    <button className="btn btn-gold" onClick={() => setConfirmBuy({ key: `theme:${t.id}`, name: t.name, price })}>Unlock</button>
+                                                    <button className="btn btn-gold" onClick={() => setConfirmBuy({ key: `theme:${t.id}`, name: t.name, price })}>Buy</button>
                                                 </>
                                             )}
                                         </span>
@@ -319,7 +319,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                 {tab === 'perks' && (
                     <>
                         <p className="support-pitch">
-                            Perks are yours for good once unlocked, on every device you play from.
+                            Perks are yours for good once bought, on every device you play from.
                         </p>
                         {store?.items.filter(i => i.key.startsWith('perk:')).map(p => (
                             <div key={p.key} className={`settings-theme-card support-perk-card ${p.owned ? '' : 'locked'}`}>
@@ -337,7 +337,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                                             )}
                                         </>
                                     ) : (
-                                        <button className="btn btn-gold" onClick={() => setConfirmBuy({ key: p.key, name: p.name, price: p.effectivePrice })}>Unlock</button>
+                                        <button className="btn btn-gold" onClick={() => setConfirmBuy({ key: p.key, name: p.name, price: p.effectivePrice })}>Buy</button>
                                     )}
                                 </span>
                             </div>
@@ -348,8 +348,8 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
             </div>
             {confirmBuy && (
                 <ConfirmModal
-                    message={`Unlock ${confirmBuy.name} for ${confirmBuy.price.toLocaleString()} Talers?`}
-                    confirmLabel="Unlock"
+                    message={`Buy ${confirmBuy.name} for ${confirmBuy.price.toLocaleString()} Talers?`}
+                    confirmLabel="Buy"
                     onConfirm={() => { const key = confirmBuy.key; setConfirmBuy(null); purchase(key) }}
                     onCancel={() => setConfirmBuy(null)}
                 />
