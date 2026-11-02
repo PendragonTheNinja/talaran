@@ -26,6 +26,8 @@ interface InventoryItem {
   buff_seconds?: number | null
   /** HP a meal mends. Food that heals and does nothing else can be eaten any time (combat-spec §10). */
   heal_amount?: number | null
+  /** Talar a gem holds (charged gems are absorbed from the pack). */
+  talar?: number | null
   quantity: number
   slot?: string
   /** Open liquid containers are not real inventory rows — see routes/inventory. */
@@ -96,7 +98,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   // Set when eating would replace a running buff, so the player is warned first.
   const [confirmEat, setConfirmEat] = useState<{ item: string; running: string } | null>(null)
   // A charged gem that will not all fit: asked first, with what would be lost.
-  const [confirmAbsorb, setConfirmAbsorb] = useState<{ item: InventoryItem; message: string } | null>(null)
+  const [confirmAbsorb, setConfirmAbsorb] = useState<{ item: InventoryItem; message: string; acceptWaste: boolean } | null>(null)
   // Set when a log is clicked with a tinderbox in hand.
   const [confirmFire, setConfirmFire] = useState<{ item: string; cost: number } | null>(null)
   const [dropQuantity, setDropQuantity] = useState(1)
@@ -328,6 +330,26 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   /** A charged gem: tapping it pours its light into the reservoir (services/talar.ts). */
   const isChargedGem = (item: InventoryItem) => item.type === 'gem' && CHARGED_QUALITIES.includes(item.quality ?? '')
 
+  /**
+   * Ask before a charged gem is taken in, always (forum, 2026-11): a stone is
+   * an hour and a half at the Rift, and one stray tap on a phone spent it.
+   * The one question also says what would spill, worked out from the
+   * reservoir the bar shows, so an overflow is never a second popup. The
+   * server still decides: if the reservoir moved since, it refuses and the
+   * player is asked again with its numbers.
+   */
+  const askAbsorbGem = (item: InventoryItem) => {
+    const holds = Number(item.talar ?? 0)
+    const room = talar ? Math.max(0, Math.floor(talar.max - talar.current)) : null
+    const waste = room === null ? 0 : Math.max(0, holds - room)
+    const ask = `Take the light of the ${item.name} into yourself?`
+    const message = holds <= 0 ? ask
+      : waste === 0 ? `${ask} It holds ${holds} Talar.`
+      : room === 0 ? `${ask} You are full, so all ${holds} Talar would be lost.`
+      : `${ask} It holds ${holds} Talar and you have room for ${room}. The other ${waste} would be lost.`
+    setConfirmAbsorb({ item, message, acceptWaste: waste > 0 })
+  }
+
   const absorbGem = async (item: InventoryItem, acceptWaste = false) => {
     try {
       const res = await apiFetch<{ itemName: string; poured: number; wasted: number; talar: Talar }>('/api/talar/absorb', {
@@ -347,7 +369,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
       // The server says how much would be lost; the player decides.
       const e = err as { status?: number; message?: string; body?: { waste?: number } }
       if (e.status === 409 && e.body?.waste) {
-        setConfirmAbsorb({ item, message: `${e.message} Take it in anyway?` })
+        setConfirmAbsorb({ item, message: `${e.message} Take it in anyway?`, acceptWaste: true })
         return
       }
       window.dispatchEvent(new CustomEvent('talaran:notice', {
@@ -427,7 +449,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               } else if (isMendingFood(item)) {
                 eatMeal(item)
               } else if (isChargedGem(item)) {
-                absorbGem(item)
+                askAbsorbGem(item)
               } else if (item.subtype === 'provision') {
                 // Provisions are eaten, not worn. Falling through to handleEquip
                 // told the player a pasty "cannot be equipped", which is true and
@@ -611,9 +633,9 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
           message={confirmAbsorb.message}
           confirmLabel="Take It In"
           onConfirm={() => {
-            const it = confirmAbsorb.item
+            const { item: it, acceptWaste } = confirmAbsorb
             setConfirmAbsorb(null)
-            absorbGem(it, true)
+            absorbGem(it, acceptWaste)
           }}
           onCancel={() => setConfirmAbsorb(null)}
         />

@@ -32,7 +32,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   'items.buff_magnitude',
   'items.buff_seconds',
   // Food that mends (docs/combat-spec.md §10), eaten from the pack too.
-  'items.heal_amount'
+  'items.heal_amount',
+  // Light a charged gem holds, so tapping one can say how much before it is
+  // taken in (LeftPanel's confirmation).
+  'items.talar'
 );
 
     // The open container has no player_inventory row — it is a bucket in use, not
