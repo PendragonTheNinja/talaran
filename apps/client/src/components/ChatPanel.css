@@ -1,3 +1,9 @@
+/* Chat text size is the player's, per device (lib/chatSize.ts sets
+   --chat-scale on the page root). Every size below that a message carries is
+   multiplied by it, and so is everything sized to sit on a message's line
+   (the channel tag's column, feat badges), so a larger step stays one line
+   high per message and nothing overlaps. The tabs and buttons are chrome and
+   stay put. */
 .chat-panel {
   height: 300px;
   flex-shrink: 0;
@@ -46,39 +52,41 @@
 }
 
 .chat-empty {
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   font-style: italic;
   padding: var(--space-xs) 0;
 }
 
 .chat-message {
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   line-height: 1.1;
   word-break: break-word;
 }
 
 .chat-timestamp {
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
 }
 
+/* min-width rather than width: a four-letter tag at the largest step would
+   otherwise spill out of its column into the name. */
 .chat-channel-tag {
   display: inline-block;
-  width: 22px;
+  min-width: calc(22px * var(--chat-scale, 1));
   text-align: center;
 }
 
 .chat-player {
-  font-size: 16px;
+  font-size: calc(16px * var(--chat-scale, 1));
 }
 
 .chat-guild-tag {
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
   margin-left: 1px;
 }
 
 .chat-text {
-  font-size: 15px;
+  font-size: calc(15px * var(--chat-scale, 1));
 }
 
 .chat-input-row {
@@ -98,6 +106,12 @@
   color: var(--color-text-base);
   font-family: var(--font-body);
   font-size: 15px;
+}
+
+/* Only the chat box's own input follows the chat size: .chat-input is also
+   the house text field in Guild, Settings and Admin forms. */
+.chat-input-row .chat-input {
+  font-size: calc(15px * var(--chat-scale, 1));
 }
 
 .chat-input:focus {
@@ -172,17 +186,17 @@
    Drawn at 13px and pulled back so it contributes nothing to the line box, the
    same trick the players list uses but with less to give away. */
 .chat-message .name-badge-img {
-  width: 14px;
-  height: 14px;
+  width: calc(14px * var(--chat-scale, 1));
+  height: calc(14px * var(--chat-scale, 1));
   margin-left: 1px;
   margin-right: 1px;
-  margin-top: -6px;
-  margin-bottom: -4px;
+  margin-top: calc(-6px * var(--chat-scale, 1));
+  margin-bottom: calc(-4px * var(--chat-scale, 1));
   vertical-align: middle;
 }
 
 .chat-message .name-badge {
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   line-height: 1;
   margin-left: 2px;
   vertical-align: middle;

@@ -791,6 +791,7 @@ export default function GameLayout({
       // that just became available.
       key={(player.is_guest ?? playerData?.player?.is_guest) ? 'guest' : 'full'}
       isGuest={player.is_guest ?? playerData?.player?.is_guest}
+      selfName={player.username}
       onOpenForum={(threadId) => {
         setShowForum(true)
         setForumOpenThreadId(threadId)

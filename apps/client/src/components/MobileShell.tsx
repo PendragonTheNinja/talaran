@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './MobileShell.css'
+import { CHAT_UNSEEN_EVENT, CHAT_SHOWN_EVENT } from './ChatPanel'
 
 type MobileView = 'action' | 'inventory' | 'skills' | 'chat' | 'map'
 
@@ -36,6 +37,29 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
 
        Guarded on the first render so arriving on the app does not fight whatever
        view the player last had. */
+    /* Chat messages that arrived while another tab was open (ChatPanel fires
+       CHAT_UNSEEN_EVENT for each one the player would see). Shown on the Chat
+       tab like the Messages count; cleared by opening it. */
+    const [unseenChat, setUnseenChat] = useState(0)
+    const viewRef = useRef(view)
+    useEffect(() => { viewRef.current = view }, [view])
+    useEffect(() => {
+        const onUnseen = (e: Event) => {
+            if (viewRef.current === 'chat') return
+            const n = (e as CustomEvent<{ count: number }>).detail?.count ?? 1
+            setUnseenChat(c => c + n)
+        }
+        window.addEventListener(CHAT_UNSEEN_EVENT, onUnseen)
+        return () => window.removeEventListener(CHAT_UNSEEN_EVENT, onUnseen)
+    }, [])
+    const openView = (next: MobileView) => {
+        setView(next)
+        if (next === 'chat') {
+            setUnseenChat(0)
+            window.dispatchEvent(new Event(CHAT_SHOWN_EVENT))
+        }
+    }
+
     const lastFocus = useRef(focusAction)
     useEffect(() => {
         if (focusAction === lastFocus.current) return
@@ -70,11 +94,12 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
                     </div>
                 )}
 
-                {view === 'chat' && (
-                    <div className="mobile-chat-view">
-                        {chatPanel}
-                    </div>
-                )}
+                {/* Chat stays mounted too: it keeps receiving while another tab is
+                    open (that is what the unseen count counts), and opening the
+                    tab no longer waits on history reloading into a blank box. */}
+                <div className="mobile-chat-view" style={{ display: view === 'chat' ? 'flex' : 'none' }}>
+                    {chatPanel}
+                </div>
 
                 {view === 'map' && (
                     <div className="mobile-map-view">
@@ -91,10 +116,15 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
                     <button
                         key={n.key}
                         className={`mobile-nav-btn ${view === n.key ? 'active' : ''}`}
-                        onClick={() => setView(n.key)}
+                        onClick={() => openView(n.key)}
                     >
                         <span className="mobile-nav-icon">{n.icon}</span>
                         <span className="mobile-nav-label">{n.label}</span>
+                        {n.key === 'chat' && unseenChat > 0 && (
+                            <span className="mobile-nav-badge" aria-label={`${unseenChat} unread chat messages`}>
+                                {unseenChat > 99 ? '99+' : unseenChat}
+                            </span>
+                        )}
                     </button>
                 ))}
             </nav>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { setItemAnimationEnabled } from '../lib/itemFly'
 import { apiFetch } from '../lib/api'
 import './SettingsPanel.css'
+import './ChatPanel.css'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
@@ -11,6 +12,8 @@ import PaletteGallery from './PaletteGallery'
 import CombatAwaySetting from './CombatAwaySetting'
 import CombatBotCheckSetting from './CombatBotCheckSetting'
 import AvatarSetting from './AvatarSetting'
+import ChatMessageLine from './ChatMessageLine'
+import { CHAT_SIZES, currentChatSize, setChatSize, type ChatSizeId } from '../lib/chatSize'
 
 type SettingsTab = 'profile' | 'account' | 'chat' | 'game' | 'combat' | 'themes'
 
@@ -107,6 +110,10 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                 : err.message || 'Purchase failed.')
         }
     }
+
+    // Chat text size: this device only (lib/chatSize.ts).
+    const [chatSize, setChatSizeState] = useState<ChatSizeId>(currentChatSize)
+    const chooseChatSize = (id: ChatSizeId) => { setChatSize(id); setChatSizeState(id) }
 
     // Chat settings
     const [mutedChannels, setMutedChannels] = useState<Record<string, boolean>>({
@@ -445,6 +452,31 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                                 </button>
                             </div>
                         ))}
+
+                        <h4 className="settings-section-title settings-section-gap">Text Size</h4>
+                        <p className="muted-text" style={{ fontSize: '14px', marginBottom: '12px' }}>
+                            How large chat messages are drawn. Saved on this device only, so a phone and a computer can differ.
+                        </p>
+                        <div className="settings-size-row" role="radiogroup" aria-label="Chat text size">
+                            {CHAT_SIZES.map(s => (
+                                <button
+                                    key={s.id}
+                                    role="radio"
+                                    aria-checked={chatSize === s.id}
+                                    className={`settings-size-btn ${chatSize === s.id ? 'active' : ''}`}
+                                    onClick={() => chooseChatSize(s.id)}
+                                >
+                                    {s.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="settings-size-sample">
+                            <ChatMessageLine msg={{
+                                id: 0, channel: 'world', playerName: 'Geoffrey', guildTag: null,
+                                message: 'Anvil is hot. Bring me ore and I will show you how it is done.',
+                                timestamp: '12:04', rawTimestamp: 0,
+                            }} />
+                        </div>
                     </div>
                 )}
 

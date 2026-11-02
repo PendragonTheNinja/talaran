@@ -141,6 +141,48 @@
     color: var(--color-red-glow);
 }
 
+/* Chat text size: five steps in a row, wrapping on a narrow phone. */
+.settings-section-gap {
+    margin-top: 24px;
+}
+
+.settings-size-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.settings-size-btn {
+    background: none;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.settings-size-btn:hover {
+    color: var(--color-gold);
+    border-color: var(--color-border-gold);
+}
+
+.settings-size-btn.active {
+    color: var(--color-gold-bright);
+    border-color: var(--color-gold-bright);
+}
+
+/* A real chat line at the chosen size, on the chat box's own background. */
+.settings-size-sample {
+    background: var(--color-overlay);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+}
+
 .settings-header-actions {
     display: flex;
     align-items: center;

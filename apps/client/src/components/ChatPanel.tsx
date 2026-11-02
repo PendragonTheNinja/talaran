@@ -13,7 +13,20 @@ interface ChatPanelProps {
 
   /** Guests only get Help, so the other tabs are not shown at all. */
   isGuest?: boolean
+
+  /** The player's own name, so their own lines never count as unseen. */
+  selfName?: string
 }
+
+/**
+ * Fired for every live message the player would see (not muted, not their
+ * own), with how many arrived. The phone layout counts them on the Chat tab
+ * while the player is looking elsewhere (MobileShell.tsx).
+ */
+export const CHAT_UNSEEN_EVENT = 'talaran:chat-unseen'
+
+/** Fired by the phone layout when the Chat tab is opened, to jump to the newest line. */
+export const CHAT_SHOWN_EVENT = 'talaran:chat-shown'
 
 const CHANNELS = [
   { key: 'world', label: 'World' },
@@ -31,7 +44,7 @@ function formatTime(date: Date): string {
 }
 
 // Renders chat text, turning [[FORUMLINK|id|label]] tokens into clickable forum links.
-export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest }: ChatPanelProps) {
+export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest, selfName }: ChatPanelProps) {
   // Guests see Help and nothing else. Showing tabs that reject every message
   // is worse than not showing them: it advertises a restriction instead of
   // just presenting the one channel that works.
@@ -47,6 +60,12 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [mutedChannels, setMutedChannels] = useState<string[]>([])
+  // Read by the socket handlers, which are bound once on mount and would
+  // otherwise only ever see the first render's values.
+  const mutedRef = useRef<string[]>([])
+  const selfRef = useRef(selfName)
+  useEffect(() => { mutedRef.current = mutedChannels }, [mutedChannels])
+  useEffect(() => { selfRef.current = selfName }, [selfName])
 
   // Only scroll to bottom for new live messages, not history
   const scrollToBottom = (smooth = true) => {
@@ -71,7 +90,14 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
 
   // Add message helper — deduplicates by id, keeps sorted by rawTimestamp
   const addMessages = (newMsgs: ChatMessage[], isLive = false) => {
-    if (isLive) isLiveMessage.current = true
+    if (isLive) {
+      isLiveMessage.current = true
+      const seen = newMsgs.filter(m =>
+        !mutedRef.current.includes(m.channel)
+        && m.playerName !== 'You'
+        && m.playerName !== selfRef.current).length
+      if (seen > 0) window.dispatchEvent(new CustomEvent(CHAT_UNSEEN_EVENT, { detail: { count: seen } }))
+    }
     setAllMessages(prev => {
       const existingIds = new Set(prev.map(m => m.id))
       const unique = newMsgs.filter(m => !existingIds.has(m.id))
@@ -87,6 +113,14 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
     apiFetch<{ mutedChannels: string[] }>('/api/settings')
       .then(data => setMutedChannels(data.mutedChannels || []))
       .catch(() => { })
+  }, [])
+
+  // The phone layout keeps this panel mounted but hidden while another tab is
+  // open, and a hidden list cannot scroll. Jump to the newest line on showing.
+  useEffect(() => {
+    const onShown = () => requestAnimationFrame(() => scrollToBottom(false))
+    window.addEventListener(CHAT_SHOWN_EVENT, onShown)
+    return () => window.removeEventListener(CHAT_SHOWN_EVENT, onShown)
   }, [])
 
   // Forum notification listener

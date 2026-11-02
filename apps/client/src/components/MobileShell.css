@@ -79,6 +79,30 @@
     overflow: hidden;
 }
 
+/* Unseen chat count on the Chat tab, pinned to the icon's top-right corner.
+   White on red in every theme: the theme's text-white is dark ink on
+   Scriptorium and would vanish into the red. */
+.mobile-nav-btn {
+    position: relative;
+}
+
+.mobile-nav-badge {
+    position: absolute;
+    top: 3px;
+    left: calc(50% + 6px);
+    background: var(--color-red);
+    color: #fff;
+    font-family: var(--font-num);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    border-radius: 8px;
+    padding: 0 5px;
+    min-width: 16px;
+    text-align: center;
+    pointer-events: none;
+}
+
 .mobile-nav-btn.active {
     color: var(--color-gold-bright);
 }
@@ -230,6 +254,12 @@
 
 .mobile-shell .chat-input-row {
     padding: var(--space-sm);
+}
+
+/* The chat box's input follows the chat size, never under 16px (iOS zooms
+   the page on focus below that). */
+.mobile-shell .chat-input-row .chat-input {
+    font-size: max(16px, calc(15px * var(--chat-scale, 1)));
 }
 
 .mobile-map-view {
