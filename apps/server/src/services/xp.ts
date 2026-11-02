@@ -4,6 +4,8 @@ import { logger } from '../lib/logger';
 import { pushToPlayerAfterCommit } from '../lib/realtime';
 import { incrementStats } from './stats';
 import { applyEventBonus } from './worldEvents';
+import { guildCompanionBonus, noteGuildXp } from './guildCompanions';
+import { afterCommit } from '../lib/afterCommit';
 
 // XP curve — one formula, no branches. Derivation + rate ladder: docs/xp-rebalance.md
 //
@@ -160,6 +162,17 @@ export async function awardXp(
     // (services/worldEvents.ts). Here, in the one XP writer, so every skill is
     // covered and none can forget to ask.
     if (skillName && opts.eventBonus !== false) xp = await applyEventBonus(playerId, skillName, xp, x, opts.units ?? 1);
+
+    // Working beside a guildmate (services/guildCompanions.ts): 1%, exact on
+    // average. Not for time passing, which no one does beside anyone.
+    if (skillName && opts.eventBonus !== false) {
+        const extra = await guildCompanionBonus(playerId, xp, x);
+        if (extra > 0) {
+            xp += extra;
+            const name = skillName;
+            afterCommit(x, () => noteGuildXp(playerId, name, extra));
+        }
+    }
 
     const [row] = await x('player_skills')
         .insert({ player_id: playerId, skill_id: skillId, xp })

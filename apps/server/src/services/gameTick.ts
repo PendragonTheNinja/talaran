@@ -31,6 +31,7 @@ import { FOOT_XP_RATE, MOUNT_XP_RATE, TRAVEL_SKILL } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
+import { takeGuildXp } from './guildCompanions';
 import { takeJewelryNotes, jewelryAid } from './jewelry';
 import { realtimeServer, pushToPlayer } from '../lib/realtime';
 
@@ -114,11 +115,14 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   if (result && jewelry.length) result.jewelry = jewelry;
 
   const eventXp = takeEventXp(action.player_id, result?.skillName);
-  if (result && eventXp > 0) {
-    result.eventXp = eventXp;
+  // Working beside a guildmate (services/guildCompanions.ts), shown the same way.
+  const guildXp = takeGuildXp(action.player_id, result?.skillName);
+  if (result && guildXp > 0) result.guildXp = guildXp;
+  if (result && eventXp > 0) result.eventXp = eventXp;
+  if (result && eventXp + guildXp > 0) {
     const info = payload.xpInfo;
     if (info && typeof info.totalXp === 'number' && !info.leveledUp) {
-      const before = Math.max(0, info.totalXp - (result.xpAwarded || 0) - eventXp);
+      const before = Math.max(0, info.totalXp - (result.xpAwarded || 0) - eventXp - guildXp);
       info.leveledUp = levelFromXp(before) < levelFromXp(info.totalXp);
     }
   }
