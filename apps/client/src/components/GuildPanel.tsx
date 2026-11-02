@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import GuildForum from './GuildForum'
+import GuildHallTab from './GuildHallTab'
 import { formatGameDate } from '../lib/time'
 import { apiFetch } from '../lib/api'
 import './GuildPanel.css'
@@ -68,11 +69,15 @@ interface GuildPanelProps {
     closing?: boolean
     playerUsername: string
     onViewProfile?: (playerId: number) => void
+    /** Open at this tab (the location panel's Guild Hall button opens 'hall'). */
+    initialTab?: 'overview' | 'hall'
+    /** Start building the hall with this material (GameView's guild_build). */
+    onStartBuild?: (item: string) => void
 }
 
-export default function GuildPanel({ onClose, closing, playerUsername, onViewProfile }: GuildPanelProps) {
+export default function GuildPanel({ onClose, closing, playerUsername, onViewProfile, initialTab, onStartBuild }: GuildPanelProps) {
     const [view, setView] = useState<'loading' | 'no_guild' | 'my_guild' | 'create' | 'browse'>('loading')
-    const [tab, setTab] = useState<'overview' | 'members' | 'forum' | 'applications' | 'settings'>('overview')
+    const [tab, setTab] = useState<'overview' | 'members' | 'forum' | 'hall' | 'applications' | 'settings'>(initialTab ?? 'overview')
     const [settingsName, setSettingsName] = useState('')
     const [settingsTag, setSettingsTag] = useState('')
     const [settingsDesc, setSettingsDesc] = useState('')
@@ -395,6 +400,9 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         <button className={`guild-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
                             Forum
                         </button>
+                        <button className={`guild-tab ${tab === 'hall' ? 'active' : ''}`} onClick={() => setTab('hall')}>
+                            Hall
+                        </button>
                         {can('invite') && (
                             <button className={`guild-tab ${tab === 'applications' ? 'active' : ''}`} onClick={() => setTab('applications')}>
                                 Applications {applications.length > 0 && <span className="guild-tab-badge">{applications.length}</span>}
@@ -582,6 +590,11 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                     {/* My guild — Members tab */}
                     {/* The guild's own forum: its own boards, its own permissions. */}
                     {view === 'my_guild' && tab === 'forum' && <GuildForum />}
+
+                    {/* The guild's hall on this island: building, storehouse, ledger. */}
+                    {view === 'my_guild' && tab === 'hall' && (
+                        <GuildHallTab onStartBuild={(item) => { onStartBuild?.(item); onClose() }} />
+                    )}
 
                     {view === 'my_guild' && tab === 'members' && (
                         <div className="guild-members">

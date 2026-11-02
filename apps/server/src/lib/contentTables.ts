@@ -111,6 +111,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     church_writings:             { label: 'Church Writings',       group: 'World',      snapshot: true, editable: true },
     // Spells (services/spells.ts): the rows; what each does is code.
     spells:                      { label: 'Spells',                group: 'Talar',      snapshot: true, editable: true },
+    // What each guild hall tier needs (by item name) and what its storehouse holds.
+    guild_hall_tiers:            { label: 'Guild Hall Tiers',      group: 'Guilds',     snapshot: true, editable: true },
 
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },

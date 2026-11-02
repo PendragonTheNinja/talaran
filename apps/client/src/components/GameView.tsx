@@ -669,6 +669,49 @@ export default function GameView({
           return
         }
 
+        // Raising a guild hall (server services/guildHall.ts): Carpentry XP and a
+        // line saying how far the material has got; no item comes out, so it
+        // cannot use the itemName gate below. Repeats while the server sends a
+        // next completion.
+        const build = data as unknown as {
+          actionType?: string
+          firstEver?: boolean
+          timerSeconds?: number
+          nextCompletes?: string
+          result: { xpAwarded?: number; message?: string; eventXp?: number }
+          xpInfo?: XpInfo & { xpAtLevel?: number }
+        }
+        if (build.actionType === 'guild_build') {
+          const r = build.result
+          setLastResult({
+            firstEver: build.firstEver,
+            itemName: null,
+            xpAwarded: r.xpAwarded || 0,
+            totalXp: build.xpInfo?.totalXp || 0,
+            level: build.xpInfo?.level || 1,
+            xpToNext: build.xpInfo?.xpToNext || 0,
+            xpAtLevel: build.xpInfo?.xpAtLevel || 0,
+            skillName: 'Carpentry',
+            message: r.message,
+            drops: [],
+            eventXp: r.eventXp,
+          })
+          if (build.xpInfo?.leveledUp) setLevelUpSkill({ name: 'Carpentry', level: build.xpInfo.level })
+          onPlayerDataUpdate()
+          onInventoryUpdate()
+          setActionsCompleted(prev => prev + 1)
+          if (build.timerSeconds && build.nextCompletes) {
+            setTimerMax(build.timerSeconds)
+            startCountdown(build.timerSeconds, build.nextCompletes)
+          } else {
+            setCurrentAction(null)
+            setActiveNodeId(null)
+            setTimerSeconds(0)
+            if (timerRef.current) clearInterval(timerRef.current)
+          }
+          return
+        }
+
         // Fishing: rod casts, net hauls and cutting bait.
         //
         // A snapped line and a cut fish both produce no item, so neither can go
@@ -1292,6 +1335,12 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'guild_build':
+        setCurrentAction('guild_build')
+        setTimerMax(action.last_timer_seconds || secondsLeft || 20)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'fishing_rod':
       case 'fishing_net':
       case 'fishing_cut_bait':
@@ -1360,6 +1409,32 @@ export default function GameView({
       const e = err as { status?: number; message?: string }
       if (e.status === 423) { rememberPendingAction(() => startTalarFill(itemId)); return }
       addLog(e.message || 'The light will not take.', 'error')
+    }
+  }
+
+  // Raising the guild hall (server services/guildHall.ts): set one piece of
+  // `item` in every 20 seconds while the hall wants it and the pack has it.
+  const startGuildBuild = async (item: string) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number }>('/api/guild-hall/build', {
+        method: 'POST',
+        body: JSON.stringify({ item }),
+      })
+      setCurrentAction('guild_build')
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds)
+    } catch (err) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 423) { rememberPendingAction(() => startGuildBuild(item)); return }
+      addLog(e.message || 'The work would not start.', 'error')
     }
   }
 
@@ -1465,6 +1540,8 @@ export default function GameView({
       startTalarFill((externalAction.id as number) || null)
     } else if (externalAction.type === 'spell_vigil') {
       startVigil(String(externalAction.id))
+    } else if (externalAction.type === 'guild_build') {
+      startGuildBuild(String(externalAction.id))
     } else if (externalAction.type === 'fishing_rod') {
       // id carries the bait category, or an empty string for an unbaited cast.
       startRodFishing((externalAction.id as string) || null)

@@ -1,0 +1,63 @@
+/* The guild hall tab (GuildHallTab.tsx). The storehouse grids reuse
+   PropertyStorage.css; this is the building list, the gold row and the ledger. */
+.hall { display: flex; flex-direction: column; gap: var(--space-md); }
+.hall-lead { font-size: 15px; color: var(--color-text-base); margin: 0; }
+.hall-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--space-sm); font-size: 13px; }
+.hall-title { font-family: var(--font-heading); font-size: 16px; }
+.hall-note { font-size: 13px; margin: 0; }
+
+.hall-tabs { display: flex; gap: 6px; }
+.hall-tab {
+    flex: 1;
+    background: var(--color-bg-deep);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 5px 8px;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    cursor: pointer;
+}
+.hall-tab.active { color: var(--color-gold-bright); border-color: var(--color-border-gold); }
+.hall-tab:disabled { opacity: 0.45; cursor: default; }
+
+.hall-build { display: flex; flex-direction: column; gap: var(--space-sm); }
+.hall-req {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: 6px 8px;
+}
+.hall-req-icon { width: 44px; height: 44px; flex-shrink: 0; }
+.hall-req-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.hall-req-name { font-size: 14px; color: var(--color-text-bright); }
+.hall-req-count { font-size: 12px; }
+.hall-req-btn { flex-shrink: 0; font-size: 11px; }
+.hall-req-btn:disabled { opacity: 0.45; cursor: default; }
+.hall-bar { height: 6px; background: var(--color-bg-dark); border: 1px solid var(--color-border-dark); border-radius: 3px; overflow: hidden; }
+.hall-bar-fill { height: 100%; background: var(--color-gold); }
+
+.hall-builders { margin-top: var(--space-sm); }
+.hall-builder { display: grid; grid-template-columns: 28px 1fr auto; gap: 6px; font-size: 13px; padding: 2px 0; }
+.hall-abandon { align-self: flex-start; margin-top: var(--space-md); font-size: 12px; }
+
+.hall-gold { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-sm); font-size: 14px; }
+.hall-gold .store-amt { width: 90px; }
+.hall-locked { cursor: default; }
+
+.hall-ledger { display: flex; flex-direction: column; gap: 2px; max-height: 420px; overflow-y: auto; }
+.hall-ledger-row { display: grid; grid-template-columns: 120px 110px 1fr; gap: 8px; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--color-border-dark); }
+.hall-in { color: var(--color-xp); }
+.hall-out { color: var(--color-red-bright); }
+
+.hall-elsewhere { margin-top: var(--space-md); }
+.hall-elsewhere p { margin: 2px 0; font-size: 13px; }
+
+@media (max-width: 560px) {
+    .hall-req { flex-wrap: wrap; }
+    .hall-req-btn { width: 100%; }
+    .hall-ledger-row { grid-template-columns: 1fr; gap: 0; }
+}

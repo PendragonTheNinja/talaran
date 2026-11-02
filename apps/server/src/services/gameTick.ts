@@ -21,6 +21,7 @@ import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } fro
 import { processingTimerFor } from './recipes';
 import { resolveVigil } from './spells';
 import { resolveFillCycle, FILL_CYCLE_SECONDS } from './talar';
+import { resolveBuildCycle, BUILD_SECONDS as GUILD_BUILD_SECONDS } from './guildHall';
 import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
@@ -88,6 +89,7 @@ const SKILL_BY_ACTION: Record<string, string> = {
   smithing: 'Smithing',
   kiln_collect: 'Smithing',
   sawing: 'Carpentry',
+  guild_build: 'Carpentry',
   woodworking: 'Carpentry',
 };
 
@@ -462,6 +464,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'talar_fill':
         result = await resolveFillCycle(action.player_id);
+        break;
+      case 'guild_build':
+        result = await resolveBuildCycle(action.player_id, action.action_data);
         break;
       case 'spell_vigil':
         result = await resolveVigil(action.player_id, action.action_data);
@@ -1001,6 +1006,33 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           result,
           xpInfo,
         });
+      }
+      return;
+    }
+
+    // Raising a guild hall (services/guildHall.ts): one piece set in per cycle,
+    // Carpentry XP each time; it carries on while that material is wanted and
+    // the player has more, and ends on any refusal with the reason.
+    if (action.action_type === 'guild_build') {
+      if (!result || !result.success) {
+        await db('player_actions').where({ id: action.id }).delete();
+        pushToPlayer(action.player_id, 'action_failed', { error: result?.error || 'Your building stopped.', info: true });
+        return;
+      }
+      const carpentry = await db('skills').where({ name: 'Carpentry' }).first();
+      const row = await db('player_skills').where({ player_id: action.player_id, skill_id: carpentry?.id }).first();
+      const currentXp = row ? parseInt(row.xp.toString()) : 0;
+      const previousXp = currentXp - (result.xpAwarded || 0);
+      const currentLevel = levelFromXp(currentXp);
+      const xpInfo = { totalXp: currentXp, level: currentLevel, xpToNext: xpToNextLevel(currentXp), leveledUp: currentLevel > levelFromXp(previousXp), xpAtLevel: xpForLevel(currentLevel) };
+
+      if (result.carryOn) {
+        const nextCompletion = new Date(now.getTime() + GUILD_BUILD_SECONDS * 1000);
+        await db('player_actions').where({ id: action.id }).update({ completes_at: nextCompletion, last_timer_seconds: GUILD_BUILD_SECONDS });
+        await emitActionComplete(io, action, { firstEver, actionType: action.action_type, result, nextCompletes: nextCompletion, timerSeconds: GUILD_BUILD_SECONDS, xpInfo });
+      } else {
+        await db('player_actions').where({ id: action.id }).delete();
+        await emitActionComplete(io, action, { firstEver, actionType: action.action_type, result: { ...result, ended: true }, xpInfo });
       }
       return;
     }

@@ -10,6 +10,7 @@ import {
     GUILD_PERMISSIONS, RANK_LABELS, CONFIGURABLE_RANKS, cleanRankPermissions, leaderRoleFor,
     membershipOf, rankOf, rankPermissions, setRole, type Role,
 } from '../services/guildRanks';
+import { guildStorehousesHoldAnything } from '../services/guildHall';
 
 const router = Router();
 
@@ -731,6 +732,12 @@ router.post('/disband', requireAuth, async (req: AuthRequest, res: Response) => 
         const guild = await db('guilds').where({ id: player.guild_id }).first();
         if (guild.leader_id !== playerId) {
             res.status(403).json({ error: 'Only the guild leader can disband the guild.' });
+            return;
+        }
+        // A guild's halls go with it, and their storehouses with them: refuse
+        // while any holds an item or a coin, rather than destroy what members gave.
+        if (await guildStorehousesHoldAnything(guild.id)) {
+            res.status(400).json({ error: 'Empty every guild storehouse first, gold and all. Disbanding would destroy what is in them.' });
             return;
         }
         await db('guilds').where({ id: guild.id }).delete();

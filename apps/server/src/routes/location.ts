@@ -117,8 +117,17 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
         'to_loc.type as to_location_type'
       );
 
+    // The player's own guild hall stands here (services/guildHall.ts), so the
+    // location panel offers it. Only their guild's: another guild's hall is
+    // theirs to see, not to open.
+    const guildHallHere = !!(await db('guild_members as gm')
+      .join('guild_halls as h', 'h.guild_id', 'gm.guild_id')
+      .where({ 'gm.player_id': playerId, 'h.location_id': player.current_location_id })
+      .first('h.id'));
+
     res.json({
       location: currentLocation,
+      guildHallHere,
       nodes,
       connections,
       allLocations,

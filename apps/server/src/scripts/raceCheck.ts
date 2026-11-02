@@ -317,7 +317,8 @@ async function itemTotal(db: Db, itemId: number): Promise<number> {
              + (SELECT coalesce(sum(quantity), 0) FROM property_storage WHERE item_id = $1)
              + (SELECT coalesce(sum(quantity), 0) FROM ground_items    WHERE item_id = $1)
              + (SELECT coalesce(sum(quantity), 0) FROM shop_listings   WHERE item_id = $1)
-             + ${worn} AS total`.replace(/\$1/g, '?'), Array(4 + SLOT_COLUMNS.length).fill(itemId));
+             + (SELECT coalesce(sum(quantity), 0) FROM guild_storage   WHERE item_id = $1)
+             + ${worn} AS total`.replace(/\$1/g, '?'), Array(5 + SLOT_COLUMNS.length).fill(itemId));
     return Number(rows[0].total);
 }
 
@@ -332,6 +333,36 @@ async function world(ctx: Ctx) {
     const axeA = await ctx.seed.row('items', { name: 'Crude Axe', type: 'tool', slot: 'mainhand', level_required: 1 });
     const axeB = await ctx.seed.row('items', { name: 'Chipped Axe', type: 'tool', slot: 'mainhand', level_required: 1 });
     return { town, player, plank, hatchet, axeA, axeB };
+}
+
+/**
+ * Pendragon leading a guild whose finished tier-1 hall stands in Talador,
+ * holding `capacity` items, with `officers` more members standing there too.
+ * The storehouse is shared, so its races are between different players: one
+ * player's requests already queue on their own player row.
+ */
+async function guildWorld(ctx: Ctx, capacity: number, officers = 0) {
+    const w = await world(ctx);
+    await ctx.db('locations').where({ id: w.town.id }).update({ region: 'Racecheck Isle' });
+    const guild = await ctx.seed.row('guilds', { name: 'Racecheck Guild', tag: 'RCG', founder_id: w.player.id, leader_id: w.player.id });
+    await ctx.seed.row('guild_members', { guild_id: guild.id, player_id: w.player.id, role: 'founder' });
+    await ctx.db('players').where({ id: w.player.id }).update({ guild_id: guild.id, guild_tag: 'RCG', guild_role: 'founder' });
+    const members: { id: number }[] = [];
+    for (let i = 0; i < officers; i++) {
+        const m = await ctx.seed.row('players', { username: `Officer${i}`, email: `officer${i}@racecheck.test`, current_location_id: w.town.id, guild_id: guild.id, guild_tag: 'RCG', guild_role: 'officer' });
+        await ctx.seed.row('guild_members', { guild_id: guild.id, player_id: m.id, role: 'officer' });
+        members.push(m);
+    }
+    await ctx.seed.row('guild_hall_tiers', { tier: 1, capacity, requirements: JSON.stringify([]) });
+    const hall = await ctx.seed.row('guild_halls', { guild_id: guild.id, island: 'Racecheck Isle', location_id: w.town.id, tier: 1 });
+    const other = await ctx.seed.row('items', { name: 'Racecheck Ore', type: 'material' });
+    return { w, guild, hall, other, members };
+}
+
+/** One request from each player, all at once (sessions warmed first so they land together). */
+async function together<T extends { id: number }>(ctx: Ctx, players: T[], fn: (p: T) => Promise<number>): Promise<number[]> {
+    for (const p of players) await ctx.warm(p.id);
+    return Promise.all(players.map(fn));
 }
 
 async function inPack(ctx: Ctx, playerId: number, itemId: number, quantity: number) {
@@ -1391,6 +1422,63 @@ const SCENARIOS: Scenario[] = [
                 ?? changed('Melee XP', Math.round(killXp(26, 0, 0).melee), Number(melee?.xp ?? 0))
                 ?? (left ? 'the fight is still running after a flee' : null)
                 ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'guild', name: 'five members deposit at once, racing for the last three places in their storehouse', rounds: 10,
+        run: async (ctx) => {
+            // Room is counted in items: 7 of 10 taken, 3 places left. Five
+            // members each put in 2 at once: at most 3 may go in, none may
+            // vanish, and the storehouse may never hold more than 10.
+            const g = await guildWorld(ctx, 10, 5);
+            for (const m of g.members) await inPack(ctx, m.id, g.w.plank.id, 2);
+            await ctx.seed.row('guild_storage', { hall_id: g.hall.id, item_id: g.other.id, quantity: 7 });
+            const st = await together(ctx, g.members, (m) => ctx.post(m.id, '/guild-hall/deposit', { itemId: g.w.plank.id, quantity: 2 }));
+            const stored = Number((await ctx.db('guild_storage').where({ hall_id: g.hall.id }).sum('quantity as n'))[0].n);
+            return changed('planks', 10, await ctx.itemTotal(g.w.plank.id))
+                ?? (stored > 10 ? `the storehouse holds ${stored} of 10` : null)
+                ?? (stored < 10 ? `only ${stored} of 10 places were filled` : null)
+                ?? (st.filter(x => x === 200).length < 1 ? 'no deposit succeeded' : null);
+        },
+    },
+    {
+        id: 'guild', name: 'five members take three each at once from a guild stack of five', rounds: 10,
+        run: async (ctx) => {
+            const g = await guildWorld(ctx, 100, 5);
+            await ctx.seed.row('guild_storage', { hall_id: g.hall.id, item_id: g.w.plank.id, quantity: 5 });
+            const st = await together(ctx, g.members, (m) => ctx.post(m.id, '/guild-hall/withdraw', { itemId: g.w.plank.id, quantity: 3 }));
+            const packs = Number((await ctx.db('player_inventory').where({ item_id: g.w.plank.id }).sum('quantity as n'))[0].n ?? 0);
+            return changed('planks', 5, await ctx.itemTotal(g.w.plank.id))
+                ?? changed('planks in packs', 5, packs)
+                ?? (st.filter(x => x === 200).length < 2 ? 'fewer than two withdrawals succeeded' : null);
+        },
+    },
+    {
+        id: 'guild', name: 'five members take 30 gold each at once from a guild purse of 100', rounds: 10,
+        run: async (ctx) => {
+            const g = await guildWorld(ctx, 100, 5);
+            await ctx.db('guild_halls').where({ id: g.hall.id }).update({ gold: 100 });
+            await together(ctx, g.members, (m) => ctx.post(m.id, '/guild-hall/gold/withdraw', { amount: 30 }));
+            const hallGold = Number((await ctx.db('guild_halls').where({ id: g.hall.id }).first()).gold);
+            let purses = 0;
+            for (const m of g.members) purses += await goldOf(ctx, m.id);
+            return changed('gold in purses and the storehouse together', 100, purses + hallGold)
+                ?? changed('gold taken', 90, purses)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'guild', name: 'five members put in 30 gold each at once', rounds: 10,
+        run: async (ctx) => {
+            const g = await guildWorld(ctx, 100, 5);
+            for (const m of g.members) await fund(ctx, m.id, 30);
+            await together(ctx, g.members, (m) => ctx.post(m.id, '/guild-hall/gold/deposit', { amount: 30 }));
+            const hallGold = Number((await ctx.db('guild_halls').where({ id: g.hall.id }).first()).gold);
+            let purses = 0;
+            for (const m of g.members) purses += await goldOf(ctx, m.id);
+            return changed('gold in purses and the storehouse together', 150, purses + hallGold)
+                ?? changed('gold given', 150, hallGold)
+                ?? await ledgerProblem(ctx);
         },
     },
     {

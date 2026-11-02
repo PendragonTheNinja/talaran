@@ -464,6 +464,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         ))}
 
+        {/* Your guild's hall stands here (server services/guildHall.ts). */}
+        {locationData?.guildHallHere && (
+          <button
+            className={`location-action-btn ${currentAction === 'guild_build' ? 'active' : ''}`}
+            onClick={() => onStartAction('guild_hall_menu', 0)}
+          >
+            Guild Hall →
+          </button>
+        )}
+
         {/* A rift: gems are filled here (services/talar.ts). The flag is the
             location row's own, so any later rift gets this with no client change. */}
         {location?.is_rift && (

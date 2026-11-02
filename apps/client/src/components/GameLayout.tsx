@@ -506,6 +506,10 @@ export default function GameLayout({
       setShowLapidaryMenu(true)
     } else if (type === 'talar_fill_menu') {
       setShowTalarFill(true)
+    } else if (type === 'guild_hall_menu') {
+      // Through an event: the Guild panel's state is declared below this
+      // callback (the listener sits after it).
+      window.dispatchEvent(new CustomEvent('talaran:open-guild', { detail: { tab: 'hall' } }))
     } else if (type === 'shop_build') {
       // Raising a shopfront is Carpentry construction, so it borrows the
       // farming timer the farmstead already uses. id carries the seconds.
@@ -554,6 +558,17 @@ export default function GameLayout({
   const [actionLimit, setActionLimit] = useState<number | null>(null)
 
   const [showGuildPanel, setShowGuildPanel] = useState(false)
+  // Which tab the Guild panel opens on: the hall's location button opens 'hall'.
+  const [guildTab, setGuildTab] = useState<'overview' | 'hall'>('overview')
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab
+      setGuildTab(tab === 'hall' ? 'hall' : 'overview')
+      setShowGuildPanel(true)
+    }
+    window.addEventListener('talaran:open-guild', onOpen)
+    return () => window.removeEventListener('talaran:open-guild', onOpen)
+  }, [])
   const [guildClosing, setGuildClosing] = useState(false)
 
   const [showMessages, setShowMessages] = useState(false)
@@ -1233,7 +1248,10 @@ export default function GameLayout({
 
       {showGuildPanel && (
         <GuildPanel
-          onClose={() => closePanel(setGuildClosing, setShowGuildPanel)}
+          key={guildTab}
+          initialTab={guildTab}
+          onStartBuild={(item) => setGameViewAction({ type: 'guild_build', id: item })}
+          onClose={() => { closePanel(setGuildClosing, setShowGuildPanel); setGuildTab('overview') }}
           closing={guildClosing}
           playerUsername={player.username}
           onViewProfile={(id) => setProfilePlayerId(id)}
