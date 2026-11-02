@@ -593,7 +593,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
                     {/* The guild's hall on this island: building, storehouse, ledger. */}
                     {view === 'my_guild' && tab === 'hall' && (
-                        <GuildHallTab onStartBuild={(item) => { onStartBuild?.(item); onClose() }} />
+                        <GuildHallTab myName={playerUsername} onStartBuild={(item) => { onStartBuild?.(item); onClose() }} />
                     )}
 
                     {view === 'my_guild' && tab === 'members' && (

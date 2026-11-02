@@ -3,7 +3,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import {
-    abandonHall, depositGold, depositItems, foundHall, hallState, startBuild, withdrawGold, withdrawItems,
+    abandonHall, approveRequest, cancelRequest, collectRequest, denyRequest, depositGold, depositItems, foundHall,
+    hallState, requestItems, startBuild, withdrawGold, withdrawItems,
 } from '../services/guildHall';
 
 // Guild halls and storehouses (services/guildHall.ts). Every rule, presence
@@ -33,5 +34,12 @@ router.post('/deposit', requireAuth, async (req: AuthRequest, res: Response) => 
 router.post('/withdraw', requireAuth, async (req: AuthRequest, res: Response) => send(res, await withdrawItems(req.player!.playerId, req.body?.itemId, req.body?.quantity)));
 router.post('/gold/deposit', requireAuth, async (req: AuthRequest, res: Response) => send(res, await depositGold(req.player!.playerId, req.body?.amount)));
 router.post('/gold/withdraw', requireAuth, async (req: AuthRequest, res: Response) => send(res, await withdrawGold(req.player!.playerId, req.body?.amount)));
+
+// Requests, for ranks that cannot take from the storehouse themselves.
+router.post('/request', requireAuth, async (req: AuthRequest, res: Response) => send(res, await requestItems(req.player!.playerId, req.body?.itemId, req.body?.quantity)));
+router.post('/requests/:id/approve', requireAuth, async (req: AuthRequest, res: Response) => send(res, await approveRequest(req.player!.playerId, req.params.id)));
+router.post('/requests/:id/deny', requireAuth, async (req: AuthRequest, res: Response) => send(res, await denyRequest(req.player!.playerId, req.params.id)));
+router.post('/requests/:id/cancel', requireAuth, async (req: AuthRequest, res: Response) => send(res, await cancelRequest(req.player!.playerId, req.params.id)));
+router.post('/requests/:id/collect', requireAuth, async (req: AuthRequest, res: Response) => send(res, await collectRequest(req.player!.playerId, req.params.id)));
 
 export default router;

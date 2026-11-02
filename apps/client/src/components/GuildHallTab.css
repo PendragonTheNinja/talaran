@@ -61,3 +61,22 @@
     .hall-req-btn { width: 100%; }
     .hall-ledger-row { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* Storehouse requests: who asks for what, and the buttons that answer. */
+.hall-requests { display: flex; flex-direction: column; gap: var(--space-sm); }
+.hall-request {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    padding: 6px 8px;
+    font-size: 14px;
+}
+.hall-request-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.hall-request-actions .btn { font-size: 11px; }
+@media (max-width: 560px) {
+    .hall-request { flex-wrap: wrap; }
+    .hall-request-actions { width: 100%; justify-content: flex-end; }
+}

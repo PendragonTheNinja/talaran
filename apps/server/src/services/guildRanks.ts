@@ -40,7 +40,9 @@ export const GUILD_PERMISSIONS: GuildPermission[] = [
     { key: 'promote', label: 'Promote and demote lower ranks' },
     { key: 'withdraw_items', label: 'Take items from the storehouse' },
     { key: 'withdraw_gold', label: 'Take gold from the storehouse' },
+    { key: 'approve_requests', label: 'Approve requests from the storehouse' },
     { key: 'manage_forum', label: 'Manage the guild forum' },
+    { key: 'post_news', label: 'Post guild news' },
 ];
 const PERMISSION_KEYS = new Set(GUILD_PERMISSIONS.map(p => p.key));
 
@@ -49,7 +51,7 @@ export const CONFIGURABLE_RANKS = ['officer', 'member', 'recruit'] as const;
 type ConfigurableRank = typeof CONFIGURABLE_RANKS[number];
 
 export const DEFAULT_RANK_PERMISSIONS: Record<ConfigurableRank, string[]> = {
-    officer: ['invite', 'kick', 'promote', 'withdraw_items', 'withdraw_gold', 'manage_forum'],
+    officer: ['invite', 'kick', 'promote', 'withdraw_items', 'withdraw_gold', 'approve_requests', 'manage_forum', 'post_news'],
     member: ['withdraw_items'],
     recruit: [],
 };

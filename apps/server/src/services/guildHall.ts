@@ -1,6 +1,6 @@
 import db from '../db';
 import { logger } from '../lib/logger';
-import { pushToRoom } from '../lib/realtime';
+import { pushToPlayer, pushToRoom } from '../lib/realtime';
 import { rungOfTier } from '../lib/tiers';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
@@ -62,9 +62,11 @@ async function capacityAt(tier: number, x: any = db): Promise<number> {
     return (await tierRow(tier, x))?.capacity ?? 0;
 }
 
+/** Room taken: what is on the shelves plus what is set aside for approved requests. */
 async function usedRoom(hallId: number, x: any = db): Promise<number> {
     const [{ n }] = await x('guild_storage').where({ hall_id: hallId }).sum('quantity as n');
-    return Number(n ?? 0);
+    const [{ m }] = await x('guild_storage_requests').where({ hall_id: hallId, status: 'approved' }).sum('quantity as m');
+    return Number(n ?? 0) + Number(m ?? 0);
 }
 
 /** Where the player stands, and the island it is on. */
@@ -120,7 +122,11 @@ export async function hallState(playerId: number) {
         canFound: me.isLeader && !onIsland,
         canWithdrawItems: me.can('withdraw_items'),
         canWithdrawGold: me.can('withdraw_gold'),
+        canApprove: me.can('approve_requests'),
         isLeader: me.isLeader,
+        // Open requests: every one for an approver, only their own for anyone else.
+        // Shown wherever the player is, so an officer can answer from afar.
+        requests: onIsland ? await openRequests(onIsland.id, me.can('approve_requests') ? null : playerId) : [],
     };
     if (!atHall || !onIsland) return base;
 
@@ -142,7 +148,7 @@ export async function hallState(playerId: number) {
         .select('i.id as item_id', 'i.name', 'i.type', 'i.subtype', 'i.tier', 'i.quality', 'i.description', 's.quantity');
     const ledger = await db('guild_storage_ledger as g').leftJoin('items as i', 'i.id', 'g.item_id')
         .where('g.hall_id', hall.id).orderBy('g.id', 'desc').limit(100)
-        .select('g.player_name', 'i.name as item_name', 'g.delta', 'g.created_at');
+        .select('g.player_name', 'i.name as item_name', 'g.delta', 'g.created_at', 'g.approved_by_name');
     const builders = await db('guild_hall_contributions as c').join('players as p', 'p.id', 'c.player_id')
         .where('c.hall_id', hall.id).groupBy('p.username').sum('c.quantity as given')
         .select('p.username').orderBy('given', 'desc').limit(20);
@@ -172,7 +178,7 @@ export async function hallState(playerId: number) {
                 }),
             } : null,
             storage: storage.map((r: any) => ({ ...r, quantity: Number(r.quantity) })),
-            ledger: ledger.map((r: any) => ({ player: r.player_name, item: r.item_name ?? null, delta: Number(r.delta), at: r.created_at })),
+            ledger: ledger.map((r: any) => ({ player: r.player_name, item: r.item_name ?? null, delta: Number(r.delta), at: r.created_at, approvedBy: r.approved_by_name ?? null })),
             builders: builders.map((b: any) => ({ name: b.username, given: Number(b.given) })),
         },
     };
@@ -471,7 +477,182 @@ export async function guildStorehousesHoldAnything(guildId: number): Promise<boo
     const halls = await db('guild_halls').where({ guild_id: guildId }).select('id', 'gold');
     if (halls.some((h: any) => Number(h.gold) > 0)) return true;
     if (!halls.length) return false;
-    const row = await db('guild_storage').whereIn('hall_id', halls.map((h: any) => h.id)).where('quantity', '>', 0).first();
-    return !!row;
+    for (const h of halls) if ((await usedRoom(h.id)) > 0) return true;
+    return false;
+}
+
+// ── Requests ────────────────────────────────────────────────────────────────
+//
+// For members whose rank cannot take from the storehouse. pending -> approved
+// (the items are taken off the shelves and held in the request) -> collected
+// at the hall; or denied, or cancelled. Every step is a conditional update on
+// the request's status, so two approvals, or a collect and a cancel, cannot
+// both happen.
+
+const OPEN_REQUESTS_PER_PLAYER = 10;
+
+async function openRequests(hallId: number, onlyPlayerId: number | null) {
+    const q = db('guild_storage_requests as r').join('items as i', 'i.id', 'r.item_id')
+        .where('r.hall_id', hallId).whereIn('r.status', ['pending', 'approved'])
+        .orderBy('r.id')
+        .select('r.id', 'r.player_id', 'r.player_name', 'i.name as item', 'r.item_id', 'r.quantity', 'r.status', 'r.decided_by_name', 'r.created_at');
+    if (onlyPlayerId !== null) q.where('r.player_id', onlyPlayerId);
+    return (await q).map((r: any) => ({
+        id: r.id, playerId: r.player_id, player: r.player_name, item: r.item, itemId: r.item_id,
+        quantity: Number(r.quantity), status: r.status, approvedBy: r.decided_by_name, at: r.created_at,
+    }));
+}
+
+/** The request, locked, with the hall it belongs to; refuses unless it is the acting player's guild's. */
+async function lockedRequest(trx: any, requestId: number, guildId: number) {
+    const req = await trx('guild_storage_requests').where({ id: requestId }).forUpdate().first();
+    if (!req) throw new HallAbort('No such request.', 404);
+    const hall = await trx('guild_halls').where({ id: req.hall_id }).first();
+    if (!hall || hall.guild_id !== guildId) throw new HallAbort('No such request.', 404);
+    return { req, hall };
+}
+
+/** Put a request's set-aside items back on the shelves. */
+async function returnToShelves(trx: any, req: any) {
+    await trx('guild_storage').insert({ hall_id: req.hall_id, item_id: req.item_id, quantity: req.quantity })
+        .onConflict(['hall_id', 'item_id']).merge({ quantity: trx.raw('guild_storage.quantity + ?', [req.quantity]) });
+}
+
+/** Ask for items from the storehouse. At the hall; for ranks that cannot simply take them. */
+export async function requestItems(playerId: number, itemIdRaw: unknown, qtyRaw: unknown): Promise<Ok<{ id: number }> | Refused> {
+    try {
+        const itemId = count(itemIdRaw), qty = count(qtyRaw);
+        if (!itemId || !qty) throw new HallAbort('Choose something to ask for, and how many.');
+        let guildId = 0;
+        const id = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first();
+            const { me, here, hall } = await hallHere(playerId, trx, true);
+            guildId = me.guildId;
+            if (me.can('withdraw_items')) throw new HallAbort('Your rank may take it from the storehouse yourself.');
+            const row = await trx('guild_storage').where({ hall_id: hall.id, item_id: itemId }).first('quantity');
+            if (Number(row?.quantity ?? 0) < qty) throw new HallAbort('The storehouse does not hold that many.');
+            const [{ n }] = await trx('guild_storage_requests').where({ player_id: playerId }).whereIn('status', ['pending', 'approved']).count('* as n');
+            if (Number(n) >= OPEN_REQUESTS_PER_PLAYER) throw new HallAbort(`You have ${OPEN_REQUESTS_PER_PLAYER} requests open already. Collect or cancel one first.`);
+            const [created] = await trx('guild_storage_requests')
+                .insert({ hall_id: hall.id, player_id: playerId, player_name: here.username, item_id: itemId, quantity: qty })
+                .returning('id');
+            return Number(created.id ?? created);
+        });
+        announce(guildId);
+        return { ok: true, id };
+    } catch (err) {
+        return refuse(err, 'request');
+    }
+}
+
+/** Yes to a request: its items come off the shelves and wait for the member. From anywhere. */
+export async function approveRequest(playerId: number, requestIdRaw: unknown): Promise<Ok<{}> | Refused> {
+    try {
+        const requestId = count(requestIdRaw);
+        if (!requestId) throw new HallAbort('Which request?');
+        const me = await membershipOf(playerId);
+        if (!me) throw new HallAbort('You are not in a guild.', 403);
+        if (!me.can('approve_requests')) throw new HallAbort('Your rank cannot approve requests.', 403);
+        let requester: number | null = null;
+        await db.transaction(async (trx) => {
+            const name = (await trx('players').where({ id: playerId }).first('username'))?.username ?? '';
+            const pre = await trx('guild_storage_requests').where({ id: requestId }).first('hall_id');
+            if (pre) await trx('guild_halls').where({ id: pre.hall_id }).forUpdate().first();
+            const { req } = await lockedRequest(trx, requestId, me.guildId);
+            if (req.status !== 'pending') throw new HallAbort('That request has already been answered.', 409);
+            const stock = await trx('guild_storage').where({ hall_id: req.hall_id, item_id: req.item_id }).forUpdate().first();
+            if (Number(stock?.quantity ?? 0) < req.quantity) throw new HallAbort('The storehouse no longer holds that many.');
+            if (Number(stock.quantity) === req.quantity) await trx('guild_storage').where({ hall_id: req.hall_id, item_id: req.item_id }).delete();
+            else await trx('guild_storage').where({ hall_id: req.hall_id, item_id: req.item_id }).decrement('quantity', req.quantity);
+            const moved = await trx('guild_storage_requests').where({ id: requestId, status: 'pending' })
+                .update({ status: 'approved', decided_by: playerId, decided_by_name: name, decided_at: trx.fn.now() });
+            if (moved !== 1) throw new HallAbort('That request has already been answered.', 409);
+            requester = req.player_id;
+        });
+        announce(me.guildId);
+        if (requester) pushToPlayerSafe(requester, 'guild_request_approved');
+        return { ok: true };
+    } catch (err) {
+        return refuse(err, 'approve');
+    }
+}
+
+/**
+ * No to a request, by an approver: a pending one is turned down; an approved
+ * one not yet collected is withdrawn, its items going back on the shelves.
+ */
+export async function denyRequest(playerId: number, requestIdRaw: unknown): Promise<Ok<{}> | Refused> {
+    return closeRequest(playerId, requestIdRaw, 'deny');
+}
+
+/** The requester calls off their own request, pending or approved. */
+export async function cancelRequest(playerId: number, requestIdRaw: unknown): Promise<Ok<{}> | Refused> {
+    return closeRequest(playerId, requestIdRaw, 'cancel');
+}
+
+async function closeRequest(playerId: number, requestIdRaw: unknown, how: 'deny' | 'cancel'): Promise<Ok<{}> | Refused> {
+    try {
+        const requestId = count(requestIdRaw);
+        if (!requestId) throw new HallAbort('Which request?');
+        const me = await membershipOf(playerId);
+        if (!me) throw new HallAbort('You are not in a guild.', 403);
+        await db.transaction(async (trx) => {
+            const name = (await trx('players').where({ id: playerId }).first('username'))?.username ?? '';
+            const pre = await trx('guild_storage_requests').where({ id: requestId }).first('hall_id');
+            if (pre) await trx('guild_halls').where({ id: pre.hall_id }).forUpdate().first();
+            const { req } = await lockedRequest(trx, requestId, me.guildId);
+            if (how === 'deny' && !me.can('approve_requests')) throw new HallAbort('Your rank cannot answer requests.', 403);
+            if (how === 'cancel' && req.player_id !== playerId) throw new HallAbort('That is not your request.', 403);
+            if (req.status !== 'pending' && req.status !== 'approved') throw new HallAbort('That request is already closed.', 409);
+            const closed = await trx('guild_storage_requests').where({ id: requestId, status: req.status })
+                .update({
+                    status: how === 'deny' ? 'denied' : 'cancelled',
+                    closed_at: trx.fn.now(),
+                    ...(how === 'deny' && req.status === 'pending' ? { decided_by: playerId, decided_by_name: name, decided_at: trx.fn.now() } : {}),
+                });
+            if (closed !== 1) throw new HallAbort('That request is already closed.', 409);
+            if (req.status === 'approved') await returnToShelves(trx, req);
+        });
+        announce(me.guildId);
+        return { ok: true };
+    } catch (err) {
+        return refuse(err, how);
+    }
+}
+
+/** Take an approved request's items into the pack. At the hall. */
+export async function collectRequest(playerId: number, requestIdRaw: unknown): Promise<Ok<{ moved: number }> | Refused> {
+    try {
+        const requestId = count(requestIdRaw);
+        if (!requestId) throw new HallAbort('Which request?');
+        let guildId = 0;
+        const moved = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first();
+            const { me, here, hall } = await hallHere(playerId, trx, true);
+            guildId = me.guildId;
+            const { req } = await lockedRequest(trx, requestId, me.guildId);
+            if (req.player_id !== playerId) throw new HallAbort('That is not your request.', 403);
+            if (req.hall_id !== hall.id) throw new HallAbort('That request is for another of your guild\'s halls.');
+            if (req.status !== 'approved') throw new HallAbort(req.status === 'pending' ? 'That request is still waiting for an answer.' : 'That request is closed.', 409);
+            const done = await trx('guild_storage_requests').where({ id: requestId, status: 'approved' })
+                .update({ status: 'collected', closed_at: trx.fn.now() });
+            if (done !== 1) throw new HallAbort('That request is closed.', 409);
+            await addItemToInventoryWithin(trx, playerId, req.item_id, req.quantity);
+            await trx('guild_storage_ledger').insert({
+                hall_id: hall.id, player_id: playerId, player_name: here.username, item_id: req.item_id,
+                delta: -req.quantity, approved_by_name: req.decided_by_name,
+            });
+            return Number(req.quantity);
+        });
+        announce(guildId);
+        return { ok: true, moved };
+    } catch (err) {
+        return refuse(err, 'collect');
+    }
+}
+
+/** A push that can never break the caller. */
+function pushToPlayerSafe(playerId: number, event: string) {
+    try { pushToPlayer(playerId, event, {}); } catch { /* best effort */ }
 }
 

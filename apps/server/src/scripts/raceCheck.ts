@@ -318,7 +318,8 @@ async function itemTotal(db: Db, itemId: number): Promise<number> {
              + (SELECT coalesce(sum(quantity), 0) FROM ground_items    WHERE item_id = $1)
              + (SELECT coalesce(sum(quantity), 0) FROM shop_listings   WHERE item_id = $1)
              + (SELECT coalesce(sum(quantity), 0) FROM guild_storage   WHERE item_id = $1)
-             + ${worn} AS total`.replace(/\$1/g, '?'), Array(5 + SLOT_COLUMNS.length).fill(itemId));
+             + (SELECT coalesce(sum(quantity), 0) FROM guild_storage_requests WHERE item_id = $1 AND status = 'approved')
+             + ${worn} AS total`.replace(/\$1/g, '?'), Array(6 + SLOT_COLUMNS.length).fill(itemId));
     return Number(rows[0].total);
 }
 
@@ -1479,6 +1480,42 @@ const SCENARIOS: Scenario[] = [
             return changed('gold in purses and the storehouse together', 150, purses + hallGold)
                 ?? changed('gold given', 150, hallGold)
                 ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'guild', name: 'five officers each approve a different request of 2 at once from a shelf of 5', rounds: 10,
+        run: async (ctx) => {
+            // Ten asked for, five held: at most two requests can be approved,
+            // and the shelf may never go below zero or promise twice.
+            const g = await guildWorld(ctx, 100, 5);
+            await ctx.seed.row('guild_storage', { hall_id: g.hall.id, item_id: g.w.plank.id, quantity: 5 });
+            const requests: { id: number }[] = [];
+            for (let i = 0; i < 5; i++) {
+                requests.push(await ctx.seed.row('guild_storage_requests', { hall_id: g.hall.id, player_id: g.w.player.id, player_name: 'Pendragon', item_id: g.w.plank.id, quantity: 2 }));
+            }
+            await together(ctx, g.members, (m) => ctx.post(m.id, `/guild-hall/requests/${requests[g.members.indexOf(m)].id}/approve`, {}));
+            const approved = (await ctx.db('guild_storage_requests').where({ hall_id: g.hall.id, status: 'approved' })).length;
+            return changed('planks', 5, await ctx.itemTotal(g.w.plank.id))
+                ?? (approved > 2 ? `${approved} requests of 2 were approved from a shelf of 5` : null)
+                ?? (approved < 2 ? `only ${approved} could be approved` : null);
+        },
+    },
+    {
+        id: 'guild', name: 'five officers approve one request at once while its requester cancels it', rounds: 10,
+        run: async (ctx) => {
+            const g = await guildWorld(ctx, 100, 5);
+            await ctx.seed.row('guild_storage', { hall_id: g.hall.id, item_id: g.w.plank.id, quantity: 5 });
+            const req = await ctx.seed.row('guild_storage_requests', { hall_id: g.hall.id, player_id: g.w.player.id, player_name: 'Pendragon', item_id: g.w.plank.id, quantity: 3 });
+            await ctx.warm(g.w.player.id);
+            await Promise.all([
+                together(ctx, g.members, (m) => ctx.post(m.id, `/guild-hall/requests/${req.id}/approve`, {})),
+                ctx.post(g.w.player.id, `/guild-hall/requests/${req.id}/cancel`, {}),
+            ]);
+            const row = await ctx.db('guild_storage_requests').where({ id: req.id }).first();
+            const shelf = Number((await ctx.db('guild_storage').where({ hall_id: g.hall.id, item_id: g.w.plank.id }).first())?.quantity ?? 0);
+            return changed('planks', 5, await ctx.itemTotal(g.w.plank.id))
+                ?? (row.status === 'cancelled' && shelf !== 5 ? `cancelled, but the shelf holds ${shelf} of 5` : null)
+                ?? (row.status === 'approved' && shelf !== 2 ? `approved, but the shelf holds ${shelf}, not 2` : null);
         },
     },
     {

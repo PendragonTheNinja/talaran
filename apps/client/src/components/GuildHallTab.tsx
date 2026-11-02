@@ -17,7 +17,8 @@ import './GuildHallTab.css'
 interface Requirement { item: string; needed: number; delivered: number; exists: boolean; held: number }
 interface StoredItem { item_id: number; name: string; type: string; subtype: string | null; quantity: number; description?: string }
 interface CarriedItem { item_id: number; name: string; type: string; subtype?: string | null; quantity: number; description?: string; synthetic?: boolean }
-interface LedgerRow { player: string; item: string | null; delta: number; at: string }
+interface LedgerRow { player: string; item: string | null; delta: number; at: string; approvedBy?: string | null }
+interface Request { id: number; playerId: number | null; player: string; item: string; itemId: number; quantity: number; status: 'pending' | 'approved'; approvedBy: string | null; at: string }
 
 interface HallState {
     inGuild: boolean
@@ -30,7 +31,10 @@ interface HallState {
     canFound: boolean
     canWithdrawItems: boolean
     canWithdrawGold: boolean
+    canApprove: boolean
     isLeader: boolean
+    /** Open requests: all of them for an approver, only your own otherwise. */
+    requests: Request[]
     hall?: {
         tier: number
         maxTier: number
@@ -49,10 +53,10 @@ interface GuildHallTabProps {
     onStartBuild: (item: string) => void
 }
 
-export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
+export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps & { myName?: string }) {
     const [state, setState] = useState<HallState | null>(null)
     const [carried, setCarried] = useState<CarriedItem[]>([])
-    const [sub, setSub] = useState<'build' | 'store' | 'ledger'>('build')
+    const [sub, setSub] = useState<'build' | 'store' | 'requests' | 'ledger'>('build')
     const [amount, setAmount] = useState(1)
     const [goldText, setGoldText] = useState('')
     const [error, setError] = useState('')
@@ -103,6 +107,46 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
             setBusy(false)
         }
     }
+
+    /** Open requests, with what this player may do about each. */
+    const requestList = (s: HallState) => (
+        <div className="hall-requests">
+            {s.requests.length === 0 && <p className="store-empty">No requests are open.</p>}
+            {s.requests.map(r => {
+                const mine = r.player === myName
+                return (
+                    <div key={r.id} className="hall-request">
+                        <div className="inventory-slot occupied hall-req-icon" {...hoverProps({ name: r.item })}>
+                            <img src={getItemIcon(r.item)} alt={r.item} className="inventory-item-icon" onError={e => { e.currentTarget.style.display = 'none' }} />
+                        </div>
+                        <div className="hall-req-body">
+                            <span>{mine ? 'You ask' : `${r.player} asks`} for {r.quantity.toLocaleString()} {r.item}</span>
+                            <span className="muted-text hall-req-count">
+                                {r.status === 'approved' ? `Approved by ${r.approvedBy ?? 'an officer'}, set aside at the hall` : 'Waiting for an answer'}
+                            </span>
+                        </div>
+                        <div className="hall-request-actions">
+                            {s.canApprove && !mine && r.status === 'pending' && (
+                                <>
+                                    <button className="btn btn-gold" disabled={busy} onClick={() => act(`/requests/${r.id}/approve`, {})}>Approve</button>
+                                    <button className="btn" disabled={busy} onClick={() => act(`/requests/${r.id}/deny`, {})}>Deny</button>
+                                </>
+                            )}
+                            {s.canApprove && !mine && r.status === 'approved' && (
+                                <button className="btn" disabled={busy} onClick={() => act(`/requests/${r.id}/deny`, {})}>Withdraw</button>
+                            )}
+                            {mine && r.status === 'approved' && s.atHall && (
+                                <button className="btn btn-gold" disabled={busy} onClick={() => act(`/requests/${r.id}/collect`, {})}>Collect</button>
+                            )}
+                            {mine && (
+                                <button className="btn" disabled={busy} onClick={() => act(`/requests/${r.id}/cancel`, {})}>Cancel</button>
+                            )}
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
+    )
 
     if (!state) return <p className="muted-text" style={{ fontStyle: 'italic' }}>{error || 'Walking up to the hall…'}</p>
     if (!state.inGuild) return <p className="muted-text">You are not in a guild.</p>
@@ -158,6 +202,13 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
                     {state.hallOnIsland.tier > 0 ? `, tier ${state.hallOnIsland.tier}.` : ', its foundations laid.'}
                 </p>
                 <p className="muted-text">Go there to build it up or to use the storehouse.</p>
+                {state.requests.length > 0 && (
+                    <>
+                        <p className="guild-section-title">Storehouse Requests</p>
+                        {error && <p className="store-error">{error}</p>}
+                        {requestList(state)}
+                    </>
+                )}
                 {elsewhere}
             </div>
         )
@@ -179,6 +230,9 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
             <div className="hall-tabs">
                 <button className={`hall-tab ${sub === 'build' ? 'active' : ''}`} onClick={() => setSub('build')}>Building</button>
                 <button className={`hall-tab ${sub === 'store' ? 'active' : ''}`} onClick={() => setSub('store')} disabled={hall.tier < 1}>Storehouse</button>
+                <button className={`hall-tab ${sub === 'requests' ? 'active' : ''}`} onClick={() => setSub('requests')} disabled={hall.tier < 1}>
+                    Requests{state.requests.length > 0 ? ` (${state.requests.length})` : ''}
+                </button>
                 <button className={`hall-tab ${sub === 'ledger' ? 'active' : ''}`} onClick={() => setSub('ledger')} disabled={hall.tier < 1}>Ledger</button>
             </div>
 
@@ -277,7 +331,7 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
                     </div>
                     <p className="store-note">
                         Room is counted by the item: 300 Granite Blocks take 300 of it.
-                        {state.canWithdrawItems ? ' Tap the storehouse to take, your pack to put in.' : ' Tap your pack to put in. Your rank cannot take from it.'}
+                        {state.canWithdrawItems ? ' Tap the storehouse to take, your pack to put in.' : ' Tap your pack to put in. Tap the storehouse to ask for something; an officer will answer.'}
                     </p>
 
                     <StoreSortBar sort={sort} onChange={setSort} />
@@ -287,9 +341,14 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
                         {sortItems(hall.storage, sort.mode, sort.dir, sort.filter).map(item => (
                             <div
                                 key={item.item_id}
-                                className={`inventory-slot occupied store-slot ${state.canWithdrawItems ? '' : 'hall-locked'}`}
-                                {...hoverProps(item, state.canWithdrawItems ? `Left-click to take ${Math.min(amount, item.quantity)}` : undefined)}
-                                onClick={() => state.canWithdrawItems && !busy && act('/withdraw', { itemId: item.item_id, quantity: Math.min(amount, item.quantity) })}
+                                className="inventory-slot occupied store-slot"
+                                {...hoverProps(item, `Left-click to ${state.canWithdrawItems ? 'take' : 'ask for'} ${Math.min(amount, item.quantity)}`)}
+                                onClick={() => {
+                                    if (busy) return
+                                    const qty = Math.min(amount, item.quantity)
+                                    if (state.canWithdrawItems) act('/withdraw', { itemId: item.item_id, quantity: qty })
+                                    else act('/request', { itemId: item.item_id, quantity: qty }).then(() => setSub('requests'))
+                                }}
                             >
                                 <img src={getItemIcon(item.name)} alt={item.name} className="inventory-item-icon" onError={e => { e.currentTarget.style.display = 'none' }} />
                                 <span className="inventory-item-qty">{item.quantity.toLocaleString()}</span>
@@ -315,6 +374,8 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
                 </div>
             )}
 
+            {sub === 'requests' && hall.tier > 0 && requestList(state)}
+
             {sub === 'ledger' && hall.tier > 0 && (
                 <div className="hall-ledger">
                     {hall.ledger.length === 0 && <p className="store-empty">Nothing has gone in or out yet.</p>}
@@ -324,6 +385,7 @@ export default function GuildHallTab({ onStartBuild }: GuildHallTabProps) {
                             <span>{l.player}</span>
                             <span className={l.delta > 0 ? 'hall-in' : 'hall-out'}>
                                 {l.delta > 0 ? 'put in' : 'took'} {Math.abs(l.delta).toLocaleString()} {l.item ?? 'gold'}
+                                {l.approvedBy ? <span className="muted-text">, approved by {l.approvedBy}</span> : null}
                             </span>
                         </div>
                     ))}
