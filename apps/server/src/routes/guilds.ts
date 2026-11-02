@@ -49,7 +49,16 @@ router.get('/my', requireAuth, async (req: AuthRequest, res: Response) => {
         // What this player may do, and (for the leader) what every rank may do,
         // from services/guildRanks.ts. The client only decides what to draw.
         const me = await membershipOf(playerId);
+        // The three latest headlines from the News board, for the Overview.
+        const news = await db('guild_forum_threads as t')
+            .join('guild_forum_categories as c', 'c.id', 't.category_id')
+            .leftJoin('players as p', 'p.id', 't.author_id')
+            .where({ 'c.guild_id': player.guild_id, 'c.is_news': true, 't.is_deleted': false })
+            .where('c.min_role_view', '<=', me?.rank ?? 1)
+            .orderBy('t.created_at', 'desc').limit(3)
+            .select('t.id', 't.title', 't.created_at', 'p.username as author');
         res.json({
+            latestNews: news,
             guild: {
                 ...guild,
                 founderName: founder?.username,
@@ -153,7 +162,18 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
             guild_role: 'founder',
         });
 
-        // A starter board, so a new guild's forum is never an empty screen.
+        // A News board (officers post; everyone reads and replies), and a
+        // starter board, so a new guild's forum is never an empty screen.
+        await db('guild_forum_categories').insert({
+            guild_id: guild.id,
+            name: 'News',
+            description: 'Word from the guild\'s officers.',
+            sort_order: -1,
+            min_role_view: 1,
+            min_role_post: 1,
+            is_news: true,
+            created_by: playerId,
+        });
         await db('guild_forum_categories').insert({
             guild_id: guild.id,
             name: 'General',

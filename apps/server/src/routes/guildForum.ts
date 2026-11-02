@@ -27,6 +27,8 @@ interface GuildContext {
     role: string;
     rank: number;
     canManage: boolean;
+    /** May start threads on the News board (post_news). */
+    canPostNews: boolean;
 }
 
 interface GuildRequest extends AuthRequest {
@@ -68,6 +70,7 @@ async function requireGuildMember(req: GuildRequest, res: Response, next: NextFu
             role: membership.role,
             rank: rankOf(membership.role),
             canManage: !!me?.can('manage_forum'),
+            canPostNews: !!me?.can('post_news'),
         };
 
         next();
@@ -148,7 +151,8 @@ router.get('/categories', async (req: GuildRequest, res: Response) => {
             return {
                 ...cat,
                 threadCount: parseInt(String(count?.count ?? 0)) || 0,
-                canPost: guild.rank >= cat.min_role_post,
+                // Starting a thread on News needs post_news; replies follow the board.
+                canPost: guild.rank >= cat.min_role_post && (!cat.is_news || guild.canPostNews),
                 lastThread: last || null,
             };
         }));
@@ -269,6 +273,11 @@ router.delete('/categories/:id', async (req: GuildRequest, res: Response) => {
             res.status(403).json({ error: 'Only the guild leader can delete a board.' });
             return;
         }
+        const target = await db('guild_forum_categories').where({ id: categoryId, guild_id: guild.id }).first('is_news');
+        if (target?.is_news) {
+            res.status(400).json({ error: 'The News board stays. You can rename it or change who reads it.' });
+            return;
+        }
 
         const deleted = await db('guild_forum_categories')
             .where({ id: categoryId, guild_id: guild.id })
@@ -320,7 +329,7 @@ router.get('/categories/:id/threads', async (req: GuildRequest, res: Response) =
         res.json({
             category,
             threads,
-            canPost: guild.rank >= category.min_role_post,
+            canPost: guild.rank >= category.min_role_post && (!category.is_news || guild.canPostNews),
             canManage: canManage(guild),
         });
     } catch (err) {
@@ -406,6 +415,10 @@ router.post('/threads', async (req: GuildRequest, res: Response) => {
 
         if (guild.rank < category.min_role_post) {
             res.status(403).json({ error: 'Your rank cannot post on that board.' });
+            return;
+        }
+        if (category.is_news && !guild.canPostNews) {
+            res.status(403).json({ error: 'Your rank cannot post guild news. You may reply to it.' });
             return;
         }
 

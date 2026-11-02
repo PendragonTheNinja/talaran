@@ -94,6 +94,9 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
     const [permissionCatalog, setPermissionCatalog] = useState<Permission[]>([])
     const [rankPerms, setRankPerms] = useState<RankPermissions | null>(null)
     const can = (key: string) => amLeader || myPermissions.includes(key)
+    // The latest headlines from the guild's News board, and a headline to open.
+    const [latestNews, setLatestNews] = useState<{ id: number; title: string; created_at: string; author: string | null }[]>([])
+    const [openThread, setOpenThread] = useState<number | null>(null)
     const [guildList, setGuildList] = useState<GuildListItem[]>([])
     const [applications, setApplications] = useState<Application[]>([])
     const [error, setError] = useState<string | null>(null)
@@ -122,6 +125,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                 guild: Guild | null; members: GuildMember[]; myRole: string
                 myRank?: number; isLeader?: boolean; myPermissions?: string[]
                 permissionCatalog?: Permission[]; rankPermissions?: RankPermissions
+                latestNews?: { id: number; title: string; created_at: string; author: string | null }[]
             }>('/api/guilds/my')
             if (data.guild) {
                 setGuild(data.guild)
@@ -139,6 +143,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                 setMyPermissions(data.myPermissions ?? [])
                 setPermissionCatalog(data.permissionCatalog ?? [])
                 setRankPerms(data.rankPermissions ?? null)
+                setLatestNews(data.latestNews ?? [])
                 setView('my_guild')
                 if (data.isLeader || (data.myPermissions ?? []).includes('invite')) {
                     const appData = await apiFetch<{ applications: Application[] }>('/api/guilds/applications')
@@ -397,7 +402,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         <button className={`guild-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
                             Members ({members.length})
                         </button>
-                        <button className={`guild-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
+                        <button className={`guild-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => { setOpenThread(null); setTab('forum') }}>
                             Forum
                         </button>
                         <button className={`guild-tab ${tab === 'hall' ? 'active' : ''}`} onClick={() => setTab('hall')}>
@@ -562,6 +567,19 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                             {guild.description && (
                                 <p className="guild-overview-desc">{guild.description}</p>
                             )}
+                            <div className="guild-news">
+                                <p className="guild-section-title">Guild News</p>
+                                {latestNews.length === 0 ? (
+                                    <p className="muted-text" style={{ fontSize: '13px' }}>
+                                        No news yet.{can('post_news') ? ' Post some on the News board in the Forum tab.' : ''}
+                                    </p>
+                                ) : latestNews.map(n => (
+                                    <button key={n.id} className="guild-news-item" onClick={() => { setOpenThread(n.id); setTab('forum') }}>
+                                        <span className="gold-text">{n.title}</span>
+                                        <span className="muted-text">{n.author ?? 'someone'} · {formatGameDate(new Date(n.created_at))}</span>
+                                    </button>
+                                ))}
+                            </div>
                             {can('invite') && (
                                 <div className="guild-invite-section">
                                     <p className="guild-section-title">Invite Player</p>
@@ -589,7 +607,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
                     {/* My guild — Members tab */}
                     {/* The guild's own forum: its own boards, its own permissions. */}
-                    {view === 'my_guild' && tab === 'forum' && <GuildForum />}
+                    {view === 'my_guild' && tab === 'forum' && <GuildForum key={openThread ?? 0} openThreadId={openThread} />}
 
                     {/* The guild's hall on this island: building, storehouse, ledger. */}
                     {view === 'my_guild' && tab === 'hall' && (

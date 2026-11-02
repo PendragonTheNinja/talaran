@@ -73,8 +73,9 @@ type View =
     | { kind: 'compose'; category: Category }
     | { kind: 'manage' }
 
-export default function GuildForum() {
-    const [view, setView] = useState<View>({ kind: 'boards' })
+/** Open straight to a thread (a headline tapped on the guild Overview). */
+export default function GuildForum({ openThreadId }: { openThreadId?: number | null } = {}) {
+    const [view, setView] = useState<View>(openThreadId ? { kind: 'thread', threadId: openThreadId } : { kind: 'boards' })
     const [categories, setCategories] = useState<Category[]>([])
     const [canManage, setCanManage] = useState(false)
     const [myRank, setMyRank] = useState(1)

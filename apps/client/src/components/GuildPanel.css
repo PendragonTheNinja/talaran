@@ -263,3 +263,22 @@
 .guild-perm-table input {
     accent-color: var(--color-gold);
 }
+
+/* Guild News on the Overview: the three latest headlines from the News board. */
+.guild-news { margin-top: var(--space-md); display: flex; flex-direction: column; gap: 4px; }
+.guild-news-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    text-align: left;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    cursor: pointer;
+}
+.guild-news-item:hover { border-color: var(--color-border-gold); }
+.guild-news-item .muted-text { font-size: 12px; }
