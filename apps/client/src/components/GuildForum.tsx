@@ -17,11 +17,14 @@ import { useDraft } from '../lib/drafts'
 // draw; the server decides what is allowed. Hiding a button is a courtesy, not a
 // control.
 
+// Recruit 1, Member 2, Officer 3, Leader 4 (server services/guildRanks.ts).
 const RANK_LABELS: Record<number, string> = {
-    1: 'All members',
-    2: 'Leaders and founder',
-    3: 'Founder only',
+    1: 'Everyone, Recruits too',
+    2: 'Members and above',
+    3: 'Officers and above',
+    4: 'Leader only',
 }
+const RANK_STEPS = [1, 2, 3, 4]
 
 interface Category {
     id: number
@@ -575,7 +578,7 @@ function ManageBoards({
                             value={cat.min_role_view}
                             onChange={e => update(cat, { min_role_view: parseInt(e.target.value) })}
                         >
-                            {[1, 2, 3].map(r => (
+                            {RANK_STEPS.map(r => (
                                 <option key={r} value={r}>{RANK_LABELS[r]}</option>
                             ))}
                         </select>
@@ -587,7 +590,7 @@ function ManageBoards({
                             value={cat.min_role_post}
                             onChange={e => update(cat, { min_role_post: parseInt(e.target.value) })}
                         >
-                            {[1, 2, 3].map(r => (
+                            {RANK_STEPS.map(r => (
                                 <option key={r} value={r}>{RANK_LABELS[r]}</option>
                             ))}
                         </select>
@@ -623,14 +626,14 @@ function ManageBoards({
                     <label>
                         <span className="muted-text">Who can read</span>
                         <select value={minView} onChange={e => setMinView(parseInt(e.target.value))}>
-                            {[1, 2, 3].map(r => <option key={r} value={r}>{RANK_LABELS[r]}</option>)}
+                            {RANK_STEPS.map(r => <option key={r} value={r}>{RANK_LABELS[r]}</option>)}
                         </select>
                     </label>
 
                     <label>
                         <span className="muted-text">Who can post</span>
                         <select value={minPost} onChange={e => setMinPost(parseInt(e.target.value))}>
-                            {[1, 2, 3].map(r => <option key={r} value={r}>{RANK_LABELS[r]}</option>)}
+                            {RANK_STEPS.map(r => <option key={r} value={r}>{RANK_LABELS[r]}</option>)}
                         </select>
                     </label>
                 </div>

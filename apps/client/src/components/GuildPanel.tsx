@@ -13,6 +13,8 @@ interface GuildMember {
     id: number
     username: string
     role: string
+    /** Recruit 1 up to Leader 4 (server services/guildRanks.ts). */
+    rank: number
     location_name: string
     last_seen: string
     joined_at: string
@@ -45,6 +47,15 @@ interface GuildListItem {
     min_level_requirement: number
 }
 
+interface Permission { key: string; label: string }
+type RankPermissions = Record<'officer' | 'member' | 'recruit', string[]>
+
+const RANK_CHOICES: { role: 'officer' | 'member' | 'recruit'; label: string; rank: number }[] = [
+    { role: 'officer', label: 'Officer', rank: 3 },
+    { role: 'member', label: 'Member', rank: 2 },
+    { role: 'recruit', label: 'Recruit', rank: 1 },
+]
+
 interface Application {
     id: number
     username: string
@@ -71,6 +82,13 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
     const [guild, setGuild] = useState<Guild | null>(null)
     const [members, setMembers] = useState<GuildMember[]>([])
     const [myRole, setMyRole] = useState<string | null>(null)
+    // What I may do, decided by the server (services/guildRanks.ts).
+    const [myRank, setMyRank] = useState(1)
+    const [amLeader, setAmLeader] = useState(false)
+    const [myPermissions, setMyPermissions] = useState<string[]>([])
+    const [permissionCatalog, setPermissionCatalog] = useState<Permission[]>([])
+    const [rankPerms, setRankPerms] = useState<RankPermissions | null>(null)
+    const can = (key: string) => amLeader || myPermissions.includes(key)
     const [guildList, setGuildList] = useState<GuildListItem[]>([])
     const [applications, setApplications] = useState<Application[]>([])
     const [error, setError] = useState<string | null>(null)
@@ -95,7 +113,11 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
     const loadGuildData = async () => {
         try {
-            const data = await apiFetch<{ guild: Guild | null; members: GuildMember[]; myRole: string }>('/api/guilds/my')
+            const data = await apiFetch<{
+                guild: Guild | null; members: GuildMember[]; myRole: string
+                myRank?: number; isLeader?: boolean; myPermissions?: string[]
+                permissionCatalog?: Permission[]; rankPermissions?: RankPermissions
+            }>('/api/guilds/my')
             if (data.guild) {
                 setGuild(data.guild)
                 setGuild(data.guild)
@@ -107,8 +129,13 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                 setSettingsMinLevel(data.guild.min_level_requirement || 1)
                 setMembers(data.members)
                 setMyRole(data.myRole)
+                setMyRank(data.myRank ?? 1)
+                setAmLeader(!!data.isLeader)
+                setMyPermissions(data.myPermissions ?? [])
+                setPermissionCatalog(data.permissionCatalog ?? [])
+                setRankPerms(data.rankPermissions ?? null)
                 setView('my_guild')
-                if (['founder', 'leader'].includes(data.myRole)) {
+                if (data.isLeader || (data.myPermissions ?? []).includes('invite')) {
                     const appData = await apiFetch<{ applications: Application[] }>('/api/guilds/applications')
                     setApplications(appData.applications)
                 }
@@ -249,7 +276,35 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
     const roleLabel = (role: string) => {
         if (role === 'founder') return '👑 Founder'
         if (role === 'leader') return '⚔ Leader'
+        if (role === 'officer') return '🛡 Officer'
+        if (role === 'recruit') return 'Recruit'
         return 'Member'
+    }
+
+    const handleSetRank = async (targetId: number, role: string) => {
+        try {
+            await apiFetch('/api/guilds/rank', { method: 'POST', body: JSON.stringify({ targetPlayerId: targetId, role }) })
+            setSuccess('Rank changed.')
+            await loadGuildData()
+        } catch (err: any) {
+            setError(err.message)
+        }
+    }
+
+    const togglePermission = (rank: keyof RankPermissions, key: string) => {
+        if (!rankPerms) return
+        const has = rankPerms[rank].includes(key)
+        setRankPerms({ ...rankPerms, [rank]: has ? rankPerms[rank].filter(k => k !== key) : [...rankPerms[rank], key] })
+    }
+
+    const handleSavePermissions = async () => {
+        try {
+            await apiFetch('/api/guilds/permissions', { method: 'PUT', body: JSON.stringify({ rankPermissions: rankPerms }) })
+            setSuccess('Rank permissions saved.')
+            loadGuildData()
+        } catch (err: any) {
+            setError(err.message)
+        }
     }
 
     const formatLastSeen = (lastSeen: string) => {
@@ -266,7 +321,6 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
         return `${days}d ago`
     }
 
-    const isLeader = ['founder', 'leader'].includes(myRole || '')
 
     const handleRespondInvite = async (inviteId: number, accept: boolean) => {
         try {
@@ -341,15 +395,15 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         <button className={`guild-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
                             Forum
                         </button>
-                        {['founder', 'leader'].includes(myRole || '') && (
-                            <>
-                                <button className={`guild-tab ${tab === 'applications' ? 'active' : ''}`} onClick={() => setTab('applications')}>
-                                    Applications {applications.length > 0 && <span className="guild-tab-badge">{applications.length}</span>}
-                                </button>
-                                <button className={`guild-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-                                    Settings
-                                </button>
-                            </>
+                        {can('invite') && (
+                            <button className={`guild-tab ${tab === 'applications' ? 'active' : ''}`} onClick={() => setTab('applications')}>
+                                Applications {applications.length > 0 && <span className="guild-tab-badge">{applications.length}</span>}
+                            </button>
+                        )}
+                        {amLeader && (
+                            <button className={`guild-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
+                                Settings
+                            </button>
                         )}
                     </div>
                 )}
@@ -500,7 +554,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                             {guild.description && (
                                 <p className="guild-overview-desc">{guild.description}</p>
                             )}
-                            {isLeader && (
+                            {can('invite') && (
                                 <div className="guild-invite-section">
                                     <p className="guild-section-title">Invite Player</p>
                                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -517,7 +571,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     </div>
                                 </div>
                             )}
-                            {myRole !== 'founder' && (
+                            {!amLeader && (
                                 <button className="btn btn-red" style={{ marginTop: '16px', fontSize: '13px' }} onClick={handleLeave}>
                                     Leave Guild
                                 </button>
@@ -531,10 +585,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
                     {view === 'my_guild' && tab === 'members' && (
                         <div className="guild-members">
-                            {members.sort((a, b) => {
-                                const roleOrder = { founder: 0, leader: 1, member: 2 }
-                                return (roleOrder[a.role as keyof typeof roleOrder] ?? 3) - (roleOrder[b.role as keyof typeof roleOrder] ?? 3)
-                            }).map(m => (
+                            {[...members].sort((a, b) => (b.rank ?? 1) - (a.rank ?? 1) || a.username.localeCompare(b.username)).map(m => (
                                 <div key={m.id} className="guild-member-item" style={{ cursor: 'pointer' }} onClick={() => onViewProfile?.(m.id)}>
                                     <div className="guild-member-status" style={{ background: m.online ? '#6ab87e' : '#c87e7e' }} />
                                     <div className="guild-member-info">
@@ -546,16 +597,31 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                             {m.online ? `📍 ${m.location_name}` : `Last seen: ${formatLastSeen(m.last_seen)}`}
                                         </span>
                                     </div>
-                                    {isLeader && m.username !== playerUsername && m.role !== 'founder' && (
+                                    {/* Only members ranked below you; the server checks the same. */}
+                                    {m.username !== playerUsername && (m.rank ?? 1) < myRank && (can('promote') || can('kick') || amLeader) && (
                                         <div className="guild-member-actions" onClick={e => e.stopPropagation()}>
-                                            {myRole === 'founder' && m.role !== 'leader' && (
+                                            {can('promote') && (
+                                                <select
+                                                    className="guild-rank-select"
+                                                    value={m.role}
+                                                    onChange={e => handleSetRank(m.id, e.target.value)}
+                                                    aria-label={`Rank for ${m.username}`}
+                                                >
+                                                    {RANK_CHOICES.filter(r => r.rank < myRank || r.role === m.role).map(r => (
+                                                        <option key={r.role} value={r.role} disabled={r.rank >= myRank}>{r.label}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            {amLeader && (
                                                 <button className="btn" style={{ fontSize: '11px' }} onClick={() => handleTransferLeadership(m.id, m.username)}>
                                                     Make Leader
                                                 </button>
                                             )}
-                                            <button className="btn btn-red" style={{ fontSize: '11px' }} onClick={() => handleKick(m.id, m.username)}>
-                                                Kick
-                                            </button>
+                                            {can('kick') && (
+                                                <button className="btn btn-red" style={{ fontSize: '11px' }} onClick={() => handleKick(m.id, m.username)}>
+                                                    Kick
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -667,6 +733,44 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                             <div className="guild-actions">
                                 <button className="btn btn-gold" onClick={handleSaveSettings}>Save Settings</button>
                             </div>
+
+                            {rankPerms && (
+                                <>
+                                    <div className="divider" style={{ margin: '16px 0' }} />
+                                    <p className="guild-section-title">What Each Rank May Do</p>
+                                    <p className="muted-text" style={{ fontSize: '13px', margin: '0 0 8px' }}>
+                                        You may always do everything. Whatever is ticked, a member only ever acts on those ranked below them, and only you can make Officers.
+                                    </p>
+                                    <table className="guild-perm-table">
+                                        <thead>
+                                            <tr>
+                                                <th />
+                                                {RANK_CHOICES.map(r => <th key={r.role}>{r.label}</th>)}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {permissionCatalog.map(p => (
+                                                <tr key={p.key}>
+                                                    <td>{p.label}</td>
+                                                    {RANK_CHOICES.map(r => (
+                                                        <td key={r.role}>
+                                                            <input
+                                                                type="checkbox"
+                                                                aria-label={`${r.label}: ${p.label}`}
+                                                                checked={rankPerms[r.role].includes(p.key)}
+                                                                onChange={() => togglePermission(r.role, p.key)}
+                                                            />
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    <div className="guild-actions">
+                                        <button className="btn btn-gold" onClick={handleSavePermissions}>Save Permissions</button>
+                                    </div>
+                                </>
+                            )}
 
                             <div className="divider" style={{ margin: '16px 0' }} />
 

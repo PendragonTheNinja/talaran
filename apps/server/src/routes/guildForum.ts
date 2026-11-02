@@ -3,6 +3,7 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { readText, TEXT_LIMITS } from '../lib/textLimits';
+import { membershipOf, rankOf } from '../services/guildRanks';
 
 // Each guild's own forum, inside its own page.
 //
@@ -18,14 +19,14 @@ import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
-// guild_members.role → rank. Higher outranks lower.
-const RANKS: Record<string, number> = { member: 1, leader: 2, founder: 3 };
+// Ranks and permissions live in services/guildRanks.ts: Recruit 1 up to Leader 4.
 
 interface GuildContext {
     id: number;
     name: string;
     role: string;
     rank: number;
+    canManage: boolean;
 }
 
 interface GuildRequest extends AuthRequest {
@@ -60,11 +61,13 @@ async function requireGuildMember(req: GuildRequest, res: Response, next: NextFu
             return;
         }
 
+        const me = await membershipOf(playerId);
         req.guild = {
             id: guild.id,
             name: guild.name,
             role: membership.role,
-            rank: RANKS[membership.role] ?? 1,
+            rank: rankOf(membership.role),
+            canManage: !!me?.can('manage_forum'),
         };
 
         next();
@@ -78,7 +81,7 @@ router.use(requireAuth, requireGuildMember);
 
 /** Leaders and the founder manage the forum's shape. */
 function canManage(guild: GuildContext): boolean {
-    return guild.rank >= RANKS.leader;
+    return guild.canManage;
 }
 
 /** A category the caller may read, scoped to their guild. Null if not. */
@@ -256,14 +259,14 @@ router.put('/categories/:id', async (req: GuildRequest, res: Response) => {
     }
 });
 
-/** Delete a board and everything in it. Founder only: it is destructive. */
+/** Delete a board and everything in it. Leader only (rank 4): it is destructive. */
 router.delete('/categories/:id', async (req: GuildRequest, res: Response) => {
     const guild = req.guild!;
     const categoryId = parseInt(String(req.params.id));
 
     try {
-        if (guild.rank < RANKS.founder) {
-            res.status(403).json({ error: 'Only the guild founder can delete a board.' });
+        if (guild.rank < 4) {
+            res.status(403).json({ error: 'Only the guild leader can delete a board.' });
             return;
         }
 
@@ -635,7 +638,7 @@ router.delete('/posts/:id', async (req: GuildRequest, res: Response) => {
 function clampRank(value: unknown): number {
     const n = Number(value);
     if (!Number.isFinite(n)) return 1;
-    return Math.min(3, Math.max(1, Math.round(n)));
+    return Math.min(4, Math.max(1, Math.round(n)));
 }
 
 export default router;

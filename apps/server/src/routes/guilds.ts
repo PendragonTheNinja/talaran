@@ -6,6 +6,10 @@ import { sendSystemMessage } from './messages';
 import { levelFromXp } from '../services/xp';
 import { isOnline, pushToPlayer } from '../lib/realtime';
 import { readText, TEXT_LIMITS } from '../lib/textLimits';
+import {
+    GUILD_PERMISSIONS, RANK_LABELS, CONFIGURABLE_RANKS, cleanRankPermissions, leaderRoleFor,
+    membershipOf, rankOf, rankPermissions, setRole, type Role,
+} from '../services/guildRanks';
 
 const router = Router();
 
@@ -41,14 +45,22 @@ router.get('/my', requireAuth, async (req: AuthRequest, res: Response) => {
         const founder = await db('players').where({ id: guild.founder_id }).select('username').first();
         const leader = await db('players').where({ id: guild.leader_id }).select('username').first();
 
+        // What this player may do, and (for the leader) what every rank may do,
+        // from services/guildRanks.ts. The client only decides what to draw.
+        const me = await membershipOf(playerId);
         res.json({
             guild: {
                 ...guild,
                 founderName: founder?.username,
                 leaderName: leader?.username,
             },
-            members: membersWithStatus,
-            myRole: player.guild_role,
+            members: membersWithStatus.map(m => ({ ...m, rank: rankOf(m.role), roleLabel: RANK_LABELS[m.role as Role] ?? m.role })),
+            myRole: me?.role ?? player.guild_role,
+            myRank: me?.rank ?? 1,
+            isLeader: !!me?.isLeader,
+            myPermissions: me ? GUILD_PERMISSIONS.map(p => p.key).filter(k => me.can(k)) : [],
+            permissionCatalog: GUILD_PERMISSIONS,
+            rankPermissions: me?.isLeader ? rankPermissions(guild.rank_permissions) : undefined,
         });
     } catch (err) {
         logger.error(`Get guild error: ${err}`);
@@ -171,9 +183,9 @@ router.post('/invite', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const isLeader = ['founder', 'leader'].includes(inviter.guild_role);
-        if (!isLeader) {
-            res.status(403).json({ error: 'Only leaders can send invites.' });
+        const me = await membershipOf(playerId);
+        if (!me?.can('invite')) {
+            res.status(403).json({ error: 'Your rank cannot send invites.' });
             return;
         }
 
@@ -282,16 +294,17 @@ router.post('/invites/:id/respond', requireAuth, async (req: AuthRequest, res: R
 
             const guild = await db('guilds').where({ id: invite.guild_id }).first();
 
+            // Everyone joins as a Recruit; the guild promotes them from there.
             await db('players').where({ id: playerId }).update({
                 guild_id: invite.guild_id,
                 guild_tag: guild.tag,
-                guild_role: 'member',
+                guild_role: 'recruit',
             });
 
             await db('guild_members').insert({
                 guild_id: invite.guild_id,
                 player_id: playerId,
-                role: 'member',
+                role: 'recruit',
             });
 
             await db('guild_invites').where({ id: inviteId }).update({ status: 'accepted' });
@@ -326,19 +339,22 @@ router.post('/kick', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        if (!['founder', 'leader'].includes(player.guild_role)) {
-            res.status(403).json({ error: 'You do not have permission to kick players.' });
+        const me = await membershipOf(playerId);
+        if (!me?.can('kick')) {
+            res.status(403).json({ error: 'Your rank cannot remove members.' });
             return;
         }
 
         const target = await db('players').where({ id: targetPlayerId }).first();
-        if (!target || target.guild_id !== player.guild_id) {
+        const theirs = target ? await membershipOf(target.id) : null;
+        if (!target || !theirs || theirs.guildId !== me.guildId) {
             res.status(404).json({ error: 'Player not found in your guild.' });
             return;
         }
 
-        if (target.guild_role === 'founder') {
-            res.status(403).json({ error: 'You cannot kick the guild founder.' });
+        // Only ever someone ranked below you. The leader outranks everyone.
+        if (theirs.isLeader || theirs.rank >= me.rank) {
+            res.status(403).json({ error: 'You can only remove members ranked below you.' });
             return;
         }
 
@@ -357,40 +373,103 @@ router.post('/kick', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-// Transfer leadership
+/** A hand-over that lost a race: thrown so its transaction rolls back. */
+class LeadershipMoved extends Error {}
+
+// Transfer leadership. The leader hands the guild on and becomes an Officer;
+// the new leader takes 'founder' if they founded it, 'leader' otherwise.
 router.post('/transfer-leadership', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
-    const { targetPlayerId } = req.body;
+    const targetPlayerId = Math.floor(Number(req.body?.targetPlayerId));
 
     try {
-        const player = await db('players').where({ id: playerId }).first();
-        if (!['founder', 'leader'].includes(player.guild_role)) {
-            res.status(403).json({ error: 'Only the leader or founder can transfer leadership.' });
+        const me = await membershipOf(playerId);
+        if (!me?.isLeader) {
+            res.status(403).json({ error: 'Only the leader can hand the guild on.' });
             return;
         }
-
-        const target = await db('players').where({ id: targetPlayerId }).first();
-        if (!target || target.guild_id !== player.guild_id) {
+        const theirs = Number.isFinite(targetPlayerId) ? await membershipOf(targetPlayerId) : null;
+        if (!theirs || theirs.guildId !== me.guildId || targetPlayerId === playerId) {
             res.status(404).json({ error: 'Player not found in your guild.' });
             return;
         }
 
-        // Update guild leader
-        await db('guilds').where({ id: player.guild_id }).update({ leader_id: targetPlayerId });
+        await db.transaction(async (trx) => {
+            // Conditional, so two hand-overs at once cannot both succeed.
+            const moved = await trx('guilds').where({ id: me.guildId, leader_id: playerId }).update({ leader_id: targetPlayerId });
+            if (moved !== 1) throw new LeadershipMoved();
+            await setRole(trx, me.guildId, playerId, 'officer');
+            await setRole(trx, me.guildId, targetPlayerId, leaderRoleFor(me.guild, targetPlayerId));
+        });
 
-        // Update old leader role — if founder stays founder, else becomes member
-        const newOldRole = player.guild_role === 'founder' ? 'founder' : 'member';
-        await db('guild_members').where({ guild_id: player.guild_id, player_id: playerId }).update({ role: newOldRole });
-        await db('players').where({ id: playerId }).update({ guild_role: newOldRole });
-
-        // New leader
-        await db('guild_members').where({ guild_id: player.guild_id, player_id: targetPlayerId }).update({ role: 'leader' });
-        await db('players').where({ id: targetPlayerId }).update({ guild_role: 'leader' });
-
-        logger.info(`Player ${playerId} transferred leadership to ${targetPlayerId}`);
+        logger.info(`Player ${playerId} transferred leadership of guild ${me.guildId} to ${targetPlayerId}`);
         res.json({ success: true });
     } catch (err) {
+        if (err instanceof LeadershipMoved) {
+            res.status(409).json({ error: 'The guild has already changed hands.' });
+            return;
+        }
         logger.error(`Transfer leadership error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Set a member's rank. Needs the promote permission, and reaches only members
+// ranked below you, to ranks below your own: an Officer can make Members and
+// Recruits, only the leader makes Officers.
+router.post('/rank', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const targetPlayerId = Math.floor(Number(req.body?.targetPlayerId));
+    const role = req.body?.role;
+
+    try {
+        if (!(CONFIGURABLE_RANKS as readonly string[]).includes(role)) {
+            res.status(400).json({ error: 'Choose Officer, Member or Recruit.' });
+            return;
+        }
+        const me = await membershipOf(playerId);
+        if (!me?.can('promote')) {
+            res.status(403).json({ error: 'Your rank cannot change ranks.' });
+            return;
+        }
+        const theirs = Number.isFinite(targetPlayerId) ? await membershipOf(targetPlayerId) : null;
+        if (!theirs || theirs.guildId !== me.guildId) {
+            res.status(404).json({ error: 'Player not found in your guild.' });
+            return;
+        }
+        if (theirs.isLeader || theirs.rank >= me.rank || rankOf(role) >= me.rank) {
+            res.status(403).json({ error: 'You can only set ranks below your own, for members below you.' });
+            return;
+        }
+
+        await setRole(db, me.guildId, targetPlayerId, role as Role);
+        pushToPlayer(targetPlayerId, 'guild_rank_changed', { role, label: RANK_LABELS[role as Role] });
+        logger.info(`Player ${playerId} set player ${targetPlayerId} to ${role} in guild ${me.guildId}`);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Guild rank error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// What each rank may do. Leader only; the leader may always do everything.
+router.put('/permissions', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const me = await membershipOf(playerId);
+        if (!me?.isLeader) {
+            res.status(403).json({ error: 'Only the leader decides what each rank may do.' });
+            return;
+        }
+        const clean = cleanRankPermissions(req.body?.rankPermissions);
+        if (!clean) {
+            res.status(400).json({ error: 'Send a choice for Officer, Member and Recruit.' });
+            return;
+        }
+        await db('guilds').where({ id: me.guildId }).update({ rank_permissions: JSON.stringify(clean), updated_at: new Date() });
+        res.json({ success: true, rankPermissions: clean });
+    } catch (err) {
+        logger.error(`Guild permissions error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -406,8 +485,11 @@ router.post('/leave', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        if (player.guild_role === 'founder') {
-            res.status(400).json({ error: 'The founder cannot leave the guild. Transfer leadership first.' });
+        // The leader hands the guild on first (or disbands it). A founder who
+        // no longer leads is free to go like anyone else.
+        const me = await membershipOf(playerId);
+        if (me?.isLeader) {
+            res.status(400).json({ error: 'Hand the guild to someone else before you leave, or disband it.' });
             return;
         }
 
@@ -485,7 +567,8 @@ router.get('/applications', requireAuth, async (req: AuthRequest, res: Response)
     try {
         const player = await db('players').where({ id: playerId }).first();
 
-        if (!player.guild_id || !['founder', 'leader'].includes(player.guild_role)) {
+        const me = await membershipOf(playerId);
+        if (!player.guild_id || !me?.can('invite')) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
@@ -514,7 +597,8 @@ router.post('/applications/:id/respond', requireAuth, async (req: AuthRequest, r
 
     try {
         const player = await db('players').where({ id: playerId }).first();
-        if (!['founder', 'leader'].includes(player.guild_role)) {
+        const me = await membershipOf(playerId);
+        if (!me?.can('invite')) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
@@ -529,14 +613,14 @@ router.post('/applications/:id/respond', requireAuth, async (req: AuthRequest, r
             await db('guild_members').insert({
                 guild_id: player.guild_id,
                 player_id: app.player_id,
-                role: 'member',
+                role: 'recruit',
             });
 
             const guild = await db('guilds').where({ id: player.guild_id }).first();
             await db('players').where({ id: app.player_id }).update({
                 guild_id: player.guild_id,
                 guild_tag: guild.tag,
-                guild_role: 'member',
+                guild_role: 'recruit',
             });
         }
 
