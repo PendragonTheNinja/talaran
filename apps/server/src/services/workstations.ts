@@ -711,48 +711,6 @@ export function parseRequiredTools(recipe: any): string[] {
     }
 }
 
-/**
- * A public station is the NPC's: his fire, his tools, at half speed.
- *
- * It permits smelting, and it permits making anything that GOES INTO a
- * workstation. That second part is not a special case list, it is derived: a
- * recipe is allowed here when its output's subtype matches one of this station
- * type's slot subtypes. So the forge lends you an anvil, a hammer and tongs;
- * the workshop lends you a saw, a plane and a sawhorse.
- *
- * Without it the circularity rule (CLAUDE.md section 4) bites: an anvil needs
- * hammer and tongs, a hammer needs anvil and tongs, so a smelting-only public
- * forge means nobody ever makes a first set. It also keeps tool breakage safe
- * to ship later, since a player who breaks their last anvil can always forge
- * another at Emberra.
- */
-export async function publicStationAllows(stationType: string, recipe: any): Promise<boolean> {
-    // A job needing no tools only needs the bench, and a public bench is a
-    // bench. This is what lets a new cook roast fish at Geomima's hearth before
-    // owning a single pot, and it is how the tutorial is meant to work: you
-    // cook slowly on hers, then build your own to go faster.
-    //
-    // The earlier rule checked the OUTPUT's subtype against the station's slot
-    // subtypes, which is right for a forge lending you an anvil and wrong for
-    // everything else. A cooked fish is not a cookhouse tool, so it refused the
-    // whole skill.
-    if (parseRequiredTools(recipe).length === 0) return true
-
-    // A keeper who lends his tools for any job (the lapidary).
-    if (PUBLIC_STATIONS[stationType]?.lendsAll) return true
-
-    const output = recipe?.output_item_name
-    if (!output) return true
-
-    const item = await db('items').where({ name: output }).first()
-    if (!item?.subtype) return false
-
-    const slot = await db('workstation_slot_types')
-        .where({ station_type: stationType, accepts_subtype: item.subtype })
-        .first()
-    return !!slot
-}
-
 export interface StationCheck {
     ok: boolean
     error?: string
@@ -894,11 +852,19 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         return { ok: true, multiplier: mult, missingTools: [], usingPublic: false }
     }
 
-    // 2. Fall back to the public bench, if this location has one and it covers
-    //    this recipe. Half speed, his tools. An incomplete bench of your own is
-    //    not "slow", it simply is not used.
-    const hasPublic = await locationHasPublicStation(playerId, player.current_location_id, recipe.station)
-    if (hasPublic && await publicStationAllows(recipe.station, recipe)) {
+    // 2. Fall back to the public bench, if this location has one. Half speed,
+    //    his tools, for ANY job at that station (Nathan, 2026-11-02): a player
+    //    with nothing of their own can make every tool there, slowly, and the
+    //    reason to build and fill a bench of their own is speed. An incomplete
+    //    bench of your own is not "slow", it simply is not used.
+    //
+    //    It used to lend tools only for making that station's own tools (an
+    //    anvil at the forge), derived from the output's subtype. That refused
+    //    the saw and plane (carpentry tools, forged), every cookhouse tool, the
+    //    pickaxe and hatchet at Geoffrey's forge, so a new player could not
+    //    make the tools to set up a bench without owning the tools first: the
+    //    circularity rule (CLAUDE.md section 2) again.
+    if (await locationHasPublicStation(playerId, player.current_location_id, recipe.station)) {
         return { ok: true, multiplier: 2, missingTools: [], usingPublic: true }
     }
 
@@ -925,15 +891,16 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         : recipe.station === 'carpentry' ? 'workshop'
         : recipe.station === 'lapidary' ? 'lapidary'
         : 'workstation'
+    // A station type with a keeper's bench you have not been given the run of.
     const owner = PUBLIC_STATIONS[recipe.station]
     if (owner) {
-        // Two different problems wear the same shape here, and telling them
-        // apart is the whole point: either you have never been offered the
-        // keeper's bench, or you have it and it simply will not do this job.
-        const error = hasPublic
-            ? `${owner.keeper} will not lend those tools for that. You need a ${stationLabel} of your own.`
-            : `Speak to ${owner.keeper} for the use of the ${stationLabel} here.`
-        return { ok: false, error, multiplier: 1, missingTools: needed, usingPublic: false }
+        return {
+            ok: false,
+            error: `Speak to ${owner.keeper} for the use of the ${stationLabel} here.`,
+            multiplier: 1,
+            missingTools: needed,
+            usingPublic: false,
+        }
     }
     return {
         ok: false,
@@ -952,14 +919,11 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
  * it". Kept as one function so a second island can add public benches by
  * adding rows rather than by editing this.
  */
-export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string; lendsAll?: boolean }> = {
+export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string }> = {
     smithing: { location: 'Emberra', quest: "The Blacksmith's Bargain", keeper: 'Geoffrey' },
     carpentry: { location: 'Verdale', quest: "The Carpenter's Commission", keeper: 'Geossica' },
     cooking: { location: 'Phoenwick', quest: "The Cook's Conundrum", keeper: 'Geomima' },
-    // Geosper lends his wheel and chisel for every cut, not only for making
-    // tools: cutting is the whole station, and his bench is how a new cutter
-    // starts before owning either (Nathan, 2026-10-27).
-    lapidary: { location: 'Caliwen', quest: "The Lapidary's Lesson", keeper: 'Geosper', lendsAll: true },
+    lapidary: { location: 'Caliwen', quest: "The Lapidary's Lesson", keeper: 'Geosper' },
 }
 
 export async function locationHasPublicStation(playerId: number, locationId: number, stationType: string): Promise<boolean> {
