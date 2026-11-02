@@ -298,7 +298,7 @@ export function startGameTick(io: Server): void {
         const { processTrapTicks } = await import('./trapping');
         const trapEvents = await processTrapTicks(new Date());
         for (const e of trapEvents.sprung) {
-          pushToPlayer(e.playerId, 'trap_sprung', { trapId: e.trapId });
+          pushToPlayer(e.playerId, 'trap_sprung', { trapId: e.trapId, locationId: e.locationId });
         }
       }
       const completedActions = await claimDueActions();

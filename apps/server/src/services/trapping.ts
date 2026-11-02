@@ -336,8 +336,8 @@ export async function baitOptionsAt(playerId: number, locationId: number) {
  * Tick sweep: roll catches on due traps (with offline catch-up) and age
  * sprung traps toward scavenging. Returns sprung events for the caller to emit.
  */
-export async function processTrapTicks(now: Date): Promise<{ sprung: { playerId: number; trapId: number }[] }> {
-    const sprungEvents: { playerId: number; trapId: number }[] = []
+export async function processTrapTicks(now: Date): Promise<{ sprung: { playerId: number; trapId: number; locationId: number }[] }> {
+    const sprungEvents: { playerId: number; trapId: number; locationId: number }[] = []
     try {
         const types = await db('trap_types')
         const typeById = new Map<number, any>(types.map((t: any) => [t.id, t]))
@@ -380,7 +380,7 @@ export async function processTrapTicks(now: Date): Promise<{ sprung: { playerId:
                 await db('player_traps').where({ id: trap.id }).update({
                     state: 'sprung', caught_target_id: caughtTargetId, caught_at: caughtAt,
                 })
-                sprungEvents.push({ playerId: trap.player_id, trapId: trap.id })
+                sprungEvents.push({ playerId: trap.player_id, trapId: trap.id, locationId: trap.location_id })
             } else {
                 await db('player_traps').where({ id: trap.id }).update({ next_roll_at: new Date(rollAt) })
             }

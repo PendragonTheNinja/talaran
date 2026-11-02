@@ -35,7 +35,7 @@ export const PUSH_TYPES: PushType[] = [
     { key: 'action_stopped', label: 'Work stopped', description: 'Your action stopped and needs you: out of materials, a full pack, a cold hearth, a fight ended.', byDefault: true },
     { key: 'journey', label: 'Journey\'s end', description: 'You have arrived where you were going.', byDefault: false },
     { key: 'stone_full', label: 'A stone is full', description: 'A gem filling at the Rift is full of light.', byDefault: false },
-    { key: 'trap', label: 'Traps', description: 'Something is caught in one of your traps.', byDefault: false },
+    { key: 'trap', label: 'Traps', description: 'Something is caught in one of your traps. Only while you are at the place the trap is set.', byDefault: false },
     { key: 'whisper', label: 'Whispers', description: 'Someone whispers to you.', byDefault: false },
 ];
 
@@ -48,6 +48,8 @@ export interface Notice {
     title: string
     body: string
     tag: string
+    /** Only send while the player stands here (traps: Nathan, 2026-11-02). */
+    atLocation?: number
 }
 
 const publicKey = process.env.VAPID_PUBLIC_KEY ?? '';
@@ -109,7 +111,7 @@ export function noticeFor(event: string, payload: any): Notice | null {
             return { type: 'stone_full', title: 'Talaran', body: `Your stone is full of light: one ${name}.`, tag: 'stone-full' };
         }
         case 'trap_sprung':
-            return { type: 'trap', title: 'Talaran', body: 'Something is caught in one of your traps.', tag: 'trap' };
+            return { type: 'trap', title: 'Talaran', body: 'Something is caught in one of your traps.', tag: 'trap', atLocation: Number(payload?.locationId) || undefined };
         case 'whisper': {
             const from = payload?.from;
             return from ? { type: 'whisper', title: `${from} whispers`, body: clip(payload?.message ?? ''), tag: `whisper-${from}` } : null;
@@ -136,6 +138,10 @@ export async function sendNotice(playerId: number, notice: Notice, force = false
         const now = Date.now();
         if (now - (lastSent.get(key) ?? 0) < SAME_TAG_GAP_MS) return { sent: 0, devices: 0 };
         if (!(await pushTypesFor(playerId)).includes(notice.type)) return { sent: 0, devices: 0 };
+        if (notice.atLocation) {
+            const here = await db('players').where({ id: playerId }).first('current_location_id');
+            if (Number(here?.current_location_id) !== notice.atLocation) return { sent: 0, devices: 0 };
+        }
         lastSent.set(key, now);
     }
 
