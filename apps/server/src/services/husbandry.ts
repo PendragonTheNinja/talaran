@@ -788,6 +788,31 @@ export async function settleWards(playerId: number): Promise<void> {
 }
 
 /** Head a ward would cover: every animal in a pen that eats (not hives). */
+/**
+ * Lift the ward over every pen now, inside the caller's transaction (a ward
+ * ended early). Troughs it was due to fill up to now are filled first, so the
+ * hours before the lifting are honoured exactly. Returns how many pens it held.
+ */
+export async function liftWardsWithin(trx: Knex.Transaction, playerId: number, nowMs = Date.now()): Promise<number> {
+    await settleWardsWithin(trx, playerId, nowMs);
+    const { property } = await playerProperty(playerId, trx);
+    if (!property) return 0;
+    const now = new Date(nowMs);
+    return trx('player_pens').where({ property_id: property.id }).where('warded_until', '>', now).update({ warded_until: now });
+}
+
+/** Head in the pens at the farmstead (not hives), wherever the player stands; 0 without one. */
+export async function farmHead(playerId: number, x: Ex = db): Promise<number> {
+    const { property } = await playerProperty(playerId, x);
+    if (!property) return 0;
+    const row = await x('player_animals as a')
+        .join('player_pens as p', 'p.id', 'a.pen_id')
+        .where('p.property_id', property.id)
+        .whereNot('p.pen_type', 'apiary')
+        .count({ c: '*' }).first();
+    return Number(row?.c ?? 0);
+}
+
 export async function wardableHead(playerId: number, x: Ex = db): Promise<{ error: string } | { head: number }> {
     const player = await x('players').where({ id: playerId }).select('current_location_id').first();
     const { novita, property } = await playerProperty(playerId, x);

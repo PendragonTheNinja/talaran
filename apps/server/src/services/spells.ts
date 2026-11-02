@@ -4,14 +4,14 @@ import { SERVER_ERROR } from '../lib/serviceResult'
 import { nextGameMidnight } from '../lib/gameTime'
 import { activeXpForSeconds } from './farming'
 import { awardXp, playerSkillLevel } from './xp'
-import { HUNDREDTHS, spendTalarWithin, type TalarState } from './talar'
+import { HUNDREDTHS, returnTalarWithin, spendTalarWithin, type TalarState } from './talar'
 import { churchHere } from './church'
 import { loadDurabilityTiers, durabilityRule } from './durability'
 import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit, pushToRoom } from '../lib/realtime'
-import { wardableHead, wardFarmsteadWithin, settleWardsWithin } from './husbandry'
+import { farmHead, liftWardsWithin, wardableHead, wardFarmsteadWithin, settleWardsWithin } from './husbandry'
 import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
 import { eligibleLocations, eventsChanged } from './worldEvents'
 import { announceServer } from './records'
@@ -347,10 +347,19 @@ const larderWard: SpellEffect = {
         const hours = wardHours(params)
         return Math.round(Number(spell.cost) * (await wardHead(trx, playerId)) * hours * HUNDREDTHS) / HUNDREDTHS
     },
-    cast: async (trx, playerId, _spell, params) => {
+    cast: async (trx, playerId, spell, params) => {
         const hours = wardHours(params)
         const r = await wardFarmsteadWithin(trx, playerId, hours)
         if ('error' in r) throw new SpellAbort(r.error)
+        // What this ward cost and covers, so the spellbook can show it holding
+        // and it can be ended early for the hours not used (endLarderWard).
+        const now = new Date()
+        const record = {
+            player_id: playerId, head: r.head, hours,
+            paid_hundredths: Math.round(Number(spell.cost) * r.head * hours * HUNDREDTHS),
+            starts_at: now, ends_at: new Date(now.getTime() + hours * 3600 * 1000),
+        }
+        await trx('larder_wards').insert(record).onConflict('player_id').merge(record)
         const fed = r.toppedUp ? ` ${r.toppedUp === 1 ? 'One empty trough fills' : `${r.toppedUp} empty troughs fill`} from your store.` : ''
         return {
             message: `You walk the pens and set the ward. ${r.pens === 1 ? 'The pen is' : `All ${r.pens} pens are`} looked after for the next ${hours} hours.${fed}`,
@@ -736,6 +745,9 @@ export interface SpellView {
     /** Whether the pack holds the offering and the writ right now. */
     hasOffering: boolean
     hasWrit: boolean
+    /** Larder Ward only: the ward that holds now, and the head it would cover if cast now. */
+    ward?: { endsAt: string; head: number; paid: number } | null
+    farmHead?: number
 }
 
 /** Every spell, as this player stands with it. Only spells whose effect exists are offered. */
@@ -750,6 +762,11 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
     ])
     const inPack = new Set<string>(carried)
     const mine = new Map(learned.map((l: any) => [Number(l.spell_id), l]))
+    // Larder Ward: the head it would cover now, and any ward that holds.
+    const [wardRow, head] = await Promise.all([
+        db('larder_wards').where({ player_id: playerId }).where('ends_at', '>', new Date()).first(),
+        farmHead(playerId),
+    ])
     const now = Date.now()
     return {
         atChurch: !!church,
@@ -767,8 +784,62 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 offering: s.offering_item_name, writ: s.writ_item_name,
                 hasOffering: !s.offering_item_name || inPack.has(s.offering_item_name),
                 hasWrit: !s.writ_item_name || inPack.has(s.writ_item_name),
+                ...(s.key === 'larder_ward' ? {
+                    farmHead: head,
+                    ward: wardRow ? {
+                        endsAt: new Date(wardRow.ends_at).toISOString(),
+                        head: Number(wardRow.head),
+                        paid: Number(wardRow.paid_hundredths) / HUNDREDTHS,
+                    } : null,
+                } : {}),
             }
         }),
+    }
+}
+
+// ── Ending a Larder Ward early ───────────────────────────────────────────────
+// A ward is paid for up front (rate x head x hours), so it never drains while
+// it holds. Ending it early gives back the share of that price for the hours
+// not used, and the spell is ready to cast again at once (forum, 2026-11-02).
+// From anywhere: lifting a ward needs no walk to the pens.
+
+export async function endLarderWard(playerId: number): Promise<
+    | { success: true; message: string; refunded: number; talar: TalarState }
+    | { success: false; error: string }
+> {
+    try {
+        const spell = await db('spells').where({ key: 'larder_ward' }).first()
+        if (!spell) return { success: false, error: 'No such spell.' }
+        const out = await db.transaction(async trx => {
+            // The spell row first, as a cast takes it, so ending and casting queue.
+            const own = await trx('player_spells').where({ player_id: playerId, spell_id: spell.id }).forUpdate().first()
+            if (!own) throw new SpellAbort(`You have not learned ${spell.name}.`)
+            const ward = await trx('larder_wards').where({ player_id: playerId }).forUpdate().first()
+            const now = Date.now()
+            if (!ward || new Date(ward.ends_at).getTime() <= now) throw new SpellAbort('No ward holds over your pens.')
+            await liftWardsWithin(trx, playerId, now)
+            const total = new Date(ward.ends_at).getTime() - new Date(ward.starts_at).getTime()
+            const left = new Date(ward.ends_at).getTime() - now
+            const refund = Math.round(Number(ward.paid_hundredths) * Math.max(0, Math.min(1, left / Math.max(1, total))))
+            const back = await returnTalarWithin(trx, playerId, refund)
+            await trx('larder_wards').where({ player_id: playerId }).delete()
+            await trx('player_spells').where({ player_id: playerId, spell_id: spell.id }).update({ ready_at: null })
+            return back
+        })
+        const amount = (n: number) => (n / HUNDREDTHS).toLocaleString(undefined, { maximumFractionDigits: 2 })
+        const lost = out.lost > 0 ? ` You had room for only ${amount(out.returned)}; the rest is lost.` : ''
+        return {
+            success: true,
+            refunded: out.returned / HUNDREDTHS,
+            talar: out.state,
+            message: out.returned + out.lost > 0
+                ? `You lift the ward. The Talar of the hours it had left, ${amount(out.returned + out.lost)}, comes back to you.${lost}`
+                : 'You lift the ward.',
+        }
+    } catch (err) {
+        if (err instanceof SpellAbort) return { success: false, error: err.message }
+        logger.error(`endLarderWard error (player ${playerId}): ${err}`)
+        return { success: false, error: SERVER_ERROR }
     }
 }
 

@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { announceTalar, type Talar } from '../lib/talar'
 import SendingPicker, { type SendingStore } from './SendingPicker'
 import SpellCastPopup, { type SpellCast } from './SpellCastPopup'
+import ConfirmModal from './ConfirmModal'
 import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 
 // Spells (server: services/spells.ts). One list in two places: the church,
@@ -28,6 +29,9 @@ interface SpellView {
     writ: string | null
     hasOffering: boolean
     hasWrit: boolean
+    /** Larder Ward: the ward that holds now, and the head it would cover if cast now. */
+    ward?: { endsAt: string; head: number; paid: number } | null
+    farmHead?: number
 }
 
 /** One choice a spell needs before it is cast (Daily Step's places, Larder Ward's hours). */
@@ -108,6 +112,21 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
         }
     }
 
+    // Lift a Larder Ward early: the Talar of the hours it had left comes back.
+    const [confirmEnd, setConfirmEnd] = useState(false)
+    const endWard = async () => {
+        setConfirmEnd(false)
+        setBusy(true)
+        try {
+            const res = await apiFetch<{ message: string; talar: Talar }>('/api/talar/spells/larder_ward/end', { method: 'POST' })
+            announceTalar(res.talar)
+            setNote({ text: res.message, error: false })
+            load()
+        } catch (err) {
+            setNote({ text: (err as { message?: string }).message || 'Nothing happens.', error: true })
+        } finally { setBusy(false) }
+    }
+
     const cast = async (s: SpellView, params: Record<string, unknown> = {}) => {
         setBusy(true)
         try {
@@ -124,7 +143,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
     }
 
     // Cooldowns count down while the book is open, and a spell turns ready on its own.
-    const now = useCountdownClock(!!spells?.some(s => s.readyAt))
+    const now = useCountdownClock(!!spells?.some(s => s.readyAt || s.ward))
 
     if (!spells) return <p className="farm-empty">{note?.text ?? 'Turning the pages…'}</p>
 
@@ -132,6 +151,14 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
     return (
         <div className="spell-list">
             {lastCast && <SpellCastPopup cast={lastCast} onClose={closeCast} />}
+            {confirmEnd && (
+                <ConfirmModal
+                    message="Lift the Larder Ward now? The Talar for the hours it has left comes back to you, and you can cast it again at once."
+                    confirmLabel="End the Ward"
+                    onConfirm={endWard}
+                    onCancel={() => setConfirmEnd(false)}
+                />
+            )}
             {note && <p className={note.error ? 'farm-error' : 'farm-note'}>{note.text}</p>}
             {mode === 'cast' && shown.length === 0 && (
                 <p className="farm-empty">You know no workings yet. They are taught in a church.</p>
@@ -150,6 +177,25 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                         {mode === 'cast' && s.armed && (
                             <p className="spell-needs gold-text">Active: it waits for your next fall.</p>
                         )}
+                        {mode === 'cast' && s.key === 'larder_ward' && (() => {
+                            const ward = s.ward && new Date(s.ward.endsAt).getTime() > now ? s.ward : null
+                            if (ward) {
+                                const left = minutesUntil(ward.endsAt, now)
+                                return (
+                                    <p className="spell-needs gold-text">
+                                        Holding over {ward.head} head for {waitWords(left)} more. Paid {ward.paid.toLocaleString(undefined, { maximumFractionDigits: 2 })} Talar.
+                                    </p>
+                                )
+                            }
+                            const head = s.farmHead ?? 0
+                            return (
+                                <p className="spell-needs muted-text">
+                                    {head > 0
+                                        ? `${head} head in your pens: ${(s.cost * head).toLocaleString(undefined, { maximumFractionDigits: 2 })} Talar an hour.`
+                                        : 'Nothing in your pens to ward.'}
+                                </p>
+                            )
+                        })()}
                         {mode === 'learn' && !s.learned && (s.offering || s.writ) && (
                             <p className="spell-needs muted-text">
                                 {s.offering && <>Offer: <span className={s.hasOffering ? 'gold-text' : 'spell-missing'}>1 {s.offering}</span></>}
@@ -158,7 +204,9 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             </p>
                         )}
                         <div className="spell-actions">
-                            {mode === 'cast' && (
+                            {mode === 'cast' && s.key === 'larder_ward' && s.ward && new Date(s.ward.endsAt).getTime() > now ? (
+                                <button className="btn" disabled={busy} onClick={() => setConfirmEnd(true)}>End the Ward</button>
+                            ) : mode === 'cast' && (
                                 <button className="btn btn-gold" disabled={busy || waiting > 0 || s.armed}
                                     onClick={() => PICKS_TARGET.has(s.key) ? pickTarget(s) : cast(s)}>
                                     {s.armed ? 'Holding' : waiting > 0 ? `Ready in ${waitWords(waiting)}` : 'Cast'}

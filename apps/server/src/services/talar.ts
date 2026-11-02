@@ -94,6 +94,25 @@ export async function spendTalarWithin(trx: any, playerId: number, hundredths: n
 }
 
 /**
+ * Pour `hundredths` of Talar back into the reservoir inside the caller's
+ * transaction (a ward ended early). Locked and relative; whatever does not fit
+ * under the reservoir's capacity is lost, and the result says how much.
+ */
+export async function returnTalarWithin(trx: any, playerId: number, hundredths: number): Promise<{ returned: number; lost: number; state: TalarState }> {
+    const n = Math.floor(hundredths)
+    if (!Number.isFinite(n) || n < 0) throw new Error(`returnTalarWithin: bad amount ${hundredths} for player ${playerId}`)
+    const held = await lockReservoir(trx, playerId)
+    const max = reservoirCapacity(await playerSkillLevel(playerId, 'Talar', trx)) * HUNDREDTHS
+    const fits = Math.max(0, Math.min(n, max - held))
+    const [row] = await trx('player_talar').where({ player_id: playerId })
+        .update({ hundredths: trx.raw('hundredths + ?', [fits]), updated_at: trx.fn.now() })
+        .returning('hundredths')
+    const state = stateOf(Number(row.hundredths), max / HUNDREDTHS)
+    pushToPlayerAfterCommit(trx, playerId, 'talar_changed', state)
+    return { returned: fits, lost: n - fits, state }
+}
+
+/**
  * Absorb one charged gem into the reservoir: the gem is used up, its Talar
  * poured in. Refused whole if it would overflow (no partial pours), so a
  * player tops up only when there is room for the stone.

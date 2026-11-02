@@ -5,7 +5,7 @@ import { failureStatus, SERVER_ERROR } from '../lib/serviceResult';
 import db from '../db';
 import { botCheckGate } from '../services/botCheck';
 import { absorbGem, fillOptions, getTalarState, startFill } from '../services/talar';
-import { castSpell, listSpells, spellTargets, startVigil, portalsHere, stepThroughPortal } from '../services/spells';
+import { castSpell, endLarderWard, listSpells, spellTargets, startVigil, portalsHere, stepThroughPortal } from '../services/spells';
 
 // Talar (docs/talar-spec.md): the reservoir now; filling and spells join it.
 
@@ -84,6 +84,13 @@ router.get('/spells', requireAuth, async (req: AuthRequest, res: Response) => {
 router.post('/spells/vigil', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
     const result = await startVigil(req.player!.playerId, String(req.body?.key ?? ''));
     if (!result.ok) { res.status(result.status).json({ error: result.error }); return; }
+    res.json(result);
+});
+
+// POST /api/talar/spells/larder_ward/end - lift the ward early, the unused hours' Talar back
+router.post('/spells/larder_ward/end', requireAuth, async (req: AuthRequest, res: Response) => {
+    const result = await endLarderWard(req.player!.playerId);
+    if (!result.success) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
     res.json(result);
 });
 
