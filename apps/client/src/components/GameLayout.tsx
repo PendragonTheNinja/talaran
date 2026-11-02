@@ -824,7 +824,7 @@ export default function GameLayout({
     // simply never got one, so the manual was unreachable on a phone.
     { label: 'Manual', onClick: () => { closeAllPanels(); setManualTarget(null); setShowManual(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
-    { label: 'Store', onClick: () => { closeAllPanels(); setShowSupport(true) } },
+    { label: 'Support', onClick: () => { closeAllPanels(); setShowSupport(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
     { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
     // Feats shipped as a fourth tab on the desktop panel, and the mobile drawer

@@ -60,7 +60,7 @@ export default function SupportUsPage() {
                 <h2>How it works</h2>
                 <p>
                     Everything is bought inside the game — create a free account, open the{' '}
-                    <strong>Store</strong>, and choose a Taler pack. Payments are securely processed by{' '}
+                    <strong>Support</strong> panel, and choose a Taler pack. Payments are securely processed by{' '}
                     <strong>Paddle</strong>, our merchant of record, and accept major cards, PayPal,
                     Apple Pay, and Google Pay; Paddle will appear on your statement. Talers and the
                     items they unlock are cosmetic in-game content with no real-world value, are

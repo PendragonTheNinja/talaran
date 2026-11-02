@@ -60,9 +60,13 @@ export interface ItemPage {
     provision: { effect: string; skill: string | null; magnitude: number; seconds: number } | null;
     /**
      * A creature carries it. Which one is the Bestiary's to tell (CLAUDE.md,
-     * Combat), so the page says only that, never the creature.
+     * Combat), so the page says only that and how many, never the creature.
+     * Shown beside the other sources, not only when there are none: Rough
+     * Quartz is mined AND carried, and the page used to hide the second.
      */
     fromCreature: boolean;
+    /** How many different active creatures carry it. */
+    creatureCount: number;
 }
 
 /**
@@ -777,6 +781,17 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
     exactSeen.clear();
     const finalUses = dedupe(uses);
 
+    // Creatures that carry it: distinct creatures, not drop rows, since one
+    // creature can carry an item at several spots (combat:<key>@<spot>).
+    const carrierKeys = await db('drop_table_entries')
+        .where('item_id', item.id).where('is_active', true)
+        .where('source_key', 'like', 'combat:%')
+        .pluck('source_key');
+    const keys = [...new Set(carrierKeys.map((k: string) => k.slice('combat:'.length).split('@')[0]))];
+    const carriers = keys.length
+        ? Number((await db('creatures').whereIn('key', keys).where('is_active', true).count<{ n: string }[]>('id as n'))[0]?.n ?? 0)
+        : 0;
+
     return {
         name,
         description: item.description || null,
@@ -795,8 +810,7 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
         provision: item.buff_effect
             ? { effect: item.buff_effect, skill: item.buff_skill ?? null, magnitude: Number(item.buff_magnitude ?? 0), seconds: Number(item.buff_seconds ?? 0) }
             : null,
-        fromCreature: !!(await db('drop_table_entries')
-            .where('item_id', item.id).where('is_active', true)
-            .where('source_key', 'like', 'combat:%').first('id')),
+        fromCreature: carriers > 0,
+        creatureCount: carriers,
     };
 }

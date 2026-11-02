@@ -134,12 +134,12 @@ export const BUILTIN_PALETTES: Record<string, PaletteTokens> = {
         'health': '#c0392b', 'mana': '#6a5acd', 'xp': '#4caf50',
     },
     scriptorium: {
-        'bg-deepest': '#d9d0bd', 'bg-deep': '#e4dccb', 'bg-dark': '#e9e2d3', 'bg-mid': '#eee8db',
-        'bg-panel': '#f5f0e5', 'bg-raised': '#faf6ee', 'bg-hover': '#ece0c4',
-        'gold-dim': '#a3864e', 'gold': '#86672b', 'gold-bright': '#6d521c', 'gold-shine': '#b08d45',
-        'red-dark': '#9c3a32', 'red': '#8f2a24', 'red-bright': '#a83226', 'red-glow': '#b5372a',
-        'text-dim': '#857862', 'text-muted': '#6b5c45', 'text-base': '#3b2f20', 'text-bright': '#2a2014', 'text-white': '#1c150b',
-        'border-dark': '#cfc4ab', 'border-mid': '#ad9d7c', 'border-gold': '#a08454', 'border-bright': '#6f5520',
+        'bg-deepest': '#cec4ae', 'bg-deep': '#d8cfbb', 'bg-dark': '#ded6c4', 'bg-mid': '#e3dbca',
+        'bg-panel': '#e9e2d3', 'bg-raised': '#efe9dd', 'bg-hover': '#e2d4b6',
+        'gold-dim': '#937643', 'gold': '#785b22', 'gold-bright': '#614716', 'gold-shine': '#a7843d',
+        'red-dark': '#9c3a32', 'red': '#8a2620', 'red-bright': '#a83226', 'red-glow': '#b5372a',
+        'text-dim': '#716450', 'text-muted': '#5c4e39', 'text-base': '#31261a', 'text-bright': '#241b10', 'text-white': '#1a130a',
+        'border-dark': '#c4b79b', 'border-mid': '#a39272', 'border-gold': '#96794a', 'border-bright': '#654c1b',
         'health': '#a02c22', 'mana': '#6a4ea6', 'xp': '#237a48',
     },
 }
@@ -152,6 +152,9 @@ const PALETTE_STORAGE_KEY = 'talaran-palette'
 export function applyPaletteTokens(tokens: PaletteTokens, remember: { id: number; name: string } | null) {
     const el = document.documentElement
     el.dataset.theme = 'custom'
+    // Light or dark page, for the few rules a palette cannot express as a
+    // token of its own (the chat inks in index.css). Removed by clearPaletteTokens.
+    el.dataset.tone = luminance(tokens['bg-deepest'] ?? '#0d0a07') < 0.5 ? 'dark' : 'light'
     for (const [key, value] of Object.entries(tokens)) {
         el.style.setProperty(`--color-${key}`, value)
     }
@@ -184,6 +187,7 @@ export function clearPaletteTokens() {
     for (const extra of ['--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-gold', '--color-overlay', '--color-overlay-soft', '--color-on-gold']) {
         el.style.removeProperty(extra)
     }
+    delete el.dataset.tone
     try { localStorage.removeItem(PALETTE_STORAGE_KEY) } catch { /* private mode */ }
 }
 

@@ -460,6 +460,16 @@ export default function GameView({
   // triggered, so the player can type the answer straight away. autoFocus alone
   // was unreliable: on a forced check the FAB still holds focus when the modal
   // mounts, and the browser does not always hand it over.
+  // A waiting bot check marks the browser tab "[B] Talaran: ...", so a player
+  // on another tab sees it in the tab strip. Cleared when answered, and on
+  // unmount (the layout switch remounts this view).
+  useEffect(() => {
+    if (!botCheckPending) return
+    const base = document.title.replace(/^\[B\] /, '')
+    document.title = `[B] ${base}`
+    return () => { document.title = document.title.replace(/^\[B\] /, '') }
+  }, [botCheckPending])
+
   useEffect(() => {
     if (!botCheckPending) return
     const t = window.setTimeout(() => {

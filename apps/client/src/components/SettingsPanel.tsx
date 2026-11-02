@@ -103,7 +103,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
             if (key.startsWith('theme:')) handleThemeSelect(key.slice(6) as ThemeId)
         } catch (err: any) {
             setError(err.message === 'Not enough Talers.'
-                ? 'Not enough Talers — you can get more in the ♥ Support panel.'
+                ? 'Not enough Talers. You can get more in Support, at the top of the screen.'
                 : err.message || 'Purchase failed.')
         }
     }

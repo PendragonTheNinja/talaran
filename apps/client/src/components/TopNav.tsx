@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 const NAV_ITEMS = [
   'Messages', 'Forum', 'Guild',
-  'Events', 'Highscores', 'Manual', 'News', 'Store', 'Settings'
+  'Events', 'Highscores', 'Manual', 'News', 'Support', 'Settings'
 ]
 
 interface TopNavProps {
@@ -45,7 +45,7 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onForu
                       item === 'Highscores' ? onHighscoresClick :
                       item === 'Events' ? onEventsClick :
                         item === 'Settings' ? onSettingsClick :
-                          item === 'Store' ? onSupportClick :
+                          item === 'Support' ? onSupportClick :
                             item === 'Manual' ? onManualClick :
                             undefined
             }

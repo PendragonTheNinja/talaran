@@ -22,15 +22,16 @@ export interface ChatMessage {
     whisperTo?: string
 }
 
+/** Channel colours are theme tokens (index.css, --chat-*), so a light theme inks them darker. */
 export const CHANNEL_COLORS: Record<string, string> = {
-    world: '#ffb96f',
-    region: '#a8a8a8',
-    guild: '#ff6b30',
-    trade: '#ce79ff',
-    help: '#ECFF00',
-    whisper: '#08f8d0',
-    server: '#ff4444',
-    forum: '#4a9eff',
+    world: 'var(--chat-world)',
+    region: 'var(--chat-region)',
+    guild: 'var(--chat-guild)',
+    trade: 'var(--chat-trade)',
+    help: 'var(--chat-help)',
+    whisper: 'var(--chat-whisper)',
+    server: 'var(--chat-server)',
+    forum: 'var(--chat-forum)',
 }
 
 export const CHANNEL_SHORT: Record<string, string> = {

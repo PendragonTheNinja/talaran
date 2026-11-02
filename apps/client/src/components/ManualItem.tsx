@@ -36,6 +36,17 @@ interface ItemPage {
     provision?: { effect: string; skill: string | null; magnitude: number; seconds: number } | null
     /** A creature carries it; which one only the Bestiary tells. */
     fromCreature?: boolean
+    /** How many different creatures carry it. */
+    creatureCount?: number
+}
+
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']
+
+/** "Carried by one creature" / "Also carried by four different creatures". */
+function carriedBy(count: number, also: boolean): string {
+    const n = count < COUNT_WORDS.length ? COUNT_WORDS[count] : String(count)
+    const who = count === 1 ? 'one creature' : `${n} different creatures`
+    return `${also ? 'Also carried' : 'Carried'} by ${who} somewhere in the wild.`
 }
 
 /** A provision's effect, in the words the pack's tooltip uses. */
@@ -243,14 +254,15 @@ export default function ManualItem({
 
             <section className="mitem-section">
                 <h2 className="mitem-section-title">Where it comes from</h2>
-                {page.sources.length ? (
+                {page.sources.length > 0 && (
                     <ul className="mitem-list">
                         {page.sources.map((e, i) => entryRow(e, i, 'from'))}
                     </ul>
-                ) : page.fromCreature ? (
+                )}
+                {page.fromCreature ? (
                     <p className="mitem-none">
-                        Carried by a creature somewhere in the wild. The Bestiary tells which, once
-                        you have killed enough of them to know.
+                        {carriedBy(page.creatureCount || 1, page.sources.length > 0)} The Bestiary
+                        tells which, once you have killed enough of them to know.
                         {inGame && (
                             <>
                                 {' '}
@@ -258,7 +270,7 @@ export default function ManualItem({
                             </>
                         )}
                     </p>
-                ) : (
+                ) : page.sources.length === 0 && (
                     <p className="mitem-none">
                         Nothing in the world produces this yet.
                     </p>

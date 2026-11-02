@@ -104,14 +104,14 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest }: Su
             dragHandleClassName="support-header"
         >
             <div className="support-header">
-                <h3 className="gold-text">Talaran Store</h3>
+                <h3 className="gold-text">Support the Game</h3>
                 <div className="settings-header-actions">
                     {!isMobile && (
                         <button className="dock-btn" onClick={dock.togglePop} title={dock.isPopped ? 'Dock panel' : 'Pop out'}>
                             {dock.isPopped ? '\u2921' : '\u2922'}
                         </button>
                     )}
-                    <button className="modal-close-btn" onClick={onClose}>\u2715</button>
+                    <button className="modal-close-btn" onClick={onClose} aria-label="Close">{'\u2715'}</button>
                 </div>
             </div>
             <div className="support-panel">
