@@ -205,7 +205,20 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
   const playerId = req.player!.playerId;
   const { channel } = req.body;
   // A non-string here used to reach .trim() and 500.
-  const message: string = typeof req.body.message === 'string' ? req.body.message : '';
+  let message: string = typeof req.body.message === 'string' ? req.body.message : '';
+
+  // An emote: "/me waves" reads in chat as "Pendragon waves", in italics
+  // (ChatMessageLine.tsx). Stored as "/me <action>", normalised here, so
+  // history, moderation and the logs show it as typed, with no new column.
+  const emote = /^\s*\/me(?:\s+([\s\S]*))?$/i.exec(message);
+  if (emote) {
+    const action = (emote[1] ?? '').trim();
+    if (!action) {
+      res.status(400).json({ error: 'Say what you do after /me, as in: /me waves.' });
+      return;
+    }
+    message = `/me ${action}`;
+  }
 
   if (!message || message.trim().length === 0) {
     res.status(400).json({ error: 'Message cannot be empty' });

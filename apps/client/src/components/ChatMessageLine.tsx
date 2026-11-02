@@ -138,6 +138,33 @@ export default function ChatMessageLine({ msg, onOpenForum, onPlayerClick }: Cha
         )
     }
 
+    // An emote ("/me waves", routes/chat.ts): the name and the action as one
+    // italic line in the channel's colour, "Pendragon waves", with no colon.
+    if (msg.message.startsWith('/me ')) {
+        const color = CHANNEL_COLORS[msg.channel]
+        return (
+            <div className="chat-message">
+                <span className="chat-timestamp muted-text">{msg.timestamp}</span>
+                {' '}
+                <span className="chat-channel-tag" style={{ color }}>
+                    [{CHANNEL_SHORT[msg.channel] || msg.channel}]
+                </span>
+                {' '}
+                <span className="chat-emote" style={{ color }}>
+                    <span
+                        className="chat-emote-name"
+                        onClick={() => onPlayerClick?.(msg.playerName)}
+                        style={{ cursor: onPlayerClick ? 'pointer' : 'default' }}
+                    >
+                        {msg.playerName}
+                    </span>
+                    {' '}
+                    {renderMessageText(msg.message.slice(4), onOpenForum)}
+                </span>
+            </div>
+        )
+    }
+
     return (
         <div className="chat-message">
             <span className="chat-timestamp muted-text">{msg.timestamp}</span>

@@ -89,6 +89,16 @@
   font-size: calc(15px * var(--chat-scale, 1));
 }
 
+/* "/me waves": name and action as one italic line in the channel's colour. */
+.chat-emote {
+  font-size: calc(15px * var(--chat-scale, 1));
+  font-style: italic;
+}
+
+.chat-emote-name {
+  font-size: calc(16px * var(--chat-scale, 1));
+}
+
 .chat-input-row {
   display: flex;
   gap: var(--space-xs);
