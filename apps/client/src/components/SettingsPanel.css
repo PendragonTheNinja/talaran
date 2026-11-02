@@ -343,3 +343,34 @@
     flex-wrap: wrap;
     gap: 8px;
 }
+
+/* Notification kinds (NotificationSetting.tsx): a checkbox and a line each. */
+.notify-types {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.notify-type {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.notify-type input {
+    margin-top: 4px;
+    accent-color: var(--color-gold);
+}
+
+.notify-type-label {
+    display: block;
+    font-size: 14px;
+    color: var(--color-text-base);
+}
+
+.notify-type-desc {
+    display: block;
+    font-size: 12px;
+}

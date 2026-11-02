@@ -15,6 +15,7 @@ import CombatBotCheckSetting from './CombatBotCheckSetting'
 import AvatarSetting from './AvatarSetting'
 import ChatMessageLine from './ChatMessageLine'
 import BellSetting from './BellSetting'
+import NotificationSetting from './NotificationSetting'
 import { CHAT_SIZES, currentChatSize, setChatSize, type ChatSizeId } from '../lib/chatSize'
 
 type SettingsTab = 'profile' | 'account' | 'chat' | 'game' | 'combat' | 'themes'
@@ -499,6 +500,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                     <div className="settings-section">
                         <h4 className="settings-section-title">Game Options</h4>
                         <BellSetting hasCustomPerk={owns('perk:custom_sound')} />
+                        <NotificationSetting />
                         <div className="settings-toggle-row">
                             <div className="settings-toggle-info">
                                 <span className="settings-toggle-label">Travel Log</span>

@@ -10,6 +10,9 @@ import { startGameTick } from './services/gameTick';
 import { startPlaytimeTracking } from './services/playtime';
 import { startGroundItemSweep } from './services/groundItems';
 import { startInventoryNotices } from './lib/inventoryNotify';
+import { startPushNotifications } from './services/pushNotify';
+import pushRoutes from './routes/push';
+import { setPageVisibility, forgetSocket } from './lib/pageVisibility';
 import { startWorldEventScheduler } from './services/worldEvents';
 import eventRoutes from './routes/events';
 import travelRoutes from './routes/travel';
@@ -253,6 +256,7 @@ app.use('/api/shops', shopRoutes);
 app.use('/api/palettes', paletteRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/npcs', npcRoutes);
@@ -333,6 +337,8 @@ io.on('connection', (socket) => {
     if (!playerId) return;
 
     socket.join(`player_${playerId}`);
+    // Counts as on screen until the page says otherwise (lib/pageVisibility.ts).
+    setPageVisibility(socket.id, playerId, true);
     markOnline(playerId);   // second presence signal; see lib/presence.ts
     void recordSeen(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
@@ -359,7 +365,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  // The page reports whether it is on screen, so push notifications go only to
+  // a player who is not looking (services/pushNotify.ts).
+  socket.on('page_visibility', (visible: unknown) => {
+    const playerId: number = socket.data.playerId;
+    if (playerId) setPageVisibility(socket.id, playerId, visible === true);
+  });
+
   socket.on('disconnect', async () => {
+    forgetSocket(socket.id);
     if (!socket.data.playerId) return;
     // Stamp the departure: players.last_seen starts the offline allowance. See
     // lib/presence.ts. The cancellation itself happens at resolution time, not
@@ -463,6 +477,7 @@ if (require.main === module) {
   startWorldEventScheduler();
   // Every committed pack change refreshes that player's pack (migration 20261102130000).
   startInventoryNotices();
+  startPushNotifications();
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {

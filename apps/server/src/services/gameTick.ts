@@ -31,7 +31,7 @@ import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
 import { takeJewelryNotes, jewelryAid } from './jewelry';
-import { realtimeServer } from '../lib/realtime';
+import { realtimeServer, pushToPlayer } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
 let lastTrapSweep = 0;
@@ -147,7 +147,7 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   // Server-side bookkeeping, not something the client needs to see.
   if (result) delete result.goldBasisXp;
 
-  io?.to(`player_${action.player_id}`).emit('action_complete', payload);
+  pushToPlayer(action.player_id, 'action_complete', payload);
 
   // World firsts, on SECONDARY DROPS only.
   //
@@ -179,7 +179,7 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
     const { evaluateFeats } = await import('./feats');
     const fresh = await evaluateFeats(action.player_id);
     for (const feat of fresh) {
-      io?.to(`player_${action.player_id}`).emit('feat_earned', feat);
+      pushToPlayer(action.player_id, 'feat_earned', feat);
     }
 
     // First in Talaran to this rung. Claimed by unique index inside, so a tie
@@ -298,7 +298,7 @@ export function startGameTick(io: Server): void {
         const { processTrapTicks } = await import('./trapping');
         const trapEvents = await processTrapTicks(new Date());
         for (const e of trapEvents.sprung) {
-          io.to(`player_${e.playerId}`).emit('trap_sprung', { trapId: e.trapId });
+          pushToPlayer(e.playerId, 'trap_sprung', { trapId: e.trapId });
         }
       }
       const completedActions = await claimDueActions();
@@ -402,7 +402,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // no result card and no message, which is indistinguishable from a bug.
       // If presence is ever wrong, this turns a silent stall into a sentence
       // that says what happened.
-      io.to(`player_${action.player_id}`).emit('action_failed', {
+      pushToPlayer(action.player_id, 'action_failed', {
         error: 'Your work stopped while you were away.',
         info: true,
       });
@@ -505,7 +505,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         else farmResult = await resolveHarvest(action.player_id, action.action_data);
 
         if (!farmResult.success) {
-          io.to(`player_${action.player_id}`).emit('action_failed', { error: farmResult.error || 'The work came to nothing.' });
+          pushToPlayer(action.player_id, 'action_failed', { error: farmResult.error || 'The work came to nothing.' });
           return;
         }
 
@@ -550,7 +550,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
         const shopResult = await resolveEstablishShop(action.player_id);
         if (!shopResult.success) {
-          io.to(`player_${action.player_id}`).emit('action_failed', { error: shopResult.error || 'The work came to nothing.' });
+          pushToPlayer(action.player_id, 'action_failed', { error: shopResult.error || 'The work came to nothing.' });
           return;
         }
 
@@ -621,7 +621,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         else husResult = await resolveTame(action.player_id, action.action_data);
 
         if (!husResult.success) {
-          io.to(`player_${action.player_id}`).emit('action_failed', { error: husResult.error || 'The work came to nothing.' });
+          pushToPlayer(action.player_id, 'action_failed', { error: husResult.error || 'The work came to nothing.' });
           return;
         }
 
@@ -796,7 +796,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
-      io.to(`player_${action.player_id}`).emit('travel_complete', {
+      pushToPlayer(action.player_id, 'travel_complete', {
         result: {
           itemName: null,
           xpAwarded: travelXp,
@@ -832,7 +832,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // Bow was unequipped mid-loop: stop the hunt cleanly (no arrow was spent)
       if (hunt.noBow) {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: 'Your hunt ended — you no longer have a bow equipped.',
         });
         return;
@@ -947,7 +947,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     // Handle failed actions
     if (!result.success) {
       await db('player_actions').where({ id: action.id }).delete();
-      io.to(`player_${action.player_id}`).emit('action_failed', {
+      pushToPlayer(action.player_id, 'action_failed', {
         error: result.error || 'Action failed',
       });
       return;
@@ -959,7 +959,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     if (action.action_type === 'talar_fill') {
       if (!result || !result.success) {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: result?.error || 'Your filling ended.',
         });
         return;
@@ -1010,7 +1010,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     if (action.action_type === 'spell_vigil') {
       await db('player_actions').where({ id: action.id }).delete();
       if (!result || !result.success) {
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: result?.error || 'The vigil came to nothing.',
         });
         return;
@@ -1036,7 +1036,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const forage = result;
       if (!forage || !forage.success) {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: forage?.error || 'Your foraging ended.',
         });
         return;
@@ -1112,7 +1112,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const fish = result as any;
       if (!fish || !fish.success) {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: fish?.error || 'Your fishing ended.',
         });
         return;
@@ -1274,18 +1274,18 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             last_timer_seconds: nextTimer,
           });
 
-          io.to(`player_${action.player_id}`).emit('vein_depleted', {
+          pushToPlayer(action.player_id, 'vein_depleted', {
             oreName: vein ? (await db('items').where({ id: vein.ore_item_id }).first())?.name : 'Unknown',
           });
 
-          io.to(`player_${action.player_id}`).emit('action_switched', {
+          pushToPlayer(action.player_id, 'action_switched', {
             newActionType: 'mining_rock',
             nodeName: rockNode.name,
             timerSeconds: nextTimer,
           });
         } else {
           await db('player_actions').where({ id: action.id }).delete();
-          io.to(`player_${action.player_id}`).emit('vein_depleted', {
+          pushToPlayer(action.player_id, 'vein_depleted', {
             oreName: 'Unknown',
           });
         }
@@ -1312,7 +1312,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
       if (!playerTool) {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: 'You no longer have a pickaxe equipped. Mining stopped.',
         });
         return;
@@ -1388,7 +1388,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
               xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: lastXpNeeded, xpAtLevel, leveledUp: false },
             });
 
-            io.to(`player_${action.player_id}`).emit('action_failed', {
+            pushToPlayer(action.player_id, 'action_failed', {
               error: `Out of ${ingredient.name}. Smithing stopped.`,
               info: true,
             });
@@ -1435,7 +1435,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const actionsCompleted = (action.actions_completed || 0) + 1;
         if (actionsCompleted >= action.action_limit) {
           await db('player_actions').where({ id: action.id }).delete();
-          io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+          pushToPlayer(action.player_id, 'action_limit_reached', {
             message: `Action limit of ${action.action_limit} reached.`,
           });
           return;
@@ -1459,7 +1459,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // location mid-craft, so this is the honest sentence for the case.
       if (action.location_id && player.current_location_id !== action.location_id) {
         await db('player_actions').where({ id: action.id }).delete();
-        io.to(`player_${action.player_id}`).emit('action_failed', {
+        pushToPlayer(action.player_id, 'action_failed', {
           error: `You left the bench, so the ${skillName.toLowerCase()} stopped.`,
           info: true,
         });
@@ -1497,7 +1497,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             timerSeconds: 0,
             xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
           });
-          io.to(`player_${action.player_id}`).emit('action_failed', {
+          pushToPlayer(action.player_id, 'action_failed', {
             error: `${repeatCheck.error || 'Out of materials.'} ${skillName} stopped.`,
             info: true,
           });
@@ -1526,7 +1526,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             timerSeconds: 0,
             xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
           });
-          io.to(`player_${action.player_id}`).emit('action_failed', {
+          pushToPlayer(action.player_id, 'action_failed', {
             error: `${station.error} ${skillName} stopped.`,
             info: true,
           });
@@ -1565,7 +1565,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const actionsCompleted = (action.actions_completed || 0) + 1;
         if (actionsCompleted >= action.action_limit) {
           await db('player_actions').where({ id: action.id }).delete();
-          io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+          pushToPlayer(action.player_id, 'action_limit_reached', {
             message: `Action limit of ${action.action_limit} reached.`,
           });
           return;
@@ -1604,7 +1604,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
               timerSeconds: 0,
               xpInfo: { totalXp: lastXp, level: lastLevel, xpToNext: xpToNextLevel(lastXp), xpAtLevel: xpForLevel(lastLevel), leveledUp: false },
             });
-            io.to(`player_${action.player_id}`).emit('action_failed', {
+            pushToPlayer(action.player_id, 'action_failed', {
               error: `Out of ${ingredient.name}. Carpentry stopped.`,
               info: true,
             });
@@ -1645,7 +1645,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const actionsCompleted = (action.actions_completed || 0) + 1;
         if (actionsCompleted >= action.action_limit) {
           await db('player_actions').where({ id: action.id }).delete();
-          io.to(`player_${action.player_id}`).emit('action_limit_reached', {
+          pushToPlayer(action.player_id, 'action_limit_reached', {
             message: `Action limit of ${action.action_limit} reached.`,
           });
           return;
@@ -1763,7 +1763,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     // cycle in flight rather than an inventory.
     try {
       await db('player_actions').where({ id: action.id }).delete();
-      io.to(`player_${action.player_id}`).emit('action_failed', {
+      pushToPlayer(action.player_id, 'action_failed', {
         error: 'Something went wrong with that action, so it has been stopped.',
         info: true,
       });

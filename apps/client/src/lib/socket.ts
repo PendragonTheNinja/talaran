@@ -15,8 +15,23 @@ export function connectSocket(playerId: number): Socket {
   })
   socket.on('connect', () => {
     socket!.emit('join', playerId)
+    reportVisibility()
   })
   return socket
+}
+
+/**
+ * Tell the server whether this tab is on screen, so push notifications go only
+ * to a player who is not looking (server lib/pageVisibility.ts). Sent on every
+ * connect and every change; a tab behind another one, or a phone with its
+ * screen off, is not on screen.
+ */
+function reportVisibility() {
+  socket?.emit('page_visibility', document.visibilityState === 'visible')
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', reportVisibility)
 }
 
 export function getSocket(): Socket | null {

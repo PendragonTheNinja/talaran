@@ -32,6 +32,28 @@ export function setRealtimeServer(server: Server): void {
  */
 export function pushToPlayer(playerId: number, event: string, payload?: unknown): void {
     pushToRoom(`player_${playerId}`, event, payload);
+    for (const fn of playerPushListeners) {
+        try {
+            fn(playerId, event, payload);
+        } catch (err) {
+            logger.warn(`player push listener failed on ${event}: ${err}`);
+        }
+    }
+}
+
+/**
+ * Hear every push to a player, after it is sent. Push notifications
+ * (services/pushNotify.ts) listen here so that any moment the game already
+ * tells a player about (a bot check, an action stopping) can also reach their
+ * phone, without each sender knowing notifications exist. A listener must be
+ * quick and must not throw; anything slow it starts on its own.
+ */
+export type PlayerPushListener = (playerId: number, event: string, payload: unknown) => void;
+const playerPushListeners = new Set<PlayerPushListener>();
+
+export function onPlayerPush(fn: PlayerPushListener): () => void {
+    playerPushListeners.add(fn);
+    return () => { playerPushListeners.delete(fn); };
 }
 
 /**
