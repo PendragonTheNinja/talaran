@@ -51,11 +51,15 @@ interface GuildListItem {
 interface Permission { key: string; label: string }
 type RankPermissions = Record<'officer' | 'member' | 'recruit', string[]>
 
-const RANK_CHOICES: { role: 'officer' | 'member' | 'recruit'; label: string; rank: number }[] = [
+const RANK_CHOICES: { role: 'leader' | 'officer' | 'member' | 'recruit'; label: string; rank: number }[] = [
+    { role: 'leader', label: 'Leader', rank: 4 },
     { role: 'officer', label: 'Officer', rank: 3 },
     { role: 'member', label: 'Member', rank: 2 },
     { role: 'recruit', label: 'Recruit', rank: 1 },
 ]
+
+/** The ranks whose permissions the Leaders set (Leaders always have every one). */
+const PERMISSION_RANKS = RANK_CHOICES.filter((r): r is { role: 'officer' | 'member' | 'recruit'; label: string; rank: number } => r.role !== 'leader')
 
 interface Application {
     id: number
@@ -90,6 +94,8 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
     // What I may do, decided by the server (services/guildRanks.ts).
     const [myRank, setMyRank] = useState(1)
     const [amLeader, setAmLeader] = useState(false)
+    // The guild's head: names the second Leader, hands the guild on, disbands it.
+    const [amHead, setAmHead] = useState(false)
     const [myPermissions, setMyPermissions] = useState<string[]>([])
     const [permissionCatalog, setPermissionCatalog] = useState<Permission[]>([])
     const [rankPerms, setRankPerms] = useState<RankPermissions | null>(null)
@@ -123,7 +129,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
         try {
             const data = await apiFetch<{
                 guild: Guild | null; members: GuildMember[]; myRole: string
-                myRank?: number; isLeader?: boolean; myPermissions?: string[]
+                myRank?: number; isLeader?: boolean; isHead?: boolean; myPermissions?: string[]
                 permissionCatalog?: Permission[]; rankPermissions?: RankPermissions
                 latestNews?: { id: number; title: string; created_at: string; author: string | null }[]
             }>('/api/guilds/my')
@@ -140,6 +146,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                 setMyRole(data.myRole)
                 setMyRank(data.myRank ?? 1)
                 setAmLeader(!!data.isLeader)
+                setAmHead(!!data.isHead)
                 setMyPermissions(data.myPermissions ?? [])
                 setPermissionCatalog(data.permissionCatalog ?? [])
                 setRankPerms(data.rankPermissions ?? null)
@@ -220,7 +227,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
     const handleTransferLeadership = async (targetId: number, username: string) => {
         setConfirmDialog({
-            message: `Transfer leadership to ${username}?`,
+            message: `Hand the guild over to ${username}? They become its head, the one who can disband it or pass it on. You stay on as a Leader if there is room for two, or as an Officer.`,
             onConfirm: async () => {
                 setConfirmDialog(null)
                 try {
@@ -228,7 +235,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                         method: 'POST',
                         body: JSON.stringify({ targetPlayerId: targetId }),
                     })
-                    setSuccess(`Leadership transferred to ${username}.`)
+                    setSuccess(`${username} is the head of the guild now.`)
                     await loadGuildData()
                 } catch (err: any) {
                     setError(err.message)
@@ -597,7 +604,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                     </div>
                                 </div>
                             )}
-                            {!amLeader && (
+                            {!amHead && (
                                 <button className="btn btn-red" style={{ marginTop: '16px', fontSize: '13px' }} onClick={handleLeave}>
                                     Leave Guild
                                 </button>
@@ -628,8 +635,10 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                             {m.online ? `📍 ${m.location_name}` : `Last seen: ${formatLastSeen(m.last_seen)}`}
                                         </span>
                                     </div>
-                                    {/* Only members ranked below you; the server checks the same. */}
-                                    {m.username !== playerUsername && (m.rank ?? 1) < myRank && (can('promote') || can('kick') || amLeader) && (
+                                    {/* Only members ranked below you (the head reaches the
+                                        second Leader too); the server checks the same. */}
+                                    {m.username !== playerUsername && m.id !== guild?.leader_id
+                                        && (amHead || (m.rank ?? 1) < myRank) && (can('promote') || can('kick') || amHead) && (
                                         <div className="guild-member-actions" onClick={e => e.stopPropagation()}>
                                             {can('promote') && (
                                                 <select
@@ -638,14 +647,17 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                                     onChange={e => handleSetRank(m.id, e.target.value)}
                                                     aria-label={`Rank for ${m.username}`}
                                                 >
-                                                    {RANK_CHOICES.filter(r => r.rank < myRank || r.role === m.role).map(r => (
-                                                        <option key={r.role} value={r.role} disabled={r.rank >= myRank}>{r.label}</option>
+                                                    {RANK_CHOICES.filter(r => (amHead || r.rank < myRank) || r.role === m.role).map(r => (
+                                                        <option key={r.role} value={r.role} disabled={!amHead && r.rank >= myRank}>{r.label}</option>
                                                     ))}
                                                 </select>
                                             )}
-                                            {amLeader && (
+                                            {/* This hands over the head seat itself. It was labelled
+                                                "Make Leader", and a head who meant to share leading
+                                                gave the guild away (forum, 2026-11-03). */}
+                                            {amHead && (
                                                 <button className="btn" style={{ fontSize: '11px' }} onClick={() => handleTransferLeadership(m.id, m.username)}>
-                                                    Make Leader
+                                                    Hand Over Guild
                                                 </button>
                                             )}
                                             {can('kick') && (
@@ -776,14 +788,14 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                         <thead>
                                             <tr>
                                                 <th />
-                                                {RANK_CHOICES.map(r => <th key={r.role}>{r.label}</th>)}
+                                                {PERMISSION_RANKS.map(r => <th key={r.role}>{r.label}</th>)}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {permissionCatalog.map(p => (
                                                 <tr key={p.key}>
                                                     <td>{p.label}</td>
-                                                    {RANK_CHOICES.map(r => (
+                                                    {PERMISSION_RANKS.map(r => (
                                                         <td key={r.role}>
                                                             <input
                                                                 type="checkbox"
@@ -805,7 +817,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
 
                             <div className="divider" style={{ margin: '16px 0' }} />
 
-                            <div className="guild-form-group">
+                            {amHead && <div className="guild-form-group">
                                 <p className="muted-text" style={{ fontSize: '13px' }}>Danger Zone</p>
                                 <button
                                     className="btn"
@@ -824,7 +836,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                                 >
                                     Disband Guild
                                 </button>
-                            </div>
+                            </div>}
                         </div>
                     )}
 

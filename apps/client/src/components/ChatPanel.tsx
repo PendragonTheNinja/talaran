@@ -241,6 +241,10 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
       socket.on('chat_world', handleMessage)
       socket.on('chat_region', handleMessage)
       socket.on('chat_guild', handleMessage)
+      // Joined, left or lost a guild: the server has moved this tab's guild
+      // room; reload the history so the Guild channel shows the new one.
+      const handleGuildChanged = () => setReloadKey(k => k + 1)
+      socket.on('guild_changed', handleGuildChanged)
       socket.on('chat_trade', handleMessage)
       socket.on('chat_help', handleMessage)
 
@@ -313,6 +317,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
         socket.off('chat_world')
         socket.off('chat_region')
         socket.off('chat_guild')
+        socket.off('guild_changed', handleGuildChanged)
         socket.off('chat_trade')
         socket.off('chat_help')
         socket.off('whisper')

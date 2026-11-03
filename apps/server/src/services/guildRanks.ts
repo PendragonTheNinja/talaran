@@ -85,11 +85,21 @@ export function cleanRankPermissions(input: unknown): Record<ConfigurableRank, s
     return out;
 }
 
+/**
+ * A guild may have two Leaders (Nathan, 2026-11-03): its head (guilds.leader_id,
+ * who alone disbands the guild or hands the head seat on) and one more, named
+ * by the head. Both may do everything a guild permits.
+ */
+export const MAX_LEADERS = 2;
+
 export interface Membership {
     guildId: number
     role: Role
     rank: number
+    /** Holds the Leader rank: the head or the second Leader. Every permission. */
     isLeader: boolean
+    /** The guild's head (guilds.leader_id): disbands, hands the guild on. */
+    isHead: boolean
     /** True when this member may do `permission` (the leader always may). */
     can: (permission: string) => boolean
     guild: any
@@ -108,15 +118,21 @@ export async function membershipOf(playerId: number, x: any = db, lock = false):
     if (!guild) return null;
     const role = row.role as Role;
     const rank = rankOf(role);
-    const isLeader = Number(guild.leader_id) === playerId;
+    const isHead = Number(guild.leader_id) === playerId;
+    // A Leader is anyone holding the rank, the head included. Before this, only
+    // the head passed: a second "Leader" (from the old system, or named since)
+    // held the top rank with no permissions at all, and nobody could change
+    // it because ranks are only set for those below you (forum, 2026-11-03).
+    const isLeader = isHead || rank >= 4;
     const perms = rankPermissions(guild.rank_permissions);
     return {
         guildId: guild.id,
         role,
         rank,
         isLeader,
+        isHead,
         guild,
-        can: (permission: string) => isLeader || (rank < 4 && (perms[role as ConfigurableRank] ?? []).includes(permission)),
+        can: (permission: string) => isLeader || (perms[role as ConfigurableRank] ?? []).includes(permission),
     };
 }
 
@@ -124,6 +140,14 @@ export async function membershipOf(playerId: number, x: any = db, lock = false):
 export async function setRole(x: any, guildId: number, playerId: number, role: Role): Promise<void> {
     await x('guild_members').where({ guild_id: guildId, player_id: playerId }).update({ role });
     await x('players').where({ id: playerId }).update({ guild_role: role });
+}
+
+/** How many members hold the Leader rank, the head included. */
+export async function leaderCount(x: any, guildId: number, exceptPlayerId?: number): Promise<number> {
+    const q = x('guild_members').where({ guild_id: guildId }).whereIn('role', ['leader', 'founder']);
+    if (exceptPlayerId) q.whereNot({ player_id: exceptPlayerId });
+    const [{ n }] = await q.count({ n: '*' });
+    return Number(n);
 }
 
 /** The role a new leader takes: 'founder' for the founder, 'leader' for anyone else. */

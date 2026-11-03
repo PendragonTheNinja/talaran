@@ -130,3 +130,22 @@ export function onlinePlayers(): ReadonlySet<number> {
 export function realtimeServer(): Server | null {
     return io;
 }
+
+/**
+ * Move a player's open tabs between guild chat rooms (`guild_<id>`), and tell
+ * the client its guild changed. A socket joins its guild's room when it
+ * connects (index.ts), so without this a player who joined a guild saw no
+ * guild chat until they refreshed, and one who left or was removed kept
+ * hearing it (forum, 2026-11-03). Never throws.
+ */
+export function moveGuildRoom(playerId: number, fromGuildId: number | null, toGuildId: number | null): void {
+    try {
+        if (!io) return;
+        const tabs = io.in(`player_${playerId}`);
+        if (fromGuildId) tabs.socketsLeave(`guild_${fromGuildId}`);
+        if (toGuildId) tabs.socketsJoin(`guild_${toGuildId}`);
+        pushToPlayer(playerId, 'guild_changed', { guildId: toGuildId });
+    } catch {
+        // A socket problem must not undo the membership change that caused it.
+    }
+}
