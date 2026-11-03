@@ -386,7 +386,8 @@
 .mobile-modals .settings-panel,
 .mobile-modals .support-panel-window,
 .mobile-modals .guild-panel,
-.mobile-modals .ev-panel {
+.mobile-modals .ev-panel,
+.mobile-modals .journal-panel {
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
@@ -676,3 +677,12 @@
 /* The open table's title, row count, filter and New Row: wrap, filter on its own line. */
 .mobile-modals .admin-content-head { flex-wrap: wrap; row-gap: 6px !important; }
 .mobile-modals .admin-content-head .admin-filter-input { order: 3; flex: 1 1 100%; min-width: 0; }
+
+/* ---- Journal: the list or a note, one at a time ---- */
+.mobile-modals .jr-list { width: 100%; border-right: none; }
+.mobile-modals .jr-body.reading .jr-list { display: none; }
+.mobile-modals .jr-body.listing .jr-note { display: none; }
+.mobile-modals .jr-note { padding: var(--space-md); }
+.mobile-modals .jr-search,
+.mobile-modals .jr-title,
+.mobile-modals .jr-textarea { font-size: 16px; }

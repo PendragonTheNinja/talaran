@@ -1,0 +1,141 @@
+/* The Journal (JournalPanel.tsx). A right-hand drawer like Settings; the list
+   of notes beside the open note, which take turns on a phone (MobileShell.css). */
+.journal-panel {
+    position: fixed;
+    top: 50px;
+    right: 0;
+    width: 680px;
+    max-width: 95vw;
+    height: calc(100vh - 50px);
+    background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
+    border-left: 1px solid var(--color-border-gold);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    animation: slide-in-right 0.2s ease;
+}
+.journal-panel.closing { animation: slide-out-right 0.2s ease forwards; }
+
+.jr-body { flex: 1; min-height: 0; display: flex; }
+
+.jr-list {
+    width: 230px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--color-border-dark);
+    overflow-y: auto;
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.jr-list-head { display: flex; gap: 6px; }
+.jr-search {
+    flex: 1;
+    min-width: 0;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 4px 8px;
+}
+.jr-new { font-size: 11px; padding: 4px 10px; white-space: nowrap; }
+.jr-count { font-size: 12px; margin: 2px 0 6px; }
+.jr-empty { font-size: 14px; line-height: 1.5; }
+
+.jr-note-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 6px;
+    cursor: pointer;
+    color: var(--color-text-base);
+    font-family: var(--font-body);
+}
+.jr-note-row:hover { background: var(--color-bg-hover); }
+.jr-note-row.active { border-color: var(--color-border-gold); background: var(--color-bg-deep); }
+.jr-row-text { display: flex; flex-direction: column; min-width: 0; }
+.jr-row-title { font-size: 15px; color: var(--color-text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jr-row-snippet { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A note's colour: the dot in the list and the swatches. */
+.jr-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; background: var(--color-border-mid); }
+.jr-c-red    { --jr: #cf4b3f; }
+.jr-c-gold   { --jr: #c8922a; }
+.jr-c-green  { --jr: #3f9e5f; }
+.jr-c-blue   { --jr: #4f86c9; }
+.jr-c-purple { --jr: #9363c9; }
+.jr-dot[class*='jr-c-'] { background: var(--jr); }
+
+.jr-note {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+.jr-title {
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-border-dark);
+    color: var(--color-gold-bright);
+    font-family: var(--font-heading);
+    font-size: 20px;
+    padding: 4px 0;
+}
+.jr-title:focus { outline: none; border-bottom-color: var(--color-border-gold); }
+
+.jr-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.jr-tools .btn { font-size: 11px; padding: 3px 10px; }
+.jr-modes { display: flex; gap: 4px; }
+.jr-colors { display: flex; gap: 5px; align-items: center; }
+.jr-swatch {
+    width: 18px; height: 18px; border-radius: 50%; cursor: pointer; padding: 0;
+    border: 2px solid var(--color-border-mid);
+    background: var(--jr, transparent);
+}
+.jr-swatch.on { border-color: var(--color-gold-bright); box-shadow: 0 0 0 2px var(--color-bg-deep) inset; }
+.jr-delete { margin-left: auto; color: var(--color-red-glow); border-color: var(--color-red-glow); }
+
+.jr-write-bar { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.jr-write-bar .btn { font-size: 11px; padding: 3px 10px; }
+.jr-textarea {
+    flex: 1;
+    min-height: 260px;
+    resize: vertical;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-base);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    padding: var(--space-sm) var(--space-md);
+}
+.jr-textarea:focus { outline: none; border-color: var(--color-border-gold); }
+
+.jr-read { font-size: 16px; line-height: 1.55; color: var(--color-text-base); }
+.jr-read p { margin: 0; }
+.jr-progress { font-size: 12px; margin-bottom: 4px !important; }
+.jr-gap { height: 0.7em; }
+.jr-bullet { padding-left: 16px; position: relative; }
+.jr-bullet::before { content: '•'; position: absolute; left: 4px; color: var(--color-gold); }
+.jr-check { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 1px 0; }
+.jr-check input { margin-top: 5px; accent-color: var(--color-gold); }
+.jr-check.done span { text-decoration: line-through; color: var(--color-text-muted); }
+.jr-item-link {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font: inherit; color: var(--color-gold-bright);
+    text-decoration: underline; text-decoration-color: var(--color-border-gold); text-underline-offset: 2px;
+}
+.jr-item-link:hover { color: var(--color-gold-shine); }
+.jr-status { font-size: 12px; margin: 0; }
+.jr-check.done .jr-item-link { text-decoration: line-through; color: var(--color-text-muted); }

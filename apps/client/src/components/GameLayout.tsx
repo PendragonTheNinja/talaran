@@ -42,6 +42,7 @@ import FishingMenu from './FishingMenu'
 import FarmPanel from './FarmPanel'
 import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
+import JournalPanel from './JournalPanel'
 import type { SupportTab } from '../lib/talerStore'
 
 interface Skill {
@@ -296,6 +297,7 @@ export default function GameLayout({
   // the Change link under your picture on the Stats screen.
   const [settingsTab, setSettingsTab] = useState<'profile' | 'themes' | 'chat' | 'game' | undefined>(undefined)
   const [showSupport, setShowSupport] = useState(false)
+  const [showJournal, setShowJournal] = useState(false)
   // Support opened at a tab from elsewhere (lib/talerStore.ts openSupport),
   // e.g. "More themes" in Settings. Bumped so asking again remounts at the tab.
   const [supportTab, setSupportTab] = useState<{ tab?: SupportTab; n: number }>({ n: 0 })
@@ -696,6 +698,7 @@ export default function GameLayout({
     if (showAdmin) closePanel(setAdminClosing, setShowAdmin)
     if (showSettings) closePanel(setSettingsClosing, setShowSettings)
     if (showSupport) setShowSupport(false)
+    if (showJournal) setShowJournal(false)
   }
 
   const [showHighscores, setShowHighscores] = useState(false)
@@ -858,6 +861,7 @@ export default function GameLayout({
     { label: 'Manual', onClick: () => { closeAllPanels(); setManualTarget(null); setShowManual(true) } },
     { label: 'Settings', onClick: () => { closeAllPanels(); setShowSettings(true) } },
     { label: 'Support', onClick: () => { closeAllPanels(); setSupportTab(p => ({ n: p.n + 1 })); setShowSupport(true) } },
+    { label: 'Journal', onClick: () => { closeAllPanels(); setShowJournal(true) } },
     { label: 'Stats', onClick: () => { closeAllPanels(); setShowStatsModal(true) } },
     { label: 'Quests', onClick: () => { closeAllPanels(); setShowQuestsModal(true) } },
     // Feats shipped as a fourth tab on the desktop panel, and the mobile drawer
@@ -1332,6 +1336,13 @@ export default function GameLayout({
         />
       )}
 
+      {showJournal && (
+        <JournalPanel
+          onClose={() => setShowJournal(false)}
+          onOpenItem={name => { setShowJournal(false); openManualAt('item', name) }}
+        />
+      )}
+
       {showSupport && (
         <SupportPanel
           key={supportTab.n}
@@ -1467,6 +1478,10 @@ export default function GameLayout({
         onSupportClick={() => {
           if (showSupport) setShowSupport(false)
           else { closeAllPanels(); setSupportTab(p => ({ n: p.n + 1 })); setShowSupport(true) }
+        }}
+        onJournalClick={() => {
+          if (showJournal) setShowJournal(false)
+          else { closeAllPanels(); setShowJournal(true) }
         }}
       />
       <div className={`game-body${sideStack ? ' side-stacked' : ''}`}>
