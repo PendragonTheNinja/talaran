@@ -40,7 +40,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Migrations:** hand over the complete file with its real `YYYYMMDDHHMMSS_name.ts` name, later than everything in `apps/server/src/db/migrations/`. Nathan drops it in and runs `npm run migrate`. **There is no `migrate:make`; never tell him to generate one.**
 - **Commit messages are ONE line.** Multi-line `-m` strings break in his shell.
 - **After a push, verify the delivery file by file** against `origin/main`, not by the commit message. `059c87d`'s message listed the rate-limiter fix, but `middleware/rateLimit.ts` was not in it, and only a later proof run noticed (2026-09-25).
-- **Patch notes** are fully formatted markdown (headers, bold, bullets, rules, blockquotes), fresh every deploy, never reused, and never including changes from a previous deploy.
+- **Patch notes** are fully formatted markdown (headers, bold, bullets, rules, blockquotes), fresh every deploy, never reused, and never including changes from a previous deploy. **Follow `docs/patch-notes-template.md`**: every bullet starts with one tag (`[Feature]`, `[Fix]`, `[Balance]`, `[UI]`, `[Content]`, `[Event]`), which the news page draws as a coloured label.
 
 ---
 
@@ -374,6 +374,8 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 | `docs/combat-spec.md` · `docs/combat-build-plan.md` | Combat design (locked decisions dated inline) and the ten-step build, with a "Built" note per step. |
 | `docs/derived-values.md` / `.csv` | Output of `values:derive`. Regenerated, not edited. |
 | `docs/IDEAS.md` | Parking lot (the event-chat "firsts" feed lives here). |
+| `docs/patch-notes-template.md` | Patch-note shape, tags and colours. |
+| `docs/chronicle-spec.md` | The Chronicle (Wenna's daily tidings): design and build steps. |
 | `docs/BUILD-NOTES.md` · `docs/WIRING.md` · `docs/FARMING-M1-NOTES.md` | Historical handoff notes from the Foraging and Farming builds. Archive candidates. |
 
 **Cited but missing from the repo:** `docs/support-spec.md` (referenced by `routes/paddleWebhook.ts`, `services/talers.ts`, `services/store.ts`) and `docs/husbandry-design.md`. §2 Husbandry is the summary of record.

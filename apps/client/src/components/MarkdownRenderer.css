@@ -132,3 +132,32 @@
     border-color: var(--color-border-gold);
     color: var(--color-gold-bright);
 }
+/* Patch-note tags (lib/markdown.ts renderTags, docs/patch-notes-template.md).
+   Each kind keeps its own colour on every theme: a tinted chip with the colour
+   as border and text, so it reads on dark and light pages alike. */
+.markdown-content .md-tag {
+    --tag: #9a8a6a;
+    display: inline-block;
+    margin-right: 6px;
+    padding: 0 7px;
+    border: 1px solid var(--tag);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tag) 22%, transparent);
+    /* Pulled toward the theme's text colour: darker on light pages, lighter on dark. */
+    color: color-mix(in srgb, var(--tag) 70%, var(--color-text-bright));
+    font-family: var(--font-heading);
+    font-size: 0.8em;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+    text-transform: uppercase;
+    vertical-align: 0.12em;
+    white-space: nowrap;
+}
+
+.markdown-content .md-tag-feature { --tag: #3f9e5f; }
+.markdown-content .md-tag-fix     { --tag: #cf4b3f; }
+.markdown-content .md-tag-balance { --tag: #c8922a; }
+.markdown-content .md-tag-ui      { --tag: #4f86c9; }
+.markdown-content .md-tag-content { --tag: #9363c9; }
+.markdown-content .md-tag-event   { --tag: #dd8430; }
