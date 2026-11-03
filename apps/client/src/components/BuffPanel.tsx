@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { coalesce } from '../lib/coalesce'
 import { apiFetch } from '../lib/api'
-import { getSocket } from '../lib/socket'
+import { onSocket } from '../lib/socket'
 import { getItemIcon } from '../lib/items'
 import ConfirmModal from './ConfirmModal'
 import './BuffPanel.css'
@@ -83,11 +83,8 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
     // Without this the new dish would not appear until something else remounted
     // the panel, which in practice meant a page refresh.
     useEffect(() => {
-        const socket = getSocket()
-        if (!socket) return
         const reload = coalesce(() => { load() })
-        socket.on('inventory_changed', reload)
-        return () => { socket.off('inventory_changed', reload) }
+        return onSocket('inventory_changed', reload)
     }, [load])
 
     /**
