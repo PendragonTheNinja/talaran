@@ -12,7 +12,9 @@ import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { TEXT_LIMITS } from '../lib/textLimits'
-import { useDraft, readDraft, writeDraft } from '../lib/drafts'
+import { useDraft, readDraft, writeDraft, clearDraft } from '../lib/drafts'
+
+const POLL_DRAFT = 'forum:new-thread:poll'
 
 interface ForumCategory {
     id: number
@@ -131,9 +133,23 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const [newTitle, setNewTitle, clearNewTitle] = useDraft('forum:new-thread:title')
     const [newContent, setNewContent, clearNewContent] = useDraft('forum:new-thread:body')
     const [newCategoryId, setNewCategoryId] = useState<number | null>(null)
-    const [hasPoll, setHasPoll] = useState(false)
-    const [pollQuestion, setPollQuestion] = useState('')
-    const [pollOptions, setPollOptions] = useState(['', ''])
+    // The poll is a draft too (forum, 2026-11-03): it was plain state, so a
+    // half-written thread came back without it. Kept as one JSON draft.
+    const [savedPoll] = useState<{ on?: boolean; question?: string; options?: string[] } | null>(() => {
+        try { return JSON.parse(readDraft(POLL_DRAFT) || 'null') } catch { return null }
+    })
+    const [hasPoll, setHasPoll] = useState(!!savedPoll?.on)
+    const [pollQuestion, setPollQuestion] = useState(savedPoll?.question ?? '')
+    const [pollOptions, setPollOptions] = useState<string[]>(
+        Array.isArray(savedPoll?.options) && savedPoll!.options.length >= 2 ? savedPoll!.options.map(String) : ['', ''],
+    )
+    useEffect(() => {
+        if (hasPoll || pollQuestion.trim() || pollOptions.some(o => o.trim())) {
+            writeDraft(POLL_DRAFT, JSON.stringify({ on: hasPoll, question: pollQuestion, options: pollOptions }))
+        } else {
+            clearDraft(POLL_DRAFT)
+        }
+    }, [hasPoll, pollQuestion, pollOptions])
 
     // Reply: one draft per thread, so a half-written reply waits in its thread.
     const [replyContent, setReplyContent, clearReply] = useDraft(currentThread ? `forum:reply:${currentThread.id}` : null)

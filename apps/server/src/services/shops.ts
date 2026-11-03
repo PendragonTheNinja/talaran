@@ -1221,13 +1221,27 @@ export async function messageOwnerOfTrade(shopId: number, trade: ShopTrade): Pro
         if (!shop || Number(shop.player_id) === trade.counterpartyId) return;
         const who = (await db('players').where({ id: trade.counterpartyId }).first('username'))?.username ?? 'Someone';
         const what = `${trade.quantity.toLocaleString()} ${trade.itemName}`;
+        // What is left after this trade, so the owner can tell whether to
+        // restock without opening the shop (forum, 2026-11-03).
+        const item = await db('items').where({ name: trade.itemName }).first('id');
         const { sendSystemMessage } = await import('../routes/messages');
         if (trade.kind === 'sale') {
+            const [{ left }] = item
+                ? await db('shop_listings').where({ shop_id: shopId, item_id: item.id }).sum({ left: 'quantity' })
+                : [{ left: 0 }];
+            const shelf = Number(left ?? 0);
+            const remaining = shelf > 0 ? ` ${shelf.toLocaleString()} ${trade.itemName} still on the shelf.` : ` That was the last ${trade.itemName} on the shelf.`;
             await sendSystemMessage(Number(shop.player_id), `A sale at ${shop.name}`,
-                `${who} bought ${what} from your shelf. ${trade.gold.toLocaleString()} gold is in your till, after the market's share.`);
+                `${who} bought ${what} from your shelf. ${trade.gold.toLocaleString()} gold is in your till, after the market's share.${remaining}`);
         } else {
+            const row: { wanted: string | number } | undefined = item
+                ? await db('shop_buy_orders').where({ shop_id: shopId, item_id: item.id })
+                    .select(db.raw('coalesce(sum(quantity_wanted - quantity_filled), 0) as wanted')).first()
+                : undefined;
+            const still = Number(row?.wanted ?? 0);
+            const remaining = still > 0 ? ` Your order still wants ${still.toLocaleString()} more.` : ' Your order for it is filled.';
             await sendSystemMessage(Number(shop.player_id), `A delivery to ${shop.name}`,
-                `${who} sold you ${what} against your buy order. ${trade.gold.toLocaleString()} gold came out of your buy fund, and the goods are in your shop's storage.`);
+                `${who} sold you ${what} against your buy order. ${trade.gold.toLocaleString()} gold came out of your buy fund, and the goods are in your shop's storage.${remaining}`);
         }
     } catch (err) {
         // A letter is never worth failing a sale over.

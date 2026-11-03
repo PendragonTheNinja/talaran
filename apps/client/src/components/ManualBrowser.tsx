@@ -275,6 +275,9 @@ export default function ManualBrowser({
                 className="manual-body"
                 ref={bodyRef}
                 onScroll={variant === 'panel' ? e => writePlace({ section, slug, scroll: e.currentTarget.scrollTop }) : undefined}
+                // On a phone the open contents drawer covers its own button; a
+                // tap on the page beside it closes it (and does nothing else).
+                onClickCapture={navOpen ? e => { e.preventDefault(); e.stopPropagation(); setNavOpen(false) } : undefined}
             >
                 {error ? (
                     <div className="manual-message">

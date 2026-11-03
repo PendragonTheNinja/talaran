@@ -1451,3 +1451,27 @@
     border-bottom-style: solid;
     border-bottom-color: var(--color-gold, #c8922a);
 }
+
+
+/* The in-game panel on a narrow screen (2026-11-03). The Contents button
+   floated over the page's top-right corner, under the article's sticky header
+   (z-index 5 over its 3), so it could not be tapped; and the drawer, at
+   z-index 2, slid in beneath that header. The button now takes its own row
+   above the page, and the drawer opens above everything in the column. */
+@media (max-width: 900px) {
+    .manual-panel .manual-nav-toggle {
+        position: static;
+        align-self: flex-start;
+        flex: none;
+        margin: 0 0 var(--space-sm, 8px);
+    }
+
+    .manual-panel .manual-nav {
+        z-index: 6;
+    }
+
+    .manual-panel .manual-body {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}

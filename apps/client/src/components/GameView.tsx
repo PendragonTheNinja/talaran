@@ -2339,6 +2339,11 @@ export default function GameView({
                   placeholder="∞"
                   className="action-limit-field"
                   disabled={!!currentAction}
+                  // Controlled by the limit actions really use. Uncontrolled, the
+                  // box came back empty (∞) whenever it was redrawn while the
+                  // stored limit kept its old number, and recipe crafts went on
+                  // stopping at it (forum, 2026-11-03).
+                  value={actionLimit && actionLimit > 0 ? actionLimit : ''}
                   onChange={e => {
                     const v = e.target.value ? parseInt(e.target.value) : null
                     if (onActionLimitChange) onActionLimitChange(v && v > 0 ? v : null)

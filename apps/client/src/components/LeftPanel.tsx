@@ -704,6 +704,16 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                   Eat
                 </button>
               )}
+              {/* A charged stone: the same as clicking it, offered here too (forum, 2026-11-03). */}
+              {isChargedGem(contextMenu.item) && (
+                <button className="context-menu-item" onClick={() => {
+                  const item = contextMenu.item
+                  setContextMenu(null)
+                  askAbsorbGem(item)
+                }}>
+                  Take the Light
+                </button>
+              )}
               {isFirewood(contextMenu.item) && (
                 <button className="context-menu-item" onClick={() => {
                   const name = contextMenu.item.name
