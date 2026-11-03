@@ -13,20 +13,35 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
    ──────────────────────────────────────────────────────────────── */
 const SCREENSHOTS: { src: string; caption: string }[] = [
     { src: '/images/home/fishing.jpg', caption: 'Luxmere: Freshwater fishing.' },
-    { src: '/images/home/forum.jpg', caption: 'The player forum: fostering a great community' },
+    { src: '/images/home/forum.jpg', caption: 'The player forum, where the island argues about grain.' },
     { src: '/images/home/market.jpg', caption: 'Talador Marketplace: Player shops line the quay.' },
     { src: '/images/home/lanaivale.jpg', caption: 'Lanaivale: The lumberjack and forager\'s haven.' },
-    { src: '/images/home/smithing.jpg', caption: 'Emberra. Forge the world\'s tools.' },
+    { src: '/images/home/smithing.jpg', caption: 'Emberra: Forge the world\'s tools.' },
 ]
 
 const SLIDE_MS = 5000
 
-/* Trades a player can work today. Cooking and combat are seeded but
-   not built, so they are named in the note under the grid instead. */
+/* The skills a player can train today, in the order the grid shows them.
+   The live list comes from /api/highscores/skills (every implemented skill)
+   on load; this is what shows before it arrives or if it cannot. A skill the
+   server adds that is not named here goes on the end, so a new skill appears
+   without anyone editing this page. */
 const TRADES = [
-    'Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting', 'Carpentry',
-    'Smithing', 'Farming', 'Husbandry', 'Crafting', 'Wayfaring',
+    'Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting', 'Farming',
+    'Husbandry', 'Carpentry', 'Smithing', 'Crafting', 'Cooking', 'Melee',
+    'Defense', 'Constitution', 'Wayfaring', 'Talar',
 ]
+
+const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty']
+
+/** The live skills, in the grid's order, new ones last. */
+function orderTrades(names: string[]): string[] {
+    const live = new Set(names)
+    const known = TRADES.filter(n => live.has(n))
+    const added = names.filter(n => !TRADES.includes(n)).sort()
+    return [...known, ...added]
+}
 
 const DISCORD_URL = 'https://discord.gg/ceHFe8nEAB'
 
@@ -74,6 +89,17 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     const [shots, setShots] = useState(SCREENSHOTS)
     const [zoom, setZoom] = useState(false)
     const [guestLoading, setGuestLoading] = useState(false)
+    const [trades, setTrades] = useState<string[]>(TRADES)
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/highscores/skills`)
+            .then(r => r.json())
+            .then((d: { skills?: { name: string }[] }) => {
+                const names = (d.skills ?? []).map(sk => sk.name).filter(Boolean)
+                if (names.length) setTrades(orderTrades(names))
+            })
+            .catch(() => { })
+    }, [])
 
     useEffect(() => {
         fetch(`${API_URL}/api/news/latest`)
@@ -244,7 +270,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                             <p className="home-lede">
                                 Fell timber and saw it into boards. Set snares and come back
                                 for whatever walked into them. Raise cattle, soak the hides in bark liquor,
-                                and sell the leather from <em>your own shop</em> at Talador.
+                                and sell the leather from <em>your own shop</em> at Talador. Fight what
+                                lives in the hills, or fill a cut stone with light at the Rift.
                             </p>
                             <p className="home-lede-two">
                                 No download, no client, no install. Your work keeps running thirty minutes after
@@ -408,7 +435,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         <span className="home-tally-l">Online now</span>
                     </div>
                     <div className="home-tally-item">
-                        <span className="home-tally-n">{TRADES.length}</span>
+                        <span className="home-tally-n">{trades.length}</span>
                         <span className="home-tally-l">Skills</span>
                     </div>
                     <a
@@ -529,19 +556,25 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
             <section className="home-band home-band-alt">
                 <div className="home-wrap">
                     <div className="home-sec-head">
-                        <span className="home-sec-title">Eleven skills, available now</span>
+                        <span className="home-sec-title">{NUMBER_WORDS[trades.length] ?? trades.length} skills, available now</span>
                         <span className="home-sec-rule" />
                     </div>
                     <div className="home-trades">
-                        {TRADES.map(name => (
+                        {trades.map(name => (
                             <div className="home-trade" key={name}>
-                                <img src={`/images/skills/${name}Skill.png`} alt="" loading="lazy" />
+                                <img
+                                    src={`/images/skills/${name}Skill.png`}
+                                    alt=""
+                                    loading="lazy"
+                                    onError={e => { e.currentTarget.style.visibility = 'hidden' }}
+                                />
                                 <span>{name}</span>
                             </div>
                         ))}
                     </div>
                     <p className="home-trades-note">
-                        Every one of these is live. Cooking and combat are being actively developed. 
+                        Every one of these is live, and most of them feed another. The hunter draws a bow
+                        the carpenter made, and the cook bakes with the farmer's flour.
                     </p>
                 </div>
             </section>
