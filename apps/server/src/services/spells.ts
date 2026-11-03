@@ -11,7 +11,7 @@ import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit, pushToRoom } from '../lib/realtime'
-import { farmHead, liftWardsWithin, wardableHead, wardFarmsteadWithin, settleWardsWithin } from './husbandry'
+import { farmHead, liftWardsWithin, wardableHead, wardFarmsteadWithin, settleWardsWithin, wardStanding } from './husbandry'
 import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
 import { eligibleLocations, eventsChanged } from './worldEvents'
 import { announceServer } from './records'
@@ -748,6 +748,10 @@ export interface SpellView {
     /** Larder Ward only: the ward that holds now, and the head it would cover if cast now. */
     ward?: { endsAt: string; head: number; paid: number } | null
     farmHead?: number
+    /** Larder Ward only: standing at the farmstead (where it is cast), its town, and when the last ward ran out. */
+    wardAtFarm?: boolean
+    wardTown?: string
+    wardLastEndedAt?: string | null
 }
 
 /** Every spell, as this player stands with it. Only spells whose effect exists are offered. */
@@ -763,9 +767,10 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
     const inPack = new Set<string>(carried)
     const mine = new Map(learned.map((l: any) => [Number(l.spell_id), l]))
     // Larder Ward: the head it would cover now, and any ward that holds.
-    const [wardRow, head] = await Promise.all([
+    const [wardRow, head, standing] = await Promise.all([
         db('larder_wards').where({ player_id: playerId }).where('ends_at', '>', new Date()).first(),
         farmHead(playerId),
+        wardStanding(playerId),
     ])
     const now = Date.now()
     return {
@@ -786,6 +791,9 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 hasWrit: !s.writ_item_name || inPack.has(s.writ_item_name),
                 ...(s.key === 'larder_ward' ? {
                     farmHead: head,
+                    wardAtFarm: standing.atFarm,
+                    wardTown: standing.town,
+                    wardLastEndedAt: wardRow ? null : standing.lastEndedAt,
                     ward: wardRow ? {
                         endsAt: new Date(wardRow.ends_at).toISOString(),
                         head: Number(wardRow.head),

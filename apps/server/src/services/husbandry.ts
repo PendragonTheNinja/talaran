@@ -813,11 +813,28 @@ export async function farmHead(playerId: number, x: Ex = db): Promise<number> {
     return Number(row?.c ?? 0);
 }
 
+/**
+ * For the spellbook (forum, 2026-11-03: "not sure how to tell"): whether the
+ * player stands at their farmstead, where a ward is cast, and when the last
+ * ward over their pens ran out. Read from the pens themselves, so it covers
+ * wards cast before larder_wards existed and wards ended early (which set
+ * warded_until to the moment they were lifted).
+ */
+export async function wardStanding(playerId: number, x: Ex = db): Promise<{ atFarm: boolean; town: string; lastEndedAt: string | null }> {
+    const player = await x('players').where({ id: playerId }).select('current_location_id').first();
+    const { novita, property } = await playerProperty(playerId, x);
+    const atFarm = !!(novita && property && player?.current_location_id === novita.id);
+    if (!property) return { atFarm, town: HUSBANDRY_TOWN, lastEndedAt: null };
+    const row = await x('player_pens').where({ property_id: property.id }).max({ until: 'warded_until' }).first();
+    const until = row?.until ? new Date(row.until) : null;
+    return { atFarm, town: HUSBANDRY_TOWN, lastEndedAt: until && until.getTime() <= Date.now() ? until.toISOString() : null };
+}
+
 export async function wardableHead(playerId: number, x: Ex = db): Promise<{ error: string } | { head: number }> {
     const player = await x('players').where({ id: playerId }).select('current_location_id').first();
     const { novita, property } = await playerProperty(playerId, x);
     if (!property || !novita) return { error: 'A Larder Ward is set over your own pens, and you have no farmstead.' };
-    if (player?.current_location_id !== novita.id) return { error: `A Larder Ward is set at your farmstead in ${HUSBANDRY_TOWN}.` };
+    if (player?.current_location_id !== novita.id) return { error: `Go to your farmstead in ${HUSBANDRY_TOWN} to set a Larder Ward.` };
     const row = await x('player_animals as a')
         .join('player_pens as p', 'p.id', 'a.pen_id')
         .where('p.property_id', property.id)

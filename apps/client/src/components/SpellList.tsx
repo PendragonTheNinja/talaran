@@ -31,6 +31,10 @@ interface SpellView {
     hasWrit: boolean
     /** Larder Ward: the ward that holds now, and the head it would cover if cast now. */
     ward?: { endsAt: string; head: number; paid: number } | null
+    /** Larder Ward: standing at the farmstead (where it is cast), its town, and when the last ward ran out. */
+    wardAtFarm?: boolean
+    wardTown?: string
+    wardLastEndedAt?: string | null
     farmHead?: number
 }
 
@@ -188,12 +192,19 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                                 )
                             }
                             const head = s.farmHead ?? 0
+                            const ago = s.wardLastEndedAt ? Math.max(0, Math.floor((now - new Date(s.wardLastEndedAt).getTime()) / 60000)) : null
                             return (
-                                <p className="spell-needs muted-text">
-                                    {head > 0
-                                        ? `${head} head in your pens: ${(s.cost * head).toLocaleString(undefined, { maximumFractionDigits: 2 })} Talar an hour.`
-                                        : 'Nothing in your pens to ward.'}
-                                </p>
+                                <>
+                                    <p className="spell-needs muted-text">
+                                        {head > 0
+                                            ? `${head} head in your pens: ${(s.cost * head).toLocaleString(undefined, { maximumFractionDigits: 2 })} Talar an hour.`
+                                            : 'Nothing in your pens to ward.'}
+                                        {ago !== null && ` No ward holds now; the last one ran out ${ago < 1 ? 'just now' : `${waitWords(ago)} ago`}.`}
+                                    </p>
+                                    {s.wardAtFarm === false && head > 0 && (
+                                        <p className="spell-needs muted-text">Cast it standing at your farmstead in {s.wardTown ?? 'Novita'}.</p>
+                                    )}
+                                </>
                             )
                         })()}
                         {mode === 'learn' && !s.learned && (s.offering || s.writ) && (
@@ -207,7 +218,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             {mode === 'cast' && s.key === 'larder_ward' && s.ward && new Date(s.ward.endsAt).getTime() > now ? (
                                 <button className="btn" disabled={busy} onClick={() => setConfirmEnd(true)}>End the Ward</button>
                             ) : mode === 'cast' && (
-                                <button className="btn btn-gold" disabled={busy || waiting > 0 || s.armed}
+                                <button className="btn btn-gold" disabled={busy || waiting > 0 || s.armed || (s.key === 'larder_ward' && s.wardAtFarm === false)}
                                     onClick={() => PICKS_TARGET.has(s.key) ? pickTarget(s) : cast(s)}>
                                     {s.armed ? 'Holding' : waiting > 0 ? `Ready in ${waitWords(waiting)}` : 'Cast'}
                                 </button>
