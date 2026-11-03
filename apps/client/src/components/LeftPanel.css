@@ -392,9 +392,12 @@
     height: 52px;
   }
 
+  /* Rows as tall as the tiles. The rows used to keep the 64px of the wide
+     layout while the tiles shrank to 52px, leaving a 12px gap under each row. */
   .inventory-grid {
     grid-template-columns: repeat(4, 52px);
-    min-height: 226px;
+    grid-auto-rows: 52px;
+    height: calc(52px * 4 + 3px * 3 + 4px * 2);
   }
 
   .equipment-grid {

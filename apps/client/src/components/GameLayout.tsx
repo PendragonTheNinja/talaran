@@ -24,7 +24,7 @@ import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
 import PlayerProfile from './PlayerProfile'
 import { getSkipConfirm, setSkipConfirm } from '../lib/confirmPrefs';
-import { useIsMobile } from '../lib/useIsMobile'
+import { useIsMobile, useWidthBelow, SIDE_STACK_BREAKPOINT } from '../lib/useIsMobile'
 import MobileShell from './MobileShell'
 import EquipmentPanel, { type CombatProfile } from './EquipmentPanel'
 import SkillsPanel from './SkillsPanel'
@@ -317,6 +317,8 @@ export default function GameLayout({
   const [focusAction, setFocusAction] = useState(0)
 
   const isMobile = useIsMobile()
+  // A narrow desktop window (half a 1920 screen): the place panel joins the right column.
+  const sideStack = useWidthBelow(SIDE_STACK_BREAKPOINT)
 
   const [showHuntingMenu, setShowHuntingMenu] = useState(false)
   // The fighting spot whose menu is open, by id.
@@ -1385,6 +1387,22 @@ export default function GameLayout({
     </>
   )
 
+  const rightPanelEl = (
+    <RightPanel
+      player={player}
+      playerData={playerData}
+      currentLocationId={locationData?.location?.id || null}
+      locationName={locationData?.location?.name || ''}
+      allLocations={locationData?.allLocations || []}
+      connections={locationData?.connections || []}
+      onTravel={handleTravel}
+      locationData={locationData}
+      equipmentData={equipmentData}
+      onEquipmentUpdate={onEquipmentUpdate}
+      onInventoryUpdate={onInventoryUpdate}
+    />
+  )
+
   if (isMobile) {
     return (
       <>
@@ -1451,28 +1469,18 @@ export default function GameLayout({
           else { closeAllPanels(); setSupportTab(p => ({ n: p.n + 1 })); setShowSupport(true) }
         }}
       />
-      <div className="game-body">
+      <div className={`game-body${sideStack ? ' side-stacked' : ''}`}>
         {leftPanelEl}
         <div className="game-center">
           <div className="game-scene-wrapper">
             {gameViewEl}
-            {locationPanelEl}
+            {!sideStack && locationPanelEl}
           </div>
           {chatPanelEl}
         </div>
-        <RightPanel
-          player={player}
-          playerData={playerData}
-          currentLocationId={locationData?.location?.id || null}
-          locationName={locationData?.location?.name || ''}
-          allLocations={locationData?.allLocations || []}
-          connections={locationData?.connections || []}
-          onTravel={handleTravel}
-          locationData={locationData}
-          equipmentData={equipmentData}
-          onEquipmentUpdate={onEquipmentUpdate}
-          onInventoryUpdate={onInventoryUpdate}
-        />
+        {sideStack
+          ? <div className="side-stack">{locationPanelEl}{rightPanelEl}</div>
+          : rightPanelEl}
       </div>
 
       {sharedModals}
