@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 import { pushToAll } from '../lib/realtime';
 import { afterCommit } from '../lib/afterCommit';
 import { announceServer } from './records';
+import { noteEventWinners } from './chronicle';
 
 // World Events (docs/WORLD-EVENTS-AND-MUSEUMS.md).
 //
@@ -183,6 +184,8 @@ export async function applyEventBonus(
     if (Number(taken.pool_left) === 0) {
         await x('world_events').where({ id: event.id }).update({ ended_at: x.fn.now(), end_reason: 'pool' });
         changedAfterCommit(x);
+        const endedId = Number(event.id);
+        afterCommit(x, () => noteEventWinners([endedId]));
     }
     const extra = Math.round(xp * (Number(taken.xp_multiplier) - 1) * Number(taken.taken) / want);
     if (extra > 0) afterCommit(x, () => noteEventXp(playerId, skillName, extra));
@@ -369,6 +372,8 @@ export async function endExpiredEvents(): Promise<number> {
         .where('ends_at', '<=', db.fn.now())
         .update({ ended_at: db.fn.now(), end_reason: 'time' })
         .returning('id');
+    // The Chronicle: who did the most at each (services/chronicle.ts).
+    if (ended.length) await noteEventWinners(ended.map((r: any) => Number(r.id ?? r)));
     return ended.length;
 }
 

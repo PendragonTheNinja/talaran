@@ -11,6 +11,7 @@ import {
   passwordProblem, hashPassword, passwordMatches, cleanEmail, cleanUsername, EMAIL_PROBLEM, isUniqueViolation,
 } from '../lib/credentials';
 import { setUpNewPlayerWithin } from '../services/newPlayer';
+import { noteDeed } from '../services/chronicle';
 
 const router = Router();
 
@@ -368,6 +369,8 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
       // token was refused as an expired guest for up to thirty seconds and the
       // claim panel reopened straight after a successful claim.
       await endSessions(playerId, trx);
+      // The Chronicle (services/chronicle.ts): a trial character kept.
+      noteDeed(trx, { kind: 'guest_claimed', playerId });
     });
 
     const [{ started }] = await db('players')

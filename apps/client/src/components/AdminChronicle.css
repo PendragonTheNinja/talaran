@@ -1,0 +1,100 @@
+/* The admin panel's Chronicle tab. Cards are the panel's own admin-action-card. */
+.admin-chronicle {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.chron-admin-note {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    margin: 0 0 var(--space-sm);
+}
+
+.chron-admin-days,
+.chron-admin-kinds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: var(--space-sm);
+}
+
+.chron-admin-day,
+.chron-admin-kind {
+    background: var(--color-bg-deep);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.chron-admin-day.active,
+.chron-admin-kind.active {
+    color: var(--color-gold-bright);
+    border-color: var(--color-border-gold);
+}
+
+/* Wide tables scroll inside their own box, never the page. */
+.chron-admin-table-wrap {
+    max-height: 520px;
+    overflow: auto;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.chron-admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.chron-admin-table th {
+    position: sticky;
+    top: 0;
+    background: var(--color-bg-deep);
+    color: var(--color-gold);
+    text-align: left;
+    font-weight: normal;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--color-border-mid);
+}
+
+.chron-admin-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--color-border-dark);
+    color: var(--color-text-base);
+    white-space: nowrap;
+}
+
+.chron-admin-table td.chron-admin-detail {
+    white-space: normal;
+    color: var(--color-text-muted);
+    min-width: 220px;
+}
+
+.chron-admin-export {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 13px;
+}
+
+.chron-admin-export input {
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-bright);
+    padding: 4px 6px;
+    margin-left: 4px;
+}
+
+@media (max-width: 767px) {
+    .admin-chronicle { padding: var(--space-md); }
+}

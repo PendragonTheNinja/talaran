@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { noteDeed } from './chronicle';
 
 /** What every new character starts with, registered or guest. */
 export const STARTER_ITEMS = ['Ambren Hatchet', 'Ambren Pickaxe', "Novice's Pony"];
@@ -21,6 +22,9 @@ export async function setUpNewPlayerWithin(trx: Knex.Transaction, playerId: numb
         );
     }
     await trx('player_stats').insert({ player_id: playerId });
+    // The Chronicle (services/chronicle.ts): one more stranger ashore. Counted,
+    // never named; guests included. Written after this account commits.
+    noteDeed(trx, { kind: 'newcomers', playerId });
 
     for (const name of STARTER_ITEMS) {
         const item = await trx('items').where({ name }).first();

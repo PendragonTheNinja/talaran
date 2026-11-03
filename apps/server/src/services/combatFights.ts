@@ -43,6 +43,8 @@ import { BESTIARY_STEPS, Stances, killsOf, stancesOf } from './bestiary'
 import { pushToPlayer } from '../lib/realtime'
 import { SERVER_ERROR } from '../lib/serviceResult'
 import { jewelryAid } from './jewelry'
+import { noteDeed, firstToday, BESTIARY_MARKS, STRONG_KILL_GAP } from './chronicle'
+import { combatLevel } from '../lib/combatMath'
 
 /** Where a fallen fighter wakes (spec §14). */
 const RESPAWN_LOCATION = 'Talador'
@@ -306,6 +308,22 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             const firstKill = killsOfKind === 1
             const bestiaryStep = !firstKill && (Object.values(BESTIARY_STEPS) as number[]).includes(killsOfKind)
 
+            // The Chronicle (services/chronicle.ts), noted after this commits.
+            const deedData = { creature: creature.name, creatureLevel: Number(creature.level), combatLevel: combatLevel(levels), placeId: spot.location_id }
+            if (firstKill) {
+                // First on the island: nobody else has ever killed one.
+                const others = await trx('player_creature_kills')
+                    .where({ creature_id: creature.id }).whereNot({ player_id: playerId }).first('player_id')
+                if (!others) noteDeed(trx, { kind: 'first_kill', playerId, subject: creature.name, data: deedData })
+            }
+            if (Number(creature.level) - deedData.combatLevel >= STRONG_KILL_GAP
+                && firstToday(`strong:${playerId}:${creature.id}`)) {
+                noteDeed(trx, { kind: 'strong_kill', playerId, subject: creature.name, data: deedData })
+            }
+            if (BESTIARY_MARKS.includes(killsOfKind)) {
+                noteDeed(trx, { kind: 'bestiary_mark', playerId, subject: creature.name, data: { ...deedData, kills: killsOfKind } })
+            }
+
             // Wear (§13): the weapon every kill, and ARMOUR_PIECES_WORN_PER_KILL
             // of the armour pieces worn, at random. A piece past its
             // guarantee may break; a broken piece is gone from its slot.
@@ -384,6 +402,12 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
         })
         await trx('player_actions').where({ id: action.id }).delete()
         await incrementStats(playerId, { total_combat_deaths: 1 }, trx)
+        // The Chronicle: every death is noted; which are told is decided when
+        // the page is written (docs/chronicle-spec.md §6, deaths).
+        noteDeed(trx, {
+            kind: 'death', playerId, subject: creature.name,
+            data: { creature: creature.name, creatureLevel: Number(creature.level), combatLevel: combatLevel(levels), place: place?.name ?? null, stacksLost: stacks },
+        })
         missing = 0
         ended = 'died'
     } else if (end) {

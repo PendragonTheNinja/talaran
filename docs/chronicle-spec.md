@@ -88,7 +88,8 @@ Rules (CLAUDE.md §4):
 - **Never throws.** A failure is logged and dropped; no action ever fails because the Chronicle could not write.
 - **One cheap insert.** No reads, no scoring. Scoring happens once, at composition.
 - **Stamped with `day_key`** (`gameDayKey()` at the moment of the deed), so the day a deed belongs to never depends on when the page is written.
-- **Opt-out respected at write time:** a player with `player_settings.chronicle_opt_out` writes no deeds (§11). Guests write none except the newcomer count.
+- **Opt-out respected at write time:** a player with `player_settings.chronicle_opt_out` writes no deeds (§11). Guests write none except the newcomer count. **And again at composition:** guild deeds name the member in `data.byPlayerId` rather than `player_id` (so a guild's deed is not lost when that member opted out), and anyone opted out by then is left unnamed on the page.
+- **Built (step 1, 2026-11-03):** `services/chronicle.ts` (`noteDeed`, `noteFinds`, `noteEventWinners`), hooks in the tick's completion (rare finds, trophies, world firsts), `awardXp` (milestones, mastery, total level), `claimSkillMilestone`, fishing records, the fight settle (first kills, strong kills, bestiary marks, deaths), museum gifts, events ending, the travelling merchant, guild founding and hall tiers, new characters, guest claims, mounts, the twentieth field and trap collection. Admin panel > Chronicle shows the journal by day and exports CSV.
 
 ---
 
@@ -102,7 +103,7 @@ Rules (CLAUDE.md §4):
 | Kind | Source | Has data | Base | Notes |
 |---|---|---|---|---|
 | `drop_rare` | `rollSecondaryDrops` in `services/drops.ts`, when `notable` | yes | 10 | Rarity from the entry's real chance (§6). |
-| `cryptid` | same, when the item is a cryptid drop | yes | 60 | Squonk and kin. Always headline-eligible. |
+| `cryptid` | needs a data flag first (no row marks a cryptid today, and CLAUDE.md §2 forbids inferring it) | no | 60 | Until then Squonk Tears arrives as a `trophy` (its item subtype) and its rarity lifts it at scoring. |
 | `world_first_item` | `recordItemFirst` in `services/inventory.ts` (`firstInWorld`) on a secondary drop | yes | 80 | Already announced in chat by `announceWorldFirstDrop`; the Chronicle tells it properly. |
 | `trophy` | trophy drops (hunting, trapping) | yes | 25 | |
 | `record_fish` | `recordCatch` in `services/fishing.ts` (`newHeaviest`) | yes | 15 | Server-wide heaviest only; a personal best is not news. |

@@ -113,6 +113,17 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     spells:                      { label: 'Spells',                group: 'Talar',      snapshot: true, editable: true },
     // What each guild hall tier needs (by item name) and what its storehouse holds.
     guild_hall_tiers:            { label: 'Guild Hall Tiers',      group: 'Guilds',     snapshot: true, editable: true },
+    // The Chronicle (docs/chronicle-spec.md): what each kind of deed weighs, the
+    // bard's verses and the tavern she keeps them in are authored; the journal,
+    // the finished pages and the ballads are state.
+    chronicle_deed_kinds:        { label: 'Chronicle Deed Kinds',  group: 'Chronicle',  snapshot: true, editable: true },
+    chronicle_verses:            { label: 'Chronicle Verses',      group: 'Chronicle',  snapshot: true, editable: true },
+    taverns:                     { label: 'Taverns',               group: 'Chronicle',  snapshot: true, editable: true },
+    chronicle_settings:          { label: 'Chronicle Settings',    group: 'Chronicle',  editable: true },
+    chronicle_deeds:             { label: 'Chronicle Deeds',       group: 'Chronicle' },
+    chronicle_days:              { label: 'Chronicle Days',        group: 'Chronicle' },
+    chronicle_lines:             { label: 'Chronicle Lines',       group: 'Chronicle' },
+    chronicle_ballads:           { label: 'Chronicle Ballads',     group: 'Chronicle' },
 
     // ---- World state: browse only, never snapshotted ----
     workstations:                { label: 'Workstations',          group: 'World State' },

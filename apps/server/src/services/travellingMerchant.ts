@@ -9,6 +9,7 @@ import { logSubtypeFor } from './woodcutting';
 import { rockSubtypeFor, veinOresAt } from './mining';
 import { eventsChanged } from './worldEvents';
 import { announceServer } from './records';
+import { noteDeed } from './chronicle';
 
 // The Travelling Merchant (docs/WORLD-EVENTS-AND-MUSEUMS.md, step 3).
 //
@@ -211,6 +212,7 @@ export async function summonMerchant(opts: SummonOptions = {}): Promise<{ eventI
 
     await eventsChanged();
     await announceServer(eventId.announcement);
+    noteDeed(db, { kind: 'merchant_arrived', subject: location.name, data: { place: location.name, lines: plan.length } });
     logger.info(`[merchant] at ${location.name} for ${stay} min: ${plan.length} lines, ${units} units${opts.startedBy ? ` (summoned by player ${opts.startedBy})` : ''}`);
     return { eventId: eventId.id, location: location.name, lines: plan.length };
 }

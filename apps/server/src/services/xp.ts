@@ -6,6 +6,7 @@ import { incrementStats } from './stats';
 import { applyEventBonus } from './worldEvents';
 import { guildCompanionBonus, noteGuildXp } from './guildCompanions';
 import { afterCommit } from '../lib/afterCommit';
+import { noteDeed, LEVEL_MILESTONES, TOTAL_LEVEL_STEP } from './chronicle';
 
 // XP curve — one formula, no branches. Derivation + rate ladder: docs/xp-rebalance.md
 //
@@ -197,6 +198,16 @@ export async function awardXp(
     // The level BEFORE this award, derived rather than re-read: the award is
     // the only thing that changed the total.
     const leveledUp = levelFromXp(total - xp) < levelFromXp(total);
+    // The Chronicle (services/chronicle.ts): milestone levels, mastery and total
+    // level marks. Here, in the one XP writer, so a level from a fight, a quest
+    // or a pen is noted as surely as one from the tick. After commit, never in
+    // the award's transaction.
+    if (leveledUp) {
+        const before = levelFromXp(total - xp);
+        const after = levelFromXp(total);
+        const name = skillName;
+        afterCommit(x, () => noteLevelDeeds(playerId, name, before, after));
+    }
     pushToPlayerAfterCommit(x, playerId, 'skill_xp_changed', {
         skillName,
         xp: total,
@@ -204,6 +215,40 @@ export async function awardXp(
         delta: xp,
         leveledUp,
     });
+}
+
+/**
+ * The Chronicle's level deeds for one level-up (docs/chronicle-spec.md §5).
+ * A jump across several levels is told once, at the highest mark it crossed.
+ * Runs after commit on the plain connection; never throws.
+ */
+async function noteLevelDeeds(playerId: number, skillName: string, before: number, after: number): Promise<void> {
+    try {
+        if (before < 100 && after >= 100) {
+            noteDeed(db, { kind: 'level_max', playerId, subject: skillName, data: { skill: skillName, level: 100 } });
+        } else {
+            const crossed = LEVEL_MILESTONES.filter(m => before < m && after >= m);
+            if (crossed.length) {
+                const level = crossed[crossed.length - 1];
+                noteDeed(db, { kind: 'level_milestone', playerId, subject: skillName, data: { skill: skillName, level } });
+            }
+        }
+        // Total level: the same count the Feats tab uses (counted skills only).
+        const rows = await db('player_skills as ps')
+            .join('skills as s', 's.id', 'ps.skill_id')
+            .where('ps.player_id', playerId)
+            .where('s.is_active', true)
+            .where('s.is_implemented', true)
+            .select('ps.xp as xp');
+        const totalAfter = rows.reduce((n: number, r: any) => n + levelFromXp(Number(r.xp) || 0), 0);
+        const totalBefore = totalAfter - (after - before);
+        const markAfter = Math.floor(totalAfter / TOTAL_LEVEL_STEP);
+        if (markAfter > Math.floor(totalBefore / TOTAL_LEVEL_STEP) && markAfter > 0) {
+            noteDeed(db, { kind: 'total_level_mark', playerId, data: { total: markAfter * TOTAL_LEVEL_STEP } });
+        }
+    } catch (err) {
+        logger.warn(`chronicle: level deeds for player ${playerId} failed: ${err}`);
+    }
 }
 
 /**

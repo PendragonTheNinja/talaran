@@ -7,6 +7,7 @@ import { announceMuseumFirst } from './records';
 import { evaluateFeats } from './feats';
 import { pushToPlayer } from '../lib/realtime';
 import { silhouetteUrl } from './museumSilhouettes';
+import { noteDeed } from './chronicle';
 
 // Island Museums (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2).
 //
@@ -168,6 +169,21 @@ export async function donate(playerId: number, caseIdRaw: unknown): Promise<
 
             const taken = await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: 1 }]);
             if (!taken.ok) throw new DonateAbort(`You have no ${item.name} to give.`);
+
+            // The Chronicle (services/chronicle.ts), noted after this commits:
+            // the first of an item given, and the gift that fills the last
+            // empty case of an exhibit.
+            if (first) {
+                noteDeed(trx, { kind: 'museum_first_give', playerId, subject: item.name, data: { item: item.name, museum: museum.name } });
+                const empty = await trx('museum_cases as c')
+                    .leftJoin('museum_donations as d', 'd.case_id', 'c.id')
+                    .where('c.exhibit_id', theCase.exhibit_id).whereNull('d.id')
+                    .first('c.id');
+                if (!empty) {
+                    const exhibit = await trx('museum_exhibits').where({ id: theCase.exhibit_id }).first('name');
+                    noteDeed(trx, { kind: 'exhibit_complete', playerId, subject: exhibit?.name ?? null, data: { exhibit: exhibit?.name ?? null, museum: museum.name, item: item.name } });
+                }
+            }
 
             return { name: item.name as string, first, museum: museum.name as string };
         });

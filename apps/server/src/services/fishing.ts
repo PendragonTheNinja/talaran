@@ -4,6 +4,7 @@ import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { getTimeWindow, getSeason, nextWindowChange, TimeWindow, Season } from '../lib/gameTime';
 import { awardXp } from './xp';
+import { noteDeed } from './chronicle';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
@@ -390,6 +391,23 @@ async function awardSkillXp(trx: any, playerId: number, skillName: string, xp: n
     await awardXp(playerId, skillName, xp, trx);
 }
 
+/**
+ * The Chronicle (services/chronicle.ts): a catch heavier than anyone else on
+ * the island has ever landed of its kind. A personal best is not news; beating
+ * everyone is. Nothing when nobody else has caught one yet.
+ */
+async function noteIslandRecord(trx: any, playerId: number, species: string, weightCw: number): Promise<void> {
+    const best = await trx('player_fishing_records')
+        .where({ species }).whereNot({ player_id: playerId })
+        .max({ cw: 'heaviest_cw' }).first();
+    const others = best?.cw === null || best?.cw === undefined ? null : Number(best.cw);
+    if (others === null || weightCw <= others) return;
+    noteDeed(trx, {
+        kind: 'record_fish', playerId, subject: species,
+        data: { fish: species, weightLb: cwToLb(weightCw), previousLb: cwToLb(others) },
+    });
+}
+
 async function recordCatch(
     trx: any, playerId: number, species: string, weightCw: number,
 ): Promise<{ newHeaviest: boolean; newLightest: boolean }> {
@@ -401,6 +419,7 @@ async function recordCatch(
             player_id: playerId, species,
             heaviest_cw: weightCw, lightest_cw: weightCw, catches: 1,
         });
+        await noteIslandRecord(trx, playerId, species, weightCw);
         // The first of a species is not a record worth announcing; it is just
         // the first. Discovery already carries that moment.
         return { newHeaviest: false, newLightest: false };
@@ -408,6 +427,9 @@ async function recordCatch(
 
     const newHeaviest = weightCw > Number(existing.heaviest_cw);
     const newLightest = weightCw < Number(existing.lightest_cw);
+    // The Chronicle: heavier than anyone on the island has ever landed this
+    // species. A personal best is not news; beating everyone else is.
+    if (newHeaviest) await noteIslandRecord(trx, playerId, species, weightCw);
     await trx('player_fishing_records').where({ id: existing.id }).update({
         heaviest_cw: newHeaviest ? weightCw : existing.heaviest_cw,
         lightest_cw: newLightest ? weightCw : existing.lightest_cw,

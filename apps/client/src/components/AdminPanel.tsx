@@ -5,6 +5,7 @@ import AdminContentBrowser from './AdminContentBrowser'
 import AdminBalanceCalculator from './AdminBalanceCalculator'
 import AdminBalanceChecks from './AdminBalanceChecks'
 import AdminManualEditor from './AdminManualEditor'
+import AdminChronicle from './AdminChronicle'
 import AdminEvents from './AdminEvents'
 import { avatarSrc } from '../lib/avatar'
 import './AdminPanel.css'
@@ -64,7 +65,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
-    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events'>('players')
+    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events' | 'chronicle'>('players')
 
     /**
      * Problem count on the Balance label.
@@ -431,6 +432,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                             >
                                 Events
                             </button>
+                            <button
+                                className={`admin-tab ${mainTab === 'chronicle' ? 'active' : ''}`}
+                                onClick={() => setMainTab('chronicle')}
+                            >
+                                Chronicle
+                            </button>
                         </div>
                     )}
                 </div>
@@ -448,7 +455,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                 </div>
             ) :
             mainTab === 'manual' ? <AdminManualEditor /> :
-            mainTab === 'events' ? <AdminEvents /> : (
+            mainTab === 'events' ? <AdminEvents /> :
+            mainTab === 'chronicle' ? <AdminChronicle /> : (
             <div className={`admin-body admin-view-${view}`}>
                 {/* On a phone the player list and a player's page take turns (MobileShell.css). */}
                 {/* Sidebar */}

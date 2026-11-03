@@ -27,6 +27,7 @@ import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
 import { shouldCancelForAbsence } from '../lib/presence';
 import { recordLoot } from './lootLog';
+import { noteFinds, type Find } from './chronicle';
 import { FOOT_XP_RATE, MOUNT_XP_RATE, TRAVEL_SKILL } from './travel'
 import { rollTravelEvents } from './travelEvents'
 import { awardXp } from './xp';
@@ -163,14 +164,21 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   // other kind, the things that turn up, and those are worth telling people
   // about. The distinction lives here because this is the only place that has
   // both and knows which is which.
+  // The Chronicle (services/chronicle.ts) hears of the same things: anything
+  // the action marked notable, the main find included (a rare forage), and
+  // every world first.
+  const finds: Find[] = [];
+  if (result?.notable && result.itemName) finds.push({ name: result.itemName, quantity: result.quantity ?? 1 });
   if (result?.drops?.length) {
     const { announceWorldFirstDrop } = await import('./records');
     for (const drop of result.drops) {
       if (!drop?.name) continue;
       const { firstInWorld } = await recordItemFirstByName(action.player_id, drop.name, action.action_type);
       if (firstInWorld) await announceWorldFirstDrop(action.player_id, drop.name);
+      if (drop.notable || firstInWorld) finds.push({ name: drop.name, quantity: drop.quantity ?? 1, firstInWorld });
     }
   }
+  if (finds.length) await noteFinds(action.player_id, action.location_id ?? null, action.action_type, finds);
 
   // Feats, only on a level up.
   //

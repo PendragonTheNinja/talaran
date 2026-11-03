@@ -9,6 +9,7 @@ import { missingBuildTool } from './construction';
 import { activeXpForSeconds } from './farming';
 import { awardXp } from './xp';
 import { membershipOf } from './guildRanks';
+import { noteDeed } from './chronicle';
 
 // ── Guild halls (migration 20261102170000; Nathan, 2026-11-02) ───────────────
 //
@@ -324,6 +325,14 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
             if (finished) {
                 await trx('guild_halls').where({ id: hall.id, tier: hall.tier }).update({ tier: next.tier, updated_at: trx.fn.now() });
                 await trx('guild_hall_progress').where({ hall_id: hall.id }).delete();
+                // The Chronicle: the guild's deed, and the hand that set the last piece.
+                const place = await trx('locations').where({ id: hall.location_id }).first('name');
+                noteDeed(trx, {
+                    // The guild's deed: written even if the hand that finished it
+                    // has opted out; the page leaves an opted-out name unsaid.
+                    kind: 'guild_hall_tier', guildId: me.guildId,
+                    data: { tier: next.tier, place: place?.name ?? null, island: hall.island, byPlayerId: playerId },
+                });
             }
 
             const more = await trx('player_inventory').where({ player_id: playerId, item_id: item.id }).first('quantity');

@@ -12,6 +12,7 @@ import { missingBuildTool as sharedMissingBuildTool } from './construction';
 import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { afterCommit } from '../lib/afterCommit';
+import { noteDeed } from './chronicle';
 import { lockReservoir, spendTalarWithin, HUNDREDTHS } from './talar';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
@@ -2468,6 +2469,11 @@ export async function resolveTame(playerId: number, animalIdRaw: string | null):
                 + activeXpForSeconds(lvl, TAME_SECONDS);
             await awardXp(playerId, 'Husbandry', xp, trx);
             afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'tame', species.name, 1));
+            // The Chronicle (services/chronicle.ts): a mount led out, fit to ride.
+            noteDeed(trx, {
+                kind: 'mount_raised', playerId, subject: mountItem,
+                data: { mount: mountItem, name: fresh.name, species: species.name, level: Number(species.husbandry_level) || null },
+            });
         });
 
         await incrementStats(playerId, { total_actions_completed: 1});

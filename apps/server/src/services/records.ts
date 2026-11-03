@@ -1,6 +1,7 @@
 import db from '../db'
 import { logger } from '../lib/logger'
 import { pushToAll } from '../lib/realtime'
+import { noteDeed } from './chronicle'
 
 // ── Records ───────────────────────────────────────────────────────
 //
@@ -141,6 +142,8 @@ export async function claimSkillMilestone(
 
         // Nothing back means somebody already holds it.
         if (!Array.isArray(inserted) || inserted.length === 0) return
+
+        noteDeed(db, { kind: 'server_first_level', playerId, subject: skillName, data: { skill: skillName, level } })
 
         const player = await db('players').where({ id: playerId }).first()
         if (!player) return

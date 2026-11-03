@@ -5,6 +5,7 @@ import { spendBait } from './fishing'
 import { awardXp } from './xp';
 import { incrementStats } from './stats'
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { noteFinds } from './chronicle'
 
 // ── Trapping (docs/trapping-spec.md) ──────────────────────────────
 // Passive hunting mode. Traps are independent of player_actions: they run
@@ -180,6 +181,7 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
 }> {
     try {
         let result: any = null
+        let catchPlace: number | null = null
 
         await db.transaction(async (trx) => {
             const trap = await trx('player_traps')
@@ -201,6 +203,7 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
 
             const scavenged = trap.state === 'scavenged'
             const drops = rollTrapDrops(target.drop_table, scavenged)
+            catchPlace = Number(target.location_id) || null
 
             for (const d of drops) {
                 const item = await trx('items').where({ name: d.itemName }).first()
@@ -253,6 +256,14 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
                 baitUsed: wasBaited,
             }
         })
+
+        // The Chronicle (services/chronicle.ts): a trap's rare finds, a Squonk's
+        // tears among them. Collection happens here, not in the tick, so the
+        // tick's notes never see it. After the commit above.
+        const rare = (result?.drops ?? []).filter((d: any) => d.notable)
+        if (rare.length) {
+            await noteFinds(playerId, catchPlace, 'trap', rare.map((d: any) => ({ name: d.itemName, quantity: d.quantity })))
+        }
 
         return result
     } catch (err: any) {

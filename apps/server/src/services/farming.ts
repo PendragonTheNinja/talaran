@@ -8,6 +8,7 @@ import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
 import { takeItemsWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { noteDeed } from './chronicle';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -770,6 +771,9 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
             return true;
         });
         if (!done) return { success: false, error: 'You no longer have the materials.' };
+
+        // The Chronicle (services/chronicle.ts): the twentieth field makes a farm.
+        if (plots.length + 1 === PLOT_MAX) noteDeed(db, { kind: 'field_twenty', playerId, data: { fields: PLOT_MAX } });
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
         const xp = activeXpForSeconds(carpLvl, BUILD_PLOT_SECONDS);

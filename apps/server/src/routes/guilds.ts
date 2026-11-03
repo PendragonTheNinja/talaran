@@ -11,6 +11,7 @@ import {
     membershipOf, rankOf, rankPermissions, setRole, type Role,
 } from '../services/guildRanks';
 import { guildStorehousesHoldAnything } from '../services/guildHall';
+import { noteDeed } from '../services/chronicle';
 
 const router = Router();
 
@@ -161,6 +162,9 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
             guild_tag: guild.tag,
             guild_role: 'founder',
         });
+
+        // The Chronicle (services/chronicle.ts): a new banner on the island.
+        noteDeed(db, { kind: 'guild_founded', guildId: guild.id, subject: guild.name, data: { guild: guild.name, tag: guild.tag, byPlayerId: playerId } });
 
         // A News board (officers post; everyone reads and replies), and a
         // starter board, so a new guild's forum is never an empty screen.
