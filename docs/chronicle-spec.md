@@ -215,7 +215,7 @@ The Wenna tab speaks before the page is set and names nobody, so it draws on its
 ## 9. Guild ballads
 
 - Commissioned at the tavern's **Ballads** tab by a member whose rank has `post_news` (§ guild ranks; Officers by default).
-- **Who pays (proposal, pending Nathan):** a guild with a hall pays from its storehouse gold, which also needs the commissioner's rank to hold `withdraw_gold`, with a `guild_storage_ledger` row like any withdrawal. A guild with no hall yet pays from the commissioner's own purse (a `gold_ledger` row), so small guilds are not shut out.
+- **Who pays** **(locked)**: a guild with a hall pays from its storehouse gold, which also needs the commissioner's rank to hold `withdraw_gold`, with a `guild_storage_ledger` row like any withdrawal. A guild with no hall yet pays from the commissioner's own purse (a `gold_ledger` row), so small guilds are not shut out.
 - **Price: 10,000 gold** **(locked)**, a knob (`chronicle_settings`) changeable without a deploy. Against the economy rules (CLAUDE.md §8): selling everything gathered earns about 9% of XP per hour in gold, so at level 30 (about 4,000 XP an hour) a player makes up to 400 gold an hour. 10,000 is about 25 hours of one player's full earnings, or two to three hours each across a ten-member guild, once a week at most.
 - **One ballad per guild per seven game days.**
 - The verse is built from the guild's real numbers: hall tier and island, member count, best skill by total XP, event wins, kills, deaths. Templates of kind `ballad` with guild slots.
@@ -329,7 +329,7 @@ The same subject is not rumoured twice within 14 days. Rumours never reveal what
 ## 16. Decisions since the first draft
 
 1. **Tavern:** the Salty Sloth, Talador **(locked)**.
-2. **Ballads:** 10,000 gold **(locked)**; who pays is the proposal in §9, pending Nathan.
+2. **Ballads:** 10,000 gold, from the storehouse for a guild with a hall and from the commissioner's purse otherwise **(locked)**.
 3. **Today's tidings name nobody** **(locked)**; names wait for the page.
 4. **Death lines are in at launch** **(locked)**, under the rules in §6.
 
