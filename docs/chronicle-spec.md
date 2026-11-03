@@ -23,11 +23,11 @@ Talaran writes its own history. A bard in a Talador tavern keeps the island's ti
 ## 2. What a player sees
 
 ### The tavern
-A new place-action in Talador, listed like the Tally Board: **The Salt Lantern →** (name is a proposal). It opens the **Tavern panel**, one modal with tabs (CLAUDE.md §7):
+A new place-action in Talador, listed like the Tally Board: **The Salty Sloth →** **(locked)**. It opens the **Tavern panel**, one modal with tabs (CLAUDE.md §7):
 
 | Tab | What it holds |
 |---|---|
-| **Wenna** | Her greeting, then **today's tidings so far**: the three or four best deeds of the day up to now, in her voice, changing through the day. Below, yesterday's headline as a teaser for the book. |
+| **Wenna** | Her greeting, then **today's tidings so far**: the three or four best deeds of the day up to now, in her voice, changing through the day, **with no names** **(locked)**: "Somebody brought a Squonk's tears out of the Lanaivale mire this morning. You'll hear who tomorrow." Names are kept for the page, so reading it the next day is where you see it all. Below, yesterday's headline as a teaser for the book. |
 | **The Chronicle** | The book (below). |
 | **Ballads** | Commission a guild ballad (§9), and the ballads your guild has had. |
 
@@ -52,7 +52,7 @@ Pages are built from sections, in this order. Every section is optional except t
 
 | Section | Size | What goes in |
 |---|---|---|
-| **Heading** | 1 line | "Tidings for the 4th of November, as told at the Salt Lantern." From a template, so it varies. |
+| **Heading** | 1 line | "Tidings for the 4th of November, as told at the Salty Sloth." From a template, so it varies. |
 | **The headline** | 1 or 2 lines | The day's rarest deeds, if any clear the headline threshold. |
 | **Around the island** | up to 8 lines | The next best deeds, **at most one line per player per page** (headline included). |
 | **From the guilds** | up to 3 lines | Halls raised, event wins, ballads. |
@@ -194,6 +194,9 @@ The jitter is seeded, so composing the same day twice gives the same page (usefu
 **Slots:** `{player}`, `{guild}`, `{tag}`, `{members}`, `{item}`, `{a item}` (with a/an), `{creature}`, `{a creature}`, `{place}`, `{place2}` (the far end of a road), `{skill}`, `{level}`, `{n}`, `{weight}`, `{quest}`, `{museum}`, `{exhibit}`, `{date}`, `{names}` (the long roll's list, ending "and N others" past the cap). A verse whose `needs` the deed cannot fill is skipped.
 **Alternates:** `[cold|grey|slate-coloured]` inside a template picks one, seeded by the day and the line's position. A template with two alternate groups of three is nine sentences.
 
+### Today's tidings, without names
+The Wenna tab speaks before the page is set and names nobody, so it draws on its own verses: kind `today:<deed kind>` (`today:drop_rare`, `today:death`, …). They may use every slot except `{player}`, `{guild}` and `{tag}`; the composer refuses a `today:` verse that contains one. A deed kind with no `today:` verses yet is simply left out of the tab.
+
 ### Never repeating
 - `chronicle_verse_uses` records (verse id, day_key, rendered text hash).
 - For each line, the composer picks among the kind's verses **not used in the last `cooldown` days**, where `cooldown` grows with the kind's verse count (half the count, at most 60 days), least recently used first, ties broken by the seeded jitter.
@@ -212,8 +215,8 @@ The jitter is seeded, so composing the same day twice gives the same page (usefu
 ## 9. Guild ballads
 
 - Commissioned at the tavern's **Ballads** tab by a member whose rank has `post_news` (§ guild ranks; Officers by default).
-- **Paid from the guild storehouse's gold**, at a hall the guild has on Taiar, with a `guild_storage_ledger` row like any withdrawal. *(Decision for Nathan: storehouse gold, or the commissioner's own purse?)*
-- **Price** is a knob (proposal: 2,500 gold); it is a sink, so it should sting a little.
+- **Who pays (proposal, pending Nathan):** a guild with a hall pays from its storehouse gold, which also needs the commissioner's rank to hold `withdraw_gold`, with a `guild_storage_ledger` row like any withdrawal. A guild with no hall yet pays from the commissioner's own purse (a `gold_ledger` row), so small guilds are not shut out.
+- **Price: 10,000 gold** **(locked)**, a knob (`chronicle_settings`) changeable without a deploy. Against the economy rules (CLAUDE.md §8): selling everything gathered earns about 9% of XP per hour in gold, so at level 30 (about 4,000 XP an hour) a player makes up to 400 gold an hour. 10,000 is about 25 hours of one player's full earnings, or two to three hours each across a ten-member guild, once a week at most.
 - **One ballad per guild per seven game days.**
 - The verse is built from the guild's real numbers: hall tier and island, member count, best skill by total XP, event wins, kills, deaths. Templates of kind `ballad` with guild slots.
 - It is sung in **From the guilds** on the next page (not scored, at most two ballads a page; a third waits a day) and kept on the guild's own page.
@@ -227,7 +230,7 @@ The jitter is seeded, so composing the same day twice gives the same page (usefu
 
 **Composition** runs once per game day: one indexed read of that day's deeds (`day_key`), scoring in memory, selection, rendering, a handful of inserts. Under a second at that volume.
 
-**Reading** never computes anything: a finished page is a stored row. Today-so-far (the Wenna tab) is computed from today's deeds and cached for 60 seconds, shared by everyone.
+**Reading** never computes anything: a finished page is a stored row. Today-so-far (the Wenna tab, no names) is computed from today's deeds and cached for 60 seconds, shared by everyone.
 
 **Growth:** deed rows older than 30 days are trimmed (the pages keep everything that was sung). Pages, lines and mentions grow by roughly 60 rows a day, which is nothing for decades.
 
@@ -323,12 +326,12 @@ The same subject is not rumoured twice within 14 days. Rumours never reveal what
 
 ---
 
-## 16. Open questions for Nathan
+## 16. Decisions since the first draft
 
-1. **Tavern name.** "The Salt Lantern" is a placeholder.
-2. **Ballads:** paid from the storehouse or the commissioner's purse? Price?
-3. **Today-so-far:** should Wenna's live tidings name players during the day, or only after the page is set (so being named is a midnight surprise)?
-4. **Death lines:** in or out at launch? They are some of the best stories and the easiest to get wrong.
+1. **Tavern:** the Salty Sloth, Talador **(locked)**.
+2. **Ballads:** 10,000 gold **(locked)**; who pays is the proposal in §9, pending Nathan.
+3. **Today's tidings name nobody** **(locked)**; names wait for the page.
+4. **Death lines are in at launch** **(locked)**, under the rules in §6.
 
 ---
 
@@ -337,9 +340,9 @@ The same subject is not rumoured twice within 14 days. Rumours never reveal what
 Every line below has been checked against CLAUDE.md §10. Slots in braces; alternates in brackets.
 
 ### Heading (`heading`)
-1. Tidings for the {date}, as told at the Salt Lantern.
+1. Tidings for the {date}, as told at the Salty Sloth.
 2. The {date}. Wenna sets down what the island did today.
-3. What was heard at the Salt Lantern on the {date}.
+3. What was heard at the Salty Sloth on the {date}.
 4. Tidings for the {date}. Pull up a stool.
 5. The {date}, and the [taps are open|fire is lit|benches are full].
 6. Here is the {date}, as near as Wenna could get it from people who were there.
@@ -357,7 +360,7 @@ Every line below has been checked against CLAUDE.md §10. Slots in braces; alter
 8. They will be talking about {player}'s {item} at {place} for a week. Possibly two.
 
 ### Cryptid (`cryptid`)
-1. {player} came back from {place} with {a item}, and nobody at the Salt Lantern believed it until it was on the table.
+1. {player} came back from {place} with {a item}, and nobody at the Salty Sloth believed it until it was on the table.
 2. There are things in {place} most of us will never see. {player} saw one today, and has {a item} to prove it.
 3. Mark the day: {player} found {a item}. The old ones at the bar went very quiet.
 4. {player} swears the thing looked right at them before it left {a item} behind.
@@ -469,9 +472,23 @@ Every line below has been checked against CLAUDE.md §10. Slots in braces; alter
 4. (`rumour_unwalked_road`) Nobody has walked the road from {place} to {place2}. Somebody should.
 5. (`rumour_merchant`) A sail was sighted off {place}. If it is who Wenna thinks, bring coin.
 
+### Today's tidings, no names (`today:*`)
+1. (`today:drop_rare`) Somebody came out of {place} this morning with {a item}. You'll hear who tomorrow.
+2. (`today:drop_rare`) {a item} turned up at {place} today. Wenna knows whose hands it was in. She isn't telling yet.
+3. (`today:cryptid`) Something strange came out of {place} today. Ask again tomorrow, and bring a strong drink.
+4. (`today:world_first_item`) Someone has found a thing nobody on this island has ever held. It's in the book tomorrow.
+5. (`today:server_first_level`) Somebody is first to {skill} {level} as of today. Not saying who. Not yet.
+6. (`today:level_max`) There's a new master of {skill} on Taiar. The name keeps till morning.
+7. (`today:death`) {a creature} near {place} had the better of somebody today. They'll live. Everyone does, here.
+8. (`today:strong_kill`) Somebody took down {a creature} they had no right to beat. Wenna's still laughing about it.
+9. (`today:record_fish`) There's a {item} on the scales at {place} heavier than any before it.
+10. (`today:guild_hall_tier`) The hammering at {place} stopped this afternoon. Somebody's hall stands a storey higher.
+11. (`today:newcomers`) {n} new faces at the docks so far today.
+12. (`today:quiet`) Quiet so far. Give it time; the day's young.
+
 ### Sign-off (`signoff`)
 1. That is the day. Drink up.
-2. Wenna Halloway, the Salt Lantern, Talador.
+2. Wenna Halloway, the Salty Sloth, Talador.
 3. More tomorrow, if the island obliges.
 4. That is all the tidings there are. Go to bed.
 5. Set down by Wenna Halloway, who was there for most of it.
