@@ -2305,7 +2305,7 @@ export default function GameView({
                   <div
                     key={timerMax}
                     className={`scene-timer-fill ${currentAction.startsWith('mining') ? 'mining' : ''}`}
-                    style={{ width: `${timerPercent}%`, transition: timerSeconds === timerMax ? 'none' : 'width 1s linear' }}
+                    style={{ transform: `scaleX(${Math.max(0, Math.min(100, timerPercent)) / 100})`, transition: timerSeconds === timerMax ? 'none' : 'transform 1s linear' }}
                   />
                 </div>
                 <span className="scene-timer-label">{timerLabel(timerSeconds)}</span>

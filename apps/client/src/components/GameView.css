@@ -146,11 +146,20 @@
   border: 1px solid var(--color-border-gold);
   border-radius: 4px;
   overflow: hidden;
+  /* Its own layer, so nothing it paints can linger in the scene around it. */
+  contain: paint;
 }
 
+/* The fill always spans the bar and is scaled from the left (GameView.tsx).
+   It used to grow by width, repainted every second, and Chrome could leave a
+   faint dash at each step of the last cycle in the empty part of the bar
+   (2026-11-03). A transform is moved on the graphics card and leaves nothing.
+   No radius of its own: the bar's rounded, clipped edge shapes it. */
 .scene-timer-fill {
+  width: 100%;
   height: 100%;
-  border-radius: 4px;
+  transform-origin: left center;
+  will-change: transform;
   background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright));
 }
 
