@@ -35,7 +35,8 @@ export default function SpellCastPopup({ cast, onClose }: { cast: SpellCast; onC
                 </div>
                 <p className="spellcast-name">{cast.spell}</p>
                 <p className="spellcast-message">{cast.message}</p>
-                <p className="spellcast-xp">+{cast.xp.toLocaleString()} Talar experience</p>
+                {/* A Larder Ward pays its XP as it holds, so its cast shows none. */}
+                {cast.xp > 0 && <p className="spellcast-xp">+{cast.xp.toLocaleString()} Talar experience</p>}
                 <p className="spellcast-reservoir tabular-num">
                     {Math.floor(cast.talar.current).toLocaleString()} / {Math.floor(cast.talar.max).toLocaleString()} Talar left in you
                 </p>

@@ -101,6 +101,11 @@ interface SpellEffect {
     cost: (trx: any, playerId: number, spell: SpellRow, params: Record<string, unknown>) => Promise<number>
     /** Do it, inside the cast's transaction. Throws SpellAbort to refuse; the payment rolls back. */
     cast: (trx: any, playerId: number, spell: SpellRow, params: Record<string, unknown>) => Promise<CastOutcome>
+    /**
+     * The cast's XP is not paid at the cast: the effect pays it later, for what
+     * the spell actually did (Larder Ward: the hours the ward held).
+     */
+    deferXp?: boolean
 }
 
 // ── Wearsight (§6) ───────────────────────────────────────────────────────────
@@ -351,21 +356,57 @@ const larderWard: SpellEffect = {
         const hours = wardHours(params)
         const r = await wardFarmsteadWithin(trx, playerId, hours)
         if ('error' in r) throw new SpellAbort(r.error)
+        // The last ward's XP first, if it ran its course unpaid: this row is
+        // about to be replaced.
+        await settleWardXpWithin(trx, playerId)
         // What this ward cost and covers, so the spellbook can show it holding
         // and it can be ended early for the hours not used (endLarderWard).
+        // Its XP is paid for the hours it holds, never at the cast (deferXp).
         const now = new Date()
         const record = {
             player_id: playerId, head: r.head, hours,
             paid_hundredths: Math.round(Number(spell.cost) * r.head * hours * HUNDREDTHS),
             starts_at: now, ends_at: new Date(now.getTime() + hours * 3600 * 1000),
+            xp_due: castXp(spell), xp_settled_at: null,
         }
         await trx('larder_wards').insert(record).onConflict('player_id').merge(record)
         const fed = r.toppedUp ? ` ${r.toppedUp === 1 ? 'One empty trough fills' : `${r.toppedUp} empty troughs fill`} from your store.` : ''
         return {
-            message: `You walk the pens and set the ward. ${r.pens === 1 ? 'The pen is' : `All ${r.pens} pens are`} looked after for the next ${hours} hours.${fed}`,
+            message: `You walk the pens and set the ward. ${r.pens === 1 ? 'The pen is' : `All ${r.pens} pens are`} looked after for the next ${hours} hours.${fed} What it teaches you comes as it holds.`,
             detail: r,
         }
     },
+    deferXp: true,
+}
+
+/**
+ * Pay a Larder Ward's XP (forum, 2026-11-03). In full once the ward has run its
+ * course; with `endedAt`, only for the share of its hours it held. Once: the
+ * row is claimed by a conditional update on xp_settled_at, so two reads at
+ * once cannot both pay. Returns the XP paid.
+ */
+async function settleWardXpWithin(trx: any, playerId: number, endedAt?: number): Promise<number> {
+    const now = Date.now()
+    const q = trx('larder_wards').where({ player_id: playerId }).whereNull('xp_settled_at')
+    if (endedAt === undefined) q.where('ends_at', '<=', new Date(now))
+    const [row] = await q.update({ xp_settled_at: new Date(now) }).returning(['xp_due', 'starts_at', 'ends_at'])
+    if (!row || !(Number(row.xp_due) > 0)) return 0
+    const start = new Date(row.starts_at).getTime()
+    const end = new Date(row.ends_at).getTime()
+    const held = endedAt === undefined ? 1 : Math.max(0, Math.min(1, (endedAt - start) / Math.max(1, end - start)))
+    const xp = Math.floor(Number(row.xp_due) * held)
+    if (xp > 0) await awardXp(playerId, 'Talar', xp, trx)
+    return xp
+}
+
+/** A finished ward's XP, if still unpaid; for reads that come by (the spellbook). Never throws. */
+export async function settleWardXp(playerId: number): Promise<number> {
+    try {
+        return await db.transaction(trx => settleWardXpWithin(trx, playerId))
+    } catch (err) {
+        logger.warn(`[spells] larder ward XP for player ${playerId} failed: ${err}`)
+        return 0
+    }
 }
 
 // ── Sending (§6) ─────────────────────────────────────────────────────────────
@@ -756,6 +797,8 @@ export interface SpellView {
 
 /** Every spell, as this player stands with it. Only spells whose effect exists are offered. */
 export async function listSpells(playerId: number): Promise<{ spells: SpellView[]; atChurch: boolean }> {
+    // A ward that has run its course pays its XP when the spellbook is next opened.
+    await settleWardXp(playerId)
     const [rows, learned, level, church, carried] = await Promise.all([
         db('spells').where({ is_active: true }).orderBy([{ column: 'talar_level' }, { column: 'display_order' }]),
         db('player_spells').where({ player_id: playerId }).select('spell_id', 'ready_at', 'armed_at'),
@@ -812,7 +855,7 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
 // From anywhere: lifting a ward needs no walk to the pens.
 
 export async function endLarderWard(playerId: number): Promise<
-    | { success: true; message: string; refunded: number; talar: TalarState }
+    | { success: true; message: string; refunded: number; talar: TalarState; xpAwarded: number }
     | { success: false; error: string }
 > {
     try {
@@ -826,13 +869,15 @@ export async function endLarderWard(playerId: number): Promise<
             const now = Date.now()
             if (!ward || new Date(ward.ends_at).getTime() <= now) throw new SpellAbort('No ward holds over your pens.')
             await liftWardsWithin(trx, playerId, now)
+            // XP for the hours it held, and no more (forum, 2026-11-03).
+            const xpPaid = await settleWardXpWithin(trx, playerId, now)
             const total = new Date(ward.ends_at).getTime() - new Date(ward.starts_at).getTime()
             const left = new Date(ward.ends_at).getTime() - now
             const refund = Math.round(Number(ward.paid_hundredths) * Math.max(0, Math.min(1, left / Math.max(1, total))))
             const back = await returnTalarWithin(trx, playerId, refund)
             await trx('larder_wards').where({ player_id: playerId }).delete()
             await trx('player_spells').where({ player_id: playerId, spell_id: spell.id }).update({ ready_at: null })
-            return back
+            return { ...back, xpPaid }
         })
         const amount = (n: number) => (n / HUNDREDTHS).toLocaleString(undefined, { maximumFractionDigits: 2 })
         const lost = out.lost > 0 ? ` You had room for only ${amount(out.returned)}; the rest is lost.` : ''
@@ -840,9 +885,11 @@ export async function endLarderWard(playerId: number): Promise<
             success: true,
             refunded: out.returned / HUNDREDTHS,
             talar: out.state,
-            message: out.returned + out.lost > 0
+            xpAwarded: out.xpPaid,
+            message: (out.returned + out.lost > 0
                 ? `You lift the ward. The Talar of the hours it had left, ${amount(out.returned + out.lost)}, comes back to you.${lost}`
-                : 'You lift the ward.',
+                : 'You lift the ward.')
+                + (out.xpPaid > 0 ? ` The hours it held taught you ${out.xpPaid} Talar XP.` : ''),
         }
     } catch (err) {
         if (err instanceof SpellAbort) return { success: false, error: err.message }
@@ -1010,8 +1057,8 @@ export async function castSpell(
             await trx('player_spells').where({ player_id: playerId, spell_id: spell.id })
                 .update({ ready_at: ready, last_cast_at: now })
 
-            const xp = castXp(spell)
-            await awardXp(playerId, 'Talar', xp, trx)
+            const xp = effect.deferXp ? 0 : castXp(spell)
+            if (xp > 0) await awardXp(playerId, 'Talar', xp, trx)
             return { outcome, talar, xp, ready }
         })
 

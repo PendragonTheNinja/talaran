@@ -187,7 +187,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                                 const left = minutesUntil(ward.endsAt, now)
                                 return (
                                     <p className="spell-needs gold-text">
-                                        Holding over {ward.head} head for {waitWords(left)} more. Paid {ward.paid.toLocaleString(undefined, { maximumFractionDigits: 2 })} Talar.
+                                        Holding over {ward.head} head for {waitWords(left)} more. Paid {ward.paid.toLocaleString(undefined, { maximumFractionDigits: 2 })} Talar. Its XP comes for the hours it holds.
                                     </p>
                                 )
                             }
