@@ -3,6 +3,7 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { xpForLevel } from '../services/xp';
 import { plotCost, plotCapForLevel, FARMSTEAD_TOWN, PERENNIAL_REGROWTH_SHARE } from '../services/farming';
+import { BUILD_SECONDS } from '../services/guildHall';
 import { ESTABLISH_COST, ESTABLISH_SECONDS, SHOP_TOWN, SHOP_TIERS, CARPENTRY_REQ, SALE_TAX_RATE } from '../services/shops';
 import { extraQueries, talarPathRows } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
@@ -461,6 +462,37 @@ const registry: Record<string, QueryHandler> = {
             ],
             rows,
             note: 'Each field takes three minutes to fence, and the twentieth is the last.',
+        };
+    },
+
+    /**
+     * The guild hall's tiers: what each takes and how much the storehouse then
+     * holds. A tier naming a material that is not in the world yet is left
+     * out, so the page never names something nobody has seen.
+     */
+    'guild-hall-tiers': async () => {
+        const tiers = await db('guild_hall_tiers').orderBy('tier', 'asc');
+        const known = new Set((await db('items').select('name')).map((i: { name: string }) => i.name));
+        const rows = [];
+        for (const t of tiers) {
+            const reqs: { item: string; qty: number }[] =
+                (typeof t.requirements === 'string' ? JSON.parse(t.requirements) : t.requirements) || [];
+            if (!reqs.every((r) => known.has(r.item))) continue;
+            rows.push({
+                tier: t.tier,
+                materials: reqs.map((r) => `${Number(r.qty).toLocaleString()}× ${r.item}`).join(', '),
+                room: Number(t.capacity).toLocaleString(),
+            });
+        }
+        return {
+            title: 'Raising the hall',
+            columns: [
+                { key: 'tier', label: 'Tier', align: 'right' },
+                { key: 'materials', label: 'Materials' },
+                { key: 'room', label: 'Storehouse room', align: 'right' },
+            ],
+            rows,
+            note: `Each piece set into the hall takes ${BUILD_SECONDS} seconds and pays Carpentry.`,
         };
     },
 
