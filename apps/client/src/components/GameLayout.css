@@ -211,11 +211,21 @@
   overflow-x: hidden;
 }
 
-.side-stack > .location-panel,
+/* The right panel's own pieces join the column (display: contents), so the
+   map can go first: map, then the place panel, then skills and the rest. */
 .side-stack > .right-panel {
+  display: contents;
+}
+
+.side-stack > .location-panel,
+.side-stack > .right-panel > * {
   width: auto;
   min-width: 0;
   flex: none;
   min-height: auto;
   overflow: visible;
+}
+
+.side-stack > .right-panel > .minimap {
+  order: -1;
 }
