@@ -183,8 +183,11 @@ function App() {
 
     if (data) {
       const socket = connectSocket(playerInfo.id)
+      // Skills and totals re-read once per burst: a tick action sends
+      // skill_xp_changed and action_complete together, and they share it.
+      const refreshPlayer = coalesce(() => { loadPlayerData() })
       socket.on('action_complete', () => {
-        loadPlayerData()
+        refreshPlayer()
         loadInventory()
         loadLocationData()
       })
@@ -279,7 +282,12 @@ function App() {
       // them too, or they sat stale until a refresh (forum, 2026-10). Any skill:
       // which levels feed the numbers is the server's business, and a level-up
       // is rare enough that one extra read costs nothing.
+      // Every XP award (awardXp is the only writer) pushes this, so the skills
+      // bar follows XP that comes with no action_complete: a cast, Take the
+      // Light, a ward's hours, someone using your Kindle (forum, 2026-11: the
+      // Talar bar sat still until a refresh).
       socket.on('skill_xp_changed', (p: { skillName?: string; leveledUp?: boolean }) => {
+        refreshPlayer()
         if (p?.leveledUp) loadEquipment()
         // The reservoir's size grows with Talar level (services/talar.ts), so a
         // Talar level-up re-reads it or the bar keeps the old maximum.

@@ -900,11 +900,17 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         : recipe.station === 'textile' ? 'spinning wheel and loom'
         : 'workstation'
     // A station type with a keeper's bench you have not been given the run of.
+    // Away from the keeper's town, "speak to him here" points at nobody: say
+    // where the public one is.
     const owner = PUBLIC_STATIONS[recipe.station]
     if (owner) {
+        const here = await db('locations').where({ id: player.current_location_id }).first('name')
+        const atKeeper = here?.name === owner.location
         return {
             ok: false,
-            error: `Speak to ${owner.keeper} for the use of the ${stationLabel} here.`,
+            error: atKeeper
+                ? `Speak to ${owner.keeper} for the use of the ${stationLabel} here.`
+                : `You need your own ${stationLabel} here, or use ${owner.keeper}'s in ${owner.location}.`,
             multiplier: 1,
             missingTools: needed,
             usingPublic: false,
