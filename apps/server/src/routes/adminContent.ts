@@ -2,7 +2,11 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { CONTENT_TABLES, isEditableColumn, secretColumns, isSecretColumn } from '../lib/contentTables';
+import { CONTENT_TABLES } from '../lib/contentTables';
+import {
+    adminTables, adminTableMeta, adminSecretColumns, adminIsSecretColumn, adminIsEditableColumn,
+    rowKeyColumns, hasIdKey, rowKeyOf, parseRowKey, changeRowRef,
+} from '../lib/adminTables';
 
 const router = Router();
 
@@ -210,8 +214,9 @@ router.get('/tables', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        // Every table in the database (lib/adminTables.ts), not only the registry's.
         const tables = await Promise.all(
-            Object.entries(CONTENT_TABLES).map(async ([name, meta]) => {
+            Object.entries(await adminTables()).map(async ([name, meta]) => {
                 const [{ count }] = await db(name).count('* as count');
                 return { name, label: meta.label, group: meta.group, rowCount: Number(count) };
             })
@@ -234,7 +239,7 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
             return;
         }
 
-        const meta = CONTENT_TABLES[name];
+        const meta = await adminTableMeta(name);
         if (!meta) {
             res.status(404).json({ error: 'Unknown content table.' });
             return;
@@ -244,10 +249,15 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
         // Secret columns are dropped from the column list AND selected out of the
         // query, so a password hash is never in a response body at all, rather
         // than merely hidden by the client.
-        const secret = secretColumns(name);
+        const secret = adminSecretColumns(name);
         const columns = Object.keys(info).filter(c => !secret.includes(c));
-        const rows = await db(name).select(columns).orderBy('id', 'asc').limit(ROW_LIMIT);
-        const editable = columns.filter(c => isEditableColumn(name, c));
+        // Rows are named by their primary key: `id` for most tables. A table
+        // keyed by several columns sends each row's key as `_key` (lib/adminTables.ts).
+        const keyColumns = rowKeyColumns(name);
+        const idKeyed = hasIdKey(name);
+        const rawRows = await db(name).select(columns).orderBy(keyColumns.map(c => ({ column: c, order: 'asc' as const }))).limit(ROW_LIMIT);
+        const rows = idKeyed ? rawRows : rawRows.map((r: Record<string, unknown>) => ({ ...r, _key: rowKeyOf(name, r) }));
+        const editable = columns.filter(c => adminIsEditableColumn(name, c));
         const columnKinds: Record<string, ColumnKind> = {};
         for (const c of columns) columnKinds[c] = kindOf(String((info as any)[c].type));
 
@@ -284,6 +294,8 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
             columns,
             rows,
             editable,
+            keyColumns,
+            idKeyed,
             // So the panel can warn that a deleted row lives on in
             // content-snapshots/ until the next export, and would come back on
             // the next import.
@@ -331,13 +343,13 @@ router.get('/table/:name', requireAuth, async (req: AuthRequest, res: Response) 
 router.patch('/table/:name/bulk', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const name = String(req.params.name);
-    const { ids, column, value } = req.body as { ids: number[]; column: string; value: unknown };
+    const { ids, column, value } = req.body as { ids: (number | string)[]; column: string; value: unknown };
     try {
         if (!await requireAdmin(playerId)) {
             res.status(403).json({ error: 'Admins only.' });
             return;
         }
-        const meta = CONTENT_TABLES[name];
+        const meta = await adminTableMeta(name);
         if (!meta || !meta.editable) {
             res.status(400).json({ error: 'That table cannot be edited from the panel.' });
             return;
@@ -352,11 +364,16 @@ router.patch('/table/:name/bulk', requireAuth, async (req: AuthRequest, res: Res
             res.status(400).json({ error: 'Too many rows at once. Two hundred is the limit.' });
             return;
         }
-        if (!column || ['id', 'created_at', 'updated_at'].includes(column)) {
+        if (!column || ['id', 'created_at', 'updated_at'].includes(column) || rowKeyColumns(name).includes(column)) {
             res.status(400).json({ error: 'That column cannot be set.' });
             return;
         }
-        if (isSecretColumn(name, column)) {
+        const wheres = ids.map(k => parseRowKey(name, k));
+        if (wheres.some(w => !w)) {
+            res.status(400).json({ error: 'Bad row key.' });
+            return;
+        }
+        if (adminIsSecretColumn(name, column)) {
             res.status(400).json({ error: `${column} cannot be set from the panel.` });
             return;
         }
@@ -378,14 +395,20 @@ router.patch('/table/:name/bulk', requireAuth, async (req: AuthRequest, res: Res
         }
 
         const changed = await db.transaction(async (trx) => {
-            const rows = await trx(name).whereIn('id', ids).forUpdate().select('id', column);
-            for (const row of rows as any[]) {
+            const keyCols = rowKeyColumns(name);
+            const rows: any[] = [];
+            for (const where of wheres) {
+                const row = await trx(name).where(where!).forUpdate().first([...keyCols, column]);
+                if (row) rows.push(row);
+            }
+            for (const row of rows) {
                 if (String(row[column] ?? '') === String(prepared.write ?? '')) continue;
-                await trx(name).where({ id: row.id }).update({ [column]: prepared.write });
+                const ref = changeRowRef(name, row);
+                await trx(name).where(parseRowKey(name, hasIdKey(name) ? row.id : ref.row_key)!).update({ [column]: prepared.write });
                 await trx('content_changes').insert({
                     player_id: playerId,
                     table_name: name,
-                    row_id: row.id,
+                    ...ref,
                     column_name: column,
                     old_value: row[column] === null ? null : String(row[column]),
                     new_value: prepared.write === null ? null : String(prepared.write),
@@ -401,6 +424,10 @@ router.patch('/table/:name/bulk', requireAuth, async (req: AuthRequest, res: Res
             res.status(400).json({ error: 'That value refers to something that does not exist.' });
             return;
         }
+        if (err?.code === '22007' || err?.code === '22P02' || err?.code === '22008') {
+            res.status(400).json({ error: `${column}: Postgres cannot read that value as this column's type.` });
+            return;
+        }
         logger.error(`Bulk edit error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -409,18 +436,19 @@ router.patch('/table/:name/bulk', requireAuth, async (req: AuthRequest, res: Res
 router.patch('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const name = String(req.params.name);
-    const rowId = parseInt(String(req.params.id));
+    const rowId = String(req.params.id);
     const { column, value } = req.body as { column: string; value: unknown };
     try {
         if (!await requireAdmin(playerId)) {
             res.status(403).json({ error: 'Admins only.' });
             return;
         }
-        if (!CONTENT_TABLES[name] || !Number.isInteger(rowId)) {
+        const where = (await adminTableMeta(name)) ? parseRowKey(name, rowId) : null;
+        if (!where) {
             res.status(404).json({ error: 'Unknown content table or row.' });
             return;
         }
-        if (typeof column !== 'string' || !isEditableColumn(name, column)) {
+        if (typeof column !== 'string' || !adminIsEditableColumn(name, column)) {
             res.status(400).json({ error: 'That column is not editable from the panel.' });
             return;
         }
@@ -439,7 +467,7 @@ router.patch('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Resp
         }
 
         const result = await db.transaction(async (trx) => {
-            const row = await trx(name).where({ id: rowId }).forUpdate().first();
+            const row = await trx(name).where(where).forUpdate().first();
             if (!row) return { status: 404 as const, error: 'Row not found.' };
             const oldValue = row[column];
 
@@ -452,17 +480,17 @@ router.patch('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Resp
             // formula.
             if (name === 'items' && column === 'value') patch.value_locked = true;
 
-            await trx(name).where({ id: rowId }).update(patch);
+            await trx(name).where(where).update(patch);
             await trx('content_changes').insert({
                 player_id: playerId,
                 table_name: name,
-                row_id: rowId,
+                ...changeRowRef(name, row),
                 column_name: column,
                 old_value: stringifyForLog(oldValue),
                 new_value: stringifyForLog(prepared.write),
             });
-            const updated = await trx(name).where({ id: rowId }).first();
-            return { status: 200 as const, row: updated };
+            const updated = await trx(name).where(where).first();
+            return { status: 200 as const, row: hasIdKey(name) ? updated : { ...updated, _key: rowKeyOf(name, updated) } };
         });
 
         if (result.status !== 200) {
@@ -479,7 +507,13 @@ router.patch('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Resp
 
         logger.info(`[content] player ${playerId} set ${name}#${rowId}.${column}`);
         res.json({ row: result.row, warning });
-    } catch (err) {
+    } catch (err: any) {
+        // A value Postgres cannot read as the column's type (a date that is not
+        // a date) is the admin's typo, not a server fault.
+        if (err?.code === '22007' || err?.code === '22P02' || err?.code === '22008') {
+            res.status(400).json({ error: `${column}: Postgres cannot read that value as this column's type.` });
+            return;
+        }
         logger.error(`Admin content edit error (${name}#${rowId}): ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -512,32 +546,33 @@ router.get('/refs', requireAuth, async (req: AuthRequest, res: Response) => {
 router.delete('/table/:name/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const name = String(req.params.name);
-    const id = parseInt(String(req.params.id), 10);
+    const id = String(req.params.id);
     try {
         if (!await requireAdmin(playerId)) {
             res.status(403).json({ error: 'Admins only.' });
             return;
         }
-        const meta = CONTENT_TABLES[name];
+        const meta = await adminTableMeta(name);
         if (!meta || !meta.editable) {
             res.status(400).json({ error: 'Rows cannot be deleted from that table in the panel.' });
             return;
         }
-        if (!Number.isFinite(id)) {
+        const where = parseRowKey(name, id);
+        if (!where) {
             res.status(400).json({ error: 'Bad row id.' });
             return;
         }
 
         const result = await db.transaction(async (trx) => {
             // Locked so two admins cannot both delete it and both log a revert.
-            const row = await trx(name).where({ id }).forUpdate().first();
+            const row = await trx(name).where(where).forUpdate().first();
             if (!row) return { status: 404 as const, error: 'No such row.' };
 
-            await trx(name).where({ id }).del();
+            await trx(name).where(where).del();
             await trx('content_changes').insert({
                 player_id: playerId,
                 table_name: name,
-                row_id: id,
+                ...changeRowRef(name, row),
                 column_name: DELETED,
                 // The entire row, so revert can put it back exactly.
                 old_value: JSON.stringify(row),
@@ -573,7 +608,7 @@ router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response)
             res.status(403).json({ error: 'Admins only.' });
             return;
         }
-        const meta = CONTENT_TABLES[name];
+        const meta = await adminTableMeta(name);
         if (!meta || !meta.editable) {
             res.status(400).json({ error: 'Rows cannot be created in that table from the panel.' });
             return;
@@ -588,7 +623,7 @@ router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response)
         for (const [column, raw] of Object.entries(values)) {
             if (raw === undefined) continue;
             if (['id', 'created_at', 'updated_at'].includes(column)) continue;
-            if (isSecretColumn(name, column)) {
+            if (adminIsSecretColumn(name, column)) {
                 res.status(400).json({ error: `${column} cannot be set from the panel.` });
                 return;
             }
@@ -626,7 +661,7 @@ router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response)
             await trx('content_changes').insert({
                 player_id: playerId,
                 table_name: name,
-                row_id: created.id,
+                ...changeRowRef(name, created),
                 column_name: CREATED,
                 old_value: null,
                 new_value: JSON.stringify(created),
@@ -634,8 +669,8 @@ router.post('/table/:name', requireAuth, async (req: AuthRequest, res: Response)
             return created;
         });
 
-        logger.info(`[content] player ${playerId} created ${name}#${result.id}`);
-        res.json({ row: result });
+        logger.info(`[content] player ${playerId} created ${name}#${result.id ?? rowKeyOf(name, result)}`);
+        res.json({ row: hasIdKey(name) ? result : { ...result, _key: rowKeyOf(name, result) } });
     } catch (err: any) {
         if (err?.code === '23505') {
             res.status(400).json({ error: 'A row with that name (or another unique value) already exists.' });
@@ -1123,10 +1158,17 @@ router.post('/changes/:id/revert', requireAuth, async (req: AuthRequest, res: Re
             res.status(404).json({ error: 'Change not found.' });
             return;
         }
-        if (!CONTENT_TABLES[change.table_name]) {
+        if (!(await adminTableMeta(change.table_name))) {
             res.status(400).json({ error: 'That change can no longer be reverted from the panel.' });
             return;
         }
+        // The row it touched: by id, or by the key a keyed table logs as text.
+        const changeWhere = change.row_key ? parseRowKey(change.table_name, change.row_key) : { id: change.row_id };
+        if (!changeWhere) {
+            res.status(400).json({ error: 'That change can no longer be reverted from the panel.' });
+            return;
+        }
+        const changeRef = { row_id: change.row_id, row_key: change.row_key ?? null };
 
         // Whole-row operations: reverting a creation deletes the row;
         // reverting a deletion resurrects it.
@@ -1134,13 +1176,13 @@ router.post('/changes/:id/revert', requireAuth, async (req: AuthRequest, res: Re
             try {
                 const result = await db.transaction(async (trx) => {
                     if (change.column_name === CREATED) {
-                        const row = await trx(change.table_name).where({ id: change.row_id }).forUpdate().first();
+                        const row = await trx(change.table_name).where(changeWhere).forUpdate().first();
                         if (!row) return { status: 404 as const, error: 'The row no longer exists.' };
-                        await trx(change.table_name).where({ id: change.row_id }).del();
+                        await trx(change.table_name).where(changeWhere).del();
                         await trx('content_changes').insert({
                             player_id: playerId,
                             table_name: change.table_name,
-                            row_id: change.row_id,
+                            ...changeRef,
                             column_name: DELETED,
                             old_value: JSON.stringify(row),
                             new_value: null,
@@ -1151,14 +1193,16 @@ router.post('/changes/:id/revert', requireAuth, async (req: AuthRequest, res: Re
                         const row = JSON.parse(change.old_value ?? 'null');
                         if (!row || typeof row !== 'object') return { status: 400 as const, error: 'Stored row could not be restored.' };
                         await trx(change.table_name).insert(row);
-                        await trx.raw(
-                            `SELECT setval(pg_get_serial_sequence(?, 'id'), (SELECT COALESCE(MAX(id), 1) FROM ??))`,
-                            [change.table_name, change.table_name],
-                        );
+                        if (hasIdKey(change.table_name)) {
+                            await trx.raw(
+                                `SELECT setval(pg_get_serial_sequence(?, 'id'), (SELECT COALESCE(MAX(id), 1) FROM ??))`,
+                                [change.table_name, change.table_name],
+                            );
+                        }
                         await trx('content_changes').insert({
                             player_id: playerId,
                             table_name: change.table_name,
-                            row_id: change.row_id,
+                            ...changeRef,
                             column_name: CREATED,
                             old_value: null,
                             new_value: JSON.stringify(row),
@@ -1187,7 +1231,7 @@ router.post('/changes/:id/revert', requireAuth, async (req: AuthRequest, res: Re
             }
         }
 
-        if (!isEditableColumn(change.table_name, change.column_name)) {
+        if (!adminIsEditableColumn(change.table_name, change.column_name)) {
             res.status(400).json({ error: 'That change can no longer be reverted from the panel.' });
             return;
         }
@@ -1209,21 +1253,21 @@ router.post('/changes/:id/revert', requireAuth, async (req: AuthRequest, res: Re
         }
 
         const result = await db.transaction(async (trx) => {
-            const row = await trx(change.table_name).where({ id: change.row_id }).forUpdate().first();
+            const row = await trx(change.table_name).where(changeWhere).forUpdate().first();
             if (!row) return { status: 404 as const, error: 'The row no longer exists.' };
             const current = row[change.column_name];
 
-            await trx(change.table_name).where({ id: change.row_id }).update({ [change.column_name]: restored });
+            await trx(change.table_name).where(changeWhere).update({ [change.column_name]: restored });
             await trx('content_changes').insert({
                 player_id: playerId,
                 table_name: change.table_name,
-                row_id: change.row_id,
+                ...changeRef,
                 column_name: change.column_name,
                 old_value: stringifyForLog(current),
                 new_value: change.old_value,
                 reverts_change_id: change.id,
             });
-            const updated = await trx(change.table_name).where({ id: change.row_id }).first();
+            const updated = await trx(change.table_name).where(changeWhere).first();
             return { status: 200 as const, row: updated };
         });
 

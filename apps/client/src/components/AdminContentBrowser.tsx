@@ -24,11 +24,26 @@ interface TableData {
     truncated: boolean
 }
 
+/**
+ * A row's name: its `id`, or for a table keyed by several columns (player_spells,
+ * guild_storage) the `_key` the server sends, a JSON object of those columns.
+ */
+type RowKey = number | string
+
+function keyOf(row: Record<string, unknown>): RowKey {
+    return (row._key as string | undefined) ?? (row.id as number)
+}
+
+/** A row key as a URL path segment. */
+const keyPath = (k: RowKey) => encodeURIComponent(String(k))
+
 interface ContentChange {
     id: number
     username: string
     table_name: string
     row_id: number
+    /** Set for a keyed table's row, whose row_id is 0. */
+    row_key?: string | null
     column_name: string
     old_value: string | null
     new_value: string | null
@@ -78,18 +93,18 @@ export default function AdminContentBrowser() {
     const [warning, setWarning] = useState<string | null>(null)
 
     // Inline editing (numbers + short strings)
-    const [editing, setEditing] = useState<{ rowId: number; column: string; kind: ColumnKind } | null>(null)
+    const [editing, setEditing] = useState<{ rowId: RowKey; column: string; kind: ColumnKind } | null>(null)
     const [editValue, setEditValue] = useState('')
     const [editFreeText, setEditFreeText] = useState(false)
     const editInputRef = useRef<HTMLInputElement | null>(null)
 
     // Overlay editing (text / json / array)
-    const [overlay, setOverlay] = useState<{ rowId: number; column: string; kind: ColumnKind } | null>(null)
+    const [overlay, setOverlay] = useState<{ rowId: RowKey; column: string; kind: ColumnKind } | null>(null)
     const [overlayValue, setOverlayValue] = useState('')
     const [creating, setCreating] = useState<{ prefill?: Record<string, string> } | null>(null)
-    const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+    const [confirmDelete, setConfirmDelete] = useState<RowKey | null>(null)
     /** Ticked rows, for a bulk edit. `selected` above is the chosen TABLE. */
-    const [picked, setPicked] = useState<Set<number>>(new Set())
+    const [picked, setPicked] = useState<Set<RowKey>>(new Set())
     const [bulkColumn, setBulkColumn] = useState('')
     const [bulkValue, setBulkValue] = useState('')
     const [filter, setFilter] = useState('')
@@ -189,19 +204,19 @@ export default function AdminContentBrowser() {
     }
 
     const applyUpdatedRow = (row: Record<string, unknown>) => {
-        setData(d => d ? { ...d, rows: d.rows.map(r => r.id === row.id ? row : r) } : d)
+        setData(d => d ? { ...d, rows: d.rows.map(r => keyOf(r) === keyOf(row) ? row : r) } : d)
     }
 
-    const flashCell = (rowId: number, column: string) => {
+    const flashCell = (rowId: RowKey, column: string) => {
         setFlash(`${rowId}:${column}`)
         setTimeout(() => setFlash(f => f === `${rowId}:${column}` ? null : f), 1200)
     }
 
-    const patchCell = async (rowId: number, column: string, value: unknown): Promise<boolean> => {
+    const patchCell = async (rowId: RowKey, column: string, value: unknown): Promise<boolean> => {
         if (!data) return false
         try {
             const res = await apiFetch<{ row: Record<string, unknown>; warning: string | null }>(
-                `/api/admin/content/table/${data.table}/${rowId}`,
+                `/api/admin/content/table/${data.table}/${keyPath(rowId)}`,
                 { method: 'PATCH', body: JSON.stringify({ column, value }) }
             )
             applyUpdatedRow(res.row)
@@ -249,7 +264,7 @@ export default function AdminContentBrowser() {
         if (await patchCell(overlay.rowId, overlay.column, value)) setOverlay(null)
     }
 
-    const toggleBoolean = async (rowId: number, column: string, current: boolean) => {
+    const toggleBoolean = async (rowId: RowKey, column: string, current: boolean) => {
         if (!data) return
         const scary = data.table === 'skills'
             ? `\n\nThis is the skills table — flipping ${column} changes what every player sees the moment you confirm.`
@@ -260,7 +275,7 @@ export default function AdminContentBrowser() {
 
     const revertChange = async (change: ContentChange) => {
         const truncate = (v: string | null) => v === null ? '—' : v.length > 80 ? v.slice(0, 77) + '...' : v
-        if (!window.confirm(`Revert ${change.table_name} #${change.row_id} ${change.column_name}:\n${truncate(change.new_value)}\n→\n${truncate(change.old_value)}`)) return
+        if (!window.confirm(`Revert ${change.table_name} #${change.row_key ?? change.row_id} ${change.column_name}:\n${truncate(change.new_value)}\n→\n${truncate(change.old_value)}`)) return
         try {
             await apiFetch(`/api/admin/content/changes/${change.id}/revert`, { method: 'POST' })
             setError(null)
@@ -270,7 +285,7 @@ export default function AdminContentBrowser() {
         }
     }
 
-    const startEdit = (rowId: number, column: string, value: unknown, kind: ColumnKind) => {
+    const startEdit = (rowId: RowKey, column: string, value: unknown, kind: ColumnKind) => {
         setEditFreeText(false)
         if (kind === 'text' || kind === 'json' || kind === 'array') {
             setEditing(null)
@@ -333,7 +348,7 @@ export default function AdminContentBrowser() {
         }
     }
 
-    const togglePicked = (rowId: number) => {
+    const togglePicked = (rowId: RowKey) => {
         setPicked(prev => {
             const next = new Set(prev)
             if (next.has(rowId)) next.delete(rowId)
@@ -342,10 +357,10 @@ export default function AdminContentBrowser() {
         })
     }
 
-    const deleteRow = async (rowId: number) => {
+    const deleteRow = async (rowId: RowKey) => {
         try {
-            await apiFetch(`/api/admin/content/table/${data?.table}/${rowId}`, { method: 'DELETE' })
-            setData(d => d ? { ...d, rows: d.rows.filter(r => r.id !== rowId) } : d)
+            await apiFetch(`/api/admin/content/table/${data?.table}/${keyPath(rowId)}`, { method: 'DELETE' })
+            setData(d => d ? { ...d, rows: d.rows.filter(r => keyOf(r) !== rowId) } : d)
             setConfirmDelete(null)
         } catch (err: any) {
             setError(err.message || 'Could not delete that row.')
@@ -678,7 +693,7 @@ export default function AdminContentBrowser() {
                                                 <td className="muted-text">{new Date(c.created_at).toLocaleString()}</td>
                                                 <td>{c.username}</td>
                                                 <td>{c.table_name}</td>
-                                                <td>#{c.row_id}</td>
+                                                <td>#{c.row_key ?? c.row_id}</td>
                                                 <td>{c.column_name}</td>
                                                 <td>
                                                     <span className="muted-text" title={c.old_value ?? undefined}>
@@ -786,7 +801,7 @@ export default function AdminContentBrowser() {
                                     </thead>
                                     <tbody>
                                         {sortedRows.map((row, i) => {
-                                            const rowId = row.id as number
+                                            const rowId = keyOf(row)
                                             return (
                                                 <tr key={rowId ?? i} className={picked.has(rowId) ? 'admin-row-picked' : ''}>
                                                     {data.editable.length > 0 && (
@@ -820,7 +835,7 @@ export default function AdminContentBrowser() {
                                                     {data.columns.map(c => {
                                                         const value = row[c]
                                                         const kind = data.columnKinds[c] || 'string'
-                                                        const isEditable = data.editable.includes(c) && Number.isInteger(rowId)
+                                                        const isEditable = data.editable.includes(c) && rowId !== undefined && rowId !== null
                                                         const isEditing = editing && editing.rowId === rowId && editing.column === c
                                                         const isFlashing = flash === `${rowId}:${c}`
 

@@ -228,6 +228,63 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // Edited through its own richer editor in routes/adminManual.ts. Listed here
     // read-only so it is visible when browsing, without giving two editors one row.
     manual_pages:                { label: 'Manual Pages',          group: 'Moderation' },
+    // What the Wayfaring merge (migration 20261016130000) replaced, kept to undo it by hand.
+    wayfaring_merge_backup:      { label: 'Wayfaring Merge Backup', group: 'Moderation' },
+
+    // ---- Registered 2026-11-03 ----
+    // Tables added to the game without an entry here. The panel lists any table
+    // this registry does not name anyway (lib/adminTables.ts, "New (not yet
+    // sorted)"), so a new table is never invisible; giving it an entry here
+    // files it under its group and decides whether it can be edited.
+
+    // Guilds. A guild's rank permissions are guilds.rank_permissions (JSON of
+    // rank to permission keys; empty means the defaults in services/guildRanks.ts);
+    // a member's rank is guild_members.role.
+    guild_halls:                 { label: 'Guild Halls',           group: 'Guilds',     editable: true },
+    guild_hall_progress:         { label: 'Guild Hall Progress',   group: 'Guilds',     editable: true },
+    guild_hall_contributions:    { label: 'Guild Hall Contributions', group: 'Guilds',  editable: true },
+    guild_storage:               { label: 'Guild Storehouse',      group: 'Guilds',     editable: true },
+    guild_storage_requests:      { label: 'Guild Storehouse Requests', group: 'Guilds', editable: true },
+    guild_storage_ledger:        { label: 'Guild Storehouse Ledger', group: 'Guilds' },
+
+    // Talar: the reservoir, open stones, learned spells and what they left in the world.
+    player_talar:                { label: 'Player Talar',          group: 'Talar',      editable: true },
+    player_talar_open_gem:       { label: 'Open Gems (filling)',   group: 'Talar',      editable: true },
+    player_spells:               { label: 'Player Spells',         group: 'Talar',      editable: true },
+    larder_wards:                { label: 'Larder Wards',          group: 'Talar',      editable: true },
+    portals:                     { label: 'Portals',               group: 'Talar',      editable: true },
+    portal_riders:               { label: 'Portal Riders',         group: 'Talar',      editable: true },
+
+    // Player state that belongs beside the other Activity and Holdings tables.
+    combat_fights:               { label: 'Combat Fights',         group: 'Activity',   editable: true },
+    pen_flowers:                 { label: 'Pen Flowers',           group: 'Activity',   editable: true },
+    player_buffs:                { label: 'Player Buffs',          group: 'Activity',   editable: true },
+    death_loadouts:              { label: 'Death Loadouts',        group: 'Holdings',   editable: true },
+    workstation_slots:           { label: 'Workstation Slots',     group: 'World State', editable: true },
+    // A player's private notes: readable for support, never edited for them.
+    player_journal_notes:        { label: 'Journal Notes',         group: 'Accounts' },
+    // A phone's push address and keys are credentials; only who and when show.
+    push_subscriptions:          { label: 'Push Subscriptions',    group: 'Accounts',   secretColumns: ['endpoint', 'p256dh', 'auth'] },
+
+    // Commerce. Merchants are seeds/08_merchants.ts's (a re-seed overwrites an
+    // edit); shops and allowances are state. Ledgers and sale records are
+    // history, so read only, as taler_purchases is.
+    merchants:                   { label: 'Merchants',             group: 'Economy',    editable: true },
+    merchant_stock:              { label: 'Merchant Stock',        group: 'Economy',    editable: true },
+    npc_purchase_daily:          { label: 'NPC Daily Purchases',   group: 'Economy',    editable: true },
+    npc_sale_daily:              { label: 'NPC Daily Sales',       group: 'Economy',    editable: true },
+    player_shops:                { label: 'Player Shops',          group: 'Economy',    editable: true },
+    shop_listings:               { label: 'Shop Listings',         group: 'Economy',    editable: true },
+    shop_buy_orders:             { label: 'Shop Buy Orders',       group: 'Economy',    editable: true },
+    shop_transactions:           { label: 'Shop Transactions',     group: 'Economy' },
+    gold_ledger:                 { label: 'Gold Ledger',           group: 'Economy' },
+    taler_adjustments:           { label: 'Taler Adjustments',     group: 'Economy' },
+
+    // Events and the Chronicle: records of who took part and what was told.
+    world_event_participation:   { label: 'World Event Participation', group: 'Events' },
+    world_event_shares:          { label: 'World Event Shares',    group: 'Events' },
+    chronicle_mentions:          { label: 'Chronicle Mentions',    group: 'Chronicle' },
+    chronicle_verse_uses:        { label: 'Chronicle Verse Uses',  group: 'Chronicle' },
 };
 
 /** Tables included in content snapshots, in FK-dependency order. */
