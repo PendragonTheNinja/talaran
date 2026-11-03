@@ -95,6 +95,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [cookingStation, setCookingStation] = useState<any>(null)
   const [cookQuestStatus, setCookQuestStatus] = useState<string | null>(null)
   const [lapidaryStation, setLapidaryStation] = useState<{ exists: boolean; isActive: boolean } | null>(null)
+  const [textileStation, setTextileStation] = useState<{ exists: boolean; slots?: { filled: unknown[] }[] } | null>(null)
   const [lapidaryQuestStatus, setLapidaryQuestStatus] = useState<string | null>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
   const [cookhouseOpen, setCookhouseOpen] = useState(false)
@@ -320,6 +321,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     }
     if (isCaliwen) {
       apiFetch<{ exists: boolean; isActive: boolean }>('/api/workstations/lapidary').then(setLapidaryStation).catch(() => setLapidaryStation(null))
+      apiFetch<{ exists: boolean; slots?: { filled: unknown[] }[] }>('/api/workstations/textile').then(setTextileStation).catch(() => setTextileStation(null))
       apiFetch<{ quests?: { name: string; status: string }[] }>('/api/quests').then(data => {
         const q = data.quests?.find(x => x.name === "The Lapidary's Lesson")
         if (q) setLapidaryQuestStatus(q.status)
@@ -815,6 +817,18 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {craftworksOpen && (
               <div className="submenu-items">
 
+                {/* The tannery's tools (rack and barrel), like every other
+                    bench's: what is in, what is missing. Above the vats. */}
+                <button
+                  className="location-action-btn sub"
+                  onClick={() => onStartAction('workstation_tanning', 0)}
+                >
+                  Your Tannery
+                  {!tanningStatus?.hasRack && (
+                    <span className="station-tag warn">({tanningStatus?.partial ? 'incomplete' : 'not set up'})</span>
+                  )}
+                </button>
+
                 {/* Tanning rack */}
                 {!tanningStatus?.hasRack ? (
                   tanningStatus?.canSetup ? (
@@ -864,6 +878,27 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   onClick={() => onStartAction('crafting_menu', 0)}
                 >
                   Crafting Bench →
+                </button>
+
+                {/* Spinning and weaving (migration 20261103140000): your own
+                    wheel and loom, or the public pair here at half speed. */}
+                <button
+                  className="location-action-btn sub"
+                  onClick={() => onStartAction('workstation_textile', 0)}
+                >
+                  Your Spinning Wheel and Loom
+                  {!textileStation?.slots?.some(s => s.filled.length > 0) && (
+                    <span className="station-tag warn">(none yet)</span>
+                  )}
+                </button>
+                <button
+                  className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
+                  onClick={() => onStartAction('textile_menu', 0)}
+                >
+                  Spinning and Weaving →
+                  {!textileStation?.slots?.some(s => s.filled.length > 0) && (
+                    <span className="station-tag warn">(public wheel)</span>
+                  )}
                 </button>
 
                 {/* Lapidary: gems are cut here, and later set into jewelry.

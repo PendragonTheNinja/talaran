@@ -44,48 +44,40 @@ function parseInputs(inputsJson: string): RecipeInput[] {
     try { return JSON.parse(inputsJson) } catch { return [] }
 }
 
+/**
+ * The player's tannery here, only when it has both its tools in (migration
+ * 20261103140000: the rack and barrel are slots now; the station is active
+ * only with both). A half-set-up tannery soaks nothing.
+ */
 export async function getRack(playerId: number, locationId: number): Promise<any> {
     return db('workstations')
-        .where({ player_id: playerId, location_id: locationId, type: WORKSTATION_TYPE })
+        .where({ player_id: playerId, location_id: locationId, type: WORKSTATION_TYPE, is_active: true })
         .first()
 }
 
-/** Set up a tanning rack here: consumes the rack item, creates the workstation. */
+/** Which slot each station item goes in. */
+const STATION_SLOTS: Record<string, string> = { 'Lanai Tanning Rack': 'rack', 'Lanai Tanning Barrel': 'barrel' }
+
+/**
+ * Set up a tannery here: puts the rack and the barrel from the pack into their
+ * slots, whichever is missing (the same as placing them by hand in the
+ * tannery's tool panel). One button for the common case.
+ */
 export async function setupRack(playerId: number, locationId: number): Promise<{ success: boolean; error?: string }> {
     try {
-        const existing = await getRack(playerId, locationId)
-        if (existing) return { success: false, error: 'You already have a tannery here.' }
-
-        await db.transaction(async (trx) => {
-            for (const itemName of STATION_ITEMS) {
-                const item = await trx('items').where({ name: itemName }).first()
-                if (!item) throw new Error(`MISSING:${itemName}`)
-                const inv = await trx('player_inventory')
-                    .where({ player_id: playerId, item_id: item.id }).forUpdate().first()
-                if (!inv || inv.quantity < 1) throw new Error(`MISSING:${itemName}`)
-
-                if (inv.quantity <= 1) {
-                    await trx('player_inventory').where({ id: inv.id }).delete()
-                } else {
-                    await trx('player_inventory').where({ id: inv.id }).update({ quantity: inv.quantity - 1 })
-                }
-            }
-
-            await trx('workstations').insert({
-                player_id: playerId,
-                location_id: locationId,
-                type: WORKSTATION_TYPE,
-                tier: 1,
-                is_active: true,
-            })
-        })
-
+        if (await getRack(playerId, locationId)) return { success: false, error: 'You already have a tannery here.' }
+        const { socketTool, getWorkstation, getSocketed } = await import('./workstations')
+        const station = await getWorkstation(playerId, locationId, WORKSTATION_TYPE)
+        const filled = new Set((station ? await getSocketed(station.id) : []).map(s => s.slot))
+        for (const itemName of STATION_ITEMS) {
+            const slot = STATION_SLOTS[itemName]
+            if (filled.has(slot)) continue
+            const r = await socketTool(playerId, locationId, WORKSTATION_TYPE, slot, itemName)
+            if (!r.success) return { success: false, error: r.error?.startsWith('You do not have') ? `You need a ${itemName} to set up a tannery.` : r.error }
+        }
         logger.info(`Player ${playerId} set up a tannery at location ${locationId}`)
         return { success: true }
     } catch (err: any) {
-        if (err.message?.startsWith('MISSING:')) {
-            return { success: false, error: `You need a ${err.message.slice(8)} to set up a tannery.` }
-        }
         logger.error('setupRack error: ' + err)
         return { success: false, error: SERVER_ERROR }
     }
@@ -263,7 +255,11 @@ export async function getRackStatus(playerId: number, locationId: number) {
             : null
         stationItems.push({ itemName, have: inv ? inv.quantity : 0 })
     }
-    const canSetup = stationItems.every(i => i.have >= 1)
+    // A tool already in its slot counts as had (a half-set-up tannery).
+    const { getWorkstation, getSocketed } = await import('./workstations')
+    const station = rack ?? await getWorkstation(playerId, locationId, WORKSTATION_TYPE)
+    const socketed = new Set((station ? await getSocketed(station.id) : []).map(s => s.item_name))
+    const canSetup = stationItems.every(i => i.have >= 1 || socketed.has(i.itemName))
 
     const activeJobs = await db('tanning_jobs')
         .where({ player_id: playerId, location_id: locationId, is_collected: false })
@@ -313,6 +309,8 @@ export async function getRackStatus(playerId: number, locationId: number) {
 
     return {
         hasRack: !!rack,
+        // Some of its tools in, not all: the tool panel says what is missing.
+        partial: !rack && socketed.size > 0,
         stationItems,
         canSetup,
         craftingLevel: level,

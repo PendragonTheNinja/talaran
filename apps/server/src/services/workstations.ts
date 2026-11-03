@@ -352,6 +352,13 @@ export async function unsocketTool(
                 .first()
             if (!station) throw new Error('You have no workstation here.')
 
+            // A tannery's rack and barrel stay put while hides soak in it.
+            if (stationType === 'tanning') {
+                const soaking = await trx('tanning_jobs')
+                    .where({ player_id: playerId, location_id: locationId, is_collected: false }).first('id')
+                if (soaking) throw new Error('Hides are soaking. Collect the vats before taking the rack or barrel down.')
+            }
+
             const row = await trx('workstation_slots')
                 .where({ workstation_id: station.id, slot, slot_index: slotIndex })
                 .forUpdate()
@@ -370,7 +377,7 @@ export async function unsocketTool(
         return { success: true }
     } catch (err: any) {
         const msg = String(err?.message ?? err)
-        if (msg.includes('workstation here') || msg.includes('slot is empty')) {
+        if (msg.includes('workstation here') || msg.includes('slot is empty') || msg.includes('Hides are soaking')) {
             return { success: false, error: msg }
         }
         logger.error(`unsocketTool error: ${err}`)
@@ -890,6 +897,7 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         : recipe.station === 'smithing' ? 'forge'
         : recipe.station === 'carpentry' ? 'workshop'
         : recipe.station === 'lapidary' ? 'lapidary'
+        : recipe.station === 'textile' ? 'spinning wheel and loom'
         : 'workstation'
     // A station type with a keeper's bench you have not been given the run of.
     const owner = PUBLIC_STATIONS[recipe.station]
@@ -924,6 +932,9 @@ export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; 
     carpentry: { location: 'Verdale', quest: "The Carpenter's Commission", keeper: 'Geossica' },
     cooking: { location: 'Phoenwick', quest: "The Cook's Conundrum", keeper: 'Geomima' },
     lapidary: { location: 'Caliwen', quest: "The Lapidary's Lesson", keeper: 'Geosper' },
+    // Spinning and weaving (migration 20261103140000): open to everyone, as the
+    // camp crafts they replaced were. No quest row of that name, so no gate.
+    textile: { location: 'Caliwen', quest: '', keeper: 'Geosper' },
 }
 
 export async function locationHasPublicStation(playerId: number, locationId: number, stationType: string): Promise<boolean> {

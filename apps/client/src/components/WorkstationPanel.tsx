@@ -40,6 +40,8 @@ interface WorkstationPanelProps {
     title: string
     onClose: () => void
     onInventoryUpdate: () => void
+    /** Tools may not come out right now (a tannery while hides soak); says why. */
+    lockedReason?: string | null
 }
 
 /**
@@ -52,7 +54,7 @@ interface WorkstationPanelProps {
  * slot as it was a moment ago, which is the bug the equipment panel already
  * learned the hard way.
  */
-export default function WorkstationPanel({ stationType, title, onClose, onInventoryUpdate }: WorkstationPanelProps) {
+export default function WorkstationPanel({ stationType, title, onClose, onInventoryUpdate, lockedReason }: WorkstationPanelProps) {
     const [station, setStation] = useState<StationData | null>(null)
     const [openSlot, setOpenSlot] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -149,6 +151,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
             </div>
 
             {error && <div className="error-message">{error}</div>}
+            {lockedReason && <p className="workstation-locked muted-text">{lockedReason}</p>}
 
             <div className="workstation-grid">
                 {station.slots.map(slot => {
@@ -169,7 +172,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
                                 tool ? { name: tool.itemName } : null,
                                 'Left-click to take it back',
                             )}
-                            disabled={busy || (!tool && !hasRoom)}
+                            disabled={busy || (!tool && !hasRoom) || (!!tool && !!lockedReason)}
                             onClick={() => tool
                                 ? handleUnsocket(slot.slot, tool.index)
                                 : setOpenSlot(openSlot === slot.slot ? null : slot.slot)}

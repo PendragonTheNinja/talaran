@@ -230,6 +230,7 @@ export default function GameLayout({
   const [showCarpentryMenu, setShowCarpentryMenu] = useState(false)
   const [showCraftingMenu, setShowCraftingMenu] = useState(false)
   const [showLapidaryMenu, setShowLapidaryMenu] = useState(false)
+  const [showTextileMenu, setShowTextileMenu] = useState(false)
   const [showTalarFill, setShowTalarFill] = useState(false)
   const [showCookingMenu, setShowCookingMenu] = useState(false)
   const [cookingAtFire, setCookingAtFire] = useState(false)
@@ -448,6 +449,14 @@ export default function GameLayout({
       setOpenWorkstation({ type: 'cooking', title: 'Cookhouse Tool Rack' })
     } else if (type === 'workstation_lapidary') {
       setOpenWorkstation({ type: 'lapidary', title: 'Lapidary Tool Rack' })
+    } else if (type === 'workstation_tanning') {
+      // Fresh vats, so the rack and barrel show as locked while hides soak.
+      apiFetch<{ vatsInUse?: number }>('/api/tanning/status').then(st => setTanningStatus(st)).catch(() => { })
+      setOpenWorkstation({ type: 'tanning', title: 'Your Tannery' })
+    } else if (type === 'workstation_textile') {
+      setOpenWorkstation({ type: 'textile', title: 'Spinning Wheel and Loom' })
+    } else if (type === 'textile_menu') {
+      setShowTextileMenu(true)
     } else if (type === 'forge_menu') {
       apiFetch<any>('/api/smithing/status')
         .then(st => setSmithingStationActive(!!st?.workstation?.is_active))
@@ -1067,6 +1076,21 @@ export default function GameLayout({
         />
       )}
 
+      {showTextileMenu && (
+        <CraftingMenu
+          onClose={() => setShowTextileMenu(false)}
+          onStartRecipe={(recipeId) => {
+            setShowTextileMenu(false)
+            setGameViewAction({ type: 'recipe', id: recipeId })
+          }}
+          skill="Crafting"
+          title="Spinning and Weaving"
+          station="textile"
+          stationType="textile"
+          playerLevel={playerData?.skills?.find((s: { name: string }) => s.name === 'Crafting')?.level || 1}
+        />
+      )}
+
       {showLapidaryMenu && (
         <CraftingMenu
           onClose={() => setShowLapidaryMenu(false)}
@@ -1200,6 +1224,9 @@ export default function GameLayout({
             setSmithingStatusKey(k => k + 1)
           }}
           onInventoryUpdate={onInventoryUpdate}
+          lockedReason={openWorkstation.type === 'tanning' && (tanningStatus?.vatsInUse ?? 0) > 0
+            ? 'Hides are soaking. The rack and barrel stay put until the vats are collected.'
+            : null}
         />
       )}
 

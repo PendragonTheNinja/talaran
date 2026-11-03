@@ -229,3 +229,6 @@
 .workstation-retry:hover {
     border-color: var(--color-gold);
 }
+
+/* A station whose tools are in use (a tannery while hides soak). */
+.workstation-locked { font-size: 13px; margin: 0 0 8px; }
