@@ -2,7 +2,7 @@
  * How production runs the server. Start it from here, not by hand:
  *
  *     pm2 start ecosystem.config.cjs      # first time only
- *     pm2 restart talaran-server          # every deploy after
+ *     pm2 restart talaran                 # every deploy after
  *     pm2 save                            # so a reboot brings it back the same way
  *
  * ONE process, in fork mode, always (audit H2). Several things assume it:
@@ -21,7 +21,7 @@
 module.exports = {
     apps: [
         {
-            name: 'talaran-server',
+            name: 'talaran',
             cwd: './apps/server',
             script: 'dist/index.js',
             exec_mode: 'fork',
