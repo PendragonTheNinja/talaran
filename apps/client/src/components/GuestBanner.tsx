@@ -139,7 +139,8 @@ export default function GuestBanner({
                     </span>
                 )}
                 <button className="guest-bar-btn" onClick={() => setOpen(true)}>
-                    Claim your character
+                    <span className="guest-bar-btn-long">Claim your character</span>
+                    <span className="guest-bar-btn-short">Claim</span>
                 </button>
             </div>
 

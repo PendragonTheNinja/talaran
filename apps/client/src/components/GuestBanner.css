@@ -224,16 +224,31 @@
     color: var(--color-gold);
 }
 
-@media (max-width: 680px) {
+.guest-bar-btn-short { display: none; }
+
+/* The phone layout (below 768px, lib/useIsMobile.ts): a small chip in the top
+   bar, beside the menu button. Fixed to the bottom it covered the five tabs
+   and the game could not be navigated at all. The claim panel explains the
+   trial, so the chip keeps only the tag, the clock and the button. */
+@media (max-width: 767px) {
     .guest-bar {
-        left: 12px;
-        right: 12px;
-        bottom: 12px;
-        max-width: none;
+        top: 7px;
+        right: 56px;
+        bottom: auto;
+        left: auto;
+        max-width: calc(100vw - 190px);
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 3px 4px 3px 6px;
         font-size: 13px;
-        gap: 8px;
-        padding: 7px 10px;
+        box-shadow: none;
     }
+    .guest-bar-text { display: none; }
+    .guest-bar-tag { font-size: 10px; padding: 1px 5px; }
+    .guest-bar-clock { font-size: 14px; }
+    .guest-bar-btn { font-size: 12px; padding: 3px 10px; }
+    .guest-bar-btn-long { display: none; }
+    .guest-bar-btn-short { display: inline; }
 }
 
 /* Shown once, right after a claim. Names what just became available rather
