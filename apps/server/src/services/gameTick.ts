@@ -995,7 +995,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         // The next cycle is the tick's; the player's bar runs to the stone
         // being full (FillStone in services/talar.ts), so the row keeps that
         // time and the stone's whole length for a refresh to redraw.
-        const nextCompletion = new Date(now.getTime() + FILL_CYCLE_SECONDS * 1000);
+        const nextCompletion = new Date(now.getTime() + (result.cycleSeconds ?? FILL_CYCLE_SECONDS) * 1000);
         const fullAt = new Date(now.getTime() + result.stone.secondsToFull * 1000);
         await db('player_actions').where({ id: action.id }).update({
           completes_at: nextCompletion,
