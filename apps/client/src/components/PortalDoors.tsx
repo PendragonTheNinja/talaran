@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
-import { getSocket } from '../lib/socket'
+import { onSocket } from '../lib/socket'
 
 // Doorways open where the player stands (Portal; server: services/spells.ts).
 // Anyone here may step through while one holds. Stepping through leaves the
@@ -24,13 +24,7 @@ export default function PortalDoors({ locationId }: { locationId: number | undef
     useEffect(() => { load() }, [locationId, load])
 
     // A doorway opened here by anyone, pushed to everyone at the place.
-    useEffect(() => {
-        const socket = getSocket()
-        if (!socket) return
-        const onChanged = () => load()
-        socket.on('portals_changed', onChanged)
-        return () => { socket.off('portals_changed', onChanged) }
-    }, [load])
+    useEffect(() => onSocket('portals_changed', () => load()), [load])
 
     // Doorways close on their own; the clock drops them from the list.
     useEffect(() => {

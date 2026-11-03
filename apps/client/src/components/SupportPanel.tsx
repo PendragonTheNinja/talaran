@@ -170,6 +170,9 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                             {dock.isPopped ? '\u2921' : '\u2922'}
                         </button>
                     )}
+                    {!isMobile && dock.isPopped && (
+                        <button className={`dock-btn ${dock.isPinned ? 'active' : ''}`} onClick={dock.togglePin} title={dock.isPinned ? 'Unpin (click-away closes)' : 'Pin on top'}>📌</button>
+                    )}
                     <button className="modal-close-btn" onClick={onClose} aria-label="Close">{'\u2715'}</button>
                 </div>
             </div>

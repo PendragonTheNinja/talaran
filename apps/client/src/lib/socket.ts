@@ -44,3 +44,29 @@ export function disconnectSocket(): void {
     socket = null
   }
 }
+/**
+ * Listen for `event` once the socket exists, and return the cleanup.
+ *
+ * The game draws before the socket connects (App.tsx connects after the first
+ * loads), so a component that mounts with the page and calls getSocket() in an
+ * effect finds nothing, returns, and never listens: a portal cast here did not
+ * appear until a refresh (2026-11-03). This waits for the socket, as GameView
+ * and ChatPanel do by hand.
+ */
+export function onSocket(event: string, handler: (...args: never[]) => void): () => void {
+  let bound: Socket | null = null
+  const attach = () => {
+    if (!socket) return false
+    bound = socket
+    bound.on(event, handler as (...args: unknown[]) => void)
+    return true
+  }
+  let timer: ReturnType<typeof setInterval> | null = null
+  if (!attach()) {
+    timer = setInterval(() => { if (attach() && timer) { clearInterval(timer); timer = null } }, 100)
+  }
+  return () => {
+    if (timer) clearInterval(timer)
+    bound?.off(event, handler as (...args: unknown[]) => void)
+  }
+}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
-import { getSocket } from '../lib/socket'
+import { onSocket } from '../lib/socket'
 import { sortItems, useStoreSort } from '../lib/itemSort'
 import StoreSortBar from './StoreSortBar'
 import ConfirmModal from './ConfirmModal'
@@ -86,14 +86,10 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
             })
             .catch(() => setError('The hall could not be reached just now.'))
         // Another member built, stored or took something: draw it fresh.
-        const socket = getSocket()
         const refresh = () => { load() }
-        socket?.on('guild_hall_changed', refresh)
-        socket?.on('inventory_changed', refresh)
-        return () => {
-            socket?.off('guild_hall_changed', refresh)
-            socket?.off('inventory_changed', refresh)
-        }
+        const offHall = onSocket('guild_hall_changed', refresh)
+        const offPack = onSocket('inventory_changed', refresh)
+        return () => { offHall(); offPack() }
     }, [load])
 
     const act = async (path: string, body?: unknown) => {
