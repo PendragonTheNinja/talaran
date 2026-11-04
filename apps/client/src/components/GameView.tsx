@@ -972,6 +972,14 @@ export default function GameView({
         setBotCheckPending(true)
       })
 
+      // Answered on another device or tab: close it here too. Only the prompt
+      // closes; anything this tab was about to start waits for the player,
+      // who was not looking at it when the check was answered.
+      on('bot_check_passed', () => {
+        setBotCheckPending(false)
+        setBotCheckAnswer('')
+      })
+
       on('vein_discovered', (data: { oreName: string; quantity: number; privateWindow: number }) => {
         setVeinNotification(`You discovered a ${data.oreName} vein! You have ${data.privateWindow} minutes before it's announced.`)
         setTimeout(() => setVeinNotification(null), 10000)
