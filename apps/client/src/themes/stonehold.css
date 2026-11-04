@@ -336,3 +336,89 @@
     padding-bottom: min(33.55%, 107px);
   }
 }
+
+/* ---- Content inside the frames, not on them ---------------------------- */
+
+/* The rope and stone frame is 17px deep (rope, then the stone lip before the
+   inner hairline). Framed panels are padded by that much so nothing sits on
+   the rope, and the side columns widen by twice it, to the art's own 310px,
+   so the pack's four columns still fit. The narrower layouts keep the same
+   steps (250 and 200 in the plain themes), each with the frame added. */
+@media (min-width: 901px) {
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel {
+    width: 310px;
+    min-width: 310px;
+  }
+
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel > .panel {
+    padding: 17px;
+  }
+
+  /* The doll larger: 68px slots, so the gear on it reads at a glance. */
+  :root[data-theme='stonehold'] .doll-row .equipment-grid {
+    grid-template-columns: repeat(3, 68px);
+    gap: 4px;
+  }
+  :root[data-theme='stonehold'] .equipment-slot {
+    width: 68px;
+    height: 68px;
+  }
+
+  :root[data-theme='stonehold'] .tabbed-panel .tab-content {
+    padding: 6px 0;
+  }
+
+  /* Gold frames: the knots fill the corners, the sides are a fine line.
+     Enough padding to clear the line; the corners are clear already. */
+  :root[data-theme='stonehold'] .game-view {
+    padding: 10px;
+  }
+  :root[data-theme='stonehold'] .location-panel {
+    padding: 18px 14px;
+  }
+
+  /* The chat's bevel is 12px. */
+  :root[data-theme='stonehold'] .chat-panel {
+    padding: 8px 10px 10px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1440px) {
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel {
+    width: 264px;
+    min-width: 264px;
+  }
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel > .panel {
+    padding: 15px;
+  }
+  :root[data-theme='stonehold'] .doll-row .equipment-grid {
+    grid-template-columns: repeat(3, 60px);
+  }
+  :root[data-theme='stonehold'] .equipment-slot {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1024px) {
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel {
+    width: 226px;
+    min-width: 226px;
+  }
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel > .panel {
+    padding: 14px;
+  }
+  :root[data-theme='stonehold'] .doll-row .equipment-grid {
+    grid-template-columns: repeat(3, 50px);
+  }
+  :root[data-theme='stonehold'] .equipment-slot {
+    width: 50px;
+    height: 50px;
+  }
+}
