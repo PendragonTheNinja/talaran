@@ -6,7 +6,7 @@ import './LeftPanel.css'
 import EquipmentPanel, { type CombatProfile } from './EquipmentPanel'
 import ConfirmModal from './ConfirmModal'
 import { sortItems } from '../lib/itemSort'
-import BuffPanel from './BuffPanel'
+import StatsTabs from './StatsTabs'
 import { useItemTooltip } from './ItemTooltip'
 import { announceHp, type Hp } from '../lib/combat'
 import FillingGem from './FillingGem'
@@ -625,7 +625,9 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         combat={combat}
       />
 
-      <BuffPanel onInventoryUpdate={onInventoryUpdate} />
+      {/* Combat Stats and Provisions, one tab each (they used to stack, and
+          provisions in the pack pushed the stats out of sight). */}
+      <StatsTabs combat={combat} onInventoryUpdate={onInventoryUpdate} />
 
       <div className="divider" />
 
