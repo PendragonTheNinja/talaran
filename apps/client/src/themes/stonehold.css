@@ -94,6 +94,14 @@
 :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-root {
   background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--sh-stone) repeat;
   background-size: auto, 262px auto;
+  /* The shorthand above clears the page's solid colour, and Chrome on phones
+     colours its bottom bar from that colour: with none it drew the bar white
+     (forum, 2026-11-04). The solid colour stays, under the stone. */
+  background-color: var(--color-bg-deepest);
+}
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) {
+  background-color: var(--color-bg-deepest);
 }
 
 :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .panel {
