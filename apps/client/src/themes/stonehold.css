@@ -98,12 +98,26 @@
   background: linear-gradient(rgba(201, 161, 74, 0.14), rgba(201, 161, 74, 0.14)), var(--sh-slot) center / 100% 100% no-repeat;
 }
 
-/* ---- Paper doll on parchment ------------------------------------------ */
+/* ---- Paper doll on parchment, the orbs beneath ------------------------- */
 
+/* The bars that flank the doll become the mockup's two orbs, set in their
+   stone mount under the parchment. All of it is layout from the art's own
+   numbers: the mount is 310x104 with 86px glasses at x 15 and 206, top 10.
+   Percentages of the row's width keep it true at any panel width (padding
+   and margins in % are measured against width). */
 :root[data-theme='stonehold'] .doll-row {
+  display: block;
+  position: relative;
+  padding: 0 0 33.55% 0;        /* 104 / 310: room for the mount */
+  background: url('/images/ui/stonehold/orb-mount.webp') bottom center / 100% auto no-repeat;
+}
+
+:root[data-theme='stonehold'] .doll-row .equipment-grid {
   border: 1px solid transparent;
   border-image: url('/images/ui/stonehold/parchment.webp') 26 fill / 26px stretch;
-  padding: 10px 4px;
+  padding: 18px 12px;
+  margin: 0 auto 6px;
+  width: max-content;
 }
 
 :root[data-theme='stonehold'] .equipment-slot {
@@ -120,6 +134,51 @@
   mix-blend-mode: multiply;
   opacity: 0.85;
 }
+
+:root[data-theme='stonehold'] .vital-bar {
+  position: absolute;
+  bottom: 0;
+  width: 27.74%;                /* 86 / 310 */
+  aspect-ratio: 1;
+  margin-bottom: 2.58%;         /* 8 / 310: the mount's foot under the glass */
+  gap: 0;
+}
+
+:root[data-theme='stonehold'] .vital-bar.hp { left: 4.84%; }    /* 15 / 310 */
+:root[data-theme='stonehold'] .vital-bar.tal { left: 66.45%; }  /* 206 / 310 */
+:root[data-theme='stonehold'] .vital-label { display: none; }
+
+:root[data-theme='stonehold'] .vital-track,
+:root[data-theme='stonehold'] .vital-bar.hp .vital-track,
+:root[data-theme='stonehold'] .vital-bar.tal .vital-track {
+  flex: none;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+}
+
+:root[data-theme='stonehold'] .vital-track::after { display: none; }
+
+/* The liquid: the full glass, pinned to the bottom of a fill whose height is
+   the share left. Sized to the whole orb, so the top is cut, not squashed. */
+:root[data-theme='stonehold'] .vital-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
+  background-position: bottom center;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+}
+
+:root[data-theme='stonehold'] .vital-fill.health { background-image: url('/images/ui/stonehold/orb-red.webp'); }
+:root[data-theme='stonehold'] .vital-fill.mana { background-image: url('/images/ui/stonehold/orb-purple.webp'); }
+:root[data-theme='stonehold'] .vital-fill::before { display: none; }
 
 /* ---- The scene: red ground in the gold filigree ----------------------- */
 
@@ -189,6 +248,12 @@
     border-radius: 0;
   }
 
+  /* Scene and menu column side by side with no gap: their two frames meet
+     in the double knot of the mockup. */
+  :root[data-theme='stonehold'] .game-scene-wrapper {
+    gap: 0;
+  }
+
   /* The column beside it: the same gold, over stone. Its headings start in
      the corner, so it is padded clear of the knots. */
   :root[data-theme='stonehold'] .location-panel {
@@ -233,5 +298,41 @@
   :root[data-theme='stonehold'] .game-view {
     border: 1px solid var(--color-gold-dim);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ---- The location menu, as the mockup sets it ------------------------- */
+
+:root[data-theme='stonehold'] .location-panel .panel-title {
+  text-align: center;
+  font-family: var(--font-heading);
+  text-transform: none;
+  letter-spacing: 0.5px;
+  font-size: 18px;
+  color: var(--color-text-white);
+  text-shadow: 0 1px 3px #000;
+  border-bottom-color: rgba(201, 161, 74, 0.35);
+}
+
+:root[data-theme='stonehold'] .location-panel .location-action-btn {
+  justify-content: center;
+  text-align: center;
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-bright);
+}
+
+:root[data-theme='stonehold'] .location-panel .location-action-btn:hover {
+  color: var(--color-gold-bright);
+  background: rgba(201, 161, 74, 0.08);
+}
+
+/* On a phone the pack spans the screen; the doll and orbs stay at the art's
+   own width instead of growing with it. */
+@media (max-width: 900px) {
+  :root[data-theme='stonehold'] .doll-row {
+    max-width: 320px;
+    margin: 0 auto;
+    padding-bottom: min(33.55%, 107px);
   }
 }

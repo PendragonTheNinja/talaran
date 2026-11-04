@@ -67,8 +67,9 @@ save(mirror_tile(side.crop((24, 530, 286, 880))), 'stone.webp', 78)
 save(chat, 'frame-chat.webp', 84)    # slice 12
 save(menu, 'frame-menu.webp', 84)    # slice 10
 
-# One inventory cell, bevel and all.
-save(grid.crop((0, 0, 64, 64)), 'slot.webp', 88)
+# One inventory cell from the full left-column art, its hairline on all four
+# sides (the grid's lines fall every 63.5 px from x 27).
+save(left.crop((27, 27, 92, 92)), 'slot.webp', 90)
 
 # Parchment for the paper doll, torn edges included. Slice 26.
 save(left.crop((30, 386, 282, 828)), 'parchment.webp', 84)
@@ -89,6 +90,33 @@ save(blank, 'button.webp', 90)
 from PIL import ImageEnhance
 save(ImageEnhance.Brightness(blank).enhance(1.25), 'button-hover.webp', 90)
 
-# The health and Talar orbs with their stone mount (transparent around).
+# The health and Talar orbs. The art has both orbs full in one stone mount
+# (310x104, transparent around). Cut into:
+#   orb-mount   the mount with both orbs drained to dark glass
+#   orb-red, orb-purple   each orb's full glass, a circle, for the liquid
+# The game sets the liquid's height from the bottom (the fill element), so the
+# orb drains from the top as health or Talar is spent.
+from PIL import ImageDraw
 orbs = Image.open(SRC / 'HealthManaPanels.png').convert('RGBA')
-save(orbs, 'orbs.webp', 90)
+ORB_D = 86                      # glass diameter
+ORB_TOP = 10
+ORBS = {'red': 15, 'purple': 206}   # left edge of each glass
+
+def circle_mask(d: int) -> Image.Image:
+    m = Image.new('L', (d * 4, d * 4), 0)
+    ImageDraw.Draw(m).ellipse((0, 0, d * 4 - 1, d * 4 - 1), fill=255)
+    return m.resize((d, d), Image.LANCZOS)
+
+mask = circle_mask(ORB_D)
+mount = orbs.copy()
+for name, x in ORBS.items():
+    box = (x, ORB_TOP, x + ORB_D, ORB_TOP + ORB_D)
+    glass = orbs.crop(box)
+    full = Image.new('RGBA', (ORB_D, ORB_D), (0, 0, 0, 0))
+    full.paste(glass, (0, 0), mask)
+    save(full, f'orb-{name}.webp', 90)
+    # Empty: the same glass, nearly black and without its colour.
+    empty = ImageEnhance.Brightness(ImageEnhance.Color(glass).enhance(0.15)).enhance(0.28)
+    mount.paste(empty, box[:2], mask)
+save(mount, 'orb-mount.webp', 90)
+print(f'orbs: glass {ORB_D}px at top {ORB_TOP}, left {ORBS} of a {orbs.size[0]}x{orbs.size[1]} mount')
