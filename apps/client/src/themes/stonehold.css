@@ -427,7 +427,7 @@
 /* Scrolling it slid the frame's art against its contents. Instead the doll
    sizes to the screen (--sh-doll above), the parchment sits up under the
    pack, and Combat Stats takes what height is left, scrolling inside its own
-   box only on a very short screen. */
+   box only on a very short screen. Provisions shares that box as a tab. */
 @media (min-width: 901px) {
   :root[data-theme='stonehold'] .left-panel {
     gap: 6px;
@@ -448,7 +448,7 @@
   :root[data-theme='stonehold'] .doll-row {
     flex-shrink: 0;
   }
-  :root[data-theme='stonehold'] .combat-stats {
+  :root[data-theme='stonehold'] .stat-tabs {
     flex: 0 1 auto;
     min-height: 34px;
     overflow-y: auto;

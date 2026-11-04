@@ -44,7 +44,7 @@ interface EquipmentPanelProps {
     hp?: { current: number; max: number }
     /** The reservoir, from the server (services/talar.ts). */
     talar?: Talar
-    /** Aim, defence, max hit and armour, from the server. Absent while equipment loads. */
+    /** Unused here since Combat Stats moved into its own tab (StatsTabs); kept so callers need no change. */
     combat?: CombatProfile | null
 }
 
@@ -74,7 +74,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, talar, combat }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, talar }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
     // Mid-fight HP, announced by GameView as each swing lands (lib/combat.ts
     // announceHp), so the bar keeps up without refetching the whole player.
@@ -105,14 +105,6 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
     // The spellbook opens from the Talar bar: what you know, ready to cast.
     const [spellbookOpen, setSpellbookOpen] = useState(false)
-    // Combat Stats folds to its header, remembered in this browser.
-    const [statsShut, setStatsShut] = useState(() => {
-        try { return localStorage.getItem('combatStatsCollapsed') === '1' } catch { return false }
-    })
-    const toggleStats = () => setStatsShut(shut => {
-        try { localStorage.setItem('combatStatsCollapsed', shut ? '0' : '1') } catch { /* private window: just this visit */ }
-        return !shut
-    })
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl, hideTooltip } = useItemTooltip()
 
@@ -211,55 +203,54 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                 </div>
             )}
 
-            <div className="divider" />
-
-            {/* Every number here comes from the server (services/combat.ts):
-                weapon and armour from the item rows, the level terms from
-                Melee and Defense. With no weapon in hand you fight with
-                your fists, and the server says so. */}
-            <div className={`combat-stats panel-inset${statsShut ? ' is-shut' : ''}`}>
-                <button className="panel-title cstat-toggle" onClick={toggleStats} aria-expanded={!statsShut}>
-                    <span>Combat Stats</span>
-                    <span className="cstat-caret" aria-hidden="true">{statsShut ? '▼' : '▲'}</span>
-                </button>
-                {!statsShut && <div className="cstat-body">
-                    <div className="cstat-weapon" title="What you fight with: how it is held, the kind of blow it lands, and how often it swings">
-                        {combat ? (
-                            <>
-                                <span className="cstat-chip">{combat.weapon.unarmed ? 'Fists' : FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}</span>
-                                <span className="cstat-chip">{capitalise(combat.weapon.damageType)}</span>
-                                <span className="cstat-chip tabular-num">{combat.weapon.swingSeconds}s</span>
-                            </>
-                        ) : <span className="cstat-chip">-</span>}
-                    </div>
-                    <div className="cstat-grid">
-                        <div className="cstat-tile" title="How often your blows land">
-                            <span className="cstat-label">Aim</span>
-                            <span className="cstat-value tabular-num">{combat?.aim ?? '-'}</span>
-                        </div>
-                        <div className="cstat-tile" title="Your hardest blow">
-                            <span className="cstat-label">Max hit</span>
-                            <span className="cstat-value tabular-num">{combat?.maxHit ?? '-'}</span>
-                        </div>
-                        {/* Defence is how hard you are to hit: your Defense level plus
-                            the armour you wear. Armour also softens the blows
-                            that do land, which is what Absorbs counts. One
-                            armour total feeds both, so it is shown as the part
-                            of each rather than as a third number. */}
-                        <div className="cstat-tile" title="How hard you are to hit: your Defense level, plus the armour you wear">
-                            <span className="cstat-label">Defence</span>
-                            <span className="cstat-value tabular-num">{combat?.defence ?? '-'}</span>
-                            {combat && <span className="cstat-sub tabular-num">{combat.armour} from armour</span>}
-                        </div>
-                        <div className="cstat-tile" title="Taken off every blow that does land, by the armour you wear">
-                            <span className="cstat-label">Absorbs</span>
-                            <span className="cstat-value tabular-num">{combat?.absorb ?? '-'}</span>
-                            {combat && <span className="cstat-sub">a hit</span>}
-                        </div>
-                    </div>
-                </div>}
-            </div>
             {tooltipEl}
+        </div>
+    )
+}
+/**
+ * Combat Stats: the weapon as three tags, then the four numbers as tiles.
+ * Every number comes from the server (services/combat.ts): weapon and armour
+ * from the item rows, the level terms from Melee and Defense. With no weapon
+ * in hand you fight with your fists, and the server says so. Shown in the
+ * left column's Combat tab (StatsTabs).
+ */
+export function CombatStatsBody({ combat }: { combat?: CombatProfile | null }) {
+    return (
+        <div className="cstat-body">
+            <div className="cstat-weapon" title="What you fight with: how it is held, the kind of blow it lands, and how often it swings">
+                {combat ? (
+                    <>
+                        <span className="cstat-chip">{combat.weapon.unarmed ? 'Fists' : FORM_LABEL[combat.weapon.form] ?? combat.weapon.form}</span>
+                        <span className="cstat-chip">{capitalise(combat.weapon.damageType)}</span>
+                        <span className="cstat-chip tabular-num">{combat.weapon.swingSeconds}s</span>
+                    </>
+                ) : <span className="cstat-chip">-</span>}
+            </div>
+            <div className="cstat-grid">
+                <div className="cstat-tile" title="How often your blows land">
+                    <span className="cstat-label">Aim</span>
+                    <span className="cstat-value tabular-num">{combat?.aim ?? '-'}</span>
+                </div>
+                <div className="cstat-tile" title="Your hardest blow">
+                    <span className="cstat-label">Max hit</span>
+                    <span className="cstat-value tabular-num">{combat?.maxHit ?? '-'}</span>
+                </div>
+                {/* Defence is how hard you are to hit: your Defense level plus
+                    the armour you wear. Armour also softens the blows that do
+                    land, which is what Absorbs counts. One armour total feeds
+                    both, so it is shown as the part of each rather than as a
+                    third number. */}
+                <div className="cstat-tile" title="How hard you are to hit: your Defense level, plus the armour you wear">
+                    <span className="cstat-label">Defence</span>
+                    <span className="cstat-value tabular-num">{combat?.defence ?? '-'}</span>
+                    {combat && <span className="cstat-sub tabular-num">{combat.armour} from armour</span>}
+                </div>
+                <div className="cstat-tile" title="Taken off every blow that does land, by the armour you wear">
+                    <span className="cstat-label">Absorbs</span>
+                    <span className="cstat-value tabular-num">{combat?.absorb ?? '-'}</span>
+                    {combat && <span className="cstat-sub">a hit</span>}
+                </div>
+            </div>
         </div>
     )
 }

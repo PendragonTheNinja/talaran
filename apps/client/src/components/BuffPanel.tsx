@@ -52,9 +52,14 @@ function fmtLeft(seconds: number): string {
 
 interface BuffPanelProps {
     onInventoryUpdate: () => void
+    /** Drawn inside a tab (StatsTabs): no box or title of its own, and an
+        empty state instead of vanishing when there is nothing to show. */
+    embedded?: boolean
+    /** Told whether a provision is working, so the tab can say so while shut. */
+    onSummary?: (s: { active: boolean; count: number }) => void
 }
 
-export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
+export default function BuffPanel({ onInventoryUpdate, embedded = false, onSummary }: BuffPanelProps) {
     const [buff, setBuff] = useState<ActiveBuff | null>(null)
     const [provisions, setProvisions] = useState<Provision[]>([])
     const [open, setOpen] = useState(false)
@@ -78,6 +83,9 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
     }, [])
 
     useEffect(() => { load() }, [load])
+
+    const active = !!buff
+    useEffect(() => { onSummary?.({ active, count: provisions.length }) }, [active, provisions.length, onSummary])
 
     // Cooking a provision changes what is in the pack, and this panel lists it.
     // Without this the new dish would not appear until something else remounted
@@ -158,11 +166,12 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
         }
     }
 
-    // Nothing running and nothing to eat: stay out of the way entirely.
-    if (!buff && provisions.length === 0) return null
+    // Nothing running and nothing to eat: stay out of the way entirely, unless
+    // this is a tab, where a blank page would read as broken.
+    if (!buff && provisions.length === 0 && !embedded) return null
 
     return (
-        <div className="buff-panel panel-inset">
+        <div className={embedded ? 'buff-panel buff-embedded' : 'buff-panel panel-inset'}>
             {confirmEat && buff && (
                 <ConfirmModal
                     message={confirmEat === buff.sourceItem
@@ -173,10 +182,12 @@ export default function BuffPanel({ onInventoryUpdate }: BuffPanelProps) {
                     onCancel={() => setConfirmEat(null)}
                 />
             )}
-            <div className="panel-title">Provisions</div>
+            {!embedded && <div className="panel-title">Provisions</div>}
             <div className="buff-body">
 
-            {buff ? (
+            {!buff && provisions.length === 0 ? (
+                <p className="buff-none">Nothing in hand and nothing to eat. A provision cooked at a hearth helps a skill for a while.</p>
+            ) : buff ? (
                 <button className="buff-active" onClick={() => setOpen(o => !o)} title="Change provision">
                     <img src={getItemIcon(buff.sourceItem)} alt=""
                         onError={e => { e.currentTarget.style.display = 'none' }} />

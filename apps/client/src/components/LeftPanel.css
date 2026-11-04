@@ -890,3 +890,73 @@
     grid-template-columns: repeat(3, 44px);
   }
 }
+
+/* Combat Stats and Provisions as one box with two tabs (StatsTabs). */
+.stat-tabs {
+  padding: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.stat-tabs-bar {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.stat-tabs.is-shut .stat-tabs-bar {
+  border-bottom: 0;
+}
+
+.stat-tab {
+  flex: 1;
+  position: relative;
+  padding: 7px 6px 6px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.stat-tab:hover {
+  color: var(--color-text-bright);
+}
+
+.stat-tab.active {
+  color: var(--color-gold-bright);
+  border-bottom-color: var(--color-gold);
+}
+
+/* A provision is working: a small lit mark on its tab, seen from either page. */
+.stat-tab-mark {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--color-xp);
+  box-shadow: 0 0 5px var(--color-xp);
+  vertical-align: middle;
+}
+
+.stat-tabs-caret {
+  flex: 0 0 30px;
+  border: 0;
+  background: none;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.stat-tabs-caret:hover {
+  color: var(--color-gold-bright);
+}
+
+.stat-tabs-body[hidden] {
+  display: none;
+}
