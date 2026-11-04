@@ -40,7 +40,8 @@ import { notifyInventoryChanged } from './inventory'
 import { WearableItem, loadDurabilityTiers, wearItem } from './durability'
 import { armourSlotsWorn } from '../lib/combatMath'
 import { BESTIARY_STEPS, Stances, killsOf, stancesOf } from './bestiary'
-import { pushToPlayer } from '../lib/realtime'
+import { pushToPlayer, announcePlayersHere } from '../lib/realtime'
+import { afterCommit } from '../lib/afterCommit'
 import { SERVER_ERROR } from '../lib/serviceResult'
 import { jewelryAid } from './jewelry'
 import { noteDeed, firstToday, BESTIARY_MARKS, STRONG_KILL_GAP } from './chronicle'
@@ -400,6 +401,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             hp_missing: 0,
             current_location_id: respawn?.id ?? player.current_location_id,
         })
+        // Fallen and carried home: gone from where they fought, at the respawn.
+        afterCommit(trx, () => announcePlayersHere(fellAt, respawn?.id))
         await trx('player_actions').where({ id: action.id }).delete()
         await incrementStats(playerId, { total_combat_deaths: 1 }, trx)
         // The Chronicle: every death is noted; which are told is decided when

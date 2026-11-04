@@ -10,7 +10,7 @@ import { loadDurabilityTiers, durabilityRule } from './durability'
 import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
-import { pushToPlayer, pushToPlayerAfterCommit, pushToRoom } from '../lib/realtime'
+import { pushToPlayer, pushToPlayerAfterCommit, pushToRoom, announcePlayersHere } from '../lib/realtime'
 import { farmHead, liftWardsWithin, wardableHead, wardFarmsteadWithin, settleWardsWithin, wardStanding } from './husbandry'
 import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
 import { eligibleLocations, eventsChanged } from './worldEvents'
@@ -247,6 +247,8 @@ async function stepIntoWithin(trx: any, playerId: number, to: { locationId: numb
 
     await trx('players').where({ id: playerId }).update({ current_location_id: to.locationId })
     pushToPlayerAfterCommit(trx, playerId, 'stepped', { locationId: to.locationId, destination: to.name })
+    const from = me?.current_location_id
+    afterCommit(trx, () => announcePlayersHere(from, to.locationId))
     return left?.name ?? 'where you stood'
 }
 

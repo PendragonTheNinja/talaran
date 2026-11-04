@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
+import { onSocket } from '../lib/socket'
+import { coalesce } from '../lib/coalesce'
 import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
 import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
@@ -182,6 +184,17 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
     loadGroundItems()
   }, [locationData, groundItemsKey])
 
+  const loadPlayersHere = useCallback(() => {
+    apiFetch<{ players: PlayerAtLocation[] }>('/api/location/players-here')
+      .then(data => setPlayersHere(data.players))
+      .catch(() => setPlayersHere([]))
+  }, [])
+
+  // Someone arrived, set off, came online or closed their last tab here
+  // (lib/realtime.ts announcePlayersHere): read the list again. Coalesced, so
+  // a group arriving together reads it once.
+  useEffect(() => onSocket('players_here_changed', coalesce(loadPlayersHere, 400)), [loadPlayersHere])
+
   const loadTanning = () => {
     apiFetch<any>('/api/tanning/status').then(data => {
       setTanningStatus(data)
@@ -190,9 +203,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
   useEffect(() => {
     setPlayersHere([])
-    apiFetch<{ players: PlayerAtLocation[] }>('/api/location/players-here')
-      .then(data => setPlayersHere(data.players))
-      .catch(() => setPlayersHere([]))
+    loadPlayersHere()
 
     refreshStations()
 
