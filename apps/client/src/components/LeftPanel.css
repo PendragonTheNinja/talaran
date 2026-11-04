@@ -864,3 +864,29 @@
 .combat-stats.is-shut .cstat-toggle {
   border-bottom: 0;
 }
+
+/* The narrow desktop sizes, restated after the 1440px block above. Both
+   blocks match a 960px window (split screen on a 1920 monitor), and the later
+   one won: 52px tiles in a column built for 44, so the pack's fourth column
+   was cut off. Phones (900px and under) keep their own sizes. */
+@media (min-width: 901px) and (max-width: 1024px) {
+  .inventory-slot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .inventory-grid {
+    grid-template-columns: repeat(4, 44px);
+    grid-auto-rows: 44px;
+    height: calc(44px * 4 + 3px * 3 + 4px * 2);
+  }
+
+  .equipment-slot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .equipment-grid {
+    grid-template-columns: repeat(3, 44px);
+  }
+}
