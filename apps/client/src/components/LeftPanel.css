@@ -869,7 +869,7 @@
    blocks match a 960px window (split screen on a 1920 monitor), and the later
    one won: 52px tiles in a column built for 44, so the pack's fourth column
    was cut off. Phones (900px and under) keep their own sizes. */
-@media (min-width: 901px) and (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1024px) {
   .inventory-slot {
     width: 44px;
     height: 44px;

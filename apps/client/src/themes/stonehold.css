@@ -11,8 +11,11 @@
               taking any room from what is inside.
      fills    seamless tiles or a cover image: no fixed size at all.
 
-   Nothing here changes a layout. Phones (900px and under) keep the textures
-   and drop the heavy frames, which need room to read as frames. */
+   Nothing here changes a layout. Phones keep the textures and drop the heavy
+   frames, which need room to read as frames. The phone/desktop line is the
+   game's own (768px, MOBILE_BREAKPOINT in lib/useIsMobile.ts): these rules
+   used 900, and from 768 to 900 the desktop layout got none of its desktop
+   rules, so the bar clipped its buttons (forum, 2026-11-05). */
 
 :root[data-theme='stonehold'] {
   --color-bg-deepest: #0a0a0a;
@@ -264,7 +267,7 @@
 
 /* ---- Frames: desktop and half-screen only ------------------------------ */
 
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav {
     border-bottom: none;
     border-image: var(--sh-frame-menu) 10 fill / 10px stretch;
@@ -329,7 +332,7 @@
 }
 
 /* A thin gilt line keeps the scene framed where the knots would crowd it. */
-@media (max-width: 900px) {
+@media (max-width: 767px) {
   /* The chat's frame is a desktop thing; on a phone it gets the stone. */
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .chat-panel {
     background:
@@ -371,7 +374,7 @@
 
 /* On a phone the pack spans the screen; the doll and orbs stay at the art's
    own width instead of growing with it. */
-@media (max-width: 900px) {
+@media (max-width: 767px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .doll-row {
     max-width: 320px;
     margin: 0 auto;
@@ -386,7 +389,7 @@
    the rope, and the side columns widen by twice it, to the art's own 310px,
    so the pack's four columns still fit. The narrower layouts keep the same
    steps (250 and 200 in the plain themes), each with the frame added. */
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel {
     width: 310px;
@@ -434,7 +437,7 @@
   }
 }
 
-@media (min-width: 901px) and (max-width: 1440px) {
+@media (min-width: 768px) and (max-width: 1440px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel {
     width: 264px;
@@ -449,7 +452,7 @@
   }
 }
 
-@media (min-width: 901px) and (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1024px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel {
     width: 226px;
@@ -470,7 +473,7 @@
    sizes to the screen (--sh-doll above), the parchment sits up under the
    pack, and Combat Stats takes what height is left, scrolling inside its own
    box only on a very short screen. Provisions shares that box as a tab. */
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel {
     gap: 6px;
   }
@@ -588,7 +591,7 @@
    with no change to the markup: the body is dissolved (display: contents) so
    its three columns sit in the page's grid beside the bar. Phones keep their
    own shell. */
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-root {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -641,7 +644,7 @@
 
 /* The admin's robot button sat pinned to the bar's right end, with room kept
    for it in the row. In the narrower middle bar it simply follows the row. */
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-robot {
     position: static;
   }
@@ -793,7 +796,7 @@
 
 /* Narrower screens: the middle bar is narrower, so the buttons give up some
    of their side room before they wrap to a second row. */
-@media (min-width: 901px) and (max-width: 1440px) {
+@media (min-width: 768px) and (max-width: 1440px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-btn {
     padding-left: 11px;
     padding-right: 11px;
@@ -807,7 +810,7 @@
    themes' bar height. Here the bar sits between the columns and is taller
    (and two rows below about 1300px), so they open under it instead, and
    stop short of the page's foot like the columns do. */
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(
     .admin-panel, .ev-panel, .forum-panel:not(.dockable-popped-inner), .guild-panel,
     .hs-panel, .journal-panel, .manual-panel, .messages-panel, .news-panel,
@@ -823,7 +826,7 @@
   }
 }
 
-@media (min-width: 901px) and (max-width: 1300px) {
+@media (min-width: 768px) and (max-width: 1300px) {
   :root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(
     .admin-panel, .ev-panel, .forum-panel, .guild-panel,
     .hs-panel, .journal-panel, .manual-panel, .messages-panel, .news-panel,
