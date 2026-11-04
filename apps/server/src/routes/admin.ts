@@ -7,7 +7,7 @@ import { sendSystemMessage } from './messages';
 import { creditGold, debitGold } from '../services/gold';
 import { adminAdjustTalers } from '../services/talers';
 import { runBalanceChecks } from '../services/balanceChecks';
-import { onlinePlayers, pushToAll, pushToPlayer } from '../lib/realtime';
+import { onlinePlayers, pushToAll, pushToPlayer, announcePlayersHere } from '../lib/realtime';
 import { endSessions, forgetSession } from '../lib/sessions';
 import { maskEmail } from '../lib/email';
 import { clearAvatar } from '../services/avatars';
@@ -338,6 +338,7 @@ router.post('/teleport', requireAuth, async (req: AuthRequest, res: Response) =>
         // Stop any in-progress action/travel, then move them.
         await db('player_actions').where({ player_id: targetId }).delete();
         await db('players').where({ id: targetId }).update({ current_location_id: locationId });
+        announcePlayersHere(target.current_location_id, locationId);
 
         // Tell their client to reload into the new location.
         pushToPlayer(targetId, 'force_refresh');

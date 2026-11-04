@@ -34,7 +34,7 @@ import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
 import { takeGuildXp } from './guildCompanions';
 import { takeJewelryNotes, jewelryAid } from './jewelry';
-import { realtimeServer, pushToPlayer } from '../lib/realtime';
+import { realtimeServer, pushToPlayer, announcePlayersHere } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
 let lastTrapSweep = 0;
@@ -329,7 +329,10 @@ export function startGameTick(io: Server): void {
 
 async function processTravelAction(playerId: number, locationId: number): Promise<any> {
   try {
+    const before = await db('players').where({ id: playerId }).first('current_location_id');
     await db('players').where({ id: playerId }).update({ current_location_id: locationId });
+    // Arrived: shown where they came to, and the road behind them updates too.
+    announcePlayersHere(before?.current_location_id, locationId);
     const location = await db('locations').where({ id: locationId }).first();
     logger.info(`Player ${playerId} arrived at ${location.name}`);
     return { success: true, locationName: location.name };

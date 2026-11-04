@@ -149,3 +149,17 @@ export function moveGuildRoom(playerId: number, fromGuildId: number | null, toGu
         // A socket problem must not undo the membership change that caused it.
     }
 }
+
+/**
+ * "Players here" changed at a location: someone arrived, set off, came online
+ * or closed their last tab. Sent to the location's room with no list in it;
+ * each client re-reads /api/location/players-here, which decides who is shown
+ * (online, standing there, not on the road). Nathan, 2026-11-04.
+ */
+export const PLAYERS_HERE_CHANGED = 'players_here_changed';
+
+export function announcePlayersHere(...locationIds: (number | null | undefined)[]): void {
+    for (const id of new Set(locationIds)) {
+        if (id) pushToRoom(`location_${id}`, PLAYERS_HERE_CHANGED, { locationId: id });
+    }
+}

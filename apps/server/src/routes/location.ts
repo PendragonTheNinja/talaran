@@ -167,6 +167,9 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
       .leftJoin('feats as bf', 'bf.badge_key', 'players.worn_badge')
       .where('players.current_location_id', player.current_location_id)
       .whereIn('players.id', onlineIds)
+      // On the road: still recorded at the place left until they arrive, but
+      // gone from it (travel start announces the change).
+      .whereNotExists(db('player_actions').whereRaw('player_actions.player_id = players.id').where('player_actions.action_type', 'traveling'))
       // guild_tag is the same column chat reads, so a player's tag is identical
       // wherever their name appears. worn_badge rides alongside it, with the
       // glyph joined in as the fallback for art that does not exist yet.

@@ -3,7 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
-import { setRealtimeServer } from './lib/realtime';
+import { setRealtimeServer, announcePlayersHere, isOnline } from './lib/realtime';
 import authRoutes from './routes/auth';
 import actionRoutes from './routes/actions';
 import { startGameTick } from './services/gameTick';
@@ -338,6 +338,44 @@ io.on('connection', (socket) => {
   // When this tab last had a waiting bot check sent to it (see page_visibility).
   let lastVisibleResend = 0;
 
+  // Put this socket in the rooms of the place the player stands, leaving any
+  // others (audit M6: the server reads the place, never the client). Called
+  // when the page asks after arriving somewhere, AND when the socket joins:
+  // on a fresh page the game loads its location before the socket exists, so
+  // its request went nowhere and the player sat in no location room until
+  // their first journey, hearing none of the place's pushes (ground items,
+  // portals, "Players here"; forum, 2026-11-04).
+  const joinLocationRooms = async () => {
+    const playerId: number = socket.data.playerId;
+    if (!playerId) return;
+
+    try {
+      const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+      const locationId = player?.current_location_id;
+
+      let leftLocation: number | null = null;
+      socket.rooms.forEach(room => {
+        if (room.startsWith('location_') || room.startsWith('region_')) {
+          if (room.startsWith('location_')) leftLocation = Number(room.slice('location_'.length));
+          socket.leave(room);
+        }
+      });
+      if (!locationId) return;
+
+      socket.join(`location_${locationId}`);
+      // Arrived (by road, portal or respawn; the client re-joins after each),
+      // or came online: the place left and the place reached both update
+      // their "Players here". A re-join where they already were sends nothing.
+      if (leftLocation !== locationId) announcePlayersHere(leftLocation, locationId);
+      const location = await db('locations').where({ id: locationId }).first();
+      if (location?.region) {
+        socket.join(`region_${location.region.replace(/ /g, '_')}`);
+      }
+    } catch (err) {
+      logger.error(`Location join error: ${err}`);
+    }
+  };
+
   // The client still emits 'join', but its argument is ignored: the id comes
   // from the verified handshake. No client change is needed.
   socket.on('join', async () => {
@@ -350,6 +388,10 @@ io.on('connection', (socket) => {
     markOnline(playerId);   // second presence signal; see lib/presence.ts
     void recordSeen(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
+
+    // Into the rooms of where they stand, which also tells the people there
+    // they have come online.
+    await joinLocationRooms();
 
     // Re-send bot check if one is still outstanding for this player.
     try {
@@ -404,6 +446,16 @@ io.on('connection', (socket) => {
     markOffline(socket.data.playerId);
     await recordSeen(socket.data.playerId);
 
+    // Their last tab closed: they leave the "Players here" list where they stood.
+    if (!isOnline(socket.data.playerId)) {
+      try {
+        const p = await db('players').where({ id: socket.data.playerId }).first('current_location_id');
+        announcePlayersHere(p?.current_location_id);
+      } catch (err) {
+        logger.warn(`players-here on disconnect failed: ${err}`);
+      }
+    }
+
     // Cancel any active trades
     try {
       const trade = await db('trades')
@@ -430,30 +482,7 @@ io.on('connection', (socket) => {
   // already written the new location, so the server reads where the player
   // actually is. The old client keeps sending an id; it simply no longer
   // decides anything.
-  socket.on('join_location', async () => {
-    const playerId: number = socket.data.playerId;
-    if (!playerId) return;
-
-    try {
-      const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-      const locationId = player?.current_location_id;
-
-      socket.rooms.forEach(room => {
-        if (room.startsWith('location_') || room.startsWith('region_')) {
-          socket.leave(room);
-        }
-      });
-      if (!locationId) return;
-
-      socket.join(`location_${locationId}`);
-      const location = await db('locations').where({ id: locationId }).first();
-      if (location?.region) {
-        socket.join(`region_${location.region.replace(/ /g, '_')}`);
-      }
-    } catch (err) {
-      logger.error(`Location join error: ${err}`);
-    }
-  });
+  socket.on('join_location', () => { void joinLocationRooms(); });
 });
 
 // ── Boot ────────────────────────────────────────────────────────────────────

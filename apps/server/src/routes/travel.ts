@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { botCheckGate } from '../services/botCheck';
 import { computeTravelTime } from '../services/travel'
-import { pushToPlayer } from '../lib/realtime';
+import { pushToPlayer, announcePlayersHere } from '../lib/realtime';
 import { endFightIfAny } from '../services/combatFights';
 
 const router = Router();
@@ -93,6 +93,9 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     });
 
     const toLocation = await db('locations').where({ id: toLocationId }).first();
+    // Set off: gone from "Players here" where they stood (players-here leaves
+    // out anyone on the road).
+    announcePlayersHere(player.current_location_id);
 
     logger.info(`Player ${playerId} traveling to ${toLocation.name}`);
     res.json({
