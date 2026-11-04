@@ -463,7 +463,7 @@
    room and nothing inside sits on the rope. The stone is darker than the
    side columns' because these are pages of text. */
 :root[data-theme='stonehold'] :is(
-  .settings-panel, .support-panel, .news-panel, .messages-panel, .manual-panel,
+  .settings-panel, .support-panel-window:not(.dockable-popped-inner), .support-panel-window.dockable-popped-inner, .news-panel, .messages-panel, .manual-panel,
   .journal-panel, .guild-panel, .forum-panel, .ev-panel, .hs-panel,
   .smithing-menu-modal, .hunting-menu-modal, .fight-menu-modal,
   .quests-popup, .stats-popup, .modal-box
@@ -744,4 +744,49 @@
     var(--sh-stone) repeat;
   background-size: auto, 262px auto;
   border-color: rgba(220, 220, 220, 0.1);
+}
+
+/* Narrower screens: the middle bar is narrower, so the buttons give up some
+   of their side room before they wrap to a second row. */
+@media (min-width: 901px) and (max-width: 1440px) {
+  :root[data-theme='stonehold'] .top-nav-btn {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+  :root[data-theme='stonehold'] .top-nav-links {
+    gap: 3px;
+  }
+}
+
+/* Panels that open under the top bar were placed 50px down, the plain
+   themes' bar height. Here the bar sits between the columns and is taller
+   (and two rows below about 1300px), so they open under it instead, and
+   stop short of the page's foot like the columns do. */
+@media (min-width: 901px) {
+  :root[data-theme='stonehold'] :is(
+    .admin-panel, .ev-panel, .forum-panel:not(.dockable-popped-inner), .guild-panel,
+    .hs-panel, .journal-panel, .manual-panel, .messages-panel, .news-panel,
+    .quests-panel, .settings-panel, .support-panel-window
+  ):not(.dockable-popped-inner) {
+    top: 65px;
+    bottom: 8px;
+    height: auto;
+    max-height: none;
+  }
+  :root[data-theme='stonehold'] .trade-overlay {
+    top: 65px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1300px) {
+  :root[data-theme='stonehold'] :is(
+    .admin-panel, .ev-panel, .forum-panel, .guild-panel,
+    .hs-panel, .journal-panel, .manual-panel, .messages-panel, .news-panel,
+    .quests-panel, .settings-panel, .support-panel-window
+  ):not(.dockable-popped-inner) {
+    top: 101px;
+  }
+  :root[data-theme='stonehold'] .trade-overlay {
+    top: 101px;
+  }
 }

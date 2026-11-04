@@ -1,5 +1,8 @@
 """
-Cut the Stonehold theme's pieces from Nathan's mockup art (public/images/ui/).
+Cut the Stonehold theme's pieces from Nathan's mockup art (design/stonehold/).
+
+The originals live outside public/ so players never download them (about
+2 MB); only the cut pieces below are served.
 
 The art is drawn as whole panels at one size (310 px side columns, a
 1278x550 centre). Used as it is, the pictures would decide the layout, which
@@ -16,8 +19,8 @@ Writes public/images/ui/stonehold/*.webp. Re-run after changing any source.
 from pathlib import Path
 from PIL import Image
 
-SRC = Path('public/images/ui')
-OUT = SRC / 'stonehold'
+SRC = Path('design/stonehold')
+OUT = Path('public/images/ui/stonehold')
 OUT.mkdir(exist_ok=True)
 
 
@@ -54,6 +57,32 @@ def seamless_stone(im: Image.Image) -> Image.Image:
     m = np.clip((y * x) * 1.6, 0, 1)[..., None]   # 1 in the middle, 0 at the edges
     out = flat * m + shifted * (1 - m)
     return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
+
+def gold_only(im: Image.Image, cut: int, rim: int = 8) -> Image.Image:
+    """The gilt frame with everything that is not gilt made transparent.
+
+    The frame's edge slices are as wide as its corner knots (cut px), so they
+    carried a band of the red or stone beside the thin gold line, and that
+    band smeared into streaks when the panel was taller than the art. With
+    only the gold (and, in the corners, the knots' dark outlines) kept, the
+    edges hold nothing that can smear, and the panel's own ground shows
+    through, at its own scale."""
+    import numpy as np
+    from PIL import ImageFilter
+    a = np.asarray(im.convert('RGB'), dtype=np.int16)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    h, w = r.shape
+    gold = (r > 70) & (g > 50) & (b < r * 0.8) & (g > r * 0.45)
+    dark = np.maximum(np.maximum(r, g), b) < 30
+    yy, xx = np.mgrid[0:h, 0:w]
+    corner = ((xx < cut) | (xx >= w - cut)) & ((yy < cut) | (yy >= h - cut))
+    outer = (xx < rim) | (yy < rim) | (xx >= w - rim) | (yy >= h - rim)
+    keep = gold | (dark & corner) | outer
+    mask = Image.fromarray((keep * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(0.6))
+    out = im.convert('RGBA')
+    out.putalpha(mask)
+    return out
 
 
 def tileable_frame(im: Image.Image, cut: int) -> Image.Image:
@@ -94,7 +123,7 @@ menu = Image.open(SRC / 'MenuBackground.jpg').convert('RGB')
 grid = Image.open(SRC / 'testscrollingbackground2.jpg').convert('RGB')
 
 # Gold filigree frame (the scene). Slice 34: the corner knots.
-save(main.crop((0, 0, 1079, 550)), 'frame-gold.webp', 88)
+save(gold_only(main.crop((0, 0, 1079, 550)), 34), 'frame-gold.webp', 90)
 # The same frame over stone, for the column beside the scene: the right-hand
 # box of the art, with the gold divider across its middle cut out (an edge
 # slice would smear it down the whole side).
@@ -102,7 +131,7 @@ gs = main.crop((1077, 0, 1278, 550))
 gold_stone = Image.new('RGB', (201, 505))
 gold_stone.paste(gs.crop((0, 0, 201, 300)), (0, 0))
 gold_stone.paste(gs.crop((0, 345, 201, 550)), (0, 300))
-save(gold_stone, 'frame-gold-stone.webp', 88)
+save(gold_only(gold_stone, 34), 'frame-gold-stone.webp', 90)
 # The red ground inside it, used as a cover fill.
 save(main.crop((12, 12, 1066, 538)), 'red.webp', 80)
 
