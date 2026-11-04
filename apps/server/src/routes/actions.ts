@@ -7,6 +7,7 @@ import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
 import { botCheckGate, issueBotCheck } from '../services/botCheck';
 import { endFightIfAny } from '../services/combatFights';
+import { pushToPlayer } from '../lib/realtime';
 
 const router = Router();
 
@@ -142,11 +143,18 @@ const handleBotCheckAnswer = async (req: AuthRequest, res: Response) => {
     }
 
     const now = new Date();
-    // Passed: clear the question and advance the 30-minute clock.
-    await db('players').where({ id: playerId }).update({
+    // Passed: clear the question and advance the 30-minute clock. Conditional
+    // on the question still being this one, so two devices answering at once
+    // pass it once (CLAUDE.md §4 rule 5); the loser is told it passed anyway,
+    // which it has.
+    await db('players').where({ id: playerId, bot_check_answer: player.bot_check_answer }).update({
       bot_check_answer: null,
       last_bot_check: now,
     });
+    // Every device the player is on showed the question (bot_check_required
+    // goes to all of them); answered on one, it must close on the others too,
+    // or each asks again (forum, 2026-11-04).
+    pushToPlayer(playerId, 'bot_check_passed', {});
 
     // If an action was frozen waiting on this check, un-freeze it and let the
     // next game tick finish it exactly where it left off. The freeze always

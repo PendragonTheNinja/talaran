@@ -838,3 +838,30 @@
   font-style: italic;
   color: #b6a8f0;
 }
+
+/* The Action Limit box had no style of its own and took the browser's: white
+   with black figures, out of keeping with every theme, and in Stonehold (whose
+   fields are dark) black on near-black, so the number could not be read
+   (forum, 2026-11-04). Its own small dark field, in every theme. */
+.action-limit-field {
+  width: 64px;
+  padding: 3px 6px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--color-text-bright);
+  background: var(--color-bg-deepest);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-sm);
+  -webkit-text-fill-color: var(--color-text-bright);
+}
+
+.action-limit-field::placeholder {
+  color: var(--color-text-muted);
+  -webkit-text-fill-color: var(--color-text-muted);
+}
+
+/* While an action runs the box is locked, but its number must still read. */
+.action-limit-field:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
