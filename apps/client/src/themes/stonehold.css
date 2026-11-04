@@ -54,28 +54,55 @@
   --shadow-gold: 0 0 10px rgba(201, 161, 74, 0.4);
   --shadow-red: 0 0 10px rgba(204, 51, 34, 0.45);
 
+}
+
+/* The pictures, by name, so the two textured themes can differ only in
+   which ones they use. Stonehold's are the art as drawn; Hearthhold's are the
+   same art toned to Tavern's browns (stonehold/tavern/, cut by the script). */
+:root[data-theme='stonehold'] {
   --sh-stone: url('/images/ui/stonehold/stone.webp');
   --sh-red: url('/images/ui/stonehold/red.webp');
   --sh-slot: url('/images/ui/stonehold/slot.webp');
+  --sh-frame-stone: var(--sh-frame-stone);
+  --sh-frame-menu: var(--sh-frame-menu);
+  --sh-frame-chat: var(--sh-frame-chat);
+  --sh-bricks: var(--sh-bricks);
+}
+
+/* HEARTHHOLD: Stonehold's frames and stone in Tavern's colours (Nathan,
+   2026-11-04), for players who want the textures and the original warmth.
+   Its colours are Tavern's own (the :root tokens), so it sets only its
+   pictures; every rule below serves both themes. */
+:root[data-theme='hearthhold'] {
+  --sh-stone: url('/images/ui/stonehold/tavern/stone.webp');
+  --sh-red: url('/images/ui/stonehold/tavern/red.webp');
+  --sh-slot: url('/images/ui/stonehold/tavern/slot.webp');
+  --sh-frame-stone: url('/images/ui/stonehold/tavern/frame-stone.webp');
+  --sh-frame-menu: url('/images/ui/stonehold/tavern/frame-menu.webp');
+  --sh-frame-chat: url('/images/ui/stonehold/tavern/frame-chat.webp');
+  --sh-bricks: url('/images/ui/stonehold/tavern/bricks.webp');
+}
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) {
   --sh-button: url('/images/ui/stonehold/button.webp');
   --sh-button-hover: url('/images/ui/stonehold/button-hover.webp');
 }
 
 /* ---- The page and every panel: dark stone ---------------------------- */
 
-:root[data-theme='stonehold'] body,
-:root[data-theme='stonehold'] .game-root {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) body,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-root {
   background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--sh-stone) repeat;
   background-size: auto, 262px auto;
 }
 
-:root[data-theme='stonehold'] .panel {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .panel {
   background: var(--sh-stone) repeat;
   background-size: 262px auto;
 }
 
 /* The thin inset boxes of the art: a light hairline on darker stone. */
-:root[data-theme='stonehold'] .panel-inset {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .panel-inset {
   background: rgba(0, 0, 0, 0.32);
   border: 1px solid rgba(220, 220, 220, 0.16);
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
@@ -83,18 +110,18 @@
 
 /* ---- Inventory: the art's bevelled cells ----------------------------- */
 
-:root[data-theme='stonehold'] .inventory-grid {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .inventory-grid {
   background: transparent;
   border: none;
   box-shadow: none;
 }
 
-:root[data-theme='stonehold'] .inventory-slot {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .inventory-slot {
   background: var(--sh-slot) center / 100% 100% no-repeat;
   border-color: transparent;
 }
 
-:root[data-theme='stonehold'] .inventory-slot:hover {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .inventory-slot:hover {
   background: linear-gradient(rgba(201, 161, 74, 0.14), rgba(201, 161, 74, 0.14)), var(--sh-slot) center / 100% 100% no-repeat;
 }
 
@@ -105,14 +132,14 @@
    numbers: the mount is 310x104 with 86px glasses at x 15 and 206, top 10.
    Percentages of the row's width keep it true at any panel width (padding
    and margins in % are measured against width). */
-:root[data-theme='stonehold'] .doll-row {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .doll-row {
   display: block;
   position: relative;
   padding: 0 0 33.55% 0;        /* 104 / 310: room for the mount */
   background: url('/images/ui/stonehold/orb-mount.webp') bottom center / 100% auto no-repeat;
 }
 
-:root[data-theme='stonehold'] .doll-row .equipment-grid {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .doll-row .equipment-grid {
   border: 1px solid transparent;
   border-image: url('/images/ui/stonehold/parchment.webp') 26 fill / 26px stretch;
   padding: 18px 12px;
@@ -120,7 +147,7 @@
   width: max-content;
 }
 
-:root[data-theme='stonehold'] .equipment-slot {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-slot {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -129,13 +156,13 @@
 /* The slot art is a grey outline on black. Inverted and multiplied, the
    black drops out and the outline is left in dark ink on the parchment, as
    in the mockup (the same trick Scriptorium uses). */
-:root[data-theme='stonehold'] .equipment-slot-icon {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-slot-icon {
   filter: brightness(2.2) invert(1);
   mix-blend-mode: multiply;
   opacity: 0.85;
 }
 
-:root[data-theme='stonehold'] .vital-bar {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-bar {
   position: absolute;
   bottom: 0;
   width: 27.74%;                /* 86 / 310 */
@@ -144,13 +171,13 @@
   gap: 0;
 }
 
-:root[data-theme='stonehold'] .vital-bar.hp { left: 4.84%; }    /* 15 / 310 */
-:root[data-theme='stonehold'] .vital-bar.tal { left: 66.45%; }  /* 206 / 310 */
-:root[data-theme='stonehold'] .vital-label { display: none; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-bar.hp { left: 4.84%; }    /* 15 / 310 */
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-bar.tal { left: 66.45%; }  /* 206 / 310 */
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-label { display: none; }
 
-:root[data-theme='stonehold'] .vital-track,
-:root[data-theme='stonehold'] .vital-bar.hp .vital-track,
-:root[data-theme='stonehold'] .vital-bar.tal .vital-track {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-track,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-bar.hp .vital-track,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-bar.tal .vital-track {
   flex: none;
   width: 100%;
   height: 100%;
@@ -160,11 +187,11 @@
   box-shadow: none;
 }
 
-:root[data-theme='stonehold'] .vital-track::after { display: none; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-track::after { display: none; }
 
 /* The liquid: the full glass, pinned to the bottom of a fill whose height is
    the share left. Sized to the whole orb, so the top is cut, not squashed. */
-:root[data-theme='stonehold'] .vital-fill {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-fill {
   position: absolute;
   left: 0;
   bottom: 0;
@@ -176,39 +203,39 @@
   background-repeat: no-repeat;
 }
 
-:root[data-theme='stonehold'] .vital-fill.health { background-image: url('/images/ui/stonehold/orb-red.webp'); }
-:root[data-theme='stonehold'] .vital-fill.mana { background-image: url('/images/ui/stonehold/orb-purple.webp'); }
-:root[data-theme='stonehold'] .vital-fill::before { display: none; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-fill.health { background-image: url('/images/ui/stonehold/orb-red.webp'); }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-fill.mana { background-image: url('/images/ui/stonehold/orb-purple.webp'); }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .vital-fill::before { display: none; }
 
 /* ---- The scene: red ground in the gold filigree ----------------------- */
 
-:root[data-theme='stonehold'] .game-view {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-view {
   background: var(--sh-red) center / cover no-repeat;
 }
 
-:root[data-theme='stonehold'] .game-scene,
-:root[data-theme='stonehold'] .game-view-main {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-scene,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-view-main {
   background: transparent;
 }
 
 /* ---- Chat ------------------------------------------------------------ */
 
-:root[data-theme='stonehold'] .chat-panel {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .chat-panel {
   background: #0c0c0c;
 }
 
-:root[data-theme='stonehold'] .chat-input {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .chat-input {
   background: rgba(0, 0, 0, 0.45);
   border-color: rgba(220, 220, 220, 0.16);
 }
 
 /* ---- Top bar and its red buttons -------------------------------------- */
 
-:root[data-theme='stonehold'] .top-nav {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav {
   background: #121212;
 }
 
-:root[data-theme='stonehold'] .top-nav-btn {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-btn {
   background: var(--sh-button) center / 100% 100% no-repeat;
   border: none;
   border-radius: 0;
@@ -221,8 +248,8 @@
   min-height: 33px;
 }
 
-:root[data-theme='stonehold'] .top-nav-btn:hover,
-:root[data-theme='stonehold'] .top-nav-btn.active {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-btn:hover,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-btn.active {
   background-image: var(--sh-button-hover);
   color: #fff;
 }
@@ -230,47 +257,47 @@
 /* ---- Frames: desktop and half-screen only ------------------------------ */
 
 @media (min-width: 901px) {
-  :root[data-theme='stonehold'] .top-nav {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav {
     border-bottom: none;
-    border-image: url('/images/ui/stonehold/frame-menu.webp') 10 fill / 10px stretch;
+    border-image: var(--sh-frame-menu) 10 fill / 10px stretch;
   }
 
   /* Side columns and the panels in them: rope and stone. */
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel > .panel {
-    border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 20px round;
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel > .panel {
+    border-image: var(--sh-frame-stone) 20 / 20px round;
     border-radius: 0;
   }
 
   /* The scene: gold filigree. */
-  :root[data-theme='stonehold'] .game-view {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-view {
     border-image: url('/images/ui/stonehold/frame-gold.webp') 34 / 34px stretch;
     border-radius: 0;
   }
 
   /* Scene and menu column side by side with no gap: their two frames meet
      in the double knot of the mockup. */
-  :root[data-theme='stonehold'] .game-scene-wrapper {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-scene-wrapper {
     gap: 0;
   }
 
   /* The column beside it: the same gold, over stone. Its headings start in
      the corner, so it is padded clear of the knots. */
-  :root[data-theme='stonehold'] .location-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .location-panel {
     border-image: url('/images/ui/stonehold/frame-gold-stone.webp') 34 / 34px stretch;
     border-radius: 0;
     padding: 14px 8px;
   }
 
-  :root[data-theme='stonehold'] .chat-panel {
-    border-image: url('/images/ui/stonehold/frame-chat.webp') 12 fill / 12px stretch;
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .chat-panel {
+    border-image: var(--sh-frame-chat) 12 fill / 12px stretch;
     border-radius: 0;
   }
 
   /* Stone bricks close the foot of the left column, under whatever ends it. */
-  :root[data-theme='stonehold'] .left-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel {
     background:
-      url('/images/ui/stonehold/bricks.webp') bottom / 100% auto no-repeat,
+      var(--sh-bricks) bottom / 100% auto no-repeat,
       var(--sh-stone) repeat;
     background-size: 100% auto, 262px auto;
   }
@@ -278,17 +305,17 @@
 
 /* ---- Phones: the same stone, no heavy frames --------------------------- */
 
-:root[data-theme='stonehold'] .mobile-shell {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .mobile-shell {
   background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), var(--sh-stone) repeat;
   background-size: auto, 262px auto;
 }
 
-:root[data-theme='stonehold'] .mobile-topbar,
-:root[data-theme='stonehold'] .mobile-bottom-nav {
-  background: url('/images/ui/stonehold/frame-menu.webp') center / 100% 100% no-repeat, #121212;
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .mobile-topbar,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .mobile-bottom-nav {
+  background: var(--sh-frame-menu) center / 100% 100% no-repeat, #121212;
 }
 
-:root[data-theme='stonehold'] .mobile-menu-drawer {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .mobile-menu-drawer {
   background: var(--sh-stone) repeat;
   background-size: 262px auto;
 }
@@ -296,13 +323,13 @@
 /* A thin gilt line keeps the scene framed where the knots would crowd it. */
 @media (max-width: 900px) {
   /* The chat's frame is a desktop thing; on a phone it gets the stone. */
-  :root[data-theme='stonehold'] .chat-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .chat-panel {
     background:
       linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
       var(--sh-stone) repeat;
     background-size: auto, 262px auto;
   }
-  :root[data-theme='stonehold'] .game-view {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-view {
     border: 1px solid var(--color-gold-dim);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.6);
   }
@@ -310,7 +337,7 @@
 
 /* ---- The location menu, as the mockup sets it ------------------------- */
 
-:root[data-theme='stonehold'] .location-panel .panel-title {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .location-panel .panel-title {
   text-align: center;
   font-family: var(--font-heading);
   text-transform: none;
@@ -321,7 +348,7 @@
   border-bottom-color: rgba(201, 161, 74, 0.35);
 }
 
-:root[data-theme='stonehold'] .location-panel .location-action-btn {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .location-panel .location-action-btn {
   justify-content: center;
   text-align: center;
   background: transparent;
@@ -329,7 +356,7 @@
   color: var(--color-text-bright);
 }
 
-:root[data-theme='stonehold'] .location-panel .location-action-btn:hover {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .location-panel .location-action-btn:hover {
   color: var(--color-gold-bright);
   background: rgba(201, 161, 74, 0.08);
 }
@@ -337,7 +364,7 @@
 /* On a phone the pack spans the screen; the doll and orbs stay at the art's
    own width instead of growing with it. */
 @media (max-width: 900px) {
-  :root[data-theme='stonehold'] .doll-row {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .doll-row {
     max-width: 320px;
     margin: 0 auto;
     padding-bottom: min(33.55%, 107px);
@@ -352,14 +379,14 @@
    so the pack's four columns still fit. The narrower layouts keep the same
    steps (250 and 200 in the plain themes), each with the frame added. */
 @media (min-width: 901px) {
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel {
     width: 310px;
     min-width: 310px;
   }
 
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel > .panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel > .panel {
     padding: 17px;
   }
 
@@ -368,63 +395,63 @@
      column fits without scrolling. The constants are the column's fixed
      parts at each width: frame, pack, Drop and Sort, gaps, the orbs and the
      Combat Stats header. */
-  :root[data-theme='stonehold'] {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) {
     --sh-doll: clamp(44px, calc((100vh - 600px) / 4), 68px);
   }
-  :root[data-theme='stonehold'] .doll-row .equipment-grid {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .doll-row .equipment-grid {
     grid-template-columns: repeat(3, var(--sh-doll));
     gap: 4px;
   }
-  :root[data-theme='stonehold'] .equipment-slot {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-slot {
     width: var(--sh-doll);
     height: var(--sh-doll);
   }
 
-  :root[data-theme='stonehold'] .tabbed-panel .tab-content {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .tabbed-panel .tab-content {
     padding: 6px 0;
   }
 
   /* Gold frames: the knots fill the corners, the sides are a fine line.
      Enough padding to clear the line; the corners are clear already. */
-  :root[data-theme='stonehold'] .game-view {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-view {
     padding: 10px;
   }
-  :root[data-theme='stonehold'] .location-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .location-panel {
     padding: 18px 14px;
   }
 
   /* The chat's bevel is 12px. */
-  :root[data-theme='stonehold'] .chat-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .chat-panel {
     padding: 8px 10px 10px;
   }
 }
 
 @media (min-width: 901px) and (max-width: 1440px) {
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel {
     width: 264px;
     min-width: 264px;
   }
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel > .panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel > .panel {
     padding: 15px;
   }
-  :root[data-theme='stonehold'] {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) {
     --sh-doll: clamp(40px, calc((100vh - 545px) / 4), 60px);
   }
 }
 
 @media (min-width: 901px) and (max-width: 1024px) {
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel {
     width: 226px;
     min-width: 226px;
   }
-  :root[data-theme='stonehold'] .left-panel,
-  :root[data-theme='stonehold'] .right-panel > .panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .right-panel > .panel {
     padding: 14px;
   }
-  :root[data-theme='stonehold'] {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) {
     --sh-doll: clamp(36px, calc((100vh - 490px) / 4), 50px);
   }
 }
@@ -436,26 +463,26 @@
    pack, and Combat Stats takes what height is left, scrolling inside its own
    box only on a very short screen. Provisions shares that box as a tab. */
 @media (min-width: 901px) {
-  :root[data-theme='stonehold'] .left-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel {
     gap: 6px;
   }
-  :root[data-theme='stonehold'] .left-panel > .divider {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .left-panel > .divider {
     display: none;
   }
-  :root[data-theme='stonehold'] .drop-controls {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .drop-controls {
     padding-top: 2px;
   }
-  :root[data-theme='stonehold'] .equipment-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-panel {
     flex: 0 0 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  :root[data-theme='stonehold'] .doll-row {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .doll-row {
     flex-shrink: 0;
   }
-  :root[data-theme='stonehold'] .stat-tabs {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .stat-tabs {
     flex: 0 1 auto;
     min-height: 34px;
     overflow-y: auto;
@@ -469,7 +496,7 @@
    rope frame. Here the frame is a real border (14px), so it takes its own
    room and nothing inside sits on the rope. The stone is darker than the
    side columns' because these are pages of text. */
-:root[data-theme='stonehold'] :is(
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(
   .settings-panel, .support-panel-window:not(.dockable-popped-inner), .support-panel-window.dockable-popped-inner, .news-panel, .messages-panel, .manual-panel,
   .journal-panel, .guild-panel, .forum-panel, .ev-panel, .hs-panel,
   .smithing-menu-modal, .hunting-menu-modal, .fight-menu-modal,
@@ -480,28 +507,28 @@
     var(--sh-stone) repeat;
   background-size: auto, 262px auto;
   border: 14px solid transparent;
-  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 14px round;
+  border-image: var(--sh-frame-stone) 20 / 14px round;
   border-radius: 0;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
 
 /* A popped-out window draws its own hairline and rounding; the rope is its
    edge now. */
-:root[data-theme='stonehold'] .dockable-popped-inner {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .dockable-popped-inner {
   border-radius: 0;
 }
 
 /* Headers and their rules in the theme's gilt, a little quieter than the
    plain themes' so the rope does the framing. */
-:root[data-theme='stonehold'] :is(.settings-header, .smithing-menu-header, .hunting-menu-header, .fight-menu-header) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(.settings-header, .smithing-menu-header, .hunting-menu-header, .fight-menu-header) {
   border-bottom-color: rgba(201, 161, 74, 0.35);
 }
 
 /* ---- Buttons ---------------------------------------------------------- */
 
 /* The gold buttons become the art's red one, as the top bar's are. */
-:root[data-theme='stonehold'] .btn-gold:not(.top-nav-btn),
-:root[data-theme='stonehold'] .btn-red:not(.top-nav-btn) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn-gold:not(.top-nav-btn),
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn-red:not(.top-nav-btn) {
   border: 0 solid transparent;
   border-width: 0 14px;
   border-image: var(--sh-button) 0 16 fill / 0 14px stretch;
@@ -513,31 +540,31 @@
   padding-bottom: 6px;
 }
 
-:root[data-theme='stonehold'] .btn-gold:not(.top-nav-btn):hover:not(:disabled),
-:root[data-theme='stonehold'] .btn-red:not(.top-nav-btn):hover:not(:disabled) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn-gold:not(.top-nav-btn):hover:not(:disabled),
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn-red:not(.top-nav-btn):hover:not(:disabled) {
   border-image-source: var(--sh-button-hover);
   background: none;
   color: #fff;
 }
 
-:root[data-theme='stonehold'] .btn-gold:disabled,
-:root[data-theme='stonehold'] .btn-red:disabled {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn-gold:disabled,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn-red:disabled {
   filter: grayscale(0.7) brightness(0.7);
 }
 
 /* Plain buttons: dark stone with the art's hairline. */
-:root[data-theme='stonehold'] .btn:not(.btn-gold):not(.btn-red):not(.top-nav-btn) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn:not(.btn-gold):not(.btn-red):not(.top-nav-btn) {
   background: rgba(0, 0, 0, 0.35);
   border-color: rgba(220, 220, 220, 0.2);
 }
 
-:root[data-theme='stonehold'] .btn:not(.btn-gold):not(.btn-red):not(.top-nav-btn):hover:not(:disabled) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .btn:not(.btn-gold):not(.btn-red):not(.top-nav-btn):hover:not(:disabled) {
   background: rgba(201, 161, 74, 0.12);
   border-color: var(--color-gold-dim);
 }
 
 /* Fields: recessed into the stone. */
-:root[data-theme='stonehold'] :is(input[type='text'], input[type='password'], input[type='email'], input[type='number'], input[type='search'], textarea, select) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(input[type='text'], input[type='password'], input[type='email'], input[type='number'], input[type='search'], textarea, select) {
   background: rgba(0, 0, 0, 0.45);
   border-color: rgba(220, 220, 220, 0.16);
 }
@@ -551,7 +578,7 @@
    its three columns sit in the page's grid beside the bar. Phones keep their
    own shell. */
 @media (min-width: 901px) {
-  :root[data-theme='stonehold'] .game-root {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-root {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: auto minmax(0, 1fr);
@@ -559,41 +586,41 @@
     padding: 8px;
   }
 
-  :root[data-theme='stonehold'] .game-body {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-body {
     display: contents;
   }
 
-  :root[data-theme='stonehold'] .game-root > .top-nav {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-root > .top-nav {
     grid-column: 2;
     grid-row: 1;
     justify-content: center;
     padding: 8px 14px;
   }
 
-  :root[data-theme='stonehold'] .game-body > .left-panel {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-body > .left-panel {
     grid-column: 1;
     grid-row: 1 / 3;
   }
 
-  :root[data-theme='stonehold'] .game-body > .game-center {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-body > .game-center {
     grid-column: 2;
     grid-row: 2;
     min-height: 0;
   }
 
-  :root[data-theme='stonehold'] .game-body > .right-panel,
-  :root[data-theme='stonehold'] .game-body > .side-stack {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-body > .right-panel,
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .game-body > .side-stack {
     grid-column: 3;
     grid-row: 1 / 3;
     min-height: 0;
   }
 
   /* The mockup's bar carries only the buttons; the name would crowd them. */
-  :root[data-theme='stonehold'] .top-nav-brand {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-brand {
     display: none;
   }
 
-  :root[data-theme='stonehold'] .top-nav-links {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-links {
     padding-right: 0;
     flex-wrap: wrap;
     justify-content: center;
@@ -604,13 +631,13 @@
 /* The admin's robot button sat pinned to the bar's right end, with room kept
    for it in the row. In the narrower middle bar it simply follows the row. */
 @media (min-width: 901px) {
-  :root[data-theme='stonehold'] .top-nav-robot {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-robot {
     position: static;
   }
 }
 
 /* The staff button's red lettering is lost on the red button: gilt instead. */
-:root[data-theme='stonehold'] .top-nav-btn[style*='red-glow'] {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-btn[style*='red-glow'] {
   color: var(--color-gold-bright) !important;
 }
 
@@ -620,12 +647,12 @@
    the loudest thing on the page against the stone. Here it is shown a
    little dimmed and desaturated inside a dark hairline, and comes up to full
    colour under the pointer, which doubles as the hover cue. */
-:root[data-theme='stonehold'] .skill-icon {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .skill-icon {
   filter: saturate(0.62) brightness(0.8) contrast(1.06);
   transition: filter 0.15s ease;
 }
 
-:root[data-theme='stonehold'] .skill-tile::after {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .skill-tile::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -636,8 +663,8 @@
     inset 0 0 12px rgba(0, 0, 0, 0.55);
 }
 
-:root[data-theme='stonehold'] .skill-tile:hover .skill-icon,
-:root[data-theme='stonehold'] .skill-tile:focus-visible .skill-icon {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .skill-tile:hover .skill-icon,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .skill-tile:focus-visible .skill-icon {
   filter: none;
 }
 
@@ -645,28 +672,28 @@
 
 /* Pack cells warm under the pointer and sink a pixel when pressed; the
    doll's pieces lift off the parchment. */
-:root[data-theme='stonehold'] .inventory-slot {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .inventory-slot {
   transition: box-shadow 0.12s ease, transform 0.06s ease;
 }
 
-:root[data-theme='stonehold'] .inventory-slot:hover {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .inventory-slot:hover {
   box-shadow: inset 0 0 0 1px rgba(201, 161, 74, 0.55), 0 0 8px rgba(201, 161, 74, 0.25);
 }
 
-:root[data-theme='stonehold'] .inventory-slot:active {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .inventory-slot:active {
   transform: translateY(1px);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(201, 161, 74, 0.55);
 }
 
-:root[data-theme='stonehold'] .equipment-slot .equipment-item-icon {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-slot .equipment-item-icon {
   transition: filter 0.12s ease, transform 0.06s ease;
 }
 
-:root[data-theme='stonehold'] .equipment-slot.occupied:hover .equipment-item-icon {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-slot.occupied:hover .equipment-item-icon {
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 5px rgba(201, 161, 74, 0.55));
 }
 
-:root[data-theme='stonehold'] .equipment-slot.occupied:active .equipment-item-icon {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .equipment-slot.occupied:active .equipment-item-icon {
   transform: translateY(1px);
 }
 
@@ -675,30 +702,30 @@
 /* The theme is kept in the browser, so a player who picked it sees the home
    page and its login card in the same stone. Everyone else's home page is
    untouched. */
-:root[data-theme='stonehold'] .home {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home {
   background:
     linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
     var(--sh-stone) repeat;
   background-size: auto, 262px auto;
 }
 
-:root[data-theme='stonehold'] .home-masthead {
-  background: url('/images/ui/stonehold/frame-menu.webp') center / 100% 100% no-repeat, #121212;
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-masthead {
+  background: var(--sh-frame-menu) center / 100% 100% no-repeat, #121212;
   border-bottom: 0;
 }
 
-:root[data-theme='stonehold'] .home-ledger {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-ledger {
   background:
     linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)),
     var(--sh-stone) repeat;
   background-size: auto, 262px auto;
   border: 16px solid transparent;
-  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 16px round;
+  border-image: var(--sh-frame-stone) 20 / 16px round;
   border-radius: 0;
   box-shadow: 0 12px 44px rgba(0, 0, 0, 0.85);
 }
 
-:root[data-theme='stonehold'] .home-ledger-head {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-ledger-head {
   font-size: 18px;
   text-transform: none;
   letter-spacing: 0.04em;
@@ -708,21 +735,21 @@
   border-bottom-color: rgba(201, 161, 74, 0.35);
 }
 
-:root[data-theme='stonehold'] .home-tabs {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-tabs {
   border-color: rgba(220, 220, 220, 0.16);
   border-radius: 0;
 }
 
-:root[data-theme='stonehold'] .home-tab {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-tab {
   background: rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme='stonehold'] .home-tab.on {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-tab.on {
   background: rgba(201, 161, 74, 0.1);
   box-shadow: inset 0 -2px 0 var(--color-gold);
 }
 
-:root[data-theme='stonehold'] .home-btn-gold {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-btn-gold {
   border: 0 solid transparent;
   border-width: 0 16px;
   border-image: var(--sh-button) 0 16 fill / 0 16px stretch;
@@ -732,20 +759,20 @@
   text-shadow: 0 1px 2px #000, 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
-:root[data-theme='stonehold'] .home-btn-gold:hover:not(:disabled) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-btn-gold:hover:not(:disabled) {
   border-image-source: var(--sh-button-hover);
   background: none;
   color: #fff;
 }
 
-:root[data-theme='stonehold'] .home-btn:not(.home-btn-gold) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-btn:not(.home-btn-gold) {
   background: rgba(0, 0, 0, 0.4);
   border-color: rgba(220, 220, 220, 0.2);
   border-radius: 0;
 }
 
-:root[data-theme='stonehold'] .home-tally,
-:root[data-theme='stonehold'] .home-band-alt {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-tally,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .home-band-alt {
   background:
     linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
     var(--sh-stone) repeat;
@@ -756,11 +783,11 @@
 /* Narrower screens: the middle bar is narrower, so the buttons give up some
    of their side room before they wrap to a second row. */
 @media (min-width: 901px) and (max-width: 1440px) {
-  :root[data-theme='stonehold'] .top-nav-btn {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-btn {
     padding-left: 11px;
     padding-right: 11px;
   }
-  :root[data-theme='stonehold'] .top-nav-links {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .top-nav-links {
     gap: 3px;
   }
 }
@@ -770,7 +797,7 @@
    (and two rows below about 1300px), so they open under it instead, and
    stop short of the page's foot like the columns do. */
 @media (min-width: 901px) {
-  :root[data-theme='stonehold'] :is(
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(
     .admin-panel, .ev-panel, .forum-panel:not(.dockable-popped-inner), .guild-panel,
     .hs-panel, .journal-panel, .manual-panel, .messages-panel, .news-panel,
     .quests-panel, .settings-panel, .support-panel-window
@@ -780,20 +807,20 @@
     height: auto;
     max-height: none;
   }
-  :root[data-theme='stonehold'] .trade-overlay {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .trade-overlay {
     top: 65px;
   }
 }
 
 @media (min-width: 901px) and (max-width: 1300px) {
-  :root[data-theme='stonehold'] :is(
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(
     .admin-panel, .ev-panel, .forum-panel, .guild-panel,
     .hs-panel, .journal-panel, .manual-panel, .messages-panel, .news-panel,
     .quests-panel, .settings-panel, .support-panel-window
   ):not(.dockable-popped-inner) {
     top: 101px;
   }
-  :root[data-theme='stonehold'] .trade-overlay {
+  :root:is([data-theme='stonehold'], [data-theme='hearthhold']) .trade-overlay {
     top: 101px;
   }
 }
@@ -805,7 +832,7 @@
    travel logs in the scene, the gathering and market menus, shops, NPC
    dialogue, profiles, the tally board, trades, workstations, chat history,
    the bot check, the level-up card, the welcome and the guest prompt. */
-:root[data-theme='stonehold'] :is(
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(
   .farm-modal, .log-panel, .fishing-modal, .foraging-modal, .mkt-modal, .msh-modal,
   .npc-dialogue, .profile-popup, .map-popup, .shp-modal, .skills-modal,
   .spellcast-card, .tally-modal, .trade-window, .workstation-panel,
@@ -816,14 +843,14 @@
     var(--sh-stone) repeat;
   background-size: auto, 262px auto;
   border: 14px solid transparent;
-  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 14px round;
+  border-image: var(--sh-frame-stone) 20 / 14px round;
   border-radius: 0;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
 
 /* Small things that float: tooltips, right-click menus, the sort drawer.
    A rope frame would swamp them, so stone with a fine gilt line. */
-:root[data-theme='stonehold'] :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover) {
   background:
     linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
     var(--sh-stone) repeat;
@@ -835,7 +862,7 @@
 
 /* The action timer: its track cut into the red like the slots are into the
    stone, and the gilt fill given a surface. */
-:root[data-theme='stonehold'] .scene-timer-bar {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .scene-timer-bar {
   height: 13px;
   background: rgba(0, 0, 0, 0.62);
   border-color: rgba(201, 161, 74, 0.6);
@@ -843,7 +870,7 @@
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85), 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-:root[data-theme='stonehold'] .scene-timer-fill:not(.mining) {
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .scene-timer-fill:not(.mining) {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.25)),
     linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright));

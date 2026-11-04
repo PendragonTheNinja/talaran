@@ -59,7 +59,7 @@ def seamless_stone(im: Image.Image) -> Image.Image:
     return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
 
 
-def gold_only(im: Image.Image, cut: int, rim: int = 8) -> Image.Image:
+def gold_only(im: Image.Image, cut: int, rim: int = 4) -> Image.Image:
     """The gilt frame with everything that is not gilt made transparent.
 
     The frame's edge slices are as wide as its corner knots (cut px), so they
@@ -203,3 +203,33 @@ for name, x in ORBS.items():
     mount.paste(empty, box[:2], mask)
 save(mount, 'orb-mount.webp', 90)
 print(f'orbs: glass {ORB_D}px at top {ORB_TOP}, left {ORBS} of a {orbs.size[0]}x{orbs.size[1]} mount')
+
+
+# ---- Hearthhold: the same art in Tavern's colours --------------------------
+# Every grey and red piece again, toned to Tavern's palette: each pixel keeps
+# its lightness and takes Tavern's colour for it (black to the deepest brown,
+# middle to its timber, light to its parchment gold). The gilt frames, the
+# parchment, the orbs and the red buttons already belong to a warm room and
+# are shared as they are. Written to public/images/ui/stonehold/tavern/.
+TAVERN = OUT / 'tavern'
+TAVERN.mkdir(exist_ok=True)
+
+def warm(im: Image.Image, tint=(1.18, 0.93, 0.66), source: str = 'luma') -> Image.Image:
+    """The same lightness, Tavern's hue: grey stone becomes timber-brown
+    stone, as bright as it was. (Mapping lightness onto a colour ramp crushed
+    the dark stone to black.) `source` 'red' takes the lightness from the red
+    channel, for the scene, whose brightness lives there."""
+    import numpy as np
+    a = np.asarray(im.convert('RGB'), dtype=np.float32)
+    lum = a[..., 0] if source == 'red' else a @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    out = np.stack([lum * tint[0], lum * tint[1], lum * tint[2]], axis=-1)
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
+for name in ['stone', 'frame-stone', 'frame-menu', 'frame-chat', 'slot', 'bricks']:
+    src = Image.open(OUT / f'{name}.webp')
+    warm(src).save(TAVERN / f'{name}.webp', 'WEBP', quality=82, method=6)
+    print(f'tavern/{name + ".webp":21} {src.size[0]}x{src.size[1]}')
+
+# The scene's red ground becomes an ember-lit brown, Tavern's firelight.
+warm(Image.open(OUT / 'red.webp'), tint=(0.78, 0.5, 0.27), source='red').save(TAVERN / 'red.webp', 'WEBP', quality=80, method=6)
+print('tavern/red.webp')
