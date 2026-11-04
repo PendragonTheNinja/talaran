@@ -454,3 +454,83 @@
     overflow-y: auto;
   }
 }
+
+/* ---- The other pages: panels, pop-outs and pop-ups --------------------- */
+
+/* Every panel that opens over the game, docked or popped out, and the
+   smaller pop-ups (menus, quests, stats, confirm boxes): dark stone inside a
+   rope frame. Here the frame is a real border (14px), so it takes its own
+   room and nothing inside sits on the rope. The stone is darker than the
+   side columns' because these are pages of text. */
+:root[data-theme='stonehold'] :is(
+  .settings-panel, .support-panel, .news-panel, .messages-panel, .manual-panel,
+  .journal-panel, .guild-panel, .forum-panel, .ev-panel, .hs-panel,
+  .smithing-menu-modal, .hunting-menu-modal, .fight-menu-modal,
+  .quests-popup, .stats-popup, .modal-box
+) {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.42)),
+    var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+  border: 14px solid transparent;
+  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 14px stretch;
+  border-radius: 0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+/* A popped-out window draws its own hairline and rounding; the rope is its
+   edge now. */
+:root[data-theme='stonehold'] .dockable-popped-inner {
+  border-radius: 0;
+}
+
+/* Headers and their rules in the theme's gilt, a little quieter than the
+   plain themes' so the rope does the framing. */
+:root[data-theme='stonehold'] :is(.settings-header, .smithing-menu-header, .hunting-menu-header, .fight-menu-header) {
+  border-bottom-color: rgba(201, 161, 74, 0.35);
+}
+
+/* ---- Buttons ---------------------------------------------------------- */
+
+/* The gold buttons become the art's red one, as the top bar's are. */
+:root[data-theme='stonehold'] .btn-gold:not(.top-nav-btn),
+:root[data-theme='stonehold'] .btn-red:not(.top-nav-btn) {
+  border: 0 solid transparent;
+  border-width: 0 14px;
+  border-image: var(--sh-button) 0 16 fill / 0 14px stretch;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-white);
+  text-shadow: 0 1px 2px #000;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+:root[data-theme='stonehold'] .btn-gold:not(.top-nav-btn):hover:not(:disabled),
+:root[data-theme='stonehold'] .btn-red:not(.top-nav-btn):hover:not(:disabled) {
+  border-image-source: var(--sh-button-hover);
+  background: none;
+  color: #fff;
+}
+
+:root[data-theme='stonehold'] .btn-gold:disabled,
+:root[data-theme='stonehold'] .btn-red:disabled {
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+/* Plain buttons: dark stone with the art's hairline. */
+:root[data-theme='stonehold'] .btn:not(.btn-gold):not(.btn-red):not(.top-nav-btn) {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(220, 220, 220, 0.2);
+}
+
+:root[data-theme='stonehold'] .btn:not(.btn-gold):not(.btn-red):not(.top-nav-btn):hover:not(:disabled) {
+  background: rgba(201, 161, 74, 0.12);
+  border-color: var(--color-gold-dim);
+}
+
+/* Fields: recessed into the stone. */
+:root[data-theme='stonehold'] :is(input[type='text'], input[type='password'], input[type='email'], input[type='number'], input[type='search'], textarea, select) {
+  background: rgba(0, 0, 0, 0.45);
+  border-color: rgba(220, 220, 220, 0.16);
+}
