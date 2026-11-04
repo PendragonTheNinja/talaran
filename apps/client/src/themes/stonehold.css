@@ -875,3 +875,49 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.25)),
     linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright));
 }
+
+/* ---- Framed boxes keep their outside size ------------------------------- */
+
+/* The rope frame is a real 14px border. On boxes sized to the screen
+   (max-width: 95vw and the like) it was added outside that size, so on a
+   phone the profile ran past the edge and its skill grid scrolled sideways. */
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(.profile-popup, .farm-modal, .skills-modal, .tally-modal, .npc-dialogue, .guest-modal, .welcome-modal) {
+  box-sizing: border-box;
+}
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .profile-skills-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .profile-skill-item img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* The map: the picture fits inside the frame, not under it. */
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .map-popup {
+  max-width: none;
+  max-height: none;
+}
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .map-popup .map-image {
+  display: block;
+  max-width: calc(90vw - 28px);
+  max-height: calc(90vh - 28px);
+  border-radius: 0;
+}
+
+/* The close button sits on the frame's corner, inside the page. */
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .map-popup .map-close {
+  top: 4px;
+  right: 4px;
+}
+
+/* A player's worn gear on the same parchment as your own doll, so the slot
+   outlines read as ink rather than black shapes on stone. */
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .profile-equipment-grid {
+  border: 1px solid transparent;
+  border-image: url('/images/ui/stonehold/parchment.webp') 26 fill / 26px stretch;
+  padding: 18px 14px;
+  margin: var(--space-md) auto;
+}

@@ -31,13 +31,6 @@ export const THEMES: ThemeMeta[] = [
         swatches: ['#0f0f0f', '#202020', '#cfc6b4', '#c9a14a'],
     },
     {
-        // Stonehold's textures in Tavern's colours (themes/stonehold.css).
-        id: 'hearthhold',
-        name: 'Hearthhold',
-        description: "The keep's stone and gilt, warmed by Tavern's firelight and timber.",
-        swatches: ['#0d0a07', '#2a2118', '#e8d5a3', '#c8922a'],
-    },
-    {
         id: 'tavern',
         name: 'Tavern',
         description: 'The original look. Firelight, dark timber, and gold — Talaran by night.',
