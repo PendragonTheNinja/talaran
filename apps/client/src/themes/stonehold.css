@@ -356,14 +356,21 @@
     padding: 17px;
   }
 
-  /* The doll larger: 68px slots, so the gear on it reads at a glance. */
+  /* The doll larger, up to 68px slots, so the gear on it reads at a glance;
+     on a shorter screen the slots give way first (four rows of them), so the
+     column fits without scrolling. The constants are the column's fixed
+     parts at each width: frame, pack, Drop and Sort, gaps, the orbs and the
+     Combat Stats header. */
+  :root[data-theme='stonehold'] {
+    --sh-doll: clamp(44px, calc((100vh - 600px) / 4), 68px);
+  }
   :root[data-theme='stonehold'] .doll-row .equipment-grid {
-    grid-template-columns: repeat(3, 68px);
+    grid-template-columns: repeat(3, var(--sh-doll));
     gap: 4px;
   }
   :root[data-theme='stonehold'] .equipment-slot {
-    width: 68px;
-    height: 68px;
+    width: var(--sh-doll);
+    height: var(--sh-doll);
   }
 
   :root[data-theme='stonehold'] .tabbed-panel .tab-content {
@@ -395,12 +402,8 @@
   :root[data-theme='stonehold'] .right-panel > .panel {
     padding: 15px;
   }
-  :root[data-theme='stonehold'] .doll-row .equipment-grid {
-    grid-template-columns: repeat(3, 60px);
-  }
-  :root[data-theme='stonehold'] .equipment-slot {
-    width: 60px;
-    height: 60px;
+  :root[data-theme='stonehold'] {
+    --sh-doll: clamp(40px, calc((100vh - 545px) / 4), 60px);
   }
 }
 
@@ -414,11 +417,40 @@
   :root[data-theme='stonehold'] .right-panel > .panel {
     padding: 14px;
   }
-  :root[data-theme='stonehold'] .doll-row .equipment-grid {
-    grid-template-columns: repeat(3, 50px);
+  :root[data-theme='stonehold'] {
+    --sh-doll: clamp(36px, calc((100vh - 490px) / 4), 50px);
   }
-  :root[data-theme='stonehold'] .equipment-slot {
-    width: 50px;
-    height: 50px;
+}
+
+/* ---- The left column fits without scrolling --------------------------- */
+
+/* Scrolling it slid the frame's art against its contents. Instead the doll
+   sizes to the screen (--sh-doll above), the parchment sits up under the
+   pack, and Combat Stats takes what height is left, scrolling inside its own
+   box only on a very short screen. */
+@media (min-width: 901px) {
+  :root[data-theme='stonehold'] .left-panel {
+    gap: 6px;
+  }
+  :root[data-theme='stonehold'] .left-panel > .divider {
+    display: none;
+  }
+  :root[data-theme='stonehold'] .drop-controls {
+    padding-top: 2px;
+  }
+  :root[data-theme='stonehold'] .equipment-panel {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  :root[data-theme='stonehold'] .doll-row {
+    flex-shrink: 0;
+  }
+  :root[data-theme='stonehold'] .combat-stats {
+    flex: 0 1 auto;
+    min-height: 34px;
+    overflow-y: auto;
   }
 }
