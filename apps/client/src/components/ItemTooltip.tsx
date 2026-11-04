@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getQualityColor } from '../lib/items'
 import { itemDetail, loadItemDetails, onItemDetailsLoaded, type ItemDetail } from '../lib/itemDetails'
@@ -201,18 +201,49 @@ export function useItemTooltip() {
     const [, setGeneration] = useState(0)
     useEffect(() => onItemDetailsLoaded(() => setGeneration(g => g + 1)), [])
 
+    // The element the tooltip belongs to. It closed only on mouse-leave, which
+    // a phone never sends: a tapped ground item is picked up and vanishes from
+    // under the finger, and its tooltip stayed over everything until the page
+    // was refreshed (forum, 2026-11-05). The same could strand one on a desktop
+    // when an item went away beneath the pointer.
+    const anchorRef = useRef<Element | null>(null)
+
     const hoverProps = useCallback((item: TooltipItem | null | undefined, hint?: string | null) => {
         if (!item?.name) return {}
-        const show = (e: { clientX: number; clientY: number }) => {
+        const show = (e: { clientX: number; clientY: number; currentTarget: EventTarget }) => {
             loadItemDetails()
+            anchorRef.current = e.currentTarget as Element
             setState({ x: e.clientX, y: e.clientY, item, hint })
         }
         return {
             onMouseEnter: show,
             onMouseMove: show,
-            onMouseLeave: () => setState(null),
+            onMouseLeave: () => { anchorRef.current = null; setState(null) },
         }
     }, [])
+
+    // While one is showing, close it on a tap or click anywhere but its item,
+    // on scrolling, on the pointer leaving its item, and as soon as the item
+    // itself is gone.
+    const showing = state !== null
+    useEffect(() => {
+        if (!showing) return
+        const hide = () => { anchorRef.current = null; setState(null) }
+        const outside = (e: Event) => {
+            const a = anchorRef.current
+            if (!a || !a.isConnected || !(e.target instanceof Node) || !a.contains(e.target)) hide()
+        }
+        const tick = setInterval(() => { if (!anchorRef.current?.isConnected) hide() }, 400)
+        document.addEventListener('pointerdown', outside, true)
+        document.addEventListener('pointermove', outside, true)
+        window.addEventListener('scroll', hide, true)
+        return () => {
+            clearInterval(tick)
+            document.removeEventListener('pointerdown', outside, true)
+            document.removeEventListener('pointermove', outside, true)
+            window.removeEventListener('scroll', hide, true)
+        }
+    }, [showing])
 
     const tooltipEl = state
         ? <ItemTooltip x={state.x} y={state.y} item={state.item} hint={state.hint} />
