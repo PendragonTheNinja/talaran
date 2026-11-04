@@ -567,6 +567,9 @@
 :root:is([data-theme='stonehold'], [data-theme='hearthhold']) :is(input[type='text'], input[type='password'], input[type='email'], input[type='number'], input[type='search'], textarea, select) {
   background: rgba(0, 0, 0, 0.45);
   border-color: rgba(220, 220, 220, 0.16);
+  /* Fields with no colour of their own took the browser's black, unreadable
+     on this dark ground (the Action Limit box, forum 2026-11-04). */
+  color: var(--color-text-bright);
 }
 
 /* ---- The mockup's shape: side columns to the top, menu over the middle -- */
