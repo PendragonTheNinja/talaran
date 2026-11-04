@@ -790,3 +790,38 @@
     top: 101px;
   }
 }
+
+/* ---- Every other pop-up -------------------------------------------------- */
+
+/* The rest of the game's boxes, in the same stone and rope as the panels:
+   the spellbook (it shares the farm and church menus' box), the loot and
+   travel logs in the scene, the gathering and market menus, shops, NPC
+   dialogue, profiles, the tally board, trades, workstations, chat history,
+   the bot check, the level-up card, the welcome and the guest prompt. */
+:root[data-theme='stonehold'] :is(
+  .farm-modal, .log-panel, .fishing-modal, .foraging-modal, .mkt-modal, .msh-modal,
+  .npc-dialogue, .profile-popup, .map-popup, .shp-modal, .skills-modal,
+  .spellcast-card, .tally-modal, .trade-window, .workstation-panel,
+  .chat-history-modal, .bot-check, .guest-modal, .welcome-modal, .levelup-popup
+) {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.42)),
+    var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+  border: 14px solid transparent;
+  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 14px round;
+  border-radius: 0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+/* Small things that float: tooltips, right-click menus, the sort drawer.
+   A rope frame would swamp them, so stone with a fine gilt line. */
+:root[data-theme='stonehold'] :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover) {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+  border: 1px solid var(--color-gold-dim);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.7), 0 6px 22px rgba(0, 0, 0, 0.85);
+}
