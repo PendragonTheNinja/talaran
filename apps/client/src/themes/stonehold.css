@@ -662,3 +662,86 @@
 :root[data-theme='stonehold'] .equipment-slot.occupied:active .equipment-item-icon {
   transform: translateY(1px);
 }
+
+/* ---- The home page, for those who chose Stonehold ----------------------- */
+
+/* The theme is kept in the browser, so a player who picked it sees the home
+   page and its login card in the same stone. Everyone else's home page is
+   untouched. */
+:root[data-theme='stonehold'] .home {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+    var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+}
+
+:root[data-theme='stonehold'] .home-masthead {
+  background: url('/images/ui/stonehold/frame-menu.webp') center / 100% 100% no-repeat, #121212;
+  border-bottom: 0;
+}
+
+:root[data-theme='stonehold'] .home-ledger {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)),
+    var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+  border: 16px solid transparent;
+  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 16px round;
+  border-radius: 0;
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.85);
+}
+
+:root[data-theme='stonehold'] .home-ledger-head {
+  font-size: 18px;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--color-text-white);
+  text-shadow: 0 1px 3px #000;
+  border-bottom-color: rgba(201, 161, 74, 0.35);
+}
+
+:root[data-theme='stonehold'] .home-tabs {
+  border-color: rgba(220, 220, 220, 0.16);
+  border-radius: 0;
+}
+
+:root[data-theme='stonehold'] .home-tab {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme='stonehold'] .home-tab.on {
+  background: rgba(201, 161, 74, 0.1);
+  box-shadow: inset 0 -2px 0 var(--color-gold);
+}
+
+:root[data-theme='stonehold'] .home-btn-gold {
+  border: 0 solid transparent;
+  border-width: 0 16px;
+  border-image: var(--sh-button) 0 16 fill / 0 16px stretch;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-white);
+  text-shadow: 0 1px 2px #000, 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+:root[data-theme='stonehold'] .home-btn-gold:hover:not(:disabled) {
+  border-image-source: var(--sh-button-hover);
+  background: none;
+  color: #fff;
+}
+
+:root[data-theme='stonehold'] .home-btn:not(.home-btn-gold) {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(220, 220, 220, 0.2);
+  border-radius: 0;
+}
+
+:root[data-theme='stonehold'] .home-tally,
+:root[data-theme='stonehold'] .home-band-alt {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+    var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+  border-color: rgba(220, 220, 220, 0.1);
+}
