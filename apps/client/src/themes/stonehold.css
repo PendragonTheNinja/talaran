@@ -279,7 +279,7 @@
 /* ---- Phones: the same stone, no heavy frames --------------------------- */
 
 :root[data-theme='stonehold'] .mobile-shell {
-  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--sh-stone) repeat;
+  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), var(--sh-stone) repeat;
   background-size: auto, 262px auto;
 }
 
@@ -295,6 +295,13 @@
 
 /* A thin gilt line keeps the scene framed where the knots would crowd it. */
 @media (max-width: 900px) {
+  /* The chat's frame is a desktop thing; on a phone it gets the stone. */
+  :root[data-theme='stonehold'] .chat-panel {
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+      var(--sh-stone) repeat;
+    background-size: auto, 262px auto;
+  }
   :root[data-theme='stonehold'] .game-view {
     border: 1px solid var(--color-gold-dim);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.6);
@@ -824,4 +831,20 @@
   border: 1px solid var(--color-gold-dim);
   border-radius: 0;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.7), 0 6px 22px rgba(0, 0, 0, 0.85);
+}
+
+/* The action timer: its track cut into the red like the slots are into the
+   stone, and the gilt fill given a surface. */
+:root[data-theme='stonehold'] .scene-timer-bar {
+  height: 13px;
+  background: rgba(0, 0, 0, 0.62);
+  border-color: rgba(201, 161, 74, 0.6);
+  border-radius: 2px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme='stonehold'] .scene-timer-fill:not(.mining) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.25)),
+    linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright));
 }
