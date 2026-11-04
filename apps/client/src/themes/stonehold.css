@@ -66,10 +66,10 @@
   --sh-stone: url('/images/ui/stonehold/stone.webp');
   --sh-red: url('/images/ui/stonehold/red.webp');
   --sh-slot: url('/images/ui/stonehold/slot.webp');
-  --sh-frame-stone: var(--sh-frame-stone);
-  --sh-frame-menu: var(--sh-frame-menu);
-  --sh-frame-chat: var(--sh-frame-chat);
-  --sh-bricks: var(--sh-bricks);
+  --sh-frame-stone: url('/images/ui/stonehold/frame-stone.webp');
+  --sh-frame-menu: url('/images/ui/stonehold/frame-menu.webp');
+  --sh-frame-chat: url('/images/ui/stonehold/frame-chat.webp');
+  --sh-bricks: url('/images/ui/stonehold/bricks.webp');
 }
 
 /* HEARTHHOLD: Stonehold's frames and stone in Tavern's colours (Nathan,
