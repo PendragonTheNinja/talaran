@@ -7,7 +7,7 @@ import { applyPaletteTokens, clearPaletteTokens, initPaletteFromStorage, type Pa
 // is just setting data-theme on <html>. Premium themes and custom palettes
 // (Phase C) build on this same mechanism.
 
-export type ThemeId = 'tavern' | 'scriptorium' | 'moonveil' | 'mosswood' | 'forgeheart' | 'hallowtide'
+export type ThemeId = 'tavern' | 'scriptorium' | 'stonehold' | 'moonveil' | 'mosswood' | 'forgeheart' | 'hallowtide'
 
 export interface ThemeMeta {
     id: ThemeId
@@ -34,6 +34,13 @@ export const THEMES: ThemeMeta[] = [
         name: 'Scriptorium',
         description: 'Daylight and parchment. Iron-gall ink on cream pages, leafed in gold.',
         swatches: ['#cec4ae', '#e9e2d3', '#31261a', '#785b22'],
+    },
+    {
+        // Trial (branch ui-textures): Nathan's mockup art, themes/stonehold.css.
+        id: 'stonehold',
+        name: 'Stonehold',
+        description: 'Rope-bound stone, gilt filigree and a red ground. The keep as it was first drawn.',
+        swatches: ['#0f0f0f', '#202020', '#cfc6b4', '#c9a14a'],
     },
     {
         id: 'moonveil',

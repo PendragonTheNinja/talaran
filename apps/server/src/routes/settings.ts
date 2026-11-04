@@ -364,7 +364,7 @@ router.post('/tally-link', requireAuth, async (req: AuthRequest, res: Response) 
 // the matching player_unlocks row ('theme:<id>'). The store catalog names them.
 // Ownership is checked, never the sale window: a seasonal theme bought once is
 // worn all year.
-const FREE_THEMES = ['tavern', 'scriptorium'];
+const FREE_THEMES = ['tavern', 'scriptorium', 'stonehold'];
 const PREMIUM_THEMES = premiumThemeIds();
 router.post('/theme', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;

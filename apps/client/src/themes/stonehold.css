@@ -1,0 +1,237 @@
+/* STONEHOLD: Nathan's original mockup art (images/ui/), as a theme.
+
+   The art was drawn as whole panels at 1920x1080. Painted on as pictures, it
+   would decide the layout and break every smaller screen, so it is cut into
+   parts (scripts/slice-stonehold.py) and painted onto the panels that already
+   exist:
+
+     frames   CSS border-image (9-slice): the corners keep their shape, the
+              edges stretch to any box. border-image-width is set apart from
+              border-width, so a frame paints over the panel's edge without
+              taking any room from what is inside.
+     fills    seamless tiles or a cover image: no fixed size at all.
+
+   Nothing here changes a layout. Phones (900px and under) keep the textures
+   and drop the heavy frames, which need room to read as frames. */
+
+:root[data-theme='stonehold'] {
+  --color-bg-deepest: #0a0a0a;
+  --color-bg-deep: #0f0f0f;
+  --color-bg-dark: #151515;
+  --color-bg-mid: #1b1b1b;
+  --color-bg-panel: #202020;
+  --color-bg-raised: #282828;
+  --color-bg-hover: #333230;
+
+  --color-gold-dim: #7d6532;
+  --color-gold: #c9a14a;
+  --color-gold-bright: #e4c06a;
+  --color-gold-shine: #f5dc94;
+
+  --color-red-dark: #4e0d0b;
+  --color-red: #7a1712;
+  --color-red-bright: #a3231a;
+  --color-red-glow: #cc3322;
+
+  --color-text-dim: #6a6660;
+  --color-text-muted: #9a948a;
+  --color-text-base: #cfc6b4;
+  --color-text-bright: #ece4d0;
+  --color-text-white: #faf6ec;
+
+  --color-border-dark: #222222;
+  --color-border-mid: #3a3836;
+  --color-border-gold: #7d6532;
+  --color-border-bright: #c9a14a;
+
+  --color-health: #b8231c;
+  --color-mana: #6a2ca0;
+  --color-xp: #4f9a3a;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.7);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.85);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.95);
+  --shadow-gold: 0 0 10px rgba(201, 161, 74, 0.4);
+  --shadow-red: 0 0 10px rgba(204, 51, 34, 0.45);
+
+  --sh-stone: url('/images/ui/stonehold/stone.webp');
+  --sh-red: url('/images/ui/stonehold/red.webp');
+  --sh-slot: url('/images/ui/stonehold/slot.webp');
+  --sh-button: url('/images/ui/stonehold/button.webp');
+  --sh-button-hover: url('/images/ui/stonehold/button-hover.webp');
+}
+
+/* ---- The page and every panel: dark stone ---------------------------- */
+
+:root[data-theme='stonehold'] body,
+:root[data-theme='stonehold'] .game-root {
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+}
+
+:root[data-theme='stonehold'] .panel {
+  background: var(--sh-stone) repeat;
+  background-size: 262px auto;
+}
+
+/* The thin inset boxes of the art: a light hairline on darker stone. */
+:root[data-theme='stonehold'] .panel-inset {
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(220, 220, 220, 0.16);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- Inventory: the art's bevelled cells ----------------------------- */
+
+:root[data-theme='stonehold'] .inventory-grid {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+:root[data-theme='stonehold'] .inventory-slot {
+  background: var(--sh-slot) center / 100% 100% no-repeat;
+  border-color: transparent;
+}
+
+:root[data-theme='stonehold'] .inventory-slot:hover {
+  background: linear-gradient(rgba(201, 161, 74, 0.14), rgba(201, 161, 74, 0.14)), var(--sh-slot) center / 100% 100% no-repeat;
+}
+
+/* ---- Paper doll on parchment ------------------------------------------ */
+
+:root[data-theme='stonehold'] .doll-row {
+  border: 1px solid transparent;
+  border-image: url('/images/ui/stonehold/parchment.webp') 26 fill / 26px stretch;
+  padding: 10px 4px;
+}
+
+:root[data-theme='stonehold'] .equipment-slot {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* The slot art is a grey outline on black. Inverted and multiplied, the
+   black drops out and the outline is left in dark ink on the parchment, as
+   in the mockup (the same trick Scriptorium uses). */
+:root[data-theme='stonehold'] .equipment-slot-icon {
+  filter: brightness(2.2) invert(1);
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+}
+
+/* ---- The scene: red ground in the gold filigree ----------------------- */
+
+:root[data-theme='stonehold'] .game-view {
+  background: var(--sh-red) center / cover no-repeat;
+}
+
+:root[data-theme='stonehold'] .game-scene,
+:root[data-theme='stonehold'] .game-view-main {
+  background: transparent;
+}
+
+/* ---- Chat ------------------------------------------------------------ */
+
+:root[data-theme='stonehold'] .chat-panel {
+  background: #0c0c0c;
+}
+
+:root[data-theme='stonehold'] .chat-input {
+  background: rgba(0, 0, 0, 0.45);
+  border-color: rgba(220, 220, 220, 0.16);
+}
+
+/* ---- Top bar and its red buttons -------------------------------------- */
+
+:root[data-theme='stonehold'] .top-nav {
+  background: #121212;
+}
+
+:root[data-theme='stonehold'] .top-nav-btn {
+  background: var(--sh-button) center / 100% 100% no-repeat;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--color-text-white);
+  text-shadow: 0 1px 2px #000, 0 0 4px rgba(0, 0, 0, 0.8);
+  text-transform: none;
+  padding-left: 18px;
+  padding-right: 18px;
+  min-height: 33px;
+}
+
+:root[data-theme='stonehold'] .top-nav-btn:hover,
+:root[data-theme='stonehold'] .top-nav-btn.active {
+  background-image: var(--sh-button-hover);
+  color: #fff;
+}
+
+/* ---- Frames: desktop and half-screen only ------------------------------ */
+
+@media (min-width: 901px) {
+  :root[data-theme='stonehold'] .top-nav {
+    border-bottom: none;
+    border-image: url('/images/ui/stonehold/frame-menu.webp') 10 fill / 10px stretch;
+  }
+
+  /* Side columns and the panels in them: rope and stone. */
+  :root[data-theme='stonehold'] .left-panel,
+  :root[data-theme='stonehold'] .right-panel > .panel {
+    border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 20px stretch;
+    border-radius: 0;
+  }
+
+  /* The scene: gold filigree. */
+  :root[data-theme='stonehold'] .game-view {
+    border-image: url('/images/ui/stonehold/frame-gold.webp') 34 / 34px stretch;
+    border-radius: 0;
+  }
+
+  /* The column beside it: the same gold, over stone. Its headings start in
+     the corner, so it is padded clear of the knots. */
+  :root[data-theme='stonehold'] .location-panel {
+    border-image: url('/images/ui/stonehold/frame-gold-stone.webp') 34 / 34px stretch;
+    border-radius: 0;
+    padding: 14px 8px;
+  }
+
+  :root[data-theme='stonehold'] .chat-panel {
+    border-image: url('/images/ui/stonehold/frame-chat.webp') 12 fill / 12px stretch;
+    border-radius: 0;
+  }
+
+  /* Stone bricks close the foot of the left column, under whatever ends it. */
+  :root[data-theme='stonehold'] .left-panel {
+    background:
+      url('/images/ui/stonehold/bricks.webp') bottom / 100% auto no-repeat,
+      var(--sh-stone) repeat;
+    background-size: 100% auto, 262px auto;
+  }
+}
+
+/* ---- Phones: the same stone, no heavy frames --------------------------- */
+
+:root[data-theme='stonehold'] .mobile-shell {
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--sh-stone) repeat;
+  background-size: auto, 262px auto;
+}
+
+:root[data-theme='stonehold'] .mobile-topbar,
+:root[data-theme='stonehold'] .mobile-bottom-nav {
+  background: url('/images/ui/stonehold/frame-menu.webp') center / 100% 100% no-repeat, #121212;
+}
+
+:root[data-theme='stonehold'] .mobile-menu-drawer {
+  background: var(--sh-stone) repeat;
+  background-size: 262px auto;
+}
+
+/* A thin gilt line keeps the scene framed where the knots would crowd it. */
+@media (max-width: 900px) {
+  :root[data-theme='stonehold'] .game-view {
+    border: 1px solid var(--color-gold-dim);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.6);
+  }
+}
