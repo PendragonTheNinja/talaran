@@ -5,7 +5,7 @@ import {
     generatePalette, applyPaletteTokens,
     type PaletteTokens,
 } from '../lib/palette'
-import { applyPalette, initTheme, saveTheme } from '../lib/theme'
+import { applyPalette, initTheme, saveTheme, DEFAULT_THEME } from '../lib/theme'
 import './PaletteEditor.css'
 
 interface SavedPalette {
@@ -130,7 +130,7 @@ export default function PaletteEditor({ hasPerk, perkPrice, onPurchasePerk, acti
         if (!window.confirm(`Delete "${p.name}"? This cannot be undone.`)) return
         try {
             await apiFetch(`/api/palettes/${p.id}`, { method: 'DELETE' })
-            if (activeTheme === `palette:${p.id}`) { initTheme(); onApplied('tavern') }
+            if (activeTheme === `palette:${p.id}`) { initTheme(); onApplied(DEFAULT_THEME) }
             load()
         } catch (err: any) {
             onError(err.message || 'Could not delete palette.')

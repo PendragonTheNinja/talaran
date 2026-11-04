@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import db from '../db';
+import { DEFAULT_THEME } from '../services/store';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 
@@ -190,10 +191,10 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
             res.status(404).json({ error: 'Palette not found.' });
             return;
         }
-        // If it was the active theme, fall back to tavern
+        // If it was the active theme, fall back to the default look
         await db('player_settings')
             .where({ player_id: playerId, theme: `palette:${paletteId}` })
-            .update({ theme: 'tavern' });
+            .update({ theme: DEFAULT_THEME });
         res.json({ success: true });
     } catch (err) {
         logger.error(`Palette delete error: ${err}`);

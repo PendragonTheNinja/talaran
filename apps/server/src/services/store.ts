@@ -57,6 +57,11 @@ export function onSaleNow(item: StoreItem, now: Date = new Date()): boolean {
     return !item.onSale || saleEndsAt(item.onSale, now) !== null;
 }
 
+/** The look a player has until they choose another (Nathan, 2026-11-04: Stonehold,
+ *  the mockup art, over Tavern). The client's DEFAULT_THEME in lib/theme.ts
+ *  must match; the column default is set by migration 20261104100000. */
+export const DEFAULT_THEME = 'stonehold';
+
 /** Every theme the store sells, by id ('moonveil', ...): the list the theme
  *  setting checks ownership against, so a new theme is added in one place. */
 export function premiumThemeIds(): string[] {

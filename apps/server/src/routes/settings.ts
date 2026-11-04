@@ -14,7 +14,7 @@ import express from 'express';
 import { avatarLimit } from '../middleware/rateLimit';
 import { AVATAR_MAX_UPLOAD_BYTES, clearAvatar, setAvatar } from '../services/avatars';
 import { failureStatus } from '../lib/serviceResult';
-import { premiumThemeIds } from '../services/store';
+import { premiumThemeIds, DEFAULT_THEME } from '../services/store';
 
 // What the fight-on-while-away warning quotes, so the popup states the real
 // rules rather than a copy of them.
@@ -34,7 +34,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const settings = await db('player_settings').where({ player_id: playerId }).first();
-        const theme = settings?.theme ?? 'tavern';
+        const theme = settings?.theme ?? DEFAULT_THEME;
         let paletteTokens: Record<string, string> | null = null;
         let paletteName: string | null = null;
         if (theme.startsWith('palette:')) {
@@ -72,7 +72,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             combatAwayRules: COMBAT_AWAY_RULES,
             combatBotCheckMinutes: DEFAULT_COMBAT_BOT_CHECK_MINUTES,
             combatBotCheckChoices: COMBAT_BOT_CHECK_MINUTES,
-            theme: 'tavern',
+            theme: DEFAULT_THEME,
         });
     }
 });

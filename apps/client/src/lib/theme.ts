@@ -24,6 +24,13 @@ export interface ThemeMeta {
 
 export const THEMES: ThemeMeta[] = [
     {
+        // The default look (Nathan, 2026-11-04): the mockup art, themes/stonehold.css.
+        id: 'stonehold',
+        name: 'Stonehold',
+        description: 'Rope-bound stone, gilt filigree and a red ground. The keep as it was first drawn.',
+        swatches: ['#0f0f0f', '#202020', '#cfc6b4', '#c9a14a'],
+    },
+    {
         id: 'tavern',
         name: 'Tavern',
         description: 'The original look. Firelight, dark timber, and gold — Talaran by night.',
@@ -34,13 +41,6 @@ export const THEMES: ThemeMeta[] = [
         name: 'Scriptorium',
         description: 'Daylight and parchment. Iron-gall ink on cream pages, leafed in gold.',
         swatches: ['#cec4ae', '#e9e2d3', '#31261a', '#785b22'],
-    },
-    {
-        // Trial (branch ui-textures): Nathan's mockup art, themes/stonehold.css.
-        id: 'stonehold',
-        name: 'Stonehold',
-        description: 'Rope-bound stone, gilt filigree and a red ground. The keep as it was first drawn.',
-        swatches: ['#0f0f0f', '#202020', '#cfc6b4', '#c9a14a'],
     },
     {
         id: 'moonveil',
@@ -79,7 +79,9 @@ export function previewTheme(id: ThemeId) {
 }
 
 const STORAGE_KEY = 'talaran-theme'
-const DEFAULT_THEME: ThemeId = 'tavern'
+/** The look a player has until they choose another. Must match DEFAULT_THEME
+ *  in the server's services/store.ts. */
+export const DEFAULT_THEME: ThemeId = 'stonehold'
 
 function isThemeId(v: unknown): v is ThemeId {
     return THEMES.some(t => t.id === v)
