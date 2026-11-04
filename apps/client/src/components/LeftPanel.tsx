@@ -106,6 +106,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   const [confirmFire, setConfirmFire] = useState<{ item: string; cost: number } | null>(null)
   const [dropQuantity, setDropQuantity] = useState(1)
   const [tradeAmount, setTradeAmount] = useState(1)
+  // Offer whole stacks: one tap puts all of an item in the trade.
+  const [tradeAll, setTradeAll] = useState(false)
   const [showDropQuantity, setShowDropQuantity] = useState(false)
 
   // Synthetic tiles (open liquid containers) are not inventory rows and are
@@ -432,7 +434,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
               // up as the tile simply not responding.
               if (item?.synthetic) return
               if (tradeMode && tradeId) {
-                const qty = Math.min(tradeAmount, item.quantity)
+                const qty = tradeAll ? item.quantity : Math.min(tradeAmount, item.quantity)
                 apiFetch('/api/trades/offer/item', {
                   method: 'POST',
                   body: JSON.stringify({ tradeId, itemId: item.item_id, quantity: qty }),
@@ -595,6 +597,32 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
             </>
           )}
         </div>
+
+        {/* Trading: how much one tap offers, beside the pack (it sat at the
+            foot of the column, out of sight; forum, 2026-11-05). */}
+        {tradeMode && (
+          <label className="drop-amount-label" title="How many each tap puts in the trade">
+            Offer
+            <input
+              type="number"
+              min={1}
+              value={tradeAll ? '' : tradeAmount}
+              placeholder={tradeAll ? 'all' : undefined}
+              disabled={tradeAll}
+              onChange={e => setTradeAmount(Math.max(1, parseInt(e.target.value) || 1))}
+              className="context-menu-qty-input"
+              style={{ width: '52px' }}
+            />
+            <button
+              type="button"
+              className={`drop-mode-btn ${tradeAll ? 'active' : ''}`}
+              onClick={() => setTradeAll(a => !a)}
+              title="Offer the whole stack with one tap"
+            >
+              All
+            </button>
+          </label>
+        )}
 
         {dropMode && (
           <label className="drop-amount-label">
@@ -792,21 +820,6 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
 
       {tooltipEl}
 
-      {
-        tradeMode && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0' }}>
-            <span className="muted-text" style={{ fontSize: '12px' }}>Trade amount:</span>
-            <input
-              type="number"
-              min={1}
-              value={tradeAmount}
-              onChange={e => setTradeAmount(Math.max(1, parseInt(e.target.value) || 1))}
-              className="context-menu-qty-input"
-              style={{ width: '50px', fontSize: '12px', padding: '2px 4px' }}
-            />
-          </div>
-        )
-      }
 
     </aside >
   )
