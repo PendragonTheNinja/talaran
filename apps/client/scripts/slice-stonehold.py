@@ -37,6 +37,55 @@ def mirror_tile(im: Image.Image) -> Image.Image:
     return out
 
 
+def seamless_stone(im: Image.Image) -> Image.Image:
+    import numpy as np
+    from PIL import ImageFilter
+    a = np.asarray(im, dtype=np.float32)
+    blur = np.asarray(im.filter(ImageFilter.GaussianBlur(28)), dtype=np.float32)
+    flat = a - blur + a.reshape(-1, 3).mean(axis=0)
+    lum = flat.mean(axis=2)
+    cap = lum.mean() + 2.2 * lum.std()
+    over = np.clip(lum - cap, 0, None)[..., None]
+    flat = flat - over * 0.85                      # pull bright flecks back toward the grain
+    h, w = lum.shape
+    shifted = np.roll(np.roll(flat, h // 2, axis=0), w // 2, axis=1)
+    y = np.sin(np.pi * (np.arange(h) + 0.5) / h)[:, None]
+    x = np.sin(np.pi * (np.arange(w) + 0.5) / w)[None, :]
+    m = np.clip((y * x) * 1.6, 0, 1)[..., None]   # 1 in the middle, 0 at the edges
+    out = flat * m + shifted * (1 - m)
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
+
+def tileable_frame(im: Image.Image, cut: int) -> Image.Image:
+    """A 9-slice source whose edges repeat without a seam.
+
+    Stretching an edge slice along a panel longer than the art smears its
+    texture: the pale flecks of the stone lip become streaks. Repeating it
+    instead (border-image-repeat: round) keeps the grain, and pairing each
+    edge with its mirror image makes the repeat seamless, since the tile then
+    ends exactly as it starts."""
+    w, h = im.size
+    ew, eh = w - 2 * cut, h - 2 * cut          # edge lengths
+    out = Image.new(im.mode, (2 * cut + 2 * ew, 2 * cut + 2 * eh))
+    W, H = out.size
+    # corners
+    out.paste(im.crop((0, 0, cut, cut)), (0, 0))
+    out.paste(im.crop((w - cut, 0, w, cut)), (W - cut, 0))
+    out.paste(im.crop((0, h - cut, cut, h)), (0, H - cut))
+    out.paste(im.crop((w - cut, h - cut, w, h)), (W - cut, H - cut))
+    # top and bottom: the edge, then its mirror
+    for y0, y1, oy in ((0, cut, 0), (h - cut, h, H - cut)):
+        seg = im.crop((cut, y0, w - cut, y1))
+        out.paste(seg, (cut, oy))
+        out.paste(seg.transpose(Image.FLIP_LEFT_RIGHT), (cut + ew, oy))
+    # left and right
+    for x0, x1, ox in ((0, cut, 0), (w - cut, w, W - cut)):
+        seg = im.crop((x0, cut, x1, h - cut))
+        out.paste(seg, (ox, cut))
+        out.paste(seg.transpose(Image.FLIP_TOP_BOTTOM), (ox, cut + eh))
+    return out
+
+
 main = Image.open(SRC / 'Main Content Background.jpg').convert('RGB')
 side = Image.open(SRC / 'right side of screen.jpg').convert('RGB')
 left = Image.open(SRC / 'inventory and paper doll.jpg').convert('RGB')
@@ -59,9 +108,14 @@ save(main.crop((12, 12, 1066, 538)), 'red.webp', 80)
 
 # Rope-and-stone frame (side panels): the top box of the right column, rope on
 # all four sides. Slice 20.
-save(side.crop((0, 0, 310, 346)), 'frame-stone.webp', 88)
-# Dark stone ground, mirrored into a seamless tile.
-save(mirror_tile(side.crop((24, 530, 286, 880))), 'stone.webp', 78)
+save(tileable_frame(side.crop((0, 0, 310, 346)), 20), 'frame-stone.webp', 88)
+# Dark stone ground. A crop mirrored four ways tiled without a seam, but the
+# mirroring doubled every pale patch in the crop into a symmetric white
+# blotch (Nathan, 2026-11-04). Instead: the broad light and dark is taken out
+# (the crop less a heavy blur of itself), the rare bright flecks are clipped,
+# and the tile is made seamless by blending it with itself shifted half a
+# tile, weighted to the shifted copy at the edges. No symmetry anywhere.
+save(seamless_stone(side.crop((24, 530, 286, 880))), 'stone.webp', 80)
 
 # Chat and menu bars: bevelled dark frames, used with their own fill.
 save(chat, 'frame-chat.webp', 84)    # slice 12

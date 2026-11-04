@@ -238,7 +238,7 @@
   /* Side columns and the panels in them: rope and stone. */
   :root[data-theme='stonehold'] .left-panel,
   :root[data-theme='stonehold'] .right-panel > .panel {
-    border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 20px stretch;
+    border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 20px round;
     border-radius: 0;
   }
 
@@ -473,7 +473,7 @@
     var(--sh-stone) repeat;
   background-size: auto, 262px auto;
   border: 14px solid transparent;
-  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 14px stretch;
+  border-image: url('/images/ui/stonehold/frame-stone.webp') 20 / 14px round;
   border-radius: 0;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
