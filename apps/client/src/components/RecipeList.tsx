@@ -38,6 +38,8 @@ export interface TableRecipe {
     /** The output's item type and subtype, from the server. */
     outputType?: string | null
     outputSubtype?: string | null
+    /** Every item a graded recipe can give, plainest first (recipes.grade_outputs). */
+    gradeOutputs?: string[] | null
 }
 
 interface RecipeListProps {
@@ -232,21 +234,43 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                     : undefined)}
                 onClick={() => { if (!locked && !blocked) onStartRecipe(r.id, null) }}
             >
-                <div
-                    className="smithing-recipe-image"
-                    {...hoverProps({ name: r.outputItemName })}
-                >
-                    <img
-                        src={getItemIcon(r.outputItemName)}
-                        alt={r.outputItemName}
-                        onError={(e) => { e.currentTarget.style.display = 'none' }}
-                    />
-                </div>
+                {/* A graded recipe (the lapidary's refining) gives one of
+                    several stones by a roll, so its card shows them all, the
+                    plainest in front, under the recipe's own name: "Cut
+                    Quartz" named one outcome (forum, 2026-11-05). */}
+                {(r.gradeOutputs?.length ?? 0) > 1 ? (
+                    <div
+                        className="smithing-recipe-image graded"
+                        {...hoverProps({ name: r.outputItemName })}
+                    >
+                        {r.gradeOutputs!.slice(1, 3).map((g, i) => (
+                            <img key={g} src={getItemIcon(g)} alt="" className={`grade-back grade-back-${i}`}
+                                onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                        ))}
+                        <img
+                            src={getItemIcon(r.gradeOutputs![0])}
+                            alt={r.gradeOutputs!.join(', ')}
+                            className="grade-front"
+                            onError={(e) => { e.currentTarget.style.display = 'none' }}
+                        />
+                    </div>
+                ) : (
+                    <div
+                        className="smithing-recipe-image"
+                        {...hoverProps({ name: r.outputItemName })}
+                    >
+                        <img
+                            src={getItemIcon(r.outputItemName)}
+                            alt={r.outputItemName}
+                            onError={(e) => { e.currentTarget.style.display = 'none' }}
+                        />
+                    </div>
+                )}
                 {/* The name used to live inside the image div, which is
                     64px wide, so every name wrapped inside a 64px box.
                     "Cooked Black Bream" came out on three lines. */}
                 <span className="smithing-recipe-name">
-                    {r.outputItemName}{r.outputQty > 1 ? ` ×${r.outputQty}` : ''}
+                    {(r.gradeOutputs?.length ?? 0) > 1 ? r.name : r.outputItemName}{r.outputQty > 1 ? ` ×${r.outputQty}` : ''}
                 </span>
                 {/* On the card, not only in a native tooltip. A title
                     attribute waits a second, shows nothing on touch,
