@@ -1635,16 +1635,15 @@ export default function GameView({
       if (res.resumed) {
         // The action was frozen at completion; the game tick will finish it and
         // emit action_complete, resuming exactly where the player left off.
-        addLog('Bot check passed. Picking up where you left off...', 'info')
+        // No line for passing (Nathan, 2026-11-05): the check closing says it,
+        // and on a phone the line sat over the scene text.
       } else if (res.timerSeconds && res.completesAt) {
         // Legacy resume path, kept for safety.
-        addLog('Bot check passed. Continuing...', 'info')
         if (res.actionType) setCurrentAction(res.actionType)
         if (res.nodeId != null) setActiveNodeId(res.nodeId)
         setTimerMax(res.timerSeconds)
         startCountdown(res.timerSeconds, res.completesAt)
       } else {
-        addLog('Bot check passed.', 'info')
         runPendingAction()
       }
     } catch (err: any) {

@@ -16,6 +16,7 @@ import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
 import TradeWindow from './components/TradeWindow'
 import GuestBanner, { ClaimSuccessModal } from './components/GuestBanner'
+import UpdateBar from './components/UpdateBar'
 import type { CombatProfile } from './components/EquipmentPanel'
 
 interface Skill {
@@ -441,6 +442,7 @@ function App() {
           <Navigate to="/" replace />
         ) : (
           <>
+            <UpdateBar />
             {(playerData?.player?.is_guest || player?.is_guest || tokenSaysGuest()) && (
               <GuestBanner
                 player={{ ...(player as Player), ...(playerData?.player ?? {}) }}
