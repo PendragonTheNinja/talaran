@@ -426,9 +426,9 @@
     white-space: nowrap;
 }
 
-/* ── Stonehold and Hearthhold: a parchment notice nailed to the stone ── */
+/* ── Stonehold: a parchment notice nailed to the stone ── */
 
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-card {
+:root[data-theme='stonehold'] .crier-card {
     background: transparent;
     border: 1px solid transparent;
     border-radius: 0;
@@ -439,58 +439,58 @@
     filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
 }
 
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-kicker { color: #6e1d14; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-q,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-result-q,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-intro { color: #231709; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-sub,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-optional,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-meta,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-ends,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-link,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-unit,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-bar-note,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-x { color: #2a1f12; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-rank-n { color: #6e1d14; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-reward {
+:root[data-theme='stonehold'] .crier-kicker { color: #6e1d14; }
+:root[data-theme='stonehold'] .crier-q,
+:root[data-theme='stonehold'] .crier-result-q,
+:root[data-theme='stonehold'] .crier-intro { color: #231709; }
+:root[data-theme='stonehold'] .crier-sub,
+:root[data-theme='stonehold'] .crier-optional,
+:root[data-theme='stonehold'] .crier-meta,
+:root[data-theme='stonehold'] .crier-ends,
+:root[data-theme='stonehold'] .crier-link,
+:root[data-theme='stonehold'] .crier-unit,
+:root[data-theme='stonehold'] .crier-bar-note,
+:root[data-theme='stonehold'] .crier-x { color: #2a1f12; }
+:root[data-theme='stonehold'] .crier-rank-n { color: #6e1d14; }
+:root[data-theme='stonehold'] .crier-reward {
     color: #3d2504;
     background: rgba(200, 146, 42, 0.28);
     border-color: rgba(90, 60, 20, 0.6);
 }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-scale button,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-card .crier-text,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-rank li,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-points li {
+:root[data-theme='stonehold'] .crier-opt,
+:root[data-theme='stonehold'] .crier-scale button,
+:root[data-theme='stonehold'] .crier-card .crier-text,
+:root[data-theme='stonehold'] .crier-rank li,
+:root[data-theme='stonehold'] .crier-points li {
     background: rgba(255, 248, 230, 0.5);
     color: #1c1208;
     border-color: rgba(70, 45, 15, 0.55);
 }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-rank button,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-points button {
+:root[data-theme='stonehold'] .crier-rank button,
+:root[data-theme='stonehold'] .crier-points button {
     background: rgba(255, 248, 230, 0.7);
     color: #1c1208;
     border-color: rgba(70, 45, 15, 0.55);
 }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-mark { border-color: #6b4a1e; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt.on {
+:root[data-theme='stonehold'] .crier-mark { border-color: #6b4a1e; }
+:root[data-theme='stonehold'] .crier-opt.on {
     background: rgba(160, 40, 25, 0.13);
     border-color: #8a2a1a;
 }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt.on .crier-mark {
+:root[data-theme='stonehold'] .crier-opt.on .crier-mark {
     background: #8a2a1a;
     box-shadow: inset 0 0 0 3px #efe2c2;
 }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-scale button.on {
+:root[data-theme='stonehold'] .crier-scale button.on {
     background: #8a2a1a;
     color: #fff;
     border-color: #5c1a10;
 }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-bar { background: rgba(70, 45, 15, 0.18); }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-bar > span { background: #8a2a1a; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-result { border-top-color: rgba(70, 45, 15, 0.35); }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-error { color: #8a1a10; font-weight: 600; }
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt:focus-visible,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-scale button:focus-visible,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-link:focus-visible,
-:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-x:focus-visible { outline-color: #8a2a1a; }
+:root[data-theme='stonehold'] .crier-bar { background: rgba(70, 45, 15, 0.18); }
+:root[data-theme='stonehold'] .crier-bar > span { background: #8a2a1a; }
+:root[data-theme='stonehold'] .crier-result { border-top-color: rgba(70, 45, 15, 0.35); }
+:root[data-theme='stonehold'] .crier-error { color: #8a1a10; font-weight: 600; }
+:root[data-theme='stonehold'] .crier-opt:focus-visible,
+:root[data-theme='stonehold'] .crier-scale button:focus-visible,
+:root[data-theme='stonehold'] .crier-link:focus-visible,
+:root[data-theme='stonehold'] .crier-x:focus-visible { outline-color: #8a2a1a; }

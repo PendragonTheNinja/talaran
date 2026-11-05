@@ -364,8 +364,6 @@ router.post('/tally-link', requireAuth, async (req: AuthRequest, res: Response) 
 // the matching player_unlocks row ('theme:<id>'). The store catalog names them.
 // Ownership is checked, never the sale window: a seasonal theme bought once is
 // worn all year.
-// 'hearthhold' (Stonehold in Tavern's colours) is built but held back from
-// the picker for now (Nathan, 2026-11-04); add it here and to THEMES to offer it.
 const FREE_THEMES = ['tavern', 'scriptorium', 'stonehold'];
 const PREMIUM_THEMES = premiumThemeIds();
 router.post('/theme', requireAuth, async (req: AuthRequest, res: Response) => {
