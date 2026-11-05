@@ -1756,6 +1756,31 @@ const SCENARIOS: Scenario[] = [
                 ?? succeeded(st, 1);
         },
     },
+    {
+        id: 'crier', name: "answer one of the Crier's polls five times at once", rounds: 10,
+        run: async (ctx) => {
+            // services/crierPolls.ts answerPoll: the response's unique key on
+            // (poll_id, player_id) is the gate, so the chits are paid once.
+            const w = await world(ctx);
+            await ctx.db('players').where({ id: w.player.id }).update({
+                created_at: ctx.db.raw("now() - interval '30 days'"), total_seconds_played: 360000, crier_chits: 0,
+            });
+            const poll = await ctx.seed.row('crier_polls', {
+                title: 'Racecheck', chits: 3, min_account_days: 0, min_hours_played: 0,
+                opens_at: ctx.db.raw("now() - interval '1 hour'"), closes_at: ctx.db.raw("now() + interval '1 day'"),
+            });
+            const q = await ctx.seed.row('crier_poll_questions', { poll_id: poll.id, position: 1, kind: 'single', prompt: 'Which?' });
+            const a = await ctx.seed.row('crier_poll_options', { question_id: q.id, position: 1, label: 'Yes' });
+            await ctx.seed.row('crier_poll_options', { question_id: q.id, position: 2, label: 'No' });
+            const st = await ctx.burst(w.player.id, 5, () =>
+                ctx.post(w.player.id, `/crier/${poll.id}/answer`, { answers: { [q.id]: { optionId: a.id } } }));
+            const p = await ctx.db('players').where({ id: w.player.id }).first('crier_chits');
+            const [{ n }] = await ctx.db('crier_chit_ledger').where({ player_id: w.player.id }).count({ n: '*' });
+            return changed('chits', 3, Number(p?.crier_chits ?? -1))
+                ?? changed('ledger rows', 1, Number(n))
+                ?? succeeded(st, 1);
+        },
+    },
 ];
 
 main().catch((err) => {

@@ -1,0 +1,496 @@
+/* The Town Crier's notice (CrierNotice.tsx): pinned to the top of the scene,
+   over the place text, under nothing. It scrolls inside itself rather than
+   running past the scene, which on a phone is about 320px tall. */
+
+.crier-notice {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(460px, calc(100% - 28px));
+    max-height: calc(100% - 28px);
+    z-index: 30;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The head and the buttons stay put; only the middle scrolls, so Answer is
+   always in reach however short the scene. */
+.crier-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0 -4px;
+    padding: 0 4px;
+}
+
+/* A phone's scene is about 320px tall, too short for a ranking or a points
+   question, so there the notice takes the screen between the top bar and
+   the tabs, over the place menu. */
+@media (max-width: 767px) {
+    .crier-notice {
+        position: fixed;
+        top: 64px;
+        left: 8px;
+        right: 8px;
+        transform: none;
+        width: auto;
+        max-height: calc(100dvh - 64px - 76px);
+        z-index: 60;
+    }
+}
+
+.crier-card {
+    font-family: var(--font-body);
+    color: var(--color-text-base);
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+    padding: 12px 14px;
+    text-align: left;
+}
+
+.crier-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.crier-kicker {
+    font-family: var(--font-heading);
+    color: var(--color-gold-bright);
+    font-size: 15px;
+    letter-spacing: 0.04em;
+}
+
+.crier-reward {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-bright);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-border-gold);
+    border-radius: 999px;
+    padding: 1px 9px;
+    white-space: nowrap;
+}
+
+.crier-x {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.crier-reward + .crier-x {
+    margin-left: 0;
+}
+
+.crier-intro {
+    color: var(--color-text-base);
+    font-style: italic;
+    font-size: 14.5px;
+    margin: 0 0 6px;
+}
+
+.crier-q {
+    color: var(--color-text-bright);
+    font-size: 17px;
+    line-height: 1.3;
+    margin: 2px 0 8px;
+}
+
+.crier-optional {
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+.crier-sub {
+    color: var(--color-text-muted);
+    font-size: 13.5px;
+    margin: -2px 0 8px;
+}
+
+.crier-opts {
+    display: grid;
+    gap: 6px;
+}
+
+.crier-opts.two {
+    grid-template-columns: 1fr 1fr;
+}
+
+.crier-opts.items {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.crier-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    font: inherit;
+    font-size: 15px;
+    color: var(--color-text-bright);
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    padding: 5px 10px;
+    min-height: 36px;
+    cursor: pointer;
+}
+
+.crier-opt:hover:not(:disabled) {
+    border-color: var(--color-border-bright);
+}
+
+.crier-opt:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.crier-opt:focus-visible,
+.crier-scale button:focus-visible,
+.crier-rank button:focus-visible,
+.crier-points button:focus-visible,
+.crier-link:focus-visible,
+.crier-x:focus-visible {
+    outline: 2px solid var(--color-gold-bright);
+    outline-offset: 1px;
+}
+
+.crier-mark {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--color-border-bright);
+    border-radius: 50%;
+    flex: none;
+}
+
+.crier-opt.sq .crier-mark {
+    border-radius: 3px;
+}
+
+.crier-opt.on {
+    border-color: var(--color-gold);
+    background: var(--color-bg-hover);
+}
+
+.crier-opt.on .crier-mark {
+    background: var(--color-gold);
+    box-shadow: inset 0 0 0 3px var(--color-bg-hover);
+}
+
+.crier-opt-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.crier-item-icon.inventory-slot {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: inherit;
+}
+
+.crier-item-icon img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.crier-opt.with-item {
+    padding: 4px 8px 4px 4px;
+}
+
+.crier-scale {
+    display: flex;
+    gap: 6px;
+}
+
+.crier-scale.wide {
+    gap: 4px;
+}
+
+.crier-scale button {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 15px;
+    color: var(--color-text-bright);
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    min-height: 40px;
+    padding: 0;
+    cursor: pointer;
+}
+
+.crier-scale button.on {
+    border-color: var(--color-gold);
+    background: var(--color-gold);
+    color: var(--color-on-gold);
+}
+
+.crier-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    margin: 4px 2px 2px;
+}
+
+.crier-rank,
+.crier-points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 5px;
+}
+
+.crier-rank li,
+.crier-points li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-bg-mid);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    padding: 3px 4px 3px 10px;
+    min-height: 36px;
+    color: var(--color-text-bright);
+}
+
+.crier-rank-n {
+    font-family: var(--font-num);
+    color: var(--color-gold-bright);
+    min-width: 1.2em;
+}
+
+.crier-rank-label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.crier-rank button,
+.crier-points button {
+    font: inherit;
+    font-size: 14px;
+    width: 32px;
+    height: 30px;
+    flex: none;
+    color: var(--color-text-bright);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.crier-rank button:disabled,
+.crier-points button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.crier-points-n {
+    font-family: var(--font-num);
+    min-width: 1.6em;
+    text-align: center;
+}
+
+.crier-number {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.crier-number .crier-text {
+    max-width: 140px;
+    margin-top: 0;
+}
+
+.crier-unit {
+    color: var(--color-text-muted);
+}
+
+.crier-text {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 15px;
+    color: var(--color-text-bright);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    padding: 7px 9px;
+    margin-top: 6px;
+    resize: vertical;
+}
+
+.crier-link {
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px 0;
+    margin-top: 2px;
+}
+
+.crier-error {
+    color: var(--color-red-glow);
+    font-size: 13.5px;
+    margin: 6px 0 0;
+}
+
+.crier-foot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.crier-meta {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.crier-foot .btn {
+    margin-left: auto;
+    min-height: 36px;
+    padding: 0 18px;
+}
+
+/* Results */
+.crier-result {
+    margin: 8px 0 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border-mid);
+}
+
+.crier-result-q {
+    color: var(--color-text-bright);
+    font-size: 15px;
+    margin: 0 0 6px;
+}
+
+.crier-bar-row {
+    display: grid;
+    grid-template-columns: minmax(0, 9em) 1fr auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    margin: 3px 0;
+}
+
+.crier-bar-label {
+    overflow-wrap: anywhere;
+}
+
+.crier-bar {
+    height: 8px;
+    background: var(--color-bg-deep);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.crier-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--color-gold);
+}
+
+.crier-bar-note {
+    font-family: var(--font-num);
+    color: var(--color-text-muted);
+    font-size: 12.5px;
+    white-space: nowrap;
+}
+
+/* ── Stonehold and Hearthhold: a parchment notice nailed to the stone ── */
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-card {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/ui/stonehold/parchment.webp') 26 fill / 22px stretch;
+    padding: 16px 18px 14px;
+    color: #2e2416;
+    box-shadow: none;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
+}
+
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-kicker { color: #6e1d14; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-q,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-result-q,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-intro { color: #231709; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-sub,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-optional,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-meta,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-ends,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-link,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-unit,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-bar-note,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-x { color: #2a1f12; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-rank-n { color: #6e1d14; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-reward {
+    color: #3d2504;
+    background: rgba(200, 146, 42, 0.28);
+    border-color: rgba(90, 60, 20, 0.6);
+}
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-scale button,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-card .crier-text,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-rank li,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-points li {
+    background: rgba(255, 248, 230, 0.5);
+    color: #1c1208;
+    border-color: rgba(70, 45, 15, 0.55);
+}
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-rank button,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-points button {
+    background: rgba(255, 248, 230, 0.7);
+    color: #1c1208;
+    border-color: rgba(70, 45, 15, 0.55);
+}
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-mark { border-color: #6b4a1e; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt.on {
+    background: rgba(160, 40, 25, 0.13);
+    border-color: #8a2a1a;
+}
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt.on .crier-mark {
+    background: #8a2a1a;
+    box-shadow: inset 0 0 0 3px #efe2c2;
+}
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-scale button.on {
+    background: #8a2a1a;
+    color: #fff;
+    border-color: #5c1a10;
+}
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-bar { background: rgba(70, 45, 15, 0.18); }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-bar > span { background: #8a2a1a; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-result { border-top-color: rgba(70, 45, 15, 0.35); }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-error { color: #8a1a10; font-weight: 600; }
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-opt:focus-visible,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-scale button:focus-visible,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-link:focus-visible,
+:root:is([data-theme='stonehold'], [data-theme='hearthhold']) .crier-x:focus-visible { outline-color: #8a2a1a; }

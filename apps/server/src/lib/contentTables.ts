@@ -213,6 +213,15 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     forum_poll_options:          { label: 'Forum Poll Options',    group: 'Social' },
     forum_poll_votes:            { label: 'Forum Poll Votes',      group: 'Social' },
     forum_post_votes:            { label: 'Forum Post Votes',      group: 'Social' },
+    // The Town Crier's polls (services/crierPolls.ts). Written in the Polls
+    // tab, not here; responses and the chit ledger are the record.
+    crier_polls:                 { label: 'Crier Polls',           group: 'Social' },
+    crier_poll_questions:        { label: 'Crier Poll Questions',  group: 'Social' },
+    crier_poll_options:          { label: 'Crier Poll Options',    group: 'Social' },
+    crier_poll_responses:        { label: 'Crier Poll Responses',  group: 'Social' },
+    crier_poll_answers:          { label: 'Crier Poll Answers',    group: 'Social' },
+    crier_poll_dismissals:       { label: 'Crier Poll Dismissals', group: 'Social' },
+    crier_chit_ledger:           { label: "Crier's Chit Ledger",   group: 'Social' },
     guild_forum_categories:      { label: 'Guild Forum Categories', group: 'Social',    editable: true },
     guild_forum_threads:         { label: 'Guild Forum Threads',   group: 'Social' },
     guild_forum_posts:           { label: 'Guild Forum Posts',     group: 'Social' },

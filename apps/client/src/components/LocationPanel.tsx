@@ -195,6 +195,22 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // a group arriving together reads it once.
   useEffect(() => onSocket('players_here_changed', coalesce(loadPlayersHere, 400)), [loadPlayersHere])
 
+  // The Town Crier stands here only while this player has a poll to answer
+  // (server routes/npcs.ts), so the people here are read again whenever the
+  // polls change: one opens or closes, or this player answers.
+  const locationId = location?.id
+  const loadNpcs = useCallback(() => {
+    if (!locationId) return
+    apiFetch<{ npcs: typeof npcs }>(`/api/npcs/location/${locationId}`)
+      .then(data => setNpcs(data.npcs || []))
+      .catch(() => { })
+  }, [locationId])
+  useEffect(() => onSocket('crier_polls_changed', coalesce(loadNpcs, 400)), [loadNpcs])
+  useEffect(() => {
+    window.addEventListener('talaran:crier-changed', loadNpcs)
+    return () => window.removeEventListener('talaran:crier-changed', loadNpcs)
+  }, [loadNpcs])
+
   const loadTanning = () => {
     apiFetch<any>('/api/tanning/status').then(data => {
       setTanningStatus(data)
@@ -971,7 +987,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             <span
               className="location-player-name npc-name"
               style={{ cursor: 'pointer' }}
-              onClick={() => setActiveNpcId(npc.id)}
+              onClick={() => npc.opens === 'crier_poll'
+                ? window.dispatchEvent(new CustomEvent('talaran:open-crier'))
+                : setActiveNpcId(npc.id)}
               title={npc.title ? `${npc.name}, ${npc.title}` : npc.name}
             >
               {npc.name}

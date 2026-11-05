@@ -1,0 +1,191 @@
+/* The admin panel's Polls tab (AdminCrier.tsx). Cards are the panel's own admin-action-card. */
+.admin-crier {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+@media (max-width: 767px) {
+    .admin-crier { padding: var(--space-md); }
+}
+
+.crier-admin-note {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    margin: 0 0 var(--space-sm);
+}
+
+.crier-admin-row,
+.crier-admin-actions,
+.crier-admin-checks {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.crier-admin-row { margin-bottom: 6px; }
+.crier-admin-row .crier-admin-note { margin: 0; }
+.crier-admin-title { color: var(--color-text-bright); margin: 0; }
+.crier-admin-spacer { flex: 1; }
+
+.crier-admin-status {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: 1px 6px;
+    color: var(--color-text-muted);
+}
+.crier-admin-status.open { color: var(--color-xp); border-color: var(--color-xp); }
+.crier-admin-status.scheduled { color: var(--color-gold-bright); border-color: var(--color-border-gold); }
+.crier-admin-status.closed { color: var(--color-text-dim); }
+
+.crier-admin-danger { color: var(--color-red-glow); }
+
+.crier-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px 12px;
+    margin: 6px 0;
+}
+
+.crier-admin-grid label,
+.crier-admin-opening {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.crier-admin-grid .wide { grid-column: 1 / -1; }
+
+.crier-admin-grid input,
+.crier-admin-grid textarea,
+.crier-admin-grid select,
+.crier-admin-row select,
+.crier-admin-option input,
+.crier-admin-inline input {
+    font: inherit;
+    font-size: 14px;
+    color: var(--color-text-bright);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-sm);
+    padding: 5px 7px;
+    min-width: 0;
+}
+
+.crier-admin-opening {
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+}
+
+.crier-admin-opening label {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-base);
+}
+
+.crier-admin-check,
+.crier-admin-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text-base);
+}
+
+.crier-admin-options {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 6px 0;
+    align-items: flex-start;
+}
+
+.crier-admin-option {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+}
+
+.crier-admin-option input { flex: 1; }
+
+.crier-admin-icon.inventory-slot {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.crier-admin-icon img { width: 28px; height: 28px; object-fit: contain; }
+
+.crier-admin-qtitle {
+    color: var(--color-text-bright);
+    margin: 0 0 6px;
+}
+
+.crier-admin-table-wrap {
+    max-height: 520px;
+    overflow: auto;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.crier-admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.crier-admin-table th {
+    position: sticky;
+    top: 0;
+    background: var(--color-bg-deep);
+    color: var(--color-text-muted);
+    text-align: left;
+    padding: 4px 8px;
+}
+
+.crier-admin-table td {
+    padding: 3px 8px;
+    border-top: 1px solid var(--color-border-dark);
+    vertical-align: top;
+}
+
+.crier-admin-barcell { width: 40%; }
+
+.crier-admin-bar {
+    display: block;
+    height: 8px;
+    min-width: 2px;
+    background: var(--color-gold);
+    border-radius: 4px;
+}
+
+.crier-admin-responses td { white-space: nowrap; }
+
+.crier-admin-quotes ul {
+    margin: 0 0 6px;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--color-text-base);
+    max-height: 240px;
+    overflow-y: auto;
+}

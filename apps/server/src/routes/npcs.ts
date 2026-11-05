@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { crierHasWordFor, CRIER_ROAMS_WITH } from '../services/crierPolls';
 import { updateQuestObjectiveProgress, checkQuestCompletion, questStartChoices, questXpAwards } from './quests';
 
 const router = Router();
@@ -26,7 +27,15 @@ router.get('/location/:locationId', requireAuth, async (req: AuthRequest, res: R
             for (const id of rows) finished.add(Number(id));
         }
 
-        const npcs = all.filter((n: any) => !n.hide_after_quest_id || !finished.has(Number(n.hide_after_quest_id)));
+        // A roaming NPC (npcs.roams_with) has no place of his own: he is left out
+        // of his home town and added wherever the player is while his errand
+        // applies to them. Today that is the Town Crier, while the player has a
+        // poll to answer (services/crierPolls.ts).
+        const npcs = all.filter((n: any) => !n.roams_with && (!n.hide_after_quest_id || !finished.has(Number(n.hide_after_quest_id))));
+        if (await crierHasWordFor(playerId)) {
+            const crier = await db('npcs').where({ roams_with: CRIER_ROAMS_WITH, is_active: true }).first();
+            if (crier) npcs.push({ ...crier, location_id: locationId, opens: 'crier_poll' });
+        }
         res.json({ npcs });
     } catch (err) {
         logger.error(`Get NPCs error: ${err}`);

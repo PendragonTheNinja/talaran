@@ -112,6 +112,13 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Jewelry:** `items.jewelry_aid` (what it helps), strength by tier in `lib/jewelry.ts`; `jewelryAid()` in `services/jewelry.ts` is the ONLY reader of worn rings/amulets and draws 5 hundredths per helped action (no draw, no help). Lines reach the card through `noteJewelry`/`takeJewelryNotes`. Tiers pair metal and gem (T1 Ambren + quartz); garnet pieces wait for Serph.
 - **World events** may cap one player's share of a pool (`world_events.per_player_cap`, Kindle); the share is taken in ONE statement because most awards carry no transaction.
 
+### The Town Crier's polls (`services/crierPolls.ts`, rules in `lib/crierPollRules.ts`)
+- **Polls come to the player** (Nathan, 2026-11-05): an open poll a player may answer is a notice on the scene (`CrierNotice.tsx`, inside `.game-scene`) when it opens or at their next login; "Not now" (`crier_poll_dismissals`) puts it away on every device, and the Crier, **Hollin Bray** (`npcs.roams_with = 'crier_poll'`), then stands in Players Here wherever they are, added by `routes/npcs.ts` while `crierHasWordFor` holds. Tapping him reopens it. Answering, or the poll closing, removes both. Those who answered are shown the results once (`results_seen_at`).
+- **Who may answer:** trusted accounts only (`trustOf`, so never guests), at least `min_account_days` old with `min_hours_played` (`players.total_seconds_played`); 3 and 3 by default, set per poll.
+- **Answering pays Crier's Chits** (`players.crier_chits`, CHECK >= 0, every change a `crier_chit_ledger` row) once per poll, in the transaction that inserts the response; the unique `(poll_id, player_id)` key is the gate (race:check `crier`). What chits buy is undecided (Nathan): keep anything they buy untradeable, or votes become gold.
+- **Kinds:** single, multi (max picks), scale, rank, points (share N), item (icons), number, text; Yes/No and Agree/Disagree are admin presets of single. Write-ins (`allow_write_in`) on single, multi and item; an optional note on any. Players see counts only, never what others wrote. Admin: the Polls tab (`AdminCrier.tsx`, `/api/admin/crier`), CSV export; a poll with answers can't be edited or deleted, only re-timed or closed.
+- Open and close pushes (`crier_polls_changed`) come from a 15 s database-driven sweep (`announced_open_at`/`announced_close_at`), so scheduled polls need no timer.
+
 ### Materials & the circularity rule (locked)
 - **Leather** (Husbandry, cattle) is the mainline, five tiers. **Buckskin** (Hunting) is one item, yield-scaled by animal size, and cuts into tier-1 strips only.
 - **Feathers:** wild pheasant = trickle, farmed chickens = volume. Don't spread feathers to other skills.
