@@ -92,7 +92,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - Juvenile → Adult → Elder. Elders produce slower and never die, but **butcher at full value**. Only XP is weighted by life lived: `xp_slaughter × min(1, life_accrued / full_lifespan)`. Mounts are a flat payout.
 - **XP parity:** a full pen earns what a full plot earns. Per-animal rate `(0.12 / pen_capacity) × band(species level)`.
 - A pen holds one species, locked on first placement, released when the last head leaves.
-- **Mounts leave the pen as items, and items do not age.** Dual gate: Husbandry to raise, Wayfaring to ride (`services/equipGates.ts`). **Wayfaring** (2026-10-16, migration `20261016130000`) replaced Agility and Equitation: every journey over land pays it, walking at `FOOT_XP_RATE` with travel finds, riding at `MOUNT_XP_RATE` without; one level drives both speed curves in `services/travel.ts`. Sailing will be its own skill.
+- **Mounts leave the pen as items, and items do not age.** Dual gate: Husbandry to raise, Wayfaring to ride (`services/equipGates.ts`). **Wayfaring** (2026-10-16, migration `20261016130000`) replaced Agility and Equitation: every journey over land pays it, walking at `FOOT_XP_RATE` with travel finds, riding at `MOUNT_XP_RATE` without; one level drives both speed curves in `services/travel.ts`. There is no Sailing skill (Nathan, 2026-11-05): sea journeys pay Wayfaring too, anyone may take the paid ferry, and vessels work like mounts (Carpentry builds them, Wayfaring captains them); `docs/sailing-spec.md`.
 - **Growing up is paid on read** (`payMaturityXp`, inside `getHusbandryState`), so it is reported: the state carries `matured`, and the Animals tab logs a line per animal. A caller that only wants a number passes `?peek=1` (`settleMaturity: false`), or the XP lands where nobody sees it.
 - **No breeding, on purpose.** Young come only from Trapping and Hunting. That is what sends homestead players back into the world.
 
@@ -384,6 +384,7 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 | `docs/IDEAS.md` | Parking lot (the event-chat "firsts" feed lives here). |
 | `docs/patch-notes-template.md` | Patch-note shape, tags and colours. |
 | `docs/chronicle-spec.md` | The Chronicle (Wenna's daily tidings): design and build steps. |
+| `docs/sailing-spec.md` | Sea travel: the ferry, vessels, sea finds, boat-only places. No Sailing skill; it is Wayfaring. Design, not built. |
 | `docs/BUILD-NOTES.md` · `docs/WIRING.md` · `docs/FARMING-M1-NOTES.md` | Historical handoff notes from the Foraging and Farming builds. Archive candidates. |
 
 **Cited but missing from the repo:** `docs/support-spec.md` (referenced by `routes/paddleWebhook.ts`, `services/talers.ts`, `services/store.ts`) and `docs/husbandry-design.md`. §2 Husbandry is the summary of record.
