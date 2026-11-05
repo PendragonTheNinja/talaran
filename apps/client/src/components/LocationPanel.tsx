@@ -666,7 +666,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     the Anvil tab is simply empty until the player qualifies. */}
                 {(questStatus === 'active' || questStatus === 'completed' || smithingStatus?.workstation?.is_active) ? (
                   <button
-                    className={`location-action-btn sub ${(currentAction === 'smelting' || currentAction === 'smithing' || currentAction === 'crafting') ? 'active' : ''}`}
+                    className={`location-action-btn sub ${(currentAction === 'smelting' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('forge_menu', 0)}
                   >
                     Work the Forge →
@@ -796,7 +796,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
                 {carpentryStatus?.canSaw ? (
                   <button
-                    className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'woodworking' || currentAction === 'crafting') ? 'active' : ''}`}
+                    className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('carpentry_menu', 0)}
                   >
                     Carpentry Workshop →

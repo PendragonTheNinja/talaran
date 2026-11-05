@@ -107,7 +107,7 @@ const LASTING_LOG_MS = 60_000
 // Where the Action Limit bar is offered. `recipe` covers every bench craft the
 // shared executor runs — Caliwen crafting, and the Farming and Husbandry
 // processing tabs — which already send actionLimit but had nowhere to set it.
-const PROCESSING_ACTIONS = ['smelting', 'smithing', 'sawing', 'woodworking', 'recipe']
+const PROCESSING_ACTIONS = ['smelting', 'sawing', 'recipe']
 // Every town with a bench in it. Phoenwick was missed when Cooking shipped,
 // which is the same per-location opt-in the loot log warns about: the next
 // skill to arrive always forgets one of these lists. Anywhere a workstation can
@@ -1257,12 +1257,6 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
-      case 'smithing':
-        setCurrentAction('smithing')
-        setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft, action.completes_at)
-        break
-
       case 'kiln_collect':
         setCurrentAction('kiln_collect')
         setTimerMax(secondsLeft || 5)
@@ -1271,12 +1265,6 @@ export default function GameView({
 
       case 'sawing':
         setCurrentAction('sawing')
-        setTimerMax(secondsLeft || 5)
-        startCountdown(secondsLeft, action.completes_at)
-        break
-
-      case 'woodworking':
-        setCurrentAction('woodworking')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break
@@ -1501,8 +1489,6 @@ export default function GameView({
       startMiningVein({ id: externalAction.id, ore_name: '', remaining_quantity: 0 })
     } else if (externalAction.type === 'smelting') {
       startSmelting(externalAction.id as string)
-    } else if (externalAction.type === 'smithing') {
-      startSmithing(externalAction.id as string)
     } else if (externalAction.type === 'farming') {
       // Same start-of-action cleanup every other skill does: clear the previous
       // result card and any stale timer before the new job begins.
@@ -1550,8 +1536,6 @@ export default function GameView({
       startCountdown(externalAction.id as number)
     } else if (externalAction.type === 'sawing') {
       startSawing(externalAction.id as string)
-    } else if (externalAction.type === 'woodworking') {
-      startWoodworking(externalAction.id as string)
     } else if (externalAction.type === 'set_action_limit') {
       onActionLimitChange(externalAction.id === 0 ? null : externalAction.id as number)
     } else if (externalAction.type === 'hunting') {
@@ -1746,40 +1730,6 @@ export default function GameView({
     }
   }
 
-  const startSmithing = async (recipe: string) => {
-    try {
-      if (currentAction) {
-        await apiFetch('/api/actions/stop', { method: 'POST' })
-      }
-      setLastResult(null)
-      setCurrentAction(null)
-      setTimerSeconds(0)
-      setActionsCompleted(0)
-      onClearTravel()
-      if (timerRef.current) clearInterval(timerRef.current)
-
-      const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
-      const currentLimit = limitInput?.value && parseInt(limitInput.value) > 0 ? parseInt(limitInput.value) : null
-
-      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/smithing/smith/start', {
-        method: 'POST',
-        body: JSON.stringify({
-          metalType: recipe.split('_')[0],
-          partType: recipe.split('_').slice(1).join('_'),
-          actionLimit: currentLimit,
-        }),
-      })
-      setCurrentAction('smithing')
-      setLog([])
-      setActionsCompleted(0)
-      setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds, res.completesAt)
-    } catch (err: any) {
-      if (err.status === 423) { rememberPendingAction(() => startSmithing(recipe)); return }
-      addLog(err.message || 'Could not start smithing.', 'error')
-    }
-  }
-
   const startSawing = async (sawKey: string) => {
     try {
       if (currentAction) {
@@ -1807,36 +1757,6 @@ export default function GameView({
     } catch (err: any) {
       if (err.status === 423) { rememberPendingAction(() => startSawing(sawKey)); return }
       addLog(err.message || 'Could not start sawing.', 'error')
-    }
-  }
-
-  const startWoodworking = async (recipeKey: string) => {
-    try {
-      if (currentAction) {
-        await apiFetch('/api/actions/stop', { method: 'POST' })
-      }
-      setLastResult(null)
-      setCurrentAction(null)
-      setTimerSeconds(0)
-      setActionsCompleted(0)
-      onClearTravel()
-      if (timerRef.current) clearInterval(timerRef.current)
-
-      const limitInput = document.getElementById('action-limit-input') as HTMLInputElement
-      const currentLimit = limitInput?.value && parseInt(limitInput.value) > 0 ? parseInt(limitInput.value) : null
-
-      const res = await apiFetch<{ timerSeconds: number; completesAt: string }>('/api/carpentry/woodwork/start', {
-        method: 'POST',
-        body: JSON.stringify({ recipeKey, actionLimit: currentLimit }),
-      })
-      setCurrentAction('woodworking')
-      setLog([])
-      setActionsCompleted(0)
-      setTimerMax(res.timerSeconds)
-      startCountdown(res.timerSeconds, res.completesAt)
-    } catch (err: any) {
-      if (err.status === 423) { rememberPendingAction(() => startWoodworking(recipeKey)); return }
-      addLog(err.message || 'Could not start woodworking.', 'error')
     }
   }
 

@@ -3,8 +3,8 @@ import { GOLD_DROP_NAME } from './goldFinds';
 import { LIQUIDS } from './liquids';
 import { ESTABLISH_COST, SHOP_TOWN } from './shops';
 import { BUILD_MALLET, BUILD_SAW } from './construction';
-import { SMELT_RECIPES, SMITH_RECIPES } from './smithing';
-import { SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
+import { SMELT_RECIPES } from './smithing';
+import { SAW_RECIPES } from './carpentry';
 import { BEDDING, PEN_COST } from './husbandry';
 import { FARM_ESTABLISH_COST, plotCost } from './farming';
 import { BUILD_COST as TALLY_BUILD_COST } from './tally';
@@ -22,7 +22,7 @@ import type { ItemSource, ItemUse } from './itemPage';
 // This file imports those constants rather than restating them. That is the
 // whole point: a table of costs copied into the manual is wrong the first time
 // somebody edits the real one, whereas an import fails to compile. Renaming
-// SMITH_RECIPES breaks this file loudly instead of quietly emptying a page.
+// SMELT_RECIPES breaks this file loudly instead of quietly emptying a page.
 //
 // The longer-term fix for the build costs is to move them into the database
 // alongside recipes, which would let you retune them without a deploy. Until
@@ -97,20 +97,7 @@ export function codeSources(name: string): ItemSource[] {
         });
     }
 
-    for (const [key, r] of Object.entries(SMITH_RECIPES)) {
-        if (!eq(r.output, name)) continue;
-        out.push({
-            kind: 'Smithing',
-            from: `Forging ${key}`,
-            detail: [
-                `Level ${r.requiredLevel}`,
-            ].filter(Boolean).join(' · '),
-            inputs: ingredientInputs(r.ingredients),
-            link: 'skills/smithing',
-        });
-    }
-
-    // Sawing and woodwork at the bench.
+    // Sawing at the bench.
     for (const [key, r] of Object.entries(SAW_RECIPES)) {
         if (!eq(r.output, name)) continue;
         out.push({
@@ -120,20 +107,6 @@ export function codeSources(name: string): ItemSource[] {
                 `Level ${r.requiredLevel}`,
                 r.outputQuantity > 1 ? `Makes ${r.outputQuantity}` : '',
             ].filter(Boolean).join(' · '),
-            link: 'skills/carpentry',
-        });
-    }
-
-    for (const [key, r] of Object.entries(WOODWORK_RECIPES)) {
-        if (!eq(r.output, name)) continue;
-        out.push({
-            kind: 'Carpentry',
-            from: key,
-            detail: [
-                `Level ${r.requiredLevel}`,
-                r.outputQuantity > 1 ? `Makes ${r.outputQuantity}` : '',
-            ].filter(Boolean).join(' · '),
-            inputs: ingredientInputs(r.ingredients),
             link: 'skills/carpentry',
         });
     }
@@ -176,28 +149,6 @@ export function codeUses(name: string): ItemUse[] {
             into: r.output,
             detail: `Smelting ${key} · level ${r.requiredLevel} · needs ${qty}`,
             link: 'skills/smithing',
-        });
-    }
-
-    for (const [key, r] of Object.entries(SMITH_RECIPES)) {
-        const qty = needed(r.ingredients, name);
-        if (qty === null) continue;
-        out.push({
-            kind: 'Smithing',
-            into: r.output,
-            detail: `Forging ${key} · level ${r.requiredLevel} · needs ${qty}`,
-            link: 'skills/smithing',
-        });
-    }
-
-    for (const [key, r] of Object.entries(WOODWORK_RECIPES)) {
-        const qty = needed(r.ingredients, name);
-        if (qty === null) continue;
-        out.push({
-            kind: 'Carpentry',
-            into: r.output,
-            detail: `${key} · level ${r.requiredLevel} · needs ${qty}`,
-            link: 'skills/carpentry',
         });
     }
 

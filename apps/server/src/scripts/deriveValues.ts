@@ -31,7 +31,7 @@
  *    poor/fine/excellent. Dense chance scales with levels-over in
  *    services/mining.ts, so Dense is priced at a flat 2x base with a note.
  *  - Logs ARE poor/fine/excellent, matched by (subtype, quality).
- *  - Sawing/woodworking/smelting/smithing predate the recipes table and live as
+ *  - Sawing and smelting predate the recipes table and live as
  *    exported constants in services/carpentry.ts and services/smithing.ts.
  *    Importing those services drags in routes/quests -> ../index (the server
  *    bootstrap), so quest progress is stubbed at the module loader first.
@@ -68,8 +68,8 @@ Module._load = function (request: string, ...rest: unknown[]) {
     return originalLoad.apply(this, [request, ...rest]);
 };
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { SAW_RECIPES, WOODWORK_RECIPES } = require('../services/carpentry');
-const { SMELT_RECIPES, SMITH_RECIPES } = require('../services/smithing');
+const { SAW_RECIPES } = require('../services/carpentry');
+const { SMELT_RECIPES } = require('../services/smithing');
 const { GRADE_WORTH } = require('../lib/gemGrades');
 /* eslint-enable @typescript-eslint/no-var-requires */
 
@@ -95,7 +95,7 @@ const goldForSeconds = (level: number, seconds: number) =>
 
 type Method =
     | 'fish' | 'forage' | 'node' | 'byproduct' | 'trap' | 'hunt' | 'crop'
-    | 'husbandry' | 'recipe' | 'saw' | 'woodwork' | 'smelt' | 'smith'
+    | 'husbandry' | 'recipe' | 'saw' | 'smelt'
     | 'tier-estimate' | 'override';
 
 interface Derived { value: number; method: Method; basis: string; level: number }
@@ -503,12 +503,10 @@ async function main(): Promise<void> {
         });
     };
     for (const [k, r] of Object.entries<any>(SAW_RECIPES ?? {})) addConst(r, k, 'saw');
-    for (const [k, r] of Object.entries<any>(WOODWORK_RECIPES ?? {})) addConst(r, k, 'woodwork');
     // Bonus recipes (dense ore) are left out: prices take the CHEAPEST path, and
     // a path only well-levelled miners can take is not an honest floor for an
     // item everyone makes. See SmeltRecipe.bonus in services/smithing.ts.
     for (const [k, r] of Object.entries<any>(SMELT_RECIPES ?? {})) if (!r.bonus) addConst(r, k, 'smelt');
-    for (const [k, r] of Object.entries<any>(SMITH_RECIPES ?? {})) addConst(r, k, 'smith');
 
     // ---- 9a. Tier-estimate the LEAVES before pricing recipes ---------------
     // Ordering bug found on the first v2 run: tier-estimate used to run last, so
@@ -714,7 +712,7 @@ async function main(): Promise<void> {
     // most useful thing to see first when checking whether a run did what you
     // wanted.
     const order: Method[] = ['override', 'fish', 'forage', 'node', 'byproduct', 'trap', 'hunt',
-        'crop', 'husbandry', 'saw', 'smelt', 'woodwork', 'smith', 'recipe', 'tier-estimate'];
+        'crop', 'husbandry', 'saw', 'smelt', 'recipe', 'tier-estimate'];
     for (const m of order) {
         const list = (byMethod.get(m) ?? []).sort((a, b) => a.d.level - b.d.level || a.d.value - b.d.value);
         if (list.length === 0) continue;

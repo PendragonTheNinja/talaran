@@ -4,8 +4,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
   getWorkstation,
   loadKiln, collectKiln, getKilnStatus, getLogCountsByQuality,
-  smeltIngots, smithPart,
-  canSmithHere, SMELT_RECIPES, SMITH_RECIPES,
+  smeltIngots,
+  canSmithHere, SMELT_RECIPES,
 } from '../services/smithing';
 import { levelFromXp } from '../services/xp';
 import { processingTimerFor } from '../services/recipes';
@@ -176,74 +176,6 @@ router.post('/smelt/start', requireAuth, botCheckGate, async (req: AuthRequest, 
     });
 
     res.json({ message: `Smelting ${metalType} ingots...`, timerSeconds, completesAt });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Start smithing part action
-router.post('/smith/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
-  const playerId = req.player!.playerId;
-  const { partType, metalType, actionLimit } = req.body;
-  try {
-    const player = await db('players').where({ id: playerId }).first();
-    const locationId = player.current_location_id;
-
-    const canSmith = await canSmithHere(playerId, locationId);
-    if (!canSmith.allowed) {
-      res.status(403).json({ error: canSmith.error });
-      return;
-    }
-
-    const existing = await db('player_actions').where({ player_id: playerId }).first();
-    if (existing) {
-      res.status(409).json({ error: 'You are already performing an action.' });
-      return;
-    }
-
-    // Check ingredients before starting
-    const recipe = SMITH_RECIPES[`${metalType}_${partType}`];
-    if (!recipe) {
-      res.status(400).json({ error: 'Unknown recipe.' });
-      return;
-    }
-
-    for (const ingredient of recipe.ingredients) {
-      const item = await db('items').where({ name: ingredient.name }).first();
-      if (!item) {
-        res.status(400).json({ error: `Required item not found: ${ingredient.name}` });
-        return;
-      }
-      const inv = await db('player_inventory')
-        .where({ player_id: playerId, item_id: item.id })
-        .first();
-      if (!inv || inv.quantity < ingredient.quantity) {
-        res.status(400).json({ error: `You need ${ingredient.quantity}x ${ingredient.name}.` });
-        return;
-      }
-    }
-
-    const timerSeconds = await processingTimerFor(playerId, 'Smithing', recipe, !!canSmith.usingBlacksmith)
-    const now = new Date();
-    const completesAt = new Date(now.getTime() + timerSeconds * 1000);
-
-    await db('player_actions').insert({
-      player_id: playerId,
-      action_type: 'smithing',
-      resource_node_id: null,
-      action_data: `${metalType}_${partType}`,
-      location_id: locationId,
-      started_at: now,
-      completes_at: completesAt,
-      auto_restart: true,
-      last_bot_check: now,
-      bot_check_pending: false,
-      action_limit: actionLimit || null,
-      actions_completed: 0,
-      using_blacksmith: canSmith.usingBlacksmith || false,
-    });
-
-    res.json({ message: `Smithing ${metalType} ${partType}...`, timerSeconds, completesAt });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

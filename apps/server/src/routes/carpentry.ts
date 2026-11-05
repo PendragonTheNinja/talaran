@@ -4,7 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
 import {
     getCarpentryWorkstation, canSawHere,
-    SAW_RECIPES, WOODWORK_RECIPES,
+    SAW_RECIPES,
 } from '../services/carpentry';
 import { levelFromXp } from '../services/xp';
 import { processingTimerFor } from '../services/recipes';
@@ -43,7 +43,7 @@ router.get('/recipes', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const level = await carpentryLevel(playerId);
-        res.json({ sawRecipes: SAW_RECIPES, woodworkRecipes: WOODWORK_RECIPES, level });
+        res.json({ sawRecipes: SAW_RECIPES, level });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -118,77 +118,6 @@ router.post('/saw/start', requireAuth, botCheckGate, async (req: AuthRequest, re
         });
 
         res.json({ message: 'Sawing planks...', timerSeconds, completesAt });
-    } catch (err) {
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
-// Start woodworking planks -> items
-router.post('/woodwork/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
-    const playerId = req.player!.playerId;
-    const { recipeKey, actionLimit } = req.body;
-    try {
-        const player = await db('players').where({ id: playerId }).first();
-        const locationId = player.current_location_id;
-
-        const access = await canSawHere(playerId, locationId);
-        if (!access.allowed) {
-            res.status(403).json({ error: access.error });
-            return;
-        }
-
-        const recipe = WOODWORK_RECIPES[recipeKey];
-        if (!recipe) {
-            res.status(400).json({ error: 'Unknown recipe.' });
-            return;
-        }
-
-        const level = await carpentryLevel(playerId);
-        if (level < recipe.requiredLevel) {
-            res.status(400).json({ error: `You need Carpentry level ${recipe.requiredLevel}.` });
-            return;
-        }
-
-        for (const ingredient of recipe.ingredients) {
-            const item = await db('items').where({ name: ingredient.name }).first();
-            if (!item) {
-                res.status(400).json({ error: `Required item not found: ${ingredient.name}` });
-                return;
-            }
-            const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-            if (!inv || inv.quantity < ingredient.quantity) {
-                res.status(400).json({ error: `You need ${ingredient.quantity}x ${ingredient.name}.` });
-                return;
-            }
-        }
-
-        const existing = await db('player_actions').where({ player_id: playerId }).first();
-        if (existing) {
-            res.status(409).json({ error: 'You are already performing an action.' });
-            return;
-        }
-
-        const timerSeconds = await processingTimerFor(playerId, 'Carpentry', recipe, !!access.usingBench);
-        const now = new Date();
-        const completesAt = new Date(now.getTime() + timerSeconds * 1000);
-
-        await db('player_actions').insert({
-            player_id: playerId,
-            action_type: 'woodworking',
-            resource_node_id: null,
-            action_data: recipeKey,
-            location_id: locationId,
-            started_at: now,
-            completes_at: completesAt,
-            auto_restart: true,
-            last_bot_check: now,
-            bot_check_pending: false,
-            action_limit: actionLimit || null,
-            actions_completed: 0,
-            using_blacksmith: access.usingBench || false,
-        });
-
-        res.json({ message: `Crafting ${recipe.output}...`, timerSeconds, completesAt });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }

@@ -17,12 +17,12 @@ import {
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { buffTimerBonus } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements, veinNode } from './mining';
-import { smeltIngots, smithPart, collectKiln, SMELT_RECIPES, SMITH_RECIPES } from './smithing';
+import { smeltIngots, collectKiln, SMELT_RECIPES } from './smithing';
 import { processingTimerFor } from './recipes';
 import { resolveVigil } from './spells';
 import { resolveFillCycle, FILL_CYCLE_SECONDS } from './talar';
 import { resolveBuildCycle, BUILD_SECONDS as GUILD_BUILD_SECONDS } from './guildHall';
-import { sawPlanks, woodwork, SAW_RECIPES, WOODWORK_RECIPES } from './carpentry';
+import { sawPlanks, SAW_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
 import { shouldCancelForAbsence } from '../lib/presence';
@@ -88,11 +88,9 @@ const SKILL_BY_ACTION: Record<string, string> = {
   mining_rock: 'Mining',
   mining_vein: 'Mining',
   smelting: 'Smithing',
-  smithing: 'Smithing',
   kiln_collect: 'Smithing',
   sawing: 'Carpentry',
   guild_build: 'Carpentry',
-  woodworking: 'Carpentry',
 };
 
 async function emitActionComplete(io: Server | null, action: any, payload: any): Promise<void> {
@@ -454,22 +452,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'smelting':
         result = await smeltIngots(action.player_id, action.location_id, action.action_data);
         break;
-      case 'smithing':
-        result = await smithPart(
-          action.player_id,
-          action.location_id,
-          action.action_data.split('_').slice(1).join('_'),
-          action.action_data.split('_')[0]
-        );
-        break;
       case 'kiln_collect':
         result = await collectKiln(action.player_id, action.location_id);
         break;
       case 'sawing':
         result = await sawPlanks(action.player_id, action.location_id, action.action_data);
-        break;
-      case 'woodworking':
-        result = await woodwork(action.player_id, action.location_id, action.action_data);
         break;
       case 'hunting':
         result = await processHunt(action.player_id, action.action_data);
@@ -1262,7 +1249,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
 
         // No action limit here (audit L-12): action limits are a processing
-        // feature (smelting, smithing, sawing, woodworking, recipes; see
+        // feature (smelting, sawing, recipes; see
         // PROCESSING_ACTIONS in GameView.tsx). The net's start route never
         // stored one and the client never offered one, so the limiter block
         // that used to sit here could never run.
@@ -1402,11 +1389,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       return;
     }
 
-    if (action.action_type === 'smelting' || action.action_type === 'smithing') {
+    if (action.action_type === 'smelting') {
       // Check resources before restarting timer
-      const recipe = action.action_type === 'smelting'
-        ? SMELT_RECIPES[action.action_data]
-        : SMITH_RECIPES[action.action_data];
+      const recipe = SMELT_RECIPES[action.action_data];
 
       if (recipe) {
         for (const ingredient of recipe.ingredients) {
@@ -1495,7 +1480,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       return;
     }
 
-    // Handle recipe crafts (generic recipes table; mirrors the sawing/woodworking pattern)
+    // Handle recipe crafts (generic recipes table; mirrors the sawing pattern)
     if (action.action_type === 'recipe') {
       const recipe = await db('recipes').where({ id: parseInt(action.action_data) }).first();
       const skillName = recipe?.skill || result.skillName || 'Crafting';
@@ -1625,10 +1610,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       return;
     }
 
-    if (action.action_type === 'sawing' || action.action_type === 'woodworking') {
-      const recipe = action.action_type === 'sawing'
-        ? SAW_RECIPES[action.action_data]
-        : WOODWORK_RECIPES[action.action_data];
+    if (action.action_type === 'sawing') {
+      const recipe = SAW_RECIPES[action.action_data];
 
       if (recipe) {
         for (const ingredient of recipe.ingredients) {

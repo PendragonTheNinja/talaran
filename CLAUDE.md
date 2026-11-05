@@ -310,6 +310,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 - **Every level gate is listed in `services/unlocks.ts`** (`unlocksAt`, the level-up popup's "Now open to you"): nodes, recipes, crops, fish, habitats, huntable animals, traps, husbandry species, wearable gear (by `gateSkill` in `services/equipGates.ts`, shared with equipping and item pages) and roads. A new level-gated table needs a branch there, or its level-ups say nothing.
 - **A reset to a reusable state must clear every field the last use wrote.** A trap reset that kept `bait_category` aimed every later catch.
 - **`quests.skill` is nullable.** Client renders must guard it.
+- **Quests are found by exploring the world** (decided, Nathan 2026-11-05): a player learns of a quest by finding its giver. No quest list, panel or signpost points to them.
 - **Dialogue actions carry the quest ID** (`start_quest:12`). Names are a warned fallback. `complete_talk_objective` **requires** a payload after the colon.
 - **Quank name-drops Merrick** in `20260810180000`. Rename the smith and that line needs a migration.
 - **`items.stackable` no longer exists** (dropped `20260801040000`). Older content migrations insert it; don't copy them as templates.
@@ -385,8 +386,6 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 ## 13. Open threads
 
 - **Audit fix batches 1–4** (`docs/AUDIT-2026-09-22.md` §8).
-- **Legacy deletion:** `WOODWORK_RECIPES`, `SMITH_RECIPES`, their routes, and the tick's `woodworking`/`smithing` branches. Still referenced in `gameTick.ts`.
-- **Onboarding discovery:** the bow moved to Geonsen's quest and nothing signals he exists. Nathan wants quests discovered by finding the giver, not listed in a panel.
 - **Combat** is built on `claude/admiring-babbage-ww0x2g` (steps 1 to 10), not yet deployed. Open: creature art and three skill icons. Patch notes wait for Nathan's go-ahead to deploy.
 - **Deferred by choice:** shop tier ladder (numbers already in a table) · stall rent · one-shop-per-island vs per-location poll · the Provisioner (seeded but disabled; activate with `sells: false`) · farming manure source / retting pool / house tiers · breeding (deliberately unbuilt).
 - **Husbandry roadmap:** buffalo (L25, Thick Leather), aurochs (L50, Heavy Leather), sheep (~L60, blocked on a textile consumer), mounts IV–IX.

@@ -31,15 +31,6 @@ interface SawRecipe {
     timer: number;
 }
 
-interface WoodworkRecipe {
-    ingredients: { name: string; quantity: number }[];
-    output: string;
-    outputQuantity: number;
-    requiredLevel: number;
-    xp: number;
-    timer: number;
-}
-
 // ── Recipe maps ───────────────────────────────────────────────────
 
 const WOOD_TYPES = [
@@ -68,33 +59,6 @@ for (const w of WOOD_TYPES) {
         };
     }
 }
-
-export const WOODWORK_RECIPES: Record<string, WoodworkRecipe> = {
-    'lanai_tool_rod': {
-        ingredients: [{ name: 'Lanai Planks', quantity: 1 }],
-        output: 'Lanai Tool Rod',
-        outputQuantity: 1,
-        requiredLevel: 1,
-        xp: 39,
-        timer: 35,
-    },
-    'lanai_staff': {
-        ingredients: [{ name: 'Lanai Planks', quantity: 4 }],
-        output: 'Lanai Staff',
-        outputQuantity: 1,
-        requiredLevel: 5,
-        xp: 169,
-        timer: 140,
-    },
-    'lanai_sawhorse': {
-        ingredients: [{ name: 'Lanai Planks', quantity: 10 }],
-        output: 'Lanai Sawhorse',
-        outputQuantity: 1,
-        requiredLevel: 1,
-        xp: 390,
-        timer: 350,
-    },
-};
 
 // ── Workstation ───────────────────────────────────────────────────
 
@@ -189,44 +153,6 @@ export async function sawPlanks(
         return { success: true, itemName: recipe.output, quantity: recipe.outputQuantity, xpAwarded: recipe.xp, ingredientsRemaining: sawRemaining, outputTotal: sawTotal, drops };
     } catch (err) {
         logger.error(`Saw error: ${err}`);
-        return { success: false, error: SERVER_ERROR };
-    }
-}
-
-// ── Woodwork planks → items ───────────────────────────────────────
-
-export async function woodwork(
-    playerId: number,
-    locationId: number,
-    recipeKey: string
-): Promise<CarpentryResult> {
-    try {
-        const can = await canSawHere(playerId, locationId);
-        if (!can.allowed) return { success: false, error: can.error };
-
-        const recipe = WOODWORK_RECIPES[recipeKey];
-        if (!recipe) return { success: false, error: 'Unknown recipe.' };
-
-        const { skillId, level } = await carpentryLevel(playerId);
-        if (level < recipe.requiredLevel) {
-            return { success: false, error: `You need Carpentry level ${recipe.requiredLevel}.` };
-        }
-
-        // Inputs taken and output given as one locked unit (audit §5.1).
-        const made = await craftItems(playerId, recipe.ingredients, { name: recipe.output, quantity: recipe.outputQuantity });
-        if (!made.ok) return { success: false, error: made.error };
-
-        await updateQuestObjectiveProgress(playerId, 'woodwork', recipe.output, 1);
-
-        await awardXp(playerId, skillId, recipe.xp);
-        await incrementStats(playerId, { total_actions_completed: 1, total_items_built: 1});
-
-        logger.info(`Player ${playerId} crafted ${recipe.outputQuantity}x ${recipe.output}`);
-        const wwRemaining = await ingredientsRemaining(playerId, recipe.ingredients);
-        const wwTotal = await itemTotal(playerId, recipe.output);
-        return { success: true, itemName: recipe.output, quantity: recipe.outputQuantity, xpAwarded: recipe.xp, ingredientsRemaining: wwRemaining, outputTotal: wwTotal };
-    } catch (err) {
-        logger.error(`Woodwork error: ${err}`);
         return { success: false, error: SERVER_ERROR };
     }
 }

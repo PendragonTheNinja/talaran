@@ -23,7 +23,7 @@ const RECIPE_COUNTERS: Record<string, string> = {
 // ── Generic recipe executor (docs/trapping-spec.md §4) ────────────
 // Recipes are rows in the `recipes` table; this service runs any of them.
 // First tenants: Fletch Arrows (Smithing), Tie Snare (Crafting).
-// Inputs are consumed at completion (house pattern, matches woodworking).
+// Inputs are consumed at completion (house pattern, matches sawing).
 
 export interface RecipeResult {
     success: boolean
@@ -157,9 +157,9 @@ export async function stationMultiplier(playerId: number, recipe: any): Promise<
 
 /**
  * The timer for a processing action outside the recipes table (smelting,
- * sawing, the legacy smithing and woodworking maps): levels over it, then the
- * public bench's x2, held to the floor. The start routes and the tick's repeat
- * both call this, so the second lap runs as fast as the first.
+ * sawing): levels over it, then the public bench's x2, held to the floor.
+ * The start routes and the tick's repeat both call this, so the second lap
+ * runs as fast as the first.
  */
 export async function processingTimerFor(
     playerId: number,
