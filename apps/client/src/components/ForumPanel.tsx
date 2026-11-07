@@ -129,6 +129,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const [recentThreads, setRecentThreads] = useState<RecentThread[]>([])
     // Threads this player started that have new replies; the Forum button's count.
     const [myReplies, setMyReplies] = useState<ThreadWithReplies[]>([])
+    const [refreshing, setRefreshing] = useState(false)
     const [currentCategory, setCurrentCategory] = useState<any>(null)
     const [threads, setThreads] = useState<ForumThread[]>([])
     const [currentThread, setCurrentThread] = useState<any>(null)
@@ -398,6 +399,33 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
 
     const formatDate = (dateStr: string) => formatGameDateTime(new Date(dateStr))
 
+    // A board's page numbers, drawn above its threads and again below them.
+    const categoryPages = view === 'category' && currentCategory && totalPages > 1 ? (
+        <div className="forum-pagination">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button key={p} className={`btn ${p === page ? 'btn-gold' : ''}`} onClick={() => loadCategory(currentCategory, p)}>
+                    {p}
+                </button>
+            ))}
+        </div>
+    ) : null
+
+    // A post's Edit button, at its top and again at its foot, so a long post
+    // need not be scrolled through to reach it (Nathan, 2026-11-07).
+    const editButton = (post: ForumPost) => (post.author_name === playerUsername || isAdmin || isMod) && editingPostId !== post.id ? (
+        <button
+            className="btn"
+            style={{ fontSize: '12px' }}
+            onClick={() => {
+                // Start from the post, unless an unsent edit of it is waiting.
+                if (readDraft(`forum:edit:${post.id}`) === '') writeDraft(`forum:edit:${post.id}`, post.content)
+                setEditingPostId(post.id)
+            }}
+        >
+            Edit
+        </button>
+    ) : null
+
     const canPost = (cat: any) => {
         if (!cat) return true
         if (cat.admin_post_only && !isAdmin) return false
@@ -480,6 +508,28 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                     )}
                 </div>
                 <div className="forum-header-actions">
+                    {/* For someone waiting on a reply: read this page again
+                        without backing out and in (Nathan, 2026-11-07). */}
+                    {view !== 'new_thread' && (
+                        <button
+                            className="btn forum-refresh-btn"
+                            title="Refresh"
+                            aria-label="Refresh"
+                            disabled={refreshing}
+                            onClick={async () => {
+                                setRefreshing(true)
+                                try {
+                                    if (view === 'thread' && currentThread) await loadThread(currentThread.id, page)
+                                    else if (view === 'category' && currentCategory) await loadCategory(currentCategory, page)
+                                    else await loadHome()
+                                } finally {
+                                    setRefreshing(false)
+                                }
+                            }}
+                        >
+                            <span className={refreshing ? 'forum-refresh-spin' : ''}>↻</span>
+                        </button>
+                    )}
                     {view !== 'home' && (
                         <button className="btn" onClick={() => {
                             if (view === 'thread') {
@@ -588,6 +638,9 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             <p className="muted-text" style={{ fontSize: '16px' }}>{currentCategory.description}</p>
                         </div>
 
+                        {/* Above the threads as well as below them (Nathan, 2026-11-07). */}
+                        {categoryPages}
+
                         {threads.length === 0 ? (
                             <p className="muted-text" style={{ padding: '16px', fontStyle: 'italic' }}>No threads yet. Be the first to post!</p>
                         ) : (
@@ -623,15 +676,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             </div>
                         )}
 
-                        {totalPages > 1 && (
-                            <div className="forum-pagination">
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                                    <button key={p} className={`btn ${p === page ? 'btn-gold' : ''}`} onClick={() => loadCategory(currentCategory, p)}>
-                                        {p}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        {categoryPages}
                     </div>
                 )}
 
@@ -735,7 +780,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                             Joined: {formatGameDate(new Date(post.player_joined))}                                        </span>
                                     </div>
                                     <div className="forum-post-content">
-                                        <div className="forum-post-timestamp muted-text">{formatDate(post.created_at)}</div>
+                                        <div className="forum-post-timestamp muted-text">
+                                            <span>{formatDate(post.created_at)}</span>
+                                            {editButton(post)}
+                                        </div>
                                         {editingPostId === post.id ? (
                                             <div className="forum-post-edit">
                                                 <MarkdownToolbar onInsert={insertEditMarkdown} />
@@ -775,20 +823,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                         )}
 
                                         <div className="forum-post-actions">
-                                            {(post.author_name === playerUsername || isAdmin || isMod) && (
-                                                <button
-                                                    className="btn"
-                                                    style={{ fontSize: '12px' }}
-                                                    onClick={() => {
-                                                        // Start from the post, unless an unsent edit of it
-                                                        // is waiting.
-                                                        if (readDraft(`forum:edit:${post.id}`) === '') writeDraft(`forum:edit:${post.id}`, post.content)
-                                                        setEditingPostId(post.id)
-                                                    }}
-                                                >
-                                                    Edit
-                                                </button>
-                                            )}
+                                            {editButton(post)}
                                             {currentThread.has_voting && (
                                                 <div className="forum-vote-buttons">
                                                     <button

@@ -6,6 +6,10 @@ import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
 
+// The line under a news post's Announcements copy, kept in one place so an
+// edit writes the copy exactly as creating it did.
+const ANNOUNCEMENT_FOOTER = '\n\n---\n*This is an official Talaran announcement. Discuss it here.*';
+
 // Public - get latest news (no auth required)
 router.get('/latest', async (req: Request, res: Response) => {
   try {
@@ -79,7 +83,7 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
       await db('forum_posts').insert({
         thread_id: thread.id,
         author_id: playerId,
-        content: `${body.trim()}\n\n---\n*This is an official Talaran announcement. Discuss it here.*`,
+        content: `${body.trim()}${ANNOUNCEMENT_FOOTER}`,
         is_first_post: true,
         is_deleted: false,
       });
@@ -100,6 +104,42 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, post });
   } catch (err) {
     logger.error(`News create error: ${err}`);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin - edit a news post from the News panel. Its Announcements thread is
+// rewritten with it (title and first post), so the two never disagree.
+router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  const postId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+  try {
+    const player = await db('players').where({ id: playerId }).first();
+    if (!player?.is_admin) {
+      res.status(403).json({ error: 'Admins only.' });
+      return;
+    }
+    const cleanTitle = readText(req.body?.title, { label: 'Title', max: 200, singleLine: true });
+    if (!cleanTitle.ok) { res.status(400).json({ error: cleanTitle.error }); return; }
+    const cleanBody = readText(req.body?.body, { label: 'Body', max: TEXT_LIMITS.newsBody });
+    if (!cleanBody.ok) { res.status(400).json({ error: cleanBody.error }); return; }
+
+    const post = await db.transaction(async (trx) => {
+      const [row] = await trx('news_posts').where({ id: postId })
+        .update({ title: cleanTitle.value, body: cleanBody.value }).returning('*');
+      if (!row) return null;
+      if (row.forum_thread_id) {
+        await trx('forum_threads').where({ id: row.forum_thread_id }).update({ title: cleanTitle.value, updated_at: trx.fn.now() });
+        await trx('forum_posts').where({ thread_id: row.forum_thread_id, is_first_post: true })
+          .update({ content: `${cleanBody.value}${ANNOUNCEMENT_FOOTER}`, edited_at: trx.fn.now(), updated_at: trx.fn.now() });
+      }
+      return row;
+    });
+    if (!post) { res.status(404).json({ error: 'There is no such news post.' }); return; }
+    logger.info(`Admin ${playerId} edited news post ${postId}`);
+    res.json({ success: true, post });
+  } catch (err) {
+    logger.error(`News edit error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
 });

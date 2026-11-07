@@ -23,6 +23,8 @@ interface LedgerEntry {
     delta: number
     reason: string
     created_at: string
+    /** For an unlock, what it was: "Forgeheart theme" (routes/talers.ts). */
+    detail?: string | null
 }
 
 interface SupportPanelProps {
@@ -228,7 +230,10 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                                 {history.map((h, i) => (
                                     <div key={i} className="support-history-row">
                                         <span className="muted-text">{new Date(h.created_at).toLocaleDateString()}</span>
-                                        <span>{REASON_LABELS[h.reason] ?? h.reason}</span>
+                                        <span>
+                                            {REASON_LABELS[h.reason] ?? h.reason}
+                                            {h.detail ? `: ${h.detail}` : ''}
+                                        </span>
                                         <span className={h.delta > 0 ? 'gold-text' : 'muted-text'}>
                                             {h.delta > 0 ? '+' : ''}{h.delta.toLocaleString()}
                                         </span>

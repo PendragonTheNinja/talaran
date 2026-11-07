@@ -370,6 +370,31 @@
 
 .forum-post-timestamp {
     font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+/* The forum's refresh button: a plain glyph that turns while it reloads. */
+.forum-refresh-btn {
+    min-width: 36px;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.forum-refresh-spin {
+    display: inline-block;
+    animation: forum-refresh-turn 0.8s linear infinite;
+}
+
+@keyframes forum-refresh-turn {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .forum-refresh-spin { animation: none; }
 }
 
 .forum-post-body {

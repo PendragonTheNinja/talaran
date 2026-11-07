@@ -33,13 +33,20 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
     const [showList, setShowList] = useState(false)
     const [posts, setPosts] = useState<NewsPost[]>([])
     const [selected, setSelected] = useState<NewsPost | null>(null)
-    const [view, setView] = useState<'list' | 'create'>('list')
+    const [view, setView] = useState<'list' | 'create' | 'edit'>('list')
+    // Editing a published post in place (Nathan, 2026-11-07): its Announcements
+    // copy in the forum is rewritten with it (routes/news.ts).
+    const [editing, setEditing] = useState<NewsPost | null>(null)
+    const [editTitle, setEditTitle] = useState('')
+    const [editBody, setEditBody] = useState('')
+    const [saving, setSaving] = useState(false)
     // Drafts (lib/drafts.ts): a news post survives closing the panel.
     const [newTitle, setNewTitle, clearNewTitle] = useDraft('news:new:title')
     const [newBody, setNewBody, clearNewBody] = useDraft('news:new:body')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const { textareaRef: bodyTextareaRef, insertMarkdown: insertBodyMarkdown } = useMarkdownEditor(newBody, setNewBody)
+    const { textareaRef: editTextareaRef, insertMarkdown: insertEditMarkdown } = useMarkdownEditor(editBody, setEditBody)
 
     const isMobile = useIsMobile()
     const dock = useDockableWindow('news')
@@ -48,11 +55,13 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
         loadNews()
     }, [])
 
-    const loadNews = async () => {
+    const loadNews = async (keepId?: number) => {
         try {
             const data = await apiFetch<{ posts: NewsPost[] }>('/api/news/latest')
             setPosts(data.posts)
-            if (data.posts.length > 0) setSelected(data.posts[0])
+            const kept = keepId ? data.posts.find(p => p.id === keepId) : null
+            if (kept) setSelected(kept)
+            else if (data.posts.length > 0) setSelected(data.posts[0])
         } catch (err) {
             console.error('Failed to load news:', err)
         }
@@ -73,6 +82,35 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
             await loadNews()
         } catch (err: any) {
             setError(err.message)
+        }
+    }
+
+    const startEdit = (post: NewsPost) => {
+        setError(null)
+        setEditing(post)
+        setEditTitle(post.title)
+        setEditBody(post.body)
+        setView('edit')
+    }
+
+    const handleSaveEdit = async () => {
+        if (!editing) return
+        setError(null)
+        setSaving(true)
+        try {
+            await apiFetch(`/api/news/${editing.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ title: editTitle, body: editBody }),
+            })
+            setSuccess('News post updated.')
+            setTimeout(() => setSuccess(null), 3000)
+            setView('list')
+            await loadNews(editing.id)
+            setEditing(null)
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -102,7 +140,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                     {isAdmin && view === 'list' && (
                         <button className="btn btn-gold" onClick={() => setView('create')}>+ Post Update</button>
                     )}
-                    {view === 'create' && (
+                    {(view === 'create' || view === 'edit') && (
                         <button className="btn" onClick={() => setView('list')}>← Back</button>
                     )}
                     {!isMobile && (
@@ -155,6 +193,11 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                                             </button>
                                         )}
                                         {isAdmin && (
+                                            <button className="btn" style={{ fontSize: '12px' }} onClick={() => startEdit(selected)}>
+                                                Edit
+                                            </button>
+                                        )}
+                                        {isAdmin && (
                                             <button className="btn btn-red" style={{ fontSize: '12px' }} onClick={() => handleDelete(selected.id)}>
                                                 Delete
                                             </button>
@@ -201,6 +244,40 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                     </div>
                     <div className="guild-actions">
                         <button className="btn btn-gold" onClick={handleCreate}>Publish</button>
+                        <button className="btn" onClick={() => setView('list')}>Cancel</button>
+                    </div>
+                </div>
+            )}
+            {view === 'edit' && editing && (
+                <div className="news-create">
+                    <p className="muted-text" style={{ fontSize: '13px' }}>
+                        {editing.forum_thread_id ? 'Saving also updates its thread in the forum\'s Announcements.' : 'This post has no forum thread.'}
+                    </p>
+                    <div className="guild-form-group">
+                        <label className="muted-text">Title</label>
+                        <input
+                            className="chat-input"
+                            type="text"
+                            value={editTitle}
+                            onChange={e => setEditTitle(e.target.value)}
+                            maxLength={200}
+                        />
+                    </div>
+                    <div className="guild-form-group">
+                        <label className="muted-text">Body</label>
+                        <MarkdownToolbar onInsert={insertEditMarkdown} />
+                        <textarea
+                            ref={editTextareaRef}
+                            className="chat-input"
+                            value={editBody}
+                            onChange={e => setEditBody(e.target.value)}
+                            rows={12}
+                            maxLength={TEXT_LIMITS.newsBody}
+                            style={{ width: '100%', resize: 'vertical', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+                        />
+                    </div>
+                    <div className="guild-actions">
+                        <button className="btn btn-gold" onClick={handleSaveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
                         <button className="btn" onClick={() => setView('list')}>Cancel</button>
                     </div>
                 </div>
