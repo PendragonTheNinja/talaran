@@ -107,8 +107,8 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
             setView('list')
             await loadNews(editing.id)
             setEditing(null)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not save the post.')
         } finally {
             setSaving(false)
         }
