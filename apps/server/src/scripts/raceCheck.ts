@@ -1757,6 +1757,23 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'loadout', name: 'wear two loadouts five times at once, back and forth', rounds: 10,
+        run: async (ctx) => {
+            // services/loadouts.ts wearLoadout: every piece goes through
+            // wearFromPackWithin with the equipment row locked first, so
+            // alternating sets never double a hatchet or lose an axe.
+            const w = await world(ctx);
+            await wearing(ctx, w.player.id, 'mainhand_item_id', w.hatchet.id);
+            await inPack(ctx, w.player.id, w.axeA.id, 1);
+            const a = await ctx.seed.row('player_loadouts', { player_id: w.player.id, name: 'Hatchet', slots: JSON.stringify({ mainhand: w.hatchet.id }) });
+            const b = await ctx.seed.row('player_loadouts', { player_id: w.player.id, name: 'Crude', slots: JSON.stringify({ mainhand: w.axeA.id }) });
+            const st = await ctx.burst(w.player.id, 5, (i) => ctx.post(w.player.id, `/equipment/loadouts/${i % 2 ? a.id : b.id}/wear`, {}));
+            return changed('hatchets', 1, await ctx.itemTotal(w.hatchet.id))
+                ?? changed('crude axes', 1, await ctx.itemTotal(w.axeA.id))
+                ?? succeeded(st, 5);
+        },
+    },
+    {
         id: 'crier', name: "answer one of the Crier's polls five times at once", rounds: 10,
         run: async (ctx) => {
             // services/crierPolls.ts answerPoll: the response's unique key on

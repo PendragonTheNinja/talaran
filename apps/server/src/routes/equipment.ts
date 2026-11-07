@@ -4,6 +4,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { addItemToInventoryWithin } from '../services/inventory';
 import { combatLevels, combatProfile, CombatProfile, COMBAT_SKILLS } from '../services/combat';
+import { listLoadouts, saveLoadout, updateLoadout, deleteLoadout, wearLoadout } from '../services/loadouts';
+import { failureStatus } from '../lib/serviceResult';
 import { VALID_SLOTS, ensureEquipmentRow, equipLevelRefusal, wearFromPackWithin } from '../services/equipment';
 
 const router = Router();
@@ -243,6 +245,42 @@ router.post('/unequip', requireAuth, async (req: AuthRequest, res: Response) => 
     logger.error(`Unequip error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// ── Loadouts (services/loadouts.ts) ─────────────────────────────────────────
+
+router.get('/loadouts', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    res.json({ loadouts: await listLoadouts(req.player!.playerId) });
+  } catch (err) {
+    logger.error(`Loadouts list error: ${err}`);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/loadouts', requireAuth, async (req: AuthRequest, res: Response) => {
+  const r = await saveLoadout(req.player!.playerId, req.body?.name);
+  if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
+  res.json({ loadouts: r.loadouts });
+});
+
+router.put('/loadouts/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const r = await updateLoadout(req.player!.playerId, req.params.id, req.body);
+  if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
+  res.json({ loadouts: r.loadouts });
+});
+
+router.delete('/loadouts/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const r = await deleteLoadout(req.player!.playerId, req.params.id);
+  if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
+  res.json({ loadouts: r.loadouts });
+});
+
+router.post('/loadouts/:id/wear', requireAuth, async (req: AuthRequest, res: Response) => {
+  const playerId = req.player!.playerId;
+  const r = await wearLoadout(playerId, req.params.id);
+  if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
+  res.json({ report: r.report, ...(await equipmentState(playerId)) });
 });
 
 export default router;

@@ -1,0 +1,94 @@
+/* LoadoutsModal.tsx: a modal-box (Stonehold frames it), sized for phones too. */
+.loadouts-modal {
+    width: min(520px, calc(100vw - 24px));
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    text-align: left;
+    padding: var(--space-lg);
+}
+
+.loadouts-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.loadouts-head h3 { margin: 0; }
+
+.loadouts-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.loadouts-row {
+    border: 1px solid var(--color-border-mid);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.loadouts-row-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.loadouts-name {
+    flex: 1;
+    font-family: var(--font-heading);
+    color: var(--color-text-bright);
+    font-size: 16px;
+    overflow-wrap: anywhere;
+}
+
+.loadouts-name-input { flex: 1; min-width: 0; }
+
+.loadouts-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.loadouts-piece.inventory-slot {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+}
+
+.loadouts-piece img { width: 34px; height: 34px; object-fit: contain; }
+
+.loadouts-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.loadouts-row-actions .btn { font-size: 12px; }
+
+.loadouts-delete { color: var(--color-red-glow); }
+
+.loadouts-report {
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    font-size: 14px;
+    color: var(--color-text-bright);
+}
+
+.loadouts-report p { margin: 2px 0; }
+
+.loadouts-report.partial { border-color: var(--color-red-bright); }
+
+.loadouts-save {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.loadouts-save input { flex: 1; min-width: 0; }

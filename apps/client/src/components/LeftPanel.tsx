@@ -10,6 +10,7 @@ import StatsTabs from './StatsTabs'
 import { useItemTooltip } from './ItemTooltip'
 import { announceHp, type Hp } from '../lib/combat'
 import FillingGem from './FillingGem'
+import LoadoutsModal from './LoadoutsModal'
 import { announceTalar, CHARGED_QUALITIES, type Talar } from '../lib/talar'
 
 interface InventoryItem {
@@ -117,6 +118,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
   const isMobile = useIsMobile()
   const panelRef = useRef<HTMLElement>(null)
   const [sortOpen, setSortOpen] = useState(false)
+  const [showLoadouts, setShowLoadouts] = useState(false)
   // Kept mounted through the exit animation, the same way GameLayout's panels do
   // it. Unmounting on close meant the drawer only ever animated on the way in.
   const [sortClosing, setSortClosing] = useState(false)
@@ -597,6 +599,17 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
             </>
           )}
         </div>
+
+        {/* Loadouts (Nathan, 2026-11-07): named sets to wear in one tap. */}
+        <button className="drop-mode-btn" onClick={() => setShowLoadouts(true)} title="Save and wear sets of gear">
+          ⚔ Loadouts
+        </button>
+        {showLoadouts && (
+          <LoadoutsModal
+            onClose={() => setShowLoadouts(false)}
+            onChanged={() => { onEquipmentUpdate(); onInventoryUpdate() }}
+          />
+        )}
 
         {/* Trading: how much one tap offers, beside the pack (it sat at the
             foot of the column, out of sight; forum, 2026-11-05). */}
