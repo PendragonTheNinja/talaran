@@ -84,7 +84,7 @@
     margin-left: auto;
     background: none;
     border: none;
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
     font-size: 20px;
     line-height: 1;
     cursor: pointer;
@@ -112,12 +112,12 @@
 }
 
 .crier-optional {
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
     font-size: 14px;
 }
 
 .crier-sub {
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
     font-size: 13.5px;
     margin: -2px 0 8px;
 }
@@ -250,7 +250,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 12.5px;
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
     margin: 4px 2px 2px;
 }
 
@@ -348,7 +348,7 @@
     border: none;
     font: inherit;
     font-size: 14px;
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
     text-decoration: underline;
     cursor: pointer;
     padding: 6px 0;
@@ -371,7 +371,7 @@
 
 .crier-meta {
     font-size: 12.5px;
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
 }
 
 .crier-foot .btn {
@@ -421,7 +421,7 @@
 
 .crier-bar-note {
     font-family: var(--font-num);
-    color: var(--color-text-muted);
+    color: var(--color-text-base);
     font-size: 12.5px;
     white-space: nowrap;
 }
@@ -437,6 +437,25 @@
     color: #2e2416;
     box-shadow: none;
     filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
+}
+
+/* The parchment art is a mid-grey (about #847e74): no ink reads on it at a
+   comfortable contrast (measured 2.3 to 4.2 to 1, under 2 on its dark
+   patches; players found it hard to read, 2026-11-07). A cream wash over its
+   middle lifts the ground the text sits on; the torn edges still show. */
+:root[data-theme='stonehold'] .crier-card::before {
+    content: '';
+    position: absolute;
+    inset: 9px;
+    background: rgba(246, 238, 216, 0.66);
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+:root[data-theme='stonehold'] .crier-card > * {
+    position: relative;
+    z-index: 1;
 }
 
 :root[data-theme='stonehold'] .crier-kicker { color: #6e1d14; }
