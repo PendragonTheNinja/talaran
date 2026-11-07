@@ -3,6 +3,7 @@ import { avatarSrc } from '../lib/avatar'
 import Badge from './Badge'
 import { formatGameDate, formatGameDateTime } from '../lib/time'
 import { apiFetch } from '../lib/api'
+import { onSocket } from '../lib/socket'
 import './ForumPanel.css'
 import ConfirmModal from './ConfirmModal'
 import MarkdownRenderer from './MarkdownRenderer'
@@ -88,6 +89,15 @@ interface RecentThread {
     last_poster_name: string
 }
 
+/** One of this player's threads with replies they have not seen (routes/forum.ts). */
+interface ThreadWithReplies {
+    thread_id: number
+    title: string
+    newReplies: number
+    firstNewPage: number
+    lastReplyAt: string
+}
+
 type ForumView = 'home' | 'category' | 'thread' | 'new_thread'
 
 /** Where the forum was left, for reopening there (this browser session). */
@@ -117,6 +127,8 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const [view, setView] = useState<ForumView>('home')
     const [categories, setCategories] = useState<ForumCategory[]>([])
     const [recentThreads, setRecentThreads] = useState<RecentThread[]>([])
+    // Threads this player started that have new replies; the Forum button's count.
+    const [myReplies, setMyReplies] = useState<ThreadWithReplies[]>([])
     const [currentCategory, setCurrentCategory] = useState<any>(null)
     const [threads, setThreads] = useState<ForumThread[]>([])
     const [currentThread, setCurrentThread] = useState<any>(null)
@@ -183,11 +195,21 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
             ])
             setCategories(catData.categories)
             setRecentThreads(recentData.recentThreads)
+            loadMyReplies()
             setView('home')
         } catch (err) {
             setError('Failed to load forum.')
         }
     }
+
+    const loadMyReplies = () => {
+        apiFetch<{ threads: ThreadWithReplies[] }>('/api/forum/replies')
+            .then(data => setMyReplies(data.threads))
+            .catch(() => { })
+    }
+
+    // A reply arrives, or this player opens one of their threads on another tab.
+    useEffect(() => onSocket('forum_replies_changed', () => loadMyReplies()), [])
 
     const loadCategory = async (cat: ForumCategory, p = 1) => {
         try {
@@ -530,6 +552,18 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                         </div>
 
                         <div className="forum-recent">
+                            {myReplies.length > 0 && (
+                                <div className="forum-my-replies">
+                                    <h3 className="forum-section-title gold-text">Replies to Your Threads</h3>
+                                    {myReplies.map(t => (
+                                        <div key={t.thread_id} className="forum-recent-row" onClick={() => loadThread(t.thread_id, t.firstNewPage)}>
+                                            <span className="forum-recent-title gold-text">{t.title}</span>
+                                            <span className="forum-replies-new">{t.newReplies} new</span>
+                                            <span className="muted-text" style={{ fontSize: '16px' }}>{formatDate(t.lastReplyAt)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <h3 className="forum-section-title gold-text">Recent Activity</h3>
                             {recentThreads.length === 0 ? (
                                 <p className="muted-text" style={{ fontStyle: 'italic', fontSize: '16px' }}>No posts yet.</p>

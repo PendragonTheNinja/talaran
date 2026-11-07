@@ -7,7 +7,7 @@ import ChatPanel from './ChatPanel'
 import LocationPanel from './LocationPanel'
 import { Player } from '../types'
 import { apiFetch } from '../lib/api'
-import { getSocket } from '../lib/socket'
+import { getSocket, onSocket } from '../lib/socket'
 import './GameLayout.css'
 import ForgeMenu from './ForgeMenu'
 import CarpentryMenu from './CarpentryMenu'
@@ -586,6 +586,20 @@ export default function GameLayout({
 
   const [showMessages, setShowMessages] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  // New replies on threads this player started (routes/forum.ts): read on
+  // load, every 30 seconds, and whenever the server says it changed.
+  const [unreadForum, setUnreadForum] = useState(0)
+  const loadForumCount = useCallback(() => {
+    apiFetch<{ count: number }>('/api/forum/replies/count')
+      .then(data => setUnreadForum(data.count))
+      .catch(() => { })
+  }, [])
+  useEffect(() => {
+    loadForumCount()
+    const interval = setInterval(loadForumCount, 30000)
+    return () => clearInterval(interval)
+  }, [loadForumCount])
+  useEffect(() => onSocket('forum_replies_changed', () => loadForumCount()), [loadForumCount])
 
   const [showForum, setShowForum] = useState(false)
   const [forumOpenThreadId, setForumOpenThreadId] = useState<number | null>(null)
@@ -858,7 +872,7 @@ export default function GameLayout({
 
   const mobileMenuItems = [
     { label: 'Messages', onClick: () => { closeAllPanels(); setShowMessages(true) }, badge: unreadMessages },
-    { label: 'Forum', onClick: () => { closeAllPanels(); setShowForum(true) } },
+    { label: 'Forum', onClick: () => { closeAllPanels(); setShowForum(true) }, badge: unreadForum },
     { label: 'Guild', onClick: () => { closeAllPanels(); setShowGuildPanel(true) } },
     { label: 'News', onClick: () => { closeAllPanels(); setShowNews(true) } },
     { label: 'Highscores', onClick: () => { closeAllPanels(); setShowHighscores(true) } },
@@ -1467,6 +1481,7 @@ export default function GameLayout({
         player={player}
         onLogout={onLogout}
         unreadMessages={unreadMessages}
+        unreadForum={unreadForum}
         onGuildClick={() => { closeAllPanels(); setShowGuildPanel(true) }}
         onMessagesClick={() => {
           if (showMessages) closePanel(setMessagesClosing, setShowMessages)

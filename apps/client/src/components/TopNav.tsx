@@ -18,6 +18,8 @@ interface TopNavProps {
   onHighscoresClick: () => void
   onEventsClick: () => void
   unreadMessages: number
+  /** New replies on threads this player started (routes/forum.ts). */
+  unreadForum?: number
   isAdmin?: boolean
   isMod?: boolean
   onAdminClick?: () => void
@@ -26,7 +28,7 @@ interface TopNavProps {
   onManualClick: () => void
 }
 
-export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onJournalClick, onForumClick, onNewsClick, onHighscoresClick, onEventsClick, unreadMessages, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick, onManualClick }: TopNavProps) {
+export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onJournalClick, onForumClick, onNewsClick, onHighscoresClick, onEventsClick, unreadMessages, unreadForum = 0, isAdmin, isMod, onAdminClick, onSettingsClick, onSupportClick, onManualClick }: TopNavProps) {
   const navigate = useNavigate()
   return (
     <nav className="top-nav">
@@ -57,6 +59,9 @@ export default function TopNav({ onLogout, onGuildClick, onMessagesClick, onJour
             {item === 'Settings' ? '⚙️' : item}
             {item === 'Messages' && unreadMessages > 0 && (
               <span className="nav-unread-badge">{unreadMessages}</span>
+            )}
+            {item === 'Forum' && unreadForum > 0 && (
+              <span className="nav-unread-badge" title="New replies to your threads">{unreadForum > 99 ? '99+' : unreadForum}</span>
             )}
           </button>
         ))}

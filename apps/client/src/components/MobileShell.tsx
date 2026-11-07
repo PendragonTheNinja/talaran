@@ -27,6 +27,7 @@ const NAV: { key: MobileView; label: string; icon: string }[] = [
 ]
 
 export default function MobileShell({ menuItems, actionScene, locationPanel, inventoryPanel, equipmentPanel, skillsPanel, chatPanel, miniMap, mapRegion, focusAction = 0 }: MobileShellProps) {
+    const menuWaiting = menuItems.reduce((n, item) => n + (item.badge ?? 0), 0)
     const [view, setView] = useState<MobileView>('action')
     const [showFullMap, setShowFullMap] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
@@ -72,7 +73,12 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
         <div className="mobile-shell">
             <div className="mobile-topbar">
                 <span className="mobile-brand">Talaran</span>
-                <button className="mobile-menu-btn" onClick={() => setMenuOpen(true)} aria-label="Menu">☰</button>
+                <button className="mobile-menu-btn" onClick={() => setMenuOpen(true)} aria-label={menuWaiting > 0 ? `Menu, ${menuWaiting} waiting` : 'Menu'}>
+                    ☰
+                    {/* What waits inside (messages, forum replies), so a phone
+                        player sees it without opening the menu. */}
+                    {menuWaiting > 0 && <span className="mobile-menu-btn-badge">{menuWaiting > 99 ? '99+' : menuWaiting}</span>}
+                </button>
             </div>
 
             <div className="mobile-view">

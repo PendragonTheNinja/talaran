@@ -3,7 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
-import { pushToAll } from '../lib/realtime';
+import { pushToAll, pushToPlayer } from '../lib/realtime';
 import { readText, TEXT_LIMITS } from '../lib/textLimits';
 
 const router = Router();
@@ -20,6 +20,71 @@ async function forumBanned(player: { id: number; is_forum_banned: boolean; forum
     await db('players').where({ id: player.id }).update({ is_forum_banned: false, forum_banned_until: null });
     return false;
 }
+
+// ── Replies to your own threads (Nathan, 2026-11-07) ─────────────────────────
+// The Forum button counts replies other players have left on threads you
+// started since you last opened each one, as Messages counts unread messages.
+// Replying to a comment on someone else's thread never counts: only the
+// thread's starter is told. forum_threads.author_seen_at is stamped when the
+// starter opens the thread; a reply pushes 'forum_replies_changed' to them.
+
+const POSTS_PER_PAGE = 20;
+
+interface ThreadWithReplies { thread_id: number; title: string; newReplies: number; firstNewPage: number; lastReplyAt: string }
+
+async function repliesToMyThreads(playerId: number): Promise<ThreadWithReplies[]> {
+    const player = await db('players').where({ id: playerId }).first('is_admin', 'is_mod');
+    const isStaff = !!(player?.is_admin || player?.is_mod);
+    const rows = await db('forum_threads as t')
+        .join('forum_posts as p', 'p.thread_id', 't.id')
+        .join('forum_categories as c', 'c.id', 't.category_id')
+        .where('t.author_id', playerId)
+        .where('t.is_deleted', false)
+        .where('p.is_deleted', false)
+        .whereNot('p.author_id', playerId)
+        .whereRaw('p.created_at > COALESCE(t.author_seen_at, t.created_at)')
+        .modify(q => { if (!isStaff) q.where('c.staff_only', false); })
+        .groupBy('t.id', 't.title')
+        .orderByRaw('MAX(p.created_at) DESC')
+        .select<{ thread_id: number; title: string; n: string; first_new: Date; last_new: Date }[]>(
+            't.id as thread_id', 't.title', db.raw('COUNT(p.id) AS n'),
+            db.raw('MIN(p.created_at) AS first_new'), db.raw('MAX(p.created_at) AS last_new'));
+    const out: ThreadWithReplies[] = [];
+    for (const r of rows) {
+        // The page the first new reply is on, so the list opens straight to it.
+        const before = await db('forum_posts')
+            .where({ thread_id: r.thread_id, is_deleted: false })
+            .where('created_at', '<', r.first_new)
+            .count('id as count').first();
+        out.push({
+            thread_id: Number(r.thread_id), title: r.title, newReplies: Number(r.n),
+            firstNewPage: Math.floor((Number(before?.count) || 0) / POSTS_PER_PAGE) + 1,
+            lastReplyAt: new Date(r.last_new).toISOString(),
+        });
+    }
+    return out;
+}
+
+/** GET /api/forum/replies/count: new replies on threads this player started. */
+router.get('/replies/count', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const threads = await repliesToMyThreads(req.player!.playerId);
+        res.json({ count: threads.reduce((n, t) => n + t.newReplies, 0) });
+    } catch (err) {
+        logger.error(`Forum reply count error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/** GET /api/forum/replies: which of this player's threads have new replies. */
+router.get('/replies', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        res.json({ threads: await repliesToMyThreads(req.player!.playerId) });
+    } catch (err) {
+        logger.error(`Forum replies error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
 // Get all categories (filtered by staff status)
 router.get('/categories', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -158,7 +223,7 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
     const playerId = req.player!.playerId;
     const threadId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
     const page = parseInt(req.query.page as string) || 1;
-    const limit = 20;
+    const limit = POSTS_PER_PAGE;
     const offset = (page - 1) * limit;
 
     try {
@@ -184,6 +249,13 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
 
         // Increment view count
         await db('forum_threads').where({ id: threadId }).increment('view_count', 1);
+
+        // The starter has now seen every reply: their Forum count drops, in
+        // every tab they have open.
+        if (Number(thread.author_id) === playerId) {
+            await db('forum_threads').where({ id: threadId }).update({ author_seen_at: db.fn.now() });
+            pushToPlayer(playerId, 'forum_replies_changed', { threadId });
+        }
 
         const posts = await db('forum_posts')
             .where({ thread_id: threadId, is_deleted: false })
@@ -445,6 +517,11 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
         });
 
         await db('players').where({ id: playerId }).increment('forum_post_count', 1);
+
+        // Only the thread's starter is told, and never about their own reply.
+        if (Number(thread.author_id) !== playerId) {
+            pushToPlayer(Number(thread.author_id), 'forum_replies_changed', { threadId });
+        }
 
         logger.info(`Player ${playerId} replied to thread ${threadId}`);
         res.json({ success: true });

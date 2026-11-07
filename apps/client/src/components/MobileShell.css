@@ -364,6 +364,28 @@
     color: var(--color-red-glow);
 }
 
+.mobile-menu-btn {
+    position: relative;
+}
+
+.mobile-menu-btn-badge {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    background: var(--color-red);
+    color: var(--color-text-white);
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 16px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    text-align: center;
+    pointer-events: none;
+}
+
 .mobile-menu-badge {
     background: var(--color-red);
     color: var(--color-text-white);

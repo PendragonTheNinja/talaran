@@ -157,6 +157,22 @@
     flex-direction: column;
 }
 
+.forum-my-replies {
+    margin-bottom: var(--space-lg);
+}
+
+/* "3 new", beside a thread with replies this player has not seen. */
+.forum-replies-new {
+    flex-shrink: 0;
+    background: var(--color-gold-bright);
+    color: var(--color-on-gold);
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 9px;
+    padding: 0 8px;
+    line-height: 18px;
+}
+
 .forum-recent-row {
     display: flex;
     align-items: center;
