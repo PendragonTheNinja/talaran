@@ -119,6 +119,14 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Kinds:** single, multi (max picks), scale, rank, points (share N), item (icons), number, text; Yes/No and Agree/Disagree are admin presets of single. Write-ins (`allow_write_in`) on single, multi and item; an optional note on any. Players see counts only, never what others wrote. Admin: the Polls tab (`AdminCrier.tsx`, `/api/admin/crier`), CSV export; a poll with answers can't be edited or deleted, only re-timed or closed.
 - Open and close pushes (`crier_polls_changed`) come from a 15 s database-driven sweep (`announced_open_at`/`announced_close_at`), so scheduled polls need no timer.
 
+### The language filter (`lib/wordFilter.ts` matching, `services/wordFilter.ts` list and hooks)
+- **Public text only** (Nathan, 2026-11-07): world, region, trade and help chat; forum titles, posts, edits and poll text; guild descriptions and recruitment; shop taglines and descriptions. Guild chat, whispers, private messages and the guild forum are left alone. Swears become silly words (`filter_substitutes`) and the sender is told (`SWEAR_NOTICE`); a slur refuses the text and writes a `filter_flags` row (admin Players tab, "Language Flags", `can_moderate_chat`). **No automatic mutes**: staff judge.
+- **Names are refused, not cleaned:** usernames (register and claim), guild names and tags, shop names (`namesRefusal`). Existing names are untouched.
+- **Matching is whole-word** after normalising (case, accents, look-alike letters, number and symbol stand-ins, invisible characters), with letters stretched to 3+ ("fuuuck", never a plain double), common endings, starred letters and spaced-out letters. Only `embedded` words are also caught inside longer words (names, compounds); `filter_allow` holds innocent words that contain one ("snigger"). The list is content in `filter_words`, edited in the admin content browser and re-read every minute. **After changing it, run `pnpm filter:check [dictionary.txt]`**; against 274,000 English words it changed only real swears (2026-11-07).
+
+### Loadouts (`services/loadouts.ts`)
+- Up to 5 named snapshots of every worn slot (`player_loadouts.slots`, slot to item id). Wearing goes through `wearFromPackWithin`, the equip button's own locked swap, main hand first; a piece not in the pack or above the player's level is named and skipped, the rest go on; a slot empty when saved is left alone (race:check `loadout`).
+
 ### Materials & the circularity rule (locked)
 - **Leather** (Husbandry, cattle) is the mainline, five tiers. **Buckskin** (Hunting) is one item, yield-scaled by animal size, and cuts into tier-1 strips only.
 - **Feathers:** wild pheasant = trickle, farmed chickens = volume. Don't spread feathers to other skills.

@@ -11,6 +11,7 @@ import {
     membershipOf, rankOf, rankPermissions, setRole, leaderCount, MAX_LEADERS, type Role,
 } from '../services/guildRanks';
 import { guildStorehousesHoldAnything } from '../services/guildHall';
+import { namesRefusal, cleanPublicText, FilterRefusal } from '../services/wordFilter';
 import { noteDeed } from '../services/chronicle';
 
 const router = Router();
@@ -131,6 +132,11 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
             res.status(400).json({ error: 'Guild tag must be 1-5 characters.' });
             return;
         }
+        // The language filter (services/wordFilter.ts): the name and tag are
+        // refused with a swear or slur in them; the description is cleaned.
+        const badGuildName = await namesRefusal(cleanName.value, tag);
+        if (badGuildName) { res.status(400).json({ error: badGuildName }); return; }
+        if (cleanDescription.value) cleanDescription.value = (await cleanPublicText(playerId, 'guild:description', cleanDescription.value)).text;
 
         // Check name and tag uniqueness
         const existing = await db('guilds')
@@ -194,6 +200,7 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
         logger.info(`Player ${playerId} created guild ${guild.name} [${guild.tag}]`);
         res.json({ success: true, guild });
     } catch (err) {
+        if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
         logger.error(`Create guild error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -715,13 +722,13 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
         if (description !== undefined) {
             const clean = readText(description, { label: 'Description', max: TEXT_LIMITS.guildDescription, required: false });
             if (!clean.ok) { res.status(400).json({ error: clean.error }); return; }
-            updates.description = clean.value;
+            updates.description = clean.value ? (await cleanPublicText(playerId, 'guild:description', clean.value)).text : clean.value;
         }
         if (open_applications !== undefined) updates.open_applications = open_applications;
         if (recruitment_message !== undefined) {
             const clean = readText(recruitment_message, { label: 'Recruitment message', max: TEXT_LIMITS.guildRecruitment, required: false });
             if (!clean.ok) { res.status(400).json({ error: clean.error }); return; }
-            updates.recruitment_message = clean.value;
+            updates.recruitment_message = clean.value ? (await cleanPublicText(playerId, 'guild:recruitment', clean.value)).text : clean.value;
         }
         if (min_level_requirement !== undefined) updates.min_level_requirement = Math.max(1, parseInt(min_level_requirement));
 
@@ -730,6 +737,8 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
             const clean = readText(name, { label: 'Guild name', max: TEXT_LIMITS.guildName, singleLine: true });
             if (!clean.ok) { res.status(400).json({ error: clean.error }); return; }
             if (clean.value !== guild.name) {
+                const badGuildName = await namesRefusal(clean.value);
+                if (badGuildName) { res.status(400).json({ error: badGuildName }); return; }
                 const existing = await db('guilds').where({ name: clean.value }).whereNot({ id: guild.id }).first();
                 if (existing) {
                     res.status(400).json({ error: 'That guild name is already taken.' });
@@ -755,6 +764,8 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
                 res.status(400).json({ error: 'Guild tag must be 2-5 characters.' });
                 return;
             }
+            const badTag = await namesRefusal(newTag);
+            if (badTag) { res.status(400).json({ error: badTag }); return; }
             const existingTag = await db('guilds').where({ tag: newTag }).whereNot({ id: guild.id }).first();
             if (existingTag) {
                 res.status(400).json({ error: 'That guild tag is already taken.' });
@@ -773,6 +784,7 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
         logger.info(`Guild ${guild.id} settings updated by player ${playerId}`);
         res.json({ success: true, message: 'Guild settings updated.' });
     } catch (err) {
+        if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
         logger.error(`Guild settings error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }

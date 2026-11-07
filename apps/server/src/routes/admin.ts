@@ -811,4 +811,34 @@ router.post('/message', requireAuth, async (req: AuthRequest, res: Response) => 
     }
 });
 
+// ── The language filter's flags (services/wordFilter.ts) ─────────────────────
+// Slurs the filter stopped, for staff who moderate chat. Reviewing one only
+// marks it seen: what happens to the player is staff judgement (Nathan, 2026-11-07).
+
+router.get('/filter-flags', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!await hasPermission(req.player!.playerId, 'can_moderate_chat')) { res.status(403).json({ error: 'No permission.' }); return; }
+        const flags = await db('filter_flags as f').join('players as p', 'p.id', 'f.player_id')
+            .whereNull('f.reviewed_at').orderBy('f.created_at', 'desc').limit(50)
+            .select('f.id', 'f.player_id', 'p.username', 'f.place', 'f.text', 'f.matched', 'f.created_at');
+        res.json({ flags });
+    } catch (err) {
+        logger.error(`Filter flags error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/filter-flags/:id/review', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const staffId = req.player!.playerId;
+        if (!await hasPermission(staffId, 'can_moderate_chat')) { res.status(403).json({ error: 'No permission.' }); return; }
+        const id = Math.floor(Number(req.params.id));
+        await db('filter_flags').where({ id }).whereNull('reviewed_at').update({ reviewed_at: db.fn.now(), reviewed_by: staffId });
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Filter flag review error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 export default router;

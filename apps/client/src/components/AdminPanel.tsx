@@ -7,6 +7,7 @@ import AdminBalanceChecks from './AdminBalanceChecks'
 import AdminManualEditor from './AdminManualEditor'
 import AdminChronicle from './AdminChronicle'
 import AdminCrier from './AdminCrier'
+import LanguageFlags from './LanguageFlags'
 import AdminEvents from './AdminEvents'
 import { avatarSrc } from '../lib/avatar'
 import './AdminPanel.css'
@@ -506,6 +507,9 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                     </div>
 
                     <div className="admin-divider" />
+
+                    {/* Slurs the language filter stopped (shown only when there are any). */}
+                    <LanguageFlags onOpenPlayer={loadPlayer} />
 
                     {/* Online players */}
                     <div className="admin-section" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

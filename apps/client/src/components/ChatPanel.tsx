@@ -335,7 +335,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
     if (!trimmed) return
 
     try {
-      const sent = await apiFetch<{ whisperTo?: string }>('/api/chat/send', {
+      const sent = await apiFetch<{ whisperTo?: string; notice?: string | null }>('/api/chat/send', {
         method: 'POST',
         body: JSON.stringify({ channel: activeChannel, message: trimmed }),
       })
@@ -346,6 +346,19 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
       // only it knows whether "Old Tom" is a player).
       const next = sent?.whisperTo ? `${sent.whisperTo}@` : ''
       setInput(cur => (cur === input ? next : cur))
+      // The language filter changed some words (server services/wordFilter.ts):
+      // only the sender sees why.
+      if (sent?.notice) {
+        addMessages([{
+          id: Date.now(),
+          channel: 'server',
+          playerName: '[SERVER]',
+          guildTag: null,
+          message: sent.notice,
+          timestamp: formatTime(new Date()),
+          rawTimestamp: Date.now(),
+        }], true)
+      }
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: Date.now(),

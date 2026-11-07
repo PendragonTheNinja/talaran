@@ -11,6 +11,7 @@ import {
   passwordProblem, hashPassword, passwordMatches, cleanEmail, cleanUsername, EMAIL_PROBLEM, isUniqueViolation,
 } from '../lib/credentials';
 import { setUpNewPlayerWithin } from '../services/newPlayer';
+import { namesRefusal } from '../services/wordFilter';
 import { noteDeed } from '../services/chronicle';
 
 const router = Router();
@@ -29,6 +30,12 @@ router.post('/register', async (req: Request, res: Response) => {
   const name = cleanUsername(username);
   if (!name.ok) {
     res.status(400).json({ error: name.error });
+    return;
+  }
+  // The language filter (services/wordFilter.ts): no swear or slur in a name.
+  const badName = await namesRefusal(name.value);
+  if (badName) {
+    res.status(400).json({ error: badName });
     return;
   }
 
@@ -309,6 +316,12 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
   const name = cleanUsername(username);
   if (!name.ok) {
     res.status(400).json({ error: name.error });
+    return;
+  }
+  // The language filter (services/wordFilter.ts): no swear or slur in a name.
+  const badName = await namesRefusal(name.value);
+  if (badName) {
+    res.status(400).json({ error: badName });
     return;
   }
   const email = cleanEmail(req.body.email);

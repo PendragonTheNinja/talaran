@@ -8,6 +8,7 @@ import { creditGoldWithin, debitGoldWithin, lockPlayersInOrder } from './gold';
 import { addItemToInventoryWithin, removeItemFromInventoryWithin, takeItemsWithin } from './inventory';
 import { awardXp as awardSkillXp } from './xp';
 import { pushToPlayer } from '../lib/realtime';
+import { namesRefusal, cleanPublicText, FilterRefusal } from './wordFilter'
 import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Player Shops (docs/marketplace-spec.md §4).
@@ -1069,6 +1070,10 @@ export async function setShopDetails(
 
     const clean = String(name ?? '').trim().slice(0, 60);
     if (clean.length < 2) return { success: false, error: 'Give your shop a name.' };
+    // The language filter (services/wordFilter.ts): a swear or slur in the
+    // name refuses it; the tagline and description are cleaned.
+    const badName = await namesRefusal(clean);
+    if (badName) return { success: false, error: badName };
 
     // The tagline shares a row with the shop name, so it is single-line by
     // force rather than by asking nicely.
@@ -1076,10 +1081,19 @@ export async function setShopDetails(
         ? null
         : String(tagline).replace(/\s+/g, ' ').trim().slice(0, 80) || null;
 
+    let tag = cleanTagline;
+    let desc = tidyDescription(description);
+    try {
+        if (tag) tag = (await cleanPublicText(playerId, 'shop:tagline', tag)).text;
+        if (desc) desc = (await cleanPublicText(playerId, 'shop:description', desc)).text;
+    } catch (err) {
+        if (err instanceof FilterRefusal) return { success: false, error: err.message };
+        throw err;
+    }
     await db('player_shops').where({ id: found.shop.id }).update({
         name: clean,
-        tagline: cleanTagline,
-        description: tidyDescription(description),
+        tagline: tag,
+        description: desc,
         updated_at: new Date(),
     });
     return { success: true, message: 'Shopfront updated.' };

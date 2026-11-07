@@ -280,7 +280,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const handleNewThread = async () => {
         setError(null)
         try {
-            const data = await apiFetch<{ threadId: number }>('/api/forum/threads', {
+            const data = await apiFetch<{ threadId: number; notice?: string | null }>('/api/forum/threads', {
                 method: 'POST',
                 body: JSON.stringify({
                     categoryId: newCategoryId,
@@ -295,8 +295,8 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
             setHasPoll(false)
             setPollQuestion('')
             setPollOptions(['', ''])
-            setSuccess('Thread created!')
-            setTimeout(() => setSuccess(null), 3000)
+            setSuccess(data.notice ? `Thread created. ${data.notice}` : 'Thread created!')
+            setTimeout(() => setSuccess(null), data.notice ? 6000 : 3000)
             await loadThread(data.threadId)
         } catch (err: any) {
             setError(err.message)
@@ -306,10 +306,11 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     const handleReply = async () => {
         setError(null)
         try {
-            await apiFetch(`/api/forum/threads/${currentThread.id}/reply`, {
+            const sent = await apiFetch<{ notice?: string | null }>(`/api/forum/threads/${currentThread.id}/reply`, {
                 method: 'POST',
                 body: JSON.stringify({ content: replyContent }),
             })
+            if (sent?.notice) { setSuccess(sent.notice); setTimeout(() => setSuccess(null), 6000) }
             clearReply()
             setShowReply(false)
             await loadThread(currentThread.id, page)
@@ -382,12 +383,14 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
 
     const handleEditPost = async (postId: number) => {
         try {
-            await apiFetch(`/api/forum/posts/${postId}`, {
+            const saved = await apiFetch<{ content?: string; notice?: string | null }>(`/api/forum/posts/${postId}`, {
                 method: 'PUT',
                 body: JSON.stringify({ content: editContent }),
             })
+            if (saved?.notice) { setSuccess(saved.notice); setTimeout(() => setSuccess(null), 6000) }
+            // What the server stored, which the language filter may have changed.
             setPosts(prev => prev.map(p => p.id === postId
-                ? { ...p, content: editContent, edited_at: new Date().toISOString() }
+                ? { ...p, content: saved?.content ?? editContent, edited_at: new Date().toISOString() }
                 : p
             ))
             clearEdit()

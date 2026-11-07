@@ -228,6 +228,12 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     chat_messages:               { label: 'Chat Messages',         group: 'Social' },
     messages:                    { label: 'Private Messages',      group: 'Social' },
     news_posts:                  { label: 'News Posts',            group: 'Social',     editable: true },
+    // The language filter (services/wordFilter.ts). The list is content: edit
+    // words here; the game picks changes up within a minute.
+    filter_words:                { label: 'Filter Words',          group: 'Moderation', snapshot: true, editable: true },
+    filter_substitutes:          { label: 'Filter Substitutes',    group: 'Moderation', snapshot: true, editable: true },
+    filter_allow:                { label: 'Filter Allowed Words',  group: 'Moderation', snapshot: true, editable: true },
+    filter_flags:                { label: 'Filter Flags',          group: 'Moderation', editable: true },
 
     // ---- Moderation and audit ----
     mod_permissions:             { label: 'Mod Permissions',       group: 'Moderation', editable: true },

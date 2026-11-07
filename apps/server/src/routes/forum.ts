@@ -5,6 +5,7 @@ import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { pushToAll, pushToPlayer } from '../lib/realtime';
 import { readText, TEXT_LIMITS } from '../lib/textLimits';
+import { cleanPublicText, FilterRefusal, SWEAR_NOTICE } from '../services/wordFilter';
 
 const router = Router();
 
@@ -391,6 +392,21 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
             poll = { question: question.value!, options };
         }
 
+        // The language filter (services/wordFilter.ts): swears become silly
+        // words, a slur refuses the post (caught below).
+        let filterChanged = false;
+        const clean = async (place: string, text: string) => {
+            const c = await cleanPublicText(playerId, place, text);
+            filterChanged ||= c.changed;
+            return c.text;
+        };
+        cleanTitle.value = await clean('forum:title', cleanTitle.value!);
+        cleanContent.value = await clean('forum:post', cleanContent.value!);
+        if (poll) {
+            poll.question = await clean('forum:poll', poll.question);
+            for (let i = 0; i < poll.options.length; i++) poll.options[i] = await clean('forum:poll', poll.options[i]);
+        }
+
         const now = new Date();
 
         const [thread] = await db('forum_threads').insert({
@@ -459,8 +475,9 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
                 createdAt: now,
             });
         }
-        res.json({ success: true, threadId: thread.id });
+        res.json({ success: true, threadId: thread.id, notice: filterChanged ? SWEAR_NOTICE : null });
     } catch (err) {
+        if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
         logger.error(`Create thread error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -486,6 +503,8 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
 
         const cleanContent = readText(content, { label: 'Reply', max: TEXT_LIMITS.forumPost });
         if (!cleanContent.ok) { res.status(400).json({ error: cleanContent.error }); return; }
+        const filteredReply = await cleanPublicText(playerId, 'forum:post', cleanContent.value!);
+        cleanContent.value = filteredReply.text;
 
         const player = await db('players').where({ id: playerId }).first();
 
@@ -524,8 +543,9 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
         }
 
         logger.info(`Player ${playerId} replied to thread ${threadId}`);
-        res.json({ success: true });
+        res.json({ success: true, notice: filteredReply.changed ? SWEAR_NOTICE : null });
     } catch (err) {
+        if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
         logger.error(`Reply error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -753,6 +773,8 @@ router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response
             res.status(400).json({ error: cleanContent.error });
             return;
         }
+        const filteredEdit = await cleanPublicText(playerId, 'forum:edit', cleanContent.value!);
+        cleanContent.value = filteredEdit.text;
 
         const post = await db('forum_posts').where({ id: postId, is_deleted: false }).first();
         if (!post) {
@@ -777,8 +799,9 @@ router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response
         });
 
         logger.info(`Player ${playerId} edited post ${postId}`);
-        res.json({ success: true });
+        res.json({ success: true, content: cleanContent.value, notice: filteredEdit.changed ? SWEAR_NOTICE : null });
     } catch (err) {
+        if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
         logger.error(`Edit post error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }

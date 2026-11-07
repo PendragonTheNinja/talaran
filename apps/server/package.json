@@ -13,6 +13,7 @@
     "combat:derive": "ts-node --transpile-only src/scripts/deriveCreatureXp.ts",
     "items:audit": "ts-node --transpile-only src/scripts/auditItemCoverage.ts",
     "race:check": "ts-node --transpile-only src/scripts/raceCheck.ts",
+    "filter:check": "ts-node --transpile-only src/scripts/filterCheck.ts",
     "db:baseline": "ts-node --transpile-only src/scripts/dbBaseline.ts write",
     "db:build": "ts-node --transpile-only src/scripts/dbBaseline.ts build"
   },

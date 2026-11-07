@@ -6,6 +6,7 @@ import { logger } from '../lib/logger';
 import { badgeGlyph } from '../services/feats';
 import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
+import { cleanPublicText, FilterRefusal, SWEAR_NOTICE } from '../services/wordFilter';
 
 // Channels a guest may post in.
 const GUEST_CHAT_CHANNELS = ['help'];
@@ -360,7 +361,23 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
 
     const now = new Date();
     const timestamp = now.toTimeString().slice(0, 5);
-    const processedMessage = await resolveForumBreadcrumbs(message.trim());
+    // The language filter (services/wordFilter.ts): every public channel, not
+    // guild chat (whispers returned above). Run on what was typed, before forum
+    // links are expanded, so their markup is never touched. A slur is refused
+    // and flagged; swears become silly words and the sender is told.
+    let typed = message.trim();
+    let notice: string | null = null;
+    if (channel !== 'guild') {
+      try {
+        const cleaned = await cleanPublicText(playerId, `chat:${channel}`, typed);
+        typed = cleaned.text;
+        if (cleaned.changed) notice = SWEAR_NOTICE;
+      } catch (err) {
+        if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
+        throw err;
+      }
+    }
+    const processedMessage = await resolveForumBreadcrumbs(typed);
 
     const chatMessage = await db('chat_messages').insert({
       player_id: playerId,
@@ -405,7 +422,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
     }
 
     logger.info(`[${channel}] ${player.username}: ${message.trim()}`);
-    res.json({ success: true, message: messageData });
+    res.json({ success: true, message: messageData, notice });
   } catch (err) {
     logger.error(`Chat send error: ${err}`);
     console.error('Chat send full error:', err);
