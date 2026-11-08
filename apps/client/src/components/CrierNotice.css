@@ -513,3 +513,9 @@
 :root[data-theme='stonehold'] .crier-scale button:focus-visible,
 :root[data-theme='stonehold'] .crier-link:focus-visible,
 :root[data-theme='stonehold'] .crier-x:focus-visible { outline-color: #8a2a1a; }
+
+/* "Wenna sang of you" (ChronicleNotice.tsx): the same card, low on the scene. */
+.crier-notice.chronicle-notice {
+    top: auto;
+    bottom: 14px;
+}

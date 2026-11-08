@@ -248,6 +248,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         <Link to="/manual" className="home-mast-link">Manual</Link>
                         <Link to="/news" className="home-mast-link">News</Link>
                         <Link to="/highscores" className="home-mast-link">Highscores</Link>
+                        <Link to="/chronicle" className="home-mast-link">Chronicle</Link>
                         <a
                             href={DISCORD_URL}
                             target="_blank"

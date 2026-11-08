@@ -14,6 +14,7 @@ import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
 import SupportUsPage from './components/SupportUsPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
+import ChroniclePage from './components/ChroniclePage'
 import TradeWindow from './components/TradeWindow'
 import GuestBanner, { ClaimSuccessModal } from './components/GuestBanner'
 import UpdateBar from './components/UpdateBar'
@@ -432,6 +433,9 @@ function App() {
       <Route path="/refunds" element={<RefundPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/highscores" element={<HighscoresPage />} />
+      {/* Wenna's book, public (docs/chronicle-spec.md §2): the newest page, or one day's. */}
+      <Route path="/chronicle" element={<ChroniclePage />} />
+      <Route path="/chronicle/:day" element={<ChroniclePage />} />
       <Route path="/" element={<AuthScreen onLogin={handleLogin} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/game" element={

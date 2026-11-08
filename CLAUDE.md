@@ -287,6 +287,8 @@ The tick is a 2-second `setInterval`, one branch per action type. **It claims be
 - **Style: 4-space, no semicolons** in `apps/client` and server services; **2-space + semicolons** in `gameTick.ts` and index-adjacent files. Match the file you're in.
 - **Avatars** (`services/avatars.ts`, Settings > Profile in `AvatarSetting.tsx`): the browser sends the ORIGINAL file plus the square chosen on it (`?x=&y=&size=`); sharp cuts, resizes to 256px and re-encodes as WebP (animated GIFs stay animated, metadata stripped). Files live on disk at `apps/server/uploads/avatars` (`AVATAR_DIR`), outside git, **so they need backing up**, and are served from `/api/avatars/<player>-<hash>.webp`, mounted ahead of the API's no-store header and rate limit. Render any avatar URL through `avatarSrc()` in `lib/avatar.ts` (dev serves the API on another port). Staff clear or block one from the admin player view (`POST /api/admin/avatar`, `can_moderate_chat`).
 - **A dropped or sleeping socket is caught on return** (`lib/socket.ts`): back on screen after 10 s away, the page asks the server `alive`; no answer in 4 s, it reconnects (never a disconnect for its own sake, which can end a fight). Every reconnect, and every return with a live socket, fires `SOCKET_RESYNC_EVENT`; a view that only hears live events (chat) reloads what it missed on it and MERGES, never replaces.
+- **Paper-doll slot art is a pale outline on TRANSPARENCY** (`public/images/paper_doll/*_Slot.png`, 2026-11-08). It was grey on opaque black, and themes inverted it and relied on `mix-blend-mode: multiply` to drop the black; where a browser skipped the blend (a player's profile in Stonehold) every slot was a white tile. Keep new slot art transparent; never lean on a blend to hide a background.
+- **Chat opens on the channel chosen in Settings > Chat, or the last one used** (`lib/chatChannel.ts`, this device only, like text size).
 - `GuildPanel` is the live guild UI (`GuildModal` was deleted in `8750a07`). Grep `GameLayout.tsx` for what actually renders before editing any panel.
 
 ---
@@ -400,7 +402,7 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 | `docs/derived-values.md` / `.csv` | Output of `values:derive`. Regenerated, not edited. |
 | `docs/IDEAS.md` | Parking lot (the event-chat "firsts" feed lives here). |
 | `docs/patch-notes-template.md` | Patch-note shape, tags and colours. |
-| `docs/chronicle-spec.md` | The Chronicle (Wenna's daily tidings): design and build steps. Steps 1 (journal), 2 (composer, `services/chronicleComposer.ts`; page writing OFF until switched on in Admin > Chronicle) and 3 (the Salty Sloth in Talador, `TavernPanel.tsx`, `services/chronicleBook.ts`; an NPC option `open:<panel>` opens a panel client-side) built. |
+| `docs/chronicle-spec.md` | The Chronicle (Wenna's daily tidings): design and build steps. Steps 1 (journal), 2 (composer, `services/chronicleComposer.ts`; page writing OFF until switched on in Admin > Chronicle) 3 (the Salty Sloth in Talador, `TavernPanel.tsx`, `services/chronicleBook.ts`; an NPC option `open:<panel>` opens a panel client-side) and 4 (public `/chronicle`, the midnight chat line `__CHRONICLE__`, the named notice, push type `chronicle`, feats `chronicle_days`) built. |
 | `docs/sailing-spec.md` | Sea travel: the ferry, vessels, sea finds, boat-only places. No Sailing skill; it is Wayfaring. Design, not built. |
 | `docs/BUILD-NOTES.md` · `docs/WIRING.md` · `docs/FARMING-M1-NOTES.md` | Historical handoff notes from the Foraging and Farming builds. Archive candidates. |
 

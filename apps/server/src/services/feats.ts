@@ -111,7 +111,17 @@ async function snapshot(playerId: number) {
         .select<{ kills: number | null }[]>('k.kills')
     const creatureKills = killRows.map(r => Number(r.kills ?? 0))
 
-    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills }
+    // Days this player had a line of their own in Wenna's tidings (the long
+    // roll does not count, and a struck line is unsaid): 'chronicle_days'.
+    const chronicleRow = await db('chronicle_mentions as m')
+        .join('chronicle_lines as l', 'l.id', 'm.line_id')
+        .where({ 'm.player_id': playerId, 'm.in_lines': true })
+        .whereNull('l.struck_at')
+        .countDistinct({ n: 'm.day_key' })
+        .first()
+    const chronicleDays = Number(chronicleRow?.n ?? 0)
+
+    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, chronicleDays }
 }
 
 /**
@@ -166,6 +176,9 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
             const bar = Number(feat.criterion_target) || 1
             return snap.creatureKills.filter(k => k >= bar).length
         }
+        // Distinct days named in a page's own lines (services/chronicleComposer.ts).
+        case 'chronicle_days':
+            return snap.chronicleDays
         default:
             return 0
     }

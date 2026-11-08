@@ -127,3 +127,36 @@ export async function namedDays(who: { player?: string; guild?: string }): Promi
         .select('m.day_key', db.raw('bool_or(m.in_lines) as in_lines'))
     return { name: row.name, days: rows.map((r: any) => ({ dayKey: r.day_key, title: dayTitle(r.day_key), inLines: !!r.in_lines })) }
 }
+
+// ── "Wenna sang of you" (step 4, §2 Elsewhere) ──────────────────────────────
+
+/** How far back an unseen notice still counts: past a week, it is old news. */
+const NOTICE_DAYS = 7
+
+/**
+ * The newest page that named this player since they last put the notice away,
+ * within a week: a line of their own, or the long roll. Null when there is none.
+ */
+export async function chronicleNotice(playerId: number): Promise<{ dayKey: string; title: string; inLines: boolean } | null> {
+    const player = await db('players').where({ id: playerId }).first('chronicle_seen_day')
+    const since = player?.chronicle_seen_day ?? ''
+    const oldest = new Date(Date.now() - NOTICE_DAYS * 86400_000).toISOString().slice(0, 10)
+    const row = await db('chronicle_mentions as m')
+        .join('chronicle_days as d', 'd.day_key', 'm.day_key')
+        .leftJoin('chronicle_lines as l', 'l.id', 'm.line_id')
+        .where({ 'm.player_id': playerId, 'd.status': 'done' })
+        .whereNull('l.struck_at')
+        .where('m.day_key', '>', since)
+        .where('m.day_key', '>=', oldest)
+        .groupBy('m.day_key')
+        .orderBy('m.day_key', 'desc')
+        .first('m.day_key', db.raw('bool_or(m.in_lines) as in_lines'))
+    return row ? { dayKey: row.day_key, title: dayTitle(row.day_key), inLines: !!row.in_lines } : null
+}
+
+/** Put the notice away up to this day (never moves backwards). */
+export async function seeChronicleNotice(playerId: number, dayKey: string): Promise<void> {
+    await db('players').where({ id: playerId })
+        .where((q) => q.whereNull('chronicle_seen_day').orWhere('chronicle_seen_day', '<', dayKey))
+        .update({ chronicle_seen_day: dayKey })
+}

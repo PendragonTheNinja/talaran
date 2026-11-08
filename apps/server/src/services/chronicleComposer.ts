@@ -5,6 +5,9 @@ import { logger } from '../lib/logger'
 import { gameDayKey, startOfGameDay, nextGameMidnight } from '../lib/gameTime'
 import { addDays, canFill, countWord, dayTitle, nameList, renderVerse, seededUnit, Slots } from '../lib/chronicleVerse'
 import { STRONG_KILL_GAP, trimDeeds } from './chronicle'
+import { announceServer } from './records'
+import { pushToPlayer } from '../lib/realtime'
+import { evaluateFeats } from './feats'
 
 // ── The Chronicle, step 2: Wenna writes the page (docs/chronicle-spec.md §3, §6, §8, §12) ──
 //
@@ -413,7 +416,9 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
     }
 
     const scoring = deeds.filter(d => !ROLLED_UP.has(d.kind)).length
-    const quiet = scoring < s.quiet_below
+    // A day with a headline is never a quiet one, however few deeds it had:
+    // "a quiet day" read oddly under a mastery (2026-11-08).
+    const quiet = scoring < s.quiet_below && headlines === 0
     if (quiet) line('quiet', 'quiet', { date }, 'quiet')
 
     // The long roll (§3): everyone else who did something worth noting, best first.
@@ -480,7 +485,7 @@ const hash = (text: string) => createHash('sha256').update(text).digest('hex')
  * and a failure gives the claim back so the next try starts clean.
  * Returns false when the page already exists or another writer has it.
  */
-export async function writePage(dayKey: string): Promise<boolean> {
+export async function writePage(dayKey: string, opts: { quiet?: boolean } = {}): Promise<boolean> {
     // composed_at holds the claim's time until the page is done, so a claim
     // left by a process that died can be told from one being written now.
     const [claim] = await db('chronicle_days').insert({ day_key: dayKey, status: 'composing', composed_at: db.fn.now() })
@@ -508,6 +513,7 @@ export async function writePage(dayKey: string): Promise<boolean> {
             })
         })
         logger.info(`[chronicle] wrote the page for ${dayKey}: ${page.lines.length} lines${page.thin.length ? `, thin: ${page.thin.join(', ')}` : ''}`)
+        if (!opts.quiet) await afterPageWritten(dayKey, page)
         return true
     } catch (err) {
         await db('chronicle_days').where({ day_key: dayKey, status: 'composing' }).delete().catch(() => {})
@@ -515,6 +521,30 @@ export async function writePage(dayKey: string): Promise<boolean> {
         return false
     }
 }
+
+/**
+ * After a page is kept (§2 Elsewhere, §13): a line in world chat that opens
+ * it, a word to everyone named in its own lines (a socket push, which becomes
+ * a notification for those who chose them), and their feats. Only for the
+ * newest day: catching up after downtime writes the missed pages quietly.
+ * Never fails the page.
+ */
+async function afterPageWritten(dayKey: string, page: Page): Promise<void> {
+    try {
+        if (dayKey !== addDays(gameDayKey(), -1)) return
+        await announceServer(`${CHRONICLE_LINK}${dayKey}__Wenna has set down the tidings for the ${page.title}.`)
+        const named = [...new Set(page.lines.flatMap(l => l.playerIds))]
+        for (const playerId of named) {
+            pushToPlayer(playerId, 'chronicle_named', { dayKey, title: page.title })
+            for (const feat of await evaluateFeats(playerId)) pushToPlayer(playerId, 'feat_earned', feat)
+        }
+    } catch (err) {
+        logger.warn(`[chronicle] after writing ${dayKey}: ${err}`)
+    }
+}
+
+/** A chat line that opens a page of the book: `__CHRONICLE__<day>__<text>` (ChatMessageLine.tsx). */
+export const CHRONICLE_LINK = '__CHRONICLE__'
 
 /** Take a page out of the book so it can be written again (admin, before players can read it). */
 export async function unwritePage(dayKey: string): Promise<void> {

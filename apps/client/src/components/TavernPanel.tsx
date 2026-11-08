@@ -73,12 +73,20 @@ function LineText({ line, highlight, onViewProfile }: { line: Line; highlight: s
     )
 }
 
-export default function TavernPanel({ onClose, selfName, onViewProfile }: {
+export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDay }: {
     onClose: () => void
     selfName: string | null
     onViewProfile?: (playerId: number) => void
+    /**
+     * Open the book on this day (a chat line or the "Wenna sang of you"
+     * notice). From anywhere on the island: the Wenna tab is shown only when
+     * the reader stands in the tavern's town.
+     */
+    openOnDay?: string
 }) {
-    const [tab, setTab] = useState<'wenna' | 'book'>('wenna')
+    const [tab, setTab] = useState<'wenna' | 'book'>(openOnDay ? 'book' : 'wenna')
+    // Away from the tavern there is no Wenna to talk to, only the book.
+    const [away, setAway] = useState(false)
     const [front, setFront] = useState<Front | null>(null)
     const [page, setPage] = useState<Page | null>(null)
     const [bookEmpty, setBookEmpty] = useState(false)
@@ -92,8 +100,11 @@ export default function TavernPanel({ onClose, selfName, onViewProfile }: {
     useEffect(() => {
         apiFetch<Front>('/api/chronicle/tavern')
             .then(setFront)
-            .catch(err => setError(err instanceof Error ? err.message : 'The door is shut.'))
-    }, [])
+            .catch(err => {
+                if (openOnDay) setAway(true)
+                else setError(err instanceof Error ? err.message : 'The door is shut.')
+            })
+    }, [openOnDay])
 
     const openPage = useCallback((day: string | null, pick: string | null = null) => {
         setError(null)
@@ -107,12 +118,12 @@ export default function TavernPanel({ onClose, selfName, onViewProfile }: {
         if (tab !== 'book') return
         // The newest page, the first time the book is opened.
         if (!page && !bookEmpty) {
-            apiFetch<{ page: Page | null }>('/api/chronicle/page')
+            apiFetch<{ page: Page | null }>(`/api/chronicle/page${openOnDay ? `?day=${openOnDay}` : ''}`)
                 .then(d => { setPage(d.page); setBookEmpty(!d.page) })
                 .catch(err => setError(err instanceof Error ? err.message : 'The book will not open.'))
         }
         if (!days.length) apiFetch<{ days: DayRef[] }>('/api/chronicle/days').then(d => setDays(d.days)).catch(() => {})
-    }, [tab, page, bookEmpty, days.length])
+    }, [tab, page, bookEmpty, days.length, openOnDay])
 
     const findNamed = (who: string, kind: 'player' | 'guild') => {
         if (!who.trim()) return
@@ -131,14 +142,16 @@ export default function TavernPanel({ onClose, selfName, onViewProfile }: {
         <div className="tavern-overlay" onClick={onClose}>
             <div className="tavern-modal" onClick={e => e.stopPropagation()}>
                 <div className="tavern-header">
-                    <h2>{front?.tavern.name ?? 'The Salty Sloth'}</h2>
+                    <h2>{away ? 'The Chronicle' : front?.tavern.name ?? 'The Salty Sloth'}</h2>
                     <button className="tavern-close" onClick={onClose}>✕</button>
                 </div>
 
-                <div className="tavern-tabs">
-                    <button className={`tavern-tab ${tab === 'wenna' ? 'active' : ''}`} onClick={() => setTab('wenna')}>Wenna</button>
-                    <button className={`tavern-tab ${tab === 'book' ? 'active' : ''}`} onClick={() => setTab('book')}>The Chronicle</button>
-                </div>
+                {!away && (
+                    <div className="tavern-tabs">
+                        <button className={`tavern-tab ${tab === 'wenna' ? 'active' : ''}`} onClick={() => setTab('wenna')}>Wenna</button>
+                        <button className={`tavern-tab ${tab === 'book' ? 'active' : ''}`} onClick={() => setTab('book')}>The Chronicle</button>
+                    </div>
+                )}
 
                 {error && <p className="tavern-error">{error}</p>}
 

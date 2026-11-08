@@ -10,6 +10,7 @@ import './TravelLog.css'
 import BotCheckFab from './BotCheckFab'
 import BellButton from './BellButton'
 import CrierNotice from './CrierNotice'
+import ChronicleNotice from './ChronicleNotice'
 import FillingGem from './FillingGem'
 import EventStandings, { type Standings } from './EventStandings'
 import { ringForCountdown } from '../lib/bell'
@@ -2346,6 +2347,7 @@ export default function GameView({
           {onForceBotCheck && <BotCheckFab onClick={onForceBotCheck} />}
           <BellButton />
           <CrierNotice />
+          <ChronicleNotice />
 
         </div>
       </div>

@@ -23,6 +23,7 @@ import EventsPanel from './EventsPanel'
 import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
 import PlayerProfile from './PlayerProfile'
+import TavernPanel from './TavernPanel'
 import { getSkipConfirm, setSkipConfirm } from '../lib/confirmPrefs';
 import { useIsMobile, useWidthBelow, SIDE_STACK_BREAKPOINT } from '../lib/useIsMobile'
 import MobileShell from './MobileShell'
@@ -235,6 +236,14 @@ export default function GameLayout({
   const [showCookingMenu, setShowCookingMenu] = useState(false)
   const [cookingAtFire, setCookingAtFire] = useState(false)
   const [carpentryStationActive, setCarpentryStationActive] = useState(false)
+  // The book of tidings, opened on a day from a chat line or the "Wenna sang
+  // of you" notice (ChronicleNotice.tsx), wherever the player is.
+  const [chronicleDay, setChronicleDay] = useState<string | null>(null)
+  useEffect(() => {
+    const open = (e: Event) => setChronicleDay((e as CustomEvent<{ dayKey: string }>).detail?.dayKey ?? null)
+    window.addEventListener('talaran:open-chronicle', open)
+    return () => window.removeEventListener('talaran:open-chronicle', open)
+  }, [])
   // A workshop of your own here but no saw in hand: sawing falls to Geossica's bench.
   const [carpentrySawNote, setCarpentrySawNote] = useState<string | null>(null)
   const [smithingStationActive, setSmithingStationActive] = useState(false)
@@ -907,6 +916,15 @@ export default function GameLayout({
 
   const sharedModals = (
     <>
+      {chronicleDay && (
+        <TavernPanel
+          key={chronicleDay}
+          openOnDay={chronicleDay}
+          selfName={player.username}
+          onClose={() => setChronicleDay(null)}
+          onViewProfile={(id) => { setChronicleDay(null); setProfilePlayerId(id) }}
+        />
+      )}
       {showKilnModal && (
         <div className="modal-overlay" onClick={() => setShowKilnModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>

@@ -6,6 +6,7 @@
 // the panels.
 
 import Badge from './Badge'
+import { openChronicle } from '../lib/chronicleLink'
 import type { ReactNode } from 'react'
 
 export interface ChatMessage {
@@ -112,6 +113,27 @@ interface ChatMessageLineProps {
 }
 
 export default function ChatMessageLine({ msg, onOpenForum, onPlayerClick }: ChatMessageLineProps) {
+    // Wenna's midnight line: `__CHRONICLE__<day>__<text>` opens that page of
+    // the book (services/chronicleComposer.ts, GameLayout.tsx listens).
+    if (msg.message.startsWith('__CHRONICLE__')) {
+        const [, , dayKey, ...rest] = msg.message.split('__')
+        return (
+            <div className="chat-message">
+                <span className="chat-timestamp muted-text">{msg.timestamp}</span>
+                {' '}
+                <span className="chat-channel-tag" style={{ color: CHANNEL_COLORS['server'] }}>[S]</span>
+                {' '}
+                <span
+                    className="chat-text chat-forum-link"
+                    style={{ color: CHANNEL_COLORS['server'], cursor: 'pointer' }}
+                    onClick={() => openChronicle(dayKey)}
+                >
+                    {rest.join('__')}
+                </span>
+            </div>
+        )
+    }
+
     // Forum notifications are encoded into the message text rather than carried
     // as a separate type, so they are detected the same way in both views.
     if (msg.message.startsWith('__FORUM__')) {

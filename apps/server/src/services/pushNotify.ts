@@ -37,6 +37,7 @@ export const PUSH_TYPES: PushType[] = [
     { key: 'stone_full', label: 'A stone is full', description: 'A gem filling at the Rift is full of light.', byDefault: false },
     { key: 'trap', label: 'Traps', description: 'Something is caught in one of your traps. Only while you are at the place the trap is set.', byDefault: false },
     { key: 'whisper', label: 'Whispers', description: 'Someone whispers to you.', byDefault: false },
+    { key: 'chronicle', label: 'The tidings', description: 'Wenna Halloway has set you down in the tidings at the Salty Sloth.', byDefault: false },
     { key: 'guild_request', label: 'Storehouse requests', description: 'A request you made from your guild storehouse was approved and is waiting for you.', byDefault: false },
 ];
 
@@ -111,6 +112,8 @@ export function noticeFor(event: string, payload: any): Notice | null {
             if (payload?.actionType !== 'talar_fill' || !name) return null;
             return { type: 'stone_full', title: 'Talaran', body: `Your stone is full of light: one ${name}.`, tag: 'stone-full' };
         }
+        case 'chronicle_named':
+            return { type: 'chronicle', title: 'Talaran', body: `Wenna sang of you in the tidings for the ${payload?.title ?? 'day'}.`, tag: 'chronicle' };
         case 'guild_request_approved':
             return { type: 'guild_request', title: 'Talaran', body: 'Your request from the guild storehouse was approved. It is set aside for you at the hall.', tag: 'guild-request' };
         case 'trap_sprung':

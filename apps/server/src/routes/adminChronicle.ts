@@ -81,7 +81,8 @@ router.post('/write', requireAuth, async (req: AuthRequest, res: Response) => {
         if (!day) { res.status(400).json({ error: 'Which day?' }); return; }
         if (day >= gameDayKey()) { res.status(400).json({ error: 'A page is written once its day is over.' }); return; }
         if (req.body?.again) await unwritePage(day);
-        const wrote = await writePage(day);
+        // Quiet: staff writing or rewriting a page do not announce it to the island.
+        const wrote = await writePage(day, { quiet: true });
         if (!wrote) { res.status(409).json({ error: 'That page is already written.' }); return; }
         logger.info(`[chronicle] player ${req.player!.playerId} ${req.body?.again ? 'rewrote' : 'wrote'} the page for ${day}`);
         res.json({ ok: true, page: await readPage(day) });

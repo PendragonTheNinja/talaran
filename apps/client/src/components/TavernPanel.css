@@ -202,3 +202,25 @@
   font-size: 12px;
   color: var(--color-text-muted);
 }
+
+/* The public page (ChroniclePage.tsx): arrows under the page, at its two ends. */
+.chronicle-page-nav {
+  justify-content: space-between;
+  margin-top: var(--space-md);
+}
+
+/* The public page's day list and arrows are links, drawn like the News list and buttons. */
+a.news-page-sidebar-item,
+.chronicle-page-nav a.btn {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* The day and its headline on lines of their own, wherever the list sits. */
+a.news-page-sidebar-item span {
+  display: block;
+}
+
+.chronicle-page-nav a.btn {
+  display: inline-block;
+}
