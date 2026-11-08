@@ -628,10 +628,9 @@ body {
    hard-code black glass or a glow. Each is answered here rather than in its
    own file so the whole light theme can be read in one place. */
 
-/* Empty equipment slots. The slot art is a grey outline on solid black, which
-   made a black board in the middle of the page. Brightened, inverted and
-   multiplied, the black drops out entirely and the outline is left as a
-   faint pencil drawing on the slot's own parchment. */
+/* Empty equipment slots. The slot art is a pale outline on transparency (it
+   was grey on solid black until 2026-11-08). Brightened and inverted, it is a
+   faint pencil drawing on the slot's own parchment; the multiply only deepens it. */
 :root[data-theme='scriptorium'] .equipment-slot-icon {
   filter: brightness(2.2) invert(1) sepia(0.5);
   mix-blend-mode: multiply;

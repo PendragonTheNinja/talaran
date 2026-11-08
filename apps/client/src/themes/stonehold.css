@@ -148,9 +148,10 @@
   box-shadow: none;
 }
 
-/* The slot art is a grey outline on black. Inverted and multiplied, the
-   black drops out and the outline is left in dark ink on the parchment, as
-   in the mockup (the same trick Scriptorium uses). */
+/* The slot art is a pale outline on transparency (2026-11-08: it was grey on
+   solid black, and where a browser skipped the multiply every slot became a
+   white tile, as on a player's profile). Inverted, the outline is dark ink on
+   the parchment by itself; the multiply only deepens it. */
 :root[data-theme='stonehold'] .equipment-slot-icon {
   filter: brightness(2.2) invert(1);
   mix-blend-mode: multiply;
