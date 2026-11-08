@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { getSocket, SOCKET_RESYNC_EVENT } from '../lib/socket'
+import { startingChatChannel, rememberChatChannel } from '../lib/chatChannel'
 import { formatGameTime } from '../lib/time'
 import './ChatPanel.css'
 import ChatMessageLine, { CHANNEL_COLORS, CHANNEL_SHORT, renderMessageText, type ChatMessage } from './ChatMessageLine'
@@ -50,7 +51,8 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
   // just presenting the one channel that works.
   const channels = isGuest ? CHANNELS.filter(c => c.key === 'help') : CHANNELS
   const historyChannels = isGuest ? ['help'] : HISTORY_CHANNELS
-  const [activeChannel, setActiveChannel] = useState(isGuest ? 'help' : 'world')
+  // The channel chosen in Settings > Chat, or the last one used (lib/chatChannel.ts).
+  const [activeChannel, setActiveChannel] = useState(() => startingChatChannel(!!isGuest))
   const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -404,7 +406,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           <button
             key={key}
             className={`chat-tab ${activeChannel === key ? 'active' : ''}`}
-            onClick={() => setActiveChannel(key)}
+            onClick={() => { setActiveChannel(key); rememberChatChannel(key) }}
           >
             {label}
           </button>

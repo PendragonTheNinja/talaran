@@ -17,6 +17,7 @@ import ChatMessageLine from './ChatMessageLine'
 import BellSetting from './BellSetting'
 import NotificationSetting from './NotificationSetting'
 import { CHAT_SIZES, currentChatSize, setChatSize, type ChatSizeId } from '../lib/chatSize'
+import { CHAT_START_CHOICES, chatStartChoice, setChatStartChoice, type ChatStartId } from '../lib/chatChannel'
 
 type SettingsTab = 'profile' | 'account' | 'chat' | 'game' | 'combat' | 'themes'
 
@@ -68,6 +69,8 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
 
     // Chat text size: this device only (lib/chatSize.ts).
     const [chatSize, setChatSizeState] = useState<ChatSizeId>(currentChatSize)
+    // Which channel chat opens on: this device only (lib/chatChannel.ts).
+    const [chatStart, setChatStartState] = useState<ChatStartId>(chatStartChoice)
     const chooseChatSize = (id: ChatSizeId) => { setChatSize(id); setChatSizeState(id) }
 
     // Chat settings
@@ -407,6 +410,24 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                                 </button>
                             </div>
                         ))}
+
+                        <h4 className="settings-section-title settings-section-gap">Opening Channel</h4>
+                        <p className="muted-text" style={{ fontSize: '14px', marginBottom: '12px' }}>
+                            Which channel chat is on when the game loads. Saved on this device only.
+                        </p>
+                        <div className="settings-size-row" role="radiogroup" aria-label="Opening chat channel">
+                            {CHAT_START_CHOICES.map(c => (
+                                <button
+                                    key={c.id}
+                                    role="radio"
+                                    aria-checked={chatStart === c.id}
+                                    className={`settings-size-btn ${chatStart === c.id ? 'active' : ''}`}
+                                    onClick={() => { setChatStartChoice(c.id); setChatStartState(c.id) }}
+                                >
+                                    {c.label}
+                                </button>
+                            ))}
+                        </div>
 
                         <h4 className="settings-section-title settings-section-gap">Text Size</h4>
                         <p className="muted-text" style={{ fontSize: '14px', marginBottom: '12px' }}>
