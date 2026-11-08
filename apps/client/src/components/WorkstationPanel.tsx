@@ -15,6 +15,8 @@ interface FilledTool {
     index: number
     itemName: string
     tier: number
+    /** It gave out in use: work that needs it goes at half speed until it is replaced. */
+    broken?: boolean
 }
 
 interface StationSlot {
@@ -33,6 +35,7 @@ interface StationData {
     slots: StationSlot[]
     isActive: boolean
     missingRequired: string[]
+    brokenTools?: string[]
 }
 
 interface WorkstationPanelProps {
@@ -152,6 +155,12 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
 
             {error && <div className="error-message">{error}</div>}
             {lockedReason && <p className="workstation-locked muted-text">{lockedReason}</p>}
+            {(station.brokenTools?.length ?? 0) > 0 && (
+                <p className="station-broken-notice">
+                    Broken: {station.brokenTools!.join(', ')}. Work that needs {station.brokenTools!.length === 1 ? 'it' : 'them'} goes
+                    at half speed until you fit {station.brokenTools!.length === 1 ? 'a new one' : 'new ones'}. Tap a broken tool to clear it away.
+                </p>
+            )}
 
             <div className="workstation-grid">
                 {station.slots.map(slot => {
@@ -166,13 +175,13 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
                     return cells.map((tool, i) => (
                         <button
                             key={`${slot.slot}-${i}`}
-                            className={`workstation-cell${tool ? ' occupied' : ''}${slot.isRequired ? ' required' : ''}`}
+                            className={`workstation-cell${tool ? ' occupied' : ''}${tool?.broken ? ' broken' : ''}${slot.isRequired ? ' required' : ''}`}
                             title={tool ? undefined : `${slot.label}\nClick to fit a tool`}
                             {...hoverProps(
                                 tool ? { name: tool.itemName } : null,
-                                'Left-click to take it back',
+                                tool?.broken ? 'Broken. Left-click to clear it away' : 'Left-click to take it back',
                             )}
-                            disabled={busy || (!tool && !hasRoom) || (!!tool && !!lockedReason)}
+                            disabled={busy || (!tool && !hasRoom) || (!!tool && !!lockedReason && !tool.broken)}
                             onClick={() => tool
                                 ? handleUnsocket(slot.slot, tool.index)
                                 : setOpenSlot(openSlot === slot.slot ? null : slot.slot)}
@@ -191,6 +200,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
                                     <span className="workstation-cell-text" style={{ display: 'none' }}>
                                         {tool.itemName.split(' ')[0]}
                                     </span>
+                                    {tool.broken && <span className="workstation-cell-broken">Broken</span>}
                                 </>
                             ) : (
                                 <span className="workstation-cell-label">{slot.label}</span>

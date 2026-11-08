@@ -34,6 +34,7 @@ import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
 import { takeGuildXp } from './guildCompanions';
 import { takeJewelryNotes, jewelryAid } from './jewelry';
+import { wearToolsAfter, takeToolWear, handBreakMessage } from './toolWear';
 import { realtimeServer, pushToPlayer, announcePlayersHere } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
@@ -152,7 +153,24 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   // Server-side bookkeeping, not something the client needs to see.
   if (result) delete result.goldBasisXp;
 
+  // Tools that wore out on this action (services/toolWear.ts). A bench tool
+  // leaves a line on the card. A hand tool that broke stops the action, as a
+  // weapon breaking ends a fight: the result still goes out, with no next lap.
+  const wear = takeToolWear(action.id);
+  if (result && wear?.notes.length) result.toolNotes = wear.notes;
+  const handBroke = !!wear?.handBroken.length;
+  if (handBroke) {
+    await db('player_actions').where({ id: action.id }).delete();
+    payload.nextCompletes = null;
+    payload.timerSeconds = 0;
+  }
+
   pushToPlayer(action.player_id, 'action_complete', payload);
+
+  if (handBroke) {
+    pushToPlayer(action.player_id, 'action_failed', { error: handBreakMessage(wear!.handBroken), info: true });
+    pushToPlayer(action.player_id, 'equipment_changed');
+  }
 
   // World firsts, on SECONDARY DROPS only.
   //
@@ -515,6 +533,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           pushToPlayer(action.player_id, 'action_failed', { error: farmResult.error || 'The work came to nothing.' });
           return;
         }
+        await wearToolsAfter(action, farmResult);
 
         const farmFirst = farmResult.itemName
           ? (await recordItemFirstByName(action.player_id, farmResult.itemName, action.action_type)).firstEver
@@ -560,6 +579,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           pushToPlayer(action.player_id, 'action_failed', { error: shopResult.error || 'The work came to nothing.' });
           return;
         }
+        await wearToolsAfter(action, shopResult);
 
         const shopSkill = await db('skills').where({ name: 'Carpentry' }).first();
         const shopPs = shopSkill
@@ -631,6 +651,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           pushToPlayer(action.player_id, 'action_failed', { error: husResult.error || 'The work came to nothing.' });
           return;
         }
+        await wearToolsAfter(action, husResult);
 
         // The service deliberately does NOT record the first, so this check is
         // the one that decides whether the sparkle fires.
@@ -679,6 +700,12 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         await db('player_actions').where({ id: action.id }).delete();
         return;
     }
+
+    // Tools used by this action wear (services/toolWear.ts), before the
+    // branches below set the next timer: a bench tool that gives out slows the
+    // very next lap, and a hand tool that breaks stops the action when the
+    // result goes out (emitActionComplete).
+    await wearToolsAfter(action, result);
 
     // One place to answer "has this player ever earned this before". Feeds the
     // pickup flourish now, and a future Exploration award and firsts feed later.

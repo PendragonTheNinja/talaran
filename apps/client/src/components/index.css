@@ -540,6 +540,16 @@ body {
   color: var(--color-red-bright);
 }
 
+/* A bench whose tools gave out (services/toolWear.ts), said before the timer can surprise anyone. */
+.station-broken-notice {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--color-gold);
+  border: 1px solid var(--color-border-gold);
+  border-radius: 4px;
+}
+
 .station-tag.warn {
   /* --color-gold rather than -dim: the dim tone reads brown against the panel,
      and every theme redefines both, so this stays correct when the theme changes. */

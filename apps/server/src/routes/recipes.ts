@@ -31,6 +31,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
                 available: check.ok,
                 usingPublic: check.usingPublic,
                 speedMultiplier: check.multiplier,
+                // Tools this job uses that gave out: it runs, at half speed.
+                brokenTools: check.brokenTools ?? [],
                 stationError: check.ok ? null : check.error,
                 // Named so the card can say WHICH tool is wanted rather than a
                 // flat "you cannot do this". A cook with an empty rack should be

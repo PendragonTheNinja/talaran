@@ -35,6 +35,8 @@ export interface TableRecipe {
     usingPublic?: boolean
     speedMultiplier?: number
     stationError?: string | null
+    /** Tools this job uses that gave out at your bench: it runs at half speed until they are replaced. */
+    brokenTools?: string[]
     /** The output's item type and subtype, from the server. */
     outputType?: string | null
     outputSubtype?: string | null
@@ -279,6 +281,9 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                     without hovering at all. */}
                 {blocked && wants.length > 0 && (
                     <span className="station-tag locked">Needs {wants.join(', ')}</span>
+                )}
+                {!blocked && (r.brokenTools?.length ?? 0) > 0 && (
+                    <span className="station-tag warn">Half speed: {r.brokenTools!.join(', ')} broken</span>
                 )}
 
                 {g.variants.length > 1 && (

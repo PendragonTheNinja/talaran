@@ -242,6 +242,7 @@ export default function GameView({
   const [lastResult, setLastResult] = useState<LastResult | null>(null)
   // What worn jewelry did on the last card (services/jewelry.ts): shown under it.
   const [jewelryLines, setJewelryLines] = useState<string[]>([])
+  const [toolLines, setToolLines] = useState<string[]>([])
   // The stone in hand while filling at a rift (FillStone in services/talar.ts).
   const [fillStone, setFillStone] = useState<FillStone | null>(null)
   // Level-ups queue: one kill can raise Melee, Defense and Constitution at
@@ -288,11 +289,17 @@ export default function GameView({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentActionRef = useRef<string | null>(null)
   const actionLimitRef = useRef<number | null>(null)
+  // Whether a result card is up, for the socket handlers (registered once).
+  const hasResultRef = useRef(false)
 
   // ── Keep ref in sync with state ───────────────────────────────────
   useEffect(() => {
     currentActionRef.current = currentAction
   }, [currentAction])
+
+  useEffect(() => {
+    hasResultRef.current = !!lastResult
+  }, [lastResult])
 
   useEffect(() => {
     actionLimitRef.current = actionLimit
@@ -555,6 +562,8 @@ export default function GameView({
         }
         const jewelry = (data.result as { jewelry?: string[] } | undefined)?.jewelry ?? []
         setJewelryLines(jewelry)
+        // A bench tool that gave out on this craft (services/toolWear.ts).
+        setToolLines((data.result as { toolNotes?: string[] } | undefined)?.toolNotes ?? [])
 
         // A kill: Melee's XP on the card, with Defense and Constitution beside
         // it (xpAwards). The fight itself carries on; combat_update draws it.
@@ -888,6 +897,7 @@ export default function GameView({
       on('travel_complete', (data: { result: any }) => {
         ringForCountdown()
         setJewelryLines(Array.isArray(data?.result?.jewelry) ? data.result.jewelry : [])
+        setToolLines([])
         if (data?.result) {
           setLastResult({
             firstEver: (data as any).firstEver,
@@ -943,7 +953,9 @@ export default function GameView({
         ringForCountdown()
         // A fight's end goes on the result card below, which stays; the same
         // sentence in the log as well printed it twice, one over the other.
-        if (!(data.info && currentActionRef.current === 'combat')) {
+        // The same goes for any informational stop with a card up to carry
+        // it (a tool breaking): the floating line sat over the card.
+        if (!(data.info && (currentActionRef.current === 'combat' || hasResultRef.current))) {
           addLog(data.error || 'Action stopped.', data.info ? 'info' : 'error')
         }
         // Carry the server's own sentence. Every informational stop used to be
@@ -2251,6 +2263,7 @@ export default function GameView({
                 <div className="scene-last-result">
                   {renderResultDetails(lastResult)}
                   {jewelryLines.map(line => <p key={line} className="last-result-jewelry">{line}</p>)}
+                  {toolLines.map(line => <p key={line} className="last-result-tool">{line}</p>)}
                 </div>
               )}
             </div>

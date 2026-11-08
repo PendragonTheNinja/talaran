@@ -6,9 +6,8 @@
 // items, so they are tuned from the admin panel without a deploy. A break
 // resets the count, so the next copy starts safe again.
 //
-// Built generic: anything can call wearItem. Combat is the only caller today;
-// tools join once every tool has a craft path that does not need itself
-// (CLAUDE.md §2, the circularity rule).
+// Built generic: anything can call wearItem. Combat wears gear here; tools
+// (services/toolWear.ts) use wearItemByRule with numbers of their own.
 
 import type { Knex } from 'knex'
 import { Rng } from '../lib/combatMath'
@@ -54,6 +53,20 @@ export async function wearItem(
     tiers: Map<number, DurabilityRule>,
     rng: Rng,
 ): Promise<boolean> {
+    return wearItemByRule(trx, playerId, item, durabilityRule(item, tiers), rng)
+}
+
+/**
+ * wearItem with the rule already decided. Tools (services/toolWear.ts) work
+ * theirs out from the action's timer rather than from durability_tiers.
+ */
+export async function wearItemByRule(
+    trx: Knex.Transaction,
+    playerId: number,
+    item: WearableItem,
+    rule: DurabilityRule,
+    rng: Rng,
+): Promise<boolean> {
     // A Keeper's Band (docs/talar-spec.md §8): now and then a use does not count.
     const band = await jewelryAid(trx, playerId, 'wear')
     if (band && rng() < band.strength) {
@@ -66,7 +79,6 @@ export async function wearItem(
         .merge({ uses: trx.raw('player_item_wear.uses + 1') })
         .returning('uses')
     const uses = Number(row?.uses ?? 1)
-    const rule = durabilityRule(item, tiers)
     if (uses <= rule.guaranteedUses) return false
     if (rng() * 100 >= rule.breakChancePct) return false
     await trx('player_item_wear').where({ player_id: playerId, item_id: item.id }).update({ uses: 0 })

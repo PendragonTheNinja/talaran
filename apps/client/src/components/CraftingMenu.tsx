@@ -36,11 +36,17 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
      * A temporary station is a campfire, which is nobody's building.
      */
     const [borrowed, setBorrowed] = useState<boolean | null>(null)
+    // Tools in your own bench here that gave out (services/toolWear.ts). Said
+    // up front, so a timer twice as long as usual is never a surprise.
+    const [brokenTools, setBrokenTools] = useState<string[]>([])
 
     useEffect(() => {
-        if (!stationType || !keeperName || !ownerName) return
-        apiFetch<{ exists: boolean; isTemporary: boolean }>(`/api/workstations/${stationType}`)
-            .then(s => setBorrowed(!(s.exists && !s.isTemporary)))
+        if (!stationType) return
+        apiFetch<{ exists: boolean; isTemporary: boolean; brokenTools?: string[] }>(`/api/workstations/${stationType}`)
+            .then(s => {
+                setBrokenTools(s.brokenTools ?? [])
+                if (keeperName && ownerName) setBorrowed(!(s.exists && !s.isTemporary))
+            })
             .catch(() => setBorrowed(null))
     }, [stationType, keeperName, ownerName])
 
@@ -55,6 +61,13 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
                     <h3 className="gold-text">{heading}</h3>
                     <button className="modal-close-btn" onClick={onClose}>✕</button>
                 </div>
+
+                {brokenTools.length > 0 && (
+                    <p className="station-broken-notice">
+                        Your {brokenTools.join(' and ')} {brokenTools.length === 1 ? 'has' : 'have'} given out.
+                        Work that needs {brokenTools.length === 1 ? 'it' : 'them'} goes at half speed until you fit {brokenTools.length === 1 ? 'a new one' : 'new ones'} in the bench.
+                    </p>
+                )}
 
                 <RecipeList
                     skill={skill}

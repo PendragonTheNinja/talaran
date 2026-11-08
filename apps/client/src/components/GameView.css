@@ -839,6 +839,13 @@
   color: #b6a8f0;
 }
 
+/* A bench tool that gave out (services/toolWear.ts): the bench is at half speed until it is replaced. */
+.last-result-tool {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-gold);
+}
+
 /* The Action Limit box had no style of its own and took the browser's: white
    with black figures, out of keeping with every theme, and in Stonehold (whose
    fields are dark) black on near-black, so the number could not be read

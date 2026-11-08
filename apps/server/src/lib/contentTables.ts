@@ -65,6 +65,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // Guaranteed uses and the break chance after them, per tier (§13). Single
     // items differ through items.durability_uses / durability_break_pct.
     durability_tiers:            { label: 'Durability Tiers',      group: 'Combat',     snapshot: true, editable: true },
+    tool_durability_tiers:       { label: 'Tool Durability Tiers', group: 'Tools',      snapshot: true, editable: true },
+    tool_break_overrides:        { label: 'Tool Break Overrides',  group: 'Tools',      snapshot: true, editable: true },
     recipes:                     { label: 'Recipes',               group: 'Crafting',   snapshot: true, editable: true },
     drop_table_entries:          { label: 'Drop Table Entries',    group: 'Drops',      snapshot: true, editable: true },
     quests:                      { label: 'Quests',                group: 'Quests',     snapshot: true, editable: true },

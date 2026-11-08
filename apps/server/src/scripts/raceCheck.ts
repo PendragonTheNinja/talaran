@@ -309,7 +309,7 @@ const SLOT_COLUMNS = [
     'legs_item_id', 'hands_item_id', 'feet_item_id', 'finger_item_id', 'mount_item_id', 'trophy_item_id',
 ];
 
-/** Every copy of an item that exists anywhere: packs, stores, the ground, shop shelves, and worn. */
+/** Every copy of an item that exists anywhere: packs, stores, the ground, shop shelves, bench slots (a broken tool is not one), and worn. */
 async function itemTotal(db: Db, itemId: number): Promise<number> {
     const worn = SLOT_COLUMNS.map((c) => `(SELECT count(*) FROM player_equipment WHERE ${c} = $1)`).join(' + ');
     const { rows } = await db.raw(`
@@ -319,7 +319,8 @@ async function itemTotal(db: Db, itemId: number): Promise<number> {
              + (SELECT coalesce(sum(quantity), 0) FROM shop_listings   WHERE item_id = $1)
              + (SELECT coalesce(sum(quantity), 0) FROM guild_storage   WHERE item_id = $1)
              + (SELECT coalesce(sum(quantity), 0) FROM guild_storage_requests WHERE item_id = $1 AND status = 'approved')
-             + ${worn} AS total`.replace(/\$1/g, '?'), Array(6 + SLOT_COLUMNS.length).fill(itemId));
+             + (SELECT count(*) FROM workstation_slots ws JOIN items i ON i.name = ws.item_name WHERE i.id = $1 AND ws.broken_at IS NULL)
+             + ${worn} AS total`.replace(/\$1/g, '?'), Array(7 + SLOT_COLUMNS.length).fill(itemId));
     return Number(rows[0].total);
 }
 
@@ -1771,6 +1772,62 @@ const SCENARIOS: Scenario[] = [
             return changed('hatchets', 1, await ctx.itemTotal(w.hatchet.id))
                 ?? changed('crude axes', 1, await ctx.itemTotal(w.axeA.id))
                 ?? succeeded(st, 5);
+        },
+    },
+    {
+        id: 'tool', name: 'a hatchet breaks while it is taken off five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/toolWear.ts wearHandTools: the break reads the hand
+            // under the equipment row's lock, the unequip button's lock, so a
+            // tool is either taken off whole or breaks in hand, never both.
+            const w = await world(ctx);
+            const axe = await ctx.seed.row('items', {
+                name: 'Brittle Hatchet', type: 'tool', subtype: 'axe', slot: 'mainhand', level_required: 1,
+                tier: 1, durability_uses: 0, durability_break_pct: 100,
+            });
+            await wearing(ctx, w.player.id, 'mainhand_item_id', axe.id);
+            const { wearHandTools } = await import('../services/toolWear');
+            const [st, breaks] = await Promise.all([
+                ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/equipment/unequip', { slot: 'mainhand' })),
+                Promise.all([1, 2, 3].map(() => wearHandTools(w.player.id, 'Woodcutting', ['axe'], 30))),
+            ]);
+            const broke = breaks.flat().length;
+            const left = await ctx.itemTotal(axe.id);
+            const counted = Number((await ctx.db('player_stats').where({ player_id: w.player.id }).first())?.total_tools_broken ?? 0);
+            if (broke > 1) return `the hatchet broke ${broke} times`;
+            return changed('hatchets left (one less if it broke)', 1 - broke, left)
+                ?? changed('tools broken in the stats', broke, counted)
+                ?? (st.some(s => s >= 500) ? 'a request failed with a server error' : null);
+        },
+    },
+    {
+        id: 'tool', name: 'tongs give out while they are taken from the bench five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/toolWear.ts wearBenchTools locks the station, then its
+            // slots, as unsocketTool does: the tongs come back to the pack
+            // whole, or stay in the bench broken, never both.
+            const w = await world(ctx);
+            const tongs = await ctx.seed.row('items', { name: 'Brittle Tongs', type: 'tool', tier: 1, durability_uses: 0, durability_break_pct: 100 });
+            await ctx.seed.row('workstation_slot_types', { station_type: 'smithing', slot: 'tongs', label: 'Tongs', capacity: 1, accepts_names: JSON.stringify(['Brittle Tongs']), is_required: true, wears: true });
+            const station = await ctx.seed.row('workstations', { player_id: w.player.id, location_id: w.town.id, type: 'smithing', tier: 1, is_active: true });
+            await ctx.seed.row('workstation_slots', { workstation_id: station.id, slot: 'tongs', slot_index: 0, item_name: 'Brittle Tongs' });
+            const recipe = await ctx.seed.row('recipes', {
+                name: 'Racecheck Nails', skill: 'Smithing', output_item_name: 'Oak Plank', output_qty: 1, inputs: '[]',
+                required_level: 1, timer_seconds: 30, xp: 1, station: 'smithing', required_tools: JSON.stringify(['tongs']),
+            });
+            const { wearBenchTools } = await import('../services/toolWear');
+            const [st, breaks] = await Promise.all([
+                ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/workstations/smithing/unsocket', { slot: 'tongs', slotIndex: 0 })),
+                Promise.all([1, 2, 3].map(() => wearBenchTools(w.player.id, recipe.id, 30))),
+            ]);
+            const broke = breaks.flat().length;
+            const left = await ctx.itemTotal(tongs.id);
+            const brokenRows = await ctx.db('workstation_slots').where({ workstation_id: station.id }).whereNotNull('broken_at').count('* as c').first();
+            if (broke > 1) return `the tongs broke ${broke} times`;
+            // Broken (left in the bench, or cleared away after), or back in the pack whole.
+            return changed('tongs left (none if they broke)', 1 - broke, left)
+                ?? (broke === 0 && Number(brokenRows?.c ?? 0) > 0 ? 'a broken row with no break counted' : null)
+                ?? (st.some(s => s >= 500) ? 'a request failed with a server error' : null);
         },
     },
     {

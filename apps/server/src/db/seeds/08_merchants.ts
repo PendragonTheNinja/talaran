@@ -107,6 +107,8 @@ const MERCHANTS: MerchantSeed[] = [
             'Mucking Fork',
             'Ambren Fishing Rod',
             'Lanai Staff',
+            // Made at the carpenter's bench, so his to sell (Nathan, 2026-11-07).
+            'Lanai Hunting Bow',
         ],
     },
     {

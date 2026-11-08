@@ -102,6 +102,29 @@
     border-color: var(--color-red-bright);
 }
 
+/* A tool that gave out (services/toolWear.ts): still in its slot, the bench
+   making do at half speed, until a new one goes in. */
+.workstation-cell.broken {
+    position: relative;
+    border-color: var(--color-red-bright);
+}
+
+.workstation-cell.broken .workstation-cell-icon {
+    opacity: 0.45;
+    filter: grayscale(0.8);
+}
+
+.workstation-cell-broken {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--color-red-bright);
+}
+
 .workstation-cell:disabled {
     opacity: 0.5;
     cursor: default;

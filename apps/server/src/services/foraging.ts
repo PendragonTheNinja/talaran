@@ -34,7 +34,7 @@ export interface ForageResult {
     firstDiscovery?: boolean;
 }
 
-function parseTable(raw: unknown): ForageDropEntry[] {
+export function parseTable(raw: unknown): ForageDropEntry[] {
     if (Array.isArray(raw)) return raw as ForageDropEntry[];
     if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return []; } }
     return [];

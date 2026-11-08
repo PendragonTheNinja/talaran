@@ -59,6 +59,8 @@ export interface SocketedTool {
     slot_index: number
     item_name: string
     tier: number
+    /** It gave out in use (services/toolWear.ts): the bench makes do at half speed until it is replaced. */
+    broken: boolean
 }
 
 export async function getSlotTypes(stationType: string): Promise<SlotType[]> {
@@ -150,6 +152,7 @@ export async function getSocketed(workstationId: number): Promise<SocketedTool[]
             'ws.slot_index',
             'ws.item_name',
             db.raw('COALESCE(i.tier, 1) as tier'),
+            db.raw('(ws.broken_at IS NOT NULL) as broken'),
         )
 }
 
@@ -172,10 +175,12 @@ export async function describeStation(playerId: number, locationId: number, type
         filled: socketed
             .filter(s => s.slot === st.slot)
             .sort((a, b) => a.slot_index - b.slot_index)
-            .map(s => ({ index: s.slot_index, itemName: s.item_name, tier: s.tier })),
+            .map(s => ({ index: s.slot_index, itemName: s.item_name, tier: s.tier, broken: !!s.broken })),
     }))
 
     const missingRequired = slots.filter(s => s.isRequired && s.filled.length === 0).map(s => s.label)
+    // Tools that gave out, by name, for the bench's own notice.
+    const brokenTools = socketed.filter(s => s.broken).map(s => s.item_name)
 
     return {
         exists: !!station,
@@ -184,6 +189,7 @@ export async function describeStation(playerId: number, locationId: number, type
         slots,
         isActive: !!station && missingRequired.length === 0,
         missingRequired,
+        brokenTools,
         // A campfire needs to appear in the location menu while it burns and
         // vanish when it does not, so the client needs both the flag and the
         // time left rather than inferring either.
@@ -297,6 +303,13 @@ export async function socketTool(
                 station = { id: typeof id === 'object' ? (id as any).id : id }
             }
 
+            // A broken tool makes way for its replacement; there is nothing
+            // left of it to give back.
+            await trx('workstation_slots')
+                .where({ workstation_id: station.id, slot })
+                .whereNotNull('broken_at')
+                .delete()
+
             const used = await trx('workstation_slots')
                 .where({ workstation_id: station.id, slot })
                 .forUpdate()
@@ -364,6 +377,13 @@ export async function unsocketTool(
                 .forUpdate()
                 .first()
             if (!row) throw new Error('That slot is empty.')
+
+            // A broken tool is cleared away, not taken back: it is past use.
+            if (row.broken_at) {
+                await trx('workstation_slots').where({ id: row.id }).delete()
+                await refreshActiveWithin(trx, station.id, stationType)
+                return
+            }
 
             const item = await trx('items').where({ name: row.item_name }).first()
             if (!item) throw new Error('Unknown item.')
@@ -725,6 +745,11 @@ export interface StationCheck {
     missingTools: string[]
     /** True when working at the NPC's bench rather than your own. */
     usingPublic: boolean
+    /**
+     * Tools this job uses that gave out at your own bench (services/toolWear.ts).
+     * The job still runs there, making do at half speed, until they are replaced.
+     */
+    brokenTools?: string[]
 }
 
 /**
@@ -844,9 +869,16 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         if (needed.length === 0) {
             return { ok: true, multiplier: 1, missingTools: [], usingPublic: false }
         }
+        // A tool that gave out still holds its place: the job runs here,
+        // making do at half speed (Nathan, 2026-11-07), rather than stopping
+        // or falling to a public bench that may be an island away. Speed
+        // otherwise comes from the tools still sound.
+        const brokenTools = needed.filter(slot => bySlot.get(slot)!.broken).map(slot => bySlot.get(slot)!.item_name)
+        const sound = needed.filter(slot => !bySlot.get(slot)!.broken)
         const actionTier = tierOfLevel(recipe.required_level ?? 1)
-        const lowestToolTier = Math.min(...needed.map(slot => bySlot.get(slot)!.tier ?? 1))
-        const mult = tierMultiplier(lowestToolTier, actionTier)
+        const lowestToolTier = sound.length ? Math.min(...sound.map(slot => bySlot.get(slot)!.tier ?? 1)) : actionTier
+        const tierMult = tierMultiplier(lowestToolTier, actionTier)
+        const mult = tierMult === null ? null : tierMult * (brokenTools.length ? 2 : 1)
         if (mult === null) {
             return {
                 ok: false,
@@ -856,7 +888,7 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
                 usingPublic: false,
             }
         }
-        return { ok: true, multiplier: mult, missingTools: [], usingPublic: false }
+        return { ok: true, multiplier: mult, missingTools: [], usingPublic: false, brokenTools }
     }
 
     // 2. Fall back to the public bench, if this location has one. Half speed,
