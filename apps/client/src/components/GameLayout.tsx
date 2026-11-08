@@ -382,7 +382,6 @@ export default function GameLayout({
       const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/kiln/collect/start', {
         method: 'POST',
       })
-      setExternalMessage({ text: 'Collecting Charc...', type: 'info' })
       setGameViewAction({ type: 'kiln_collecting', id: res.timerSeconds })
     } catch (err: any) {
       if (err.status === 423) { blockedByBotCheck(() => handleKilnCollect()); return }

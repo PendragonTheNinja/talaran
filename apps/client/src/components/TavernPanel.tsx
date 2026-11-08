@@ -200,6 +200,14 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
     const [search, setSearch] = useState('')
     const [searchKind, setSearchKind] = useState<'player' | 'guild'>('player')
     const [error, setError] = useState<string | null>(null)
+    // A name Wenna does not know: said under the search, gone after a few seconds.
+    const [searchNote, setSearchNote] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!searchNote) return
+        const t = setTimeout(() => setSearchNote(null), 5000)
+        return () => clearTimeout(t)
+    }, [searchNote])
 
     useEffect(() => {
         apiFetch<Front>('/api/chronicle/tavern')
@@ -231,10 +239,10 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
 
     const findNamed = (who: string, kind: 'player' | 'guild') => {
         if (!who.trim()) return
-        setError(null)
+        setSearchNote(null)
         apiFetch<Named>(`/api/chronicle/named?${kind}=${encodeURIComponent(who.trim())}`)
             .then(setNamed)
-            .catch(err => { setNamed(null); setError(err instanceof Error ? err.message : 'No such name.') })
+            .catch(err => { setNamed(null); setSearchNote(err instanceof Error ? err.message : 'No such name.') })
     }
 
     const readPage = (dayKey: string) => {
@@ -332,11 +340,12 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                                     className="chat-input tavern-search"
                                     value={search}
                                     placeholder={searchKind === 'player' ? 'A name' : 'A guild'}
-                                    onChange={e => setSearch(e.target.value)}
+                                    onChange={e => { setSearch(e.target.value); setSearchNote(null) }}
                                     onKeyDown={e => { if (e.key === 'Enter') findNamed(search, searchKind) }}
                                 />
                                 <button className="btn btn-gold" onClick={() => findNamed(search, searchKind)}>Look</button>
                             </div>
+                            {searchNote && <p className="tavern-error" role="status">{searchNote}</p>}
                             {named && (
                                 named.days.length === 0
                                     ? <p className="tavern-scene">"{named.name}? Not in the book yet. Give it time."</p>
