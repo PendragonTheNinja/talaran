@@ -127,7 +127,7 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
                             <div className="mkt-tabs">
                                 <button className={`mkt-tab${tab === 'buy' ? ' is-active' : ''}`} onClick={() => setTab('buy')}>His wares</button>
                                 <button className={`mkt-tab${tab === 'sell' ? ' is-active' : ''}`} onClick={() => setTab('sell')}>
-                                    He is buying{wants.length ? ` (${wants.length})` : ''}
+                                    Buying{wants.length ? ` (${wants.length})` : ''}
                                 </button>
                             </div>
                         )}

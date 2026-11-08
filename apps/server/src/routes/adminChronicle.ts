@@ -4,6 +4,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { gameDayKey } from '../lib/gameTime';
 import { deedsForDay, deedsCsv } from '../services/chronicle';
+import { composePage, writePage, unwritePage, readPage, chronicleSettings, setComposerEnabled, verseCounts, todaySoFar } from '../services/chronicleComposer';
+import { addDays } from '../lib/chronicleVerse';
 
 // The admin panel's Chronicle tab (docs/chronicle-spec.md §14, step 1): the
 // raw deed journal by game day, and an export for tuning. Admin-only, like the
@@ -42,6 +44,62 @@ router.get('/export', requireAuth, async (req: AuthRequest, res: Response) => {
         res.send(csv);
     } catch (err) {
         logger.error(`admin chronicle export: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ── Pages (step 2) ───────────────────────────────────────────────────────────
+
+function dayOf(v: unknown): string | null {
+    return typeof v === 'string' && DAY.test(v) ? v : null;
+}
+
+/**
+ * GET /api/admin/chronicle/page?day=: the day's page as written, the dry run
+ * of it (what Wenna would write from its deeds now, saved nowhere), the
+ * deeds as scored, and whether writing is on.
+ */
+router.get('/page', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!await isAdmin(req.player!.playerId)) { res.status(403).json({ error: 'Admins only.' }); return; }
+        const day = dayOf(req.query.day) ?? gameDayKey();
+        const [written, preview, settings, verses, today] = await Promise.all([
+            readPage(day), composePage(day), chronicleSettings(), verseCounts(), todaySoFar(),
+        ]);
+        res.json({ day, today: gameDayKey(), yesterday: addDays(gameDayKey(), -1), written, preview, enabled: settings.composer_enabled, verses, todaySoFar: today });
+    } catch (err) {
+        logger.error(`admin chronicle page: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/** POST /api/admin/chronicle/write { day, again? }: write a finished day's page now; again first takes the old one out. */
+router.post('/write', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!await isAdmin(req.player!.playerId)) { res.status(403).json({ error: 'Admins only.' }); return; }
+        const day = dayOf(req.body?.day);
+        if (!day) { res.status(400).json({ error: 'Which day?' }); return; }
+        if (day >= gameDayKey()) { res.status(400).json({ error: 'A page is written once its day is over.' }); return; }
+        if (req.body?.again) await unwritePage(day);
+        const wrote = await writePage(day);
+        if (!wrote) { res.status(409).json({ error: 'That page is already written.' }); return; }
+        logger.info(`[chronicle] player ${req.player!.playerId} ${req.body?.again ? 'rewrote' : 'wrote'} the page for ${day}`);
+        res.json({ ok: true, page: await readPage(day) });
+    } catch (err) {
+        logger.error(`admin chronicle write: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/** POST /api/admin/chronicle/settings { enabled }: whether Wenna writes a page each midnight. */
+router.post('/settings', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!await isAdmin(req.player!.playerId)) { res.status(403).json({ error: 'Admins only.' }); return; }
+        await setComposerEnabled(!!req.body?.enabled);
+        logger.info(`[chronicle] player ${req.player!.playerId} turned page writing ${req.body?.enabled ? 'on' : 'off'}`);
+        res.json({ ok: true });
+    } catch (err) {
+        logger.error(`admin chronicle settings: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

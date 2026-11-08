@@ -4,8 +4,8 @@ import './AdminChronicle.css'
 
 /**
  * The Chronicle tab (docs/chronicle-spec.md §14, step 1): the raw deed journal,
- * one game day at a time, and an export of a range of days for tuning. Nothing
- * here is player-facing; the pages Wenna writes come in step 2.
+ * one game day at a time, and an export of a range of days for tuning; and
+ * Wenna's page for the chosen day (step 2). Nothing here is player-facing.
  */
 
 interface Deed {
@@ -34,6 +34,150 @@ function detailLine(data: Record<string, unknown>): string {
         .filter(([, v]) => v !== null && v !== undefined && v !== '')
         .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
         .join(' · ')
+}
+
+interface PageLine { section: string; text: string; struck?: boolean }
+interface PreviewLine { section: string; text: string; deedKind: string | null }
+interface ScoredDeed { id: number; kind: string; section: string; player: string | null; guild: string | null; subject: string | null; score: number; told: boolean }
+interface PageData {
+    day: string
+    today: string
+    yesterday: string
+    enabled: boolean
+    written: { title: string; composedAt: string | null; lines: PageLine[] } | null
+    preview: { title: string; lines: PreviewLine[]; thin: string[]; scored: ScoredDeed[]; quiet: boolean }
+    verses: { kind: string; verses: number; target: number }[]
+    todaySoFar: string[]
+}
+
+const SECTION_LABEL: Record<string, string> = {
+    heading: '', headline: 'Headline', island: 'Around the island', guilds: 'From the guilds',
+    fallen: 'Of the fallen', maker: 'Word from the Maker', quiet: '', roll: 'The long roll', signoff: '',
+}
+
+/** A page's lines under their section names, each name once. */
+function PageText({ lines }: { lines: { section: string; text: string; struck?: boolean }[] }) {
+    return (
+        <div className="chron-page">
+            {lines.map((l, i) => {
+                const head = SECTION_LABEL[l.section] && l.section !== lines[i - 1]?.section ? SECTION_LABEL[l.section] : null
+                return (
+                    <div key={i}>
+                        {head && <p className="chron-page-section">{head}</p>}
+                        <p className={`chron-page-line chron-line-${l.section}${l.struck ? ' struck' : ''}`}>{l.text}</p>
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
+/**
+ * Wenna's page for the chosen day (step 2): as written, and the dry run of
+ * what she would write from its deeds now, with every deed's score. Writing
+ * each midnight stays off until it is switched on here.
+ */
+function PageCard({ day }: { day: string }) {
+    const [data, setData] = useState<PageData | null>(null)
+    const [error, setError] = useState<string | null>(null)
+    const [busy, setBusy] = useState(false)
+    const [showScores, setShowScores] = useState(false)
+
+    const load = useCallback(() => {
+        apiFetch<PageData>(`/api/admin/chronicle/page?day=${day}`)
+            .then(d => { setData(d); setError(null) })
+            .catch(err => setError(err instanceof Error ? err.message : 'Could not load the page.'))
+    }, [day])
+    useEffect(() => { load() }, [load])
+
+    const post = async (path: string, body: object) => {
+        setBusy(true)
+        try {
+            await apiFetch(`/api/admin/chronicle/${path}`, { method: 'POST', body: JSON.stringify(body) })
+            load()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'That did not work.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    if (!data) return <div className="admin-action-card"><p className="chron-admin-note">{error ?? 'Reading the page…'}</p></div>
+    const over = data.day < data.today
+
+    return (
+        <div className="admin-action-card">
+            <p className="admin-section-title">🍺 Wenna's Page: {data.day}</p>
+            {error && <p className="guild-error">{error}</p>}
+            <label className="chron-admin-check">
+                <input type="checkbox" checked={data.enabled} disabled={busy} onChange={e => post('settings', { enabled: e.target.checked })} />
+                Write a page every midnight (and catch up on missed days)
+            </label>
+            {!data.enabled && (
+                <p className="chron-admin-note">Off: no page is written, so nothing is frozen while the weights and verses are tuned. The dry run below works either way.</p>
+            )}
+
+            {data.day === data.today && data.todaySoFar.length > 0 && (
+                <>
+                    <p className="chron-page-section">Today so far, as Wenna tells it in the tavern (no names)</p>
+                    {data.todaySoFar.map((t, i) => <p key={i} className="chron-page-line">{t}</p>)}
+                </>
+            )}
+
+            <div className="chron-page-cols">
+                <div>
+                    <p className="chron-page-section">{data.written ? 'As written' : 'Not written yet'}</p>
+                    {data.written
+                        ? <PageText lines={data.written.lines} />
+                        : <p className="chron-admin-note">{over ? 'This day is over and has no page.' : 'A page is written once the day is over.'}</p>}
+                    {over && (
+                        <button className="btn btn-gold" disabled={busy} onClick={() => post('write', { day: data.day, again: !!data.written })}>
+                            {data.written ? 'Write it again' : 'Write this page now'}
+                        </button>
+                    )}
+                    {data.written && <p className="chron-admin-note">Writing again replaces the page. Do that only before players can read the book.</p>}
+                </div>
+                <div>
+                    <p className="chron-page-section">Dry run (saved nowhere)</p>
+                    <PageText lines={data.preview.lines} />
+                    {data.preview.thin.length > 0 && (
+                        <p className="chron-admin-note">More verses wanted for: {data.preview.thin.join(', ')}</p>
+                    )}
+                </div>
+            </div>
+
+            <button className="btn" onClick={() => setShowScores(!showScores)}>
+                {showScores ? 'Hide' : 'Show'} the scores ({data.preview.scored.length} deeds)
+            </button>
+            {showScores && (
+                <div className="chron-admin-table-wrap">
+                    <table className="chron-admin-table">
+                        <thead><tr><th>Score</th><th>Told</th><th>Kind</th><th>Who</th><th>About</th></tr></thead>
+                        <tbody>
+                            {data.preview.scored.map(d => (
+                                <tr key={d.id}>
+                                    <td className="tabular-num">{d.score}</td>
+                                    <td>{d.told ? '✓' : ''}</td>
+                                    <td>{d.kind}</td>
+                                    <td>{d.player ?? (d.guild ? `[${d.guild}]` : '')}</td>
+                                    <td>{d.subject ?? ''}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            <p className="chron-page-section">Verses by kind (edit them in the content browser: Chronicle Verses)</p>
+            <div className="chron-admin-kinds">
+                {data.verses.map(v => (
+                    <span key={v.kind} className={`chron-admin-kind ${v.verses < v.target ? 'thin' : ''}`} title={`${v.verses} of the ${v.target} wanted`}>
+                        {v.kind} <span className="tabular-num">{v.verses}/{v.target}</span>
+                    </span>
+                ))}
+            </div>
+        </div>
+    )
 }
 
 function timeOf(iso: string): string {
@@ -96,11 +240,12 @@ export default function AdminChronicle() {
         <div className="admin-chronicle">
             {error && <p className="guild-error">{error}</p>}
 
+            <PageCard day={data.dayKey} />
+
             <div className="admin-action-card">
                 <p className="admin-section-title">📜 The Deed Journal</p>
                 <p className="chron-admin-note">
-                    Everything the game has noted for Wenna, by game day. Nothing is sung yet: the pages
-                    come in the next step, built from what collects here.
+                    Everything the game has noted for Wenna, by game day. Pick a day to see its page above.
                 </p>
                 <div className="chron-admin-days">
                     {data.days.length === 0 && <span className="chron-admin-note">No deeds yet.</span>}

@@ -393,6 +393,9 @@ async function schedulerTick(): Promise<void> {
     // travellingMerchant.ts imports this file.
     const { merchantSchedulerTick } = await import('./travellingMerchant');
     await merchantSchedulerTick();
+    // Wenna's page for a day that has ended (services/chronicleComposer.ts).
+    const { chronicleTick } = await import('./chronicleComposer');
+    await chronicleTick();
 }
 
 export function startWorldEventScheduler(): void {
