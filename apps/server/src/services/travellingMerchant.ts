@@ -3,13 +3,14 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { buyPrice } from './marketplace';
-import { debitGoldWithin, getGold } from './gold';
-import { addItemToInventoryWithin, notifyInventoryChanged } from './inventory';
+import { debitGoldWithin, creditGoldWithin, getGold } from './gold';
+import { addItemToInventoryWithin, takeItemsWithin, notifyInventoryChanged } from './inventory';
 import { logSubtypeFor } from './woodcutting';
 import { rockSubtypeFor, veinOresAt } from './mining';
 import { eventsChanged } from './worldEvents';
 import { announceServer } from './records';
 import { noteDeed } from './chronicle';
+import { isLiquid } from './liquids';
 
 // The Travelling Merchant (docs/WORLD-EVENTS-AND-MUSEUMS.md, step 3).
 //
@@ -108,28 +109,130 @@ export async function merchantPlaces(): Promise<{ id: number; name: string }[]> 
 }
 
 // ── His cart ──────────────────────────────────────────────────────────────
+//
+// What he sells (Nathan, 2026-11-08): what is NOT lying about where he stands.
+// Seeds, gems, cooked food and provisions, and worked goods (planks, ingots,
+// leather, cloth, anything a bench or a fire makes), drawn at random each visit
+// so his cart is never the same twice. Never a tool or a piece of gear, never
+// a raw gathered good (a log, an ore, a fish), which anyone can fetch for
+// themselves. Now and then one lit gem, dear. He buys too: a few wanted lines.
 
 interface StockPlan { itemId: number; quantity: number; price: number }
+interface WantPlan { itemId: number; quantity: number; price: number; playerCap: number }
 
 const between = (lo: number, hi: number) => lo + Math.floor(Math.random() * (Math.max(hi, lo) - lo + 1));
 
-/**
- * What he brings to a place: up to `lines` of its yields, each about
- * `lineGold` worth of value (so a cheap log comes by the armful and an ore by
- * the handful), plus whatever from the extras list turns up this time.
- */
-async function planStock(locationId: number, settings: any): Promise<StockPlan[]> {
-    const yields = await locationYields(locationId);
-    for (let i = yields.length - 1; i > 0; i--) {
+function shuffle<T>(list: T[]): T[] {
+    for (let i = list.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [yields[i], yields[j]] = [yields[j], yields[i]];
+        [list[i], list[j]] = [list[j], list[i]];
     }
-    const plan = new Map<number, StockPlan>();
-    for (const y of yields.slice(0, settings.merchant_lines)) {
-        const quantity = Math.max(1, Math.min(999, Math.round(settings.merchant_line_gold / y.value * (0.7 + Math.random() * 0.6))));
-        plan.set(y.id, { itemId: y.id, quantity, price: buyPrice(y.value) });
+    return list;
+}
+
+/** Charged gems (a filled stone): sold only as the rare line, never as ordinary stock. */
+const CHARGED_QUALITIES = ['lit', 'bright', 'radiant'];
+
+interface Good { id: number; name: string; value: number; type: string | null; subtype: string | null; quality: string | null; tier: number }
+
+/** Every priced, ordinary good: no tools, no gear, no animals, no curios, nothing poured. */
+async function ordinaryGoods(): Promise<Good[]> {
+    const rows = await db('items')
+        .where({ is_active: true }).where('value', '>', 0)
+        .whereNull('slot')
+        .where((q) => q.whereNull('type').orWhereNotIn('type', ['tool', 'mount', 'animal', 'curio', 'collectible']))
+        .select('id', 'name', 'value', 'type', 'subtype', 'quality', 'tier');
+    return rows
+        .filter((r: any) => !isLiquid(r.name))
+        .map((r: any) => ({ id: r.id, name: r.name, value: Number(r.value), type: r.type, subtype: r.subtype, quality: r.quality, tier: Number(r.tier) || 1 }));
+}
+
+/** What a bench, a fire or a vat makes: every recipe's outputs, planks and ingots. */
+async function workedGoodIds(): Promise<{ all: Set<number>; cooked: Set<number> }> {
+    const recipes = await db('recipes').where({ is_active: true })
+        .select('skill', 'output_item_name', 'byproduct_item_name', 'grade_outputs');
+    const names = new Set<string>();
+    const cookedNames = new Set<string>();
+    for (const r of recipes) {
+        const outs = [r.output_item_name, r.byproduct_item_name, ...parseTable(r.grade_outputs)].filter(Boolean).map(String);
+        for (const n of outs) {
+            names.add(n);
+            if (r.skill === 'Cooking') cookedNames.add(n);
+        }
+    }
+    const rows = await db('items')
+        .where((q) => {
+            q.whereIn('type', ['plank', 'ingot']);
+            if (names.size) q.orWhereIn('name', [...names]);
+        })
+        .select('id', 'name');
+    return {
+        all: new Set(rows.map((r: any) => r.id)),
+        cooked: new Set(rows.filter((r: any) => cookedNames.has(r.name)).map((r: any) => r.id)),
+    };
+}
+
+/** Everything gathered raw anywhere on the island: what he will not sell, and some of what he wants. */
+async function islandYieldIds(): Promise<Set<number>> {
+    const places = await db('locations').where({ is_accessible: true }).select('id');
+    const ids = new Set<number>();
+    for (const p of places) for (const y of await locationYields(p.id)) ids.add(y.id);
+    return ids;
+}
+
+/** A line's size: about `lineGold` of value, so cheap goods come by the armful and dear ones by the handful. */
+function lineQuantity(lineGold: number, unitValue: number): number {
+    return Math.max(1, Math.min(999, Math.round(lineGold / unitValue * (0.7 + Math.random() * 0.6))));
+}
+
+/** What a wanted line pays: a share of value, always below what any merchant charges for it. */
+export function wantPrice(value: number, rate: number): number {
+    return Math.max(1, Math.min(buyPrice(value) - 1, Math.floor(value * rate)));
+}
+
+async function planVisit(settings: any): Promise<{ stock: StockPlan[]; wants: WantPlan[] }> {
+    const [goods, worked, raw] = await Promise.all([ordinaryGoods(), workedGoodIds(), islandYieldIds()]);
+
+    // His wares, by kind, so one visit is not all seeds.
+    const seeds: Good[] = [];
+    const gems: Good[] = [];
+    const food: Good[] = [];
+    const wares: Good[] = [];
+    const charged: Good[] = [];
+    for (const g of goods) {
+        if (g.quality && CHARGED_QUALITIES.includes(g.quality)) charged.push(g);
+        else if (g.subtype === 'seed') seeds.push(g);
+        else if (g.type === 'gem') gems.push(g);
+        else if (raw.has(g.id)) continue;
+        else if (worked.cooked.has(g.id)) food.push(g);
+        else if (worked.all.has(g.id)) wares.push(g);
+    }
+    const kinds = [seeds, gems, food, wares].map(shuffle).filter((k) => k.length);
+    const picked: Good[] = [];
+    for (let round = 0; picked.length < settings.merchant_lines && kinds.some((k) => k.length); round++) {
+        for (const k of shuffle([...kinds])) {
+            if (picked.length >= settings.merchant_lines) break;
+            const next = k.shift();
+            if (next) picked.push(next);
+        }
     }
 
+    const stock = new Map<number, StockPlan>();
+    for (const g of picked) {
+        stock.set(g.id, { itemId: g.id, quantity: lineQuantity(settings.merchant_line_gold, buyPrice(g.value)), price: buyPrice(g.value) });
+    }
+
+    // Now and then a single lit gem, dear: the plainest grades most often.
+    if (charged.length && Math.random() * 100 < Number(settings.merchant_lit_gem_chance ?? 0)) {
+        const lowest = Math.min(...charged.map((g) => g.tier));
+        const weight = (g: Good) => ({ lit: 3, bright: 2, radiant: 1 } as Record<string, number>)[g.quality ?? ''] ?? 1;
+        const pool = charged.filter((g) => g.tier === lowest);
+        let roll = Math.random() * pool.reduce((n, g) => n + weight(g), 0);
+        const gem = pool.find((g) => (roll -= weight(g)) <= 0) ?? pool[0];
+        stock.set(gem.id, { itemId: gem.id, quantity: 1, price: Math.ceil(buyPrice(gem.value) * Number(settings.merchant_lit_gem_markup ?? 3)) });
+    }
+
+    // The admin's extras list, on top.
     const extras = await db('merchant_extra_goods as x')
         .join('items as i', 'i.id', 'x.item_id')
         .where('x.is_active', true).where('i.is_active', true).where('i.value', '>', 0)
@@ -137,11 +240,25 @@ async function planStock(locationId: number, settings: any): Promise<StockPlan[]
     for (const x of extras) {
         if (Math.random() * 100 >= x.chance_percent) continue;
         const quantity = between(x.min_qty, x.max_qty);
-        const had = plan.get(x.item_id);
+        const had = stock.get(x.item_id);
         if (had) had.quantity += quantity;
-        else plan.set(x.item_id, { itemId: x.item_id, quantity, price: buyPrice(Number(x.value)) });
+        else stock.set(x.item_id, { itemId: x.item_id, quantity, price: buyPrice(Number(x.value)) });
     }
-    return [...plan.values()];
+
+    // What he wants: raw goods from anywhere on the island and worked goods,
+    // never what he is selling this visit, never a gem or anything rare.
+    const wantable = shuffle(goods.filter((g) =>
+        !stock.has(g.id)
+        && !(g.quality && CHARGED_QUALITIES.includes(g.quality))
+        && g.type !== 'gem'
+        && (raw.has(g.id) || worked.all.has(g.id))));
+    const wants: WantPlan[] = wantable.slice(0, Math.max(0, Number(settings.merchant_want_lines ?? 0))).map((g) => {
+        const price = wantPrice(g.value, Number(settings.merchant_want_rate));
+        const quantity = lineQuantity(settings.merchant_line_gold, price);
+        return { itemId: g.id, quantity, price, playerCap: Math.max(1, Math.ceil(quantity * Number(settings.merchant_want_share))) };
+    });
+
+    return { stock: [...stock.values()], wants };
 }
 
 // ── His visits ────────────────────────────────────────────────────────────
@@ -185,8 +302,8 @@ export async function summonMerchant(opts: SummonOptions = {}): Promise<{ eventI
         location = places[Math.floor(Math.random() * places.length)];
     }
 
-    const plan = await planStock(location.id, settings);
-    if (!plan.length) throw new MerchantRefusal(`${location.name} yields nothing he could carry, and nothing from the extras list turned up.`);
+    const { stock: plan, wants } = await planVisit(settings);
+    if (!plan.length) throw new MerchantRefusal('There is nothing on the island he could carry.');
 
     const stay = opts.stayMinutes ?? settings.merchant_stay_minutes;
     const units = plan.reduce((n, p) => n + p.quantity, 0);
@@ -207,13 +324,19 @@ export async function summonMerchant(opts: SummonOptions = {}): Promise<{ eventI
         await trx('world_event_stock').insert(plan.map((p) => ({
             event_id: event.id, item_id: p.itemId, quantity_total: p.quantity, quantity_left: p.quantity, price: p.price,
         })));
+        if (wants.length) {
+            await trx('world_event_wants').insert(wants.map((w) => ({
+                event_id: event.id, item_id: w.itemId, quantity_total: w.quantity, quantity_left: w.quantity,
+                price: w.price, player_cap: w.playerCap,
+            })));
+        }
         return event;
     });
 
     await eventsChanged();
     await announceServer(eventId.announcement);
     noteDeed(db, { kind: 'merchant_arrived', subject: location.name, data: { place: location.name, lines: plan.length } });
-    logger.info(`[merchant] at ${location.name} for ${stay} min: ${plan.length} lines, ${units} units${opts.startedBy ? ` (summoned by player ${opts.startedBy})` : ''}`);
+    logger.info(`[merchant] at ${location.name} for ${stay} min: ${plan.length} lines, ${units} units, ${wants.length} wanted${opts.startedBy ? ` (summoned by player ${opts.startedBy})` : ''}`);
     return { eventId: eventId.id, location: location.name, lines: plan.length };
 }
 
@@ -250,8 +373,17 @@ export async function merchantSchedulerTick(): Promise<void> {
 
 export interface MerchantLine { itemId: number; name: string; value: number; price: number; left: number; total: number }
 
+/** A good he is buying: what he pays, what he still wants, and this player's share of it. */
+export interface MerchantWant {
+    itemId: number; name: string; price: number; left: number; total: number
+    /** How many this player may still sell him (their cap less what they have sold). */
+    yourRoom: number
+    /** How many the player carries. */
+    have: number
+}
+
 /** His cart where the player stands, or null when he is not here. */
-export async function merchantHere(playerId: number): Promise<{ eventId: number; location: string; endsAt: string; stock: MerchantLine[]; gold: number } | null> {
+export async function merchantHere(playerId: number): Promise<{ eventId: number; location: string; endsAt: string; stock: MerchantLine[]; wants: MerchantWant[]; gold: number } | null> {
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     const visit = await liveVisit();
     if (!visit || !player || visit.location_id !== player.current_location_id) return null;
@@ -267,8 +399,26 @@ export async function merchantHere(playerId: number): Promise<{ eventId: number;
             itemId: s.item_id, name: s.name, value: Number(s.value), price: s.price,
             left: s.quantity_left, total: s.quantity_total,
         })),
+        wants: await wantsFor(visit.id, playerId),
         gold: await getGold(playerId),
     };
+}
+
+async function wantsFor(eventId: number, playerId: number): Promise<MerchantWant[]> {
+    const rows = await db('world_event_wants as w').join('items as i', 'i.id', 'w.item_id')
+        .leftJoin('world_event_want_sales as s', function () {
+            this.on('s.event_id', 'w.event_id').andOn('s.item_id', 'w.item_id').andOn('s.player_id', db.raw('?', [playerId]));
+        })
+        .leftJoin('player_inventory as pi', function () {
+            this.on('pi.item_id', 'w.item_id').andOn('pi.player_id', db.raw('?', [playerId]));
+        })
+        .where('w.event_id', eventId).orderBy('i.name')
+        .select('w.item_id', 'i.name', 'w.price', 'w.quantity_left', 'w.quantity_total', 'w.player_cap',
+            db.raw('COALESCE(s.quantity, 0) as sold'), db.raw('COALESCE(pi.quantity, 0) as have'));
+    return rows.map((r: any) => ({
+        itemId: r.item_id, name: r.name, price: r.price, left: r.quantity_left, total: r.quantity_total,
+        yourRoom: Math.max(0, r.player_cap - Number(r.sold)), have: Number(r.have),
+    }));
 }
 
 /** A refusal inside the buy: thrown so the transaction rolls back, answered in words. */
@@ -340,6 +490,85 @@ export async function buyFromMerchant(
     } catch (err) {
         if (err instanceof BuyAbort) return { error: err.message };
         logger.error(`[merchant] buy failed for player ${playerId}: ${err}`);
+        return { error: SERVER_ERROR };
+    }
+}
+
+// ── Selling to him ────────────────────────────────────────────────────────
+
+/** A refusal inside the sale: thrown so the transaction rolls back, answered in words. */
+class SellAbort extends Error {}
+
+/**
+ * Sell him something he wants. Capped twice, both in the database: what he
+ * still wants of it (a conditional decrement), and this player's share of it
+ * for the visit (a conditional upsert). The goods, the gold and both counts
+ * move in one transaction (race:check 'merchant').
+ */
+export async function sellToMerchant(
+    playerId: number,
+    req: { eventId: unknown; itemId: unknown; quantity: unknown; price: unknown },
+): Promise<{ ok: true; sold: number; name: string; earned: number; gold: number } | { error: string }> {
+    const quantity = Math.floor(Number(req.quantity));
+    const eventId = Math.floor(Number(req.eventId));
+    const itemId = Math.floor(Number(req.itemId));
+    const shownPrice = Math.floor(Number(req.price));
+    if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 1_000_000) return { error: 'Invalid quantity.' };
+    if (!Number.isFinite(eventId) || !Number.isFinite(itemId) || !Number.isFinite(shownPrice)) return { error: 'He is not buying that.' };
+
+    try {
+        const r = await db.transaction(async (trx) => {
+            const player = await trx('players').where({ id: playerId }).select('current_location_id').first();
+            const visit = await trx('world_events').where({ id: eventId, kind: 'merchant' })
+                .whereNull('ended_at').where('ends_at', '>', trx.fn.now()).forUpdate().first();
+            if (!visit) throw new SellAbort(`${MERCHANT_NAME} has moved on.`);
+            if (!player || player.current_location_id !== visit.location_id) throw new SellAbort(`${MERCHANT_NAME} is not here.`);
+
+            const want = await trx('world_event_wants as w').join('items as i', 'i.id', 'w.item_id')
+                .where({ 'w.event_id': eventId, 'w.item_id': itemId })
+                .select('w.price', 'w.player_cap', 'i.name').first();
+            if (!want) throw new SellAbort('He is not buying that.');
+            if (want.price !== shownPrice) throw new SellAbort('His price has changed. Look again.');
+            if (quantity > want.player_cap) throw new SellAbort(`He will take no more than ${want.player_cap} of those from you.`);
+
+            // Your share: added only while it stays within your cap.
+            const [mine] = await trx('world_event_want_sales')
+                .insert({ event_id: eventId, player_id: playerId, item_id: itemId, quantity })
+                .onConflict(['event_id', 'player_id', 'item_id'])
+                .merge({ quantity: trx.raw('world_event_want_sales.quantity + ?', [quantity]) })
+                .where('world_event_want_sales.quantity', '<=', want.player_cap - quantity)
+                .returning(['quantity']);
+            if (!mine) {
+                const had = await trx('world_event_want_sales').where({ event_id: eventId, player_id: playerId, item_id: itemId }).first();
+                const room = Math.max(0, want.player_cap - Number(had?.quantity ?? 0));
+                throw new SellAbort(room ? `He will take only ${room} more of those from you.` : `He has had all the ${want.name} he will take from you.`);
+            }
+
+            // What he still wants, in one statement against the row as it stands.
+            const [left] = await trx('world_event_wants')
+                .where({ event_id: eventId, item_id: itemId })
+                .where('quantity_left', '>=', quantity)
+                .decrement('quantity_left', quantity)
+                .returning(['quantity_left']);
+            if (!left) {
+                const now = await trx('world_event_wants').where({ event_id: eventId, item_id: itemId }).first();
+                throw new SellAbort(now?.quantity_left ? `He wants only ${now.quantity_left} more.` : `He has all the ${want.name} he wants.`);
+            }
+
+            const took = await takeItemsWithin(trx, playerId, [{ name: want.name, quantity }]);
+            if (!took.ok) throw new SellAbort(`You do not have ${quantity} ${want.name}.`);
+
+            const earned = want.price * quantity;
+            const gold = await creditGoldWithin(trx, {
+                playerId, amount: earned, reason: 'npc_sale', refType: 'world_event', refId: eventId,
+            });
+            return { ok: true as const, sold: quantity, name: want.name as string, earned, gold };
+        });
+        notifyInventoryChanged(playerId);
+        return r;
+    } catch (err) {
+        if (err instanceof SellAbort) return { error: err.message };
+        logger.error(`[merchant] sell failed for player ${playerId}: ${err}`);
         return { error: SERVER_ERROR };
     }
 }

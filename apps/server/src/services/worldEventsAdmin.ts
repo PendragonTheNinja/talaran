@@ -158,6 +158,11 @@ export async function eventsAdminOverview() {
                 lines: s?.merchant_lines ?? 8,
                 lineGold: s?.merchant_line_gold ?? 300,
                 arrivalText: s?.merchant_arrival_text ?? '',
+                wantLines: s?.merchant_want_lines ?? 4,
+                wantRatePct: Math.round(Number(s?.merchant_want_rate ?? 0.9) * 100),
+                wantSharePct: Math.round(Number(s?.merchant_want_share ?? 0.25) * 100),
+                litGemChance: s?.merchant_lit_gem_chance ?? 10,
+                litGemMarkup: Number(s?.merchant_lit_gem_markup ?? 3),
                 // Where he could go today: open places with something to sell.
                 places: (await merchantPlaces()).length,
             },
@@ -412,6 +417,11 @@ export interface MerchantFields {
     lines?: number | string
     lineGold?: number | string
     arrivalText?: string
+    wantLines?: number | string
+    wantRatePct?: number | string
+    wantSharePct?: number | string
+    litGemChance?: number | string
+    litGemMarkup?: number | string
 }
 
 export async function updateMerchantSettings(adminId: number, f: MerchantFields) {
@@ -429,6 +439,17 @@ export async function updateMerchantSettings(adminId: number, f: MerchantFields)
         const gold = optionalWhole(f.lineGold, 'Gold of value per line', 1, 100_000);
         if (gold !== undefined) patch.merchant_line_gold = gold;
         if (f.arrivalText !== undefined) patch.merchant_arrival_text = text(f.arrivalText, 'Arrival line', 500);
+        const wantLines = optionalWhole(f.wantLines, 'Goods he buys', 0, 20);
+        if (wantLines !== undefined) patch.merchant_want_lines = wantLines;
+        // Below the 175% every merchant charges, or he would be a way to print gold.
+        const rate = optionalWhole(f.wantRatePct, 'He pays (% of value)', 1, 174);
+        if (rate !== undefined) patch.merchant_want_rate = rate / 100;
+        const share = optionalWhole(f.wantSharePct, 'One player may sell (% of a line)', 1, 100);
+        if (share !== undefined) patch.merchant_want_share = share / 100;
+        const lit = optionalWhole(f.litGemChance, 'Lit gem chance (%)', 0, 100);
+        if (lit !== undefined) patch.merchant_lit_gem_chance = lit;
+        const markup = optionalWhole(f.litGemMarkup, 'Lit gem price (x his usual)', 1, 20);
+        if (markup !== undefined) patch.merchant_lit_gem_markup = markup;
         if (!Object.keys(patch).length) throw new Refusal('Nothing to change.');
         await db('world_event_settings').where({ id: 1 }).update({ ...patch, updated_at: db.fn.now() });
         await eventsChanged();

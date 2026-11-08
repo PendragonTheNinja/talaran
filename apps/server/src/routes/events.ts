@@ -4,7 +4,7 @@ import { logger } from '../lib/logger';
 import { requireTrusted } from '../lib/trust';
 import { failureStatus } from '../lib/serviceResult';
 import { listEvents } from '../services/worldEvents';
-import { merchantHere, buyFromMerchant } from '../services/travellingMerchant';
+import { merchantHere, buyFromMerchant, sellToMerchant } from '../services/travellingMerchant';
 
 // The Events panel: what is on now, and what ended in the last day.
 const router = Router();
@@ -31,6 +31,13 @@ router.get('/merchant', requireAuth, async (req: AuthRequest, res: Response) => 
 // Buying from him. Trusted accounts only, like the marketplace's buy.
 router.post('/merchant/buy', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
     const result = await buyFromMerchant(req.player!.playerId, req.body ?? {});
+    if ('error' in result) res.status(failureStatus(result.error)).json(result);
+    else res.json(result);
+});
+
+// Selling him what he wants. Trusted accounts only, like buying.
+router.post('/merchant/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
+    const result = await sellToMerchant(req.player!.playerId, req.body ?? {});
     if ('error' in result) res.status(failureStatus(result.error)).json(result);
     else res.json(result);
 });

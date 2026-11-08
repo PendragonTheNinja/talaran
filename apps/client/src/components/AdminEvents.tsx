@@ -61,6 +61,11 @@ interface MerchantSettings {
     stayMinutes: number
     lines: number
     lineGold: number
+    wantLines: number
+    wantRatePct: number
+    wantSharePct: number
+    litGemChance: number
+    litGemMarkup: number
     arrivalText: string
     places: number
 }
@@ -445,6 +450,11 @@ function MerchantCard({ data, send }: { data: Overview; send: Send }) {
     const [lines, setLines] = useState(String(m.lines))
     const [lineGold, setLineGold] = useState(String(m.lineGold))
     const [arrival, setArrival] = useState(m.arrivalText)
+    const [wantLines, setWantLines] = useState(String(m.wantLines))
+    const [wantRate, setWantRate] = useState(String(m.wantRatePct))
+    const [wantShare, setWantShare] = useState(String(m.wantSharePct))
+    const [litChance, setLitChance] = useState(String(m.litGemChance))
+    const [litMarkup, setLitMarkup] = useState(String(m.litGemMarkup))
     const [summonAt, setSummonAt] = useState('')
     const [summonStay, setSummonStay] = useState('')
     const [extraItem, setExtraItem] = useState('')
@@ -456,6 +466,7 @@ function MerchantCard({ data, send }: { data: Overview; send: Send }) {
     const saveSettings = () => send('/merchant/settings', {
         enabled, nextInHours: nextIn || undefined, everyDays: every, stayMinutes: stay,
         lines, lineGold, arrivalText: arrival,
+        wantLines, wantRatePct: wantRate, wantSharePct: wantShare, litGemChance: litChance, litGemMarkup: litMarkup,
     }, 'Merchant saved.')
 
     const saveExtra = async () => {
@@ -487,6 +498,11 @@ function MerchantCard({ data, send }: { data: Overview; send: Send }) {
                 <label>Stays (minutes)<input className="chat-input" type="number" min={10} value={stay} onChange={e => setStay(e.target.value)} /></label>
                 <label>Lines he carries<input className="chat-input" type="number" min={1} value={lines} onChange={e => setLines(e.target.value)} /></label>
                 <label>Gold of goods per line<input className="chat-input" type="number" min={1} value={lineGold} onChange={e => setLineGold(e.target.value)} /></label>
+                <label>Goods he buys<input className="chat-input" type="number" min={0} value={wantLines} onChange={e => setWantLines(e.target.value)} /></label>
+                <label>He pays (% of value)<input className="chat-input" type="number" min={1} max={174} value={wantRate} onChange={e => setWantRate(e.target.value)} /></label>
+                <label>One player may sell (% of a line)<input className="chat-input" type="number" min={1} max={100} value={wantShare} onChange={e => setWantShare(e.target.value)} /></label>
+                <label>Lit gem chance (%)<input className="chat-input" type="number" min={0} max={100} value={litChance} onChange={e => setLitChance(e.target.value)} /></label>
+                <label>Lit gem price (x his usual)<input className="chat-input" type="number" min={1} value={litMarkup} onChange={e => setLitMarkup(e.target.value)} /></label>
             </div>
             <label className="ev-admin-wide">Arrival line; {'{location}'} is filled in
                 <textarea className="chat-input" rows={2} value={arrival} onChange={e => setArrival(e.target.value)} />

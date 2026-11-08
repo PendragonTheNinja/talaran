@@ -799,6 +799,56 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'merchant', name: 'sell the travelling merchant three planks five times at once, against a cap of four', rounds: 10,
+        run: async (ctx) => {
+            // services/travellingMerchant.ts sellToMerchant: your share is a
+            // conditional upsert, so only one sale of three fits under four.
+            const w = await world(ctx);
+            const visit = await ctx.seed.row('world_events', { name: 'The Travelling Merchant', kind: 'merchant', location_id: w.town.id,
+                xp_multiplier: 1, pool_total: 1, pool_left: 1, ends_at: new Date(Date.now() + 3600_000) });
+            await ctx.seed.row('world_event_wants', { event_id: visit.id, item_id: w.plank.id, quantity_total: 20, quantity_left: 20, price: 10, player_cap: 4 });
+            await inPack(ctx, w.player.id, w.plank.id, 15);
+            await fund(ctx, w.player.id, 100);
+            const st = await ctx.burst(w.player.id, 5, () =>
+                ctx.post(w.player.id, '/events/merchant/sell', { eventId: visit.id, itemId: w.plank.id, quantity: 3, price: 10 }));
+            const want = await ctx.db('world_event_wants').where({ event_id: visit.id }).first();
+            const mine = await ctx.db('world_event_want_sales').where({ event_id: visit.id, player_id: w.player.id }).first();
+            return changed('planks in the pack', 12, await ctx.itemTotal(w.plank.id))
+                ?? changed('gold', 130, await goldOf(ctx, w.player.id))
+                ?? changed('what he still wants', 17, want.quantity_left)
+                ?? changed('your share sold', 3, Number(mine?.quantity ?? 0))
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'merchant', name: 'five sellers offer the travelling merchant three each when he wants five, at once', rounds: 10,
+        run: async (ctx) => {
+            // What he still wants is a conditional decrement: one sale of three fits.
+            const w = await world(ctx);
+            const visit = await ctx.seed.row('world_events', { name: 'The Travelling Merchant', kind: 'merchant', location_id: w.town.id,
+                xp_multiplier: 1, pool_total: 1, pool_left: 1, ends_at: new Date(Date.now() + 3600_000) });
+            await ctx.seed.row('world_event_wants', { event_id: visit.id, item_id: w.plank.id, quantity_total: 5, quantity_left: 5, price: 10, player_cap: 5 });
+            const sellers = [];
+            for (let i = 0; i < 5; i++) {
+                const b = await ctx.seed.row('players', { username: `Seller${i}`, email: `seller${i}@racecheck.test`, current_location_id: w.town.id });
+                await inPack(ctx, b.id, w.plank.id, 3);
+                await fund(ctx, b.id, 100);
+                sellers.push(b);
+            }
+            await Promise.all(sellers.map((b) => ctx.warm(b.id)));
+            const st = await Promise.all(sellers.map((b) =>
+                ctx.post(b.id, '/events/merchant/sell', { eventId: visit.id, itemId: w.plank.id, quantity: 3, price: 10 })));
+            const earned = (await Promise.all(sellers.map((b) => goldOf(ctx, b.id)))).reduce((a, g) => a + (g - 100), 0);
+            const want = await ctx.db('world_event_wants').where({ event_id: visit.id }).first();
+            return changed('planks in packs', 12, await ctx.itemTotal(w.plank.id))
+                ?? changed('gold earned', 30, earned)
+                ?? changed('what he still wants', 2, want.quantity_left)
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'museum', name: 'one player gives five times and four others once, to one case, at once', rounds: 10,
         run: async (ctx) => {
             // Pendragon fires five donations of the same item; four others give
@@ -1027,6 +1077,9 @@ const SCENARIOS: Scenario[] = [
             const w = await world(ctx);
             await ctx.seed.row('skills', { name: 'Carpentry' });
             await ctx.seed.row('workstations', { player_id: w.player.id, location_id: w.town.id, type: 'carpentry' });
+            // Sawing at your own workshop wants a saw in hand (services/carpentry.ts canSawHere).
+            const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand', level_required: 1 });
+            await wearing(ctx, w.player.id, 'offhand_item_id', saw.id);
             const logs = await ctx.seed.row('items', { name: 'Poor Lanai Log', type: 'log' });
             const planks = await ctx.seed.row('items', { name: 'Lanai Planks', type: 'material' });
             await inPack(ctx, w.player.id, logs.id, 2);

@@ -11,7 +11,9 @@ import './MarketplaceMenu.css'
 // everyone, and it can go while you look.
 
 interface Line { itemId: number; name: string; value: number; price: number; left: number; total: number }
-interface Visit { eventId: number; location: string; endsAt: string; stock: Line[]; gold: number }
+/** Something he is buying: yourRoom is how many more he will take from you. */
+interface Want { itemId: number; name: string; price: number; left: number; total: number; yourRoom: number; have: number }
+interface Visit { eventId: number; location: string; endsAt: string; stock: Line[]; wants?: Want[]; gold: number }
 
 const fmt = (n: number) => n.toLocaleString('en-US')
 
@@ -25,6 +27,8 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
     const [error, setError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
     const [buying, setBuying] = useState<{ line: Line; qty: number } | null>(null)
+    const [selling, setSelling] = useState<{ want: Want; qty: number } | null>(null)
+    const [tab, setTab] = useState<'buy' | 'sell'>('buy')
     const [busy, setBusy] = useState(false)
     const [now, setNow] = useState(() => Date.now())
 
@@ -70,7 +74,34 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
         }
     }
 
+    const confirmSell = async () => {
+        if (!visit || !selling) return
+        setBusy(true)
+        setError(null)
+        try {
+            const result = await apiFetch<{ sold: number; name: string; earned: number; gold: number }>(
+                '/api/events/merchant/sell',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        eventId: visit.eventId, itemId: selling.want.itemId,
+                        quantity: selling.qty, price: selling.want.price,
+                    }),
+                },
+            )
+            onGoldChanged?.(result.gold)
+            setNotice(`Sold ${fmt(result.sold)} ${result.name} for ${fmt(result.earned)}g.`)
+            setSelling(null)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'That did not work.')
+        } finally {
+            setBusy(false)
+            load()
+        }
+    }
+
     const gold = visit?.gold ?? 0
+    const wants = visit?.wants ?? []
 
     return (
         <div className="mkt-overlay" onClick={onClose}>
@@ -89,13 +120,75 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
                 {visit && (
                     <>
                         <p className="mkt-greeting">
-                            Goods from the country round about, and nothing more once they are gone.
+                            Goods from all over the island, and nothing more once they are gone.
                             He leaves {visit.location} in {timeLeft(visit.endsAt, now)}.
                         </p>
+                        {!buying && !selling && (
+                            <div className="mkt-tabs">
+                                <button className={`mkt-tab${tab === 'buy' ? ' is-active' : ''}`} onClick={() => setTab('buy')}>His wares</button>
+                                <button className={`mkt-tab${tab === 'sell' ? ' is-active' : ''}`} onClick={() => setTab('sell')}>
+                                    He is buying{wants.length ? ` (${wants.length})` : ''}
+                                </button>
+                            </div>
+                        )}
                         {error && <p className="mkt-error">{error}</p>}
                         {notice && <p className="mkt-notice">{notice}</p>}
 
-                        {!buying && (
+                        {tab === 'sell' && !selling && (
+                            wants.length === 0
+                                ? <p className="mkt-empty">He is buying nothing this time.</p>
+                                : (
+                                    <ul className="mkt-list">
+                                        {wants.map(w => {
+                                            const most = Math.min(w.left, w.yourRoom, w.have)
+                                            return (
+                                                <li key={w.itemId} className="mkt-row">
+                                                    <ItemIcon name={w.name} hover={hoverProps({ name: w.name }, 'Left-click to sell')} />
+                                                    <div className="mkt-row-main">
+                                                        <span className="mkt-row-name">{w.name}</span>
+                                                        <span className="mkt-row-sub">
+                                                            {w.left === 0
+                                                                ? 'He has all he wants'
+                                                                : w.yourRoom === 0
+                                                                    ? 'He will take no more from you'
+                                                                    : `Wants ${fmt(w.left)} more, up to ${fmt(w.yourRoom)} from you. You have ${fmt(w.have)}.`}
+                                                        </span>
+                                                    </div>
+                                                    <span className="mkt-row-price">{fmt(w.price)}g</span>
+                                                    <button
+                                                        className="mkt-act"
+                                                        disabled={most <= 0}
+                                                        onClick={() => { setNotice(null); setSelling({ want: w, qty: most }) }}
+                                                    >
+                                                        Sell
+                                                    </button>
+                                                </li>
+                                            )
+                                        })}
+                                    </ul>
+                                )
+                        )}
+
+                        {selling && (
+                            <div className="mkt-confirm">
+                                <h3>Sell {selling.want.name}</h3>
+                                <QtyPicker
+                                    value={selling.qty}
+                                    max={Math.max(1, Math.min(selling.want.left, selling.want.yourRoom, selling.want.have))}
+                                    onChange={n => setSelling({ ...selling, qty: n })}
+                                />
+                                <div className="mkt-total-row">
+                                    <span>He pays</span>
+                                    <span className="mkt-total">{fmt(selling.want.price * selling.qty)}g</span>
+                                </div>
+                                <div className="mkt-confirm-actions">
+                                    <button className="mkt-cancel" onClick={() => setSelling(null)} disabled={busy}>Back</button>
+                                    <button className="mkt-act" onClick={confirmSell} disabled={busy}>Sell</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {tab === 'buy' && !buying && (
                             <ul className="mkt-list">
                                 {visit.stock.map(line => (
                                     <li key={line.itemId} className="mkt-row">
