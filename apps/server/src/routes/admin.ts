@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { REPEAT_WARNINGS_PER_WEEK } from '../services/wordFilter';
 import { xpForLevel, levelFromXp } from '../services/xp';
 import { sendSystemMessage } from './messages';
 import { creditGold, debitGold } from '../services/gold';
@@ -185,7 +186,21 @@ router.get('/players/:id', requireAuth, async (req: AuthRequest, res: Response) 
 
         const modPerms = await db('mod_permissions').where({ player_id: targetId }).first();
 
-        res.json({ player, warnings, mutes, modPerms });
+        // The language filter's automatic warnings (services/wordFilter.ts),
+        // only for staff who moderate chat: what was typed is in them.
+        let filterWarnings: { recent: any[]; week: number; total: number } | null = null;
+        if (await hasPermission(playerId, 'can_moderate_chat')) {
+            const weekAgo = new Date(Date.now() - 7 * 86400_000);
+            const [recent, week, total] = await Promise.all([
+                db('filter_warnings').where({ player_id: targetId }).orderBy('created_at', 'desc').limit(25)
+                    .select('id', 'place', 'text', 'matched', 'created_at'),
+                db('filter_warnings').where({ player_id: targetId }).where('created_at', '>=', weekAgo).count({ n: '*' }).first(),
+                db('filter_warnings').where({ player_id: targetId }).count({ n: '*' }).first(),
+            ]);
+            filterWarnings = { recent, week: Number(week?.n ?? 0), total: Number(total?.n ?? 0) };
+        }
+
+        res.json({ player, warnings, mutes, modPerms, filterWarnings });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -826,6 +841,24 @@ router.get('/filter-flags', requireAuth, async (req: AuthRequest, res: Response)
         res.json({ flags });
     } catch (err) {
         logger.error(`Filter flags error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Players the filter warned often this week (filter_warnings), most first.
+router.get('/filter-warnings/repeat', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!await hasPermission(req.player!.playerId, 'can_moderate_chat')) { res.status(403).json({ error: 'No permission.' }); return; }
+        const weekAgo = new Date(Date.now() - 7 * 86400_000);
+        const rows = await db('filter_warnings as w').join('players as p', 'p.id', 'w.player_id')
+            .where('w.created_at', '>=', weekAgo)
+            .groupBy('w.player_id', 'p.username')
+            .havingRaw('count(*) >= ?', [REPEAT_WARNINGS_PER_WEEK])
+            .orderByRaw('count(*) desc').limit(50)
+            .select<{ player_id: number; username: string; n: string; last_at: string }[]>('w.player_id', 'p.username', db.raw('count(*) as n'), db.raw('max(w.created_at) as last_at'));
+        res.json({ threshold: REPEAT_WARNINGS_PER_WEEK, players: rows.map(r => ({ playerId: r.player_id, username: r.username, count: Number(r.n), lastAt: r.last_at })) });
+    } catch (err) {
+        logger.error(`Filter warnings error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

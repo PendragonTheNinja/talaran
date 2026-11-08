@@ -63,6 +63,19 @@ export async function flagSlur(playerId: number, place: string, text: string, ma
     }
 }
 
+/**
+ * Keeps a swear the filter softened (filter_warnings), so staff can see a
+ * player who keeps at it. Never throws, and never holds up the post.
+ */
+export function noteSwear(playerId: number, place: string, text: string, matched: string[]): void {
+    db('filter_warnings')
+        .insert({ player_id: playerId, place, text: text.slice(0, 1000), matched: matched.join(', ').slice(0, 200) })
+        .catch((err: unknown) => logger.error(`[filter] could not record a warning: ${err}`))
+}
+
+/** How many warnings in a week make a player stand out to staff (admin Players tab). */
+export const REPEAT_WARNINGS_PER_WEEK = 5
+
 export class FilterRefusal extends Error {}
 
 /**
@@ -75,5 +88,6 @@ export async function cleanPublicText(playerId: number, place: string, text: str
         await flagSlur(playerId, place, text, r.slurs)
         throw new FilterRefusal(SLUR_REFUSAL)
     }
+    if (r.swears.length) noteSwear(playerId, place, text, r.swears)
     return { text: r.text, changed: r.swears.length > 0 }
 }

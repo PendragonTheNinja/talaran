@@ -8,6 +8,7 @@ import AdminManualEditor from './AdminManualEditor'
 import AdminChronicle from './AdminChronicle'
 import AdminCrier from './AdminCrier'
 import LanguageFlags from './LanguageFlags'
+import { FILTER_PLACE } from '../lib/filterPlaces'
 import AdminEvents from './AdminEvents'
 import { avatarSrc } from '../lib/avatar'
 import './AdminPanel.css'
@@ -90,6 +91,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     const [searchResults, setSearchResults] = useState<PlayerInfo[]>([])
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
     const [warnings, setWarnings] = useState<Warning[]>([])
+    // The language filter's automatic warnings (only sent to staff who moderate chat).
+    const [filterWarnings, setFilterWarnings] = useState<{ recent: { id: number; place: string; text: string; matched: string; created_at: string }[]; week: number; total: number } | null>(null)
     const [mutes, setMutes] = useState<Mute[]>([])
     const [modPerms, setModPerms] = useState<ModPerms | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -163,9 +166,10 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
 
     const loadPlayer = async (playerId: number) => {
         try {
-            const data = await apiFetch<{ player: PlayerInfo; warnings: Warning[]; mutes: Mute[]; modPerms: ModPerms | null }>(`/api/admin/players/${playerId}`)
+            const data = await apiFetch<{ player: PlayerInfo; warnings: Warning[]; mutes: Mute[]; modPerms: ModPerms | null; filterWarnings?: { recent: { id: number; place: string; text: string; matched: string; created_at: string }[]; week: number; total: number } | null }>(`/api/admin/players/${playerId}`)
             setSelectedPlayer(data.player)
             setWarnings(data.warnings)
+            setFilterWarnings(data.filterWarnings ?? null)
             setMutes(data.mutes)
             setModPerms(data.modPerms)
             setPendingPerms(data.modPerms || {
@@ -887,6 +891,22 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                     </div>
                                 )}
                             </div>
+
+                            {/* The language filter's automatic warnings: every time it changed their words. */}
+                            {filterWarnings && filterWarnings.total > 0 && (
+                                <div className="admin-section" style={{ marginTop: '16px' }}>
+                                    <p className="admin-section-title">🧂 Language Warnings ({filterWarnings.week} this week, {filterWarnings.total} in all)</p>
+                                    <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                                        {filterWarnings.recent.map(w => (
+                                            <div key={w.id} className="admin-history-item">
+                                                <span className="muted-text" style={{ fontSize: '12px' }}>{formatDate(w.created_at)} · {FILTER_PLACE[w.place] ?? w.place}</span>
+                                                <span style={{ fontSize: '13px', overflowWrap: 'anywhere' }}>{w.text}</span>
+                                                <span className="muted-text" style={{ fontSize: '11px' }}>Matched: {w.matched}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Warning history */}
                             {warnings.length > 0 && (
