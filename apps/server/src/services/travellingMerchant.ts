@@ -100,6 +100,16 @@ export async function locationYields(locationId: number): Promise<YieldItem[]> {
     return rows.map((r: any) => ({ id: r.id, name: r.name, value: Number(r.value) }));
 }
 
+/**
+ * Where his next visit will be, chosen when it is set (Chronicle step 5): a
+ * rumour of his sail names it, so it has to be decided ahead. Null when
+ * nowhere will do.
+ */
+async function nextPlace(): Promise<number | null> {
+    const places = await merchantPlaces();
+    return places.length ? places[Math.floor(Math.random() * places.length)].id : null;
+}
+
 /** The places he can visit: open, and with something to sell. */
 export async function merchantPlaces(): Promise<{ id: number; name: string }[]> {
     const places = await db('locations').where({ is_accessible: true }).select('id', 'name');
@@ -354,19 +364,26 @@ export async function merchantSchedulerTick(): Promise<void> {
     if (!settings.merchant_next_at) {
         // First run: somewhere in the coming interval, not at a known time.
         const at = new Date(Date.now() + SCHEDULER_BUFFER_MS + Math.floor(Math.random() * everyMs));
-        await db('world_event_settings').where({ id: 1 }).update({ merchant_next_at: at });
+        await db('world_event_settings').where({ id: 1 }).update({ merchant_next_at: at, merchant_next_location_id: await nextPlace() });
         return;
     }
     if (new Date(settings.merchant_next_at).getTime() > Date.now()) return;
     if (await liveVisit()) return;
 
     try {
-        await summonMerchant();
+        // Where he was said to be going (a rumour may have told of it), else anywhere.
+        const planned = settings.merchant_next_location_id
+            && (await merchantPlaces()).some((p) => p.id === settings.merchant_next_location_id)
+            ? settings.merchant_next_location_id : undefined;
+        await summonMerchant({ locationId: planned });
     } catch (err) {
         if (err instanceof MerchantRefusal) logger.warn(`[merchant] could not come: ${err.message}`);
         else throw err;
     }
-    await db('world_event_settings').where({ id: 1 }).update({ merchant_next_at: new Date(Date.now() + everyMs) });
+    await db('world_event_settings').where({ id: 1 }).update({
+        merchant_next_at: new Date(Date.now() + everyMs),
+        merchant_next_location_id: await nextPlace(),
+    });
 }
 
 // ── Trading with him ──────────────────────────────────────────────────────

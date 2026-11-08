@@ -18,6 +18,8 @@ interface NewsPost {
     published_at: string
     author_name: string
     forum_thread_id: number | null
+    /** Wenna's line for the day's page (docs/chronicle-spec.md §7). */
+    chronicle_line?: string | null
 }
 
 interface NewsPanelProps {
@@ -25,6 +27,23 @@ interface NewsPanelProps {
     isAdmin: boolean
     onViewThread?: (threadId: number) => void
     closing?: boolean
+}
+
+/** Wenna's line for the tidings (docs/chronicle-spec.md §7): optional, one sentence. */
+function WennaLineField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    return (
+        <div className="guild-form-group">
+            <label className="muted-text">Wenna's line (optional)</label>
+            <input
+                className="chat-input"
+                type="text"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder="What she says of this under Word from the Maker. Left empty, she finds her own words."
+                maxLength={300}
+            />
+        </div>
+    )
 }
 
 export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: NewsPanelProps) {
@@ -39,6 +58,8 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
     const [editing, setEditing] = useState<NewsPost | null>(null)
     const [editTitle, setEditTitle] = useState('')
     const [editBody, setEditBody] = useState('')
+    const [editLine, setEditLine] = useState('')
+    const [newLine, setNewLine] = useState('')
     const [saving, setSaving] = useState(false)
     // Drafts (lib/drafts.ts): a news post survives closing the panel.
     const [newTitle, setNewTitle, clearNewTitle] = useDraft('news:new:title')
@@ -72,11 +93,12 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
         try {
             await apiFetch('/api/news/create', {
                 method: 'POST',
-                body: JSON.stringify({ title: newTitle, body: newBody }),
+                body: JSON.stringify({ title: newTitle, body: newBody, chronicleLine: newLine }),
             })
             setSuccess('News post published!')
             clearNewTitle()
             clearNewBody()
+            setNewLine('')
             setView('list')
             setTimeout(() => setSuccess(null), 3000)
             await loadNews()
@@ -90,6 +112,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
         setEditing(post)
         setEditTitle(post.title)
         setEditBody(post.body)
+        setEditLine(post.chronicle_line ?? '')
         setView('edit')
     }
 
@@ -100,7 +123,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
         try {
             await apiFetch(`/api/news/${editing.id}`, {
                 method: 'PUT',
-                body: JSON.stringify({ title: editTitle, body: editBody }),
+                body: JSON.stringify({ title: editTitle, body: editBody, chronicleLine: editLine }),
             })
             setSuccess('News post updated.')
             setTimeout(() => setSuccess(null), 3000)
@@ -242,6 +265,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                             style={{ width: '100%', resize: 'vertical', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                         />
                     </div>
+                    <WennaLineField value={newLine} onChange={setNewLine} />
                     <div className="guild-actions">
                         <button className="btn btn-gold" onClick={handleCreate}>Publish</button>
                         <button className="btn" onClick={() => setView('list')}>Cancel</button>
@@ -276,6 +300,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                             style={{ width: '100%', resize: 'vertical', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
                         />
                     </div>
+                    <WennaLineField value={editLine} onChange={setEditLine} />
                     <div className="guild-actions">
                         <button className="btn btn-gold" onClick={handleSaveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
                         <button className="btn" onClick={() => setView('list')}>Cancel</button>

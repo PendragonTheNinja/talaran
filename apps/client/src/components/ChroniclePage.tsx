@@ -21,6 +21,7 @@ const SECTION: Record<string, string> = {
     fallen: 'Of the fallen',
     maker: 'Word from the Maker',
     roll: 'The long roll',
+    rumour: 'A rumour',
 }
 
 export default function ChroniclePage() {

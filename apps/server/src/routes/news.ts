@@ -11,6 +11,19 @@ const router = Router();
 const ANNOUNCEMENT_FOOTER = '\n\n---\n*This is an official Talaran announcement. Discuss it here.*';
 
 // Public - get latest news (no auth required)
+/**
+ * Wenna's line for a news post (docs/chronicle-spec.md §7): one sentence she
+ * says under Word from the Maker on the day the post went out. Empty means
+ * she uses one of her own (maker_generic). No em dashes, as all player text.
+ */
+function chronicleLineFrom(raw: unknown): { ok: true; value: string | null } | { ok: false; error: string } {
+  const text = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : '';
+  if (!text) return { ok: true, value: null };
+  if (text.length > 300) return { ok: false, error: "Wenna's line can be at most 300 characters." };
+  if (text.includes('\u2014')) return { ok: false, error: "Wenna's line has an em dash. Use a comma or a full stop." };
+  return { ok: true, value: text };
+}
+
 router.get('/latest', async (req: Request, res: Response) => {
   try {
     const posts = await db('news_posts')
@@ -23,6 +36,7 @@ router.get('/latest', async (req: Request, res: Response) => {
         'news_posts.body',
         'news_posts.published_at',
         'news_posts.forum_thread_id',
+        'news_posts.chronicle_line',
         'players.username as author_name',
       );
 
@@ -37,6 +51,9 @@ router.get('/latest', async (req: Request, res: Response) => {
 router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { title, body } = req.body;
+  // Wenna's line for the day's page (docs/chronicle-spec.md §7): optional.
+  const line = chronicleLineFrom(req.body?.chronicleLine);
+  if (!line.ok) { res.status(400).json({ error: line.error }); return; }
 
   try {
     const player = await db('players').where({ id: playerId }).first();
@@ -98,6 +115,7 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
       body: body.trim(),
       forum_thread_id: forumThreadId,
       published_at: now,
+      chronicle_line: line.value,
     }).returning('*');
 
     logger.info(`Admin ${playerId} published news post: ${title}`);
@@ -123,10 +141,12 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     if (!cleanTitle.ok) { res.status(400).json({ error: cleanTitle.error }); return; }
     const cleanBody = readText(req.body?.body, { label: 'Body', max: TEXT_LIMITS.newsBody });
     if (!cleanBody.ok) { res.status(400).json({ error: cleanBody.error }); return; }
+    const line = chronicleLineFrom(req.body?.chronicleLine);
+    if (!line.ok) { res.status(400).json({ error: line.error }); return; }
 
     const post = await db.transaction(async (trx) => {
       const [row] = await trx('news_posts').where({ id: postId })
-        .update({ title: cleanTitle.value, body: cleanBody.value }).returning('*');
+        .update({ title: cleanTitle.value, body: cleanBody.value, chronicle_line: line.value }).returning('*');
       if (!row) return null;
       if (row.forum_thread_id) {
         await trx('forum_threads').where({ id: row.forum_thread_id }).update({ title: cleanTitle.value, updated_at: trx.fn.now() });
