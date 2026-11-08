@@ -124,3 +124,8 @@ export function nameList(names: string[], max: number): string {
     if (shown.length === 1) return shown[0]
     return `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`
 }
+
+/** A ballad's stanzas (blank lines between), for the page (the first is the line) and the book (all of them). */
+export function balladStanzas(text: string | null | undefined): string[] {
+    return (text ?? '').split(/\n\s*\n/).map((st) => st.trim()).filter(Boolean)
+}

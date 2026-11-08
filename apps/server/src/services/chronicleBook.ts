@@ -1,6 +1,6 @@
 import db from '../db'
 import { gameDayKey } from '../lib/gameTime'
-import { dayTitle, renderVerse, seededUnit } from '../lib/chronicleVerse'
+import { balladStanzas, dayTitle, renderVerse, seededUnit } from '../lib/chronicleVerse'
 import { todaySoFar } from './chronicleComposer'
 
 // ── The Chronicle, step 3: reading the book at the Salty Sloth (docs/chronicle-spec.md §2) ──
@@ -12,6 +12,8 @@ export interface BookLine {
     section: string
     text: string
     struck: boolean
+    /** The whole ballad, stanza by stanza, on a ballad's line. */
+    ballad?: string[]
     /** Players this line names, by the name they carry now, so the page can link them. */
     names: { playerId: number; name: string }[]
     /** Guilds this line names. */
@@ -72,7 +74,8 @@ export async function bookPage(dayKey: string | null): Promise<BookPage | null> 
     if (!day) return null
     const key = day.day_key
     const [lines, mentions, prev, next] = await Promise.all([
-        db('chronicle_lines').where({ day_key: key }).orderBy('position').select('id', 'section', 'text', 'struck_at'),
+        db('chronicle_lines as l').leftJoin('chronicle_ballads as b', 'b.id', 'l.ballad_id').where('l.day_key', key).orderBy('l.position')
+            .select('l.id', 'l.section', 'l.text', 'l.struck_at', 'b.text as ballad_text'),
         db('chronicle_mentions as m')
             .leftJoin('players as p', 'p.id', 'm.player_id')
             .leftJoin('guilds as g', 'g.id', 'm.guild_id')
@@ -94,6 +97,8 @@ export async function bookPage(dayKey: string | null): Promise<BookPage | null> 
                 section: l.section,
                 text: l.struck_at ? 'A line here was struck from the book.' : l.text,
                 struck: !!l.struck_at,
+                // A ballad's line is its first stanza; the whole ballad rides along for the book.
+                ballad: !l.struck_at && balladStanzas(l.ballad_text).length > 1 ? balladStanzas(l.ballad_text) : undefined,
                 names: here.filter((m: any) => m.player_id && m.username).map((m: any) => ({ playerId: Number(m.player_id), name: m.username })),
                 guilds: here.filter((m: any) => m.guild_id && m.guild_name).map((m: any) => ({ guildId: Number(m.guild_id), name: m.guild_name })),
             }

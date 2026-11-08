@@ -120,7 +120,7 @@ router.get('/public/page', async (req, res: Response) => {
     try {
         const day = typeof req.query.day === 'string' && DAY.test(req.query.day) ? req.query.day : null;
         const page = await bookPage(day);
-        res.json({ page: page ? { ...page, lines: page.lines.map(l => ({ section: l.section, text: l.text, struck: l.struck })) } : null });
+        res.json({ page: page ? { ...page, lines: page.lines.map(l => ({ section: l.section, text: l.text, struck: l.struck, ballad: l.ballad })) } : null });
     } catch (err) {
         logger.error(`chronicle public page: ${err}`);
         res.status(500).json({ error: 'Server error' });

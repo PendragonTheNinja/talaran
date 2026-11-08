@@ -97,7 +97,14 @@
   margin: 0 0 8px;
   line-height: 1.5;
   color: var(--color-text-base);
+  white-space: pre-line;
 }
+
+/* A guild ballad's later stanzas, under its first on the page. */
+.tavern-ballad-rest {
+  margin: -4px 0 10px 14px;
+}
+
 
 .tavern-headline,
 .tavern-line-headline {

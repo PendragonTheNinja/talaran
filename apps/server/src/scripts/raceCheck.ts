@@ -414,6 +414,13 @@ async function tradeWorld(ctx: Ctx, w: Awaited<ReturnType<typeof world>>) {
     return { buyer, trade };
 }
 
+/** One verse of each kind a four-stanza ballad needs (services/chronicleBallads.ts). */
+async function balladVerses(ctx: Ctx) {
+    for (const kind of ['ballad_open', 'ballad_numbers', 'ballad_deed_work', 'ballad_close']) {
+        await ctx.seed.row('chronicle_verses', { kind, text: `A ${kind} for {guild}.`, needs: ['guild'] });
+    }
+}
+
 /** A burst where the number of successes legitimately varies: only server errors fail it. */
 function noServerErrors(statuses: number[]): string | null {
     const errors = statuses.filter((s) => s >= 500).length;
@@ -1921,7 +1928,7 @@ const SCENARIOS: Scenario[] = [
             await ctx.seed.row('guild_members', { guild_id: guild.id, player_id: w.player.id, role: 'founder' });
             await ctx.db('players').where({ id: w.player.id }).update({ guild_id: guild.id, guild_tag: 'RCG', guild_role: 'founder' });
             await ctx.seed.row('taverns', { location_id: w.town.id, name: 'The Racecheck Arms' });
-            await ctx.seed.row('chronicle_verses', { kind: 'ballad', text: 'A song for {guild}.', needs: ['guild'] });
+            await balladVerses(ctx);
             await fund(ctx, w.player.id, 25_000);
             const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/chronicle/ballads', {}));
             const [{ n }] = await ctx.db('chronicle_ballads').where({ guild_id: guild.id }).count({ n: '*' });
@@ -1938,7 +1945,7 @@ const SCENARIOS: Scenario[] = [
             const g = await guildWorld(ctx, 10, 4);
             await ctx.db('guild_halls').where({ id: g.hall.id }).update({ gold: 25_000 });
             await ctx.seed.row('taverns', { location_id: g.w.town.id, name: 'The Racecheck Arms' });
-            await ctx.seed.row('chronicle_verses', { kind: 'ballad', text: 'A song for {guild}.', needs: ['guild'] });
+            await balladVerses(ctx);
             const st = await together(ctx, [g.w.player, ...g.members], (p) => ctx.post(p.id, '/chronicle/ballads', {}));
             const hall = await ctx.db('guild_halls').where({ id: g.hall.id }).first('gold');
             const [{ n }] = await ctx.db('chronicle_ballads').where({ guild_id: g.guild.id }).count({ n: '*' });

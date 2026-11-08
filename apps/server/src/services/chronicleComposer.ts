@@ -3,7 +3,7 @@ import type { Knex } from 'knex'
 import db from '../db'
 import { logger } from '../lib/logger'
 import { gameDayKey, startOfGameDay, nextGameMidnight } from '../lib/gameTime'
-import { addDays, canFill, countWord, dayTitle, nameList, renderVerse, seededUnit, Slots } from '../lib/chronicleVerse'
+import { addDays, balladStanzas, canFill, countWord, dayTitle, nameList, renderVerse, seededUnit, Slots } from '../lib/chronicleVerse'
 import { STRONG_KILL_GAP, trimDeeds } from './chronicle'
 import { announceServer } from './records'
 import { pushToPlayer } from '../lib/realtime'
@@ -426,7 +426,8 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
         .orderBy('created_at').limit(BALLADS_PER_PAGE)
         .select('id', 'guild_id', 'text')
     for (const b of ballads) {
-        lines.push({ section: 'guilds', text: b.text, deedKind: 'ballad', verseId: null, playerIds: [], guildIds: b.guild_id ? [b.guild_id] : [], balladId: b.id })
+        // The first stanza on the page; the book offers the rest (ballad_id).
+        lines.push({ section: 'guilds', text: balladStanzas(b.text)[0] ?? b.text, deedKind: 'ballad', verseId: null, playerIds: [], guildIds: b.guild_id ? [b.guild_id] : [], balladId: b.id })
     }
     count = 0
     for (const d of deeds.filter(x => x.section === 'guilds')) { if (count >= s.guild_lines) break; if (tell(d, 'guilds')) count++ }
@@ -539,7 +540,7 @@ export async function writePage(dayKey: string, opts: { quiet?: boolean } = {}):
             let position = 0
             for (const l of page.lines) {
                 const [row] = await trx('chronicle_lines').insert({
-                    day_key: dayKey, section: l.section, position: position++, text: l.text, deed_kind: l.deedKind, subject: l.subject ?? null,
+                    day_key: dayKey, section: l.section, position: position++, text: l.text, deed_kind: l.deedKind, subject: l.subject ?? null, ballad_id: l.balladId ?? null,
                 }).returning('id')
                 const lineId = typeof row === 'object' ? row.id : row
                 const mentions = [
@@ -661,6 +662,6 @@ export async function verseCounts(): Promise<{ kind: string; verses: number; tar
     const ONE_OFF = new Set(['level_max', 'exhibit_complete', 'world_first_item', 'server_first_level'])
     return rows.map((r: any) => ({
         kind: r.kind, verses: Number(r.n),
-        target: COMMON.has(r.kind) ? 25 : ONE_OFF.has(r.kind) ? 10 : r.kind.startsWith('today:') || r.kind.startsWith('rumour_') || r.kind === 'ballad' ? 3 : 10,
+        target: COMMON.has(r.kind) ? 25 : ONE_OFF.has(r.kind) ? 10 : r.kind.startsWith('today:') || r.kind.startsWith('rumour_') || r.kind.startsWith('ballad_deed_') ? 3 : r.kind.startsWith('ballad_') ? 6 : 10,
     })).sort((a, b) => (a.verses / a.target) - (b.verses / b.target))
 }

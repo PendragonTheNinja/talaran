@@ -2,6 +2,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import './NewsPage.css'
 import './TavernPanel.css'
+import BalladRest from './BalladRest'
 
 // talaran.net/chronicle (docs/chronicle-spec.md §2, step 4): Wenna's book,
 // read-only, for anyone, one link per day (/chronicle/2026-11-04). Plain
@@ -10,7 +11,7 @@ import './TavernPanel.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-interface Line { section: string; text: string; struck: boolean }
+interface Line { section: string; text: string; struck: boolean; ballad?: string[] }
 interface Page { dayKey: string; title: string; lines: Line[]; prev: string | null; next: string | null }
 interface DayRef { dayKey: string; title: string; headline: string | null }
 
@@ -98,6 +99,7 @@ export default function ChroniclePage() {
                                         <Fragment key={i}>
                                             {head && <p className="tavern-section">{head}</p>}
                                             <p className={`tavern-line tavern-line-${l.section}${l.struck ? ' struck' : ''}`}>{l.text}</p>
+                                            {l.ballad && <BalladRest stanzas={l.ballad} />}
                                         </Fragment>
                                     )
                                 })}

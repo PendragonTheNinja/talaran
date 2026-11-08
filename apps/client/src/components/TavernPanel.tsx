@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { apiFetch } from '../lib/api'
+import BalladRest from './BalladRest'
 import './TavernPanel.css'
 
 // The Salty Sloth (docs/chronicle-spec.md §2, step 3): Wenna's tab, with what
@@ -17,6 +18,7 @@ interface Line {
     section: string
     text: string
     struck: boolean
+    ballad?: string[]
     names: { playerId: number; name: string }[]
     guilds: { guildId: number; name: string }[]
 }
@@ -317,6 +319,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                                                 <p className={`tavern-line tavern-line-${l.section}${l.struck ? ' struck' : ''}`}>
                                                     <LineText line={l} highlight={highlight} onViewProfile={onViewProfile} />
                                                 </p>
+                                                {l.ballad && <BalladRest stanzas={l.ballad} />}
                                             </Fragment>
                                         )
                                     })}
