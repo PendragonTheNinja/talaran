@@ -234,6 +234,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
 
   // Socket listeners
   useEffect(() => {
+    let detach: (() => void) | null = null
     const interval = setInterval(() => {
       const socket = getSocket()
       if (!socket) return
@@ -264,9 +265,11 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
       socket.on('chat_trade', handleMessage)
       socket.on('chat_help', handleMessage)
 
-      socket.on('whisper', (data: any) => {
+      // The server sends each whisper with its own row's id (routes/chat.ts),
+      // the id the history holds, so a reload never shows it twice.
+      const onWhisper = (data: any) => {
         const msg: ChatMessage = {
-          id: Date.now(),
+          id: data.id ?? Date.now(),
           channel: 'whisper',
           playerName: data.from,
           guildTag: data.guildTag,
@@ -286,11 +289,12 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           setInput(`${data.from}@`)
           inputRef.current?.focus()
         }
-      })
+      }
+      socket.on('whisper', onWhisper)
 
-      socket.on('whisper_sent', (data: any) => {
+      const onWhisperSent = (data: any) => {
         const msg: ChatMessage = {
-          id: Date.now() + 1,
+          id: data.id ?? Date.now() + 1,
           channel: 'whisper',
           playerName: 'You',
           guildTag: null,
@@ -301,9 +305,10 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           whisperTo: data.to,
         }
         addMessages([msg], true)
-      })
+      }
+      socket.on('whisper_sent', onWhisperSent)
 
-      socket.on('chat_muted', (data: { message: string }) => {
+      const onMuted = (data: { message: string }) => {
         const msg: ChatMessage = {
           id: Date.now(),
           channel: 'server',
@@ -314,9 +319,10 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           rawTimestamp: Date.now(),
         }
         addMessages([msg], true)
-      })
+      }
+      socket.on('chat_muted', onMuted)
 
-      socket.on('chat_warning', (data: { message: string }) => {
+      const onWarning = (data: { message: string }) => {
         const msg: ChatMessage = {
           id: Date.now(),
           channel: 'server',
@@ -327,23 +333,31 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           rawTimestamp: Date.now(),
         }
         addMessages([msg], true)
-      })
+      }
+      socket.on('chat_warning', onWarning)
 
-      return () => {
-        socket.off('chat_world')
-        socket.off('chat_region')
-        socket.off('chat_guild')
+      detach = () => {
+        socket.off('chat_world', handleMessage)
+        socket.off('chat_region', handleMessage)
+        socket.off('chat_guild', handleMessage)
         socket.off('guild_changed', handleGuildChanged)
-        socket.off('chat_trade')
-        socket.off('chat_help')
-        socket.off('whisper')
-        socket.off('whisper_sent')
-        socket.off('chat_muted')
-        socket.off('chat_warning')
+        socket.off('chat_trade', handleMessage)
+        socket.off('chat_help', handleMessage)
+        socket.off('whisper', onWhisper)
+        socket.off('whisper_sent', onWhisperSent)
+        socket.off('chat_muted', onMuted)
+        socket.off('chat_warning', onWarning)
       }
     }, 100)
 
-    return () => clearInterval(interval)
+    // Both the wait for the socket and the listeners end with the panel. The
+    // listeners' off() used to be returned from the interval callback, where
+    // nothing called it, so a panel rebuilt (layout switch, reconnect) left
+    // the old one's listeners attached.
+    return () => {
+      clearInterval(interval)
+      detach?.()
+    }
   }, [])
 
   const handleSend = async () => {

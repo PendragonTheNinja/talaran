@@ -210,17 +210,8 @@ router.post('/announce', requireAuth, async (req: AuthRequest, res: Response) =>
         const now = new Date();
         const timestamp = now.toTimeString().slice(0, 5);
 
-        const announcementData = {
-            id: Date.now(),
-            channel: 'server',
-            playerName: '[SERVER]',
-            guildTag: null,
-            message: message.trim(),
-            timestamp,
-            isAnnouncement: true,
-        }
         // Persist so it survives refreshes (loaded via /api/chat/history/server).
-        await db('chat_messages').insert({
+        const [row] = await db('chat_messages').insert({
             player_id: playerId,
             channel: 'server',
             message: message.trim(),
@@ -229,7 +220,18 @@ router.post('/announce', requireAuth, async (req: AuthRequest, res: Response) =>
             region: null,
             guild_id: null,
             sent_at: now,
-        });
+        }).returning('id');
+        // The row's own id, so a history reload never shows the line twice.
+        const announcementData = {
+            id: row.id,
+            sentAt: now.toISOString(),
+            channel: 'server',
+            playerName: '[SERVER]',
+            guildTag: null,
+            message: message.trim(),
+            timestamp,
+            isAnnouncement: true,
+        }
 
         pushToAll('chat_world', announcementData);
         // Also emit as a banner

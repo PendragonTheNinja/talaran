@@ -237,6 +237,22 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
  * (services/combatFights.ts). One path, so the loot log, coins, world firsts
  * and feats cannot differ by which request happened to settle the swing.
  */
+/** A journey's base time and whether it was ridden, as fixed when it began. */
+async function journeyOf(action: any): Promise<{ baseTime: number; hasMountEquipped: boolean }> {
+  const raw = action.action_data;
+  if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+    try {
+      const d = JSON.parse(raw);
+      return { baseTime: Number(d.base) || 120, hasMountEquipped: d.mounted === true };
+    } catch { /* fall through to the old shape */ }
+  }
+  const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
+  return {
+    baseTime: raw ? parseInt(raw) || 120 : 120,
+    hasMountEquipped: equipment?.mount_item_id !== null && equipment?.mount_item_id !== undefined,
+  };
+}
+
 export async function emitCompletion(action: any, payload: any): Promise<void> {
   await emitActionComplete(realtimeServer(), action, payload);
 }
@@ -732,11 +748,11 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       await db('player_actions').where({ id: action.id }).delete();
 
       // XP is based on the BASE travel time (stashed in action_data at start),
-      // so getting faster never reduces XP per trip.
-      const baseTime = action.action_data ? parseInt(action.action_data) : 120;
-
-      const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
-      const hasMountEquipped = equipment?.mount_item_id !== null && equipment?.mount_item_id !== undefined;
+      // so getting faster never reduces XP per trip. Ridden or walked is fixed
+      // at the start too, as the speed was (routes/travel.ts): what is worn on
+      // arrival does not matter. A journey begun before that was recorded
+      // holds a bare number and falls back to what is worn now.
+      const { baseTime, hasMountEquipped } = await journeyOf(action);
       // Walked or ridden, the journey trains Wayfaring; walking pays more per trip.
       const skillName = TRAVEL_SKILL;
       const rate = hasMountEquipped ? MOUNT_XP_RATE : FOOT_XP_RATE;

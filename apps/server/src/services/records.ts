@@ -49,7 +49,7 @@ export async function announceServer(message: string): Promise<void> {
 async function postServerLine(playerId: number | null, message: string): Promise<void> {
     try {
         const now = new Date()
-        await db('chat_messages').insert({
+        const [row] = await db('chat_messages').insert({
             player_id: playerId,
             channel: 'server',
             message,
@@ -58,10 +58,12 @@ async function postServerLine(playerId: number | null, message: string): Promise
             region: null,
             guild_id: null,
             sent_at: now,
-        })
+        }).returning('id')
 
+        // The row's own id, so a history reload never shows the line twice.
         pushToAll('chat_world', {
-            id: Date.now(),
+            id: row.id,
+            sentAt: now.toISOString(),
             channel: 'server',
             playerName: '[SERVER]',
             guildTag: null,

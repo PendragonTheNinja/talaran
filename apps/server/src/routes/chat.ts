@@ -326,7 +326,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         guildTag: null, // will add later
       };
 
-      await db('chat_messages').insert({
+      const [sentRow] = await db('chat_messages').insert({
         player_id: playerId,
         channel: 'whisper',
         region: null,
@@ -335,10 +335,10 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         player_name: player.username,
         guild_tag: player.guild_tag || null,
         sent_at: now,
-      });
+      }).returning('id');
 
       // Also save received whisper for the target
-      await db('chat_messages').insert({
+      const [receivedRow] = await db('chat_messages').insert({
         player_id: targetPlayer.id,
         channel: 'whisper',
         region: null,
@@ -347,12 +347,13 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         player_name: player.username,
         guild_tag: player.guild_tag || null,
         sent_at: now,
-      });
+      }).returning('id');
 
-      // Send to target
-      pushToPlayer(targetPlayer.id, 'whisper', whisperData);
-      // Send back to sender
-      pushToPlayer(playerId, 'whisper_sent', whisperData);
+      // Each side gets its own row's id, the id its history holds, so the chat
+      // box knows a reloaded line is the one it already shows (a made-up id
+      // showed every whisper twice after a reload, forum 2026-11-08).
+      pushToPlayer(targetPlayer.id, 'whisper', { ...whisperData, id: receivedRow.id });
+      pushToPlayer(playerId, 'whisper_sent', { ...whisperData, id: sentRow.id });
 
       // Who it went to, so the chat box can keep "Name@" for the next line.
       res.json({ success: true, whisperTo: targetName });

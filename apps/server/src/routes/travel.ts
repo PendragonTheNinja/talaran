@@ -54,7 +54,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     const activeConnection = connection || reverseConnection;
     const baseTravelTime = activeConnection?.base_travel_time ?? 30;
 
-    const { travelTime } = await computeTravelTime(playerId, baseTravelTime);
+    const { travelTime, mounted } = await computeTravelTime(playerId, baseTravelTime);
 
     // Cancel any existing action. A fight is settled to this moment first, so
     // walking away is a flee that keeps every swing (services/combatFights.ts).
@@ -89,7 +89,11 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
       auto_restart: false,
       last_bot_check: now,
       bot_check_pending: false,
-      action_data: String(baseTravelTime),
+      // The road's base time, and whether this journey is ridden. Both are
+      // fixed here, at the start, with the speed: arrival pays by them, so
+      // putting a mount away on the road cannot buy a rider's speed with a
+      // walker's XP and finds (forum, 2026-11-08).
+      action_data: JSON.stringify({ base: baseTravelTime, mounted }),
     });
 
     const toLocation = await db('locations').where({ id: toLocationId }).first();
