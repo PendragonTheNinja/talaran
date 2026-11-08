@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
-import { getSocket } from '../lib/socket'
+import { getSocket, SOCKET_RESYNC_EVENT } from '../lib/socket'
 import { formatGameTime } from '../lib/time'
 import './ChatPanel.css'
 import ChatMessageLine, { CHANNEL_COLORS, CHANNEL_SHORT, renderMessageText, type ChatMessage } from './ChatMessageLine'
@@ -172,19 +172,31 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           console.error(`Failed to load ${key} history:`, err)
         }
       }
-      all.sort((a, b) => a.rawTimestamp - b.rawTimestamp)
-      // Deduplicate by id
-      const seen = new Set<number>()
-      const unique = all.filter(m => {
-        if (seen.has(m.id)) return false
-        seen.add(m.id)
-        return true
+      // Merged with what is already showing, not swapped for it: a reload
+      // after a dropped connection must not wipe lines only this page holds
+      // (a notice from the server, a forum ping). Same id, same message.
+      setAllMessages(prev => {
+        const merged = [...prev, ...all].sort((a, b) => a.rawTimestamp - b.rawTimestamp)
+        const seen = new Set<number>()
+        const unique = merged.filter(m => {
+          if (seen.has(m.id)) return false
+          seen.add(m.id)
+          return true
+        })
+        return unique.slice(-500)
       })
-      setAllMessages(unique.slice(-500))
       setHistoryLoaded(true)
     }
     loadAll()
   }, [reloadKey])
+
+  // Back from a dropped connection or a sleeping phone: reload the history so
+  // whatever was said meanwhile appears (lib/socket.ts).
+  useEffect(() => {
+    const resync = () => setReloadKey(k => k + 1)
+    window.addEventListener(SOCKET_RESYNC_EVENT, resync)
+    return () => window.removeEventListener(SOCKET_RESYNC_EVENT, resync)
+  }, [])
 
   // The chat box holds today only and clears at Eastern midnight; everything
   // said before that stays readable in the history panel. The moment comes from

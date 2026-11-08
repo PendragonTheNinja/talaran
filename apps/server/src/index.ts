@@ -421,6 +421,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  // A page coming back on screen asks whether its socket still reaches us.
+  // A phone often hands back a socket that looks open and is dead, and
+  // socket.io takes up to a minute to notice, so chat sat frozen
+  // (lib/socket.ts on the client reconnects when this goes unanswered).
+  socket.on('alive', (ack: unknown) => {
+    if (typeof ack === 'function') ack(true);
+  });
+
   // The page reports whether it is on screen, so push notifications go only to
   // a player who is not looking (services/pushNotify.ts).
   // Coming back to the game shows a waiting bot check straight away. A phone
