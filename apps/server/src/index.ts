@@ -17,6 +17,7 @@ import guildHallRoutes from './routes/guildHall';
 import { setPageVisibility, forgetSocket } from './lib/pageVisibility';
 import { startWorldEventScheduler } from './services/worldEvents';
 import eventRoutes from './routes/events';
+import chronicleRoutes from './routes/chronicle';
 import travelRoutes from './routes/travel';
 import equipmentRoutes from './routes/equipment';
 import workstationRoutes from './routes/workstations';
@@ -284,6 +285,7 @@ app.use('/api/trapping', trappingRoutes);
 app.use('/api/fishing', fishingRoutes);
 app.use('/api/loot-log', lootLogRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/chronicle', chronicleRoutes);
 
 // The last word on any error a route did not answer itself (audit §15, found
 // item 3). Express 5 forwards a rejected async handler here; without this its

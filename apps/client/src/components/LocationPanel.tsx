@@ -7,6 +7,7 @@ import './LocationPanel.css'
 import { getItemIcon } from '../lib/items'
 import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 import NPCDialogue from './NPCDialogue'
+import TavernPanel from './TavernPanel'
 import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
@@ -55,12 +56,14 @@ interface LocationPanelProps {
   groundItemsKey?: number
   onLocationRefresh?: () => void
   onViewProfile?: (playerId: number) => void
+  /** The player's own name, for the tavern book's "Days I was named". */
+  selfName?: string
   currentPlayerId?: number
   smithingStatusKey?: number
   layout?: 'stacked' | 'columns'
 }
 
-export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId, smithingStatusKey, layout = 'stacked' }: LocationPanelProps) {
+export default function LocationPanel({ locationData, currentAction, onStartAction, veins, onKilnMaxLogs, onActionLimitChange, groundItemsKey, onInventoryUpdate, onLocationRefresh, onViewProfile, onRequestTrade, currentPlayerId, selfName, smithingStatusKey, layout = 'stacked' }: LocationPanelProps) {
   const [groundItems, setGroundItems] = useState<any[]>([])
   const [playersHere, setPlayersHere] = useState<PlayerAtLocation[]>([])
   const [forgeOpen, setForgeOpen] = useState(false)
@@ -68,6 +71,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [tallyOpen, setTallyOpen] = useState(false)
   const [marketplaceOpen, setMarketplaceOpen] = useState(false)
   const [merchantOpen, setMerchantOpen] = useState(false)
+  // The Salty Sloth (docs/chronicle-spec.md §2), from its button or from Wenna.
+  const [tavernOpen, setTavernOpen] = useState(false)
   // Ground items get the same tooltip the pack does.
   const { hoverProps, tooltipEl } = useItemTooltip()
   const [shopsOpen, setShopsOpen] = useState(false)
@@ -460,6 +465,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {merchantHere && (
           <button className="location-action-btn" onClick={() => setMerchantOpen(true)}>
             The Travelling Merchant →
+          </button>
+        )}
+
+        {/* A tavern here, from the location payload (routes/location.ts). */}
+        {locationData?.tavern && (
+          <button className="location-action-btn" onClick={() => setTavernOpen(true)}>
+            {locationData.tavern.name} →
           </button>
         )}
 
@@ -1108,6 +1120,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           npcId={activeNpcId}
           onClose={() => setActiveNpcId(null)}
           onInteraction={refreshStations}
+          onOpen={(what) => { if (what === 'tavern') setTavernOpen(true) }}
+        />
+      )}
+
+      {tavernOpen && (
+        <TavernPanel
+          onClose={() => setTavernOpen(false)}
+          selfName={selfName ?? null}
+          onViewProfile={(id) => { setTavernOpen(false); onViewProfile?.(id) }}
         />
       )}
 

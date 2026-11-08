@@ -49,9 +49,11 @@ interface NPCDialogueProps {
     npcId: number
     onClose: () => void
     onInteraction?: () => void
+    /** An option whose action is "open:<what>" opens that panel here instead of talking to the server (Wenna's "open:tavern"). */
+    onOpen?: (what: string) => void
 }
 
-export default function NPCDialogue({ npcId, onClose, onInteraction }: NPCDialogueProps) {
+export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: NPCDialogueProps) {
     const [data, setData] = useState<DialogueData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -77,6 +79,12 @@ export default function NPCDialogue({ npcId, onClose, onInteraction }: NPCDialog
 
         if (option.action === 'close') {
             onClose()
+            return
+        }
+
+        if (option.action?.startsWith('open:')) {
+            onClose()
+            onOpen?.(option.action.slice('open:'.length))
             return
         }
 

@@ -1,7 +1,7 @@
 src/App.tsx: error TS2339: Property 'has_seen_welcome' does not exist on type 'Player'.
 src/App.tsx: error TS2741: Property 'allLocations' is missing in type 'LocationData' but required in type 'LocationData'.
 src/components/AdminContentBrowser.tsx: error TS2322: Type '{ table: string; label: string; columns: string[]; columnKinds: Record<string, ColumnKind>; enumOptions: Record<string, string[]>; initialValues: Record<string, string>; onCreated: () => Promise<...>; onCancel: () => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
-src/components/GameLayout.tsx: error TS2322: Type '{ locationData: LocationData; currentAction: any; onStartAction: (type: string, id: string | number) => void; veins: any[]; onKilnMaxLogs: (max: number) => void; onActionLimitChange: (limit: number) => void; ... 7 more ...; smithingStatusKey: number; }' is not assignable to type 'IntrinsicAttributes & LocationPanelProps'.
+src/components/GameLayout.tsx: error TS2322: Type '{ locationData: LocationData; currentAction: any; onStartAction: (type: string, id: string | number) => void; veins: any[]; onKilnMaxLogs: (max: number) => void; onActionLimitChange: (limit: number) => void; ... 8 more ...; smithingStatusKey: number; }' is not assignable to type 'IntrinsicAttributes & LocationPanelProps'.
 src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
 src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.
 src/components/GameLayout.tsx: error TS2339: Property 'is_admin' does not exist on type 'Player'.

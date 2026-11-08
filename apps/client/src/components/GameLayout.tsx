@@ -806,6 +806,7 @@ export default function GameLayout({
         }
       }}
       currentPlayerId={player.id}
+      selfName={player.username}
       smithingStatusKey={smithingStatusKey}
     />
   )

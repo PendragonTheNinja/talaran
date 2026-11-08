@@ -400,7 +400,7 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 | `docs/derived-values.md` / `.csv` | Output of `values:derive`. Regenerated, not edited. |
 | `docs/IDEAS.md` | Parking lot (the event-chat "firsts" feed lives here). |
 | `docs/patch-notes-template.md` | Patch-note shape, tags and colours. |
-| `docs/chronicle-spec.md` | The Chronicle (Wenna's daily tidings): design and build steps. Steps 1 (journal) and 2 (composer, `services/chronicleComposer.ts`; page writing OFF until switched on in Admin > Chronicle) built. |
+| `docs/chronicle-spec.md` | The Chronicle (Wenna's daily tidings): design and build steps. Steps 1 (journal), 2 (composer, `services/chronicleComposer.ts`; page writing OFF until switched on in Admin > Chronicle) and 3 (the Salty Sloth in Talador, `TavernPanel.tsx`, `services/chronicleBook.ts`; an NPC option `open:<panel>` opens a panel client-side) built. |
 | `docs/sailing-spec.md` | Sea travel: the ferry, vessels, sea finds, boat-only places. No Sailing skill; it is Wayfaring. Design, not built. |
 | `docs/BUILD-NOTES.md` · `docs/WIRING.md` · `docs/FARMING-M1-NOTES.md` | Historical handoff notes from the Foraging and Farming builds. Archive candidates. |
 
