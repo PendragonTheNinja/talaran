@@ -347,6 +347,9 @@ async function processTravelAction(playerId: number, locationId: number): Promis
   try {
     const before = await db('players').where({ id: playerId }).first('current_location_id');
     await db('players').where({ id: playerId }).update({ current_location_id: locationId });
+    // The first on the island to walk this road is told of (services/chronicle.ts).
+    const { noteRoadWalked } = await import('./chronicle');
+    await noteRoadWalked(playerId, before?.current_location_id, locationId);
     // Arrived: shown where they came to, and the road behind them updates too.
     announcePlayersHere(before?.current_location_id, locationId);
     const location = await db('locations').where({ id: locationId }).first();
@@ -712,7 +715,16 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     let firstEver = false;
     const earnedName = (result as any)?.itemName;
     if (earnedName) {
-      firstEver = (await recordItemFirstByName(action.player_id, earnedName, action.action_type)).firstEver;
+      const first = await recordItemFirstByName(action.player_id, earnedName, action.action_type);
+      firstEver = first.firstEver;
+      // The first on the island to make something of a high tier (docs/chronicle-spec.md §5).
+      if (first.firstInWorld && action.action_type === 'recipe') {
+        const made = await db('items').where({ name: earnedName }).first('tier');
+        const { noteDeed, FIRST_CRAFT_MIN_TIER } = await import('./chronicle');
+        if (Number(made?.tier) >= FIRST_CRAFT_MIN_TIER) {
+          noteDeed(db, { kind: 'first_craft_tier', playerId: action.player_id, subject: earnedName, data: { item: earnedName, tier: Number(made.tier) } });
+        }
+      }
     }
 
     // Handle travel

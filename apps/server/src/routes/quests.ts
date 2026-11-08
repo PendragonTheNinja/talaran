@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { noteDeed } from '../services/chronicle';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import type { Knex } from 'knex';
@@ -224,6 +225,13 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
         // Nothing written yet, so returning here commits nothing.
         if (flipped !== 1) return null;
         if (!quest) return { granted: [], gold: 0 };
+
+        // The first on the island to finish this quest (docs/chronicle-spec.md §5).
+        const before = await trx('player_quests').where({ quest_id: questId, status: 'completed' }).whereNot({ player_id: playerId }).first('player_id');
+        if (!before) {
+          const place = quest.location_id ? await trx('locations').where({ id: quest.location_id }).first('name') : null;
+          noteDeed(trx, { kind: 'quest_first', playerId, subject: quest.name, data: { quest: quest.name, place: place?.name ?? null } });
+        }
 
         const granted = await grantQuestItems(playerId, quest.reward_items, trx);
 

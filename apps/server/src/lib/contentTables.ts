@@ -301,6 +301,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     world_event_participation:   { label: 'World Event Participation', group: 'Events' },
     world_event_shares:          { label: 'World Event Shares',    group: 'Events' },
     chronicle_mentions:          { label: 'Chronicle Mentions',    group: 'Chronicle' },
+    road_firsts:                 { label: 'Road Firsts',           group: 'Chronicle' },
     chronicle_verse_uses:        { label: 'Chronicle Verse Uses',  group: 'Chronicle' },
 };
 

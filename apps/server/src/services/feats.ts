@@ -1,4 +1,5 @@
 import db from '../db'
+import { noteDeed } from './chronicle'
 import { logger } from '../lib/logger'
 import { levelFromXp } from './xp'
 import { SERVER_ERROR } from '../lib/serviceResult'
@@ -218,6 +219,8 @@ export async function evaluateFeats(playerId: number): Promise<{ slug: string; n
             // twice.
             if (inserted.length > 0) {
                 fresh.push({ slug: feat.slug, name: feat.name, title: feat.title })
+                // The hard and hidden ones are told in the tidings (feats.chronicle).
+                if (feat.chronicle) noteDeed(db, { kind: 'feat_rare', playerId, subject: feat.name, data: { feat: feat.name, title: feat.title ?? null } })
             }
         }
         return fresh

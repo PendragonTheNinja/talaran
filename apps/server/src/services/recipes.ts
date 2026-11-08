@@ -1,4 +1,5 @@
 import type { Knex } from 'knex'
+import { noteDeed, firstToday } from './chronicle'
 import db from '../db'
 import { addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory'
 import { isLiquid, liquidTotal, consumeLiquid } from './liquids'
@@ -501,6 +502,11 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
                 const name = grades[Math.min(grades.length - 1, rollGrade(level - (recipe.required_level ?? 1)))]
                 graded = await trx('items').where({ name }).first()
                 if (!graded) throw new RecipeAbort(`Required item not found: ${name}`)
+                // The best grade a cut can give: a line in the tidings, once a
+                // day per player and stone (services/chronicle.ts).
+                if (grades.length > 1 && name === grades[grades.length - 1] && firstToday(`gem:${playerId}:${name}`)) {
+                    noteDeed(trx, { kind: 'gem_best_grade', playerId, subject: name, data: { item: name } })
+                }
             }
 
             const outputItem = burnt

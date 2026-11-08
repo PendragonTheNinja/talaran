@@ -92,22 +92,25 @@ async function unfoundItems(): Promise<Rumour[]> {
     return [...places].map((place) => ({ kind: 'rumour_unfound_item', subject: `place:${place}`, slots: { place } }))
 }
 
-/** A place nobody has ever travelled to, with a neighbour the road runs from. */
+/**
+ * A road nobody has walked to its end (road_firsts, written on arrival by
+ * services/chronicle.ts noteRoadWalked; roads walked before it existed were
+ * filled in by migration 20261108170000).
+ */
 async function unwalkedRoads(): Promise<Rumour[]> {
-    const unreached = await db('locations as l').where('l.is_accessible', true)
-        .whereNotExists(db('player_exploration as x').where('x.discovery_type', 'location').whereRaw("x.discovery_key = 'location:' || l.id"))
-        // Somebody standing there got there, by a road or by being born to it
-        // (everyone starts in Talador without walking to it).
-        .whereNotExists(db('players as p').whereRaw('p.current_location_id = l.id'))
-        .select('l.id', 'l.name')
+    const rows = await db('location_connections as c')
+        .join('locations as a', 'a.id', 'c.from_location_id')
+        .join('locations as b', 'b.id', 'c.to_location_id')
+        .where('a.is_accessible', true).where('b.is_accessible', true)
+        .whereNotExists(db('road_firsts as r').whereRaw("r.road_key = least(c.from_location_id, c.to_location_id) || '-' || greatest(c.from_location_id, c.to_location_id)"))
+        .select('c.from_location_id', 'c.to_location_id', 'a.name as from_name', 'b.name as to_name')
+    const seen = new Set<string>()
     const out: Rumour[] = []
-    for (const l of unreached) {
-        const road = await db('location_connections as c')
-            .join('locations as a', 'a.id', db.raw('CASE WHEN c.to_location_id = ? THEN c.from_location_id ELSE c.to_location_id END', [l.id]))
-            .where((q) => q.where('c.to_location_id', l.id).orWhere('c.from_location_id', l.id))
-            .where('a.is_accessible', true)
-            .first('a.name')
-        if (road) out.push({ kind: 'rumour_unwalked_road', subject: `road:${l.id}`, slots: { place: road.name, place2: l.name } })
+    for (const r of rows) {
+        const key = `${Math.min(r.from_location_id, r.to_location_id)}-${Math.max(r.from_location_id, r.to_location_id)}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        out.push({ kind: 'rumour_unwalked_road', subject: `road:${key}`, slots: { place: r.from_name, place2: r.to_name } })
     }
     return out
 }

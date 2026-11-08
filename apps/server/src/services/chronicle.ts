@@ -26,6 +26,7 @@ export type DeedKind =
     | 'museum_first_give' | 'exhibit_complete' | 'event_winner' | 'event_winner_guild' | 'merchant_arrived'
     | 'mount_raised' | 'field_twenty'
     | 'guild_founded' | 'guild_hall_tier'
+    | 'road_first' | 'gem_best_grade' | 'first_craft_tier' | 'feat_rare' | 'quest_first' | 'shop_big_sale'
 
 export interface Deed {
     kind: DeedKind
@@ -67,6 +68,29 @@ export const LEVEL_MILESTONES = [50, 75, 90]
 export const TOTAL_LEVEL_STEP = 250
 /** Kills of one creature that are worth a line (matches the Bestiary's later steps). */
 export const BESTIARY_MARKS = [250, 1000]
+/** A single shop sale this large (gross, in gold) is worth a line (§5, shop_big_sale). */
+export const SHOP_BIG_SALE_GOLD = 2000
+/** A first crafted on the island counts from this tier up (§5, first_craft_tier). */
+export const FIRST_CRAFT_MIN_TIER = 3
+
+/**
+ * A road walked to its end (services/gameTick.ts, arrival). The first on the
+ * island to walk it gets a line: road_firsts holds one row per road, either
+ * way, and the insert that makes it is the gate. Never throws.
+ */
+export async function noteRoadWalked(playerId: number, fromId: number | null | undefined, toId: number): Promise<void> {
+    try {
+        if (!fromId || fromId === toId) return
+        const key = `${Math.min(fromId, toId)}-${Math.max(fromId, toId)}`
+        const [made] = await db('road_firsts').insert({ road_key: key, player_id: playerId }).onConflict('road_key').ignore().returning('road_key')
+        if (!made) return
+        const places = await db('locations').whereIn('id', [fromId, toId]).select('id', 'name')
+        const name = (id: number) => places.find((p: any) => p.id === id)?.name ?? null
+        noteDeed(db, { kind: 'road_first', playerId, subject: key, data: { place: name(fromId), place2: name(toId) } })
+    } catch (err) {
+        logger.warn(`chronicle: road for player ${playerId} failed: ${err}`)
+    }
+}
 
 /**
  * Note a deed. `x` is whatever the caller wrote with: a transaction (the deed
@@ -131,14 +155,17 @@ export async function noteFinds(playerId: number, locationId: number | null, sou
         const list = finds.filter(f => f?.name && !NOT_A_FIND.has(f.name))
         if (!list.length) return
         const [items, place] = await Promise.all([
-            db('items').whereIn('name', list.map(f => f.name)).select('name', 'subtype'),
+            db('items').whereIn('name', list.map(f => f.name)).select('name', 'subtype', 'cryptid'),
             locationId
                 ? db('locations').where({ id: locationId }).first('name')
                 : db('players as p').join('locations as l', 'l.id', 'p.current_location_id').where('p.id', playerId).first('l.name as name'),
         ])
         const subtype = new Map(items.map((i: any) => [i.name, i.subtype]))
+        // A cryptid is flagged on the item (items.cryptid), never guessed from its name.
+        const cryptid = new Set(items.filter((i: any) => i.cryptid).map((i: any) => i.name))
         for (const f of list) {
             const kind: DeedKind = f.firstInWorld ? 'world_first_item'
+                : cryptid.has(f.name) ? 'cryptid'
                 : subtype.get(f.name) === 'trophy' ? 'trophy'
                 : 'drop_rare'
             noteDeed(db, {

@@ -1,4 +1,5 @@
 import db from '../db';
+import { noteDeed, SHOP_BIG_SALE_GOLD } from './chronicle';
 import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
@@ -728,6 +729,10 @@ export async function buyFromShop(
                 shop_id: listing.shopId, item_id: locked.item_id, direction: 'sale',
                 quantity: qty, unit_price: unitPrice, gross, tax, counterparty_player_id: buyerId,
             });
+            // A sale this large is told in the tidings, of the shop's keeper.
+            if (gross >= SHOP_BIG_SALE_GOLD) {
+                noteDeed(trx, { kind: 'shop_big_sale', playerId: listing.ownerId, subject: listing.itemName, data: { item: listing.itemName, n: qty, gold: gross } });
+            }
 
             return {
                 success: true, spent: gross, itemName: listing.itemName,
