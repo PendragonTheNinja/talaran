@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { formatGameDateLong } from '../lib/time'
 import './AuthScreen.css'
 import { Link, useNavigate } from 'react-router-dom'
+import { RulesAgree } from './RulesPage'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -80,6 +81,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [agreeRules, setAgreeRules] = useState(false)
     const [error, setError] = useState('')
     const [info, setInfo] = useState('')
     const [loading, setLoading] = useState(false)
@@ -171,13 +173,19 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
             return
         }
 
+        if (mode === 'register' && !agreeRules) {
+            setError('Please tick the box to agree to the rules.')
+            setLoading(false)
+            return
+        }
+
         const endpoint = mode === 'login'
             ? `${API_URL}/api/auth/login`
             : `${API_URL}/api/auth/register`
 
         const body = mode === 'login'
             ? { username, password }
-            : { username, email, password }
+            : { username, email, password, agreeRules }
 
         try {
             const res = await fetch(endpoint, {
@@ -385,6 +393,10 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                     </div>
                                 )}
 
+                                {mode === 'register' && (
+                                    <RulesAgree id="home-agree-rules" checked={agreeRules} onChange={setAgreeRules} />
+                                )}
+
                                 {error && <div className="home-error">{error}</div>}
                                 {info && <div className="home-info">{info}</div>}
 
@@ -412,11 +424,6 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                     </p>
                                 )}
 
-                                {mode === 'register' && (
-                                    <p className="home-disclaimer">
-                                        By registering,  you agree to play fair and treat others with respect.
-                                    </p>
-                                )}
                             </div>
                         </div>
                         )}

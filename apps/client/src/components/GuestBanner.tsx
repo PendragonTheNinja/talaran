@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Player } from '../types'
+import { RulesAgree } from './RulesPage'
 import './GuestBanner.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -62,6 +63,7 @@ export default function GuestBanner({
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [agreeRules, setAgreeRules] = useState(false)
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
     const [confirmLeave, setConfirmLeave] = useState(false)
@@ -97,6 +99,10 @@ export default function GuestBanner({
 
     const submit = async () => {
         setError('')
+        if (!agreeRules) {
+            setError('Please tick the box to agree to the rules.')
+            return
+        }
         setSaving(true)
         try {
             const res = await fetch(`${API_URL}/api/auth/upgrade`, {
@@ -105,7 +111,7 @@ export default function GuestBanner({
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${localStorage.getItem('talaran_token')}`,
                 },
-                body: JSON.stringify({ username, email, password }),
+                body: JSON.stringify({ username, email, password, agreeRules }),
             })
             const data = await res.json()
             if (!res.ok) {
@@ -200,6 +206,8 @@ export default function GuestBanner({
                                     autoComplete="new-password"
                                 />
                             </div>
+
+                            <RulesAgree id="guest-agree-rules" checked={agreeRules} onChange={setAgreeRules} />
 
                             {error && <div className="guest-error">{error}</div>}
 

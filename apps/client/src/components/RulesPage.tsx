@@ -88,6 +88,22 @@ export function RulesText() {
     )
 }
 
+/**
+ * "I agree to the rules", for signing up and for a guest claiming a character.
+ * The server refuses either without it (routes/auth.ts) and keeps the time.
+ * The link opens the rules in a new tab so the form keeps what was typed.
+ */
+export function RulesAgree({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
+    return (
+        <label className="rules-agree" htmlFor={id}>
+            <input id={id} type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+            <span>
+                I agree to the <a href="/rules" target="_blank" rel="noopener noreferrer">rules</a>
+            </span>
+        </label>
+    )
+}
+
 /** The public page, /rules. */
 export function RulesPage() {
     return (

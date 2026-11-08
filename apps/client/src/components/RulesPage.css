@@ -48,3 +48,27 @@
 .rules-modal-body p {
     margin: 0 0 10px;
 }
+
+/* The tick box on sign-up and on a guest's claim. */
+.rules-agree {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 8px;
+    font-size: 15px;
+    color: var(--color-text-base);
+    cursor: pointer;
+    text-align: left;
+}
+
+.rules-agree input {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    accent-color: var(--color-gold);
+}
+
+.rules-agree a {
+    color: var(--color-gold);
+    text-decoration: underline;
+}

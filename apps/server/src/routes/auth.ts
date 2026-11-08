@@ -16,12 +16,20 @@ import { noteDeed } from '../services/chronicle';
 
 const router = Router();
 
+const RULES_REFUSAL = 'Please tick the box to agree to the rules.';
+
 // Register
 router.post('/register', async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
   if (!username || !req.body.email || !password) {
     res.status(400).json({ error: 'Username, email and password are required' });
+    return;
+  }
+  // The rules (RulesPage.tsx on the client): the box must be ticked, and the
+  // time is kept on the player row.
+  if (req.body.agreeRules !== true) {
+    res.status(400).json({ error: RULES_REFUSAL });
     return;
   }
 
@@ -79,6 +87,7 @@ router.post('/register', async (req: Request, res: Response) => {
           email,
           password_hash,
           current_location_id: startingLocation?.id || null,
+          rules_agreed_at: trx.fn.now(),
         })
         .returning(['id', 'username', 'email']);
       await setUpNewPlayerWithin(trx, created.id);
@@ -311,6 +320,12 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
     res.status(400).json({ error: 'Username, email and password are required' });
     return;
   }
+  // The rules (RulesPage.tsx on the client): the box must be ticked, and the
+  // time is kept on the player row.
+  if (req.body.agreeRules !== true) {
+    res.status(400).json({ error: RULES_REFUSAL });
+    return;
+  }
   // One rule for every chosen name (lib/credentials.ts): type, length, the
   // characters allowed, and the reserved guest suffix (audit L-4).
   const name = cleanUsername(username);
@@ -371,6 +386,7 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
         password_hash,
         is_guest: false,
         guest_expires_at: null,
+        rules_agreed_at: trx.fn.now(),
         // Left unverified on purpose. Once ENFORCE_EMAIL_VERIFICATION is on,
         // an upgraded account is in exactly the same position as any other new
         // registration, which is the point of having one predicate.
