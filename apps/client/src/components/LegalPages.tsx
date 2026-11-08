@@ -18,6 +18,7 @@ function LegalShell({ title, children }: { title: string; children: React.ReactN
                 <p className="legal-date">Effective {EFFECTIVE_DATE}</p>
                 {children}
                 <div className="legal-footer">
+                    <Link to="/rules">Rules</Link>
                     <Link to="/terms">Terms of Service</Link>
                     <Link to="/refunds">Refund Policy</Link>
                     <Link to="/privacy">Privacy Policy</Link>

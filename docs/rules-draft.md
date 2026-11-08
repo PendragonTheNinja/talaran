@@ -1,5 +1,7 @@
 # Talaran Rules (first draft)
 
+*Published 2026-11-08: the live text is `apps/client/src/components/RulesPage.tsx` (the public `/rules` page, linked from the home page footer and the legal pages, and the in-game Rules button beside chat History). Change it there; this file is the original draft.*
+
 *Draft for Nathan to review, 2026-11-07. Written plainly, as players will read it. Once agreed it becomes a page players can find from the home page, the Manual and sign-up.*
 
 ---

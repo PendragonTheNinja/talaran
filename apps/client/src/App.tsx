@@ -11,6 +11,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import NewsPage from './components/NewsPage'
 import ManualPage from './components/ManualPage'
 import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
+import { RulesPage } from './components/RulesPage'
 import SupportUsPage from './components/SupportUsPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
 import HighscoresPage from './components/HighscoresPage'
@@ -430,6 +431,7 @@ function App() {
       <Route path="/store" element={<SupportUsPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/rules" element={<RulesPage />} />
       <Route path="/refunds" element={<RefundPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/highscores" element={<HighscoresPage />} />

@@ -625,6 +625,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                     <span className="home-foot-brand">Talaran</span>
                     <span>© 2026 · Alpha</span>
                     <span className="home-foot-sep">·</span>
+                    <Link to="/rules">Rules</Link>
+                    <span className="home-foot-sep">·</span>
                     <Link to="/terms">Terms</Link>
                     <span className="home-foot-sep">·</span>
                     <Link to="/refunds">Refunds</Link>

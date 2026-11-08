@@ -1,0 +1,50 @@
+/* The rules (RulesPage.tsx): the public page borrows the legal pages' frame;
+   the in-game window is a scrolling modal. */
+
+.rules-content ul {
+    margin: 0 0 12px;
+    padding-left: 20px;
+}
+
+.rules-content li {
+    margin-bottom: 6px;
+}
+
+.rules-content strong {
+    color: var(--color-text-bright);
+}
+
+.rules-modal {
+    width: min(640px, calc(100vw - 32px));
+    max-height: 85vh;
+    padding: var(--space-lg);
+}
+
+.rules-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rules-modal-head h3 {
+    margin: 0;
+}
+
+.rules-modal-body {
+    overflow-y: auto;
+    text-align: left;
+    color: var(--color-text-base);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.rules-modal-body h2 {
+    font-family: var(--font-heading);
+    color: var(--color-text-bright);
+    font-size: 16px;
+    margin: 18px 0 6px;
+}
+
+.rules-modal-body p {
+    margin: 0 0 10px;
+}

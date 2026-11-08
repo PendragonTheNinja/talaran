@@ -177,6 +177,11 @@
   transition: color 0.15s, border-color 0.15s;
 }
 
+/* Rules sits just before History, so only it takes the push to the right. */
+.chat-rules-btn + .chat-history-btn {
+  margin-left: 4px;
+}
+
 .chat-history-btn:hover {
   color: var(--color-gold-bright, #e8b84b);
   border-color: var(--color-border-bright, #9a7840);

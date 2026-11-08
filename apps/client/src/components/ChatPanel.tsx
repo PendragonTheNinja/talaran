@@ -6,6 +6,7 @@ import { formatGameTime } from '../lib/time'
 import './ChatPanel.css'
 import ChatMessageLine, { CHANNEL_COLORS, CHANNEL_SHORT, renderMessageText, type ChatMessage } from './ChatMessageLine'
 import ChatHistoryPanel from './ChatHistoryPanel'
+import { RulesModal } from './RulesPage'
 
 interface ChatPanelProps {
   onOpenForum?: (threadId: number) => void
@@ -56,6 +57,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
   const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
   const [resetAt, setResetAt] = useState<number | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [historyLoaded, setHistoryLoaded] = useState(false)
@@ -411,6 +413,13 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
             {label}
           </button>
         ))}
+        <button
+          className="chat-history-btn chat-rules-btn"
+          onClick={() => setRulesOpen(true)}
+          title="The rules of Talaran"
+        >
+          Rules
+        </button>
         {/* The live box caps at 200 messages; this reaches the rest of the window. */}
         <button
           className="chat-history-btn"
@@ -469,6 +478,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
         />
         <button className="btn chat-send-btn" onClick={handleSend}>Send</button>
       </div>
+      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
       {historyOpen && (
         <ChatHistoryPanel
           onClose={() => setHistoryOpen(false)}
