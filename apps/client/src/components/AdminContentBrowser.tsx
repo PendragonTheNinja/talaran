@@ -233,7 +233,11 @@ export default function AdminContentBrowser() {
     const saveInlineEdit = async () => {
         if (!editing) return
         let value: unknown = editValue
-        if (editing.kind === 'integer') {
+        // A blank number box clears the cell (null: "use the default", as an
+        // item's durability_* do). The server refuses it where a column cannot be empty.
+        if ((editing.kind === 'integer' || editing.kind === 'float') && editValue.trim() === '') {
+            value = null
+        } else if (editing.kind === 'integer') {
             const parsed = parseInt(editValue)
             if (!Number.isInteger(parsed)) { setError('Value must be a whole number.'); return }
             value = parsed
@@ -872,6 +876,8 @@ export default function AdminContentBrowser() {
                                                                         style={editing.kind === 'string' ? { width: '220px' } : undefined}
                                                                         type={editing.kind === 'string' ? 'text' : 'number'}
                                                                         step={editing.kind === 'float' ? 'any' : undefined}
+                                                                        placeholder={editing.kind === 'string' ? undefined : 'blank = none'}
+                                                                        title={editing.kind === 'string' ? undefined : 'Leave blank and press Enter to clear it'}
                                                                         value={editValue}
                                                                         onChange={e => setEditValue(e.target.value)}
                                                                         onKeyDown={e => {

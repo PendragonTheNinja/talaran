@@ -5,13 +5,14 @@ import './LoadoutsModal.css'
 
 /**
  * Named loadouts (server services/loadouts.ts): save what you wear now, put a
- * set back on from your pack in one tap. Whatever is not in the pack, or is
- * above your level now, is listed here; the rest still goes on.
+ * set back on from your pack in one tap, taking off into the pack whatever
+ * sits in a slot the set leaves empty (the trophy stays). Whatever is not in
+ * the pack, or is above your level now, is listed here; the rest still goes on.
  */
 
 interface Piece { slot: string; itemId: number; name: string }
 interface Loadout { id: number; name: string; pieces: Piece[] }
-interface WearReport { worn: string[]; alreadyOn: string[]; missing: string[]; refused: { name: string; reason: string }[] }
+interface WearReport { worn: string[]; alreadyOn: string[]; removed?: string[]; missing: string[]; refused: { name: string; reason: string }[] }
 
 const MAX = 5
 
@@ -83,6 +84,7 @@ export default function LoadoutsModal({ onClose, onChanged }: { onClose: () => v
                 {report && (
                     <div className={`loadouts-report ${report.r.missing.length || report.r.refused.length ? 'partial' : ''}`} role="status">
                         <p><strong>{report.name}</strong>: {report.r.worn.length ? `put on ${report.r.worn.join(', ')}.` : 'nothing new to put on.'}</p>
+                        {(report.r.removed?.length ?? 0) > 0 && <p>Put away in your pack: {report.r.removed!.join(', ')}.</p>}
                         {report.r.missing.length > 0 && <p>Not in your pack: {report.r.missing.join(', ')}.</p>}
                         {report.r.refused.map(f => <p key={f.name}>{f.name}: {f.reason}.</p>)}
                     </div>

@@ -131,7 +131,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **A broken hand tool** leaves its slot and stops the action (`action_failed`, info) as a weapon ends a fight; the player equips another. **A broken bench tool** stays in its slot with `workstation_slots.broken_at`: the bench makes do at ×2 (`checkStation` returns `brokenTools`), said on the result card, the bench menu, the recipe card ("Half speed") and the bench panel; fitting a new tool replaces it, tapping it clears it away. Wear is silent until a break. Bow on Alder's shelf; race:check `tool`.
 
 ### Loadouts (`services/loadouts.ts`)
-- Up to 5 named snapshots of every worn slot (`player_loadouts.slots`, slot to item id). Wearing goes through `wearFromPackWithin`, the equip button's own locked swap, main hand first; a piece not in the pack or above the player's level is named and skipped, the rest go on; a slot empty when saved is left alone (race:check `loadout`).
+- Up to 5 named snapshots of every worn slot (`player_loadouts.slots`, slot to item id). Wearing goes through `wearFromPackWithin`, the equip button's own locked swap, main hand first; a piece not in the pack or above the player's level is named and skipped, the rest go on; a slot empty when saved is EMPTIED into the pack, except the trophy (Nathan, 2026-11-08), and a slot whose saved piece could not go on keeps what is worn (race:check `loadout`, `loadout-strip`).
 
 ### Materials & the circularity rule (locked)
 - **Leather** (Husbandry, cattle) is the mainline, five tiers. **Buckskin** (Hunting) is one item, yield-scaled by animal size, and cuts into tier-1 strips only.

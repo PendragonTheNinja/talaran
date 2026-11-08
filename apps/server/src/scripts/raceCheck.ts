@@ -1828,6 +1828,34 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'loadout-strip', name: 'loadouts that take a mount off, raced against equip and unequip', rounds: 10,
+        run: async (ctx) => {
+            // wearLoadout empties every slot the loadout leaves empty, under the
+            // equipment lock, so a horse taken off by a hatchet-only set while
+            // another set, the equip button and the unequip button all run is
+            // in the saddle or in the pack, once.
+            const w = await world(ctx);
+            const horse = await ctx.seed.row('items', { name: 'Race Pony', type: 'mount', slot: 'mount', level_required: 1 });
+            await ctx.seed.row('player_equipment', { player_id: w.player.id, mainhand_item_id: w.hatchet.id, mount_item_id: horse.id });
+            await inPack(ctx, w.player.id, w.axeA.id, 1);
+            const a = await ctx.seed.row('player_loadouts', { player_id: w.player.id, name: 'Hatchet', slots: JSON.stringify({ mainhand: w.hatchet.id }) });
+            const b = await ctx.seed.row('player_loadouts', { player_id: w.player.id, name: 'Riding', slots: JSON.stringify({ mainhand: w.axeA.id, mount: horse.id }) });
+            const calls = [
+                () => ctx.post(w.player.id, `/equipment/loadouts/${a.id}/wear`, {}),
+                () => ctx.post(w.player.id, `/equipment/loadouts/${b.id}/wear`, {}),
+                () => ctx.post(w.player.id, '/equipment/unequip', { slot: 'mount' }),
+                () => ctx.post(w.player.id, '/equipment/equip', { itemId: horse.id }),
+                () => ctx.post(w.player.id, `/equipment/loadouts/${a.id}/wear`, {}),
+                () => ctx.post(w.player.id, '/equipment/unequip', { slot: 'mainhand' }),
+            ];
+            const st = await ctx.burst(w.player.id, calls.length, (i) => calls[i]());
+            return changed('hatchets', 1, await ctx.itemTotal(w.hatchet.id))
+                ?? changed('crude axes', 1, await ctx.itemTotal(w.axeA.id))
+                ?? changed('ponies', 1, await ctx.itemTotal(horse.id))
+                ?? noServerErrors(st);
+        },
+    },
+    {
         id: 'tool', name: 'a hatchet breaks while it is taken off five times at once', rounds: 10,
         run: async (ctx) => {
             // services/toolWear.ts wearHandTools: the break reads the hand

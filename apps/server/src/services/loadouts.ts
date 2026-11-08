@@ -4,6 +4,7 @@ import { logger } from '../lib/logger'
 import { readText } from '../lib/textLimits'
 import { SERVER_ERROR } from '../lib/serviceResult'
 import { VALID_SLOTS, ensureEquipmentRow, equipLevelRefusal, wearFromPackWithin } from './equipment'
+import { addItemToInventoryWithin } from './inventory'
 
 // ── Loadouts (Nathan, 2026-11-07) ───────────────────────────────────────────
 // A few named snapshots of what a player wears. Saving copies every worn slot;
@@ -11,7 +12,10 @@ import { VALID_SLOTS, ensureEquipmentRow, equipLevelRefusal, wearFromPackWithin 
 // wearFromPackWithin, the equip button's own swap, so the same locks hold
 // (equipment row first, then the pack) and nothing can be doubled or lost.
 // Whatever is not in the pack, or is above the player's level now, is named
-// in the reply and skipped; the rest still goes on.
+// in the reply and skipped; the rest still goes on. A slot the loadout leaves
+// empty is emptied into the pack (Nathan, 2026-11-08: a hatchet-only loadout
+// takes the horse off), except the trophy, which is shown off, not worn for
+// work. A slot whose saved piece could not go on keeps what is worn there.
 
 export const LOADOUTS_MAX = 5
 export const LOADOUT_NAME_MAX = 30
@@ -123,6 +127,8 @@ export async function deleteLoadout(playerId: number, idRaw: unknown): Promise<R
 export interface WearReport {
     worn: string[]
     alreadyOn: string[]
+    /** Taken off into the pack: worn in a slot the loadout leaves empty. */
+    removed: string[]
     missing: string[]
     refused: { name: string; reason: string }[]
 }
@@ -139,7 +145,7 @@ export async function wearLoadout(playerId: number, idRaw: unknown): Promise<Res
         const slots = slotsOf(row.slots)
         const order = (s: string) => (s === 'mainhand' ? 0 : s === 'offhand' ? 1 : 2)
         await ensureEquipmentRow(playerId)
-        const report: WearReport = { worn: [], alreadyOn: [], missing: [], refused: [] }
+        const report: WearReport = { worn: [], alreadyOn: [], removed: [], missing: [], refused: [] }
         await db.transaction(async (trx) => {
             // Equipment first, as every equip does (services/equipment.ts).
             await trx('player_equipment').where({ player_id: playerId }).forUpdate().first()
@@ -153,6 +159,20 @@ export async function wearLoadout(playerId: number, idRaw: unknown): Promise<Res
                 else if (worn.status === 'unchanged') report.alreadyOn.push(item.name)
                 else report.worn.push(item.name)
             }
+            // Then empty every slot the loadout leaves empty, read again under
+            // the same lock, so a piece is in the slot or in the pack, never both.
+            const eq = await trx('player_equipment').where({ player_id: playerId }).first()
+            const clear: Record<string, null> = {}
+            for (const slot of VALID_SLOTS) {
+                if (slot === 'trophy' || slots[slot] !== undefined) continue
+                const itemId = eq?.[`${slot}_item_id`]
+                if (!itemId) continue
+                clear[`${slot}_item_id`] = null
+                await addItemToInventoryWithin(trx, playerId, Number(itemId), 1)
+                const item = await trx('items').where({ id: itemId }).first('name')
+                report.removed.push(item?.name ?? 'an item')
+            }
+            if (Object.keys(clear).length) await trx('player_equipment').where({ player_id: playerId }).update(clear)
         })
         return { ok: true, report }
     } catch (err) {
