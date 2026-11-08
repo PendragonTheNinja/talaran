@@ -32,7 +32,7 @@ router.get('/status', requireAuth, async (req: AuthRequest, res: Response) => {
             const pq = await db('player_quests').where({ player_id: playerId, quest_id: quest.id }).first();
             if (pq) questStatus = pq.status;
         }
-        res.json({ workstation, canSaw: access.allowed, usingBench: access.usingBench || false, level, questStatus });
+        res.json({ workstation, canSaw: access.allowed, sawError: access.allowed ? null : access.error, usingBench: access.usingBench || false, level, questStatus });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }

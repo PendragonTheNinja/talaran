@@ -71,6 +71,15 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
             return used
         },
     },
+    // Your own saw at your own workshop; the public bench lends its own.
+    sawing: {
+        skill: 'Carpentry',
+        tools: async (action) => {
+            const { canSawHere } = await import('./carpentry')
+            const at = await canSawHere(action.player_id, action.location_id)
+            return at.allowed && !at.usingBench ? ['saw'] : []
+        },
+    },
     farm_till: { skill: 'Farming', tools: ['hoe'] },
     farm_establish: { skill: 'Carpentry', tools: BUILD },
     farm_build_plot: { skill: 'Carpentry', tools: BUILD },

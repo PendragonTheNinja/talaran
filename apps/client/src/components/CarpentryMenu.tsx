@@ -9,6 +9,8 @@ interface CarpentryMenuProps {
     onStartRecipe: (recipeId: number, batches: number | null) => void
     playerCarpentryLevel: number
     stationActive?: boolean
+    /** Why sawing will run at the public bench, when you have a workshop of your own here. */
+    sawNote?: string | null
 }
 
 const WOODS = [
@@ -25,7 +27,7 @@ const QUALITIES = [
     { key: 'excellent', label: 'Excellent', yield: 3 },
 ]
 
-export default function CarpentryMenu({ onClose, onStartSawing, onStartRecipe, playerCarpentryLevel, stationActive = true }: CarpentryMenuProps) {
+export default function CarpentryMenu({ onClose, onStartSawing, onStartRecipe, playerCarpentryLevel, stationActive = true, sawNote }: CarpentryMenuProps) {
     const [tab, setTab] = useState<'saw' | 'woodwork'>('saw')
 
     return (
@@ -41,6 +43,7 @@ export default function CarpentryMenu({ onClose, onStartSawing, onStartRecipe, p
                     <button className={`smithing-category-btn ${tab === 'woodwork' ? 'active' : ''}`} onClick={() => setTab('woodwork')}>Woodworking</button>
                 </div>
 
+                {tab === 'saw' && sawNote && <p className="station-broken-notice">{sawNote}</p>}
                 {tab === 'saw' && (
                     <div className="smithing-recipe-grid">
                         {WOODS.map(w => {

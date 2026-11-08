@@ -235,6 +235,8 @@ export default function GameLayout({
   const [showCookingMenu, setShowCookingMenu] = useState(false)
   const [cookingAtFire, setCookingAtFire] = useState(false)
   const [carpentryStationActive, setCarpentryStationActive] = useState(false)
+  // A workshop of your own here but no saw in hand: sawing falls to Geossica's bench.
+  const [carpentrySawNote, setCarpentrySawNote] = useState<string | null>(null)
   const [smithingStationActive, setSmithingStationActive] = useState(false)
   const [showTanningModal, setShowTanningModal] = useState(false)
   const [tanningStatus, setTanningStatus] = useState<any>(null)
@@ -464,7 +466,12 @@ export default function GameLayout({
       setShowForgeMenu(true)
     } else if (type === 'carpentry_menu') {
       apiFetch<any>('/api/carpentry/status')
-        .then(st => setCarpentryStationActive(!!st?.workstation?.is_active))
+        .then(st => {
+          setCarpentryStationActive(!!st?.workstation?.is_active)
+          setCarpentrySawNote(st?.workstation && st?.usingBench
+            ? "You have no saw in hand, so you will saw at Geossica's bench, at half speed. Hold a saw to use your own workshop."
+            : null)
+        })
         .catch(() => setCarpentryStationActive(false))
       setShowCarpentryMenu(true)
     } else if (type === 'smelting') {
@@ -1049,6 +1056,7 @@ export default function GameLayout({
           }}
           playerCarpentryLevel={playerData?.skills?.find((s: any) => s.name === 'Carpentry')?.level || 1}
           stationActive={carpentryStationActive}
+          sawNote={carpentrySawNote}
         />
       )}
 

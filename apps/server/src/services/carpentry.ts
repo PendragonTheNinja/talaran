@@ -7,6 +7,7 @@ import { rollSecondaryDrops } from './drops';
 import { awardXp } from './xp';
 import { craftItems } from './inventory';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { equippedBuildTool, BUILD_SAW } from './construction';
 
 // Quest that grants public-bench access at Verdale (created in Step 5).
 const INTRO_QUEST = "The Carpenter's Commission";
@@ -74,18 +75,24 @@ export async function canSawHere(
     playerId: number,
     locationId: number
 ): Promise<{ allowed: boolean; error?: string; usingBench?: boolean }> {
-    // Sawing needs the bench itself, not the full rack, so any workshop of
-    // your own serves at full speed.
+    // At a workshop of your own you saw with your own saw, in hand as for
+    // building (Nathan, 2026-11-08), and it wears (services/toolWear.ts). The
+    // rack is not needed: sawing is the bench and the blade.
     const workstation = await getCarpentryWorkstation(playerId, locationId);
-    if (workstation) {
+    const sawInHand = workstation ? !!(await equippedBuildTool(playerId, BUILD_SAW.subtype)) : false;
+    if (workstation && sawInHand) {
         return { allowed: true, usingBench: false };
     }
 
-    // Same rule as the forge: his bench is a fallback, not a penalty for having
-    // an unfinished one of your own.
+    // Same rule as the forge: her bench, which lends its own saw, is a
+    // fallback, not a penalty for an unfinished workshop of your own.
     const { locationHasPublicStation } = await import('./workstations');
     if (await locationHasPublicStation(playerId, locationId, 'carpentry')) {
         return { allowed: true, usingBench: true };
+    }
+
+    if (workstation) {
+        return { allowed: false, error: `You need a saw in hand to saw at your workshop.` };
     }
 
     return { allowed: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
