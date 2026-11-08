@@ -96,7 +96,7 @@ async function hallHere(playerId: number, x: any = db, lockHall = false) {
 }
 
 /** Tell every member's open hall view to refresh (GuildHallPanel listens). */
-function announce(guildId: number) {
+export function announce(guildId: number) {
     pushToRoom(`guild_${guildId}`, 'guild_hall_changed', {});
 }
 
@@ -365,7 +365,8 @@ function count(raw: unknown): number | null {
     return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-async function ledger(trx: any, hallId: number, playerId: number, playerName: string, itemId: number | null, delta: number) {
+/** One storehouse ledger row (gold when itemId is null). Exported for the Chronicle's ballads, paid from the storehouse. */
+export async function ledger(trx: any, hallId: number, playerId: number, playerName: string, itemId: number | null, delta: number) {
     await trx('guild_storage_ledger').insert({ hall_id: hallId, player_id: playerId, player_name: playerName, item_id: itemId, delta });
 }
 

@@ -224,3 +224,10 @@ a.news-page-sidebar-item span {
 .chronicle-page-nav a.btn {
   display: inline-block;
 }
+
+/* A guild's ballad in the Ballads tab. */
+.tavern-ballad {
+  border-left: 2px solid var(--color-border-gold);
+  padding-left: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}

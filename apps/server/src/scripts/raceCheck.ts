@@ -1884,6 +1884,44 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'ballad', name: 'commission a guild ballad five times at once, paid from the purse', rounds: 10,
+        run: async (ctx) => {
+            // services/chronicleBallads.ts commissionBallad: the guild row is
+            // locked before the cooldown is read, so one ballad is paid for.
+            const w = await world(ctx);
+            const guild = await ctx.seed.row('guilds', { name: 'Racecheck Guild', tag: 'RCG', founder_id: w.player.id, leader_id: w.player.id });
+            await ctx.seed.row('guild_members', { guild_id: guild.id, player_id: w.player.id, role: 'founder' });
+            await ctx.db('players').where({ id: w.player.id }).update({ guild_id: guild.id, guild_tag: 'RCG', guild_role: 'founder' });
+            await ctx.seed.row('taverns', { location_id: w.town.id, name: 'The Racecheck Arms' });
+            await ctx.seed.row('chronicle_verses', { kind: 'ballad', text: 'A song for {guild}.', needs: ['guild'] });
+            await fund(ctx, w.player.id, 25_000);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/chronicle/ballads', {}));
+            const [{ n }] = await ctx.db('chronicle_ballads').where({ guild_id: guild.id }).count({ n: '*' });
+            return changed('gold', 15_000, await goldOf(ctx, w.player.id))
+                ?? changed('ballads', 1, Number(n))
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'ballad', name: 'five officers commission a ballad at once, paid from the storehouse', rounds: 10,
+        run: async (ctx) => {
+            // Different players, one guild and one storehouse: the guild row is the gate.
+            const g = await guildWorld(ctx, 10, 4);
+            await ctx.db('guild_halls').where({ id: g.hall.id }).update({ gold: 25_000 });
+            await ctx.seed.row('taverns', { location_id: g.w.town.id, name: 'The Racecheck Arms' });
+            await ctx.seed.row('chronicle_verses', { kind: 'ballad', text: 'A song for {guild}.', needs: ['guild'] });
+            const st = await together(ctx, [g.w.player, ...g.members], (p) => ctx.post(p.id, '/chronicle/ballads', {}));
+            const hall = await ctx.db('guild_halls').where({ id: g.hall.id }).first('gold');
+            const [{ n }] = await ctx.db('chronicle_ballads').where({ guild_id: g.guild.id }).count({ n: '*' });
+            const [{ rows }] = await ctx.db('guild_storage_ledger').where({ hall_id: g.hall.id }).count({ rows: '*' });
+            return changed('storehouse gold', 15_000, Number(hall.gold))
+                ?? changed('ballads', 1, Number(n))
+                ?? changed('storehouse ledger rows', 1, Number(rows))
+                ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'crier', name: "answer one of the Crier's polls five times at once", rounds: 10,
         run: async (ctx) => {
             // services/crierPolls.ts answerPoll: the response's unique key on

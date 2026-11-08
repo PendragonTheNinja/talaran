@@ -2,6 +2,9 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { requireTrusted } from '../lib/trust';
+import { failureStatus } from '../lib/serviceResult';
+import { balladsFor, commissionBallad } from '../services/chronicleBallads';
 import { tavernFront, bookDays, bookPage, namedDays, chronicleNotice, seeChronicleNotice } from '../services/chronicleBook';
 
 // The Salty Sloth (docs/chronicle-spec.md §2, step 3): the Wenna tab and the
@@ -80,6 +83,23 @@ router.post('/notice/seen', requireAuth, async (req: AuthRequest, res: Response)
         logger.error(`chronicle notice seen: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
+});
+
+/** GET /api/chronicle/ballads: the price, whether you may commission one, and your guild's ballads. */
+router.get('/ballads', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        res.json(await balladsFor(req.player!.playerId));
+    } catch (err) {
+        logger.error(`chronicle ballads: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+/** POST /api/chronicle/ballads: commission one (moves gold; race:check 'ballad'). */
+router.post('/ballads', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
+    const result = await commissionBallad(req.player!.playerId);
+    if ('error' in result) res.status(failureStatus(result.error)).json(result);
+    else res.json(result);
 });
 
 // ── The public book (talaran.net/chronicle), no account needed ──────────────

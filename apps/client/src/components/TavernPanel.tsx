@@ -32,6 +32,109 @@ interface Page {
 }
 
 interface DayRef { dayKey: string; title: string; headline?: string | null }
+
+interface Ballads {
+    price: number
+    cooldownDays: number
+    inGuild: boolean
+    guild: string | null
+    blocked: string | null
+    payFrom: 'storehouse' | 'purse' | null
+    storehouseGold: number | null
+    nextAllowedAt: string | null
+    ballads: { id: number; text: string; sung: string | null; by: string | null; paidFrom: string; at: string }[]
+}
+
+const fmt = (n: number) => n.toLocaleString('en-US')
+
+/** Small numbers as Wenna says them ("seven days"). */
+function inWords(n: number): string {
+    const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']
+    return words[n] ?? fmt(n)
+}
+
+/** The day key "2026-11-06" as "6th of November" (the composer's own wording). */
+function dayName(dayKey: string): string {
+    const [, m, d] = dayKey.split('-').map(Number)
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    const suffix = d % 100 >= 11 && d % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[d % 10] ?? 'th'
+    return `${d}${suffix} of ${months[m - 1]}`
+}
+
+/** The Ballads tab (docs/chronicle-spec.md §9): pay Wenna to sing of your guild. */
+function BalladsTab() {
+    const [data, setData] = useState<Ballads | null>(null)
+    const [error, setError] = useState<string | null>(null)
+    const [notice, setNotice] = useState<string | null>(null)
+    const [confirming, setConfirming] = useState(false)
+    const [busy, setBusy] = useState(false)
+
+    const load = useCallback(() => {
+        apiFetch<Ballads>('/api/chronicle/ballads')
+            .then(setData)
+            .catch(err => setError(err instanceof Error ? err.message : 'Wenna is busy.'))
+    }, [])
+    useEffect(() => { load() }, [load])
+
+    const commission = async () => {
+        setBusy(true)
+        setError(null)
+        try {
+            await apiFetch('/api/chronicle/ballads', { method: 'POST' })
+            setNotice('Paid. Wenna has the words, and she will sing it in the next tidings.')
+            setConfirming(false)
+            load()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'That did not work.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    if (!data) return <p className="tavern-scene">{error ?? 'Wenna is finding her lute.'}</p>
+    return (
+        <div className="tavern-ballads">
+            <p className="tavern-say">
+                "A song for your guild, sung in the tidings for the whole island to read. {fmt(data.price)} gold, and I'll not do the same guild twice in {inWords(data.cooldownDays)} days."
+            </p>
+            {error && <p className="tavern-error">{error}</p>}
+            {notice && <p className="tavern-line">{notice}</p>}
+            {data.inGuild && (
+                <p className="tavern-scene">
+                    {data.payFrom === 'storehouse'
+                        ? `Paid from the ${data.guild} storehouse, which holds ${fmt(data.storehouseGold ?? 0)} gold.`
+                        : `${data.guild} has no storehouse yet, so it comes from your own purse.`}
+                </p>
+            )}
+            {data.blocked
+                ? <p className="tavern-scene">{data.blocked}{data.nextAllowedAt ? ` (again from ${new Date(data.nextAllowedAt).toLocaleDateString()})` : ''}</p>
+                : confirming
+                    ? (
+                        <div className="tavern-named-row">
+                            <span className="tavern-line">Pay {fmt(data.price)} gold for a ballad?</span>
+                            <button className="btn" onClick={() => setConfirming(false)} disabled={busy}>Not yet</button>
+                            <button className="btn btn-gold" onClick={commission} disabled={busy}>{busy ? 'Paying…' : 'Pay Wenna'}</button>
+                        </div>
+                    )
+                    : <button className="btn btn-gold" onClick={() => { setNotice(null); setConfirming(true) }}>Commission a ballad</button>}
+
+            {data.ballads.length > 0 && (
+                <>
+                    <p className="tavern-section">{data.guild}'s ballads</p>
+                    {data.ballads.map(b => (
+                        <div key={b.id} className="tavern-ballad">
+                            <p className="tavern-line">{b.text}</p>
+                            <p className="tavern-named-where">
+                                {b.sung ? `Sung in the tidings for the ${dayName(b.sung)}` : 'Waiting for the next tidings'}
+                                {b.by ? `, paid for by ${b.by}` : ''}.
+                            </p>
+                        </div>
+                    ))}
+                </>
+            )}
+        </div>
+    )
+}
 interface Named { name: string; days: { dayKey: string; title: string; inLines: boolean }[] }
 
 const SECTION: Record<string, string> = {
@@ -41,6 +144,7 @@ const SECTION: Record<string, string> = {
     fallen: 'Of the fallen',
     maker: 'Word from the Maker',
     roll: 'The long roll',
+    rumour: 'A rumour',
 }
 
 function escape(s: string): string {
@@ -84,7 +188,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
      */
     openOnDay?: string
 }) {
-    const [tab, setTab] = useState<'wenna' | 'book'>(openOnDay ? 'book' : 'wenna')
+    const [tab, setTab] = useState<'wenna' | 'book' | 'ballads'>(openOnDay ? 'book' : 'wenna')
     // Away from the tavern there is no Wenna to talk to, only the book.
     const [away, setAway] = useState(false)
     const [front, setFront] = useState<Front | null>(null)
@@ -150,6 +254,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                     <div className="tavern-tabs">
                         <button className={`tavern-tab ${tab === 'wenna' ? 'active' : ''}`} onClick={() => setTab('wenna')}>Wenna</button>
                         <button className={`tavern-tab ${tab === 'book' ? 'active' : ''}`} onClick={() => setTab('book')}>The Chronicle</button>
+                        <button className={`tavern-tab ${tab === 'ballads' ? 'active' : ''}`} onClick={() => setTab('ballads')}>Ballads</button>
                     </div>
                 )}
 
@@ -170,6 +275,8 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                         )}
                     </div>
                 )}
+
+                {tab === 'ballads' && <BalladsTab />}
 
                 {tab === 'book' && (
                     <div className="tavern-book">

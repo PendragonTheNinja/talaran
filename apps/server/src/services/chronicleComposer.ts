@@ -8,6 +8,10 @@ import { STRONG_KILL_GAP, trimDeeds } from './chronicle'
 import { announceServer } from './records'
 import { pushToPlayer } from '../lib/realtime'
 import { evaluateFeats } from './feats'
+import { trueRumours } from './chronicleRumours'
+
+/** Paid ballads sung on one page at most (§9); a third waits a day. */
+export const BALLADS_PER_PAGE = 2
 
 // ── The Chronicle, step 2: Wenna writes the page (docs/chronicle-spec.md §3, §6, §8, §12) ──
 //
@@ -37,11 +41,16 @@ export interface ChronicleSettings {
     deed_keep_days: number
     quiet_below: number
     death_heavy_stacks: number
+    rumour_chance: number
+    rumour_cooldown_days: number
+    ballad_price: number
+    ballad_cooldown_days: number
 }
 
 const DEFAULTS: ChronicleSettings = {
     composer_enabled: false, headline_threshold: 60, headline_max: 2, island_lines: 8, guild_lines: 3,
     fallen_lines: 2, roll_max: 40, deed_keep_days: 30, quiet_below: 4, death_heavy_stacks: 10,
+    rumour_chance: 50, rumour_cooldown_days: 14, ballad_price: 10000, ballad_cooldown_days: 7,
 }
 
 export async function chronicleSettings(x: Knex | Knex.Transaction = db): Promise<ChronicleSettings> {
@@ -61,7 +70,7 @@ export async function setComposerEnabled(on: boolean): Promise<void> {
 
 // ── What a page is ──────────────────────────────────────────────────────────
 
-export type Section = 'heading' | 'headline' | 'island' | 'guilds' | 'fallen' | 'maker' | 'quiet' | 'roll' | 'signoff'
+export type Section = 'heading' | 'headline' | 'island' | 'guilds' | 'fallen' | 'maker' | 'quiet' | 'roll' | 'rumour' | 'signoff'
 
 export interface PageLine {
     section: Section
@@ -73,6 +82,10 @@ export interface PageLine {
     guildIds: number[]
     /** Named only in the long roll. */
     rollPlayerIds?: number[]
+    /** What a rumour was about, for its cooldown (§15). */
+    subject?: string | null
+    /** A paid ballad this line sings (§9): marked sung when the page is kept. */
+    balladId?: number
 }
 
 export interface ScoredDeed {
@@ -400,14 +413,25 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
     }
     let count = 0
     for (const d of island) { if (count >= s.island_lines) break; if (tell(d, 'island')) count++ }
+    // Guild ballads (§9): paid for, so never scored and never crowded out; two
+    // a page at most, oldest first, and a third waits for tomorrow.
+    const { start: dayStart, end: dayEnd } = dayWindow(dayKey)
+    const ballads = await db('chronicle_ballads')
+        .whereNotNull('text')
+        .where((q) => q.whereNull('day_key_sung').orWhere('day_key_sung', dayKey))
+        .where('created_at', '<', dayEnd)
+        .orderBy('created_at').limit(BALLADS_PER_PAGE)
+        .select('id', 'guild_id', 'text')
+    for (const b of ballads) {
+        lines.push({ section: 'guilds', text: b.text, deedKind: 'ballad', verseId: null, playerIds: [], guildIds: b.guild_id ? [b.guild_id] : [], balladId: b.id })
+    }
     count = 0
     for (const d of deeds.filter(x => x.section === 'guilds')) { if (count >= s.guild_lines) break; if (tell(d, 'guilds')) count++ }
     count = 0
     for (const d of deeds.filter(x => x.section === 'fallen')) { if (count >= s.fallen_lines) break; if (tell(d, 'fallen')) count++ }
 
     // Word from the Maker (§7): one line per news post published that day.
-    const { start, end } = dayWindow(dayKey)
-    const news = await db('news_posts').where('published_at', '>=', start).where('published_at', '<', end)
+    const news = await db('news_posts').where('published_at', '>=', dayStart).where('published_at', '<', dayEnd)
         .orderBy('published_at').select('id', 'chronicle_line')
     for (const post of news) {
         const own = String(post.chronicle_line ?? '').trim()
@@ -429,6 +453,21 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
     if (rollIds.length) {
         const nameOf = new Map(deeds.filter(d => d.playerId).map(d => [d.playerId!, String(d.slots.player)]))
         line('roll', 'roll', { names: nameList(rollIds.map(id => nameOf.get(id)!), s.roll_max), date }, 'roll', rollIds.length, { rollPlayerIds: rollIds })
+    }
+
+    // A rumour (§15): only ever something true, never forced, at most one, and
+    // not the same subject twice in rumour_cooldown_days.
+    if (seededUnit(`${dayKey}:rumour`) * 100 < s.rumour_chance) {
+        const recent = new Set((await db('chronicle_lines')
+            .where('section', 'rumour').whereNotNull('subject')
+            .where('day_key', '>=', addDays(dayKey, -s.rumour_cooldown_days)).where('day_key', '<', dayKey)
+            .select('subject')).map((r: any) => r.subject))
+        const candidates = (await trueRumours())
+            .filter(r => !recent.has(r.subject))
+            .sort((a, b) => seededUnit(`${dayKey}:${a.subject}`) - seededUnit(`${dayKey}:${b.subject}`))
+        for (const r of candidates) {
+            if (line('rumour', r.kind, { ...r.slots, date }, `rumour:${r.subject}`, 1, { subject: r.subject })) break
+        }
     }
 
     line('signoff', 'signoff', { date }, 'signoff')
@@ -497,7 +536,7 @@ export async function writePage(dayKey: string, opts: { quiet?: boolean } = {}):
             let position = 0
             for (const l of page.lines) {
                 const [row] = await trx('chronicle_lines').insert({
-                    day_key: dayKey, section: l.section, position: position++, text: l.text, deed_kind: l.deedKind,
+                    day_key: dayKey, section: l.section, position: position++, text: l.text, deed_kind: l.deedKind, subject: l.subject ?? null,
                 }).returning('id')
                 const lineId = typeof row === 'object' ? row.id : row
                 const mentions = [
@@ -507,6 +546,7 @@ export async function writePage(dayKey: string, opts: { quiet?: boolean } = {}):
                 ]
                 if (mentions.length) await trx('chronicle_mentions').insert(mentions)
                 if (l.verseId) await trx('chronicle_verse_uses').insert({ verse_id: l.verseId, day_key: dayKey, text_hash: hash(l.text) })
+                if (l.balladId) await trx('chronicle_ballads').where({ id: l.balladId }).whereNull('day_key_sung').update({ day_key_sung: dayKey })
             }
             await trx('chronicle_days').where({ day_key: dayKey }).update({
                 status: 'done', composed_at: trx.fn.now(), headline: page.headline, quiet: page.quiet,
@@ -550,6 +590,8 @@ export const CHRONICLE_LINK = '__CHRONICLE__'
 export async function unwritePage(dayKey: string): Promise<void> {
     await db.transaction(async (trx) => {
         await trx('chronicle_verse_uses').where({ day_key: dayKey }).delete()
+        // Ballads that page sang are sung again by whatever page is written next.
+        await trx('chronicle_ballads').where({ day_key_sung: dayKey }).update({ day_key_sung: null })
         await trx('chronicle_days').where({ day_key: dayKey }).delete()   // lines and mentions cascade
     })
 }
