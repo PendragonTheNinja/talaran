@@ -822,7 +822,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   </button>
                 )}
 
-                {carpentryStatus?.canSaw ? (
+                {/* Open with a workshop to use, saw in hand or not: without one only
+                    sawing waits, and the sawing menu says why. */}
+                {(carpentryStatus?.hasAccess ?? carpentryStatus?.canSaw) ? (
                   <button
                     className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('carpentry_menu', 0)}

@@ -74,7 +74,7 @@ export async function getCarpentryWorkstation(playerId: number, locationId: numb
 export async function canSawHere(
     playerId: number,
     locationId: number
-): Promise<{ allowed: boolean; error?: string; usingBench?: boolean }> {
+): Promise<{ allowed: boolean; error?: string; usingBench?: boolean; hasAccess: boolean }> {
     // A saw in hand, always (Nathan, 2026-11-09): at a workshop of your own,
     // or at Geossica's bench at half speed when you have none here. A bench
     // never lends one; the Ambren Saw is on a merchant shelf. It wears in hand
@@ -83,12 +83,14 @@ export async function canSawHere(
     const { locationHasPublicStation } = await import('./workstations');
     const publicHere = workstation ? false : await locationHasPublicStation(playerId, locationId, 'carpentry');
     if (!workstation && !publicHere) {
-        return { allowed: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
+        return { allowed: false, hasAccess: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
     }
+    // hasAccess: a workshop to work in, saw or no saw. The workshop's own
+    // recipes and the bench menu stay open without one; only sawing waits.
     if (!(await equippedBuildTool(playerId, BUILD_SAW.subtype))) {
-        return { allowed: false, error: 'You need a saw in hand to saw logs.' };
+        return { allowed: false, hasAccess: true, error: 'You need a saw in hand to saw logs.' };
     }
-    return { allowed: true, usingBench: !workstation };
+    return { allowed: true, hasAccess: true, usingBench: !workstation };
 }
 
 // ── Pack readers for the result (the craft itself is craftItems in inventory.ts) ──
