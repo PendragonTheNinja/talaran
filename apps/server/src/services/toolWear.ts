@@ -71,13 +71,13 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
             return used
         },
     },
-    // Your own saw at your own workshop; the public bench lends its own.
+    // The saw in hand, at your own workshop or Geossica's bench (Nathan, 2026-11-09).
     sawing: {
         skill: 'Carpentry',
         tools: async (action) => {
             const { canSawHere } = await import('./carpentry')
             const at = await canSawHere(action.player_id, action.location_id)
-            return at.allowed && !at.usingBench ? ['saw'] : []
+            return at.allowed ? ['saw'] : []
         },
     },
     farm_till: { skill: 'Farming', tools: ['hoe'] },
@@ -191,8 +191,20 @@ export async function wearToolsAfter(action: any, result: any): Promise<void> {
         if (!result || result.success === false) return
         const timer = Number(action.last_timer_seconds) || 0
         if (action.action_type === 'recipe') {
-            const broken = await wearBenchTools(action.player_id, parseInt(action.action_data), timer)
+            const recipeId = parseInt(action.action_data)
+            const broken = await wearBenchTools(action.player_id, recipeId, timer)
             if (broken.length) note(action.id, { notes: [benchBreakMessage(broken)] })
+            // A held tool the recipe needs (the saw) wears in hand wherever the
+            // job ran, and a break stops the job as any hand tool does.
+            if (recipeId) {
+                const { handHeldToolsOf } = await import('./workstations')
+                const recipe = await db('recipes').where({ id: recipeId }).first('required_tools', 'skill')
+                const held = handHeldToolsOf(recipe)
+                if (held.length) {
+                    const handBroken = await wearHandTools(action.player_id, recipe.skill, held, timer)
+                    if (handBroken.length) note(action.id, { handBroken })
+                }
+            }
             return
         }
         const spec = HAND_TOOLS_BY_ACTION[action.action_type]
@@ -243,8 +255,9 @@ export async function wearBenchTools(playerId: number, recipeId: number, timerSe
     if (!recipeId) return []
     const recipe = await db('recipes').where({ id: recipeId }).first('station', 'required_tools', 'skill')
     if (!recipe?.station) return []
-    const { parseRequiredTools } = await import('./workstations')
-    const needed = parseRequiredTools(recipe).filter(t => t !== 'hearth')
+    const { parseRequiredTools, HAND_HELD_BENCH_TOOLS } = await import('./workstations')
+    // Held tools (the saw) wear in hand (wearToolsAfter), never as a slot.
+    const needed = parseRequiredTools(recipe).filter(t => t !== 'hearth' && !(t in HAND_HELD_BENCH_TOOLS))
     if (!needed.length) return []
     const player = await db('players').where({ id: playerId }).first('current_location_id')
     if (!player) return []

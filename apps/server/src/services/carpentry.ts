@@ -75,27 +75,20 @@ export async function canSawHere(
     playerId: number,
     locationId: number
 ): Promise<{ allowed: boolean; error?: string; usingBench?: boolean }> {
-    // At a workshop of your own you saw with your own saw, in hand as for
-    // building (Nathan, 2026-11-08), and it wears (services/toolWear.ts). The
-    // rack is not needed: sawing is the bench and the blade.
+    // A saw in hand, always (Nathan, 2026-11-09): at a workshop of your own,
+    // or at Geossica's bench at half speed when you have none here. A bench
+    // never lends one; the Ambren Saw is on a merchant shelf. It wears in hand
+    // (services/toolWear.ts). The rack is not needed: sawing is a bench and a blade.
     const workstation = await getCarpentryWorkstation(playerId, locationId);
-    const sawInHand = workstation ? !!(await equippedBuildTool(playerId, BUILD_SAW.subtype)) : false;
-    if (workstation && sawInHand) {
-        return { allowed: true, usingBench: false };
-    }
-
-    // Same rule as the forge: her bench, which lends its own saw, is a
-    // fallback, not a penalty for an unfinished workshop of your own.
     const { locationHasPublicStation } = await import('./workstations');
-    if (await locationHasPublicStation(playerId, locationId, 'carpentry')) {
-        return { allowed: true, usingBench: true };
+    const publicHere = workstation ? false : await locationHasPublicStation(playerId, locationId, 'carpentry');
+    if (!workstation && !publicHere) {
+        return { allowed: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
     }
-
-    if (workstation) {
-        return { allowed: false, error: `You need a saw in hand to saw at your workshop.` };
+    if (!(await equippedBuildTool(playerId, BUILD_SAW.subtype))) {
+        return { allowed: false, error: 'You need a saw in hand to saw logs.' };
     }
-
-    return { allowed: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
+    return { allowed: true, usingBench: !workstation };
 }
 
 // ── Pack readers for the result (the craft itself is craftItems in inventory.ts) ──

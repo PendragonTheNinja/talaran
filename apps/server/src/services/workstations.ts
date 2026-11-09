@@ -31,6 +31,22 @@ import { tierOfLevel } from '../lib/tiers'
 
 export const NO_TOOLS: string[] = []
 
+/**
+ * Tools a recipe names in required_tools that are HELD, not socketed (Nathan,
+ * 2026-11-09): the name as recipes write it, to the item subtype that must be
+ * in hand. Wanted at your own bench and at a public one alike, since a bench
+ * cannot lend what is carried; worn as a hand tool (services/toolWear.ts).
+ * Every one must be sold on a merchant shelf (the circularity rule).
+ */
+export const HAND_HELD_BENCH_TOOLS: Record<string, string> = {
+    saw: 'saw',
+}
+
+/** The held tools a recipe needs (HAND_HELD_BENCH_TOOLS), as item subtypes. */
+export function handHeldToolsOf(recipe: any): string[] {
+    return parseRequiredTools(recipe).filter(t => t in HAND_HELD_BENCH_TOOLS).map(t => HAND_HELD_BENCH_TOOLS[t])
+}
+
 /** Tool tier vs action tier. Same tier is on band, above is slower, below is faster. */
 export const MAX_TIER_STRETCH = 2 // cannot act more than 2 tiers above your tool
 
@@ -786,7 +802,9 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
      * campfire-cookable, which is worse than the bug it fixed.
      */
     const needsRealHearth = rawNeeded.includes('hearth')
-    const needed = rawNeeded.filter(t => t !== 'hearth')
+    // Held tools (the saw) are checked against the hands, not the bench.
+    const held = rawNeeded.filter(t => t in HAND_HELD_BENCH_TOOLS)
+    const needed = rawNeeded.filter(t => t !== 'hearth' && !(t in HAND_HELD_BENCH_TOOLS))
 
     if (!recipe.station) {
         return { ok: true, multiplier: 1, missingTools: [], usingPublic: false }
@@ -795,6 +813,21 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
     const player = await db('players').where({ id: playerId }).first()
     if (!player) {
         return { ok: false, error: SERVER_ERROR, multiplier: 1, missingTools: [], usingPublic: false }
+    }
+
+    if (held.length) {
+        const { equippedBuildTool } = await import('./construction')
+        const notHeld: string[] = []
+        for (const t of held) if (!(await equippedBuildTool(playerId, HAND_HELD_BENCH_TOOLS[t]))) notHeld.push(t)
+        if (notHeld.length) {
+            return {
+                ok: false,
+                error: `You need a ${notHeld.join(' and a ')} in hand for that.`,
+                multiplier: 1,
+                missingTools: notHeld,
+                usingPublic: false,
+            }
+        }
     }
 
     // Look for a campfire that has just gone out, BEFORE getWorkstation sweeps

@@ -244,7 +244,7 @@ export default function GameLayout({
     window.addEventListener('talaran:open-chronicle', open)
     return () => window.removeEventListener('talaran:open-chronicle', open)
   }, [])
-  // A workshop of your own here but no saw in hand: sawing falls to Geossica's bench.
+  // Why sawing cannot start here (no saw in hand), or that it runs at Geossica's bench.
   const [carpentrySawNote, setCarpentrySawNote] = useState<string | null>(null)
   const [smithingStationActive, setSmithingStationActive] = useState(false)
   const [showTanningModal, setShowTanningModal] = useState(false)
@@ -476,9 +476,10 @@ export default function GameLayout({
       apiFetch<any>('/api/carpentry/status')
         .then(st => {
           setCarpentryStationActive(!!st?.workstation?.is_active)
-          setCarpentrySawNote(st?.workstation && st?.usingBench
-            ? "You have no saw in hand, so you will saw at Geossica's bench, at half speed. Hold a saw to use your own workshop."
-            : null)
+          // Sawing needs a saw in hand everywhere (server canSawHere); say so
+          // before the player picks a log, and say when it is a half-speed bench.
+          setCarpentrySawNote(!st?.canSaw ? (st?.sawError ?? null)
+            : st?.usingBench ? "You will saw at Geossica's bench, at half speed." : null)
         })
         .catch(() => setCarpentryStationActive(false))
       setShowCarpentryMenu(true)
