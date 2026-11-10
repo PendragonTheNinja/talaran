@@ -1,62 +1,62 @@
-Hunting is one of only few trades in Talaran that will let you fail.
+Hunting is one of the few trades in Talaran that will let you fail.
 
-Consider what that means. Strike a rock and you get stone. Fell a tree and you get timber. The outcome may be modest but it arrives, dependably, every time, like a clerk. Hunting alone permits you to do everything correctly and come home with nothing but a story.
+Strike a rock and you get stone. Fell a tree and you get timber. It may not be much, but it arrives every time, like a clerk. A hunter can do everything right and still come home with nothing but a story.
 
-I am aware this sounds like a warning. I intend it as a recommendation. I have never trusted a trade that could not disappoint me.
+That sounds like a warning. I mean it as a recommendation. I have never trusted a trade that could not disappoint me.
 
-There are two ways to take an animal, and a good hunter uses both. The chase is one. The other is patience with a rope in it.
+There are two ways to take an animal, and a good hunter uses both. One is the chase. The other is a snare, and patience.
 
 {{tabs}}
 {{tab:The Hunt}}
 
 ## Where and how to start
 
-On Taiar, go to **Eld Grove** and find **Geonsen**. He will teach you the shape of it, and he will do so without smirking, which is more courtesy than I extended to my own students.
+On Taiar, go to **Eld Grove** and find **Geonsen**. He will teach you the shape of it, and he will do it without smirking, which is more courtesy than I showed my own students.
 
 You need three things before an animal will take you seriously:
 
 - A **bow**, equipped in your hands.
-- **Arrows**, carried in your pack. At least one, and I would counsel a good many more.
+- **Arrows**, carried in your pack. At least one, and I would bring a good many more.
 - The **level** the animal asks for.
 
-Your starting **Lanai Hunting Bow** covers the first requirement from your very first hour.
+Geonsen puts a **Lanai Hunting Bow** in your hands when the lesson begins, and arrows to go with it, so the first two are settled before you have loosed a shot.
 
 ## The three-part hunt
 
 1. **Track**, to find where the animal has been.
 2. **Stalk**, to close the distance without announcing yourself.
-3. **Strike**, to commit, and to discover whether you were as clever as you felt.
+3. **Strike**, to commit, and to find out whether you were as clever as you felt.
 
-The animals climb in eight-level steps, three to a forest, each forest keeping its own roster. On Taiar you begin with deer at Eld Grove, and further up the ladder wait boar and things considerably stranger.
+The animals climb in eight-level steps, three to a forest, and each forest keeps its own roster. On Taiar you begin with deer at Eld Grove. Further up the ladder wait boar, and stranger things than boar.
 
 {{data:huntable-animals}}
 
-Read that table with one thing in mind: the odds column is the *worst* number you will ever see. It is what you face on the day you qualify, holding the plainest bow anyone will sell you. Everything after that is improvement.
+Read that table knowing that the odds column is the *worst* number you will ever see. It is what you face on the day you qualify, holding the plainest bow anyone will sell you. Everything improves from there.
 
 ## The arithmetic of a shot
 
-Your chance of a clean kill improves half a percent for every level you stand above what the animal demands, and a better bow adds three percent per grade above the humblest.
+Your chance of a clean kill rises half a percent for every level you stand above what the animal demands, and a better bow adds three percent per grade above the plainest.
 
-**The ceiling is ninety-five percent.** It is never certain. It will never be certain. However magnificent your bow, however far past the requirement you climb, one hunt in twenty walks away from you.
+**The ceiling is ninety-five percent.** However fine your bow, and however far past the requirement you climb, one hunt in twenty walks away from you.
 
-I want to defend this, because newcomers find it maddening and I find it the best thing about the trade. A hunt you cannot lose is not a hunt. It is a transaction with a deer.
+Newcomers find this maddening. I think it is the best thing about the trade. A hunt you cannot lose is only a transaction with a deer.
 
 ## Your arrows come back, mostly
 
-This is the mechanic that separates hunters who prosper from hunters who go broke buying arrows.
+This is what separates hunters who prosper from hunters who go broke buying arrows.
 
-**On a successful hunt you recover about eighty percent of your arrows**, improving by a percent for every two levels you gain past the requirement, up to a ceiling of ninety-five.
+**On a successful hunt you recover about eighty percent of your arrows.** That improves by a percent for every two levels you gain past the requirement, up to ninety-five.
 
-**On a failed hunt you recover thirty percent.** Flat. No skill improves it.
+**On a failed hunt you recover thirty percent.** No amount of skill improves it.
 
-So a miss costs you the time *and* the better part of your ammunition. This is the real price of hunting above your station. Not the failure itself, which is only a story, but the arrows scattered across a forest floor to no purpose.
+So a miss costs you the time *and* most of your arrows. That is the real price of hunting above your station. The failure itself is only a story. The arrows are gone.
 
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb:
 
 {{data:training-path:Hunting}}
 
-And the bow you were handed on arrival:
+And the bow Geonsen puts in your hands:
 
 {{data:item-stats:Lanai Hunting Bow}}
 
@@ -69,88 +69,88 @@ And every bait, with what it is worth to a snare:
 
 Trapping is hunting for the hours you are not there.
 
-A trap is a small argument you leave behind in the brush. You set it, you go away and do something else entirely, and the argument continues without you. Sometimes you win it.
+A trap is a small argument you leave behind in the brush. You set it, go away and do something else entirely, and the argument carries on without you. Sometimes you win it.
 
-It costs you no attention, which means it costs you nothing you were using. Set a line before you go mining, before an evening at the forge, before you leave Talaran for the night.
+It costs you no attention, so it costs you nothing you were using. Set a line before you go mining, before an evening at the forge, before you leave Talaran for the night.
 
 ## How a trap lives
 
-A trap moves through three states, and knowing them is most of the craft.
+A trap is always in one of three states.
 
-**Set.** It waits. Nothing is happening that you can hurry.
+**Set.** It waits. There is nothing here you can hurry.
 
 **Sprung.** Something has blundered into it. The trap holds a catch and is waiting for you.
 
 **Scavenged.** You did not come back soon enough, and something else got there first.
 
-That third state is the one to care about. A neglected trap is not emptied entirely, but the **perishable** parts of the catch are gone, taken by whatever arrived while you were elsewhere. The meat goes. The durable things generally remain.
+The third is the one to mind. A neglected trap is not emptied entirely, but the **perishable** parts of the catch are gone, eaten by whatever arrived while you were elsewhere. The meat goes. The durable things generally remain.
 
-So trapping does not punish absence, which is the whole point of it. Trapping punishes *forgetting*, which is a different sin and a fairer one.
+Trapping does not punish you for going away, which is the point of it. It punishes you for forgetting to come back.
 
 ## What comes to a snare
 
 {{data:trap-targets}}
 
-Note the two entries that matter more than their size suggests. **Nesting Hen** and **Wild Sow** are where livestock comes from: the chicks and piglets that let you keep animals at all arrive in a snare and nowhere else. Between them they are about one catch in eight, which is a thin thread for an entire trade to hang on.
+Two entries there matter more than their size suggests. **Nesting Hen** and **Wild Sow** are where livestock comes from: the chicks and piglets that let you keep animals at all arrive in a snare and nowhere else. Between them they are about one catch in eight, which is a thin thread for a whole trade to hang on.
 
-Which is what bait is for.
+That is what bait is for.
 
 ## Bait
 
-An unbaited snare takes whatever blunders into it. A baited one is an argument aimed at something in particular.
+An unbaited snare takes whatever blunders into it. A baited one is aimed.
 
-Every animal has a food it will not walk past. Lay it in the snare when you set it, and that animal becomes **eight times** as likely as it was, while everything else in the wood stays exactly as likely as it was. You do not stop catching rabbits. You simply catch a great many more hens.
+Every animal has a food it will not walk past. Lay it in the snare when you set it and that animal becomes **eight times** as likely, while everything else in the wood stays exactly as likely as it was. You do not stop catching rabbits. You catch a great many more hens.
 
-The difference is not subtle:
+It is a large difference:
 
 - **Nesting Hen**, roughly one catch in twelve, becomes better than two in five.
-- **Wild Sow**, one in twenty five, becomes one in four.
-- The scarce and peculiar things stay scarce, but stop being hypothetical.
+- **Wild Sow**, one in twenty-five, becomes one in four.
+- The scarce and peculiar things stay scarce, but you will actually see one.
 
-**Bait comes from the same pouch your fishing does.** There is no separate trapping bait to hunt down and no new thing to make. Break down grain, cheese, eggs, spawn or raw meat in the trapline panel, exactly as you would at the water, and the pouch serves both trades.
+**Bait comes from the same pouch your fishing does.** There is no separate trapping bait to find or make. Break down grain, cheese, eggs, spawn or raw meat at the trapline, exactly as you would at the water, and the pouch serves both trades.
 
-Which is a tension worth naming. Spawn is scarce, and spawn spent on a snare is spawn not spent on a line. That is a real decision and I decline to make it for you.
+That does leave you a choice. Spawn is scarce, and spawn spent on a snare is spawn not spent on a line. I decline to make that decision for you.
 
 Three rules, and then I will stop:
 
 - **One bait per snare**, spent the moment you set it.
-- **It does not come back.** Not on collection, not on dismantling. It is on the ground the instant you walk away.
-- **It aims, it does not promise.** A baited trap can still catch a rabbit. It will simply be surprised about it.
+- **It does not come back**, whether you collect the trap or dismantle it.
+- **It aims. It does not promise.** A baited trap can still catch a rabbit, and will be as surprised as you are.
 
 ## How many traps you may run
 
-Your Hunting level governs the length of your line:
+Your Hunting level sets the length of your line:
 
 - One trap to begin with
 - A second at Hunting 12
 - A third at Hunting 25
 - A fourth at Hunting 37
 
-Four is the ceiling. The ladder is deliberately slow, because passive income that scales without limit stops being a trade and starts being weather.
+Four is the ceiling. The climb is slow on purpose. Income that arrives while you are away, and grows without limit, stops being a trade and becomes weather.
 
 ## Traps break
 
-Collecting a trap carries a chance the trap does not survive the collecting.
+Each time you collect a trap, there is a chance it does not survive the collecting.
 
-Budget for it. A trapper who builds exactly as many traps as he has slots will, at some point, walk out to an empty line. Keep spares. The materials are cheap and the walk is long.
+Budget for it. A trapper who builds exactly as many traps as he has slots will, sooner or later, walk out to an empty line. Keep spares. The materials are cheap and the walk is long.
 
-## What it is actually for
+## What it is for
 
 Trapping will never replace the hunt. It is slower, and it catches smaller things.
 
-But it is the only road into Husbandry, which makes it the least optional optional trade in Talaran.
+But it is the only road into Husbandry, which makes it the least optional of the optional trades.
 
-It is a companion to everything else you do. The best trapper I ever knew never once went trapping. He went everywhere else, and collected on his way past.
+And it goes alongside everything else you do. The best trapper I ever knew never once went trapping. He went everywhere else, and collected on his way past.
 
 {{/tabs}}
 
 ## Connections
 
-Hunting is the most thoroughly braided trade in Talaran, and the braiding is the point.
+No trade in Talaran is tied to more of the others than Hunting.
 
-- **Carpentry** and **Smithing** make your arrows. A hunter who cannot supply his own ammunition is a hunter with a permanent tax.
-- **Husbandry** begins here, and specifically in the trapline. Chicks come from a Nesting Hen and piglets from a Wild Sow, both of them snared rather than shot, so every herd in Talaran started in somebody's trap.
-- **Crafting** takes your hides, tans them, and turns them into leather goods. A hunter who sells raw skins leaves most of the animal's value with the buyer.
-- **Cooking** takes the meat, which is the least glamorous and most consistently profitable end of the whole business.
+- **Carpentry** and **Smithing** make your arrows. A hunter who cannot supply his own pays someone else for every shot.
+- **Husbandry** begins here, in the trapline. Chicks come from a Nesting Hen and piglets from a Wild Sow, both snared rather than shot, so most of the livestock in Talaran started out in somebody's trap.
+- **Crafting** takes your hides, tans them, and makes leather goods of them. A hunter who sells raw skins leaves most of the animal's value with the buyer.
+- **Cooking** takes the meat, the least glamorous and most reliably profitable end of the business.
 
-A hunter standing alone earns a living. A hunter who also tans, crafts, and cooks earns four livings from the same deer, and I would like you to think about that the next time you consider a trade in isolation. Or at least find a good guild.
+A hunter alone earns a living. A hunter who also tans, crafts and cooks earns four livings from the same deer. Think about that the next time you consider a trade on its own. Or at least find a good guild.

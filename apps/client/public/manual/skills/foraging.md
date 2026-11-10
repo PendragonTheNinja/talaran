@@ -1,40 +1,40 @@
 Foraging is the only trade in Talaran that will not tell you what you are about to get.
 
-You go to a patch of ground that has been quietly producing things for longer than anyone has been watching, and you take what it offers. Not what you selected. What it offers.
+You go to a patch of ground that has been growing things since before anyone was watching, and you take what it offers. You do not get to choose.
 
-I found this maddening for about a month, and I have loved it ever since.
+I found this maddening for about a month. I have loved it ever since.
 
 ## Where and how to start
 
-Find a **habitat**, which is what we call a patch worth searching: a hedgerow, a stretch of scrub, the awkward margin where a wood gives up and a field begins. Search it. Something turns up.
+Find a **habitat**, which is what we call a patch worth searching: a hedgerow, a stretch of scrub, the ragged edge where a wood gives up and a field begins. Search it. Something turns up.
 
-Each habitat holds its own private list of what might be found there, and each search draws one thing from that list at weighted random. Common finds arrive constantly. Rare ones arrive when they feel like it.
+Each habitat has its own list of what might be found there, and each search draws one thing from that list. Common finds turn up constantly. Rare ones turn up when they feel like it.
 
-Here is my favorite touch: **you do not see what a habitat holds until you have found it.** The list fills in as you go, one discovery at a time, and until then the unfound entries sit there as question marks, being intolerable.
+My favorite part: **you do not see what a habitat holds until you have found it.** The list fills in one discovery at a time, and until then the unfound entries sit there as question marks, being intolerable.
 
 I have a complete list for two habitats on Taiar. I mention this at parties.
 
 ## Tools and gear
 
-Foraging is the most gear-friendly trade in Talaran, and the reason is a small piece of design cleverness I would like to draw your attention to.
+Foraging has three tools, and you can use all of them at once.
 
-- **Foraging knife, equipped in your hands.** Shortens the search, five percent per grade, to a ceiling of half.
-- **Foraging gloves, worn on your hands.** Not speed. *Access.* Certain finds are prickly, thorned, or otherwise unfriendly, and without gloves those rows simply never come up. You will never know what you are missing, which is the cruelest kind of missing.
-- **Foraging basket, carried in your off hand.** One extra of whatever you found. Small, dull, and it never stops working.
+- **Foraging knife, equipped in your main hand.** Shortens the search by five percent per grade, up to half.
+- **Foraging gloves, worn on your hands.** These do nothing for speed. Certain finds are thorned or prickly, and without gloves they never come up at all. You will not even know what you are missing.
+- **Foraging basket, carried in your off hand.** One extra of whatever you found, every time.
 
-Notice that these occupy three different places on your person. Knife in hand, gloves on hands, basket in the other hand. **All three can be worn at once**, and all three should be. They are a set, not a choosing. A forager missing one of the three leaves a third of the trade lying on the ground.
+Each sits in a different place on your person, so **all three can be worn together**, and should be. A forager missing one of them is leaving a good part of the trade on the ground.
 
 ## What it feeds
 
-- **Cooking** takes the herbs and the edible finds, and foraging is the cheapest larder in Talaran.
-- **Farming** starts here. Several of the things you can plant were first found wild in a hedgerow by somebody who was not looking for them.
-- **Crafting** wants the odder finds, the ones you will assume are junk for several weeks.
+- **Cooking** takes the herbs and the edible finds. Foraging is the cheapest larder in Talaran.
+- **Farming** starts here. Several of the things you can plant were first found wild in a hedgerow by somebody looking for something else.
+- **Crafting** wants the odder finds, the ones you will take for junk for your first few weeks.
 
 ## Why I recommend it early
 
-Foraging asks almost nothing of you. No workstation, no property, no expensive tool, no minimum level worth mentioning. You can do it from your first hour, in the gaps between everything else.
+Foraging asks almost nothing of you: no workstation, no property, no costly tool, no level worth mentioning. You can do it from your first hour, in the gaps between everything else.
 
-And it teaches the habit that makes every other trade cheaper, which is the habit of looking at ground you have already walked past a hundred times and wondering what is actually growing on it.
+It also teaches a habit that makes every other trade cheaper. You start looking at ground you have walked past a hundred times and wondering what is growing on it.
 
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb, and where to find it:
@@ -45,7 +45,7 @@ The habitats themselves, and how quickly each gives up its finds:
 
 {{data:foraging-speed}}
 
-And here is the part I was told not to write down. Every habitat's whole table, every weight, every seasonal row and every one that wants gloves. I am aware this removes a discovery some people treasure. Those people may close the ledger.
+And here is the part I was told not to write down: every habitat's whole table, with every weight, every seasonal row and every find that wants gloves. Some people would rather discover these for themselves. Those people may close the ledger now.
 
 {{data:foraging-habitats}}
 {{/details}}
