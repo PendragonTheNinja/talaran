@@ -6,7 +6,7 @@ I arrived the same way, some years ago, and spent my first hour on the shore wri
 
 I am aware of how that sounds.
 
-Taiar runs a hundred kilometres from end to end, and you will spend a good share of your life crossing it. The pony takes about a third off every journey. Call that a third of your life handed back to you.
+Taiar runs a hundred kilometers from end to end, and you will spend a good share of your life crossing it. The pony takes about a third off every journey. Call that a third of your life handed back to you.
 
 It arrives in your pack with everything else, so equip it before you set out. Then ride it. I spent a month treating mine as a sort of large anxious wheelbarrow.¹
 

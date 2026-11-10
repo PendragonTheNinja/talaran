@@ -12,7 +12,7 @@ You are *meant* to start a thing, walk away from it, and come back to find it do
 
 One distinction matters more than all the rest.
 
-**Active work** is whatever you are doing right now: mining, tilling, fishing. You can do one such thing at a time, and it pays you for the seconds it takes.
+**Active work** is whatever you are doing right now: mining, tilling, fishing. You can do one such thing at a time, and it pays you for the seconds it takes. Leave Talaran altogether and it carries on for thirty minutes without you, then stops and waits.
 
 **Passive work** carries on without you. A crop grows. A hide soaks in the vat. A snare sits in the brush with no opinions about where you have gone. You set it going and leave, and it runs in real hours, whether you are in Talaran or asleep in your own bed.
 
@@ -34,7 +34,7 @@ There is a floor. However skilled you are and however fine your tools, work neve
 
 ## Experience is paid for the work, not the winnings
 
-Two things follow from that, and both are in your favour.
+Two things follow from that, and both are in your favor.
 
 **You are paid for the effort, not the yield.** Rich soil gives more grain than poor soil. It gives no more experience, because the harvesting was the same work.
 

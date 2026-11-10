@@ -2,13 +2,14 @@ I am going to break a small rule on this page.
 
 Everywhere else in this manual I talk about Talaran as though it were simply the world. That is a polite fiction, and I am fond of it. But you are looking at the world through a frame, and it would be unkind to pretend you are not. So, the frame. Briefly, and then we need never mention it again.
 
-## The three keys worth knowing
+## The four keys worth knowing
 
-Most of what you will look up from day to day sits behind three keys.
+Most of what you will look up from day to day sits behind four keys.
 
 - **F1** for your Skills
 - **F2** for your Stats
 - **F3** for your Quests
+- **F4** for your Feats
 
 Learn those and you know where most of the furniture is. I held out against them for far too long, on the grounds that a scholar ought to find things by hand.
 
@@ -30,7 +31,9 @@ Mind the difference between the first two, because it will matter more as Talara
 
 ## The panels along the top
 
-The row across the top opens the larger rooms, among them your messages, the forum, your guild, the highscores, the news and this manual. They open over the world rather than taking you away from it, and opening one puts the last away.
+The row across the top opens the larger rooms: your messages, the forum, your guild, the highscores, the news and this manual. They open over the world rather than taking you away from it, and opening one puts the last away.
+
+Two more of them are worth knowing early. The **Journal** is a notebook of your own, kept with your character, for whatever you would otherwise forget. **Events** shows what is happening around the island today, where, and how long it has left to run.
 
 ## And that is the frame
 
