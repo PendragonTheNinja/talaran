@@ -8,7 +8,7 @@ On Taiar, the gentlest fighting is at **The Docks** in Talador. The rats there a
 
 1. Go to Talador and down to The Docks.
 2. Ask for a fight. A rat will come at you shortly; you see it coming.
-3. Fight until you have had enough, then **flee**. Travelling anywhere ends a fight as well.
+3. Fight until you have had enough, then **flee**. Traveling anywhere ends a fight as well.
 
 You need nothing to begin. With nothing in your hand you fight with your fists, which crush, and which frighten nobody. Buy or forge a proper weapon as soon as you can.
 

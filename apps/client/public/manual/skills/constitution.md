@@ -4,9 +4,9 @@ It is the plainest trade in Talaran. It has no tools, no workshop and no techniq
 
 ## Where and how to start
 
-You cannot practise Constitution on purpose. It rises from fighting: on Taiar, start where Melee starts, at **The Docks** in Talador.
+You cannot practice Constitution on purpose. It rises from fighting: on Taiar, start where Melee starts, at **The Docks** in Talador.
 
-Every kill pays Defense and Constitution between them. **What got past your armour goes to Constitution.** The more blows you take and live through, the more it climbs. It is the one trade in which being hit is progress, which is a comfort, and not a large one.
+Every kill pays Defense and Constitution between them. **What got past your armor goes to Constitution.** The more blows you take and live through, the more it climbs. It is the one trade in which being hit is progress, which is a comfort, and not a large one.
 
 ## Training path
 

@@ -9,9 +9,9 @@ Fights happen at **fighting spots**, each one a place in a town or a wild corner
 
 A creature does not appear at your elbow. You see it **closing in** for a few moments first. Then you trade blows, each side swinging at its own pace, until one of you drops. When it falls, the next one is already on its way, and so on, one after another, until you stop.
 
-To stop, **flee**. Travelling anywhere ends a fight too. A fight never ends badly by itself unless your health runs out.
+To stop, **flee**. Traveling anywhere ends a fight too. A fight never ends badly by itself unless your health runs out.
 
-What each skill does in all this is on its own page: [Melee](/manual/skills/melee) for the hitting, [Defense](/manual/skills/defense) for the armour, [Constitution](/manual/skills/constitution) for the health.
+What each skill does in all this is on its own page: [Melee](/manual/skills/melee) for the hitting, [Defense](/manual/skills/defense) for the armor, [Constitution](/manual/skills/constitution) for the health.
 
 ## Health and food
 
@@ -31,13 +31,15 @@ You keep your gold, which is not a thing you carry, and your trophy, which is no
 
 ## Wear and breakage
 
-Gear wears with use. Your weapon wears with every kill, and so do a couple of the armour pieces you have on, picked at random each time. Every piece is guaranteed a good long run before it can fail at all; past that, each kill carries a small chance that it **breaks** and is gone. Better metal lasts longer.
+Gear wears with use. Your weapon wears with every kill, and so do a couple of the armor pieces you have on, picked at random each time. Every piece is guaranteed a good long run before it can fail at all; past that, each kill carries a small chance that it **breaks** and is gone. Better metal lasts longer.
 
 Wear is counted as a creature falls, so a break never comes mid-swing. If something gives out, you are paid for that kill and the fight ends there. Nobody fights on with half their kit gone without noticing.
 
 ## While you are away
 
-A fight does not carry on without you. If you leave the game, it ends where you left it, as if you had fled.
+A fight does not carry on without you. Leave Talaran and it ends where you left it, as if you had fled.
+
+You may choose otherwise in your settings, and the fight will then go on for a while with nobody eating for you. Read the warning there before you agree to it.
 
 Now and then, between one creature and the next, you will be asked a question to show you are still there. The fight waits for the answer. The creature, I am told, is very patient about it.
 
@@ -45,7 +47,7 @@ Now and then, between one creature and the next, you will be asked a question to
 
 Your combat level is the average of your Melee, Defense and Constitution. It is the number creatures are measured against, and it has its own place on the highscores.
 
-It does not count toward a tally licence. The tally boards are for the trades, and fighting is not a shortcut to them.
+It does not count toward a tally license. The tally boards are for the trades, and fighting is not a shortcut to them.
 
 {{details:The Geographer's ledgers}}
 {{data:fighting-spots}}
