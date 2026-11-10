@@ -1,51 +1,51 @@
-Nothing in Talaran happens the instant you ask for it, and I am going to spend a page explaining why, because once you understand it, you will stop fighting the world and start living in it.
+Nothing in Talaran happens the moment you ask for it. I am going to spend a page on why, because this is the page that settles most of the questions people bring me.
 
 ## Everything worth doing takes time
 
-Swing at a rock, cast a line, set out for another town. Each begins an **action**, and each action has a duration. It finishes on its own. You need not watch it.
+Swing at a rock, cast a line, set out for another town. Each of these starts an **action**, and every action takes a set length of time. It finishes on its own, whether you watch or not.
 
-I want to be emphatic about that last part, because I did watch. For weeks I watched. I have stared at more ore than any man alive and I can report that ore is entirely indifferent to being stared at.
+I watched. For weeks. I have stared at more ore than any man alive, and none of it came out of the rock a moment sooner.
 
-This is not an inconvenience bolted onto the world. It is the shape of the world. You are *meant* to start a thing, walk away from it, and return to find it done.
+You are *meant* to start a thing, walk away from it, and come back to find it done.
 
 ## Active work and passive work
 
-Here is the distinction that matters more than every other distinction combined.
+One distinction matters more than all the rest.
 
-**Active work** is what occupies you right now: mining, tilling, fishing. One at a time, your full attention, and it pays you for the seconds it takes.
+**Active work** is whatever you are doing right now: mining, tilling, fishing. You can do one such thing at a time, and it pays you for the seconds it takes.
 
-**Passive work** does not care whether you exist. A crop grows. A hide soaks in the vat. A snare sits in the brush with infinite patience and no opinions. You set it going, you leave, and the world keeps its side of the arrangement in real hours, whether you are in Talaran or asleep in your own bed.
+**Passive work** carries on without you. A crop grows. A hide soaks in the vat. A snare sits in the brush with no opinions about where you have gone. You set it going and leave, and it runs in real hours, whether you are in Talaran or asleep in your own bed.
 
-The good life here is built by keeping passive work running while you spend your attention on active work.
+The trick to a good life here is to keep passive work running while you spend your attention on active work.
 
-A farmer who tills a field and then stands watching it has not been unlucky. He has misunderstood farming. I say this with authority.
+A farmer who sows a field and then stands watching it has misunderstood farming. I say this with some authority.
 
 ## Why you cannot start ten things at once
 
-There is a limit on how much you may have underway.
+There is a limit on how much you may have under way: one piece of active work at a time, and only so much passive work set going beside it.
 
-I know. I have felt the same. But consider the alternative: a world where the person who prospers is simply the person who clicked most. The limit is what makes planning worth anything at all. It is a kindness disguised as an obstacle, which is the most common disguise a kindness wears.
+I know. I complained too. But without the limit, the richest person in Talaran would simply be the busiest. With it, a little planning beats a great deal of rushing about.
 
 ## Levels shorten the work
 
-As a skill rises, the same job costs you less time. Every level past what a task demands trims a little more, and finer tools trim more still, while a tool *beneath* the grade a job calls for will punish you for the insult.
+As a skill rises, the same job takes less time. Every level past what a task demands trims a little more. A finer tool trims more again, and a tool *beneath* the grade a job calls for slows you badly.
 
-There is a floor. Work never becomes instant, however skilled you are, however magnificent your equipment. The same holds for travel: a good mount and a lifetime in the saddle will shorten a journey enormously and will never shorten it to nothing.
+There is a floor. However skilled you are and however fine your tools, work never becomes instant. Travel is the same: a good mount and a lifetime in the saddle will shorten a journey a great deal, and never to nothing.
 
 ## Experience is paid for the work, not the winnings
 
-Two consequences, both of which surprise people, both of which are in your favour.
+Two things follow from that, and both are in your favour.
 
-**You are paid for the effort, not the yield.** Rich soil hands you more grain than poor soil. It does not hand you more experience. The harvesting was the same harvesting.
+**You are paid for the effort, not the yield.** Rich soil gives more grain than poor soil. It gives no more experience, because the harvesting was the same work.
 
-**You are paid for what the job normally costs, not what it cost you.** Grow faster and you keep every scrap of the experience you would have earned while slow. Getting good is never punished here. I have checked. I checked suspiciously, several times, being the sort of man who assumes a trick.
+**You are paid the same however quickly you finish.** Get faster and each job still pays what it always paid, so you simply collect it more often. Getting good is never punished here. I checked, several times, being the sort of man who assumes a trick.
 
 ## The cost of a level
 
 {{data:xp-curve}}
 
-Every trade in Talaran climbs that same ladder, on every island, without exception. What differs between them is only how fast you earn the rungs, never how far you must go.
+Every trade in Talaran climbs that same ladder, on every island. Trades differ in how fast you earn the rungs, never in how many there are.
 
 ---
 
-Read a skill page next. [Mining](/manual/skills/mining) is the plainest of them, and plainness is a virtue in a first example.
+Read a skill page next. [Mining](/manual/skills/mining) is the plainest of them, which makes it a good first example.

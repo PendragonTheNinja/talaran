@@ -1,32 +1,32 @@
 You have arrived on Taiar Island with a pony, a dream, and no earthly idea what to do with either. Take heart. This is precisely the correct amount of equipment and very nearly the correct amount of idea.
 
-I arrived the same way, some years ago, and spent my first hour standing on the shore composing a five-year plan. I have since learned that Talaran does not read plans. It does, however, reward the curious with almost embarrassing generosity, so let us get you moving.
+I arrived the same way, some years ago, and spent my first hour on the shore writing a five-year plan. Talaran does not read plans. It is generous to the curious, though, so let us get you moving.
 
 ## Take the pony seriously
 
 I am aware of how that sounds.
 
-Taiar runs a hundred kilometres from end to end, and you will spend more of your life crossing it than you will ever spend arriving anywhere. Your pony cuts a journey to a third of what your own two legs will charge you. Call that a third of your life handed back to you.
+Taiar runs a hundred kilometres from end to end, and you will spend a good share of your life crossing it. The pony takes about a third off every journey. Call that a third of your life handed back to you.
 
-Ride the pony. It is not a decoration, it is not a pet, and it is certainly not, as I once treated mine, a sort of large anxious wheelbarrow.
+It arrives in your pack with everything else, so equip it before you set out. Then ride it. I spent a month treating mine as a sort of large anxious wheelbarrow.¹
 
-Travel is real work that takes real time. You will not blink and be elsewhere. Set out, then go and do something useful while the road happens to you.
+Travel takes real time. You set out, the road happens to you, and you arrive when you arrive. Nobody minds if you put the kettle on meanwhile.
 
 ## Pick up a trade, not a plan
 
-New arrivals love to decide which trade they shall *master* before laying a finger on any of them. I did this. I produced a document. I was very pleased with it.
+New arrivals like to decide which trade they will *master* before they have tried any of them. I did. There was a document. I was very pleased with it.
 
-Here is the trouble. The trades of Talaran lean on one another so thoroughly that the question dissolves the moment you begin. The woodcutter feeds the carpenter. The carpenter builds the farm. The hunter clothes the crafter. Ask "which trade should I choose" and the world answers "yes."
+The trouble is that the trades lean on one another. The woodcutter feeds the carpenter, and the carpenter builds the farm. Ask Talaran which trade you should choose and the answer is "yes."
 
-If you want a recommendation rather than a philosophy, and at this stage you should, begin with **Woodcutting** and **Mining**. Nearly everything downstream is made of timber or metal, they teach you the rhythm of gathering, and neither demands a tool you do not already have.
+If you would rather have a recommendation than a philosophy, and at this stage you should, begin with **Woodcutting** and **Mining**. Nearly everything else is made of timber or metal, and you were handed a hatchet and a pickaxe when you landed.
 
 ## Talk to everyone
 
-The people who teach the trades do not advertise. There is no board in the square with work pinned to it. There are only people, standing about in towns, looking thoroughly unremarkable, waiting to be asked.
+The people who teach the trades do not advertise. No board in the square has work pinned to it. There are only people standing about in towns, looking unremarkable, waiting to be asked.
 
-They will not chase you. They will not wave. They will simply stand there, indefinitely, knowing something you don't.
+None of them will wave you over. They will stand there all day knowing something you don't.
 
-On Taiar, Geonsen at Eld Grove will teach you to hunt, and Georgic at Novita will teach you to farm. There are others, and there will be others still on islands neither of us has seen yet. Speak to anyone standing still, and mind that some of them are more patient than they look.
+On Taiar, Geonsen at Eld Grove teaches hunting and Georgic at Novita teaches farming. There are others, and there will be more on islands neither of us has seen. Speak to anyone who is standing still.
 
 ## Where to go from here
 
