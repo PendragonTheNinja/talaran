@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "key": "taiar",
+    "name": "Taiar Museum",
+    "island": "Taiar Island",
+    "location_id": 1,
+    "display_order": 0,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  }
+]

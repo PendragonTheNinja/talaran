@@ -5,8 +5,8 @@
     "stage_key": "intro",
     "text_lines": [
       "Hm? Another one looking to learn the craft, are ye? I don't give lessons for free, stranger.",
-      "But I'll make ye a deal. If you can smelt me 6 Ambren Ingots using my forge, I'll know you're serious. You'll need Ambren Ore and Charc, both found up in the mines to the north at Grundagr and Origrund.",
-      "Fair warning — my forge isn't as efficient as having your own setup. Once you prove yourself, I'll show you how to smith your own tools and build a proper workstation. That's when the real work begins."
+      "But I'll make ye a deal. If you can smelt me 6 batches of Ambren Ingots using my forge, I'll know you're serious. You'll need Ambren Ore and Charc, both found up in the mines to the north at Grundagr and Origrund.",
+      "Fair warning! My forge isn't as efficient as having your own setup. Once you prove yourself, I'll show you how to smith your own tools and build a proper workstation. That's when the real work begins."
     ],
     "options": [
       {
@@ -68,7 +68,7 @@
     "stage_key": "ready",
     "text_lines": [
       "Well now. You actually did it. I'll admit, I had my doubts.",
-      "A deal's a deal. You've earned access to my anvil for smithing. But hear me — this forge is slow. If you want real speed, you'll need to smith your own tools and set up your own workstation.",
+      "A deal's a deal. You've earned access to my anvil for smithing. But hear me... this forge is slow. If you want real speed, you'll need to smith your own tools and set up your own workstation.",
       "You'll need an Ambren Anvil, an Ambren Hammer, and Ambren Tongs. All things you can smith yourself at my trust Anvil."
     ],
     "options": [
@@ -105,7 +105,7 @@
     "text_lines": [
       "New face in Verdale, eh? Come to learn the grain, have you?",
       "Tell you what... prove your hands are honest. Saw me 6 good batches of planks at the bench here, and I'll know you're serious.",
-      "Mind, the public bench is slow going. Earn your keep and I'll show you how to set up your own — that's when the wood really starts to sing."
+      "Mind, the public bench is slow going. Earn your keep and I'll show you how to set up your own. That's when the wood really starts to sing."
     ],
     "options": [
       {
@@ -167,7 +167,7 @@
     "stage_key": "ready",
     "text_lines": [
       "Well, look at that. Clean lines, every one. You've got the feel for it.",
-      "A deal's a deal — the workshop's open to you. But this old bench is slow. For real speed, build your own: a Lanai Sawhorse, an Ambren Saw, and an Ambren Plane.",
+      "A deal's a deal! The workshop's open to you. But this old bench is slow. For real speed, build your own: a Lanai Sawhorse, an Ambren Saw, and an Ambren Plane.",
       "Saw the sawhorse here from your own planks; the saw and plane you'll forge at a smithy. Put them together and you'll have a proper workstation."
     ],
     "options": [
@@ -185,7 +185,7 @@
     "npc_id": 2,
     "stage_key": "complete",
     "text_lines": [
-      "The bench is yours whenever you need it. But build your own setup when you can — your back will thank you."
+      "The bench is yours whenever you need it. But build your own setup when you can. Your back will thank you."
     ],
     "options": [
       {
@@ -267,7 +267,7 @@
     "stage_key": "ready",
     "text_lines": [
       "Three. And you've still most of your arrows, which says more than the deer do.",
-      "Now the other half. A bow feeds a man who's watching. A snare feeds him while he sleeps — rabbits, pheasant, and things I'll not name in daylight.",
+      "Now the other half. A bow feeds a man who's watching. A snare feeds him while he sleeps... rabbits, pheasant, and things I'll not name in daylight.",
       "Here. Three snares, my own tying. Set them, walk your line, and don't leave a catch to the foxes. Learn to tie your own and you'll never want for arrows; it's the pheasant that gives you your fletching, not the deer."
     ],
     "options": [
@@ -286,7 +286,7 @@
     "stage_key": "complete",
     "text_lines": [
       "The grove's yours to hunt, so long as you hunt it kindly. Take what you need. Leave the rest breeding.",
-      "And if you ever haul a hide worth keeping, Caliwen's the place — bark and time make leather of it. Nothing I do here does."
+      "And if you ever haul a hide worth keeping, Caliwen's the place. Bark and time make leather of it. Nothing I do here does."
     ],
     "options": [
       {
@@ -327,9 +327,9 @@
     "npc_id": 4,
     "stage_key": "offer",
     "text_lines": [
-      "First you'll want land of your own. A farmstead—timber, dressed stone, and a great many nails. It's a long haul and I'll not pretend otherwise. Half the folk who mean to farm never get past it.",
-      "I'll not carry that for you. But here, a hoe, a bucket, and enough carrot seed to fill your first field. When the farmstead stands, the rest of it is easy.",
-      "One thing more, and mind it. A mallet in your hands and a saw in your pack, or the frame won't go up at all. Carpenter's kit, that, not mine to give. More folk have stood in a field blaming the ground than have thought to check what they were holding.",
+      "First you'll want land of your own. A homestead: timber, dressed stone, and a great many nails. It's a long haul and I'll not pretend otherwise. Half the folk who mean to farm never get past it.",
+      "I'll not carry that for you. But here. A hoe, a bucket, and enough carrot seed to fill your first field. When the homestead stands, the rest of it is easy.",
+      "One thing more, and mind it. A mallet and saw in your hands, or the frame won't go up at all. Carpenter's kit, that, not mine to give. More folk have stood in a field blaming the ground than have thought to check what they were holding.",
       "Raise it. Break a field. Sow it. Then leave it be, and come back when it's ready. That's the whole of it."
     ],
     "options": [
@@ -478,7 +478,7 @@
     "npc_id": 5,
     "stage_key": "ready",
     "text_lines": [
-      "Fed and housed. Good. They'll lay for you now, and go on laying until they're old—and they will get old, and slow with it. That's your signal, not a failure.",
+      "Fed and housed. Good. They'll lay for you now, and go on laying until they're old. And they will get old, and slow with it. That's your signal, not a failure.",
       "An elder bird still eats. Take her for the pot and put a young one in her place, and the wheel turns. Keep her if you're fond of her; plenty do. It costs you eggs, not much else.",
       "Here, a calf, for when you've the level to pen her. Now that's the real choice of this trade. Milk her for as long as you keep her, or take the hide and the beef the day you stop. Both are honest. Only don't stand about deciding while she eats her way through your grain."
     ],
@@ -509,5 +509,871 @@
     ],
     "created_at": "2026-08-07T00:46:08.435Z",
     "updated_at": "2026-08-07T00:46:08.435Z"
+  },
+  {
+    "id": 26,
+    "npc_id": 6,
+    "stage_key": "intro",
+    "text_lines": [
+      "You are standing in my light. No matter. Sit down.",
+      "Thirty years I have followed water. Rivers that have taken men and given nothing back. A sea that keeps its own counsel. I came to Luxmere because of a report.",
+      "A lake this small should hold nothing worth the name. And yet not one villager here will swim after dark. That is the kind of detail I have learned to take seriously."
+    ],
+    "options": [
+      {
+        "label": "\"What have you found?\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 27,
+    "npc_id": 6,
+    "stage_key": "offer",
+    "text_lines": [
+      "Nothing. Not yet. That is not failure. That is the beginning.",
+      "Every investigation opens with the smallest witness. Never the monster. The thing the monster eats.",
+      "There is a creature in these shallows the locals call a Tiddle. Half a tadpole that never finished the argument. Bring me three of them.",
+      "Three, so I know it was not luck. Take the rod. I carry a spare, and no patience for a man who borrows one twice."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:The Luxmere Investigation",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 28,
+    "npc_id": 6,
+    "stage_key": "progress",
+    "text_lines": [
+      "Three Tiddle. Cast, and then wait. The waiting is the work. Everything else is only knots."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 29,
+    "npc_id": 6,
+    "stage_key": "ready",
+    "text_lines": [
+      "Three. And handled gently, which most people do not manage.",
+      "Look at it. Small, absurd, entirely unafraid of you. Now ask what eats a thing like this. Then ask what eats that.",
+      "That is the whole method. You follow the small ones upward until something looks back at you.",
+      "Here. Frogspawn, off the creekbank at Lanaivale. Nothing in deep water has ever refused it."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Georemy.\"",
+        "action": "complete_talk_objective:The Luxmere Investigation",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 30,
+    "npc_id": 6,
+    "stage_key": "complete",
+    "text_lines": [
+      "The sea at Dawncrest is a different animal. Older, colder, and wholly unimpressed that you have caught a Tiddle.",
+      "Put the great ones back when you can. A fish that has lived forty years in the dark has earned better than a cookpot.",
+      "I will be here. I am always here."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 31,
+    "npc_id": 7,
+    "stage_key": "intro",
+    "text_lines": [
+      "Oh. Oh! Someone new. Look at you. Look at YOU.",
+      "No, not you, the fellow standing there. You. The one behind his eyes. I know you are there, I always know, it is the way you all pause before you move.",
+      "Quank. That is me. I have been in this square so long the gulls have opinions about me. Sit. Do not sit, there is nowhere to sit. Stand attentively.",
+      "Now. I can explain this world at a leisurely pace, or I can compress myself. Compressing hurts a little and I speak like a stone, but it is faster."
+    ],
+    "options": [
+      {
+        "label": "\"Take your time.\"",
+        "action": "start_quest:8",
+        "next_stage": "long_1"
+      },
+      {
+        "label": "\"Compress yourself.\"",
+        "action": "start_quest:8",
+        "next_stage": "short_1"
+      },
+      {
+        "label": "\"Not now.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 32,
+    "npc_id": 7,
+    "stage_key": "long_1",
+    "text_lines": [
+      "FIRST. First thing. This is the one they never tell you and then they wonder why you are clicking like a woodpecker.",
+      "Work here takes TIME. Actual time. The kind that passes. You set your fellow to chopping and he chops, and he keeps chopping, log after log, and you do not need to be watching him do it. He is not shy.",
+      "So go. Put the kettle on. Answer the door. Speak to a person made of meat. Come back in twenty minutes and there is a heap of wood, and he is very pleased with himself.",
+      "But not all afternoon. Every half hour or so the world taps him on the shoulder and asks him to prove he is a person and not some clever machinery. Everyone gets asked, I get asked, the gulls do not, which I have raised as a concern. He stops and waits politely until you come and answer it.",
+      "So: half an hour at a stretch. Wander off longer than that and you will come back to a man standing perfectly still in a forest, achieving nothing, and I will not be there to laugh."
+    ],
+    "options": [
+      {
+        "label": "\"Go on.\"",
+        "action": null,
+        "next_stage": "long_2"
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 33,
+    "npc_id": 7,
+    "stage_key": "long_2",
+    "text_lines": [
+      "SECOND. Or third. I have lost one. It does not matter.",
+      "You cannot do everything here. Talador has boats, merchants, gulls, me. Trees are elsewhere. Rock is elsewhere. Fish are, obviously, in the water, but the water is also elsewhere.",
+      "Every skill lives in a place, and standing in that place is an old fool exactly like me, waiting to teach it to you. We are all called Geo-something. Geonsen. Georgic. Georemy. I do not know why and I stopped asking around year six.",
+      "Go to them and they will GIVE you the tools. Free. Nobody buys their way into a trade here. I think that is rather lovely and nobody agrees with me."
+    ],
+    "options": [
+      {
+        "label": "\"Go on.\"",
+        "action": null,
+        "next_stage": "long_3"
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 34,
+    "npc_id": 7,
+    "stage_key": "long_3",
+    "text_lines": [
+      "THIRD. Someone wrote it all down. The whole world. In a book.",
+      "And the book UPDATES ITSELF, which I want you to sit with for a moment, because I have and I have not slept properly since.",
+      "Go and open it. Look at anything. Come back. I will be here. I am always here. That is rather the trouble.",
+      "And if the book has no answer, ask in the help chat. There are people in there who genuinely enjoy being asked things, which I find suspicious and useful.",
+      "FOURTH, and I am confident about that number. Coin. Go and look at the market too, while you are up.",
+      "They sell dear and they buy cheap and you will think, that old crook. No. They do it ON PURPOSE. They are not merchants so much as a very slow sign, telling everybody roughly what a thing is worth.",
+      "And the gap between those two prices, that lovely fat gap, is where people live. Sell to a person and you will always do better than selling to Merrick. Always. That is the whole economy and I have just handed you a month of your life back. You are welcome. Give it to the gulls."
+    ],
+    "options": [
+      {
+        "label": "\"The book, then the market.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 35,
+    "npc_id": 7,
+    "stage_key": "short_1",
+    "text_lines": [
+      "Good. Quank talk small now. Quank like small.",
+      "Work take time. Start work. Go away. Come back. Work done, again and again, no clicking.",
+      "But go away small time. Half hour. Then world ask if you real person. Work stop and wait for you. Not bad thing. World ask everyone.",
+      "Go away long time, come back, find man standing still. Sad man. Do not be sad man."
+    ],
+    "options": [
+      {
+        "label": "\"More.\"",
+        "action": null,
+        "next_stage": "short_2"
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 36,
+    "npc_id": 7,
+    "stage_key": "short_2",
+    "text_lines": [
+      "Cannot do all thing here. Tree other place. Rock other place.",
+      "Every place have teacher. Teacher name start with Geo. Teacher give tool free. Go find teacher.",
+      "Big book have all answer. Book fix self. Strange. Go look at book.",
+      "Book no help? Ask people in help chat. People nice."
+    ],
+    "options": [
+      {
+        "label": "\"More.\"",
+        "action": null,
+        "next_stage": "short_3"
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 37,
+    "npc_id": 7,
+    "stage_key": "short_3",
+    "text_lines": [
+      "Coin now. Go look at market too.",
+      "Merchant sell high. Merchant buy low. Merchant do on purpose. Merchant only show what thing worth.",
+      "Sell to person, get more coin. That whole trick."
+    ],
+    "options": [
+      {
+        "label": "\"Book. Market. Go.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 38,
+    "npc_id": 7,
+    "stage_key": "progress",
+    "text_lines": [
+      "Still here? The book and the market. Neither of them is far. Neither of them bites.",
+      "I would show you myself but I have a bit of a thing about leaving this square."
+    ],
+    "options": [
+      {
+        "label": "\"Right, yes.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 39,
+    "npc_id": 7,
+    "stage_key": "ready",
+    "text_lines": [
+      "There. You know more than most who have been here a fortnight, and considerably more than the gulls.",
+      "Take these. The pony is old and she is honest, and she is quicker between towns than your own two feet, which are, if I may, not much. And a little coin, so you begin with something rattling.",
+      "Now. Put the pony on properly, she does no good stood in a bag. Then go somewhere that is not here. Anywhere. The road out is on your map.",
+      "And then, ah. Then I am off. I have been meaning to for years and you have handed me a reason, which is the only thing I ever wanted from any of you. Do not come looking. There will be nothing to look at.",
+      "Goodbye, you behind his eyes. Mind the gap. Mind the gulls."
+    ],
+    "options": [
+      {
+        "label": "\"Goodbye, Quank.\"",
+        "action": "complete_talk_objective:8",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 40,
+    "npc_id": 7,
+    "stage_key": "complete",
+    "text_lines": [
+      "No no no. I have gone. You are talking to the shape of a man who has gone.",
+      "Go on. The road is that way and I am not."
+    ],
+    "options": [
+      {
+        "label": "\"Sorry.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-08-11T18:00:05.645Z",
+    "updated_at": "2026-08-11T18:00:05.645Z"
+  },
+  {
+    "id": 41,
+    "npc_id": 8,
+    "stage_key": "intro",
+    "text_lines": [
+      "Mind the pots. And mind yourself, this floor has had three centuries to get slippery.",
+      "You want to learn? Everyone wants to learn, right up until they scorch a good fish. Bring me six cooked properly and I will believe you.",
+      "Use my hearth. It is old and it is slow and it is not yours, but it will not let you burn the parish down."
+    ],
+    "options": [
+      {
+        "label": "\"I can manage six fish.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-09-13T22:03:11.565Z",
+    "updated_at": "2026-09-13T22:03:11.565Z"
+  },
+  {
+    "id": 42,
+    "npc_id": 8,
+    "stage_key": "offer",
+    "text_lines": [
+      "Six. Cooked, not blackened. Come back when you have them and we will talk about a hearth of your own."
+    ],
+    "options": [
+      {
+        "label": "Accept Quest",
+        "action": "start_quest:9",
+        "next_stage": "progress"
+      },
+      {
+        "label": "Cancel",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-09-13T22:03:11.565Z",
+    "updated_at": "2026-09-13T22:03:11.565Z"
+  },
+  {
+    "id": 43,
+    "npc_id": 8,
+    "stage_key": "progress",
+    "text_lines": [
+      "Still going? Pull it off the heat sooner than you think you should. It keeps cooking after."
+    ],
+    "options": [
+      {
+        "label": "Close",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-09-13T22:03:11.565Z",
+    "updated_at": "2026-09-13T22:03:11.565Z"
+  },
+  {
+    "id": 44,
+    "npc_id": 8,
+    "stage_key": "ready",
+    "text_lines": [
+      "Six, and not a one of them ruined. Better than my last two apprentices between them.",
+      "The hearth here is yours to use. It is slow, mind, and I will want it back the moment I need it.",
+      "Build your own when you can. A granite hearth is the whole of it to start with, cut by hand, no bench needed. The rest, the cauldron and the skillet and the knives, you will want a smith for."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Geomima.\"",
+        "action": "complete_talk_objective:9",
+        "next_stage": "complete"
+      }
+    ],
+    "created_at": "2026-09-13T22:03:11.565Z",
+    "updated_at": "2026-09-13T22:03:11.565Z"
+  },
+  {
+    "id": 45,
+    "npc_id": 8,
+    "stage_key": "complete",
+    "text_lines": [
+      "The hearth is there when you need it. But get your own built, and get a cauldron under it. You cannot make anything worth eating in a skillet alone."
+    ],
+    "options": [
+      {
+        "label": "Farewell",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-09-13T22:03:11.565Z",
+    "updated_at": "2026-09-13T22:03:11.565Z"
+  },
+  {
+    "id": 46,
+    "npc_id": 9,
+    "stage_key": "intro",
+    "text_lines": [
+      "Stand there. No. There, on the line. Good.",
+      "Georold. Warden of these docks for thirty-one years, retired for four. The rats did not retire.",
+      "Seven ships tied up today. Every one of them brought rats ashore with the cargo. I have the number. You do not want it.",
+      "You want to learn to fight. Everybody does, until something bites back. Ten rats. Then we talk."
+    ],
+    "options": [
+      {
+        "label": "\"Ten rats. Fine.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Not today.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 47,
+    "npc_id": 9,
+    "stage_key": "offer",
+    "text_lines": [
+      "Pick one. I have two to spare and you are not having both.",
+      "The mace. Heavy head, breaks what it lands on. The spear. Long reach, goes in where you point it.",
+      "Neither one is the right answer. That is the lesson, and you will learn it on rats.",
+      "Take the fish as well. Whiting, cooked last night. Health low, you eat. Lower than that, you walk away. Nobody on this quay is carrying you home."
+    ],
+    "options": [
+      {
+        "label": "\"The mace.\"",
+        "action": "start_quest:10:mace",
+        "next_stage": "accepted"
+      },
+      {
+        "label": "\"The spear.\"",
+        "action": "start_quest:10:spear",
+        "next_stage": "accepted"
+      },
+      {
+        "label": "\"I'll come back.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 48,
+    "npc_id": 9,
+    "stage_key": "accepted",
+    "text_lines": [
+      "Put it on. A weapon in a pack has never killed anything.",
+      "The Docks are down the quay, among the warehouses. They come at you one after another down there. Keep count. I will.",
+      "Every creature you put down goes in the Bestiary. There is a link to it beside your count when you fight. The more of a thing you kill, the more it tells you.",
+      "Ten rats and it starts telling you something worth knowing."
+    ],
+    "options": [
+      {
+        "label": "\"Ten rats.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 49,
+    "npc_id": 9,
+    "stage_key": "progress",
+    "text_lines": [
+      "That is not ten. I would know.",
+      "Eat before you need to. Not after."
+    ],
+    "options": [
+      {
+        "label": "\"Going.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 50,
+    "npc_id": 9,
+    "stage_key": "ready",
+    "text_lines": [
+      "Ten. I counted. Open your Bestiary and tell me what it says about rats.",
+      "Weak to slash. Yes. Thirty-one years and they still do not care for an edge.",
+      "So you have been hitting them with the wrong thing. Find out what a creature hates, then bring it. That was the lesson.",
+      "Here. A scimitar, which slashes. And bracers, because the next thing along this coast will bite harder than a rat, and you will want something between it and your arm.",
+      "Change weapons before you go back down there. I will be watching."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Warden.\"",
+        "action": "complete_talk_objective:10",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 51,
+    "npc_id": 9,
+    "stage_key": "complete",
+    "text_lines": [
+      "Still here? The rats are not. Two hundred and six this morning.",
+      "Further along the coast there are worse things than rats. Read the Bestiary before you fight them.",
+      "Eat. Watch your health. Leave while you still can. Nobody listens to that last part. I have fished two out of the harbour who did not."
+    ],
+    "options": [
+      {
+        "label": "\"I'll listen.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 64,
+    "npc_id": 12,
+    "stage_key": "intro",
+    "text_lines": [
+      "Mind the dust. Granite grit gets into everything. My tea, mostly.",
+      "Geosper. I cut stones. Everybody else in Caliwen works leather and cloth, and they think a man who sits at a wheel all day is a bit odd. They are not wrong.",
+      "My mother named me after a stone she never owned. I have owned a great many since. Sold most of them.",
+      "You have the look of somebody who found a pebble that glinted and put it in their pocket. Have you?"
+    ],
+    "options": [
+      {
+        "label": "\"I might have.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Not today.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 65,
+    "npc_id": 12,
+    "stage_key": "offer",
+    "text_lines": [
+      "Here. Two bits of rough quartz, out of the granite at Grundagr. Dull as old soap, both of them.",
+      "Sit at my wheel. Split each one along its grain with the chisel first, then hold it to the stone and let the wheel do the work. Do not push.",
+      "Most come off plain cut. Some come off polished. Now and then one comes off flawless, and you will remember the day.",
+      "My wheel is slow, mind. It is old. So am I. Cut those two and come back."
+    ],
+    "options": [
+      {
+        "label": "\"I'll cut them.\"",
+        "action": "start_quest:13",
+        "next_stage": "accepted"
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 66,
+    "npc_id": 12,
+    "stage_key": "accepted",
+    "text_lines": [
+      "The lapidary is in the Craftworks. Use mine until you have your own.",
+      "A wheel is carpenter's work: Lanai planks and a face of granite. The chisel comes off an anvil. Neither is hard to come by."
+    ],
+    "options": [
+      {
+        "label": "\"Two stones.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 67,
+    "npc_id": 12,
+    "stage_key": "progress",
+    "text_lines": [
+      "Two dull stones still in your pack, I would guess. The wheel will not turn itself.",
+      "Gently. Let the grit do the cutting, not your arm."
+    ],
+    "options": [
+      {
+        "label": "\"Going.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 68,
+    "npc_id": 12,
+    "stage_key": "ready",
+    "text_lines": [
+      "Let me see. Hold it up to the window. There. That is a stone somebody will want.",
+      "A gem is only a rock that somebody bothered with. You bothered.",
+      "Take this chisel. It is a spare, and sharper than it looks. Build a wheel to go with it and you will cut twice as fast as you can at mine.",
+      "Quartz comes out of the granite, and out of the ore veins too. Garnet, if you are patient. Bring me something red one day."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Geosper.\"",
+        "action": "complete_talk_objective:13",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 69,
+    "npc_id": 12,
+    "stage_key": "complete",
+    "text_lines": [
+      "Back again? The wheel is where you left it.",
+      "A rough stone in a pack is just a rock. A cut one is worth the walk to market.",
+      "There are folk out at the Rift who will want cut stones. Do not ask me what for. I cut them. I do not pray over them."
+    ],
+    "options": [
+      {
+        "label": "\"I'll remember.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 70,
+    "npc_id": 13,
+    "stage_key": "intro",
+    "text_lines": [
+      "Careful at the edge. People come up here to look down, and some of them lean.",
+      "Georome. I keep the chapel. Somebody has to sweep it.",
+      "You feel it, I expect. A sort of warmth coming up, like standing over a bread oven. That is the light. It has been coming up out of the seam since before anyone thought to build a wall beside it.",
+      "You cannot hold it in your hand. But you can hold it in a stone, and then you can hold it in yourself. Would you like to learn how?"
+    ],
+    "options": [
+      {
+        "label": "\"Show me.\"",
+        "action": null,
+        "next_stage": "offer"
+      },
+      {
+        "label": "\"Another day.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 71,
+    "npc_id": 13,
+    "stage_key": "offer",
+    "text_lines": [
+      "Here. A quartz, cut clean. Geosper in Caliwen cuts them for me, and grumbles about it.",
+      "Hold it out over the Rift and let it drink. It takes half an hour or so for a stone like that. Do not hurry it.",
+      "When it is full it will glow. Then take the light out of it. Hold it, and let it go into you. You will know how when the time comes. Everybody does.",
+      "Come back to me after."
+    ],
+    "options": [
+      {
+        "label": "\"I'll fill it.\"",
+        "action": "start_quest:14",
+        "next_stage": "accepted"
+      },
+      {
+        "label": "\"Not just now.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 72,
+    "npc_id": 13,
+    "stage_key": "accepted",
+    "text_lines": [
+      "Stand anywhere along the lip and hold the stone out. Fill a Gem, they call it in the town, as if it were a bucket at a pump. Near enough.",
+      "Once it glows, find it in your pack and take the light in."
+    ],
+    "options": [
+      {
+        "label": "\"Half an hour.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 73,
+    "npc_id": 13,
+    "stage_key": "progress",
+    "text_lines": [
+      "Still filling? Patience. The ground was always the patient half.",
+      "When it glows, take the light in, then come and see me."
+    ],
+    "options": [
+      {
+        "label": "\"Going.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 74,
+    "npc_id": 13,
+    "stage_key": "ready",
+    "text_lines": [
+      "There. You are standing a little straighter. They all do, the first time.",
+      "That light stays in you. It does not leak and it does not spoil, and it does not leave you if you fall. The more you work with it, the more room you find for it.",
+      "Take this one too. Already full. Keep it for when you need it.",
+      "There are things a person can do with the light inside them. We teach some of them here, in time. Read the writings in the chapel while you wait. They are short. Mostly."
+    ],
+    "options": [
+      {
+        "label": "\"Thank you, Georome.\"",
+        "action": "complete_talk_objective:14",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 75,
+    "npc_id": 13,
+    "stage_key": "complete",
+    "text_lines": [
+      "Back again. The light is strong tonight.",
+      "Bring cut stones and fill them here whenever you like. Quartz drinks quickest. Garnet holds more, once you have the knack for it."
+    ],
+    "options": [
+      {
+        "label": "\"Goodnight.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 76,
+    "npc_id": 14,
+    "stage_key": "intro",
+    "text_lines": [
+      "Hear ye! The Maker has a question going round, and you have not heard it yet.",
+      "The page you are reading from is an old one, friend. Refresh it, and I will put the question to you proper."
+    ],
+    "options": [
+      {
+        "label": "\"I will.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-11-06T15:04:34.489Z",
+    "updated_at": "2026-11-06T15:04:34.489Z"
+  },
+  {
+    "id": 77,
+    "npc_id": 15,
+    "stage_key": "intro",
+    "text_lines": [
+      "Wenna Halloway. Sit anywhere that isn't sticky.",
+      "Whatever this island gets up to, somebody tells me before the night is out. At midnight I write the best of it in the book."
+    ],
+    "options": [
+      {
+        "label": "\"What news is there?\"",
+        "action": "open:tavern",
+        "next_stage": null
+      },
+      {
+        "label": "\"What book?\"",
+        "action": null,
+        "next_stage": "about"
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-11-08T15:05:41.955Z",
+    "updated_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 78,
+    "npc_id": 15,
+    "stage_key": "about",
+    "text_lines": [
+      "The tidings. Every day that ends goes in, with the names of whoever earned a place.",
+      "Find something rare, master a trade, beat a thing you had no right to beat. I'll hear of it. I always do.",
+      "You can read any page back to the first. Ask, and I'll fetch it down."
+    ],
+    "options": [
+      {
+        "label": "\"Let me see it.\"",
+        "action": "open:tavern",
+        "next_stage": null
+      },
+      {
+        "label": "\"Another time.\"",
+        "action": "close",
+        "next_stage": null
+      }
+    ],
+    "created_at": "2026-11-08T15:05:41.955Z",
+    "updated_at": "2026-11-08T15:05:41.955Z"
   }
 ]

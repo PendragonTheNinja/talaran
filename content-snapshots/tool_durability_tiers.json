@@ -1,0 +1,47 @@
+[
+  {
+    "tier": 1,
+    "guaranteed_uses": 300,
+    "life_hours": 12
+  },
+  {
+    "tier": 2,
+    "guaranteed_uses": 375,
+    "life_hours": 15
+  },
+  {
+    "tier": 3,
+    "guaranteed_uses": 469,
+    "life_hours": 18.75
+  },
+  {
+    "tier": 4,
+    "guaranteed_uses": 586,
+    "life_hours": 23.44
+  },
+  {
+    "tier": 5,
+    "guaranteed_uses": 732,
+    "life_hours": 29.3
+  },
+  {
+    "tier": 6,
+    "guaranteed_uses": 916,
+    "life_hours": 36.62
+  },
+  {
+    "tier": 7,
+    "guaranteed_uses": 1144,
+    "life_hours": 45.78
+  },
+  {
+    "tier": 8,
+    "guaranteed_uses": 1431,
+    "life_hours": 57.22
+  },
+  {
+    "tier": 9,
+    "guaranteed_uses": 1788,
+    "life_hours": 71.53
+  }
+]

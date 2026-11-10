@@ -1,0 +1,389 @@
+[
+  {
+    "id": 1,
+    "action_type": "traveling",
+    "kind": null,
+    "scene_text": null,
+    "cancel_label": "Cancel Travel",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 2,
+    "action_type": "woodcutting",
+    "kind": null,
+    "scene_text": "You are chopping a Lanai Tree.",
+    "cancel_label": "Stop Chopping",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 3,
+    "action_type": "mining_rock",
+    "kind": null,
+    "scene_text": "You are mining rocks.",
+    "cancel_label": "Stop Mining",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 4,
+    "action_type": "mining_vein",
+    "kind": null,
+    "scene_text": "You are mining an ore vein.",
+    "cancel_label": "Stop Mining",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 5,
+    "action_type": "smelting",
+    "kind": null,
+    "scene_text": "You are smelting ingots.",
+    "cancel_label": "Stop Smithing",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 6,
+    "action_type": "smithing",
+    "kind": null,
+    "scene_text": "You are working the forge.",
+    "cancel_label": "Stop Smithing",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 7,
+    "action_type": "kiln_collect",
+    "kind": null,
+    "scene_text": "Collecting Charc from the kiln...",
+    "cancel_label": "Stop",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 8,
+    "action_type": "sawing",
+    "kind": null,
+    "scene_text": "You are sawing planks.",
+    "cancel_label": "Stop Carpentry",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 9,
+    "action_type": "woodworking",
+    "kind": null,
+    "scene_text": "You are working at the sawhorse.",
+    "cancel_label": "Stop Carpentry",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 10,
+    "action_type": "build_hearth",
+    "kind": null,
+    "scene_text": "You are setting granite in mortar and drawing the flue straight.",
+    "cancel_label": "Stop Building",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 11,
+    "action_type": "hunting",
+    "kind": null,
+    "scene_text": null,
+    "cancel_label": "Stop Hunting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 12,
+    "action_type": "foraging",
+    "kind": null,
+    "scene_text": "You gather among the wild growth.",
+    "cancel_label": "Stop Foraging",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 13,
+    "action_type": "recipe",
+    "kind": null,
+    "scene_text": null,
+    "cancel_label": "Stop Crafting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 14,
+    "action_type": "fishing_rod",
+    "kind": null,
+    "scene_text": "You cast out, and settle in to wait.",
+    "cancel_label": "Stop Fishing",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 15,
+    "action_type": "fishing_net",
+    "kind": null,
+    "scene_text": "You pay the net out across the shallows and begin the long haul.",
+    "cancel_label": "Stop Netting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 16,
+    "action_type": "fishing_cut_bait",
+    "kind": null,
+    "scene_text": "You work the knife along the flank, cutting the fish down for bait.",
+    "cancel_label": "Stop Cutting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 17,
+    "action_type": "farming",
+    "kind": null,
+    "scene_text": "You set to work on the land.",
+    "cancel_label": "Stop Working",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 18,
+    "action_type": "farming",
+    "kind": "establish",
+    "scene_text": "You raise your farmstead, post and beam, stone and nail.",
+    "cancel_label": "Stop Building",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 19,
+    "action_type": "farming",
+    "kind": "build_plot",
+    "scene_text": "You set posts and rails, fencing in a new field.",
+    "cancel_label": "Stop Building",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 20,
+    "action_type": "farming",
+    "kind": "build_shop",
+    "scene_text": "You raise a shopfront, post and beam, stone and nail.",
+    "cancel_label": "Stop Building",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 21,
+    "action_type": "farming",
+    "kind": "till",
+    "scene_text": "You break the soil, turning it over ready for seed.",
+    "cancel_label": "Stop Tilling",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 22,
+    "action_type": "farming",
+    "kind": "sow",
+    "scene_text": "You work down the rows, pressing seed into the earth.",
+    "cancel_label": "Stop Sowing",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 23,
+    "action_type": "farming",
+    "kind": "harvest",
+    "scene_text": "You lift the crop from the earth, filling your baskets.",
+    "cancel_label": "Stop Harvesting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 24,
+    "action_type": "farming",
+    "kind": "manure",
+    "scene_text": "You barrow muck onto the field and turn it into the soil.",
+    "cancel_label": "Stop Working",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 25,
+    "action_type": "farming",
+    "kind": "tend",
+    "scene_text": "You carry water down the rows, pulling weeds as you go.",
+    "cancel_label": "Stop Tending",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 26,
+    "action_type": "farming",
+    "kind": "uproot",
+    "scene_text": "You break the roots and turn the crop back into the soil.",
+    "cancel_label": "Stop Working",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 27,
+    "action_type": "husbandry",
+    "kind": null,
+    "scene_text": "You set to work among the animals.",
+    "cancel_label": "Stop Tending",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 28,
+    "action_type": "husbandry",
+    "kind": "build_pen",
+    "scene_text": "You sink posts and hang panels, closing in a new pen.",
+    "cancel_label": "Stop Building",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 29,
+    "action_type": "husbandry",
+    "kind": "demolish_pen",
+    "scene_text": "You draw the nails and stack the timber where it stood.",
+    "cancel_label": "Stop Working",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 30,
+    "action_type": "husbandry",
+    "kind": "feed",
+    "scene_text": "You go along the troughs with the pail, feeding and watering.",
+    "cancel_label": "Stop Feeding",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 31,
+    "action_type": "husbandry",
+    "kind": "feed_all",
+    "scene_text": "You work the whole farm with the pail, trough by trough.",
+    "cancel_label": "Stop Feeding",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 32,
+    "action_type": "husbandry",
+    "kind": "muck",
+    "scene_text": "You fork out the soiled bedding and lay down fresh straw.",
+    "cancel_label": "Stop Mucking",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 33,
+    "action_type": "husbandry",
+    "kind": "muck_all",
+    "scene_text": "You work through every pen in turn, forking out and laying fresh straw.",
+    "cancel_label": "Stop Mucking",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 34,
+    "action_type": "husbandry",
+    "kind": "collect",
+    "scene_text": "You work among the animals, gathering what they have given.",
+    "cancel_label": "Stop Collecting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 35,
+    "action_type": "husbandry",
+    "kind": "collect_all",
+    "scene_text": "You go along the pen with a basket, clearing it as you pass.",
+    "cancel_label": "Stop Collecting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 36,
+    "action_type": "husbandry",
+    "kind": "slaughter",
+    "scene_text": "You do the work out behind the barn, quickly and without fuss.",
+    "cancel_label": "Stop",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 37,
+    "action_type": "husbandry",
+    "kind": "slaughter_all",
+    "scene_text": "You work through the pen, one after another, and do not dawdle.",
+    "cancel_label": "Stop",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 38,
+    "action_type": "husbandry",
+    "kind": "tame",
+    "scene_text": "You work the halter on gently, letting it get used to the weight.",
+    "cancel_label": "Stop Taming",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 39,
+    "action_type": "farming",
+    "kind": "harvest_all",
+    "scene_text": "You work the fields one after another, filling basket after basket.",
+    "cancel_label": "Stop Harvesting",
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 40,
+    "action_type": "combat",
+    "kind": null,
+    "scene_text": "You keep your guard up and your eyes on the next one.",
+    "cancel_label": "Flee",
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 43,
+    "action_type": "talar_fill",
+    "kind": null,
+    "scene_text": "You hold the stone out over the Rift and let the light rising from it settle in.",
+    "cancel_label": "Stop Filling",
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 44,
+    "action_type": "spell_vigil",
+    "kind": null,
+    "scene_text": "You kneel in the chapel with the stone in your hands, and go over the words until they stay.",
+    "cancel_label": "End the Vigil",
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 45,
+    "action_type": "guild_build",
+    "kind": null,
+    "scene_text": "You work alongside your guild, setting each piece into the hall as it rises.",
+    "cancel_label": "Stop Building",
+    "created_at": "2026-11-02T19:05:10.926Z",
+    "updated_at": "2026-11-02T19:05:10.926Z"
+  }
+]

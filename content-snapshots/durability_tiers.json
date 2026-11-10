@@ -1,0 +1,56 @@
+[
+  {
+    "tier": 1,
+    "guaranteed_uses": 200,
+    "break_chance_pct": 1,
+    "id": 1
+  },
+  {
+    "tier": 2,
+    "guaranteed_uses": 250,
+    "break_chance_pct": 0.85,
+    "id": 2
+  },
+  {
+    "tier": 3,
+    "guaranteed_uses": 313,
+    "break_chance_pct": 0.722,
+    "id": 3
+  },
+  {
+    "tier": 4,
+    "guaranteed_uses": 391,
+    "break_chance_pct": 0.614,
+    "id": 4
+  },
+  {
+    "tier": 5,
+    "guaranteed_uses": 488,
+    "break_chance_pct": 0.522,
+    "id": 5
+  },
+  {
+    "tier": 6,
+    "guaranteed_uses": 610,
+    "break_chance_pct": 0.444,
+    "id": 6
+  },
+  {
+    "tier": 7,
+    "guaranteed_uses": 763,
+    "break_chance_pct": 0.377,
+    "id": 7
+  },
+  {
+    "tier": 8,
+    "guaranteed_uses": 954,
+    "break_chance_pct": 0.321,
+    "id": 8
+  },
+  {
+    "tier": 9,
+    "guaranteed_uses": 1192,
+    "break_chance_pct": 0.272,
+    "id": 9
+  }
+]

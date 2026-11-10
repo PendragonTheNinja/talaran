@@ -1,0 +1,360 @@
+[
+  {
+    "id": 1,
+    "museum_id": 1,
+    "name": "Timber",
+    "description": "Every wood the island grows, in the log and in the plank.",
+    "display_order": 0,
+    "match": [
+      {
+        "type": "log"
+      },
+      {
+        "type": "plank"
+      },
+      {
+        "type": "material",
+        "subtype": "log"
+      },
+      {
+        "type": "material",
+        "subtype": "bark"
+      },
+      {
+        "type": "material",
+        "subtype": "shaft"
+      },
+      {
+        "type": "material",
+        "subtype": "tool_rod"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 2,
+    "museum_id": 1,
+    "name": "Stone and Ore",
+    "description": "What the picks bring up, and what the forge makes of it.",
+    "display_order": 1,
+    "match": [
+      {
+        "type": "ore"
+      },
+      {
+        "type": "rock"
+      },
+      {
+        "type": "ingot"
+      },
+      {
+        "type": "gem"
+      },
+      {
+        "type": "fuel"
+      },
+      {
+        "type": "material",
+        "subtype": "stone"
+      },
+      {
+        "type": "material",
+        "subtype": "gem"
+      },
+      {
+        "type": "material",
+        "subtype": "component"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 3,
+    "museum_id": 1,
+    "name": "Fish of the Coast",
+    "description": "From the lakes, the rivers and the cold water off the headlands.",
+    "display_order": 2,
+    "match": [
+      {
+        "type": "food",
+        "subtype": "raw_fish"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 4,
+    "museum_id": 1,
+    "name": "Hedgerow and Herb",
+    "description": "Picked by hand from the verges, the woods and the wet ground.",
+    "display_order": 3,
+    "match": [
+      {
+        "type": "material",
+        "subtype": "herb"
+      },
+      {
+        "type": "material",
+        "subtype": "berry"
+      },
+      {
+        "type": "material",
+        "subtype": "flower"
+      },
+      {
+        "type": "material",
+        "subtype": "mushroom"
+      },
+      {
+        "type": "material",
+        "subtype": "fungus"
+      },
+      {
+        "type": "material",
+        "subtype": "nut"
+      },
+      {
+        "type": "material",
+        "subtype": "root"
+      },
+      {
+        "type": "material",
+        "subtype": "reagent"
+      },
+      {
+        "type": "material",
+        "subtype": "reed"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 5,
+    "museum_id": 1,
+    "name": "Field and Fold",
+    "description": "Sown, raised and brought in at Novita.",
+    "display_order": 4,
+    "match": [
+      {
+        "type": "material",
+        "subtype": "seed"
+      },
+      {
+        "type": "material",
+        "subtype": "grain"
+      },
+      {
+        "type": "material",
+        "subtype": "produce"
+      },
+      {
+        "type": "material",
+        "subtype": "fodder"
+      },
+      {
+        "type": "material",
+        "subtype": "fertiliser"
+      },
+      {
+        "type": "material",
+        "subtype": "hive"
+      },
+      {
+        "type": "material",
+        "subtype": "wax"
+      },
+      {
+        "type": "material",
+        "subtype": "liquid"
+      },
+      {
+        "type": "food",
+        "subtype": "produce"
+      },
+      {
+        "type": "food",
+        "subtype": "dairy"
+      },
+      {
+        "type": "animal"
+      },
+      {
+        "type": "mount"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 6,
+    "museum_id": 1,
+    "name": "Hide, Bone and Feather",
+    "description": "What a hunt leaves once the meat is taken, and what the tanner makes of it.",
+    "display_order": 5,
+    "match": [
+      {
+        "type": "material",
+        "subtype": "hide"
+      },
+      {
+        "type": "material",
+        "subtype": "leather"
+      },
+      {
+        "type": "material",
+        "subtype": "bones"
+      },
+      {
+        "type": "material",
+        "subtype": "feather"
+      },
+      {
+        "type": "material",
+        "subtype": "cloth"
+      },
+      {
+        "type": "material",
+        "subtype": "fiber"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 7,
+    "museum_id": 1,
+    "name": "The Larder",
+    "description": "Meat, stores and the kitchen's work, burnt pans included.",
+    "display_order": 6,
+    "match": [
+      {
+        "type": "food"
+      },
+      {
+        "type": "material",
+        "subtype": "foodstuff"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 8,
+    "museum_id": 1,
+    "name": "Tools of the Trades",
+    "description": "The axes, knives, nets and racks every trade on the island is worked with.",
+    "display_order": 7,
+    "match": [
+      {
+        "type": "tool"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 9,
+    "museum_id": 1,
+    "name": "Arms and Armour",
+    "description": "What is worn against the weather and carried against the wild.",
+    "display_order": 8,
+    "match": [
+      {
+        "type": "armor"
+      },
+      {
+        "type": "ammo"
+      },
+      {
+        "type": "weapon"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 10,
+    "museum_id": 1,
+    "name": "Curiosities",
+    "description": "Keepsakes, oddments and the things nobody could put anywhere else.",
+    "display_order": 11,
+    "match": [
+      {
+        "type": "curio"
+      },
+      {
+        "type": "collectible"
+      },
+      {
+        "type": "material",
+        "subtype": "trophy"
+      }
+    ],
+    "is_catch_all": true,
+    "created_at": "2026-09-30T11:03:16.529Z",
+    "updated_at": "2026-09-30T11:03:16.529Z"
+  },
+  {
+    "id": 11,
+    "museum_id": 1,
+    "name": "Spoils of the Fight",
+    "description": "Taken from the creatures of the island, and had nowhere else.",
+    "display_order": 9,
+    "match": [
+      {
+        "type": "weapon",
+        "subtype": "rare_weapon"
+      },
+      {
+        "type": "armor",
+        "subtype": "shell_armor"
+      },
+      {
+        "name": "Jackalope Antler"
+      },
+      {
+        "name": "Wolf Fang"
+      },
+      {
+        "name": "Wrecker's Lantern"
+      },
+      {
+        "name": "Knocker's Hammer"
+      },
+      {
+        "name": "Agropelter Knuckle"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-10-15T21:25:30.168Z",
+    "updated_at": "2026-10-15T21:25:30.168Z"
+  },
+  {
+    "id": 13,
+    "museum_id": 1,
+    "name": "Rings and Amulets",
+    "description": "Stones from the island, set in its own metal and filled with what rises at the Rift.",
+    "display_order": 10,
+    "match": [
+      {
+        "type": "jewelry"
+      }
+    ],
+    "is_catch_all": false,
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  }
+]

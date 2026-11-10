@@ -1,0 +1,7046 @@
+[
+  {
+    "id": 1,
+    "kind": "heading",
+    "text": "Tidings for the {date}, as told at the Salty Sloth.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 2,
+    "kind": "heading",
+    "text": "The {date}. Wenna sets down what the island did today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 3,
+    "kind": "heading",
+    "text": "What was heard at the Salty Sloth on the {date}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 4,
+    "kind": "heading",
+    "text": "Tidings for the {date}. Pull up a stool.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 5,
+    "kind": "heading",
+    "text": "The {date}, and the [taps are open|fire is lit|benches are full].",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 6,
+    "kind": "heading",
+    "text": "Here is the {date}, as near as Wenna could get it from people who were there.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 7,
+    "kind": "heading",
+    "text": "Tidings for the {date}. Some of this is even true.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 8,
+    "kind": "heading",
+    "text": "The {date}. The ink is fresh and the gossip fresher.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 9,
+    "kind": "drop_rare",
+    "text": "{player} turned up {a item} at {place}, and looked at it for a long while before putting it away.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 10,
+    "kind": "drop_rare",
+    "text": "At {place}, {player} found {a item}. Nobody else did.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 11,
+    "kind": "drop_rare",
+    "text": "{a item} came out of {place} today, in the hands of {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 12,
+    "kind": "drop_rare",
+    "text": "{player} is the one with {a item} now. Ask nicely and they may show you.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 13,
+    "kind": "drop_rare",
+    "text": "Of all the people working {place} today, only {player} came away with {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 14,
+    "kind": "drop_rare",
+    "text": "{player} found {a item} at {place} and has not stopped mentioning it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 15,
+    "kind": "drop_rare",
+    "text": "Luck sat on {player}'s shoulder at {place}: {a item}, of all things.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 16,
+    "kind": "drop_rare",
+    "text": "They will be talking about {player}'s {item} at {place} for a week. Possibly two.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 17,
+    "kind": "cryptid",
+    "text": "{player} came back from {place} with {a item}, and nobody at the Salty Sloth believed it until it was on the table.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 18,
+    "kind": "cryptid",
+    "text": "There are things in {place} most of us will never see. {player} saw one today, and has {a item} to prove it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 19,
+    "kind": "cryptid",
+    "text": "Mark the day: {player} found {a item}. The old ones at the bar went very quiet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 20,
+    "kind": "cryptid",
+    "text": "{player} swears the thing looked right at them before it left {a item} behind.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 21,
+    "kind": "cryptid",
+    "text": "{a item}. From {place}. {player} has it, and the rest of us have questions.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 22,
+    "kind": "world_first_item",
+    "text": "No one in Talaran had ever held {a item} until {player} did, today, at {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 23,
+    "kind": "world_first_item",
+    "text": "{player} is the first. {a item}, out of {place}, and the island has never seen one before.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 24,
+    "kind": "world_first_item",
+    "text": "Something new under the sky: {a item}, found by {player}. Whatever it is for, they had it first.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 25,
+    "kind": "world_first_item",
+    "text": "Ask anyone in a year who found the first {item}. If they are honest, they will say {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 26,
+    "kind": "trophy",
+    "text": "{player} brought {a item} back from {place}, and it is going on the wall.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 27,
+    "kind": "trophy",
+    "text": "A trophy for {player} today: {a item}, out of {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 28,
+    "kind": "trophy",
+    "text": "{player} has {a item} to hang over the fire. {place} gave it up at last.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 29,
+    "kind": "server_first_level",
+    "text": "Before anyone else on the island, {player} reached {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 30,
+    "kind": "server_first_level",
+    "text": "{player} is the first in Talaran to {skill} {level}. Everyone else is now second at best.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 31,
+    "kind": "server_first_level",
+    "text": "Of all of us, {player} got there first: {skill}, level {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 32,
+    "kind": "server_first_level",
+    "text": "The first to {skill} {level} was {player}, and nobody can take that back.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 33,
+    "kind": "level_milestone",
+    "text": "{player} reached {skill} {level} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 34,
+    "kind": "level_milestone",
+    "text": "{skill} {level} for {player}. The hands are getting good.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 35,
+    "kind": "level_milestone",
+    "text": "{player} went to bed a little better at {skill} than they woke: level {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 36,
+    "kind": "level_milestone",
+    "text": "Raise a cup to {player}, {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 37,
+    "kind": "level_milestone",
+    "text": "{player} has {skill} at {level} now, which is further than most will bother to go.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 38,
+    "kind": "level_milestone",
+    "text": "{level} in {skill}, and {player} did not even stop for supper.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "level",
+      "skill",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 39,
+    "kind": "level_max",
+    "text": "{player} has mastered {skill}. There is nothing left on this island to teach them about it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 40,
+    "kind": "level_max",
+    "text": "{skill}, level {level}. {player} has gone as far as the craft goes.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 41,
+    "kind": "level_max",
+    "text": "Today {player} put down the last lesson {skill} had to give. Mastered.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 42,
+    "kind": "level_max",
+    "text": "There are masters of {skill} in the stories. As of today there is one in Talaran: {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 43,
+    "kind": "total_level_mark",
+    "text": "{player} has {level} levels to their name across every trade, all told.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 44,
+    "kind": "total_level_mark",
+    "text": "Count up every skill {player} has and you get {level}. That is a great deal of work.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 45,
+    "kind": "total_level_mark",
+    "text": "{level} levels in all, for {player}. The island has kept them busy.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 46,
+    "kind": "record_fish",
+    "text": "{player} landed {a item} of {weight} at {place}, the heaviest anyone has pulled from these waters.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "weight",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 47,
+    "kind": "record_fish",
+    "text": "The scales at {place} creaked for {player}'s {item}: {weight}, and a new record.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item",
+      "weight"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 48,
+    "kind": "record_fish",
+    "text": "A {weight} {item} for {player}. The old record holder has been told.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "weight",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 49,
+    "kind": "record_fish",
+    "text": "{player} pulled {a item} of {weight} out of the water today. Nobody has landed a heavier one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "weight"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 50,
+    "kind": "record_fish",
+    "text": "The heaviest {item} anyone has seen weighed {weight}, and {player} caught it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "weight",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 51,
+    "kind": "first_kill",
+    "text": "{player} is the first ever to bring down {a creature}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 52,
+    "kind": "first_kill",
+    "text": "Nobody had beaten {a creature} until today. {player} did.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 53,
+    "kind": "first_kill",
+    "text": "{a creature} fell today for the first time anyone knows of, to {player}, near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 54,
+    "kind": "strong_kill",
+    "text": "{player} took on {a creature} that had no business losing to them, and won.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 55,
+    "kind": "strong_kill",
+    "text": "{a creature} near {place} met {player} today and came off the worse, to everyone's surprise including the creature's.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 56,
+    "kind": "strong_kill",
+    "text": "{player} should not have beaten {a creature}. Nobody has told {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 57,
+    "kind": "strong_kill",
+    "text": "Brave or foolish, {player} went at {a creature} and walked away. Mostly walked.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 58,
+    "kind": "bestiary_mark",
+    "text": "{player} has made {n} kills of {creature} now, and is not done.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 59,
+    "kind": "bestiary_mark",
+    "text": "That is {n} {creature} kills for {player}. Somebody ought to count them properly.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n",
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 60,
+    "kind": "bestiary_mark",
+    "text": "The {creature} near {place} have learned to fear {player}. {n} of them, so far.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 61,
+    "kind": "death",
+    "text": "{player} fell to {a creature} near {place}. They will be back. They always are.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 62,
+    "kind": "death",
+    "text": "{a creature} near {place} had the better of {player} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 63,
+    "kind": "death",
+    "text": "{player} went to {place} with more courage than armour, and {a creature} was waiting.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 64,
+    "kind": "death",
+    "text": "Lost at {place}: one {player}, to {a creature}. Found again at Talador, a little sorer.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 65,
+    "kind": "death",
+    "text": "{player} met {a creature} today. The meeting did not go their way.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 66,
+    "kind": "museum_first_give",
+    "text": "{player} gave the first {item} to the {museum}, and their name goes on the plaque.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 67,
+    "kind": "museum_first_give",
+    "text": "The {museum} has {a item} on show now, thanks to {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 68,
+    "kind": "exhibit_complete",
+    "text": "The last case in {exhibit} at the {museum} is filled. {player} set the final piece.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "museum",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 69,
+    "kind": "exhibit_complete",
+    "text": "{exhibit} is whole. It took the island a long while, and {player} finished it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 70,
+    "kind": "event_winner",
+    "text": "When the call went out at {place}, {player} answered it hardest.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 71,
+    "kind": "event_winner",
+    "text": "Nobody worked the event at {place} like {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 72,
+    "kind": "event_winner_guild",
+    "text": "{guild} came to {place} in force and left with the honours.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 73,
+    "kind": "event_winner_guild",
+    "text": "When the call went out at {place}, {guild} turned up more hands than anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 74,
+    "kind": "merchant_arrived",
+    "text": "A merchant's sail came into {place} today, low in the water with goods from elsewhere.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 75,
+    "kind": "merchant_arrived",
+    "text": "The travelling merchant is at {place}. Bring coin, and do not believe everything he says.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 76,
+    "kind": "road_first",
+    "text": "{player} walked the road from {place} to {place2} before anyone else had.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 77,
+    "kind": "mount_raised",
+    "text": "{player} led {a item} out of the pens at Novita today, fit to ride.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 78,
+    "kind": "mount_raised",
+    "text": "A new {item} out of {player}'s pens, and already eating like a lord.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 79,
+    "kind": "field_twenty",
+    "text": "{player} fenced a twentieth field at Novita. That is a farm now, not a garden.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 80,
+    "kind": "guild_founded",
+    "text": "A new banner on the island: {guild}, with {tag} beside its people's names.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "tag"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 81,
+    "kind": "guild_hall_tier",
+    "text": "{guild} finished another tier of their hall at {place}. The hammering can stop for a while.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 82,
+    "kind": "guild_hall_tier",
+    "text": "The walls of the {guild} hall at {place} stand higher tonight.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 83,
+    "kind": "newcomers",
+    "text": "{n} strangers came ashore at Talador today. Be kind; we were all new once.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 84,
+    "kind": "newcomers",
+    "text": "The docks saw {n} new faces today. Several of them already look lost.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 85,
+    "kind": "newcomers",
+    "text": "{n} came to the island for the first time today. Point them toward Geoffrey.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 86,
+    "kind": "guest_claimed",
+    "text": "{n} who came ashore to look around have decided to stay.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 87,
+    "kind": "guest_claimed",
+    "text": "{n} visitors put their names down today and meant it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 88,
+    "kind": "maker_generic",
+    "text": "Word came from the Maker, and the island is not quite as it was this morning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 89,
+    "kind": "maker_generic",
+    "text": "The Maker has been at work again. Mind where you step.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 90,
+    "kind": "maker_generic",
+    "text": "There is news from the Maker. Read the board at Talador.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 91,
+    "kind": "roll",
+    "text": "Also seen at their work: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 92,
+    "kind": "roll",
+    "text": "Not to be forgotten today: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 93,
+    "kind": "roll",
+    "text": "Others worth a nod: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 94,
+    "kind": "quiet",
+    "text": "A quiet day on Taiar. The fishing was fair and nobody fell in.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 95,
+    "kind": "quiet",
+    "text": "Not much to tell today. Sometimes that is the best news.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 96,
+    "kind": "quiet",
+    "text": "The island kept its head down today. Wenna polished glasses.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 97,
+    "kind": "rumour_unkilled",
+    "text": "They say {a creature} still walks near {place}, and nobody has ever brought one down.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 98,
+    "kind": "rumour_unfilled_case",
+    "text": "There is a case in {exhibit} at the {museum} that nobody has ever filled.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 99,
+    "kind": "rumour_unfound_item",
+    "text": "Old hands say {place} keeps something nobody has found yet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 100,
+    "kind": "rumour_unwalked_road",
+    "text": "Nobody has walked the road from {place} to {place2}. Somebody should.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 101,
+    "kind": "rumour_merchant",
+    "text": "A sail was sighted off {place}. If it is who Wenna thinks, bring coin.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 102,
+    "kind": "today:drop_rare",
+    "text": "Somebody came out of {place} this morning with {a item}. You'll hear who tomorrow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 103,
+    "kind": "today:drop_rare",
+    "text": "{a item} turned up at {place} today. Wenna knows whose hands it was in. She isn't telling yet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 104,
+    "kind": "today:cryptid",
+    "text": "Something strange came out of {place} today. Ask again tomorrow, and bring a strong drink.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 105,
+    "kind": "today:world_first_item",
+    "text": "Someone has found a thing nobody on this island has ever held. It's in the book tomorrow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 106,
+    "kind": "today:server_first_level",
+    "text": "Somebody is first to {skill} {level} as of today. Not saying who. Not yet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 107,
+    "kind": "today:level_max",
+    "text": "There's a new master of {skill} on Taiar. The name keeps till morning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 108,
+    "kind": "today:death",
+    "text": "{a creature} near {place} had the better of somebody today. They'll live. Everyone does, here.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 109,
+    "kind": "today:strong_kill",
+    "text": "Somebody took down {a creature} they had no right to beat. Wenna's still laughing about it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 110,
+    "kind": "today:record_fish",
+    "text": "There's {a item} on the scales heavier than any before it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 111,
+    "kind": "today:guild_hall_tier",
+    "text": "The hammering at {place} stopped this afternoon. Somebody's hall stands a storey higher.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 112,
+    "kind": "today:newcomers",
+    "text": "{n} new faces at the docks so far today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 113,
+    "kind": "today:quiet",
+    "text": "Quiet so far. Give it time; the day's young.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 114,
+    "kind": "signoff",
+    "text": "That is the day. Drink up.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 115,
+    "kind": "signoff",
+    "text": "Wenna Halloway, the Salty Sloth, Talador.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 116,
+    "kind": "signoff",
+    "text": "More tomorrow, if the island obliges.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 117,
+    "kind": "signoff",
+    "text": "That is all the tidings there are. Go to bed.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 118,
+    "kind": "signoff",
+    "text": "Set down by Wenna Halloway, who was there for most of it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 119,
+    "kind": "signoff",
+    "text": "Mind the step on your way out.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 120,
+    "kind": "ballad",
+    "text": "Sing of {guild}, who keep a hall of tier {n} at {place} and {members} names on the roll. Their best hands are at {skill}, and they are not shy about it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "n",
+      "place",
+      "members",
+      "skill"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 121,
+    "kind": "ballad",
+    "text": "Here is a song for {guild}. They raised their hall at {place} one nail at a time, and every nail was paid for.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 122,
+    "kind": "greeting",
+    "text": "Come in out of the weather. The tidings so far are on the board, and the beer is behind me.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 123,
+    "kind": "greeting",
+    "text": "Sit down, you look like you've been working. Here's what the island has been up to.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 124,
+    "kind": "greeting",
+    "text": "Busy day? Everyone's is. Here's what I've heard.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 125,
+    "kind": "greeting",
+    "text": "Wipe your boots. There's news, and some of it is even good.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 126,
+    "kind": "greeting",
+    "text": "Back again. Good. I've a few things to tell you.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 127,
+    "kind": "greeting",
+    "text": "Pull up a stool. Mind the one with three legs.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 128,
+    "kind": "rumour_unkilled",
+    "text": "Fishermen say {a creature} has been seen near {place}. Nobody has ever beaten one, and nobody seems keen to try.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 129,
+    "kind": "rumour_unkilled",
+    "text": "There is {a creature} out by {place} that has never once lost a fight. Somebody ought to change that.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 130,
+    "kind": "rumour_unfilled_case",
+    "text": "The keepers of the {museum} dust an empty case in {exhibit} every morning, waiting.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "exhibit"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 131,
+    "kind": "rumour_unfilled_case",
+    "text": "One case in {exhibit} at the {museum} has never held a thing. The keepers won't say what it is for.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 132,
+    "kind": "rumour_unfound_item",
+    "text": "Something turns up at {place} now and then that nobody alive has held. That's what they say, anyway.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 133,
+    "kind": "rumour_unfound_item",
+    "text": "An old woman at the bar swears {place} hides a thing no one has ever brought home. She buys her own drinks, so perhaps it is true.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 134,
+    "kind": "rumour_unwalked_road",
+    "text": "The road out of {place} toward {place2} has never felt a traveller's boot. Not one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 135,
+    "kind": "rumour_unwalked_road",
+    "text": "Nobody has ever gone from {place} to {place2}. The map says the road is there. Somebody should find out.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 136,
+    "kind": "rumour_merchant",
+    "text": "A trader at the docks says the travelling merchant is bound for {place}. Keep your purse handy.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 137,
+    "kind": "rumour_merchant",
+    "text": "Gulls are following a heavy cart toward {place}. Wenna knows that cart.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 138,
+    "kind": "ballad",
+    "text": "Sing of {guild}, {members} strong, who wear {tag} beside their names and are not ashamed of it. Their {skill} is the talk of the docks.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "members",
+      "tag",
+      "skill"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 139,
+    "kind": "ballad",
+    "text": "Here's to {guild}. {members} of them, and not one who'd let the others down. Ask any of them about {skill} and you'll be there all night.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "members",
+      "skill"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 140,
+    "kind": "ballad",
+    "text": "{guild} paid good coin for this song, so listen. {members} names under one banner, and hands that know {skill} better than most.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "members",
+      "skill"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 141,
+    "kind": "ballad",
+    "text": "They say {guild} began as a few friends round a fire. It's {members} now, and the fire is bigger.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "members"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 142,
+    "kind": "ballad",
+    "text": "Raise a cup to {guild}, whose hall at {place} was built of honest work. {members} on the roll, and every one of them hauled a beam.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place",
+      "members"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 143,
+    "kind": "ballad",
+    "text": "There's a hall at {place} with {tag} cut over the door. Knock, if you like. Somebody inside will be talking about {skill}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "tag",
+      "skill"
+    ],
+    "enabled": false,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 144,
+    "kind": "heading",
+    "text": "The {date}. Somebody left the door open and the whole island walked in.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 145,
+    "kind": "heading",
+    "text": "Tidings for the {date}, chalked on the board behind the bar.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 146,
+    "kind": "heading",
+    "text": "The {date}, as told to Wenna over the noise.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 147,
+    "kind": "heading",
+    "text": "Here is what came through the door of the Salty Sloth on the {date}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 148,
+    "kind": "heading",
+    "text": "The {date}. Rain on the shutters, and plenty to tell.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 149,
+    "kind": "heading",
+    "text": "The {date}. Wenna has her pen and a fresh pot of ink.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 150,
+    "kind": "heading",
+    "text": "Tidings for the {date}. Mind the wet floor.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 151,
+    "kind": "heading",
+    "text": "The {date}, written down before anyone could change their story.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 152,
+    "kind": "heading",
+    "text": "The {date}. [The fire is low|The kettle is on|The cat is asleep on the ledger], and the news is in.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 153,
+    "kind": "heading",
+    "text": "What the island got up to on the {date}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 154,
+    "kind": "heading",
+    "text": "Tidings for the {date}. Read them aloud if you like; Wenna won't mind.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 155,
+    "kind": "heading",
+    "text": "The {date}. A long day, by the look of the boots by the door.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 156,
+    "kind": "heading",
+    "text": "Set down at the Salty Sloth, the {date}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 157,
+    "kind": "heading",
+    "text": "The {date}. The gulls were loud and so was everyone else.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 158,
+    "kind": "heading",
+    "text": "Tidings for the {date}. Sit near the fire; this may take a while.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 159,
+    "kind": "heading",
+    "text": "The {date}, as near as it can be told without lying.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 160,
+    "kind": "heading",
+    "text": "The {date}. Here is who did what, and where.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 161,
+    "kind": "signoff",
+    "text": "That is the lot. The fire wants banking.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 162,
+    "kind": "signoff",
+    "text": "No more tonight. Wenna's hand is cramped.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 163,
+    "kind": "signoff",
+    "text": "That is all Wenna heard. If you heard more, tell her tomorrow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 164,
+    "kind": "signoff",
+    "text": "Off you go. The tidings will keep.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 165,
+    "kind": "signoff",
+    "text": "Ink dry, candle low. Goodnight.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 166,
+    "kind": "signoff",
+    "text": "The rest is gossip, and gossip is not written down.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 167,
+    "kind": "signoff",
+    "text": "Wenna Halloway, with her boots off.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 168,
+    "kind": "signoff",
+    "text": "That is the day done. Mind the gulls on the way home.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 169,
+    "kind": "signoff",
+    "text": "End of the tidings. The beer, sadly, has also ended.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 170,
+    "kind": "signoff",
+    "text": "That will do. Tomorrow is another page.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 171,
+    "kind": "signoff",
+    "text": "Close the book gently. The spine is going.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 172,
+    "kind": "signoff",
+    "text": "That is everything worth the ink.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 173,
+    "kind": "signoff",
+    "text": "Written by lamplight at the Salty Sloth.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 174,
+    "kind": "signoff",
+    "text": "Go home. Your bed misses you.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 175,
+    "kind": "signoff",
+    "text": "There it is. Make of it what you will.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 176,
+    "kind": "signoff",
+    "text": "That is the news. Wenna is going to sit down now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 177,
+    "kind": "signoff",
+    "text": "Mind the step, and the dog asleep on it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 178,
+    "kind": "signoff",
+    "text": "So ends the {date}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "date"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 179,
+    "kind": "signoff",
+    "text": "Tomorrow's page is blank, for now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 180,
+    "kind": "drop_rare",
+    "text": "{player} came out of {place} with {a item} and a look of mild surprise.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 181,
+    "kind": "drop_rare",
+    "text": "{a item}, from {place}, for {player}. Not everybody gets one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 182,
+    "kind": "drop_rare",
+    "text": "Somewhere in {place}, {player} found {a item}. They are keeping quiet about exactly where.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 183,
+    "kind": "drop_rare",
+    "text": "{player} brought {a item} into the Salty Sloth tonight and let everyone have a look.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 184,
+    "kind": "drop_rare",
+    "text": "{place} gave up {a item} today. {player} was there to catch it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 185,
+    "kind": "drop_rare",
+    "text": "Good luck for {player} at {place}: {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 186,
+    "kind": "drop_rare",
+    "text": "{player} swears {a item} just turned up at {place}. Nobody believes it was that easy.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 187,
+    "kind": "drop_rare",
+    "text": "Of all the things to find at {place}, {player} found {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 188,
+    "kind": "drop_rare",
+    "text": "{player} has {a item} now, out of {place}, and is pretending not to be pleased.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 189,
+    "kind": "drop_rare",
+    "text": "There was {a item} at {place} today, and {player} has it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 190,
+    "kind": "drop_rare",
+    "text": "{player} [turned|dug|shook] {a item} out of {place} this afternoon.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 191,
+    "kind": "drop_rare",
+    "text": "Folk work {place} for weeks without seeing {a item}. {player} saw one today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 192,
+    "kind": "drop_rare",
+    "text": "{player} found {a item} at {place}, which is more than most can say.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 193,
+    "kind": "drop_rare",
+    "text": "Ask {player} about {place} and you will hear about {a item}. At length.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 194,
+    "kind": "drop_rare",
+    "text": "{a item}! {player} found it at {place}, and Wenna saw it with her own eyes.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 195,
+    "kind": "drop_rare",
+    "text": "{player} had a long day at {place} and one good moment: {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 196,
+    "kind": "drop_rare",
+    "text": "Put {player}'s name next to {a item} and {place}. It happened today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 197,
+    "kind": "level_milestone",
+    "text": "{player} is {skill} {level} now. Their hands know the work.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 198,
+    "kind": "level_milestone",
+    "text": "{level} in {skill} for {player}, and not a word of complaint.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "level",
+      "skill",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 199,
+    "kind": "level_milestone",
+    "text": "{player} climbed to {skill} {level} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 200,
+    "kind": "level_milestone",
+    "text": "{skill}, level {level}: that is {player}, as of this evening.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 201,
+    "kind": "level_milestone",
+    "text": "{player} made {skill} {level}. Somebody buy them a drink.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 202,
+    "kind": "level_milestone",
+    "text": "Another rung for {player}: {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 203,
+    "kind": "level_milestone",
+    "text": "{player} has put in the hours, and {skill} {level} is the proof.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 204,
+    "kind": "level_milestone",
+    "text": "{skill} {level}. {player} did not even look tired.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 205,
+    "kind": "level_milestone",
+    "text": "{player} got to {skill} {level} today and went straight back to work.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 206,
+    "kind": "level_milestone",
+    "text": "News from the work benches: {player}, {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 207,
+    "kind": "level_milestone",
+    "text": "{player} is the island's newest {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 208,
+    "kind": "level_milestone",
+    "text": "{player} reached {skill} {level} and allowed themselves a small smile.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 209,
+    "kind": "level_milestone",
+    "text": "{level} in {skill}. {player} has the calluses to show for it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "level",
+      "skill",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 210,
+    "kind": "level_milestone",
+    "text": "{player} [ground|worked|slogged] their way to {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 211,
+    "kind": "level_milestone",
+    "text": "There are not many at {skill} {level}. Count {player} among them now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 212,
+    "kind": "level_milestone",
+    "text": "{player}, {skill} {level}. Write it down. Wenna has.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 213,
+    "kind": "level_milestone",
+    "text": "{skill} {level} for {player}, who says it was nothing. It was not nothing.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 214,
+    "kind": "level_milestone",
+    "text": "{player} passed {skill} {level} today, quietly, the way good work is done.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 215,
+    "kind": "level_milestone",
+    "text": "Hats off to {player}: {skill} {level}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 216,
+    "kind": "death",
+    "text": "{player} went down to {a creature} near {place}, and walked back to Talador with their head up.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 217,
+    "kind": "death",
+    "text": "{a creature} near {place} got the better of {player} today. It happens to the best.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 218,
+    "kind": "death",
+    "text": "{player} lost a fight to {a creature} at {place}. Their things are where they fell.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 219,
+    "kind": "death",
+    "text": "Near {place}, {a creature} sent {player} home early.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 220,
+    "kind": "death",
+    "text": "{player} took on {a creature} near {place}. Today it did not go their way.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 221,
+    "kind": "death",
+    "text": "{player} met {a creature} near {place} and came round in Talador, sore but whole.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 222,
+    "kind": "death",
+    "text": "{a creature} near {place} has {player}'s measure, for now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 223,
+    "kind": "death",
+    "text": "{player} fell to {a creature} at {place}. They will want a rematch.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 224,
+    "kind": "death",
+    "text": "{a creature} near {place} was too much for {player} today. Tomorrow may be different.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 225,
+    "kind": "death",
+    "text": "{player} was carried, more or less, back from {place} after meeting {a creature}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 226,
+    "kind": "death",
+    "text": "{player} learned something about {a creature} near {place} today, the hard way.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 227,
+    "kind": "death",
+    "text": "{player} stood against {a creature} at {place} for as long as they could.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 228,
+    "kind": "death",
+    "text": "Spare a thought for {player}, who met {a creature} near {place} and lost.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 229,
+    "kind": "death",
+    "text": "{player} is back in Talador with a story about {a creature} at {place}, and fewer things than they set out with.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 230,
+    "kind": "death",
+    "text": "{a creature} near {place} had a good day. {player} did not.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 231,
+    "kind": "death",
+    "text": "{player} picked the wrong fight near {place}. {a creature} won it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 232,
+    "kind": "death",
+    "text": "{player} fell near {place}. Whatever {a creature} is made of, it held.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 233,
+    "kind": "death",
+    "text": "The healers in Talador saw {player} today, fresh from {a creature} near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 234,
+    "kind": "death",
+    "text": "{player} gave {a creature} near {place} a hard time before it gave them a harder one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 235,
+    "kind": "death",
+    "text": "{player} went to {place}, met {a creature}, and is resting now. Leave them be.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 236,
+    "kind": "strong_kill",
+    "text": "{player} beat {a creature} near {place} that should have beaten them.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 237,
+    "kind": "strong_kill",
+    "text": "{a creature} near {place} picked a fight with {player} and lost it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 238,
+    "kind": "strong_kill",
+    "text": "Nobody gave {player} good odds against {a creature}. Nobody asked {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 239,
+    "kind": "strong_kill",
+    "text": "{player} brought down {a creature} near {place}, well above their weight.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 240,
+    "kind": "strong_kill",
+    "text": "{player} won a fight near {place} they had no business winning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 241,
+    "kind": "strong_kill",
+    "text": "{a creature} near {place} met {player} and found them tougher than they looked.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 242,
+    "kind": "strong_kill",
+    "text": "{player} took {a creature} at {place} and walked off with a limp and a grin.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 243,
+    "kind": "strong_kill",
+    "text": "They are still talking about {player} and {a creature} near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 244,
+    "kind": "strong_kill",
+    "text": "{player} should have run from {a creature}. {player} did not run.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 245,
+    "kind": "strong_kill",
+    "text": "Near {place}, {player} beat {a creature} the hard way.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 246,
+    "kind": "strong_kill",
+    "text": "{a creature} near {place} learned not to judge {player} by their size.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 247,
+    "kind": "strong_kill",
+    "text": "{player} went toe to toe with {a creature} near {place} and came out on top.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 248,
+    "kind": "strong_kill",
+    "text": "{player} took down {a creature} today. Wenna had money on the creature.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 249,
+    "kind": "strong_kill",
+    "text": "A fight near {place} to tell your children about: {player} against {a creature}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 250,
+    "kind": "strong_kill",
+    "text": "{player} beat {a creature} near {place}. Nobody saw it coming, least of all the creature.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 251,
+    "kind": "strong_kill",
+    "text": "{a creature} near {place} is a cautionary tale now, and {player} is the reason.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 252,
+    "kind": "strong_kill",
+    "text": "Bold work by {player} near {place}: {a creature}, beaten.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 253,
+    "kind": "strong_kill",
+    "text": "{player} [tangled with|squared up to|stood their ground against] {a creature} near {place} and won.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 254,
+    "kind": "strong_kill",
+    "text": "{player} found {a creature} near {place} and, against all sense, beat it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 255,
+    "kind": "strong_kill",
+    "text": "Some fights are won on stubbornness. {player} won one near {place}, against {a creature}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 256,
+    "kind": "strong_kill",
+    "text": "{player} is walking a little taller after beating {a creature} near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 257,
+    "kind": "cryptid",
+    "text": "{player} came back from {place} white as a sheet, holding {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 258,
+    "kind": "cryptid",
+    "text": "{a item}, out of {place}. {player} has it, and has not slept since.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 259,
+    "kind": "cryptid",
+    "text": "There is a thing in {place} that most think is a story. {player} has {a item} that says otherwise.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 260,
+    "kind": "cryptid",
+    "text": "{player} found {a item} at {place}. Wenna checked it twice. It is real.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 261,
+    "kind": "cryptid",
+    "text": "{player} won't say what they saw at {place}. They will show you {a item}, though.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 262,
+    "kind": "world_first_item",
+    "text": "{a item} was found today for the first time anyone knows of, by {player}, at {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 263,
+    "kind": "world_first_item",
+    "text": "Nobody had seen {a item} until {player} walked out of {place} holding one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 264,
+    "kind": "world_first_item",
+    "text": "{player} found the island's first {item}, at {place}. Somebody had to.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 265,
+    "kind": "world_first_item",
+    "text": "First of its kind: {a item}, found by {player} at {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 266,
+    "kind": "world_first_item",
+    "text": "Write it in ink: {player}, {place}, the first {item} ever found.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 267,
+    "kind": "world_first_item",
+    "text": "{place} has kept {a item} hidden since the island began. {player} found it today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 268,
+    "kind": "trophy",
+    "text": "{player} took {a item} at {place}, a trophy worth the walk.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 269,
+    "kind": "trophy",
+    "text": "{a item} for {player}'s wall, out of {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 270,
+    "kind": "trophy",
+    "text": "{player} is looking for a nail to hang {a item} on. {place} gave it up today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 271,
+    "kind": "trophy",
+    "text": "A fine trophy came out of {place}: {a item}, for {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 272,
+    "kind": "trophy",
+    "text": "{player} brought {a item} back from {place} and set it on the bar for everyone to admire.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 273,
+    "kind": "trophy",
+    "text": "{place} gave {player} {a item}. Well earned, by all accounts.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 274,
+    "kind": "trophy",
+    "text": "There's {a item} in {player}'s pack tonight, from {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 275,
+    "kind": "server_first_level",
+    "text": "{player} is the first on the island to reach {skill} {level}. Mark the day.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 276,
+    "kind": "server_first_level",
+    "text": "Nobody in Talaran had reached {skill} {level} until {player} did, today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 277,
+    "kind": "server_first_level",
+    "text": "{skill} {level}: {player} got there before anyone else alive.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 278,
+    "kind": "server_first_level",
+    "text": "The island has its first {skill} {level}, and it is {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 279,
+    "kind": "server_first_level",
+    "text": "First to {skill} {level}, and nobody can take it away: {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 280,
+    "kind": "server_first_level",
+    "text": "{player} reached {skill} {level} ahead of every other soul in Talaran.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 281,
+    "kind": "level_max",
+    "text": "{player} has reached the end of {skill}. Level {level}, and nothing left above it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 282,
+    "kind": "level_max",
+    "text": "{skill} {level}: mastered, by {player}. The island will be talking about it for weeks.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 283,
+    "kind": "level_max",
+    "text": "{player} is a master of {skill}. There is no higher to go.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 284,
+    "kind": "level_max",
+    "text": "Today {player} reached {skill} {level}. Wenna poured them a drink on the house.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 285,
+    "kind": "level_max",
+    "text": "Mastery of {skill}, at last, for {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 286,
+    "kind": "level_max",
+    "text": "Raise everything you have to {player}, master of {skill}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 287,
+    "kind": "total_level_mark",
+    "text": "{player} counts {level} levels across all their trades now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 288,
+    "kind": "total_level_mark",
+    "text": "Add up all {player}'s skills and you get {level}. Wenna did the sum twice.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 289,
+    "kind": "total_level_mark",
+    "text": "{level} levels in all for {player}. They have been busy.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "level",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 290,
+    "kind": "total_level_mark",
+    "text": "{player} passed {level} total levels today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 291,
+    "kind": "total_level_mark",
+    "text": "All told, {player} stands at {level} levels. Few have worked so many trades.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 292,
+    "kind": "total_level_mark",
+    "text": "{player}: {level} levels, every one of them earned.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 293,
+    "kind": "total_level_mark",
+    "text": "A milestone for {player}: {level} levels across the board.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 294,
+    "kind": "record_fish",
+    "text": "{player} landed {a item} of {weight}, and the scales at the dock have never seen better.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "weight"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 295,
+    "kind": "record_fish",
+    "text": "The heaviest {item} on record weighs {weight}, and {player} caught it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "weight",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 296,
+    "kind": "record_fish",
+    "text": "{player} pulled out {a item} of {weight}. The old record holder is not speaking to them.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "weight"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 297,
+    "kind": "record_fish",
+    "text": "{weight} of {item}, landed by {player}. A record, and a heavy one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "weight",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 298,
+    "kind": "record_fish",
+    "text": "{player}'s {item} came in at {weight}. Nobody has ever caught a bigger one.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "weight"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 299,
+    "kind": "first_kill",
+    "text": "{player} is the first ever to bring down {a creature}, near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 300,
+    "kind": "first_kill",
+    "text": "Until today nobody had beaten {a creature}. Now {player} has.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 301,
+    "kind": "first_kill",
+    "text": "First blood against {a creature}: {player}, near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 302,
+    "kind": "first_kill",
+    "text": "{a creature} near {place} lost its first fight today, to {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 303,
+    "kind": "first_kill",
+    "text": "The island's first win over {a creature} goes to {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 304,
+    "kind": "first_kill",
+    "text": "{player} beat {a creature} near {place}, the first anyone has.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 305,
+    "kind": "first_kill",
+    "text": "Nobody knew {a creature} could be beaten until {player} did it near {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 306,
+    "kind": "bestiary_mark",
+    "text": "{player} has {n} kills of {creature} to their name now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 307,
+    "kind": "bestiary_mark",
+    "text": "{n} kills of {creature}, by {player}'s count. Wenna takes their word for it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n",
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 308,
+    "kind": "bestiary_mark",
+    "text": "{player} has made {n} kills of {creature} near {place}. The rest are keeping their heads down.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 309,
+    "kind": "bestiary_mark",
+    "text": "{player} reached {n} kills of {creature} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 310,
+    "kind": "bestiary_mark",
+    "text": "{n} kills of {creature} for {player}. They know every trick it has.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n",
+      "creature",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 311,
+    "kind": "bestiary_mark",
+    "text": "If you want to know about {creature}, ask {player}. {n} kills should have taught them something.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "player",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 312,
+    "kind": "bestiary_mark",
+    "text": "{player} has brought down {creature} {n} times now, and shows no sign of stopping.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "creature",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 313,
+    "kind": "museum_first_give",
+    "text": "{player} gave {a item} to the {museum}. It is the first one they have had.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 314,
+    "kind": "museum_first_give",
+    "text": "There is a new case lit at the {museum}: {a item}, given by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 315,
+    "kind": "museum_first_give",
+    "text": "The {museum} has {a item} at last, and {player}'s name is on the plaque.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 316,
+    "kind": "museum_first_give",
+    "text": "{player} walked {a item} into the {museum} and walked out a little prouder.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 317,
+    "kind": "museum_first_give",
+    "text": "Visit the {museum} and look for {a item}. {player} gave it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 318,
+    "kind": "museum_first_give",
+    "text": "{player} is the first to give {a item} to the {museum}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 319,
+    "kind": "museum_first_give",
+    "text": "The keepers at the {museum} were very pleased with {player} today: {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 320,
+    "kind": "museum_first_give",
+    "text": "One more case filled at the {museum}, with {player}'s {item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 321,
+    "kind": "exhibit_complete",
+    "text": "{exhibit} at the {museum} is complete. {player} brought the last piece.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "museum",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 322,
+    "kind": "exhibit_complete",
+    "text": "Every case in {exhibit} is full, thanks to {player} and {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 323,
+    "kind": "exhibit_complete",
+    "text": "The keepers of the {museum} closed the last case of {exhibit} today. {player} filled it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "museum",
+      "exhibit",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 324,
+    "kind": "exhibit_complete",
+    "text": "{player} finished {exhibit} at the {museum}. It took the whole island to get this far.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "exhibit",
+      "museum"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 325,
+    "kind": "exhibit_complete",
+    "text": "{exhibit} is whole at last. The final gift was {a item}, from {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 326,
+    "kind": "exhibit_complete",
+    "text": "Go and see {exhibit} at the {museum}. It is finished, and {player} finished it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "museum",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 327,
+    "kind": "exhibit_complete",
+    "text": "{player} set {a item} in the last empty case of {exhibit}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "exhibit"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 328,
+    "kind": "exhibit_complete",
+    "text": "There are no gaps left in {exhibit}. {player} saw to that.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "exhibit",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 329,
+    "kind": "event_winner",
+    "text": "{player} worked hardest when the call went out at {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 330,
+    "kind": "event_winner",
+    "text": "Nobody matched {player} at {place} when the {skill} was wanted.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 331,
+    "kind": "event_winner",
+    "text": "The {skill} at {place} drew a crowd, and {player} beat all of them.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 332,
+    "kind": "event_winner",
+    "text": "{player} led the field at {place}. Wenna saw the blisters.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 333,
+    "kind": "event_winner",
+    "text": "When {place} needed {skill}, {player} gave the most.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "skill",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 334,
+    "kind": "event_winner",
+    "text": "{player} topped the work at {place} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 335,
+    "kind": "event_winner",
+    "text": "Of everyone who turned out at {place}, {player} did the most.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 336,
+    "kind": "event_winner",
+    "text": "{player} is the name on everyone's lips at {place} tonight.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 337,
+    "kind": "event_winner_guild",
+    "text": "{guild} turned out in numbers at {place} and did more than anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 338,
+    "kind": "event_winner_guild",
+    "text": "The {skill} at {place} was {guild}'s day.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "place",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 339,
+    "kind": "event_winner_guild",
+    "text": "{guild} beat every other guild at {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 340,
+    "kind": "event_winner_guild",
+    "text": "When the call went out at {place}, {guild} answered it best.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 341,
+    "kind": "event_winner_guild",
+    "text": "{guild} put more hands to the {skill} at {place} than anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "skill",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 342,
+    "kind": "event_winner_guild",
+    "text": "Honours at {place} go to {guild}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 343,
+    "kind": "event_winner_guild",
+    "text": "{guild} came, worked, and went home with the honours from {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 344,
+    "kind": "event_winner_guild",
+    "text": "{guild} was the guild to beat at {place}. Nobody did.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 345,
+    "kind": "merchant_arrived",
+    "text": "The travelling merchant pulled his cart into {place} today. Go and see what he has.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 346,
+    "kind": "merchant_arrived",
+    "text": "A cart full of goods from elsewhere stands at {place}. The merchant is back.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 347,
+    "kind": "merchant_arrived",
+    "text": "The merchant is at {place}, haggling with anyone who stands still.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 348,
+    "kind": "merchant_arrived",
+    "text": "{place} has a visitor with a heavy cart and a quick tongue.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 349,
+    "kind": "merchant_arrived",
+    "text": "Word from {place}: the travelling merchant is in, and he is buying as well as selling.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 350,
+    "kind": "merchant_arrived",
+    "text": "The merchant's cart creaked into {place} this morning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 351,
+    "kind": "merchant_arrived",
+    "text": "Bring your purse to {place}. The merchant will not wait.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 352,
+    "kind": "merchant_arrived",
+    "text": "The travelling merchant has set up at {place}. He looked tired, but his prices did not.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 353,
+    "kind": "road_first",
+    "text": "{player} is the first to walk all the way from {place} to {place2}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 354,
+    "kind": "road_first",
+    "text": "Nobody had taken the road from {place} to {place2} until {player} did.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 355,
+    "kind": "road_first",
+    "text": "{player} wore the first boot prints into the road between {place} and {place2}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 356,
+    "kind": "road_first",
+    "text": "First down the road from {place} to {place2}: {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 357,
+    "kind": "road_first",
+    "text": "The road from {place} to {place2} has had a traveller at last. {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 358,
+    "kind": "road_first",
+    "text": "{player} walked from {place} to {place2} today, the first on the island to do it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 359,
+    "kind": "road_first",
+    "text": "{player} went where nobody had gone before, at least not from {place} to {place2}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place",
+      "place2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 360,
+    "kind": "road_first",
+    "text": "There is a road from {place} to {place2}, and {player} has walked it first.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "place2",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 361,
+    "kind": "road_first",
+    "text": "{player} reached {place2} from {place}, first of anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "place2",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 362,
+    "kind": "mount_raised",
+    "text": "{player} raised {a item} fit to carry a rider.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 363,
+    "kind": "mount_raised",
+    "text": "{a item} left {player}'s pens today, saddle-ready.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 364,
+    "kind": "mount_raised",
+    "text": "{player} has {a item} to ride now, raised by their own hand.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 365,
+    "kind": "mount_raised",
+    "text": "Another fine {item} out of the pens at Novita, raised by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 366,
+    "kind": "mount_raised",
+    "text": "{player}'s {item} is grown and ready for the road.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 367,
+    "kind": "mount_raised",
+    "text": "{player} brought {a item} up from a foal. It is ready to ride.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 368,
+    "kind": "mount_raised",
+    "text": "Novita's pens gave up {a item} today, and {player} is very pleased.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 369,
+    "kind": "mount_raised",
+    "text": "{player} raised {a item}. It already knows the way to the feed bin.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 370,
+    "kind": "field_twenty",
+    "text": "{player} has twenty fields at Novita. That is a lot of ploughing.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 371,
+    "kind": "field_twenty",
+    "text": "Twenty fields for {player}. Novita is starting to look like their farm.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 372,
+    "kind": "field_twenty",
+    "text": "{player} put up the fence on a twentieth field today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 373,
+    "kind": "field_twenty",
+    "text": "{player} farms twenty fields now. The crows are delighted.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 374,
+    "kind": "field_twenty",
+    "text": "Count them: twenty fields, all {player}'s.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 375,
+    "kind": "field_twenty",
+    "text": "A twentieth field at Novita, fenced and ready, for {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 376,
+    "kind": "field_twenty",
+    "text": "{player} has as much land at Novita as anyone can hold.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 377,
+    "kind": "field_twenty",
+    "text": "{player}'s twentieth field is fenced. Their back will tell them about it tomorrow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 378,
+    "kind": "field_twenty",
+    "text": "Twenty fields. {player} is a proper farmer now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 379,
+    "kind": "guild_founded",
+    "text": "A new guild on the island: {guild}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 380,
+    "kind": "guild_founded",
+    "text": "{guild} raised their banner today, with {tag} beside their names.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "tag"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 381,
+    "kind": "guild_founded",
+    "text": "Look out for {tag} in the crowd. {guild} has been founded.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "tag",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 382,
+    "kind": "guild_founded",
+    "text": "{guild} began today. Every guild starts somewhere.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 383,
+    "kind": "guild_founded",
+    "text": "There is a new name in Talaran: {guild}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 384,
+    "kind": "guild_founded",
+    "text": "{guild} was founded today. Wenna wishes them luck.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 385,
+    "kind": "guild_founded",
+    "text": "A handful of folk became {guild} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 386,
+    "kind": "guild_founded",
+    "text": "{tag} is new on the island. It stands for {guild}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "tag",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 387,
+    "kind": "guild_founded",
+    "text": "{guild} has signed its name in the guild book.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 388,
+    "kind": "guild_hall_tier",
+    "text": "{guild}'s hall at {place} grew today. Tier {n}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 389,
+    "kind": "guild_hall_tier",
+    "text": "The hammers stopped at {place}: {guild}'s hall is finished to tier {n}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "guild",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 390,
+    "kind": "guild_hall_tier",
+    "text": "{guild} raised their hall at {place} to tier {n}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 391,
+    "kind": "guild_hall_tier",
+    "text": "New beams in the {guild} hall at {place}. It stands at tier {n} now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 392,
+    "kind": "guild_hall_tier",
+    "text": "{guild} finished a tier of their hall at {place}. The sawdust can settle.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 393,
+    "kind": "guild_hall_tier",
+    "text": "Tier {n} for {guild}'s hall at {place}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n",
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 394,
+    "kind": "guild_hall_tier",
+    "text": "The {guild} hall at {place} is bigger tonight than it was this morning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 395,
+    "kind": "guild_hall_tier",
+    "text": "{guild} built up their hall at {place}, and the roof did not fall in.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 396,
+    "kind": "newcomers",
+    "text": "{n} new faces came ashore today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 397,
+    "kind": "newcomers",
+    "text": "{n} strangers stepped off the boat at Talador.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 398,
+    "kind": "newcomers",
+    "text": "The island has {n} more souls on it tonight.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 399,
+    "kind": "newcomers",
+    "text": "{n} newcomers arrived today. Show them where the beer is.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 400,
+    "kind": "newcomers",
+    "text": "{n} new arrivals at the Talador docks.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 401,
+    "kind": "newcomers",
+    "text": "{n} came to Talaran today for the first time. Welcome them.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 402,
+    "kind": "newcomers",
+    "text": "Today {n} people decided to try their luck on the island.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 403,
+    "kind": "guest_claimed",
+    "text": "{n} visitors decided to stay today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 404,
+    "kind": "guest_claimed",
+    "text": "{n} of those who came to look around have put their names down.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 405,
+    "kind": "guest_claimed",
+    "text": "The island kept {n} more today. They liked it enough to stay.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 406,
+    "kind": "guest_claimed",
+    "text": "{n} guests became islanders today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 407,
+    "kind": "guest_claimed",
+    "text": "{n} people who only meant to visit are staying.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 408,
+    "kind": "guest_claimed",
+    "text": "Welcome properly to the {n} who signed their names today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 409,
+    "kind": "guest_claimed",
+    "text": "{n} more names in the island's book today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 410,
+    "kind": "guest_claimed",
+    "text": "{n} guests liked what they saw and stayed.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 411,
+    "kind": "maker_generic",
+    "text": "The Maker has been busy. Something on the island is different tonight.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 412,
+    "kind": "maker_generic",
+    "text": "Word came down from the Maker. The board at Talador has the details.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 413,
+    "kind": "maker_generic",
+    "text": "The Maker made some changes. Wenna has not found them all yet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 414,
+    "kind": "maker_generic",
+    "text": "There is news from the Maker today. Worth a read.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 415,
+    "kind": "maker_generic",
+    "text": "The Maker has tinkered with the island again.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 416,
+    "kind": "maker_generic",
+    "text": "Something new from the Maker. Ask around.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 417,
+    "kind": "maker_generic",
+    "text": "The Maker sent word, and the island shifted a little.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 418,
+    "kind": "roll",
+    "text": "Also hard at work today: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 419,
+    "kind": "roll",
+    "text": "Wenna saw these at their work too: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 420,
+    "kind": "roll",
+    "text": "Others who earned a mention: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 421,
+    "kind": "roll",
+    "text": "Busy hands today belonged to {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 422,
+    "kind": "roll",
+    "text": "Not forgotten: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 423,
+    "kind": "roll",
+    "text": "Also out and about: {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 424,
+    "kind": "roll",
+    "text": "And a nod to {names}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "names"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 425,
+    "kind": "quiet",
+    "text": "Quiet today. The gulls had more to say than anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 426,
+    "kind": "quiet",
+    "text": "Not much happened today, and Wenna is grateful.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 427,
+    "kind": "quiet",
+    "text": "A slow day on the island. The fish were not complaining.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 428,
+    "kind": "quiet",
+    "text": "Little to tell. Even the merchant stayed in bed.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 429,
+    "kind": "quiet",
+    "text": "A quiet one. The beer lasted all evening.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 430,
+    "kind": "quiet",
+    "text": "Today the island rested. Tomorrow it will not.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 431,
+    "kind": "quiet",
+    "text": "Hardly anything to write. Wenna sharpened her pen anyway.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 432,
+    "kind": "greeting",
+    "text": "There you are. Sit, sit.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 433,
+    "kind": "greeting",
+    "text": "Evening. Or morning. Hard to tell in here.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 434,
+    "kind": "greeting",
+    "text": "Mind the dog. He bites only on Tuesdays.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 435,
+    "kind": "greeting",
+    "text": "Come in, come in. I've been saving a stool.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 436,
+    "kind": "gem_best_grade",
+    "text": "{player} cut {a item} today, as fine as a stone can be.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 437,
+    "kind": "gem_best_grade",
+    "text": "{a item} came off {player}'s wheel. Flawless, they say.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 438,
+    "kind": "gem_best_grade",
+    "text": "{player} has the steadiest hands on the island: {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 439,
+    "kind": "gem_best_grade",
+    "text": "The lapidary's best: {a item}, cut by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 440,
+    "kind": "gem_best_grade",
+    "text": "{player} turned a rough stone into {a item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 441,
+    "kind": "gem_best_grade",
+    "text": "Not a flaw in it. {player}'s {item} is the talk of Caliwen.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 442,
+    "kind": "gem_best_grade",
+    "text": "{player} cut {a item} and held it up to the window for a long time.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 443,
+    "kind": "gem_best_grade",
+    "text": "{a item}, as good as cutting gets, from {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 444,
+    "kind": "gem_best_grade",
+    "text": "{player}'s wheel gave up {a item} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 445,
+    "kind": "gem_best_grade",
+    "text": "There is {a item} in {player}'s pack tonight, without a scratch on it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 446,
+    "kind": "first_craft_tier",
+    "text": "{player} made the first {item} the island has ever seen.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 447,
+    "kind": "first_craft_tier",
+    "text": "Nobody had made {a item} until {player} did, today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 448,
+    "kind": "first_craft_tier",
+    "text": "The first {item} in Talaran came off {player}'s bench.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 449,
+    "kind": "first_craft_tier",
+    "text": "{player} crafted {a item}, the first of its kind on the island.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 450,
+    "kind": "first_craft_tier",
+    "text": "First of its kind: {a item}, made by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 451,
+    "kind": "first_craft_tier",
+    "text": "{player} worked out how to make {a item}. Nobody else has, yet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 452,
+    "kind": "first_craft_tier",
+    "text": "{a item}, made for the first time anywhere, by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 453,
+    "kind": "first_craft_tier",
+    "text": "{player} finished the island's first {item} and set it on the bench to admire.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 454,
+    "kind": "first_craft_tier",
+    "text": "There was no {item} in Talaran this morning. Now there is, thanks to {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 455,
+    "kind": "first_craft_tier",
+    "text": "The island's craftsfolk have a new mark to aim for: {player}'s {item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 456,
+    "kind": "feat_rare",
+    "text": "{player} earned {feat} today. Few ever do.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "feat"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 457,
+    "kind": "feat_rare",
+    "text": "{feat}: done, by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "feat",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 458,
+    "kind": "feat_rare",
+    "text": "{player} has {feat} to their name now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "feat"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 459,
+    "kind": "feat_rare",
+    "text": "Not many manage {feat}. {player} did.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "feat",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 460,
+    "kind": "feat_rare",
+    "text": "{player} did what it takes for {feat}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "feat"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 461,
+    "kind": "feat_rare",
+    "text": "{feat}, earned by {player}. Wenna is impressed, and she is hard to impress.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "feat",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 462,
+    "kind": "feat_rare",
+    "text": "Add {feat} to {player}'s list.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "feat",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 463,
+    "kind": "feat_rare",
+    "text": "{player} achieved {feat} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "feat"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 464,
+    "kind": "feat_rare",
+    "text": "{feat} belongs to {player} now.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "feat",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 465,
+    "kind": "feat_rare",
+    "text": "Today {player} earned {feat}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "feat"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 466,
+    "kind": "quest_first",
+    "text": "{player} is the first to see {quest} through.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "quest"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 467,
+    "kind": "quest_first",
+    "text": "Nobody had finished {quest} until {player} did.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "quest",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 468,
+    "kind": "quest_first",
+    "text": "{quest} is done, for the first time, by {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "quest",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 469,
+    "kind": "quest_first",
+    "text": "First to the end of {quest}: {player}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "quest",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 470,
+    "kind": "quest_first",
+    "text": "{player} finished {quest} before anyone else on the island.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "quest"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 471,
+    "kind": "quest_first",
+    "text": "{quest} had never been finished. {player} finished it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "quest",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 472,
+    "kind": "quest_first",
+    "text": "{player} brought {quest} to its end, first of anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "quest"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 473,
+    "kind": "quest_first",
+    "text": "The first to finish {quest} was {player}, today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "quest",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 474,
+    "kind": "quest_first",
+    "text": "{player} saw {quest} out at {place}, the first ever to do it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "quest",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 475,
+    "kind": "quest_first",
+    "text": "Whatever {quest} asked of them, {player} gave it, first of anyone.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "quest",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 476,
+    "kind": "shop_big_sale",
+    "text": "{player}'s shop sold {n} {item} for {gold} gold today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "item",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 477,
+    "kind": "shop_big_sale",
+    "text": "A big day at {player}'s counter: {gold} gold for {n} {item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "gold",
+      "n",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 478,
+    "kind": "shop_big_sale",
+    "text": "{player} sold {n} {item} in one go, for {gold} gold.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "item",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 479,
+    "kind": "shop_big_sale",
+    "text": "{gold} gold changed hands at {player}'s shop over {item}.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "gold",
+      "player",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 480,
+    "kind": "shop_big_sale",
+    "text": "{player}'s till is heavier tonight by {gold} gold.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 481,
+    "kind": "shop_big_sale",
+    "text": "Somebody bought {n} {item} from {player} for {gold} gold.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n",
+      "item",
+      "player",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 482,
+    "kind": "shop_big_sale",
+    "text": "{player} did a fine trade in {item} today: {gold} gold for one sale.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 483,
+    "kind": "shop_big_sale",
+    "text": "{gold} gold in a single sale at {player}'s shop.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "gold",
+      "player"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 484,
+    "kind": "shop_big_sale",
+    "text": "Trade is good at {player}'s shop: {n} {item}, {gold} gold.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "n",
+      "item",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 485,
+    "kind": "shop_big_sale",
+    "text": "{player} sold {item} today for {gold} gold, and still has some left. Probably.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "player",
+      "item",
+      "gold"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 486,
+    "kind": "today:drop_rare",
+    "text": "Someone at {place} is keeping {a item} very quiet today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 487,
+    "kind": "today:cryptid",
+    "text": "A strange thing came out of {place}. Wenna will say more tomorrow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 488,
+    "kind": "today:cryptid",
+    "text": "Somebody saw something at {place} they cannot explain, and has {a item} to show for it.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 489,
+    "kind": "today:world_first_item",
+    "text": "There's {a item} on the island today that was never here before.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 490,
+    "kind": "today:world_first_item",
+    "text": "Somebody found the first {item}. You'll hear who in the morning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 491,
+    "kind": "today:server_first_level",
+    "text": "Somebody reached {skill} {level} before anyone else. More tomorrow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 492,
+    "kind": "today:server_first_level",
+    "text": "The island has its first {skill} {level}. Wenna knows who. Wenna is not telling.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "level"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 493,
+    "kind": "today:level_max",
+    "text": "Somebody mastered {skill} today. Patience.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 494,
+    "kind": "today:level_max",
+    "text": "A new master of {skill}. The name waits for the book.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 495,
+    "kind": "today:death",
+    "text": "{a creature} near {place} sent somebody home today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 496,
+    "kind": "today:death",
+    "text": "Somebody met {a creature} near {place}, and the healers met them after.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 497,
+    "kind": "today:strong_kill",
+    "text": "Somebody beat {a creature} near {place} against every sensible bet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 498,
+    "kind": "today:strong_kill",
+    "text": "{a creature} near {place} lost to somebody it should have beaten.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 499,
+    "kind": "today:record_fish",
+    "text": "A record {item} came in at {weight} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "weight"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 500,
+    "kind": "today:record_fish",
+    "text": "The dock scales groaned under {a item} today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 501,
+    "kind": "today:guild_hall_tier",
+    "text": "A guild hall at {place} grew a tier today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 502,
+    "kind": "today:guild_hall_tier",
+    "text": "Fresh timber at {place}. Somebody's guild has been building.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 503,
+    "kind": "today:newcomers",
+    "text": "{n} strangers off the boat so far today.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 504,
+    "kind": "today:newcomers",
+    "text": "The docks have seen {n} new faces since morning.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 505,
+    "kind": "today:quiet",
+    "text": "Not a thing yet. Wenna is not worried.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 506,
+    "kind": "today:quiet",
+    "text": "Nothing to tell so far. The day is long.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 507,
+    "kind": "ballad_open",
+    "text": "Come close and set your cups down, friends,\nand hush the fiddle's play.\nI sing of {guild}, who wear {tag},\nand earn it every day.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild",
+      "tag"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 508,
+    "kind": "ballad_open",
+    "text": "There's a name they say along the docks\nwhen the evening tide is low.\nIt's {guild}. I'll sing you why,\nif you've an hour to go.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 509,
+    "kind": "ballad_open",
+    "text": "Pour another, love, and let me start.\nThis one's been bought and paid.\nIt's for {guild}, who keep their word\nand finish what they've made.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 510,
+    "kind": "ballad_open",
+    "text": "Some songs are sung for kings, they say.\nWe've none of those out here.\nSo here's one for {guild} instead,\nand someone buy their beer.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 511,
+    "kind": "ballad_open",
+    "text": "Hear now of {guild}, hear it plain,\nfor I'll not sing it twice.\nThey paid me well to tell it true,\nand true comes at a price.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 512,
+    "kind": "ballad_open",
+    "text": "{by} came in and paid the house\nand asked me for a song.\nSo here is one for {guild}, friends.\nIt shouldn't take too long.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "by",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 513,
+    "kind": "ballad_open",
+    "text": "They signed the roll {age} ago\nwith ink that wasn't dry,\nand {guild} has been a name since then\nthat no one passes by.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "age",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 514,
+    "kind": "ballad_open",
+    "text": "Lift your cups to {tag}, my friends,\nand lift them high and slow,\nfor {guild} has walked the island roads\nwhere wiser folk won't go.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "tag",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 515,
+    "kind": "ballad_open",
+    "text": "I've sung of storms and sung of wrecks\nand a goat that ate a boot.\nTonight it's {guild}, and I'll be paid,\nso pass me up my lute.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 516,
+    "kind": "ballad_numbers",
+    "text": "There's {members} names upon the roll\nand not one idle pair of hands,\nand none of them will turn away\nwhen a friend of theirs demands.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "members"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 517,
+    "kind": "ballad_numbers",
+    "text": "They raised a hall at {place}, friends,\nand raised it beam by beam.\nIt's tier {n} now, and stands up straight,\nand stouter than it seems.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "n"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 518,
+    "kind": "ballad_numbers",
+    "text": "At {place} there stands a hall\nwith {members} at the door,\nand every one has hauled a beam\nor swept the sawdust floor.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "members"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 519,
+    "kind": "ballad_numbers",
+    "text": "Ask them of {skill} and they'll talk\nuntil the lamps burn low.\nAsk them of {skill2} as well.\nThere's little they don't know.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill",
+      "skill2"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 520,
+    "kind": "ballad_numbers",
+    "text": "{leader} holds the roll for them,\nand holds it fair and well,\nwith {members} names beneath the seal\nand stories each could tell.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "leader",
+      "members"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 521,
+    "kind": "ballad_numbers",
+    "text": "Their hands know {skill} best of all,\nand you can see it plain:\nthe calluses, the patient eye,\nthe coming back again.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 522,
+    "kind": "ballad_numbers",
+    "text": "There's {members} of them, give or take,\nwho answer to the name,\nand if you wrong a single one\nyou've wronged them all the same.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "members"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 523,
+    "kind": "ballad_numbers",
+    "text": "{leader} leads them, so they say,\nwith a steady, quiet hand,\nand not a one has cause to doubt\nthe ground on which they stand.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "leader"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 524,
+    "kind": "ballad_numbers",
+    "text": "You'll know their hall at {place}, friends.\nThere's {tag} above the door,\ncut deep, and cut with care, by one\nwho'd never carved before.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "place",
+      "tag"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 525,
+    "kind": "ballad_numbers",
+    "text": "They work at {skill} through the rain,\nthey work at it through the cold.\nThey'll work at it, I'd bet my lute,\nuntil the lot of them are old.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "skill"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 526,
+    "kind": "ballad_deed_win",
+    "text": "When word went round of the {event},\nthey rolled their sleeves up high,\nand when it ended, {guild} had won,\nand no one wondered why.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "event",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 527,
+    "kind": "ballad_deed_win",
+    "text": "They've carried off the prize, my friends,\nnot once but {wins} now,\nand every time they won it fair,\nby the sweat upon their brow.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "wins"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 528,
+    "kind": "ballad_deed_win",
+    "text": "Remember the {event}? I do.\nI've the blisters still to show.\nBut {guild} came out ahead of all,\nand that's the way songs go.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "event",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 529,
+    "kind": "ballad_deed_win",
+    "text": "The {event} came, the island worked,\nand everyone worked hard.\nBut {tag} worked harder still than most,\nand took it by a yard.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "event",
+      "tag"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 530,
+    "kind": "ballad_deed_first",
+    "text": "No one had ever held {a item}\ntill one of theirs came by.\nThey've {firsts} firsts like that, all told,\nand none of them a lie.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "firsts"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 531,
+    "kind": "ballad_deed_first",
+    "text": "Who was the first to hold {a item}?\nGo on, ask round the bar.\nIt was one of {guild}, friends,\nand they'll tell you who they are.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "item",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 532,
+    "kind": "ballad_deed_first",
+    "text": "There's things on this isle no hand had touched\nuntil {tag} reached down.\n{firsts} of them, the clerks have it,\nwritten in the town.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "tag",
+      "firsts"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 533,
+    "kind": "ballad_deed_hunt",
+    "text": "They've brought down {kills} beasts and more\nout in the wild and wet,\nand {a creature} more than all the rest.\nIt hasn't forgiven them yet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "kills",
+      "creature"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 534,
+    "kind": "ballad_deed_hunt",
+    "text": "Ask {a creature} what it fears\nwhen the night comes on the hill.\nIt's {tag}, it's always {tag}, friends.\n{kills} kills, and counting still.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "creature",
+      "tag",
+      "kills"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 535,
+    "kind": "ballad_deed_hunt",
+    "text": "The beasts out past the last stone wall\nhave learned to know their tread.\n{kills} of them have met {guild},\nand most of those are dead.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "kills",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 536,
+    "kind": "ballad_deed_road",
+    "text": "They walked roads no one walked before,\n{roads} of them, end to end,\nand came back muddy to the knee\nwith a map for every friend.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "roads"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 537,
+    "kind": "ballad_deed_road",
+    "text": "Where the path runs out and the brambles start,\nthat's where you'll find {tag}.\nThey've opened {roads} roads for the rest of us\nwith a stick and a heavy bag.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "tag",
+      "roads"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 538,
+    "kind": "ballad_deed_fallen",
+    "text": "They've died, oh yes, {deaths} times or more,\nface down in the cold wet sand,\nand every time they've got back up\nand gone back out to stand.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "deaths"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 539,
+    "kind": "ballad_deed_fallen",
+    "text": "It hasn't all been glory, mind.\nThey've fallen {deaths} times, I'm told,\nand walked the long road back again\nto find their packs gone cold.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "deaths"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 540,
+    "kind": "ballad_deed_work",
+    "text": "They've swung and hauled and stirred and sawn\n{actions} times, or near,\nand not one of them has asked for thanks,\nor for a second beer.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "actions"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 541,
+    "kind": "ballad_deed_work",
+    "text": "There's no great deed to tell you of,\nno monster and no crown.\nJust honest work, day after day,\nthe steadiest in town.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 542,
+    "kind": "ballad_deed_work",
+    "text": "They're young yet. Give them time, I say.\nThe roads are long and wide,\nand {guild} has only just begun\nto see the other side.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 543,
+    "kind": "ballad_close",
+    "text": "So drink to {guild}, drink it down,\nand drink it to the end,\nand if you meet one on the road,\nyou've met yourself a friend.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 544,
+    "kind": "ballad_close",
+    "text": "That's all I have, and all they paid,\nso that's the song complete.\nLong life to {guild}, I say,\nand dry boots on their feet.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 545,
+    "kind": "ballad_close",
+    "text": "Long may {tag} be carved in wood\nand sung in rooms like these.\nNow fill my cup, somebody, do.\nI've earned it, if you please.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "tag"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 546,
+    "kind": "ballad_close",
+    "text": "{by} paid for every word,\nand every word was true.\nSo here's to {guild}, all of them.\nNext time, it might be you.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "by",
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 547,
+    "kind": "ballad_close",
+    "text": "I'll sing again another night\nif someone pays the fee.\nTill then, remember {guild}, friends,\nand leave a coin for me.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 548,
+    "kind": "ballad_close",
+    "text": "The fire's low, the night's half gone,\nthe song is at its end.\nRemember {guild} out on the roads.\nYou'll need them yet, my friend.",
+    "min_n": null,
+    "max_n": null,
+    "needs": [
+      "guild"
+    ],
+    "enabled": true,
+    "added_at": "2026-11-08T15:05:41.955Z"
+  }
+]

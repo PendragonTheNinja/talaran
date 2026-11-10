@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "key": "talador_docks",
+    "location_id": 1,
+    "name": "The Docks",
+    "kind": "drawn",
+    "description": "Warehouses along the quay, where the ships unload and the rats come ashore with the cargo.",
+    "display_order": 1,
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "key": "novita_yards",
+    "location_id": 6,
+    "name": "The Stackyards",
+    "kind": "drawn",
+    "description": "Barns, ricks and the stubble round them. Rats in the grain, jackalopes in the fields, dogs after the flocks.",
+    "display_order": 1,
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "key": "dawncrest_rocks",
+    "location_id": 11,
+    "name": "The Wrecking Rocks",
+    "kind": "chosen",
+    "description": "Black rocks under the cliff. Crabs feed in the shallows, and the wreckers wait above them for a ship.",
+    "display_order": 1,
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "key": "origrund_spoil",
+    "location_id": 4,
+    "name": "The Spoil Heaps",
+    "kind": "drawn",
+    "description": "Waste rock tipped down the hillside from the workings. Gougers graze the slope and jumpers watch the ore carts.",
+    "display_order": 1,
+    "is_active": true
+  },
+  {
+    "id": 5,
+    "key": "grundagr_workings",
+    "location_id": 3,
+    "name": "The Old Workings",
+    "kind": "drawn",
+    "description": "Galleries the miners gave up long ago. Jumpers squat in the dry ones. Something knocks in the deep ones.",
+    "display_order": 1,
+    "is_active": true
+  },
+  {
+    "id": 6,
+    "key": "eld_grove_deep",
+    "location_id": 5,
+    "name": "The Deep Wood",
+    "kind": "drawn",
+    "description": "Past the last felling, where the trees are old and the light comes down green. Wolves run here, and worse.",
+    "display_order": 1,
+    "is_active": true
+  }
+]

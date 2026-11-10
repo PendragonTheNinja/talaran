@@ -1,0 +1,527 @@
+[
+  {
+    "id": 1,
+    "word": "fuck",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 2,
+    "word": "fuk",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 3,
+    "word": "fck",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 4,
+    "word": "fcuk",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 5,
+    "word": "phuck",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 6,
+    "word": "fuq",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 7,
+    "word": "shit",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 8,
+    "word": "shite",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 9,
+    "word": "shitty",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 10,
+    "word": "bullshit",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 11,
+    "word": "shithead",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 12,
+    "word": "bitch",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 13,
+    "word": "bitchy",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 14,
+    "word": "bastard",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 15,
+    "word": "ass",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 16,
+    "word": "asshole",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 17,
+    "word": "asshat",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 18,
+    "word": "jackass",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 19,
+    "word": "dumbass",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 20,
+    "word": "smartass",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 21,
+    "word": "arse",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 22,
+    "word": "arsehole",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 23,
+    "word": "damn",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 24,
+    "word": "goddamn",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 25,
+    "word": "dammit",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 26,
+    "word": "crap",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 27,
+    "word": "crappy",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 28,
+    "word": "piss",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 29,
+    "word": "dick",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 30,
+    "word": "dickhead",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 31,
+    "word": "cock",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 32,
+    "word": "cocksucker",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 33,
+    "word": "cunt",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 34,
+    "word": "twat",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 35,
+    "word": "wank",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 36,
+    "word": "wanker",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 37,
+    "word": "bollocks",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 38,
+    "word": "bugger",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 39,
+    "word": "slut",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 40,
+    "word": "slutty",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 41,
+    "word": "whore",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 42,
+    "word": "titties",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 43,
+    "word": "boob",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 44,
+    "word": "boobs",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 45,
+    "word": "porn",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 46,
+    "word": "dildo",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 47,
+    "word": "jizz",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 48,
+    "word": "cum",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 49,
+    "word": "douche",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 50,
+    "word": "douchebag",
+    "kind": "swear",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 51,
+    "word": "skank",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 52,
+    "word": "homo",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 53,
+    "word": "wtf",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 54,
+    "word": "stfu",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 55,
+    "word": "ffs",
+    "kind": "swear",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 56,
+    "word": "nigger",
+    "kind": "slur",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 57,
+    "word": "nigga",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 58,
+    "word": "niggah",
+    "kind": "slur",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 59,
+    "word": "faggot",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 60,
+    "word": "fag",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 61,
+    "word": "tranny",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 62,
+    "word": "spic",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 63,
+    "word": "kike",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 64,
+    "word": "gook",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 65,
+    "word": "wetback",
+    "kind": "slur",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 66,
+    "word": "beaner",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 67,
+    "word": "coon",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 68,
+    "word": "paki",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 69,
+    "word": "raghead",
+    "kind": "slur",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 70,
+    "word": "towelhead",
+    "kind": "slur",
+    "embedded": true,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 71,
+    "word": "retard",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 72,
+    "word": "retarded",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 73,
+    "word": "spastic",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 74,
+    "word": "spaz",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  },
+  {
+    "id": 75,
+    "word": "kys",
+    "kind": "slur",
+    "embedded": false,
+    "created_at": "2026-11-08T15:05:41.955Z"
+  }
+]

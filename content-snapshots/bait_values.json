@@ -1,0 +1,106 @@
+[
+  {
+    "id": 1,
+    "item_name": "Grain",
+    "category": "grain",
+    "bait_value": 1,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 2,
+    "item_name": "Wild Grain",
+    "category": "grain",
+    "bait_value": 1,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 3,
+    "item_name": "Cheese",
+    "category": "cheese",
+    "bait_value": 3,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 4,
+    "item_name": "Egg",
+    "category": "egg",
+    "bait_value": 4,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 5,
+    "item_name": "Frogspawn",
+    "category": "spawn",
+    "bait_value": 20,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 6,
+    "item_name": "Rabbit Meat",
+    "category": "meat",
+    "bait_value": 3,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 7,
+    "item_name": "Chicken Meat",
+    "category": "meat",
+    "bait_value": 3,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 8,
+    "item_name": "Pheasant Meat",
+    "category": "meat",
+    "bait_value": 3,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 9,
+    "item_name": "Venison",
+    "category": "meat",
+    "bait_value": 4,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 10,
+    "item_name": "Pork",
+    "category": "meat",
+    "bait_value": 4,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 11,
+    "item_name": "Boar Meat",
+    "category": "meat",
+    "bait_value": 4,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 12,
+    "item_name": "Beef",
+    "category": "meat",
+    "bait_value": 5,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  },
+  {
+    "id": 13,
+    "item_name": "Sloth Meat",
+    "category": "meat",
+    "bait_value": 5,
+    "created_at": "2026-08-10T01:41:31.842Z",
+    "updated_at": "2026-08-10T01:41:31.842Z"
+  }
+]

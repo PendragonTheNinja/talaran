@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "key": "seam_chapel",
+    "location_id": 13,
+    "name": "The Seam Chapel",
+    "faith": "Laranist",
+    "description": "A low stone chapel built hard against the lip of the Rift. Its east wall was never finished, and the light comes in through the gap.",
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  }
+]

@@ -1,51 +1,39 @@
 [
   {
     "id": 1,
-    "name": "Attack",
+    "name": "Melee",
     "type": "combat",
-    "description": "Determines your accuracy in melee combat, as well as what tier of weapon you can wield.",
+    "description": "Fight at arm's length with blade, spear or hammer. The better your hand, the finer the weapon it can hold.",
     "icon": null,
     "is_active": true,
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
     "display_order": 12,
-    "is_implemented": false
-  },
-  {
-    "id": 2,
-    "name": "Strength",
-    "type": "combat",
-    "description": "Increases melee damage output.",
-    "icon": null,
-    "is_active": true,
-    "created_at": "2026-05-26T23:30:52.290Z",
-    "updated_at": "2026-05-26T23:30:52.290Z",
-    "display_order": 13,
-    "is_implemented": false
+    "is_implemented": true
   },
   {
     "id": 3,
     "name": "Defense",
     "type": "combat",
-    "description": "Reduces damage taken from enemies.",
+    "description": "Take the blow on your armour and not on yourself. The more you turn aside, the heavier the armour you can carry.",
     "icon": null,
     "is_active": true,
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
-    "display_order": 14,
-    "is_implemented": false
+    "display_order": 13,
+    "is_implemented": true
   },
   {
     "id": 4,
     "name": "Constitution",
     "type": "combat",
-    "description": "Governs your maximum health points.",
+    "description": "Bear the blows that get through. A hardy body has more to lose before it falls.",
     "icon": null,
     "is_active": true,
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
-    "display_order": 15,
-    "is_implemented": false
+    "display_order": 14,
+    "is_implemented": true
   },
   {
     "id": 5,
@@ -57,7 +45,7 @@
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
     "display_order": 21,
-    "is_implemented": false
+    "is_implemented": true
   },
   {
     "id": 6,
@@ -81,7 +69,7 @@
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
     "display_order": 3,
-    "is_implemented": false
+    "is_implemented": true
   },
   {
     "id": 8,
@@ -153,7 +141,7 @@
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
     "display_order": 8,
-    "is_implemented": false
+    "is_implemented": true
   },
   {
     "id": 14,
@@ -181,26 +169,14 @@
   },
   {
     "id": 16,
-    "name": "Agility",
+    "name": "Wayfaring",
     "type": "utility",
-    "description": "Increases movement speed and unlocks shortcuts.",
+    "description": "The road, on foot or in the saddle. Walking teaches more and finds more by the wayside; a horse gets you there sooner.",
     "icon": null,
     "is_active": true,
     "created_at": "2026-05-26T23:30:52.290Z",
     "updated_at": "2026-05-26T23:30:52.290Z",
     "display_order": 16,
-    "is_implemented": true
-  },
-  {
-    "id": 17,
-    "name": "Equitation",
-    "type": "utility",
-    "description": "The art of riding mounts. Higher levels increase mounted speed.",
-    "icon": null,
-    "is_active": true,
-    "created_at": "2026-05-26T23:30:52.290Z",
-    "updated_at": "2026-05-26T23:30:52.290Z",
-    "display_order": 17,
     "is_implemented": true
   },
   {

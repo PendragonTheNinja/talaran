@@ -1,0 +1,242 @@
+[
+  {
+    "key": "bestiary_mark",
+    "section": "island",
+    "base_weight": 15,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "250th or 1,000th kill of a creature"
+  },
+  {
+    "key": "cryptid",
+    "section": "island",
+    "base_weight": 60,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Cryptid find"
+  },
+  {
+    "key": "death",
+    "section": "fallen",
+    "base_weight": 5,
+    "max_per_page": 2,
+    "enabled": true,
+    "label": "A death worth telling"
+  },
+  {
+    "key": "drop_rare",
+    "section": "island",
+    "base_weight": 10,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Rare find"
+  },
+  {
+    "key": "event_winner",
+    "section": "island",
+    "base_weight": 20,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Top player at an event"
+  },
+  {
+    "key": "event_winner_guild",
+    "section": "guilds",
+    "base_weight": 20,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Top guild at an event"
+  },
+  {
+    "key": "exhibit_complete",
+    "section": "island",
+    "base_weight": 45,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Museum exhibit completed"
+  },
+  {
+    "key": "feat_rare",
+    "section": "island",
+    "base_weight": 20,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Hard or hidden feat earned"
+  },
+  {
+    "key": "field_twenty",
+    "section": "island",
+    "base_weight": 15,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Twentieth field"
+  },
+  {
+    "key": "first_craft_tier",
+    "section": "island",
+    "base_weight": 40,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First on the island to make a tier 3+ item"
+  },
+  {
+    "key": "first_kill",
+    "section": "island",
+    "base_weight": 50,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First on the island to kill a creature"
+  },
+  {
+    "key": "gem_best_grade",
+    "section": "island",
+    "base_weight": 12,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Best grade off the lapidary wheel"
+  },
+  {
+    "key": "guest_claimed",
+    "section": "island",
+    "base_weight": 4,
+    "max_per_page": 1,
+    "enabled": true,
+    "label": "Guest claimed a character (rolled up)"
+  },
+  {
+    "key": "guild_founded",
+    "section": "guilds",
+    "base_weight": 10,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Guild founded"
+  },
+  {
+    "key": "guild_hall_tier",
+    "section": "guilds",
+    "base_weight": 35,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Guild hall tier finished"
+  },
+  {
+    "key": "level_max",
+    "section": "island",
+    "base_weight": 90,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Mastery (level 100)"
+  },
+  {
+    "key": "level_milestone",
+    "section": "island",
+    "base_weight": 6,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Milestone level (50, 75, 90)"
+  },
+  {
+    "key": "merchant_arrived",
+    "section": "island",
+    "base_weight": 8,
+    "max_per_page": 1,
+    "enabled": true,
+    "label": "Travelling merchant arrived"
+  },
+  {
+    "key": "mount_raised",
+    "section": "island",
+    "base_weight": 15,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Mount raised"
+  },
+  {
+    "key": "museum_first_give",
+    "section": "island",
+    "base_weight": 12,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First to give an item to a museum"
+  },
+  {
+    "key": "newcomers",
+    "section": "island",
+    "base_weight": 3,
+    "max_per_page": 1,
+    "enabled": true,
+    "label": "Newcomers (rolled up)"
+  },
+  {
+    "key": "quest_first",
+    "section": "island",
+    "base_weight": 25,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First on the island to finish a quest"
+  },
+  {
+    "key": "record_fish",
+    "section": "island",
+    "base_weight": 15,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Heaviest fish of its kind"
+  },
+  {
+    "key": "road_first",
+    "section": "island",
+    "base_weight": 30,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First on the island to walk a road"
+  },
+  {
+    "key": "server_first_level",
+    "section": "island",
+    "base_weight": 70,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First on the island to a level"
+  },
+  {
+    "key": "shop_big_sale",
+    "section": "island",
+    "base_weight": 6,
+    "max_per_page": 2,
+    "enabled": true,
+    "label": "A large sale from a player shop"
+  },
+  {
+    "key": "strong_kill",
+    "section": "island",
+    "base_weight": 12,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Beat a creature above their level"
+  },
+  {
+    "key": "total_level_mark",
+    "section": "island",
+    "base_weight": 15,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Total level mark (each 250)"
+  },
+  {
+    "key": "trophy",
+    "section": "island",
+    "base_weight": 25,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "Trophy"
+  },
+  {
+    "key": "world_first_item",
+    "section": "island",
+    "base_weight": 80,
+    "max_per_page": null,
+    "enabled": true,
+    "label": "First in Talaran to find an item"
+  }
+]

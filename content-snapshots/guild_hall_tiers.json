@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "tier": 1,
+    "capacity": 10000,
+    "requirements": [
+      {
+        "qty": 2000,
+        "item": "Lanai Planks"
+      },
+      {
+        "qty": 2000,
+        "item": "Granite Block"
+      },
+      {
+        "qty": 4000,
+        "item": "Ambren Nails"
+      }
+    ],
+    "created_at": "2026-11-02T19:05:10.926Z",
+    "updated_at": "2026-11-02T19:05:10.926Z"
+  },
+  {
+    "id": 2,
+    "tier": 2,
+    "capacity": 15000,
+    "requirements": [
+      {
+        "qty": 3000,
+        "item": "Lanai Planks"
+      },
+      {
+        "qty": 3000,
+        "item": "Granite Block"
+      },
+      {
+        "qty": 5000,
+        "item": "Serph Nails"
+      }
+    ],
+    "created_at": "2026-11-02T19:05:10.926Z",
+    "updated_at": "2026-11-02T19:05:10.926Z"
+  }
+]

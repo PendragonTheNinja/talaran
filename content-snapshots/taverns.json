@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "location_id": 1,
+    "name": "The Salty Sloth",
+    "description": "A low room off the Talador docks, all pipe smoke and wet wool. The sloth carved over the door lost most of its nose to a gull years ago.",
+    "bard_npc_id": 15
+  }
+]

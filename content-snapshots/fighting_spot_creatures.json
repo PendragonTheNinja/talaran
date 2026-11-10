@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "spot_id": 1,
+    "creature_id": 1,
+    "weight": 1
+  },
+  {
+    "id": 2,
+    "spot_id": 2,
+    "creature_id": 2,
+    "weight": 45
+  },
+  {
+    "id": 3,
+    "spot_id": 2,
+    "creature_id": 3,
+    "weight": 35
+  },
+  {
+    "id": 4,
+    "spot_id": 2,
+    "creature_id": 4,
+    "weight": 20
+  },
+  {
+    "id": 5,
+    "spot_id": 3,
+    "creature_id": 5,
+    "weight": 3
+  },
+  {
+    "id": 6,
+    "spot_id": 3,
+    "creature_id": 10,
+    "weight": 2
+  },
+  {
+    "id": 7,
+    "spot_id": 3,
+    "creature_id": 6,
+    "weight": 1
+  },
+  {
+    "id": 8,
+    "spot_id": 4,
+    "creature_id": 7,
+    "weight": 60
+  },
+  {
+    "id": 9,
+    "spot_id": 4,
+    "creature_id": 8,
+    "weight": 40
+  },
+  {
+    "id": 10,
+    "spot_id": 5,
+    "creature_id": 8,
+    "weight": 70
+  },
+  {
+    "id": 11,
+    "spot_id": 5,
+    "creature_id": 11,
+    "weight": 30
+  },
+  {
+    "id": 12,
+    "spot_id": 6,
+    "creature_id": 9,
+    "weight": 50
+  },
+  {
+    "id": 13,
+    "spot_id": 6,
+    "creature_id": 12,
+    "weight": 35
+  },
+  {
+    "id": 14,
+    "spot_id": 6,
+    "creature_id": 13,
+    "weight": 15
+  }
+]

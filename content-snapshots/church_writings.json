@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "church_id": 1,
+    "title": "The Making",
+    "body": "Before there was anything there were two. The ground, heavy and patient. The sky, light and never still.\n\nThey lay apart a long while, and neither could make anything alone. Then they were pressed together, the one upon the other, and from the pressing came all that grows and walks and swims.\n\nBut they did not close true. Where they met there is a seam, and the seam is here. Stand at the edge and look down. That is where the world was joined.\n\nWhat rises out of it is what was left between them when they met. We call it the light, because we have no better word. Neither did our mothers.",
+    "display_order": 1,
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 2,
+    "church_id": 1,
+    "title": "On the Light",
+    "body": "The light rises strongest at night and in the cold months. In high summer you may stand at the edge an hour and feel nothing but the wind.\n\nIt will not stay in the hand. It runs off skin like water off a duck. A cut stone holds it, because a stone is a piece of the ground, and the ground was always the patient half.\n\nThe better the stone is cut, the more it holds and the quicker it drinks. A flawless stone is greedy. Give it time.\n\nA person can take the light out of a stone and keep it, the way a well keeps rain. Some can do more with it than keep it. That is a matter for those who have learned.",
+    "display_order": 2,
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 3,
+    "church_id": 1,
+    "title": "The Rule of the Chapel",
+    "body": "No lamps past the doorstep. The light we keep here does not need help.\n\nDo not throw anything into the Rift. Nine winters ago a carter threw his dog's bones in, and the light did not rise for a month.\n\nLeave the edge as you found it. The stones along the lip were set by people older than this chapel.\n\nSpeak quietly. Not for our sake.",
+    "display_order": 3,
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  },
+  {
+    "id": 4,
+    "church_id": 1,
+    "title": "A Song for the Seam",
+    "body": "Ground below and sky above,\n\npressed together, out of love\n\nor out of need, the old songs say;\n\nthe seam is here and here to stay.\n\nWhat is left between the two\n\ncomes up at night like morning dew.\n\nHold out your stone and let it fill.\n\nThe ground is patient. Keep it still.",
+    "display_order": 4,
+    "created_at": "2026-10-30T21:56:10.618Z",
+    "updated_at": "2026-10-30T21:56:10.618Z"
+  }
+]
