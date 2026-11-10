@@ -1,8 +1,11 @@
 import type { Knex } from 'knex';
 import { noteDeed } from './chronicle';
 
-/** What every new character starts with, registered or guest. */
-export const STARTER_ITEMS = ['Ambren Hatchet', 'Ambren Pickaxe', "Novice's Pony"];
+/**
+ * What every new character starts with, registered or guest. The pony is not
+ * here: Quank gives it (the reward of "A Word From Quank"), and nobody else.
+ */
+export const STARTER_ITEMS = ['Ambren Hatchet', 'Ambren Pickaxe'];
 
 /**
  * Give a just-inserted player everything a new character has: every skill at
