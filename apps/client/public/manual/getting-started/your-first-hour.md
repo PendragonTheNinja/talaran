@@ -1,4 +1,4 @@
-You have arrived on Taiar Island with a pony, a dream, and no earthly idea what to do with either. Take heart. This is precisely the correct amount of equipment and very nearly the correct amount of idea.
+You have arrived on Taiar Island with a hatchet, a pickaxe, a dream, and no earthly idea what to do with any of them. Take heart. This is precisely the correct amount of equipment and very nearly the correct amount of idea.
 
 I arrived the same way, some years ago, and spent my first hour on the shore writing a five-year plan. Talaran does not read plans. It is generous to the curious, though, so let us get you moving.
 
@@ -6,9 +6,11 @@ I arrived the same way, some years ago, and spent my first hour on the shore wri
 
 I am aware of how that sounds.
 
+In the square at Talador stands an old man named Quank, who will talk at you for some time and then give you a pony. Let him.
+
 Taiar runs a hundred kilometers from end to end, and you will spend a good share of your life crossing it. The pony takes about a third off every journey. Call that a third of your life handed back to you.
 
-It arrives in your pack with everything else, so equip it before you set out. Then ride it. I spent a month treating mine as a sort of large anxious wheelbarrow.¹
+She does you no good in your pack, so equip her before you set out. I spent a month treating mine as a sort of large anxious wheelbarrow.¹
 
 Travel takes real time. You set out, the road happens to you, and you arrive when you arrive. Nobody minds if you put the kettle on meanwhile.
 
@@ -18,7 +20,7 @@ New arrivals like to decide which trade they will *master* before they have trie
 
 The trouble is that the trades lean on one another. The woodcutter feeds the carpenter, and the carpenter builds the farm. Ask Talaran which trade you should choose and the answer is "yes."
 
-If you would rather have a recommendation than a philosophy, and at this stage you should, begin with **Woodcutting** and **Mining**. Nearly everything else is made of timber or metal, and you were handed a hatchet and a pickaxe when you landed.
+If you would rather have a recommendation than a philosophy, and at this stage you should, begin with **Woodcutting** and **Mining**. Nearly everything else is made of timber or metal, and neither trade asks for a tool you do not already have.
 
 ## Talk to everyone
 
