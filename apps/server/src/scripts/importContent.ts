@@ -23,6 +23,7 @@ import path from 'path';
 import readline from 'readline';
 import db from '../db';
 import { SNAPSHOT_TABLES } from '../lib/contentTables';
+import { primaryKeyOf, hasSerialId, importOrder } from '../lib/contentKeys';
 
 const IN_DIR = path.resolve(__dirname, '../../../../content-snapshots');
 
@@ -57,7 +58,9 @@ async function main() {
     const extras: string[] = [];
 
     await db.transaction(async (trx) => {
-        for (const table of SNAPSHOT_TABLES) {
+        // Parents before children, by the database's own foreign keys rather
+        // than the order the registry happens to list them in (lib/contentKeys.ts).
+        for (const table of await importOrder(trx, SNAPSHOT_TABLES)) {
             const file = path.join(IN_DIR, `${table}.json`);
             if (!fs.existsSync(file)) {
                 console.warn(`  ${table}: no snapshot file, skipping`);
@@ -77,28 +80,33 @@ async function main() {
             );
             const asJson = (jsonCols as { column_name: string }[]).map((c) => c.column_name);
 
+            // Rows are matched on the table's own primary key, not `id`: some
+            // content tables are keyed by something else (lib/contentKeys.ts).
+            const key = await primaryKeyOf(trx, table);
+
             for (const raw of rows) {
                 const row = { ...raw };
                 for (const col of asJson) {
                     if (row[col] !== null && row[col] !== undefined) row[col] = JSON.stringify(row[col]);
                 }
-                await trx(table).insert(row).onConflict('id').merge();
+                await trx(table).insert(row).onConflict(key).merge();
             }
 
             // Bump the id sequence past max(id) so future inserts don't collide
-            if (rows.length > 0) {
+            if (rows.length > 0 && await hasSerialId(trx, table)) {
                 await trx.raw(
                     `SELECT setval(pg_get_serial_sequence(?, 'id'), (SELECT COALESCE(MAX(id), 1) FROM ??))`,
-                    [table, table],
+                    [`public.${table}`, table],
                 );
             }
 
             // Report rows present in the DB but absent from the snapshot
-            const snapshotIds = new Set(rows.map(r => r.id));
-            const dbIds: { id: number }[] = await trx(table).select('id');
-            const extraIds = dbIds.map(r => r.id).filter(id => !snapshotIds.has(id));
-            if (extraIds.length > 0) {
-                extras.push(`${table}: ids ${extraIds.join(', ')} exist in the DB but not in the snapshot`);
+            const keyOf = (r: Record<string, unknown>) => key.map((column) => String(r[column])).join(' / ');
+            const snapshotKeys = new Set(rows.map(keyOf));
+            const dbKeys: Record<string, unknown>[] = await trx(table).select(key);
+            const extraKeys = dbKeys.map(keyOf).filter((k) => !snapshotKeys.has(k));
+            if (extraKeys.length > 0) {
+                extras.push(`${table}: ${key.join(' / ')} ${extraKeys.join(', ')} exist in the DB but not in the snapshot`);
             }
 
             console.log(`  ${table}: upserted ${rows.length} rows`);
