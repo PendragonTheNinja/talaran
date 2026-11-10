@@ -1,16 +1,16 @@
 Talaran is perfectly survivable alone. I managed it for years, largely out of stubbornness, and I would not particularly recommend the experience.
 
-A guild is the mechanism for not doing that.
+A guild is how you avoid it.
 
-## What a guild actually is
+## What a guild is
 
 A named company of players with a shared banner, a private channel to talk in, and, once they have raised one, a hall with a storehouse. It will not shorten your timers, and what it adds to your learning is small enough to ignore (I come to that below).
 
 What it does is solve the supply problem, which is the real problem in a world where every trade feeds another.
 
-Consider the arithmetic. A hunter needs arrows, so he needs a carpenter and a smith. The carpenter needs logs, so he needs a woodcutter. The smith needs ore, so he needs a miner. Alone, you either learn all five trades or spend your life negotiating. In a guild of five, you each learn one properly and the chain simply exists.
+Consider the arithmetic. A hunter needs arrows, so he needs a carpenter and a smith. The carpenter needs logs, so he needs a woodcutter. The smith needs ore, so he needs a miner. Alone, you either learn all five trades or spend your life negotiating. In a guild of five, you each learn one properly and the chain is simply there.
 
-That is the whole value, and it is a larger value than it sounds.
+That is the whole value, and it is larger than it sounds.
 
 ## Founding one
 
@@ -38,7 +38,7 @@ If you want one, go and be visible. Talk in Help chat. Answer a question you kno
 
 Your guild has its own chat, seen only by its members.
 
-This is the part I underrated for far too long. The channel is the entire point of the thing. A world of long timers and slow roads becomes a completely different world when there is somebody to talk to while the timers run.
+I underrated this part for far too long. The channel is the point of the thing. Long timers and slow roads are a different matter when there is somebody to talk to while they run.
 
 ## Working side by side
 
@@ -86,6 +86,6 @@ A guild that turns up together tends to be on that list. I have noticed it is ra
 
 Join one earlier than you think you should.
 
-New players often feel they should have something to offer first, and wait until they are worth recruiting. I did this for an embarrassing length of time. It is exactly backwards. The cheapest thing a guild can give a new member is the surplus of five established trades, and the cheapest thing a new member can give a guild is the gathering nobody senior wants to do.
+New players often feel they should have something to offer first, and wait until they are worth recruiting. I did this for an embarrassing length of time. It is backwards. The cheapest thing a guild can give a new member is the surplus of five established trades, and the cheapest thing a new member can give a guild is the gathering nobody senior wants to do.
 
 Both sides come out ahead immediately. Waiting only delays it.

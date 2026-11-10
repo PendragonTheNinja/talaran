@@ -8,7 +8,7 @@ Coin arrives in your purse two ways.
 
 Mostly you sell things. A merchant will buy nearly anything off you, and for a long while that is the whole of your income.
 
-The other way is that you simply find it. Coins turn up in the work: wedged in a seam, spilling out of a hollow trunk, tangled in weed on the end of a line. Not often, and never much, but often enough that everyone who has worked a trade for an afternoon has had it happen. Somebody was here before you and was careless.
+The other way is that you find it. Coins turn up in the work: wedged in a seam, spilling out of a hollow trunk, tangled in weed on the end of a line. Not often, and never much, but often enough that everyone who has worked a trade for an afternoon has had it happen. Somebody was here before you and was careless.
 
 ## What a thing is worth
 
@@ -16,7 +16,7 @@ Every item has a rough baseline behind it, and the merchants price against that 
 
 I would not encourage you to treat those numbers as gospel. They are a floor and a ceiling, nothing more. What a plank is *actually* worth on a given afternoon is whatever somebody will hand you for it, and the island works that out for itself, constantly, without consulting anybody's arithmetic. Every experienced trader I know has opinions about prices that no ledger would support, and most of them are right.
 
-Learn the rough shape of it by trading. That is genuinely the only way, and it is not a hardship.
+Learn the rough shape of it by trading. There is no other way, and it is no hardship.
 
 ## The Taiar Marketplace
 
@@ -28,27 +28,27 @@ Your first thought on reading that is that they are robbing you. They are not, q
 
 The first is **certainty**. Merrick will buy your ore today, at that price, in any quantity you can carry, and he will do it again tomorrow. No haggling, no waiting for a buyer, no wondering whether anyone wants ore this week. There are afternoons when that is worth a great deal more than the difference.
 
-The second is **being there**. Your pickaxe snaps at the wrong moment. You could go and learn Smithing, or find someone who has, or wait. Or you could walk into the square with coin in your hand and walk out with a pickaxe, and be back at the rock face inside the hour. Merrick's prices are steep precisely because he is holding stock against the day you need it, which is a service whether or not it feels like one at the counter.
+The second is **being there**. Your pickaxe snaps at the wrong moment. You could go and learn Smithing, or find someone who has, or wait. Or you could walk into the square with coin in your hand and walk out with a pickaxe, and be back at the rock face inside the hour. Merrick's prices are steep because he is holding stock against the day you need it, which is a service whether or not it feels like one at the counter.
 
-So: the merchants are dear, and worth it more often than pride will let you admit. They are also, quietly, the reason everybody roughly agrees what things cost. When a trader tells you a price, the number in the back of their head came from that square.
+So: the merchants are dear, and worth it more often than pride will let you admit. They are also the reason everybody roughly agrees what things cost. When a trader tells you a price, the number in the back of their head came from that square.
 
 What the merchants are *not* is a way to get rich. You cannot buy at 175% and sell back at 45%. There is no loop there, no clever ordering of purchases that turns a profit, and looking for one is time you could spend swinging a pick.
 
 ### Why they run out
 
-No merchant will sell you an unlimited number of anything. Each has a daily allowance, and it is **per person**, so nobody is racing you for it and nobody in a kinder timezone got there first.
+No merchant will sell you an unlimited number of anything. Each has a daily allowance, and it is **per person**, so nobody is racing you for it and nobody in a kinder time zone got there first.
 
-Selling works the same way in reverse. Sell a merchant a modest quantity of something and he pays the full rate. Keep going and his enthusiasm visibly declines: the rate steps down, and down again, and stays low until the day turns over at midnight. He has only so much use for two hundred rabbit pelts, and he would like you to understand that.
+Selling works the same way in reverse. Sell a merchant a modest quantity of something and he pays the full rate. Keep going and his enthusiasm declines: the rate steps down, and down again, and stays low until the day turns over at midnight. He has only so much use for two hundred rabbit pelts, and he would like you to understand that.
 
 Talaran's day runs on Eastern time, in case you are the sort who plans around it.
 
-The panel will always show you the arithmetic before you agree to anything. If a sale crosses one of those steps you will see exactly where, and exactly what the whole lot fetches, before a single item leaves your pack. A merchant who paid you less than the screen promised would be a merchant nobody trusted twice.
+You are always shown the arithmetic before you agree to anything. If a sale crosses one of those steps you will see exactly where, and exactly what the whole lot fetches, before a single item leaves your pack. A merchant who paid you less than he promised would be a merchant nobody trusted twice.
 
 ## Player shops
 
 Everything above describes the floor and the ceiling. **Players live in between.**
 
-A shop is a building you raise yourself, in Talador, with Carpentry. Once it stands it trades **whether you are online or not**, which is the entire point of it.
+A shop is a building you raise yourself, in Talador, with Carpentry. Once it stands it trades **whether you are there or not**, which is the point of it.
 
 ### Raising one
 
@@ -58,7 +58,7 @@ You will need a mallet equipped and a saw equipped, the same as any other struct
 
 ### What you get
 
-A shop of the first tier holds **seventy five storage slots**, offers **twelve things for sale** at once, and can post **six standing offers to buy**.
+A shop of the first tier holds **seventy-five storage slots**, offers **twelve things for sale** at once, and can post **six standing offers to buy**.
 
 Storage behaves exactly as your homestead's does: one slot holds one kind of item in any quantity. Twelve selling slots means twelve *kinds* of thing on the shelf, not twelve objects, and you may pile four thousand planks into one of them if the mood takes you.
 
@@ -86,7 +86,7 @@ Your shop has a **name**, a one-line **tagline** shown in the list of shopfronts
 
 There is deliberately **no master list of every item for sale on the island**. If you want to know who has the cheapest planks, you walk the row and look, or you ask in chat. Finding a good price is meant to be something a person does, not something a search box does for them.
 
-Which means, quietly, that a well-named shop with a clear tagline and a fair reputation is worth more than a cheap one nobody bothers to enter.
+Which means that a well-named shop with a clear tagline and a fair reputation is worth more than a cheap one nobody bothers to enter.
 
 ## What this is all for
 
@@ -99,5 +99,5 @@ The distance between those two is where the whole trade of Talaran happens. Ever
 ## Connections
 
 - **Carpentry** raises the shop, and takes the same mallet and saw as everything else it builds.
-- **The Homestead** is the same property system wearing a different hat; if you understand one you understand both.
+- **The Homestead** is the same kind of property. Understand one and you understand both.
 - Every **gathering trade** feeds this page, because everything you have ever picked up is worth something to somebody.

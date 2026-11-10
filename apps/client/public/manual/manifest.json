@@ -117,16 +117,17 @@
         {
           "slug": "the-trades",
           "title": "How the Trades Fit Together",
-          "blurb": "No trade here is self-sufficient. Not one."
+          "blurb": "No trade here can stand alone. Not one."
         },
         {
           "slug": "coin-and-commerce",
-          "title": "Coin & Commerce"
+          "title": "Coin & Commerce",
+          "blurb": "Gold, merchants, and the shop that sells while you are away."
         },
         {
           "slug": "travel-and-mounts",
           "title": "Travel & Mounts",
-          "blurb": "A hundred kilometres of Taiar, and how to make it cheaper."
+          "blurb": "A hundred kilometers of Taiar, and how to make it cheaper."
         },
         {
           "slug": "quests-and-npcs",
@@ -173,7 +174,7 @@
         {
           "slug": "quests",
           "title": "Every Quest",
-          "blurb": "The whole catalogue, and who is holding each one."
+          "blurb": "The whole catalog, and who is holding each one."
         }
       ]
     }
