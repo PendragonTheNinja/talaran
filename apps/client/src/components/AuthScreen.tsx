@@ -13,11 +13,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
    renamed or missing image never shows a broken frame.
    ──────────────────────────────────────────────────────────────── */
 const SCREENSHOTS: { src: string; caption: string }[] = [
-    { src: '/images/home/fishing.jpg', caption: 'Luxmere: Freshwater fishing.' },
-    { src: '/images/home/forum.jpg', caption: 'The player forum, where the island argues about grain.' },
-    { src: '/images/home/market.jpg', caption: 'Talador Marketplace: Player shops line the quay.' },
-    { src: '/images/home/lanaivale.jpg', caption: 'Lanaivale: The lumberjack and forager\'s haven.' },
-    { src: '/images/home/smithing.jpg', caption: 'Emberra: Forge the world\'s tools.' },
+    { src: '/images/home/fishing.jpg', caption: 'The lake at Luxmere, and what has come out of it so far.' },
+    { src: '/images/home/forum.jpg', caption: 'The forum, where the island argues about flax.' },
+    { src: '/images/home/market.jpg', caption: 'The marketplace at Talador. Alder sells anything that started as a tree.' },
+    { src: '/images/home/lanaivale.jpg', caption: 'Lanaivale. Lanai trees to fell, and a forest floor to forage.' },
+    { src: '/images/home/smithing.jpg', caption: 'The forge at Emberra, where the island\'s tools get made.' },
 ]
 
 const SLIDE_MS = 5000
@@ -279,12 +279,12 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                             <p className="home-lede">
                                 Fell timber and saw it into boards. Set snares and come back
                                 for whatever walked into them. Raise cattle, soak the hides in bark liquor,
-                                and sell the leather from <em>your own shop</em> at Talador. Fight what
-                                lives in the hills, or fill a cut stone with light at the Rift.
+                                and sell the leather from <em>your own shop</em> at Talador. Fight whatever
+                                has moved into the old mine workings, or fill a cut stone with light at the Rift.
                             </p>
                             <p className="home-lede-two">
-                                No download, no client, no install. Your work keeps running thirty minutes after
-                                walking away, and it is still waiting when you get back.
+                                Nothing to download or install. Start a job, walk away, and it carries on
+                                for half an hour without you.
                             </p>
                             <div className="home-cta">
                                 <button className="home-btn home-btn-gold" onClick={goRegister}>
@@ -326,7 +326,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         ) : (
                         <div className="home-ledger" id="ledger">
                             <div className="home-ledger-head">
-                                {mode === 'login' ? 'Enter the realm' : mode === 'register' ? 'Begin your journey' : 'Reset password'}
+                                {mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Sign the ledger' : 'Reset password'}
                             </div>
                             <div className="home-ledger-body">
                                 {mode !== 'forgot' && (
@@ -467,7 +467,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         <div className="home-sec-head">
                             <span className="home-sec-title">Our World</span>
                             <span className="home-sec-rule" />
-                            <Link to="/manual" className="home-sec-more">See the map</Link>
+                            <Link to="/manual" className="home-sec-more">Read the Manual</Link>
                         </div>
 
                         <div className="home-casement">
@@ -581,8 +581,8 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                         ))}
                     </div>
                     <p className="home-trades-note">
-                        Every one of these is live, and most of them feed another. The hunter draws a bow
-                        the carpenter made, and the cook bakes with the farmer's flour.
+                        Most of them feed another. The hunter draws a bow the carpenter made, and
+                        the cook bakes with the farmer's flour.
                     </p>
                 </div>
             </section>
