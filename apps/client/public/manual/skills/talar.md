@@ -22,7 +22,7 @@ That is your first stone and most of your first level, and it costs you nothing 
 
 The light you take in sits inside you, in a reservoir. Three things about it, and all three matter:
 
-- It starts at **300 Talar** and grows by **25** with every level, so a practised hand carries a great deal more than a beginner.
+- It starts at **300 Talar** and grows by **25** with every level, so a practiced hand carries a great deal more than a beginner.
 - It does not leak, spoil, or fade while you sleep.
 - **It is not lost when you fall.** Your pack goes to the ground; your reservoir stays where it is, inside you.
 
