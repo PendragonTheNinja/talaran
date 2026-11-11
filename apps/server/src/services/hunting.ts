@@ -4,6 +4,7 @@ import db from '../db'
 export const HUNT_AMMO = 'Ambren Arrow';
 import { levelFromXp } from './xp'
 import { levelTimerFactor } from '../lib/actionTimers'
+import { standsAt } from '../lib/whereabouts'
 
 // ── Tuning constants ──────────────────────────────────────────────
 const CATCH_PER_LEVEL = 0.5           // +0.5% catch chance per level over req
@@ -29,6 +30,7 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
 }> {
     const animal = await db('huntable_animals').where({ id: animalId }).first()
     if (!animal) return { allowed: false, reason: 'That animal cannot be found here.' }
+    if (!(await standsAt(playerId, animal.location_id))) return { allowed: false, reason: 'That animal cannot be found here.' }
 
     const level = await huntingLevel(playerId)
     if (level < animal.required_level) {
@@ -142,10 +144,17 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     drops: { itemName: string; quantity: number }[]
     arrowRecovered: boolean
     noBow?: boolean
+    /** The player no longer stands where the animal lives; the hunt stops. */
+    notHere?: boolean
     animalName: string
 }> {
     const animal = await db('huntable_animals').where({ id: animalId }).first()
     if (!animal) return { success: false, xp: 0, drops: [], arrowRecovered: false, animalName: 'the animal' }
+    // Re-checked each cycle (CLAUDE.md §5 item 5). No shot is fired, so no
+    // arrow is spent, and the tick stops the loop.
+    if (!(await standsAt(playerId, animal.location_id))) {
+        return { success: false, xp: 0, drops: [], arrowRecovered: true, notHere: true, animalName: animal.name }
+    }
 
     const level = await huntingLevel(playerId)
 

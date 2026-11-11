@@ -8,6 +8,7 @@ import { timerCut } from './buffs';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { levelTimerFactor } from '../lib/actionTimers';
+import { standsAt } from '../lib/whereabouts';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -98,6 +99,9 @@ export async function canChopHere(
 ): Promise<{ allowed: boolean; reason?: string; toolTier?: number }> {
   const node = await db('resource_nodes').where({ id: nodeId }).first();
   if (!node) return { allowed: false, reason: 'Resource node not found' };
+  if (!(await standsAt(playerId, node.location_id))) {
+    return { allowed: false, reason: 'Those trees are not here.' };
+  }
 
   // Check player level
   const woodcuttingSkill = await db('skills').where({ name: 'Woodcutting' }).first();

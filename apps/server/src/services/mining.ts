@@ -8,6 +8,7 @@ import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
+import { standsAt } from '../lib/whereabouts';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
@@ -56,6 +57,9 @@ export async function canMineHere(
 ): Promise<{ allowed: boolean; reason?: string; toolTier?: number }> {
   const node = await db('resource_nodes').where({ id: nodeId }).first();
   if (!node) return { allowed: false, reason: 'Resource node not found' };
+  if (!(await standsAt(playerId, node.location_id))) {
+    return { allowed: false, reason: 'That rock is not here.' };
+  }
 
   const miningSkill = await db('skills').where({ name: 'Mining' }).first();
   const playerSkill = await db('player_skills')
@@ -97,6 +101,13 @@ export async function canMineVein(
   const vein = await db('ore_veins').where({ id: veinId }).first();
   if (!vein) return { allowed: false, reason: 'Vein not found' };
   if (vein.is_depleted) return { allowed: false, reason: 'This vein has been depleted' };
+  // Only a vein the player could see in their list: one they stand beside, and
+  // either announced or found by them (getActiveVeins). An unannounced vein is
+  // its finder's alone, and its id must not be a way in.
+  if (!(await standsAt(playerId, vein.location_id))) return { allowed: false, reason: 'Vein not found' };
+  if (!vein.is_announced && Number(vein.discovered_by_player_id) !== playerId) {
+    return { allowed: false, reason: 'Vein not found' };
+  }
 
   // Check player has a pickaxe equipped in mainhand
   const equipment = await db('player_equipment').where({ player_id: playerId }).first();

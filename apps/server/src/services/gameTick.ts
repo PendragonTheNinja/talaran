@@ -891,6 +891,16 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         return;
       }
 
+      // The player is no longer where the animal lives: stop, no arrow spent.
+      if (hunt.notHere) {
+        await db('player_actions').where({ id: action.id }).delete();
+        pushToPlayer(action.player_id, 'action_failed', {
+          error: `Your hunt ended. There are no ${hunt.animalName} where you stand.`,
+          info: true,
+        });
+        return;
+      }
+
       // Bow was unequipped mid-loop: stop the hunt cleanly (no arrow was spent)
       if (hunt.noBow) {
         await db('player_actions').where({ id: action.id }).delete();

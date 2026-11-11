@@ -4,6 +4,7 @@ import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { standsAt } from '../lib/whereabouts';
 
 // Exploration XP for the first time a player pulls a given item from a given
 // habitat. Flat, because the discovery is the achievement, not the item.
@@ -132,6 +133,7 @@ export async function getForagingHabitats(playerId: number, locationId: number) 
 export async function canForageHere(playerId: number, habitatId: number): Promise<{ allowed: boolean; reason?: string }> {
     const habitat = await db('foraging_habitats').where({ id: habitatId }).first();
     if (!habitat || !habitat.is_active) return { allowed: false, reason: 'That habitat cannot be foraged.' };
+    if (!(await standsAt(playerId, habitat.location_id))) return { allowed: false, reason: 'That habitat is not here.' };
     const level = await playerLevelFor(playerId, 'Foraging');
     if (level < habitat.required_level) {
         return { allowed: false, reason: `You need Foraging level ${habitat.required_level} to forage here.` };
@@ -145,6 +147,7 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         const habitatId = typeof habitatIdRaw === 'string' ? parseInt(habitatIdRaw) : habitatIdRaw;
         const habitat = await db('foraging_habitats').where({ id: habitatId }).first();
         if (!habitat || !habitat.is_active) return { success: false, error: 'Habitat not found' };
+        if (!(await standsAt(playerId, habitat.location_id))) return { success: false, error: 'That habitat is not here.' };
 
         const foragingSkill = await db('skills').where({ name: 'Foraging' }).first();
         if (!foragingSkill) return { success: false, error: 'Foraging skill missing' };
