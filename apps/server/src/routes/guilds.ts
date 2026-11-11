@@ -808,11 +808,24 @@ router.post('/disband', requireAuth, async (req: AuthRequest, res: Response) => 
         // The members' own copies of the tag and rank go with it. Deleting the
         // guild cleared players.guild_id (ON DELETE SET NULL) but not these, so
         // chat went on showing a disbanded guild's tag (forum, 2026-11-03).
-        const memberIds: number[] = (await db('players').where({ guild_id: guild.id }).pluck('id')).map(Number);
-        await db.transaction(async (trx) => {
+        //
+        // The emptiness check is repeated inside the transaction under locks,
+        // or a deposit landing between the check and the delete went down with
+        // the hall (audit B11). Lock order matches a deposit's: the members'
+        // player rows first (ascending id), then the halls.
+        let memberIds: number[] = [];
+        const emptied = await db.transaction(async (trx) => {
+            memberIds = (await trx('players').where({ guild_id: guild.id }).orderBy('id')
+                .forNoKeyUpdate().pluck('id')).map(Number);
+            if (await guildStorehousesHoldAnything(guild.id, trx, true)) return false;
             await trx('players').where({ guild_id: guild.id }).update({ guild_id: null, guild_tag: null, guild_role: null });
             await trx('guilds').where({ id: guild.id }).delete();
+            return true;
         });
+        if (!emptied) {
+            res.status(400).json({ error: 'Empty every guild storehouse first, gold and all. Disbanding would destroy what is in them.' });
+            return;
+        }
         for (const id of memberIds) moveGuildRoom(id, guild.id, null);
         logger.info(`Guild ${guild.id} disbanded by player ${playerId}`);
         res.json({ success: true });

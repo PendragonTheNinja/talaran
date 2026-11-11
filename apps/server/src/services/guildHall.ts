@@ -483,11 +483,16 @@ export async function withdrawGold(playerId: number, amountRaw: unknown): Promis
 }
 
 /** True while any of the guild's storehouses holds anything (disbanding waits for this). */
-export async function guildStorehousesHoldAnything(guildId: number): Promise<boolean> {
-    const halls = await db('guild_halls').where({ guild_id: guildId }).select('id', 'gold');
+export async function guildStorehousesHoldAnything(guildId: number, x: any = db, lock = false): Promise<boolean> {
+    // With lock, inside a transaction, the halls stay as read until commit: a
+    // deposit or a gold payment takes the same hall lock, so it waits and then
+    // finds the guild gone instead of landing in a hall about to be deleted
+    // (disband, audit 2026-11-09, B11).
+    const q = x('guild_halls').where({ guild_id: guildId }).orderBy('id').select('id', 'gold');
+    const halls = await (lock ? q.forUpdate() : q);
     if (halls.some((h: any) => Number(h.gold) > 0)) return true;
     if (!halls.length) return false;
-    for (const h of halls) if ((await usedRoom(h.id)) > 0) return true;
+    for (const h of halls) if ((await usedRoom(h.id, x)) > 0) return true;
     return false;
 }
 
