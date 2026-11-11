@@ -19,6 +19,12 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
   }
 
   try {
+    // A fight is settled to this moment first, so walking away is a flee that
+    // keeps every swing (services/combatFights.ts). It runs before the player
+    // is read: if that last settle kills them they wake in Talador, and the
+    // journey must start from there, not from where they fell (audit B7).
+    await endFightIfAny(playerId);
+
     // Get player's current location
     const player = await db('players')
       .where({ id: playerId })
@@ -56,46 +62,55 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
 
     const { travelTime, mounted } = await computeTravelTime(playerId, baseTravelTime);
 
-    // Cancel any existing action. A fight is settled to this moment first, so
-    // walking away is a flee that keeps every swing (services/combatFights.ts).
-    await endFightIfAny(playerId);
-    await db('player_actions').where({ player_id: playerId }).delete();
-
-    // Cancel any active trades
-    const activeTrade = await db('trades')
-      .where(function () {
-        this.where({ player1_id: playerId }).orWhere({ player2_id: playerId })
-      })
-      .whereIn('status', ['pending', 'active'])
-      .first();
-
-    if (activeTrade) {
-      await db('trades').where({ id: activeTrade.id }).update({ status: 'cancelled' });
-      const otherId = activeTrade.player1_id === playerId ? activeTrade.player2_id : activeTrade.player1_id;
-      pushToPlayer(otherId, 'trade_cancelled', { reason: 'The other player left the area.' });
-    }
-
-    // Start travel action
     const now = new Date();
     const completesAt = new Date(now.getTime() + travelTime * 1000);
 
-    await db('player_actions').insert({
-      player_id: playerId,
-      action_type: 'traveling',
-      resource_node_id: null,
-      location_id: toLocationId,
-      started_at: now,
-      completes_at: completesAt,
-      last_timer_seconds: travelTime,
-      auto_restart: false,
-      last_bot_check: now,
-      bot_check_pending: false,
-      // The road's base time, and whether this journey is ridden. Both are
-      // fixed here, at the start, with the speed: arrival pays by them, so
-      // putting a mount away on the road cannot buy a rider's speed with a
-      // walker's XP and finds (forum, 2026-11-08).
-      action_data: JSON.stringify({ base: baseTravelTime, mounted }),
+    // Leaving is one unit: the old action goes, an open trade is cancelled,
+    // and the journey starts, together or not at all. The trade is locked and
+    // cancelled only if it is still open: an unlocked, unconditional cancel
+    // could land after the other player's accept committed and record a
+    // finished trade as cancelled (audit B8). The same job stepIntoWithin in
+    // services/spells.ts does for portals.
+    const cancelledWith = await db.transaction(async (trx) => {
+      await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+      await trx('player_actions').where({ player_id: playerId }).delete();
+
+      const activeTrade = await trx('trades')
+        .where(function () {
+          this.where({ player1_id: playerId }).orWhere({ player2_id: playerId })
+        })
+        .whereIn('status', ['pending', 'active'])
+        .forUpdate()
+        .first();
+      let otherId: number | null = null;
+      if (activeTrade) {
+        const cancelled = await trx('trades')
+          .where({ id: activeTrade.id })
+          .whereIn('status', ['pending', 'active'])
+          .update({ status: 'cancelled' });
+        if (cancelled) otherId = activeTrade.player1_id === playerId ? activeTrade.player2_id : activeTrade.player1_id;
+      }
+
+      await trx('player_actions').insert({
+        player_id: playerId,
+        action_type: 'traveling',
+        resource_node_id: null,
+        location_id: toLocationId,
+        started_at: now,
+        completes_at: completesAt,
+        last_timer_seconds: travelTime,
+        auto_restart: false,
+        last_bot_check: now,
+        bot_check_pending: false,
+        // The road's base time, and whether this journey is ridden. Both are
+        // fixed here, at the start, with the speed: arrival pays by them, so
+        // putting a mount away on the road cannot buy a rider's speed with a
+        // walker's XP and finds (forum, 2026-11-08).
+        action_data: JSON.stringify({ base: baseTravelTime, mounted }),
+      });
+      return otherId;
     });
+    if (cancelledWith) pushToPlayer(cancelledWith, 'trade_cancelled', { reason: 'The other player left the area.' });
 
     const toLocation = await db('locations').where({ id: toLocationId }).first();
     // Set off: gone from "Players here" where they stood (players-here leaves

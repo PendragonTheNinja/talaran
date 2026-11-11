@@ -976,7 +976,9 @@ export async function resolveVigil(playerId: number, key: string | null): Promis
 
         const xp = await db.transaction(async trx => {
             await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id')
-            if ((await playerSkillLevel(playerId, 'Talar')) < spell.talar_level) {
+            // On the transaction (rule 18; audit B6): the plain connection here
+            // borrowed a second pool connection while this one held the player.
+            if ((await playerSkillLevel(playerId, 'Talar', trx)) < spell.talar_level) {
                 throw new SpellAbort(`You need Talar level ${spell.talar_level} to learn ${spell.name}.`)
             }
             // Completion is the gate: only the request that adds the row goes on.
@@ -1038,6 +1040,12 @@ export async function castSpell(
 
         const now = new Date()
         const out = await db.transaction(async trx => {
+            // The player row first, the order a fight settles in (action, fight,
+            // player, then Talar and stats). A cast used to lock player_talar and
+            // then player_stats while a Keeper's Band kill locked them the other
+            // way round, so the two could deadlock (audit 2026-11-09, B5).
+            // forNoKeyUpdate, as everywhere the player row is locked for this.
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id')
             // The player's own row for this spell, locked: the cooldown is read
             // and written under it, so parallel casts land one at a time.
             const own = await trx('player_spells').where({ player_id: playerId, spell_id: spell.id }).forUpdate().first()

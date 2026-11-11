@@ -1179,7 +1179,9 @@ const SCENARIOS: Scenario[] = [
             const mining = await ctx.seed.row('skills', { name: 'Mining' });
             const pick = await ctx.seed.row('items', { name: 'Ambren Pickaxe', type: 'tool', subtype: 'pickaxe', slot: 'mainhand', tier: 1 });
             const ore = await ctx.seed.row('items', { name: 'Ambren Ore', type: 'ore', subtype: 'ambren', level_required: 1, tier: 1 });
-            const vein = await ctx.seed.row('ore_veins', { location_id: w.town.id, ore_item_id: ore.id, remaining_quantity: 1, is_depleted: false });
+            // Announced: a vein others may work, which is the only kind several
+            // miners can race for (an unannounced one is its finder's alone).
+            const vein = await ctx.seed.row('ore_veins', { location_id: w.town.id, ore_item_id: ore.id, remaining_quantity: 1, is_depleted: false, is_announced: true });
             const miners = [w.player];
             for (let i = 0; i < 4; i++) miners.push(await ctx.seed.row('players', { username: `Miner${i}`, email: `miner${i}@racecheck.test`, current_location_id: w.town.id }));
             for (const m of miners) {
