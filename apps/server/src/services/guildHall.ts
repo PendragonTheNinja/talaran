@@ -43,7 +43,7 @@ type Refused = { ok: false; error: string; status: number };
 
 function refuse(err: unknown, context: string): Refused {
     if (err instanceof HallAbort) return { ok: false, error: err.message, status: err.status };
-    if ((err as { code?: string })?.code === '23505') return { ok: false, error: 'You are already performing an action', status: 409 };
+    if ((err as { code?: string })?.code === '23505') return { ok: false, error: 'You are already doing something', status: 409 };
     logger.error(`guildHall ${context}: ${err}`);
     return { ok: false, error: SERVER_ERROR, status: 500 };
 }
@@ -255,7 +255,7 @@ export async function startBuild(playerId: number, itemNameRaw: unknown): Promis
         const held = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
         if (!held || Number(held.quantity) < 1) throw new HallAbort(`You have no ${itemName} to give.`);
         if (await db('player_actions').where({ player_id: playerId }).first()) {
-            throw new HallAbort('You are already performing an action', 409);
+            throw new HallAbort('You are already doing something', 409);
         }
         const now = new Date();
         await db('player_actions').insert({

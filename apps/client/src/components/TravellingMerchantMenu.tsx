@@ -107,7 +107,7 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
         <div className="mkt-overlay" onClick={onClose}>
             <div className="mkt-modal" onClick={e => e.stopPropagation()}>
                 <div className="mkt-header">
-                    <h2>The Travelling Merchant</h2>
+                    <h2>The Traveling Merchant</h2>
                     <div className="mkt-header-right">
                         <span className="mkt-purse">{fmt(gold)}<span className="mkt-purse-unit">g</span></span>
                         <button className="mkt-close" onClick={onClose}>✕</button>

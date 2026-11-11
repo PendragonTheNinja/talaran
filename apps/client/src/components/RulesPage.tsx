@@ -14,7 +14,7 @@ export function RulesText() {
         <>
             <p>
                 Talaran is a game for everyone, including younger players. These rules keep it fair and keep it
-                a good place to spend time. Staff use their judgement in applying them, and may warn, mute or ban
+                a good place to spend time. Staff use their judgment in applying them, and may warn, mute or ban
                 an account depending on what happened.
             </p>
 

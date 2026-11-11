@@ -46,7 +46,7 @@ function readFields(input: any, creating: boolean): Partial<{ title: string; bod
         out.body = input.body
     }
     if (input?.color !== undefined) {
-        if (input.color !== null && !(JOURNAL_COLORS as readonly string[]).includes(input.color)) throw new JournalRefusal('That is not one of the colours.')
+        if (input.color !== null && !(JOURNAL_COLORS as readonly string[]).includes(input.color)) throw new JournalRefusal('That is not one of the colors.')
         out.color = input.color
     }
     if (input?.pinned !== undefined) out.pinned = !!input.pinned

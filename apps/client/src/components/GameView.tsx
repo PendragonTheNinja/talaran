@@ -1779,10 +1779,10 @@ export default function GameView({
 
   // Per-skill fallbacks, matching the scene text these actions had before crafting went generic
   const RECIPE_FLAVOR_BY_SKILL: Record<string, string> = {
-    Smithing: 'You are working the forge.',
-    Carpentry: 'You are working at the sawhorse.',
-    Crafting: 'You are working the leather.',
-    Farming: 'You are working the crop.',
+    Smithing: 'You work the metal at the forge.',
+    Carpentry: 'You work the timber at the bench.',
+    Crafting: 'You work the piece in your hands.',
+    Farming: 'You work over the crop.',
   }
 
   const startRecipe = async (recipeId: number) => {
@@ -1954,7 +1954,7 @@ export default function GameView({
     if (currentAction === 'recipe') {
       return recipeLabel?.flavorText
         || (recipeLabel && RECIPE_FLAVOR_BY_SKILL[recipeLabel.skill])
-        || 'You are working at the bench.'
+        || 'You work at the bench.'
     }
     return null
   })()

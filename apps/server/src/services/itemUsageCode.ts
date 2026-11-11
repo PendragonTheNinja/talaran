@@ -62,7 +62,7 @@ export function codeSources(name: string): ItemSource[] {
     for (const e of TRAVEL_EVENTS) {
         if (!eq(e.itemName, name)) continue;
         out.push({
-            kind: 'Travelling',
+            kind: 'Traveling',
             from: 'Found on the road',
             where: e.region === 'global' ? 'Anywhere' : e.region,
             detail: [

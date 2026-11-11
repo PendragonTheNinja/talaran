@@ -897,7 +897,7 @@ export const extraQueries: Record<string, QueryHandler> = {
         if (!rows.length) return null;
         const SLOT: Record<string, string> = { head: 'Head', chest: 'Body', legs: 'Legs', hands: 'Hands', feet: 'Feet', offhand: 'Shield' };
         return {
-            title: 'Armour',
+            title: 'Armor',
             columns: [
                 { key: 'name', label: 'Piece', icon: 'name' },
                 { key: 'slot', label: 'Worn on' },
@@ -934,7 +934,7 @@ export const extraQueries: Record<string, QueryHandler> = {
                 uses: `${Number(r.guaranteed_uses).toLocaleString('en-US')} kills`,
                 chance: `${Number(r.break_chance_pct)}% a kill`,
             })),
-            note: `Your weapon wears with every kill, and ${COMBAT.ARMOUR_PIECES_WORN_PER_KILL} of the armour pieces you have on, picked at random. A few rare pieces last longer than their tier. The count is kept per kind of item rather than per piece, so trading one blade for another of the same make does not start it again; a break does.`,
+            note: `Your weapon wears with every kill, and ${COMBAT.ARMOUR_PIECES_WORN_PER_KILL} of the armor pieces you have on, picked at random. A few rare pieces last longer than their tier. The count is kept per kind of item rather than per piece, so trading one blade for another of the same make does not start it again; a break does.`,
         };
     },
 

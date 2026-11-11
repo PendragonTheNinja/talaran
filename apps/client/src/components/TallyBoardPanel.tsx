@@ -80,7 +80,7 @@ function Licence({ report, busy, onBought }: {
             await apiFetch('/api/tally/licence', { method: 'POST' })
             onBought()
         } catch (err: any) {
-            setError(err.message || 'Could not buy that licence.')
+            setError(err.message || 'Could not buy that license.')
         } finally {
             setBuying(false)
         }
@@ -95,7 +95,7 @@ function Licence({ report, busy, onBought }: {
             </p>
             {licence.canBuy ? (
                 <button className="btn btn-gold" onClick={buy} disabled={buying || busy}>
-                    {buying ? 'Buying…' : `Buy licence (${licence.cost.toLocaleString()}g)`}
+                    {buying ? 'Buying…' : `Buy license (${licence.cost.toLocaleString()}g)`}
                 </button>
             ) : (
                 <p className="muted-text tally-licence-why">{licence.reason}</p>
@@ -400,7 +400,7 @@ function Raise({
 
             {relocating && (
                 <p className="muted-text tally-relocate-note">
-                    You have as many boards as your licences allow, so this one moves your
+                    You have as many boards as your licenses allow, so this one moves your
                     oldest{report.boards[0] ? `, at ${report.boards[0].locationName},` : ''} rather than adding to it.
                     The materials are owed either way.
                 </p>

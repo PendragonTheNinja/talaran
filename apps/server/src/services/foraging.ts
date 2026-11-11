@@ -150,7 +150,7 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         if (!foragingSkill) return { success: false, error: 'Foraging skill missing' };
         const ps = await db('player_skills').where({ player_id: playerId, skill_id: foragingSkill.id }).first();
         const level = ps ? levelFromXp(ps.xp) : 1;
-        if (level < habitat.required_level) return { success: false, error: `Requires Foraging level ${habitat.required_level}` };
+        if (level < habitat.required_level) return { success: false, error: `You need Foraging level ${habitat.required_level} to search here.` };
 
         const hasGloves = (await bestToolTier(playerId, 'foraging_gloves')) > 0;
         const hasBasket = (await bestToolTier(playerId, 'foraging_basket')) > 0;

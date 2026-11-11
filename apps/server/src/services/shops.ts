@@ -176,7 +176,7 @@ export async function startEstablishShop(playerId: number): Promise<{ ok: boolea
     // with no shopfront behind it showed the build UI and then refused to
     // build, with no way for the player to reconcile the two.
     if (await shopFor(playerId)) return { ok: false, error: 'You already have a shop.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const carp = await skillLevel(playerId, 'Carpentry');
     if (carp < CARPENTRY_REQ) return { ok: false, error: `Requires Carpentry level ${CARPENTRY_REQ}.` };

@@ -52,7 +52,7 @@ interface PageData {
 
 const SECTION_LABEL: Record<string, string> = {
     heading: '', headline: 'Headline', island: 'Around the island', guilds: 'From the guilds',
-    fallen: 'Of the fallen', maker: 'Word from the Maker', quiet: '', roll: 'The long roll', rumour: 'A rumour', signoff: '',
+    fallen: 'Of the fallen', maker: 'Word from the Maker', quiet: '', roll: 'The long roll', rumour: 'A rumor', signoff: '',
 }
 
 /** A page's lines under their section names, each name once. */

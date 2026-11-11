@@ -59,7 +59,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     try {
         const existing = await db('player_actions').where({ player_id: playerId }).first()
         if (existing) {
-            res.status(409).json({ error: 'You are already performing an action' })
+            res.status(409).json({ error: 'You are already doing something' })
             return
         }
 
@@ -102,7 +102,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     } catch (err: any) {
         // Raced double-start: the unique constraint on player_actions.player_id catches it
         if (err && err.code === '23505') {
-            res.status(409).json({ error: 'You are already performing an action' })
+            res.status(409).json({ error: 'You are already doing something' })
             return
         }
         logger.error('Recipe start error: ' + err)

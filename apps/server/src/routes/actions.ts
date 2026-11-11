@@ -49,7 +49,7 @@ router.post('/woodcutting/start', requireAuth, botCheckGate, async (req: AuthReq
     // Check if player already has an active action
     const existing = await db('player_actions').where({ player_id: playerId }).first();
     if (existing) {
-      res.status(409).json({ error: 'You are already performing an action' });
+      res.status(409).json({ error: 'You are already doing something' });
       return;
     }
 

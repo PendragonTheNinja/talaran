@@ -59,7 +59,7 @@ const ACTION_LABELS: Record<string, string> = {
     // skillName is preferred below, and this is only the fallback for a recipe
     // that somehow reports none.
     recipe: 'Crafting',
-    traveling: 'Travelling',
+    traveling: 'Traveling',
 };
 
 export interface LootAward {

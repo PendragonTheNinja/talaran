@@ -240,12 +240,12 @@ export function CombatStatsBody({ combat }: { combat?: CombatProfile | null }) {
                     land, which is what Absorbs counts. One armour total feeds
                     both, so it is shown as the part of each rather than as a
                     third number. */}
-                <div className="cstat-tile" title="How hard you are to hit: your Defense level, plus the armour you wear">
-                    <span className="cstat-label">Defence</span>
+                <div className="cstat-tile" title="How hard you are to hit: your Defense level, plus the armor you wear">
+                    <span className="cstat-label">Defense</span>
                     <span className="cstat-value tabular-num">{combat?.defence ?? '-'}</span>
-                    {combat && <span className="cstat-sub tabular-num">{combat.armour} from armour</span>}
+                    {combat && <span className="cstat-sub tabular-num">{combat.armour} from armor</span>}
                 </div>
-                <div className="cstat-tile" title="Taken off every blow that does land, by the armour you wear">
+                <div className="cstat-tile" title="Taken off every blow that does land, by the armor you wear">
                     <span className="cstat-label">Absorbs</span>
                     <span className="cstat-value tabular-num">{combat?.absorb ?? '-'}</span>
                     {combat && <span className="cstat-sub">a hit</span>}

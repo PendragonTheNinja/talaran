@@ -39,7 +39,7 @@ function startHandler(
             res.json({ message, timerSeconds: r.timerSeconds });
         } catch (err: any) {
             if (err?.code === '23505') {
-                res.status(409).json({ error: 'You are already performing an action' });
+                res.status(409).json({ error: 'You are already doing something' });
                 return;
             }
             logger.error(`Husbandry start error: ${err}`);

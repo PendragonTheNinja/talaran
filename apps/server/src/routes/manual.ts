@@ -284,12 +284,12 @@ const registry: Record<string, QueryHandler> = {
                 const notes = [`${f.xp} XP`];
                 if (f.bait_category) notes.push(`takes ${f.bait_category}`);
                 if (f.time_window) {
-                    notes.push(f.window_exclusive ? `${f.time_window} only` : `favours ${f.time_window}`);
+                    notes.push(f.window_exclusive ? `${f.time_window} only` : `favors ${f.time_window}`);
                 }
                 if (f.seasons) {
                     notes.push(f.season_exclusive
                         ? `${String(f.seasons).replace(/,/g, ' and ')} only`
-                        : `favours ${String(f.seasons).replace(/,/g, ' and ')}`);
+                        : `favors ${String(f.seasons).replace(/,/g, ' and ')}`);
                 }
                 notes.push(`${(Number(f.min_weight_cw) / 100).toFixed(2)} to ${(Number(f.max_weight_cw) / 100).toFixed(2)} lb`);
                 return {

@@ -478,7 +478,7 @@ function MerchantCard({ data, send }: { data: Overview; send: Send }) {
 
     return (
         <div className="admin-action-card">
-            <p className="admin-section-title">🛒 Travelling Merchant</p>
+            <p className="admin-section-title">🛒 Traveling Merchant</p>
             <p className="ev-admin-note">
                 {out
                     ? 'He is out now (see Live Events).'

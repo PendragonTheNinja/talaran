@@ -464,7 +464,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         ))}
         {merchantHere && (
           <button className="location-action-btn" onClick={() => setMerchantOpen(true)}>
-            The Travelling Merchant →
+            The Traveling Merchant →
           </button>
         )}
 

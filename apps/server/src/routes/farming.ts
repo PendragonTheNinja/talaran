@@ -55,7 +55,7 @@ router.post('/uproot', requireAuth, botCheckGate, async (req: AuthRequest, res: 
         if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
         res.json({ message: 'Uprooting', timerSeconds: r.timerSeconds });
     } catch (err: any) {
-        if (err?.code === '23505') { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (err?.code === '23505') { res.status(409).json({ error: 'You are already doing something' }); return; }
         logger.error(`Uproot error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }

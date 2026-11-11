@@ -62,7 +62,7 @@ export default function EventsPanel({ onClose, closing }: EventsPanelProps) {
                 {/* When he is due, not where: the place is his to choose. */}
                 {merchantNextAt && (
                     <p className="ev-merchant-due">
-                        The travelling merchant is expected {dueIn(merchantNextAt, now)}, somewhere on the island.
+                        The traveling merchant is expected {dueIn(merchantNextAt, now)}, somewhere on the island.
                     </p>
                 )}
 

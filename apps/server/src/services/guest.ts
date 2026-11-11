@@ -55,7 +55,7 @@ export const GUEST_SUFFIX = '-guest';
 // someone register Foozard-guest and impersonate a real player in chat. They
 // choose a real name when they upgrade, which is a better moment for it anyway.
 const GUEST_NAMES = [
-    'Pilgrim', 'Wanderer', 'Drifter', 'Stranger', 'Traveller', 'Newcomer',
+    'Pilgrim', 'Wanderer', 'Drifter', 'Stranger', 'Traveler', 'Newcomer',
     'Wayfarer', 'Rambler', 'Sojourner', 'Vagabond', 'Journeyer', 'Roamer',
     'Outlander', 'Farer', 'Pathfinder', 'Voyager', 'Nomad', 'Trekker',
 ];

@@ -298,8 +298,8 @@ export default function JournalPanel({ onClose, closing, onOpenItem }: JournalPa
                                     <button className={`btn ${mode === 'read' ? 'btn-gold' : ''}`} onClick={() => setMode('read')}>Read</button>
                                     <button className={`btn ${mode === 'write' ? 'btn-gold' : ''}`} onClick={() => setMode('write')}>Write</button>
                                 </div>
-                                <div className="jr-colors" role="radiogroup" aria-label="Colour">
-                                    <button className={`jr-swatch ${!note.color ? 'on' : ''}`} onClick={() => edit(note.id, { color: null }, true)} title="No colour" aria-label="No colour" />
+                                <div className="jr-colors" role="radiogroup" aria-label="Color">
+                                    <button className={`jr-swatch ${!note.color ? 'on' : ''}`} onClick={() => edit(note.id, { color: null }, true)} title="No color" aria-label="No color" />
                                     {COLORS.map(c => (
                                         <button
                                             key={c.key}

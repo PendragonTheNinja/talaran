@@ -446,7 +446,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
 
       <div className="chat-messages">
         {visibleMessages.length === 0 ? (
-          <p className="chat-empty muted-text">Welcome to Talaran, adventurer. The world awaits.</p>
+          <p className="chat-empty muted-text">Quiet in here. Say something and see who answers.</p>
         ) : (
           visibleMessages.map((msg, i) => (
             <ChatMessageLine

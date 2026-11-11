@@ -28,7 +28,7 @@ import { isLiquid } from './liquids';
 // decrement inside the transaction that takes the gold, so two players never
 // both buy the last one (race:check 'merchant').
 
-export const MERCHANT_NAME = 'The Travelling Merchant';
+export const MERCHANT_NAME = 'The Traveling Merchant';
 
 const SCHEDULER_BUFFER_MS = 60_000;
 

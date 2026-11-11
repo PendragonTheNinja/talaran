@@ -953,7 +953,7 @@ export async function startVigil(playerId: number, key: string): Promise<{ ok: t
         return { ok: true, timerSeconds: seconds, spell: spell.name }
     } catch (err: any) {
         // The unique index on player_actions.player_id is the real guard (CLAUDE.md §9).
-        if (err?.code === '23505') return { ok: false, status: 409, error: 'You are already performing an action' }
+        if (err?.code === '23505') return { ok: false, status: 409, error: 'You are already doing something' }
         logger.error(`startVigil error (player ${playerId}, ${key}): ${err}`)
         return { ok: false, status: 500, error: SERVER_ERROR }
     }

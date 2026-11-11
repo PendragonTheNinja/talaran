@@ -44,7 +44,7 @@ export const TRAVEL_EVENTS: TravelEvent[] = [
         rarity: 300,
         messages: [
             "You almost walked past it... a rare Tal's Hope, blooming alone at the roadside. A fortunate find.",
-            "A flash of unusual colour stopped you. A Tal's Hope, growing where little else dared. You gathered it gently.",
+            "A flash of unusual color stopped you. A Tal's Hope, growing where little else dared. You gathered it gently.",
         ],
     },
     {
@@ -55,7 +55,7 @@ export const TRAVEL_EVENTS: TravelEvent[] = [
         quantity: 1,
         rarity: 500,
         messages: [
-            'A letter lay folded in the grass by the milestone, its grey seal unbroken. Nobody was in sight to claim it.',
+            'A letter lay folded in the grass by the milestone, its gray seal unbroken. Nobody was in sight to claim it.',
             'Caught in a bramble at the roadside was a sealed letter, weathered but whole. You worked it free.',
             'A carrier had dropped something here once: a folded writ, still sealed, half-sunk in the verge.',
         ],

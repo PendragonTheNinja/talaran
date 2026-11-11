@@ -37,7 +37,7 @@ router.post('/rock/start', requireAuth, botCheckGate, async (req: AuthRequest, r
   try {
     const existing = await db('player_actions').where({ player_id: playerId }).first();
     if (existing) {
-      res.status(409).json({ error: 'You are already performing an action' });
+      res.status(409).json({ error: 'You are already doing something' });
       return;
     }
 

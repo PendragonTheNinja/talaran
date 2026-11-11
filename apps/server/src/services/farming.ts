@@ -428,7 +428,7 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be in Novita to raise a farmstead.' };
     if (property) return { ok: false, error: 'You already have a farmstead here.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const carp = await skillLevel(playerId, 'Carpentry');
     if (carp < CARPENTRY_REQ) return { ok: false, error: `Requires Carpentry level ${CARPENTRY_REQ}.` };
@@ -451,7 +451,7 @@ export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; e
     if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be at your farmstead to enclose a field.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const missingTool = await missingBuildTool(playerId);
     if (missingTool) return { ok: false, error: missingTool.message };
@@ -484,7 +484,7 @@ export async function startTill(playerId: number, plotId: number): Promise<{ ok:
     if (!plot) return { ok: false, error: 'That is not your plot.' };
     if (plot.state !== 'empty') return { ok: false, error: 'That plot is already worked.' };
     if (!(await equippedTool(playerId, 'hoe'))) return { ok: false, error: 'You need a hoe equipped to till the soil.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'farm_till', TILL_SECONDS, String(plotId), novita?.id ?? null);
@@ -511,7 +511,7 @@ export async function startSow(playerId: number, plotId: number, cropId: number,
     const count = Math.max(1, Math.min(PLOT_CAPACITY, Math.floor(seedCount)));
     const matCheck = await hasMaterials(playerId, [{ itemName: crop.seed_item_name, qty: count }]);
     if (!matCheck.ok) return { ok: false, error: `You need ${count}x ${crop.seed_item_name}.` };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const seconds = count * SOW_SECONDS_PER_SEED;
     const { novita } = await playerProperty(playerId);
@@ -524,7 +524,7 @@ export async function startHarvest(playerId: number, plotId: number): Promise<{ 
     if (!plot) return { ok: false, error: 'That is not your plot.' };
     if (plot.state !== 'growing' || !plot.crop_id) return { ok: false, error: 'Nothing to harvest here.' };
     if (!plot.ready_at || Date.now() < new Date(plot.ready_at).getTime()) return { ok: false, error: 'The crop is not ready yet.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const seconds = Math.max(1, plot.seed_count) * HARVEST_SECONDS_PER_SEED;
     const { novita } = await playerProperty(playerId);
@@ -554,7 +554,7 @@ export async function startUproot(playerId: number, plotId: number): Promise<{ o
     if (!(await equippedTool(playerId, 'hoe'))) {
         return { ok: false, error: 'You need a hoe equipped to break the ground.' };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'farm_uproot', UPROOT_SECONDS, String(plotId), novita?.id ?? null);
@@ -613,7 +613,7 @@ export async function startTend(playerId: number): Promise<{ ok: boolean; error?
 
     const plots = await tendablePlots(property.id);
     if (plots.length === 0) return { ok: false, error: 'Nothing here needs tending.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const seconds = plots.length * TEND_SECONDS_PER_PLOT;
     await startAction(playerId, 'farm_tend', seconds, null, novita.id);
@@ -666,7 +666,7 @@ export async function startManure(playerId: number, plotId: number): Promise<{ o
     if (plot.soil_state === 'rich') return { ok: false, error: 'That ground is already in good heart.' };
     const check = await hasMaterials(playerId, [{ itemName: 'Manure', qty: MANURE_COST }]);
     if (!check.ok) return { ok: false, error: `You need ${MANURE_COST}x Manure.` };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'farm_manure', MANURE_SECONDS, String(plotId), novita?.id ?? null);
@@ -1027,7 +1027,7 @@ export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; 
 
     const ripe = await ripePlots(property.id);
     if (ripe.length === 0) return { ok: false, error: 'Nothing is ready to harvest yet.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const seconds = ripe.reduce(
         (s: number, p: any) => s + Math.max(1, p.seed_count) * HARVEST_SECONDS_PER_SEED, 0);

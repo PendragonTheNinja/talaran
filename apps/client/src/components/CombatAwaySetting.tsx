@@ -111,7 +111,7 @@ export default function CombatAwaySetting() {
                             Only you can see that pile for {pileMinutes ? <strong>{pileMinutes} minutes</strong> : 'a short while'}.
                             After that, <strong>anyone can pick it up</strong>.
                         </li>
-                        <li>If a weapon or piece of armour breaks, the fight stops there.</li>
+                        <li>If a weapon or piece of armor breaks, the fight stops there.</li>
                         <li>With this off, leaving ends your fight at once and you lose nothing. You can turn it off again at any time.</li>
                     </ul>
                 </ConfirmModal>

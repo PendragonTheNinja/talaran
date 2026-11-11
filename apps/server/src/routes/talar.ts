@@ -53,7 +53,7 @@ router.post('/fill/start', requireAuth, botCheckGate, async (req: AuthRequest, r
     const playerId = req.player!.playerId;
     try {
         if (await db('player_actions').where({ player_id: playerId }).first()) {
-            res.status(409).json({ error: 'You are already performing an action' });
+            res.status(409).json({ error: 'You are already doing something' });
             return;
         }
         const itemId = req.body?.itemId == null ? null : Number(req.body.itemId);

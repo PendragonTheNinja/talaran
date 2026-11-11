@@ -783,7 +783,7 @@ const SCENARIOS: Scenario[] = [
             // planks in packs plus what is left in his cart stays five, and
             // what was paid is exactly one purchase.
             const w = await world(ctx);
-            const visit = await ctx.seed.row('world_events', { name: 'The Travelling Merchant', kind: 'merchant', location_id: w.town.id,
+            const visit = await ctx.seed.row('world_events', { name: 'The Traveling Merchant', kind: 'merchant', location_id: w.town.id,
                 xp_multiplier: 1, pool_total: 5, pool_left: 5, ends_at: new Date(Date.now() + 3600_000) });
             await ctx.seed.row('world_event_stock', { event_id: visit.id, item_id: w.plank.id, quantity_total: 5, quantity_left: 5, price: 10 });
             const buyers = [];
@@ -811,7 +811,7 @@ const SCENARIOS: Scenario[] = [
             // services/travellingMerchant.ts sellToMerchant: your share is a
             // conditional upsert, so only one sale of three fits under four.
             const w = await world(ctx);
-            const visit = await ctx.seed.row('world_events', { name: 'The Travelling Merchant', kind: 'merchant', location_id: w.town.id,
+            const visit = await ctx.seed.row('world_events', { name: 'The Traveling Merchant', kind: 'merchant', location_id: w.town.id,
                 xp_multiplier: 1, pool_total: 1, pool_left: 1, ends_at: new Date(Date.now() + 3600_000) });
             await ctx.seed.row('world_event_wants', { event_id: visit.id, item_id: w.plank.id, quantity_total: 20, quantity_left: 20, price: 10, player_cap: 4 });
             await inPack(ctx, w.player.id, w.plank.id, 15);
@@ -833,7 +833,7 @@ const SCENARIOS: Scenario[] = [
         run: async (ctx) => {
             // What he still wants is a conditional decrement: one sale of three fits.
             const w = await world(ctx);
-            const visit = await ctx.seed.row('world_events', { name: 'The Travelling Merchant', kind: 'merchant', location_id: w.town.id,
+            const visit = await ctx.seed.row('world_events', { name: 'The Traveling Merchant', kind: 'merchant', location_id: w.town.id,
                 xp_multiplier: 1, pool_total: 1, pool_left: 1, ends_at: new Date(Date.now() + 3600_000) });
             await ctx.seed.row('world_event_wants', { event_id: visit.id, item_id: w.plank.id, quantity_total: 5, quantity_left: 5, price: 10, player_cap: 5 });
             const sellers = [];

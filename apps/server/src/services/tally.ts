@@ -93,8 +93,8 @@ export async function licenceOffer(playerId: number): Promise<LicenceOffer> {
     let reason: string | undefined;
     // Combat skills are left out of this total (see totalLevel), so it is named
     // as such: a player comparing it with the Skills page saw two numbers.
-    if (have < need) reason = `A licence for a ${ordinal(boardNumber)} board wants a total level of ${need} outside combat. Yours is ${have}.`;
-    else if (gold < cost) reason = `That licence costs ${cost} gold. You have ${gold}.`;
+    if (have < need) reason = `A license for a ${ordinal(boardNumber)} board wants a total level of ${need} outside combat. Yours is ${have}.`;
+    else if (gold < cost) reason = `That license costs ${cost} gold. You have ${gold}.`;
 
     return {
         boardNumber, cost, totalLevelRequired: need,
@@ -141,7 +141,7 @@ export async function buyLicence(playerId: number): Promise<{ success: boolean; 
         });
     } catch (err) {
         const msg = String(err);
-        if (msg.includes('SHORT_GOLD')) return { success: false, error: 'You cannot afford that licence.' };
+        if (msg.includes('SHORT_GOLD')) return { success: false, error: 'You cannot afford that license.' };
         if (msg.includes('RACE')) return { success: false, error: 'Try that again.' };
         throw err;
     }

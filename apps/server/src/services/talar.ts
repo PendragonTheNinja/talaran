@@ -405,7 +405,7 @@ export async function startFill(
     } catch (err: any) {
         if (err instanceof TalarAbort) return { ok: false, status: 400, error: err.message }
         // The unique index on player_actions.player_id is the real guard (CLAUDE.md §9).
-        if (err?.code === '23505') return { ok: false, status: 409, error: 'You are already performing an action' }
+        if (err?.code === '23505') return { ok: false, status: 409, error: 'You are already doing something' }
         logger.error(`startFill error (player ${playerId}): ${err}`)
         return { ok: false, status: 500, error: SERVER_ERROR }
     }

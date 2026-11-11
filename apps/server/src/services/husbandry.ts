@@ -1095,7 +1095,7 @@ export async function startBuildPen(playerId: number, penType: string): Promise<
         const m = matCheck.missing[0];
         return { ok: false, error: `You need ${m.need}x ${m.itemName} (you have ${m.have}).` };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     await startAction(playerId, 'husbandry_build_pen', BUILD_PEN_SECONDS, penType, novita?.id ?? null);
     return { ok: true, timerSeconds: BUILD_PEN_SECONDS };
@@ -1218,7 +1218,7 @@ export async function startDemolishPen(
 
     const toolProblem = await missingBuildTool(playerId);
     if (toolProblem) return { ok: false, error: toolProblem };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     const data = occupied && isApiary(pen.pen_type) ? `${penId}:${disposition}` : String(penId);
@@ -1454,7 +1454,7 @@ export async function startFeed(playerId: number, penId: number): Promise<{ ok: 
         const m = matCheck.missing[0];
         return { ok: false, error: `You need ${m.need}x ${m.itemName} to feed them all (you have ${m.have}).` };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     const seconds = Math.max(5, animals.length * FEED_SECONDS_PER_HEAD);
@@ -1635,7 +1635,7 @@ export async function startFeedAll(playerId: number): Promise<{ ok: boolean; err
         const m = matCheck.missing[0];
         return { ok: false, error: `A full round needs ${m.need}x ${m.itemName} (you have ${m.have}).` };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     const seconds = feedRoundSeconds(head);
@@ -1724,7 +1724,7 @@ export async function startMuckAll(playerId: number): Promise<{ ok: boolean; err
         const m = matCheck.missing[0];
         return { ok: false, error: `A full round needs ${m.need}x ${m.itemName} (you have ${m.have}).` };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     const seconds = muckRoundSeconds(pens.length);
@@ -1819,7 +1819,7 @@ export async function startMuck(playerId: number, penId: number): Promise<{ ok: 
         return { ok: false, error: `You need ${m.need}x ${m.itemName} for fresh bedding (you have ${m.have}).` };
     }
 
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'husbandry_muck', MUCK_SECONDS, String(penId), novita?.id ?? null);
@@ -1992,7 +1992,7 @@ export async function startCollect(playerId: number, animalId: number): Promise<
         && !(await canFill(playerId, species.product_item_name, species.product_qty))) {
         return { ok: false, error: 'You have nowhere to put it — you need an empty Lanai Bucket.' };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'husbandry_collect', COLLECT_SECONDS, String(animalId), novita?.id ?? null);
@@ -2131,7 +2131,7 @@ export async function startCollectAll(playerId: number, penId: number): Promise<
         && !(await canFill(playerId, species.product_item_name, species.product_qty))) {
         return { ok: false, error: 'You have nowhere to put it — you need an empty Lanai Bucket.' };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     const seconds = collectAllSeconds(units);
@@ -2244,7 +2244,7 @@ export async function startSlaughter(playerId: number, animalId: number): Promis
     if (!(await equippedTool(playerId, 'butcher_knife'))) {
         return { ok: false, error: 'You need an Ambren Butchering Knife equipped.' };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'husbandry_slaughter', SLAUGHTER_SECONDS, String(animalId), novita?.id ?? null);
@@ -2333,7 +2333,7 @@ export async function startSlaughterAll(playerId: number, penId: number): Promis
     if (!(await equippedTool(playerId, 'butcher_knife'))) {
         return { ok: false, error: 'You need an Ambren Butchering Knife equipped.' };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     const seconds = slaughterAllSeconds(grown.length);
@@ -2429,7 +2429,7 @@ export async function startTame(playerId: number, animalId: number): Promise<{ o
     const fresh = await accrue(animal, pen);
     if (stageOf(fresh, species) === 'juvenile') return { ok: false, error: `${fresh.name} is not grown yet.` };
     if (!(await equippedTool(playerId, 'halter'))) return { ok: false, error: 'You need a Halter & Lead equipped.' };
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already doing something.' };
 
     const { novita } = await playerProperty(playerId);
     await startAction(playerId, 'husbandry_tame', TAME_SECONDS, String(animalId), novita?.id ?? null);

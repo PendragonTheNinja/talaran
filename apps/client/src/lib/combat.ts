@@ -146,6 +146,6 @@ export function describeSwing(s: FightSwing): string {
         return s.hit ? `You hit the ${s.creature} for ${s.damage}.` : `You miss the ${s.creature}.`
     }
     if (!s.hit) return `The ${s.creature} misses you.`
-    const turned = s.absorbed > 0 ? ` Your armour takes ${s.absorbed}.` : ''
+    const turned = s.absorbed > 0 ? ` Your armor takes ${s.absorbed}.` : ''
     return `The ${s.creature} hits you for ${s.damage}.${turned}`
 }

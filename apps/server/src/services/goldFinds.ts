@@ -103,7 +103,7 @@ const FLAVOUR: Record<string, string[]> = {
         'Coins spill out as you work the knife. This fish had secrets.',
     ],
     farming: [
-        'The plough turns up coins, black with earth. Fields remember things.',
+        'The plow turns up coins, black with earth. Fields remember things.',
         'Coins come up tangled in the roots, buried long before this was a field.',
         'The soil gives up a handful of coins. Somebody farmed here before you did.',
         'Coins in the furrow, thin as leaves and just as easy to miss.',

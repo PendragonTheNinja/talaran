@@ -90,7 +90,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     const { baitCategory } = req.body;
     try {
         const existing = await db('player_actions').where({ player_id: playerId }).first();
-        if (existing) { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (existing) { res.status(409).json({ error: 'You are already doing something' }); return; }
 
         const player = await db('players').where({ id: playerId }).select('current_location_id').first();
         if (!player) { res.status(404).json({ error: 'Player not found' }); return; }
@@ -124,7 +124,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             last_bot_check: now,
             bot_check_pending: false,
         });
-        if (!inserted.ok) { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (!inserted.ok) { res.status(409).json({ error: 'You are already doing something' }); return; }
 
         logger.info(`Player ${playerId} started rod fishing at ${player.current_location_id} (bait: ${bait || 'none'})`);
         res.json({ message: 'Fishing started', timerSeconds, completesAt: new Date(now.getTime() + timerSeconds * 1000) });
@@ -139,7 +139,7 @@ router.post('/net/start', requireAuth, botCheckGate, async (req: AuthRequest, re
     const playerId = req.player!.playerId;
     try {
         const existing = await db('player_actions').where({ player_id: playerId }).first();
-        if (existing) { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (existing) { res.status(409).json({ error: 'You are already doing something' }); return; }
 
         const player = await db('players').where({ id: playerId }).select('current_location_id').first();
         if (!player) { res.status(404).json({ error: 'Player not found' }); return; }
@@ -164,7 +164,7 @@ router.post('/net/start', requireAuth, botCheckGate, async (req: AuthRequest, re
             last_bot_check: now,
             bot_check_pending: false,
         });
-        if (!inserted.ok) { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (!inserted.ok) { res.status(409).json({ error: 'You are already doing something' }); return; }
 
         logger.info(`Player ${playerId} started net fishing at ${player.current_location_id}`);
         res.json({ message: 'Net fishing started', timerSeconds, completesAt: new Date(now.getTime() + timerSeconds * 1000) });
@@ -181,7 +181,7 @@ router.post('/cut', requireAuth, botCheckGate, async (req: AuthRequest, res: Res
     const { species } = req.body;
     try {
         const existing = await db('player_actions').where({ player_id: playerId }).first();
-        if (existing) { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (existing) { res.status(409).json({ error: 'You are already doing something' }); return; }
 
         if (!species || typeof species !== 'string') {
             res.status(400).json({ error: 'No fish chosen.' }); return;
@@ -219,7 +219,7 @@ router.post('/cut', requireAuth, botCheckGate, async (req: AuthRequest, res: Res
             last_bot_check: now,
             bot_check_pending: false,
         });
-        if (!inserted.ok) { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        if (!inserted.ok) { res.status(409).json({ error: 'You are already doing something' }); return; }
 
         logger.info(`Player ${playerId} started cutting ${species} for bait`);
         res.json({ message: 'Cutting bait', timerSeconds, completesAt: new Date(now.getTime() + timerSeconds * 1000) });
