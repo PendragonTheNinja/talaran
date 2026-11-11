@@ -203,6 +203,11 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       return;
     }
     resetCooldown.set(normalized, Date.now());
+    // Forget addresses whose cooldown has passed, or the map grows with every
+    // address ever asked about (audit 2026-11-09).
+    if (resetCooldown.size > 1000) {
+      for (const [k, at] of resetCooldown) if (Date.now() - at >= RESET_COOLDOWN_MS) resetCooldown.delete(k);
+    }
 
     const player = await db('players').whereRaw('LOWER(email) = ?', [normalized]).first();
     if (player) {
@@ -214,8 +219,12 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       const base = process.env.CLIENT_URL || 'https://talaran.net';
       const link = `${base}/reset-password?token=${rawToken}`;
       const { subject, html, text } = passwordResetEmail(player.username, link);
-      const sent = await sendEmail({ to: player.email, subject, html, text });
-      if (!sent) logger.error(`[auth] reset email failed to send for player ${player.id}`);
+      // Not awaited: waiting for the mail only when the account exists made the
+      // answer slower for real addresses, and the time gave away which ones are
+      // registered although the words are the same (audit 2026-11-09).
+      sendEmail({ to: player.email, subject, html, text })
+        .then((sent) => { if (!sent) logger.error(`[auth] reset email failed to send for player ${player.id}`); })
+        .catch((err) => logger.error(`[auth] reset email error for player ${player.id}: ${err}`));
     }
     res.json(generic);
   } catch (err) {

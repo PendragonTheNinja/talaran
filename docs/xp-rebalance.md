@@ -61,7 +61,7 @@ R̂ is the smooth reference curve; the 1.10 is the unlock dip bonus — new cont
 |---|---|---|
 | Gathering (default) | ×1.0 | The baseline. |
 | Mining — rocks | ×0.5 | Deliberately slow filler; always available. |
-| Mining — ores | ×1.3 | Not 100% uptime; rewards active play. Blended mining ≈ band. |
+| Mining — ores | ×1.87 at level 1 (32 xp / 28 s) | Not 100% uptime; rewards active play. Blended mining ≈ band. Was written ×1.3; live has always paid this, and it is the intended rate (Nathan, 2026-11-10). |
 | Crafting — finished goods | ×1.8 | Materials are the other half of the journey (~1,667 hands-on hr to 100; the rest is gathering or trade). Matches current live tuning. |
 | Crafting — intermediates (saw, smelt) | ×0.6 of crafting band | Bulk steps shouldn't out-earn finished goods. Matches current live tuning exactly. |
 | Hunting | ×1.0 nominal | Effective rate = xp_success × catch% + xp_failure × miss%, arrow economy priced in. Tune to band at the animal's unlock level. |
@@ -109,7 +109,7 @@ Checked every live action against the ladder. **Current tuning already conforms 
 | Lanai Tree (45s, L1) | 25 | 28 | **change** |
 | Old Growth Lanai (60s, L13) | 65 | 49 | **change** |
 | Granite Rock (20s) | 6 | 6 | keep |
-| Burgh / Ambren Ore (28s) | 32 | 22 | **changed 2026-09-29** (this row first read 20/20/keep; live was in fact 32, from a code formula `level × 2.5 + 30`. Vein XP is now the ore node's `xp_reward`, set from this ladder: 2,860 × 28 ⁄ 3,600 = 22) |
+| Burgh / Ambren Ore (28s) | 32 | 32 | **keep, by decision** (Nathan, 2026-11-10). Ore is not always there to mine, so it sits above the band on purpose, and stone sits below it. 32 × 3,600 ⁄ 28 = 4,114 xp/hr, 1.87× the level 1 band. This row read 22 from 2026-09-29, and `20260929010000_vein_xp_from_ore_nodes.ts` carries 22, but that migration only fills an empty `xp_reward`, so live kept 32 throughout. Vein XP is the ore node's `xp_reward`. |
 | Lanai Tool Rod (35s) | 39 | 39 | keep |
 | Lanai Staff (140s, L5) | 156 | 169 | **change** |
 | Lanai Sawhorse (350s) | 390 | 385 | keep (within 2%) |

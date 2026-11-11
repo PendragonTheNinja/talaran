@@ -3,6 +3,7 @@ import db from '../db';
 import { DEFAULT_THEME } from '../services/store';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { namesRefusal } from '../services/wordFilter';
 
 const router = Router();
 
@@ -106,6 +107,10 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
             res.status(400).json({ error: 'Name must be 1-40 characters.' });
             return;
         }
+        // A shared palette shows its name to others beside the owner's, so it
+        // is refused like a shop or guild name (audit 2026-11-09).
+        const badName = await namesRefusal(name.trim());
+        if (badName) { res.status(400).json({ error: badName }); return; }
         const tokenError = validateTokens(tokens);
         if (tokenError) {
             res.status(400).json({ error: tokenError });
@@ -151,6 +156,8 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
                 res.status(400).json({ error: 'Name must be 1-40 characters.' });
                 return;
             }
+            const badName = await namesRefusal(name.trim());
+            if (badName) { res.status(400).json({ error: badName }); return; }
             update.name = name.trim();
         }
         if (tokens !== undefined) {

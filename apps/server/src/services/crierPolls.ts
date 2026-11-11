@@ -701,7 +701,11 @@ export async function adminResponses(pollIdRaw: unknown): Promise<Result<{ quest
 }
 
 function csvCell(v: unknown): string {
-    const s = v === null || v === undefined ? '' : String(v)
+    let s = v === null || v === undefined ? '' : String(v)
+    // A player's write-in that starts like a formula would run as one when the
+    // export is opened in a spreadsheet; a leading apostrophe makes it text
+    // (audit 2026-11-09). Numbers we wrote ourselves are left alone.
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
