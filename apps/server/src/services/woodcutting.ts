@@ -3,7 +3,7 @@ import { levelFromXp } from './xp';
 import { logger } from '../lib/logger';
 import { incrementStats } from './stats';
 import { rollSecondaryDrops, SecondaryDrop } from './drops';
-import { addItemToInventoryWithin } from './inventory';
+import { addItemToInventory, addItemToInventoryWithin } from './inventory';
 import { timerCut } from './buffs';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
@@ -229,22 +229,8 @@ export async function processWoodcuttingAction(
 
     if (!logItem) return { success: false, error: 'Log item not found' };
 
-    // Add log to inventory
-    const existing = await db('player_inventory')
-      .where({ player_id: playerId, item_id: logItem.id })
-      .first();
-
-    if (existing) {
-      await db('player_inventory')
-        .where({ player_id: playerId, item_id: logItem.id })
-        .increment('quantity', 1);
-    } else {
-      await db('player_inventory').insert({
-        player_id: playerId,
-        item_id: logItem.id,
-        quantity: 1,
-      });
-    }
+    // Add log to inventory: one atomic upsert (rule 13; audit 2026-11-09, B9).
+    await addItemToInventory(playerId, logItem.id, 1);
 
     // Award XP
     await awardXp(playerId, woodcuttingSkill.id, node.xp_reward);

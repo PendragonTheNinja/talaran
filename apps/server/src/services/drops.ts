@@ -1,7 +1,7 @@
 import db from '../db';
 import { buffRareBonus, buffDoubleChance } from './buffs';
 import { logger } from '../lib/logger';
-import { recordItemFirst } from './inventory';
+import { addItemToInventory, recordItemFirst } from './inventory';
 
 // A drop is only worth a sparkle if it is genuinely uncommon: one in five or
 // rarer. Above that it is just a by-product and reads as noise.
@@ -16,13 +16,11 @@ export interface SecondaryDrop {
     firstEver?: boolean;
 }
 
+// One atomic upsert (rule 13). It was read, then increment or insert: a drop
+// landing between the two lost the item, and two first adds broke the unique
+// stack key and stalled the action on its lease (audit 2026-11-09, B9).
 async function awardItemById(playerId: number, itemId: number, qty: number): Promise<void> {
-    const existing = await db('player_inventory').where({ player_id: playerId, item_id: itemId }).first();
-    if (existing) {
-        await db('player_inventory').where({ player_id: playerId, item_id: itemId }).increment('quantity', qty);
-    } else {
-        await db('player_inventory').insert({ player_id: playerId, item_id: itemId, quantity: qty });
-    }
+    await addItemToInventory(playerId, itemId, qty);
 }
 
 /**

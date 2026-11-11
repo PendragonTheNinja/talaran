@@ -5,6 +5,7 @@ import { incrementStats } from './stats';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { standsAt } from '../lib/whereabouts';
+import { addItemToInventory } from './inventory';
 
 // Exploration XP for the first time a player pulls a given item from a given
 // habitat. Flat, because the discovery is the achievement, not the item.
@@ -170,12 +171,8 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         const item = await db('items').where({ name: pick.itemName }).first();
         if (!item) return { success: false, error: `Foraged item missing: ${pick.itemName}` };
 
-        const existing = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-        if (existing) {
-            await db('player_inventory').where({ player_id: playerId, item_id: item.id }).increment('quantity', qty);
-        } else {
-            await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
-        }
+        // One atomic upsert (rule 13; audit B9).
+        await addItemToInventory(playerId, item.id, qty);
 
         await awardXp(playerId, foragingSkill.id, pick.xp);
 

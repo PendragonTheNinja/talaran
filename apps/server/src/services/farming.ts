@@ -5,7 +5,7 @@ import { incrementStats } from './stats';
 import { updateQuestObjectiveProgress } from '../routes/quests';
 import { missingBuildTool, BUILD_MALLET, BUILD_SAW } from './construction';
 import { awardXp as awardSkillXp, type AwardXpOptions } from './xp';
-import { takeItemsWithin } from './inventory';
+import { addItemToInventory, takeItemsWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { noteDeed } from './chronicle';
@@ -239,9 +239,8 @@ async function hasMaterials(playerId: number, cost: { itemName: string; qty: num
 async function giveItem(playerId: number, itemName: string, qty: number) {
     const item = await itemByName(itemName);
     if (!item) throw new Error(`giveItem: missing item ${itemName}`);
-    const inv = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-    if (inv) await db('player_inventory').where({ id: inv.id }).increment('quantity', qty);
-    else await db('player_inventory').insert({ player_id: playerId, item_id: item.id, quantity: qty });
+    // One atomic upsert (rule 13; audit B9).
+    await addItemToInventory(playerId, item.id, qty);
 }
 
 // Build-tool checks live in services/construction.ts. The old local version

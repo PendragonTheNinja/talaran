@@ -7,7 +7,7 @@ import {
   processFishingCast, processNetHaul, processCutBait,
   rodTimer, netTimer, cutBaitTimer, equippedToolTier, getBaitPouch,
 } from './fishing';
-import { recordItemFirstByName } from './inventory';
+import { addItemToInventory, recordItemFirstByName, takeItemsWithin } from './inventory';
 import { incrementStats } from './stats';
 import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestAll, resolveManure, resolveTend, resolveUproot } from './farming';
 import { resolveEstablishShop } from './shops';
@@ -820,20 +820,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       for (const ev of rolledEvents) {
         const foundItem = await db('items').where({ name: ev.itemName }).first()
         if (!foundItem) continue
-        const existing = await db('player_inventory')
-          .where({ player_id: action.player_id, item_id: foundItem.id })
-          .first()
-        if (existing) {
-          await db('player_inventory')
-            .where({ player_id: action.player_id, item_id: foundItem.id })
-            .increment('quantity', ev.quantity)
-        } else {
-          await db('player_inventory').insert({
-            player_id: action.player_id,
-            item_id: foundItem.id,
-            quantity: ev.quantity,
-          })
-        }
+        // One atomic upsert (rule 13; audit B9).
+        await addItemToInventory(action.player_id, foundItem.id, ev.quantity)
       }
 
       // Write a persistent travel-log entry ONLY if something happened, then prune to 50
@@ -916,21 +904,22 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       await awardXp(action.player_id, 'Hunting', hunt.xp);
 
       // ── Consume one arrow; recover it on the roll ──
+      //
+      // Taken with takeItemsWithin (rule 13), locked and relative. This read
+      // the stack with no lock and wrote the count back as an absolute number,
+      // so arrows dropped, traded or stored in the same moment came back
+      // (audit 2026-11-09, B1; the September audit's M4).
       const arrowItem = await db('items').where({ name: 'Ambren Arrow' }).first();
       let outOfArrows = false;
       if (arrowItem) {
-        const arrowRow = await db('player_inventory')
-          .where({ player_id: action.player_id, item_id: arrowItem.id }).first();
-        const netChange = hunt.arrowRecovered ? 0 : -1;
-        const newQty = (arrowRow?.quantity || 0) + netChange;
-        if (newQty <= 0) {
-          if (arrowRow) await db('player_inventory')
-            .where({ player_id: action.player_id, item_id: arrowItem.id }).delete();
-          outOfArrows = true;
-        } else {
-          await db('player_inventory')
-            .where({ player_id: action.player_id, item_id: arrowItem.id }).update({ quantity: newQty });
+        if (!hunt.arrowRecovered) {
+          const taken = await db.transaction((trx) =>
+            takeItemsWithin(trx, action.player_id, [{ name: arrowItem.name, quantity: 1 }]));
+          if (!taken.ok) outOfArrows = true;
         }
+        const left = await db('player_inventory')
+          .where({ player_id: action.player_id, item_id: arrowItem.id }).first('quantity');
+        if (!left || Number(left.quantity) < 1) outOfArrows = true;
       }
 
       // Quest progress — 'hunt' objectives count successful catches
@@ -944,15 +933,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       for (const d of hunt.drops) {
         const item = await db('items').where({ name: d.itemName }).first();
         if (!item) continue;
-        const existing = await db('player_inventory')
-          .where({ player_id: action.player_id, item_id: item.id }).first();
-        if (existing) {
-          await db('player_inventory')
-            .where({ player_id: action.player_id, item_id: item.id }).increment('quantity', d.quantity);
-        } else {
-          await db('player_inventory')
-            .insert({ player_id: action.player_id, item_id: item.id, quantity: d.quantity });
-        }
+        // One atomic upsert (rule 13; audit B9).
+        await addItemToInventory(action.player_id, item.id, d.quantity);
         addedDrops.push({ name: d.itemName, quantity: d.quantity, notable: (d as any).notable });
       }
 
