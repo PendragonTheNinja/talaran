@@ -79,9 +79,15 @@ if [ "$(date -u +%u)" = "7" ]; then
 fi
 
 # Old copies go: by count, newest kept, so a few missed nights never empty the folder.
+#
+# A folder with nothing in it yet is not a failure. `ls` exits non-zero when the
+# pattern matches no file, and under `set -e -o pipefail` that ended the whole
+# script here, silently: every run before the first Sunday (weekly/ still empty)
+# took its dump and then stopped, with no off-site copy and no last-success
+# (found setting up the first backups, 2026-11-11).
 prune() {
     local dir="$1" pattern="$2" keep="$3"
-    ls -1t "$dir"/$pattern 2>/dev/null | tail -n +"$((keep + 1))" | while read -r old; do rm -f -- "$old"; done
+    { ls -1t "$dir"/$pattern 2>/dev/null || true; } | tail -n +"$((keep + 1))" | while read -r old; do rm -f -- "$old"; done
 }
 prune "$BACKUP_DIR/daily"  'talaran-*.dump'   "$KEEP_DAILY"
 prune "$BACKUP_DIR/daily"  'avatars-*.tar.gz' "$KEEP_DAILY"
