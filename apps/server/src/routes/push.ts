@@ -30,12 +30,38 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
+/**
+ * The push services browsers deliver through. A sign-up naming any other host
+ * is refused: the server posts to every endpoint a player registers whenever
+ * one of their notices fires, so an open list let a player make it send
+ * requests to any HTTPS address they liked, as many as they registered
+ * (audit 2026-11-09, B10).
+ */
+const PUSH_HOSTS = [
+    'fcm.googleapis.com',               // Chrome, Edge, Android
+    'updates.push.services.mozilla.com', // Firefox
+    'web.push.apple.com',               // Safari
+]
+const PUSH_HOST_SUFFIXES = ['.notify.windows.com', '.push.apple.com']
+
+function isPushService(endpoint: string): boolean {
+    let url: URL;
+    try { url = new URL(endpoint); } catch { return false; }
+    if (url.protocol !== 'https:' || url.port) return false;
+    const host = url.hostname.toLowerCase();
+    return PUSH_HOSTS.includes(host) || PUSH_HOST_SUFFIXES.some(s => host.endsWith(s));
+}
+
+/** Devices kept per player; signing up one more drops the oldest. */
+const MAX_DEVICES = 5;
+
 /** The browser's PushSubscription, as JSON. Only the parts a send needs, checked. */
 function readSubscription(body: any): { endpoint: string; p256dh: string; auth: string } | null {
     const s = body?.subscription;
     const endpoint = s?.endpoint, p256dh = s?.keys?.p256dh, auth = s?.keys?.auth;
     if (typeof endpoint !== 'string' || typeof p256dh !== 'string' || typeof auth !== 'string') return null;
-    if (!endpoint.startsWith('https://') || endpoint.length > 1000 || p256dh.length > 200 || auth.length > 100) return null;
+    if (endpoint.length > 1000 || p256dh.length > 200 || auth.length > 100) return null;
+    if (!isPushService(endpoint)) return null;
     return { endpoint, p256dh, auth };
 }
 
@@ -52,6 +78,10 @@ router.post('/subscribe', requireAuth, async (req: AuthRequest, res: Response) =
             .insert({ player_id: playerId, ...sub, user_agent: userAgent })
             .onConflict('endpoint')
             .merge({ player_id: playerId, p256dh: sub.p256dh, auth: sub.auth, user_agent: userAgent });
+        // Keep the newest MAX_DEVICES; a browser that re-subscribes reuses its row.
+        const keep = await db('push_subscriptions').where({ player_id: playerId })
+            .orderBy('id', 'desc').limit(MAX_DEVICES).pluck('id');
+        await db('push_subscriptions').where({ player_id: playerId }).whereNotIn('id', keep).delete();
         res.json({ success: true });
     } catch (err) {
         logger.error(`push subscribe error: ${err}`);

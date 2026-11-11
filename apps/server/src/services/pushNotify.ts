@@ -161,7 +161,8 @@ export async function sendNotice(playerId: number, notice: Notice, force = false
                 body,
                 // An hour to live: a bot check from yesterday is no use to anyone.
                 // topic: the push service replaces an undelivered one of the same kind.
-                { TTL: 3600, urgency: 'high', topic: notice.tag.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'talaran' },
+                // timeout: a push service that hangs must not hold the send (audit B10).
+                { TTL: 3600, urgency: 'high', topic: notice.tag.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'talaran', timeout: 10_000 },
             );
             sent++;
             await db('push_subscriptions').where({ id: s.id }).update({ last_sent_at: db.fn.now() });
