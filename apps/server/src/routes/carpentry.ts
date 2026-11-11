@@ -110,6 +110,7 @@ router.post('/saw/start', requireAuth, botCheckGate, async (req: AuthRequest, re
             location_id: locationId,
             started_at: now,
             completes_at: completesAt,
+            last_timer_seconds: timerSeconds,
             auto_restart: true,
             last_bot_check: now,
             bot_check_pending: false,

@@ -291,6 +291,9 @@ async function startAction(playerId: number, type: string, seconds: number, data
         location_id: locationId,
         started_at: now,
         completes_at: new Date(now.getTime() + seconds * 1000),
+        // Tool wear prices a break from this (services/toolWear.ts); left
+        // empty it read as a 1-second job and a hoe almost never broke (audit B3).
+        last_timer_seconds: seconds,
         auto_restart: false,
         last_bot_check: now,
         bot_check_pending: false,

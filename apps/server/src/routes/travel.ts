@@ -86,6 +86,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
       location_id: toLocationId,
       started_at: now,
       completes_at: completesAt,
+      last_timer_seconds: travelTime,
       auto_restart: false,
       last_bot_check: now,
       bot_check_pending: false,

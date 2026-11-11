@@ -87,6 +87,7 @@ router.post('/woodcutting/start', requireAuth, botCheckGate, async (req: AuthReq
       location_id: node.location_id,
       started_at: now,
       completes_at: completesAt,
+      last_timer_seconds: timerSeconds,
       auto_restart: true,
       last_bot_check: now,
       bot_check_pending: false,
