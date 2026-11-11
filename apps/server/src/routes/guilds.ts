@@ -9,6 +9,7 @@ import { readText, TEXT_LIMITS } from '../lib/textLimits';
 import {
     GUILD_PERMISSIONS, RANK_LABELS, CONFIGURABLE_RANKS, cleanRankPermissions, leaderRoleFor,
     membershipOf, rankOf, rankPermissions, setRole, leaderCount, MAX_LEADERS, type Role,
+    joinGuildWithin, lockJoiner, GuildJoinRefusal,
 } from '../services/guildRanks';
 import { guildStorehousesHoldAnything } from '../services/guildHall';
 import { namesRefusal, cleanPublicText, FilterRefusal } from '../services/wordFilter';
@@ -149,25 +150,21 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const [guild] = await db('guilds').insert({
-            name: cleanName.value,
-            tag: tag.trim().toUpperCase(),
-            founder_id: playerId,
-            leader_id: playerId,
-            description: cleanDescription.value,
-            open_applications: true,
-        }).returning('*');
-
-        await db('guild_members').insert({
-            guild_id: guild.id,
-            player_id: playerId,
-            role: 'founder',
-        });
-
-        await db('players').where({ id: playerId }).update({
-            guild_id: guild.id,
-            guild_tag: guild.tag,
-            guild_role: 'founder',
+        // The guild and its founder's place in it are one unit: two founding
+        // requests at once, or a join landing beside one, must not leave a
+        // player in two guilds (audit A2). The unique name and tag are the
+        // database's own guard against two guilds with one name.
+        const guild = await db.transaction(async (trx) => {
+            const [created] = await trx('guilds').insert({
+                name: cleanName.value,
+                tag: tag.trim().toUpperCase(),
+                founder_id: playerId,
+                leader_id: playerId,
+                description: cleanDescription.value,
+                open_applications: true,
+            }).returning('*');
+            await joinGuildWithin(trx, playerId, created.id, 'founder');
+            return created;
         });
 
         moveGuildRoom(playerId, null, guild.id);
@@ -199,8 +196,10 @@ router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
 
         logger.info(`Player ${playerId} created guild ${guild.name} [${guild.tag}]`);
         res.json({ success: true, guild });
-    } catch (err) {
+    } catch (err: any) {
         if (err instanceof FilterRefusal) { res.status(400).json({ error: err.message }); return; }
+        if (err instanceof GuildJoinRefusal) { res.status(400).json({ error: 'You are already in a guild.' }); return; }
+        if (err?.code === '23505') { res.status(400).json({ error: 'That guild name or tag is already taken.' }); return; }
         logger.error(`Create guild error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -321,34 +320,17 @@ router.post('/invites/:id/respond', requireAuth, async (req: AuthRequest, res: R
         }
 
         if (accept) {
-            const player = await db('players').where({ id: playerId }).first();
-            if (player.guild_id) {
-                res.status(400).json({ error: 'You are already in a guild.' });
-                return;
-            }
-
-            const guild = await db('guilds').where({ id: invite.guild_id }).first();
-
             // Everyone joins as a Recruit; the guild promotes them from there.
-            await db('players').where({ id: playerId }).update({
-                guild_id: invite.guild_id,
-                guild_tag: guild.tag,
-                guild_role: 'recruit',
+            // The invite is claimed with a conditional update, so it can be
+            // used once; the join itself checks the player is free (audit A2).
+            const guild = await db.transaction(async (trx) => {
+                await lockJoiner(trx, playerId);
+                const claimed = await trx('guild_invites')
+                    .where({ id: inviteId, player_id: playerId, status: 'pending' })
+                    .update({ status: 'accepted' });
+                if (claimed !== 1) throw new GuildJoinRefusal('Invite not found.', 404);
+                return joinGuildWithin(trx, playerId, invite.guild_id, 'recruit');
             });
-
-            await db('guild_members').insert({
-                guild_id: invite.guild_id,
-                player_id: playerId,
-                role: 'recruit',
-            });
-
-            await db('guild_invites').where({ id: inviteId }).update({ status: 'accepted' });
-
-            // Decline all other pending invites
-            await db('guild_invites')
-                .where({ player_id: playerId, status: 'pending' })
-                .whereNot({ id: inviteId })
-                .update({ status: 'declined' });
 
             moveGuildRoom(playerId, null, invite.guild_id);
             logger.info(`Player ${playerId} accepted invite to guild ${invite.guild_id}`);
@@ -358,6 +340,10 @@ router.post('/invites/:id/respond', requireAuth, async (req: AuthRequest, res: R
             res.json({ success: true, message: 'Invite declined.' });
         }
     } catch (err) {
+        if (err instanceof GuildJoinRefusal) {
+            res.status(err.status).json({ error: err.status === 404 ? err.message : 'You are already in a guild.' });
+            return;
+        }
         logger.error(`Guild invite respond error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
@@ -614,7 +600,13 @@ router.post('/apply', requireAuth, async (req: AuthRequest, res: Response) => {
             player_id: playerId,
             message: cleanMessage.value,
             status: 'pending',
-        }).onConflict(['guild_id', 'player_id']).ignore();
+        })
+            // One row per player and guild. Applying again after an answer
+            // reopens it with the new message; it used to be ignored, so a
+            // player once refused could never apply to that guild again and
+            // was told their application was submitted.
+            .onConflict(['guild_id', 'player_id'])
+            .merge({ message: cleanMessage.value, status: 'pending', created_at: db.fn.now() });
 
         res.json({ success: true, message: 'Application submitted!' });
     } catch (err) {
@@ -659,41 +651,45 @@ router.post('/applications/:id/respond', requireAuth, async (req: AuthRequest, r
     const { accept } = req.body;
 
     try {
-        const player = await db('players').where({ id: playerId }).first();
         const me = await membershipOf(playerId);
         if (!me?.can('invite')) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
 
-        const app = await db('guild_applications').where({ id: appId, guild_id: player.guild_id }).first();
-        if (!app) {
-            res.status(404).json({ error: 'Application not found.' });
-            return;
-        }
-
-        if (accept) {
-            await db('guild_members').insert({
-                guild_id: player.guild_id,
-                player_id: app.player_id,
-                role: 'recruit',
-            });
-
-            const guild = await db('guilds').where({ id: player.guild_id }).first();
-            await db('players').where({ id: app.player_id }).update({
-                guild_id: player.guild_id,
-                guild_tag: guild.tag,
-                guild_role: 'recruit',
-            });
-            moveGuildRoom(app.player_id, null, player.guild_id);
-        }
-
-        await db('guild_applications').where({ id: appId }).update({
-            status: accept ? 'accepted' : 'rejected',
+        // One transaction: the application is claimed with a conditional
+        // update, so only a pending one can be answered and only once, and the
+        // join checks the applicant is still free (audit A2). This route never
+        // checked either: an officer could accept an application from months
+        // ago, or one already rejected, and pull the player out of whatever
+        // guild they had joined since, its leader included.
+        const outcome = await db.transaction(async (trx) => {
+            // The applicant's row first, then the application (lock order: joinGuildWithin).
+            const seen = await trx('guild_applications').where({ id: appId, guild_id: me.guildId }).first('player_id');
+            if (!seen) throw new GuildJoinRefusal('Application not found.', 404);
+            await lockJoiner(trx, Number(seen.player_id));
+            const app = await trx('guild_applications')
+                .where({ id: appId, guild_id: me.guildId }).forUpdate().first();
+            if (!app || app.status !== 'pending') throw new GuildJoinRefusal('Application not found.', 404);
+            if (!accept) {
+                await trx('guild_applications').where({ id: appId }).update({ status: 'rejected' });
+                return { joined: null as number | null };
+            }
+            try {
+                await joinGuildWithin(trx, app.player_id, me.guildId, 'recruit');
+            } catch (err) {
+                if (err instanceof GuildJoinRefusal) throw new GuildJoinRefusal('That player has joined another guild since applying.');
+                throw err;
+            }
+            await trx('guild_applications').where({ id: appId }).update({ status: 'accepted' });
+            return { joined: Number(app.player_id) };
         });
+        if (outcome.joined) moveGuildRoom(outcome.joined, null, me.guildId);
 
         res.json({ success: true });
     } catch (err) {
+        if (err instanceof GuildJoinRefusal) { res.status(err.status).json({ error: err.message }); return; }
+        logger.error(`Guild application respond error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

@@ -154,3 +154,50 @@ export async function leaderCount(x: any, guildId: number, exceptPlayerId?: numb
 export function leaderRoleFor(guild: { founder_id: number }, playerId: number): Role {
     return Number(guild.founder_id) === playerId ? 'founder' : 'leader';
 }
+
+/** A refusal while joining a guild. Thrown, so the whole join rolls back. */
+export class GuildJoinRefusal extends Error {
+    constructor(message: string, readonly status = 400) {
+        super(message);
+    }
+}
+
+/**
+ * Put a player into a guild, inside the caller's transaction. Every way in
+ * (founding, an accepted invite, an accepted application) goes through here.
+ *
+ * The player row is locked first and read inside the lock, so the "not in a
+ * guild" check holds until commit. Each route used to read it outside any
+ * transaction and then write, and accepting an application never read it at
+ * all: an officer could accept an application a player sent long ago and pull
+ * them, or the leader of another guild, out of their guild (audit 2026-11-09,
+ * A2). forNoKeyUpdate, not forUpdate: the guild_members insert takes KEY SHARE
+ * on the same row through its foreign key (CLAUDE.md §2 Combat).
+ *
+ * Joining closes the player's other open applications and invites: they are
+ * spoken for, and nobody else may accept them now.
+ *
+ * Lock order: the joining player's row BEFORE any application or invite row.
+ * Closing the other applications writes rows a second officer may be holding,
+ * so a caller that locked its application first deadlocked against another
+ * accepting the same player (found by the race in scripts/auditProofs/
+ * guildPoach.ts). Call lockJoiner first, then claim the application or invite.
+ */
+export async function lockJoiner(trx: any, playerId: number): Promise<void> {
+    await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+}
+
+export async function joinGuildWithin(trx: any, playerId: number, guildId: number, role: Role): Promise<{ tag: string; name: string }> {
+    const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id', 'guild_id');
+    if (!player) throw new GuildJoinRefusal('Player not found.', 404);
+    const already = await trx('guild_members').where({ player_id: playerId }).first('guild_id');
+    if (player.guild_id || already) throw new GuildJoinRefusal('That player is already in a guild.');
+    const guild = await trx('guilds').where({ id: guildId }).first('id', 'tag', 'name');
+    if (!guild) throw new GuildJoinRefusal('That guild no longer exists.', 404);
+
+    await trx('guild_members').insert({ guild_id: guildId, player_id: playerId, role });
+    await trx('players').where({ id: playerId }).update({ guild_id: guildId, guild_tag: guild.tag, guild_role: role });
+    await trx('guild_applications').where({ player_id: playerId, status: 'pending' }).update({ status: 'withdrawn' });
+    await trx('guild_invites').where({ player_id: playerId, status: 'pending' }).update({ status: 'declined' });
+    return { tag: guild.tag, name: guild.name };
+}
