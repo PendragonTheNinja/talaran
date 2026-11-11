@@ -132,7 +132,7 @@ export default function GuestBanner({
 
     return (
         <>
-            <div className={`guest-bar ${low ? 'is-low' : ''}`}>
+            <div className={`guest-bar ${low ? 'is-low' : ''} ${expired || remaining === 0 ? 'is-ended' : ''}`}>
                 <span className="guest-bar-tag">Guest</span>
                 <span className="guest-bar-text">
                     {expired || remaining === 0

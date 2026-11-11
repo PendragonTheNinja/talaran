@@ -6,8 +6,10 @@
 
 /* Fixed, not in flow. .game-root is height:100vh inside #root{overflow:hidden},
    so anything stacked above it is pushed straight off the bottom of the
-   viewport and clipped. Bottom-right keeps it clear of the top nav and of the
-   chat input, which runs along the bottom-left. */
+   viewport and clipped. Bottom-right, and no wider than the right-hand column
+   (RightPanel.css, 294px), so it stays clear of the top nav and of the chat
+   input. At 420px wide it reached across the column gap and sat on chat's Send
+   button on a laptop screen (audit 2026-11-09, D1). */
 .guest-bar {
     position: fixed;
     right: 16px;
@@ -16,7 +18,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    max-width: min(420px, calc(100vw - 32px));
+    max-width: min(270px, calc(100vw - 32px));
+    flex-wrap: nowrap;
     padding: 8px 12px;
     background: var(--color-bg-panel);
     border: 1px solid var(--color-border-gold);
@@ -25,8 +28,13 @@
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--color-text-base);
-    flex-wrap: wrap;
 }
+
+/* The explanation line wrapped the bar to three lines and covered the last
+   row of skills; the claim panel says the same, so it stays there (as on the
+   phone, below). */
+.guest-bar:not(.is-ended) .guest-bar-text { display: none; }
+.guest-bar.is-ended { flex-wrap: wrap; }
 
 /* Warmer as the clock runs down, rather than a colour that shouts
    from the moment the session starts. */
