@@ -10,6 +10,7 @@ import {
     bestToolTier,
 } from '../services/foraging';
 import { levelFromXp } from '../services/xp';
+import { buffTimerBonus } from '../services/buffs';
 
 const router = Router();
 
@@ -49,7 +50,8 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         const knifeTier = await bestToolTier(playerId, 'foraging_knife');
 
         const timerSeconds = calculateForageTimer(
-            habitat.base_timer, habitat.min_timer, playerLevel, habitat.required_level, knifeTier
+            habitat.base_timer, habitat.min_timer, playerLevel, habitat.required_level, knifeTier,
+            await buffTimerBonus(playerId, 'Foraging'),
         );
 
         const now = new Date();

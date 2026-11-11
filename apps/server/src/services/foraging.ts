@@ -5,6 +5,8 @@ import { incrementStats } from './stats';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { standsAt } from '../lib/whereabouts';
+import { levelTimerFactor } from '../lib/actionTimers';
+import { timerCut } from './buffs';
 import { addItemToInventory } from './inventory';
 
 // Exploration XP for the first time a player pulls a given item from a given
@@ -55,14 +57,23 @@ function weightedPick(entries: ForageDropEntry[]): ForageDropEntry {
 
 // Timer: eases from base toward min as the player out-levels the habitat, then
 // the knife shaves a little more (5%/tier, capped at 50%). Floor of 1s.
+/**
+ * The forage timer, on the shared gathering rule (lib/actionTimers.ts): 0.5%
+ * off per level over the habitat, then the knife, then a provision, never
+ * below the habitat's own minimum, the order calculateTimer uses.
+ *
+ * It had a rule of its own (audit 2026-11-09, B2): a tenth of a second off per
+ * level, the minimum applied BEFORE the knife so a knife could cut under it,
+ * and no provision at all, so the all-skill tisanes sped every gatherer but
+ * the forager. A knife is optional here, so it is a straight cut (5% a tier, at
+ * most half), not calculateTimer's required-tier comparison.
+ */
 export function calculateForageTimer(
-    base: number, min: number, playerLevel: number, requiredLevel: number, knifeTier: number
+    base: number, min: number, playerLevel: number, requiredLevel: number, knifeTier: number, buffPercent = 0,
 ): number {
-    const levelsIn = Math.max(0, playerLevel - requiredLevel);
-    let t = base - levelsIn * 0.1;
-    t = Math.max(min, t);
-    if (knifeTier > 0) t = t * (1 - Math.min(0.5, knifeTier * 0.05));
-    return Math.max(1, Math.round(t));
+    const knife = knifeTier > 0 ? 1 - Math.min(0.5, knifeTier * 0.05) : 1;
+    const t = Math.round(base * levelTimerFactor(playerLevel, requiredLevel) * knife);
+    return Math.max(min, t - timerCut(t, buffPercent));
 }
 
 // Foraging tools must be EQUIPPED, the same as the woodcutting hatchet — each in

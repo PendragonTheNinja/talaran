@@ -1150,7 +1150,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       if (habitat && habitat.is_active) {
         const knifeTier = await bestToolTier(action.player_id, 'foraging_knife');
         const nextTimer = calculateForageTimer(
-          habitat.base_timer, habitat.min_timer, currentLevel, habitat.required_level, knifeTier
+          habitat.base_timer, habitat.min_timer, currentLevel, habitat.required_level, knifeTier,
+          await buffTimerBonus(action.player_id, 'Foraging'),
         );
         const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
