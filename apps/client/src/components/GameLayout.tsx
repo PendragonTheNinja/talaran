@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, cloneElement } from 'react'
+import { useState, useCallback, useEffect, useRef, cloneElement, lazy, Suspense } from 'react'
 import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
@@ -15,12 +15,9 @@ import CraftingMenu from './CraftingMenu'
 import TalarFillMenu from './TalarFillMenu'
 import GuildPanel from './GuildPanel'
 import MessagesPanel from './MessagesPanel'
-import ForumPanel from './ForumPanel'
 import NewsPanel from './NewsPanel'
-import ManualPanel from './ManualPanel'
 import HighscoresPanel from './HighscoresPanel'
 import EventsPanel from './EventsPanel'
-import AdminPanel from './AdminPanel'
 import SettingsPanel from './SettingsPanel'
 import PlayerProfile from './PlayerProfile'
 import TavernPanel from './TavernPanel'
@@ -45,6 +42,11 @@ import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
 import JournalPanel from './JournalPanel'
 import type { SupportTab } from '../lib/talerStore'
+
+// Opened now and then, so fetched when first opened (audit 2026-11-09, D2).
+const ForumPanel = lazy(() => import('./ForumPanel'))
+const ManualPanel = lazy(() => import('./ManualPanel'))
+const AdminPanel = lazy(() => import('./AdminPanel'))
 
 interface Skill {
   id: number
@@ -1349,6 +1351,7 @@ export default function GameLayout({
       )}
 
       {showManual && (
+        <Suspense fallback={null}>
         <ManualPanel
           onClose={() => closePanel(setManualClosing, setShowManual)}
           closing={manualClosing}
@@ -1356,9 +1359,11 @@ export default function GameLayout({
           initialSlug={manualTarget?.slug}
           targetSeq={manualTarget?.seq}
         />
+        </Suspense>
       )}
 
       {showForum && (
+        <Suspense fallback={null}>
         <ForumPanel
           onClose={() => closePanel(setForumClosing, setShowForum, 400)}
           onShareToChat={(text: string) => setChatDraft(text)}
@@ -1370,6 +1375,7 @@ export default function GameLayout({
           openThreadId={forumOpenThreadId}
           onThreadOpened={() => setForumOpenThreadId(null)}
         />
+        </Suspense>
       )}
 
       {showHighscores && (
@@ -1387,12 +1393,14 @@ export default function GameLayout({
       )}
 
       {showAdmin && (
+        <Suspense fallback={null}>
         <AdminPanel
           onClose={() => closePanel(setAdminClosing, setShowAdmin)}
           closing={adminClosing}
           isAdmin={playerData?.player?.is_admin || false}
           isMod={playerData?.player?.is_mod || false}
         />
+        </Suspense>
       )}
 
       {showSettings && (

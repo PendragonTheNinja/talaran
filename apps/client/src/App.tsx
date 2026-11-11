@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { announceTalar, type Talar } from './lib/talar'
-import GameLayout from './components/GameLayout'
 import AuthScreen from './components/AuthScreen'
 import { Player } from './types'
 import { connectSocket, disconnectSocket, getSocket } from './lib/socket'
@@ -8,18 +7,23 @@ import { coalesce } from './lib/coalesce'
 import { apiFetch } from './lib/api'
 import WelcomeModal from './components/WelcomeModal'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import NewsPage from './components/NewsPage'
-import ManualPage from './components/ManualPage'
 import { TermsPage, RefundPage, PrivacyPage } from './components/LegalPages'
 import { RulesPage } from './components/RulesPage'
-import SupportUsPage from './components/SupportUsPage'
-import ResetPasswordPage from './components/ResetPasswordPage'
-import HighscoresPage from './components/HighscoresPage'
-import ChroniclePage from './components/ChroniclePage'
 import TradeWindow from './components/TradeWindow'
 import GuestBanner, { ClaimSuccessModal } from './components/GuestBanner'
 import UpdateBar from './components/UpdateBar'
 import type { CombatProfile } from './components/EquipmentPanel'
+
+// Loaded when first shown, not with the landing page (audit 2026-11-09, D2):
+// the build was one 1.1 MB script, so a visitor reading the home page
+// downloaded the whole game, the admin panel and the Manual's editor first.
+const GameLayout = lazy(() => import('./components/GameLayout'))
+const NewsPage = lazy(() => import('./components/NewsPage'))
+const ManualPage = lazy(() => import('./components/ManualPage'))
+const SupportUsPage = lazy(() => import('./components/SupportUsPage'))
+const ResetPasswordPage = lazy(() => import('./components/ResetPasswordPage'))
+const HighscoresPage = lazy(() => import('./components/HighscoresPage'))
+const ChroniclePage = lazy(() => import('./components/ChroniclePage'))
 
 interface Skill {
   id: number
@@ -424,6 +428,7 @@ function App() {
   if (checking) return null
 
   return (
+    <Suspense fallback={null}>
     <Routes>
       <Route path="/news" element={<NewsPage />} />
       <Route path="/manual" element={<ManualPage />} />
@@ -556,6 +561,7 @@ function App() {
         )
       } />
     </Routes>
+    </Suspense>
   )
 }
 
