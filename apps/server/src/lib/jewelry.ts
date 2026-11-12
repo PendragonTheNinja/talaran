@@ -10,7 +10,7 @@ export type JewelryAid = 'wear' | 'vein' | 'harvest' | 'fight_food' | 'road' | '
 
 /** Tier 1 strength: a chance, or a fraction added (all knobs). */
 export const AID_STRENGTH: Record<JewelryAid, number> = {
-    wear: 0.03,         // a use of worn gear does not count toward its wear
+    wear: 0.05,         // a use of worn gear does not count toward its wear (Nathan, 2026-11-12: was 3%)
     vein: 0.05,         // a vein found runs this much larger
     harvest: 0.03,      // added to each sown seed's chance of coming back at harvest
     fight_food: 0.05,   // food eaten in a fight mends this much more

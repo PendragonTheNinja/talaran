@@ -227,7 +227,7 @@ A jewelry tier pairs **that tier's metal with that tier's gem**, the way weapons
 
 | Piece | Slot | Helps (a "helped action") | T1 | T2 |
 |---|---|---|---|---|
-| **Keeper's Band** | ring | each use of a worn weapon or armour piece that would count toward its wear | 3% chance the use does not count | 4.5% |
+| **Keeper's Band** | ring | each use of a worn weapon or armour piece that would count toward its wear | 5% chance the use does not count; draws only when it does (Nathan, 2026-11-12; was 3%, drawn on every use) | 7.5% |
 | **Prospector's Ring** | ring | each vein the wearer finds | the vein runs 5% larger | 7.5% |
 | **Seedsaver's Ring** | ring | each harvest of a sown plot | +3 points on each sown seed's chance to come back (crops.seed_return_chance; capped at 90%) | +4.5 points |
 | **Hearty Amulet** | amulet | each food eaten in a fight | the food mends 5% more | 7.5% |

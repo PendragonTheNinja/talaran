@@ -189,7 +189,7 @@ export const extraQueries: Record<string, QueryHandler> = {
                 make: makeAt.get(p.name) ?? '',
                 does: isJewelryAid(p.jewelry_aid) ? cap(aidWords(p.jewelry_aid, Number(p.tier) || 1)) : '',
             })),
-            note: 'Each draws 1 Talar for every 20 actions it helps with, and does nothing while the reservoir is empty.',
+            note: 'Each draws 1 Talar for every 20 actions it helps with, and does nothing while the reservoir is empty. The Keeper\'s Band draws only when it spares your gear a use.',
         };
     },
 

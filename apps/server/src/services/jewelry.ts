@@ -28,6 +28,27 @@ function inTransaction(x: Knex | Knex.Transaction): x is Knex.Transaction {
 }
 
 /**
+ * The worn piece that would help with `aid`, WITHOUT drawing anything yet: for
+ * an aid that pays only when it works (the Keeper's Band). Roll the chance with
+ * its strength, then call payJewelry; no payment, no help.
+ */
+export async function jewelryPiece(x: Knex | Knex.Transaction, playerId: number, aid: JewelryAid): Promise<JewelryHelp | null> {
+    const worn = await x('player_equipment').where({ player_id: playerId }).first(...WORN_COLUMNS)
+    const ids = WORN_COLUMNS.map(c => worn?.[c]).filter((id): id is number => !!id)
+    if (!ids.length) return null
+    const piece = await x('items').whereIn('id', ids).where({ jewelry_aid: aid }).first('name', 'tier')
+    if (!piece) return null
+    return { name: piece.name, strength: aidStrength(aid, Number(piece.tier) || 1) }
+}
+
+/** Pay one helped action's draw (DRAW_HUNDREDTHS). False, and nothing taken, when the reservoir is short. */
+export async function payJewelry(x: Knex | Knex.Transaction, playerId: number): Promise<boolean> {
+    return inTransaction(x)
+        ? !!(await spendTalarWithin(x, playerId, DRAW_HUNDREDTHS))
+        : !!(await db.transaction(trx => spendTalarWithin(trx, playerId, DRAW_HUNDREDTHS)))
+}
+
+/**
  * The worn piece that helps with `aid`, having drawn its Talar, or null when
  * none is worn or the reservoir is too low to pay. The caller rolls the chance
  * with the returned strength. `actions` draws for several helped actions at

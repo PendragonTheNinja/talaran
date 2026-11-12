@@ -11,7 +11,7 @@
 
 import type { Knex } from 'knex'
 import { Rng } from '../lib/combatMath'
-import { jewelryAid, noteJewelry } from './jewelry'
+import { jewelryPiece, noteJewelry, payJewelry } from './jewelry'
 
 export interface WearableItem {
     id: number
@@ -67,9 +67,13 @@ export async function wearItemByRule(
     rule: DurabilityRule,
     rng: Rng,
 ): Promise<boolean> {
-    // A Keeper's Band (docs/talar-spec.md §8): now and then a use does not count.
-    const band = await jewelryAid(trx, playerId, 'wear')
-    if (band && rng() < band.strength) {
+    // A Keeper's Band (docs/talar-spec.md §8): now and then a use does not
+    // count. It pays its Talar only when it spares a use (Nathan, 2026-11-12).
+    // It drew on every use it might have helped, 1 Talar per 20 for a 3% chance,
+    // so a Lit Quartz bought about 60 spared uses, some 4% of a tier 1 tool
+    // (audit 2026-11-09).
+    const band = await jewelryPiece(trx, playerId, 'wear')
+    if (band && rng() < band.strength && await payJewelry(trx, playerId)) {
         noteJewelry(trx, playerId, `Your ${band.name} spared your ${item.name} a knock.`)
         return false
     }
