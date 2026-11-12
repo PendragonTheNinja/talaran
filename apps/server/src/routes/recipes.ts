@@ -31,6 +31,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
                 available: check.ok,
                 usingPublic: check.usingPublic,
                 speedMultiplier: check.multiplier,
+                keeperFire: !!check.keeperFire,
                 // Tools this job uses that gave out: it runs, at half speed.
                 brokenTools: check.brokenTools ?? [],
                 stationError: check.ok ? null : check.error,

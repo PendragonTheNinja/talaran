@@ -37,6 +37,8 @@ export interface TableRecipe {
     stationError?: string | null
     /** Tools this job uses that gave out at your bench: it runs at half speed until they are replaced. */
     brokenTools?: string[]
+    /** At the keeper's hearth while their mealtime fire burns: full speed (server lib/keeperFires.ts). */
+    keeperFire?: boolean
     /** The output's item type and subtype, from the server. */
     outputType?: string | null
     outputSubtype?: string | null
@@ -281,6 +283,9 @@ export default function RecipeList({ skill, playerLevel, onStartRecipe, stationA
                     without hovering at all. */}
                 {blocked && wants.length > 0 && (
                     <span className="station-tag locked">Needs {wants.join(', ')}</span>
+                )}
+                {!blocked && r.keeperFire && (
+                    <span className="station-tag lit">Full speed by the cook's fire</span>
                 )}
                 {!blocked && (r.brokenTools?.length ?? 0) > 0 && (
                     <span className="station-tag warn">Half speed: {r.brokenTools!.join(', ')} broken</span>

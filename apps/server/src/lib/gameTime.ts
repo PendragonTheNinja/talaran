@@ -155,3 +155,17 @@ export function nextWindowChange(now: Date = new Date()): Date {
     }
     return instantForGameWallClock(wallNext, now);
 }
+
+/** Minutes since game-clock (Eastern) midnight, 0 to 1439. */
+export function gameMinuteOfDay(now: Date = new Date()): number {
+    const wall = asGameWallClock(now);
+    return wall.getHours() * 60 + wall.getMinutes();
+}
+
+/** The instant the game clock reads `minuteOfDay` on the game day `dayOffset` days from now's. */
+export function instantAtGameMinute(now: Date, minuteOfDay: number, dayOffset = 0): Date {
+    const wall = asGameWallClock(now);
+    wall.setDate(wall.getDate() + dayOffset);
+    wall.setHours(Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0);
+    return toWholeMinute(instantForGameWallClock(wall, now));
+}

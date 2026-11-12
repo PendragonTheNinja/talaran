@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
 import { backdropClose } from '../lib/backdrop'
+import { formatGameTime } from '../lib/time'
 
 interface CraftingMenuProps {
     onClose: () => void
@@ -40,12 +41,16 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
     // Tools in your own bench here that gave out (services/toolWear.ts). Said
     // up front, so a timer twice as long as usual is never a surprise.
     const [brokenTools, setBrokenTools] = useState<string[]>([])
+    // The keeper's mealtime fire (server lib/keeperFires.ts): their hearth at
+    // full speed while it burns. Said here, so the hour is known before it comes.
+    const [keeperFire, setKeeperFire] = useState<{ keeper: string; until: string | null; next: string } | null>(null)
 
     useEffect(() => {
         if (!stationType) return
-        apiFetch<{ exists: boolean; isTemporary: boolean; brokenTools?: string[] }>(`/api/workstations/${stationType}`)
+        apiFetch<{ exists: boolean; isTemporary: boolean; brokenTools?: string[]; keeperFire?: { keeper: string; until: string | null; next: string } | null }>(`/api/workstations/${stationType}`)
             .then(s => {
                 setBrokenTools(s.brokenTools ?? [])
+                setKeeperFire(s.keeperFire ?? null)
                 if (keeperName && ownerName) setBorrowed(!(s.exists && !s.isTemporary))
             })
             .catch(() => setBorrowed(null))
@@ -67,6 +72,14 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
                     <p className="station-broken-notice">
                         Your {brokenTools.join(' and ')} {brokenTools.length === 1 ? 'has' : 'have'} given out.
                         Work that needs {brokenTools.length === 1 ? 'it' : 'them'} goes at half speed until you fit {brokenTools.length === 1 ? 'a new one' : 'new ones'} in the bench.
+                    </p>
+                )}
+
+                {keeperFire && borrowed === true && (
+                    <p className="station-fire-notice">
+                        {keeperFire.until
+                            ? `${keeperFire.keeper}'s fire is lit for the meal. Her hearth works at full speed until ${formatGameTime(new Date(keeperFire.until))}.`
+                            : `${keeperFire.keeper} cooks at breakfast, noon and supper, and her hearth works at full speed while her fire burns. Next lit at ${formatGameTime(new Date(keeperFire.next))}.`}
                     </p>
                 )}
 

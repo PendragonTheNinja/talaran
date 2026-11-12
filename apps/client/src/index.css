@@ -776,6 +776,33 @@ body {
   color: var(--color-gold);
 }
 
+/* Geomima's mealtime fire: her hearth at full speed (server lib/keeperFires.ts). */
+.station-tag.lit {
+  color: var(--color-xp);
+}
+
+/* A bench whose tools gave out (services/toolWear.ts), said before the timer
+   can surprise anyone. It was written into components/index.css, a stale copy
+   of this file that nothing loads, so it never showed (audit 2026-11-09). */
+.station-broken-notice,
+.station-fire-notice {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.station-broken-notice {
+  color: var(--color-gold);
+  border: 1px solid var(--color-border-gold);
+}
+
+/* The keeper's mealtime fire, in the bench menu. */
+.station-fire-notice {
+  color: var(--color-text-base);
+  border: 1px solid var(--color-border-mid);
+}
+
 /* A feat badge: one character beside a name, in chat and the location list.
    Gold, so it reads as earned rather than as punctuation, and given a fixed
    left margin so a name without one does not shift. */

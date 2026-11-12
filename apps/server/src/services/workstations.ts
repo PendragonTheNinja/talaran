@@ -1,4 +1,5 @@
 import db from '../db'
+import { keeperFireNow, nextKeeperFire } from '../lib/keeperFires'
 import { logger } from '../lib/logger'
 import { equippedBuildTool, BUILD_MALLET } from './construction'
 import {
@@ -221,7 +222,18 @@ export async function describeStation(playerId: number, locationId: number, type
         secondsLeft: station?.expires_at
             ? Math.max(0, Math.round((new Date(station.expires_at).getTime() - Date.now()) / 1000))
             : null,
+        keeperFire: await keeperFireView(playerId, locationId, type),
     }
+}
+
+/**
+ * The keeper's mealtime fire, for the bench menu: burning until when, or when
+ * it is next lit. Only at a public hearth the player has the run of.
+ */
+async function keeperFireView(playerId: number, locationId: number, type: string): Promise<{ keeper: string; until: string | null; next: string } | null> {
+    if (type !== 'cooking' || !(await locationHasPublicStation(playerId, locationId, type))) return null
+    const now = keeperFireNow()
+    return { keeper: PUBLIC_STATIONS[type].keeper, until: now ? now.endsAt.toISOString() : null, next: nextKeeperFire().toISOString() }
 }
 
 /** Which items in the player's pack may go into this slot. */
@@ -758,6 +770,8 @@ export interface StationCheck {
     ok: boolean
     error?: string
     multiplier: number
+    /** At the keeper's hearth while their mealtime fire burns: full speed (lib/keeperFires.ts). */
+    keeperFire?: boolean
     missingTools: string[]
     /** True when working at the NPC's bench rather than your own. */
     usingPublic: boolean
@@ -937,6 +951,11 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
     //    make the tools to set up a bench without owning the tools first: the
     //    circularity rule (CLAUDE.md section 2) again.
     if (await locationHasPublicStation(playerId, player.current_location_id, recipe.station)) {
+        // Geomima's mealtime fires (lib/keeperFires.ts): her hearth at full
+        // speed for the hour it burns.
+        if (recipe.station === 'cooking' && keeperFireNow()) {
+            return { ok: true, multiplier: 1, missingTools: [], usingPublic: true, keeperFire: true }
+        }
         return { ok: true, multiplier: 2, missingTools: [], usingPublic: true }
     }
 
