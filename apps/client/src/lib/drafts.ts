@@ -91,8 +91,17 @@ export function useDraft(key: string | null): [string, (value: string) => void, 
         if (key !== null) writeDraft(key, next)
     }, [key, slot])
 
+    // Forgets this component's copy as well as the stored draft. It used to keep
+    // an empty copy, which then beat anything written to storage for the key:
+    // a forum post saved or cancelled once opened empty on every later Edit
+    // until the Forum was closed (forum, 2026-11-09), because Edit writes the
+    // post's text into storage for the editor to read.
     const clear = useCallback(() => {
-        setEdited(prev => ({ ...prev, [slot]: '' }))
+        setEdited(prev => {
+            const rest = { ...prev }
+            delete rest[slot]
+            return rest
+        })
         if (key !== null) clearDraft(key)
     }, [key, slot])
 
