@@ -60,3 +60,61 @@
     line-height: 1;
     color: var(--color-text-bright);
 }
+
+/* The arrow above the bell: opens the list of what rings it (BellEventsPicker).
+   A tab on the bell's top edge, so it reads as part of the bell. */
+.bell-events-toggle {
+    position: absolute;
+    bottom: 52px;
+    right: 66px;
+    z-index: 24;
+    width: 28px;
+    height: 15px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--color-text-muted);
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-mid);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+}
+
+.bell-events-toggle:hover,
+.bell-events-toggle.open {
+    color: var(--color-gold);
+    background: var(--color-bg-hover);
+}
+
+.bell-events-popover {
+    position: absolute;
+    bottom: 72px;
+    right: 12px;
+    z-index: 30;
+    width: min(280px, calc(100vw - 24px));
+    padding: 10px 12px;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    font-family: var(--font-body);
+    color: var(--color-text-base);
+    text-align: left;
+}
+
+.bell-events-title {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    color: var(--color-gold);
+    margin-bottom: 6px;
+}
+
+.bell-events-foot {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}

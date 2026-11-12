@@ -1,0 +1,35 @@
+/* What rings the bell: a list of tick boxes, shown from the bell's arrow and in
+   Settings > Game (BellEventsPicker.tsx). Tokens only, so it follows every theme. */
+.bell-events {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bell-event {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.bell-event input {
+    margin-top: 3px;
+    accent-color: var(--color-gold);
+    flex-shrink: 0;
+}
+
+.bell-event-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.bell-event-label {
+    font-size: 14px;
+    color: var(--color-text-bright);
+}
+
+.bell-event-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}

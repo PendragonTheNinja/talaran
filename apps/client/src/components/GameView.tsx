@@ -13,7 +13,7 @@ import CrierNotice from './CrierNotice'
 import ChronicleNotice from './ChronicleNotice'
 import FillingGem from './FillingGem'
 import EventStandings, { type Standings } from './EventStandings'
-import { ringForCountdown } from '../lib/bell'
+import { ringFor } from '../lib/bell'
 import { loadActionPresentation, sceneTextFor, cancelLabelFor, type PresentationMap } from '../lib/actionPresentation'
 import FightView, { type FightLogLine } from './FightView'
 import LevelUpUnlocks from './LevelUpUnlocks'
@@ -554,12 +554,14 @@ export default function GameView({
       }
 
       on('action_complete', (data: { result: ActionResult; timerSeconds: number; nextCompletes: string; xpInfo: XpInfo }) => {
-        // The timer bell (lib/bell.ts) rings at the end of each countdown.
-        // At the Rift the countdown on screen runs to the stone being full,
-        // not to each minute's pour, so only a full stone rings there.
+        // The timer bell (lib/bell.ts) rings at the end of each countdown, or
+        // as "work stops" when this was the last one (out of materials, the
+        // node gone). At the Rift the countdown on screen runs to the stone
+        // being full, not to each minute's pour, so only a full stone rings there.
         {
-          const d = data as unknown as { actionType?: string; result?: { itemName?: string } }
-          if (d.actionType !== 'talar_fill' || d.result?.itemName) ringForCountdown()
+          const d = data as unknown as { actionType?: string; result?: { itemName?: string; ended?: string } }
+          if (d.result?.ended) ringFor('stopped')
+          else if (d.actionType !== 'talar_fill' || d.result?.itemName) ringFor('countdown')
         }
         const jewelry = (data.result as { jewelry?: string[] } | undefined)?.jewelry ?? []
         setJewelryLines(jewelry)
@@ -896,7 +898,7 @@ export default function GameView({
       })
 
       on('travel_complete', (data: { result: any }) => {
-        ringForCountdown()
+        ringFor('arrived')
         setJewelryLines(Array.isArray(data?.result?.jewelry) ? data.result.jewelry : [])
         setToolLines([])
         if (data?.result) {
@@ -951,7 +953,7 @@ export default function GameView({
 
       on('action_failed', (data: { error: string; info?: boolean }) => {
         // An action that stopped on its own wants the player back.
-        ringForCountdown()
+        ringFor('stopped')
         // A fight's end goes on the result card below, which stays; the same
         // sentence in the log as well printed it twice, one over the other.
         // The same goes for any informational stop with a card up to carry
@@ -981,7 +983,7 @@ export default function GameView({
       })
 
       on('bot_check_required', (data: { a: number; b: number }) => {
-        ringForCountdown()
+        ringFor('botcheck')
         setBotCheckQuestion({ a: data.a, b: data.b })
         setBotCheckPending(true)
       })
@@ -1010,6 +1012,8 @@ export default function GameView({
           addLog(`The ${data.oreName} vein has been depleted.`, 'error')
           return
         }
+        // Your own vein ran out under you: the work has stopped.
+        ringFor('stopped')
         setCurrentAction(null)
         setActiveNodeId(null)
         setTimerSeconds(0)
@@ -1091,6 +1095,7 @@ export default function GameView({
         if (data.fight) {
           setFight(localizeFight(data.fight))
         } else if (data.ended) {
+          ringFor(data.ended === 'died' ? 'fallen' : 'stopped')
           setFight(null)
           fightCreatureRef.current = null
           // A death moves the player to Talador; anything else leaves them
@@ -1107,7 +1112,7 @@ export default function GameView({
       })
 
       on('action_limit_reached', (data: { message: string }) => {
-        ringForCountdown()
+        ringFor('stopped')
         addLog(data.message, 'info')
         setLastResult(prev => prev ? { ...prev, ended: 'limit' } : prev)
         setCurrentAction(null)

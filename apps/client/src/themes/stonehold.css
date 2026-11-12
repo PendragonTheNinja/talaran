@@ -847,9 +847,10 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
 
-/* Small things that float: tooltips, right-click menus, the sort drawer.
+/* Small things that float: tooltips, right-click menus, the sort drawer, the
+   bell's list of what rings it.
    A rope frame would swamp them, so stone with a fine gilt line. */
-:root[data-theme='stonehold'] :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover) {
+:root[data-theme='stonehold'] :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover, .bell-events-popover) {
   background:
     linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
     var(--sh-stone) repeat;

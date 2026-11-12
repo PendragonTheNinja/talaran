@@ -7,6 +7,7 @@ import {
 import { openSupport } from '../lib/talerStore'
 import './SettingsPanel.css'
 import ErrorLine from './ErrorLine'
+import BellEventsPicker from './BellEventsPicker'
 
 /**
  * Settings > Game: the timer bell (lib/bell.ts). Which sound, how loud, and
@@ -52,8 +53,8 @@ export default function BellSetting({ hasCustomPerk }: { hasCustomPerk: boolean 
             <div className="settings-toggle-info">
                 <span className="settings-toggle-label">Timer Bell</span>
                 <span className="muted-text" style={{ fontSize: '13px' }}>
-                    A sound when a countdown ends, a bot check appears or an action stops. Tap the bell beside the
-                    robot to ring once for the countdown in front of you; hold it to ring every time. Saved on this
+                    A sound for the moments you choose below. Tap the bell beside the robot to ring once, the next
+                    time; hold it to ring every time; the arrow on top of it opens the same list. Saved on this
                     device only. A phone may stay silent with its screen off or the browser in the background.
                 </span>
 
@@ -70,6 +71,9 @@ export default function BellSetting({ hasCustomPerk }: { hasCustomPerk: boolean 
                         </button>
                     ))}
                 </div>
+
+                <span className="settings-toggle-label bell-setting-sub">Ring for</span>
+                <BellEventsPicker />
 
                 <span className="settings-toggle-label bell-setting-sub">Sound</span>
                 <div className="settings-size-row" role="radiogroup" aria-label="Bell sound">

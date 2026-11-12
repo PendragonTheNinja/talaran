@@ -264,14 +264,63 @@ export async function playBell(sound: BellSound = bellSound(), volume = bellVolu
     playBuiltIn(a, out, sound)
 }
 
+// ── What rings it ───────────────────────────────────────────────────────────
+
 /**
- * A countdown ended. Rings if the bell is on, and spends a "once".
- * GameView calls this from the moments a player needs to act.
+ * The moments the bell can ring for, chosen by the player (forum, 2026-11-11:
+ * not every countdown, and a bot check while the game sits in the background).
+ * The bell button stays the switch: off, the next one, or every one. These say
+ * which moments count. All are on until a player chooses, which is how the
+ * bell behaved before, plus falling in a fight.
+ */
+export type BellEvent = 'countdown' | 'stopped' | 'botcheck' | 'fallen' | 'arrived'
+
+export const BELL_EVENTS: { id: BellEvent; label: string; hint: string }[] = [
+    { id: 'countdown', label: 'Every countdown', hint: 'Each log, ore, catch or craft' },
+    { id: 'stopped', label: 'Work stops', hint: 'Out of materials, a limit reached, a vein run dry, a fight over' },
+    { id: 'botcheck', label: 'Bot check', hint: 'The game asks if you are there' },
+    { id: 'fallen', label: 'Fallen in a fight', hint: 'You were carried back to Talador' },
+    { id: 'arrived', label: 'Journey\'s end', hint: 'You arrive somewhere' },
+]
+
+const EVENTS_KEY = 'talaran-bell-events'
+const ALL_EVENTS = BELL_EVENTS.map(e => e.id)
+
+function readEvents(): Set<BellEvent> {
+    const raw = read(EVENTS_KEY)
+    if (raw === null) return new Set(ALL_EVENTS)
+    try {
+        const list = JSON.parse(raw)
+        return new Set(Array.isArray(list) ? ALL_EVENTS.filter(e => list.includes(e)) : ALL_EVENTS)
+    } catch {
+        return new Set(ALL_EVENTS)
+    }
+}
+
+const events = readEvents()
+const eventListeners = new Set<(e: BellEvent[]) => void>()
+
+export function bellEvents(): BellEvent[] { return ALL_EVENTS.filter(e => events.has(e)) }
+
+export function setBellEvent(event: BellEvent, on: boolean) {
+    if (on) events.add(event); else events.delete(event)
+    write(EVENTS_KEY, JSON.stringify(bellEvents()))
+    for (const fn of eventListeners) fn(bellEvents())
+}
+
+export function onBellEvents(fn: (e: BellEvent[]) => void): () => void {
+    eventListeners.add(fn)
+    return () => { eventListeners.delete(fn) }
+}
+
+/**
+ * Something happened that the bell may ring for. Rings if the bell is on and
+ * the player chose this moment, and spends a "once". GameView calls this.
  */
 let lastRang = 0
 
-export function ringForCountdown() {
-    if (mode === 'off') return
+export function ringFor(event: BellEvent) {
+    if (mode === 'off' || !events.has(event)) return
     // One moment often arrives as two events (the last harvest completes,
     // then the action stops): ring once for both.
     const now = Date.now()
