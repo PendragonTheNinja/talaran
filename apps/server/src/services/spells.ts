@@ -702,14 +702,19 @@ const sending: SpellEffect = {
 // (applyEventBonus in services/worldEvents.ts, inside awardXp). A smaller pool
 // than a scheduled event, and nobody draws more than a quarter of it, so it
 // takes four people to empty. Gathering skills only, from what can be done at
-// that spot. One per place, never on top of a live event for the same skill.
+// that spot. One per place. It may be lit over a scheduled event for the same
+// skill, and the two stack: +25% and +25% make +50% (Nathan, 2026-11-12).
+//
+// Sized up on 2026-11-12 (forum; Nathan): it was 80 actions over 45 minutes,
+// 20 to a person, for 200 Talar, beside 1,000 to 1,500 over four to six hours
+// for a common event, so a caster alone drew some 300 XP from it.
 // Whoever lit it earns Talar XP for every boosted action by someone else
 // (payKindler): the reward is for bringing people together.
 
 const KINDLE_SKILLS = ['Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting']
-const KINDLE_POOL = 80
-const KINDLE_SHARE = 20
-const KINDLE_MINUTES = 45
+const KINDLE_POOL = 400
+const KINDLE_SHARE = 100
+const KINDLE_MINUTES = 180
 const KINDLE_MULTIPLIER = 1.25
 /** Talar XP to the kindler per boosted action by someone else: this many seconds of the spell's band. */
 const KINDLE_REWARD_SECONDS = 30
@@ -743,10 +748,14 @@ const kindle: SpellEffect = {
         const burning = await trx('world_events')
             .where({ location_id: locationId, kind: 'skill' })
             .whereNull('ended_at').where('ends_at', '>', trx.fn.now())
-            .where(function (this: any) { this.whereNotNull('kindled_by').orWhereRaw('LOWER(skill) = ?', [skill.toLowerCase()]) })
-            .first('skill', 'kindled_by')
-        if (burning?.kindled_by) throw new SpellAbort(`The light is already kindled at ${place}.`)
-        if (burning) throw new SpellAbort(`${skill} at ${place} is already going further today. Kindle something else, or somewhere else.`)
+            .whereNotNull('kindled_by')
+            .first('skill')
+        if (burning) throw new SpellAbort(`The light is already kindled at ${place}.`)
+        const over = await trx('world_events')
+            .where({ location_id: locationId, kind: 'skill' })
+            .whereNull('ended_at').where('ends_at', '>', trx.fn.now()).where('pool_left', '>', 0)
+            .whereRaw('LOWER(skill) = ?', [skill.toLowerCase()])
+            .first('name')
 
         const me = await trx('players').where({ id: playerId }).first('username')
         const announcement = `${me?.username ?? 'Someone'} has kindled the light at ${place}. ${skill} goes further there for a while, for anyone who comes.`
@@ -762,8 +771,10 @@ const kindle: SpellEffect = {
                 .then(() => announceServer(announcement))
                 .catch(err => logger.error(`[spells] kindle announce failed: ${err}`))
         })
+        const hours = KINDLE_MINUTES / 60
+        const stacked = over ? ` It burns on top of the ${over.name}, and the two together carry ${skill} further still.` : ''
         return {
-            message: `The ground at ${place} warms under your hands. ${skill} here goes further for ${KINDLE_MINUTES} minutes, ${KINDLE_SHARE} actions to a person. Bring people.`,
+            message: `The ground at ${place} warms under your hands. ${skill} here goes further for ${hours === Math.round(hours) ? `${hours} hours` : `${KINDLE_MINUTES} minutes`}, ${KINDLE_SHARE} actions to a person.${stacked} Bring people.`,
             detail: { skill, place },
         }
     },
@@ -964,6 +975,26 @@ export function spellCostWords(spell: Pick<SpellRow, 'key' | 'cost'>): string {
     }
 }
 
+/**
+ * What a spell does, in numbers, for the spellbook card and the Manual's spell
+ * page, for spells whose effect has numbers of its own; null for the rest. The
+ * numbers live beside the effect above, so they are said here and nowhere
+ * else (forum, 2026-11-05: Kindle's 80 actions and 45 minutes were written
+ * nowhere a player could read them).
+ */
+export function spellTermsWords(spell: Pick<SpellRow, 'key'>): string | null {
+    if (spell.key === 'kindle') {
+        return `${KINDLE_POOL} boosted actions over ${KINDLE_MINUTES / 60} hours, at most ${KINDLE_SHARE} for any one person, each worth ${Math.round((KINDLE_MULTIPLIER - 1) * 100)}% more XP. `
+            + `It may be lit over an event for the same work, and the two add together. You earn Talar XP for every boosted action by someone else.`
+    }
+    if (spell.key === 'larder_ward') {
+        const hours = WARD_HOURS.length > 1 ? `${WARD_HOURS.slice(0, -1).join(', ')} or ${WARD_HOURS[WARD_HOURS.length - 1]}` : String(WARD_HOURS[0])
+        return `Holds ${hours} hours. Lift it early and the Talar of the hours left comes back. One ward at a time.`
+    }
+    if (spell.key === 'wearsight') return `Shows the share of each piece's sure uses left, and its chance to break each use once those are spent.`
+    return null
+}
+
 export function spellCooldownWords(spell: Pick<SpellRow, 'key' | 'cooldown_kind' | 'cooldown_seconds'>): string {
     if (EFFECTS[spell.key]?.ownLimit) return spell.key === 'larder_ward' ? 'one ward at a time' : 'one at a time'
     if (spell.cooldown_kind === 'daily') return 'once a day'
@@ -996,6 +1027,8 @@ export interface SpellView {
     armed: boolean
     /** No cooldown: the spell sets its own limit (Larder Ward, one ward at a time). */
     ownLimit: boolean
+    /** What it does, in numbers (spellTermsWords); null when it has none of its own. */
+    terms: string | null
     xp: number
     vigilMinutes: number
     offering: string | null
@@ -1047,6 +1080,7 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 readyAt: ready && ready.getTime() > now && !EFFECTS[s.key]?.ownLimit ? ready.toISOString() : null,
                 armed: !!own?.armed_at,
                 ownLimit: !!EFFECTS[s.key]?.ownLimit,
+                terms: spellTermsWords(s),
                 xp: castXp(s),
                 vigilMinutes: Number(s.vigil_minutes),
                 offering: s.offering_item_name, writ: s.writ_item_name,

@@ -7,6 +7,8 @@ export interface SpellPage {
     description: string | null
     level: number
     cost: string
+    /** What it does, in numbers, where it has numbers of its own. */
+    terms?: string | null
     cast: string
     xp: number
     vigil: { minutes: number; offering: string | null; writ: string | null }
@@ -38,6 +40,7 @@ export default function ManualSpell({
         ['Costs', page.cost],
         ['Can be cast', page.cast],
         ['XP a cast', page.xp.toLocaleString()],
+        ...(page.terms ? [['How it works', page.terms] as [string, string]] : []),
     ]
 
     const where = page.taughtAt.length

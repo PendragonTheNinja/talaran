@@ -40,7 +40,9 @@ interface LiveEvent {
     /** The player who lit it with Kindle, paid for others' use; null otherwise. */
     kindledBy: number | null
 }
-let live = new Map<string, LiveEvent>();
+// Several may hold at one place for one skill: a Kindle lit over a scheduled
+// event stacks on it (Nathan, 2026-11-12). One used to replace the other here.
+let live = new Map<string, LiveEvent[]>();
 
 const liveKey = (locationId: number, skill: string) => `${locationId}:${skill.toLowerCase()}`;
 
@@ -53,14 +55,18 @@ export async function refreshLiveEvents(): Promise<void> {
         .whereNotNull('location_id')
         .whereNotNull('skill')
         .select('id', 'location_id', 'skill', 'per_player_cap', 'kindled_by');
-    const next = new Map<string, LiveEvent>();
+    const next = new Map<string, LiveEvent[]>();
     for (const r of rows) {
-        next.set(liveKey(r.location_id, r.skill), {
+        const key = liveKey(r.location_id, r.skill);
+        if (!next.has(key)) next.set(key, []);
+        next.get(key)!.push({
             id: r.id, locationId: r.location_id, skill: r.skill,
             cap: r.per_player_cap == null ? null : Number(r.per_player_cap),
             kindledBy: r.kindled_by == null ? null : Number(r.kindled_by),
         });
     }
+    // Always the same order, so two awards take their pools in the same order.
+    for (const list of next.values()) list.sort((a, b) => a.id - b.id);
     live = next;
 }
 
@@ -102,9 +108,25 @@ export async function applyEventBonus(
     if (!live.size) return xp;
     const player = await x('players').where({ id: playerId }).select('current_location_id').first();
     if (!player?.current_location_id) return xp;
-    const event = live.get(liveKey(player.current_location_id, skillName));
-    if (!event) return xp;
+    const events = live.get(liveKey(player.current_location_id, skillName));
+    if (!events?.length) return xp;
+    // Each event raises the award by its own share of the base XP, so two
+    // +25% events make +50%, never +56%.
+    let extra = 0;
+    for (const event of events) extra += await eventExtra(playerId, Number(player.current_location_id), skillName, xp, x, units, event);
+    return xp + extra;
+}
 
+/** One live event's part of an award: the XP it adds, having taken its pool and share. */
+async function eventExtra(
+    playerId: number,
+    locationId: number,
+    skillName: string,
+    xp: number,
+    x: Knex | Knex.Transaction,
+    units: number,
+    event: LiveEvent,
+): Promise<number> {
     const want = Math.max(1, Math.floor(units));
     let allowed = want;
     // A first share is a newcomer at the light: a kindler is told who (payKindler).
@@ -126,7 +148,7 @@ export async function applyEventBonus(
             RETURNING LEAST(?, ? - cur.taken) AS allowed`,
             [event.id, playerId, event.cap, want, event.cap, event.id, playerId, want, event.cap]);
         allowed = Number(share[0]?.allowed ?? 0);
-        if (allowed < 1) return xp;
+        if (allowed < 1) return 0;
     }
     // One statement: lock the row, take min(want, left), and report how many
     // were taken. The locked read in the CTE sees the latest pool, so two
@@ -153,7 +175,7 @@ export async function applyEventBonus(
     if (!taken) {
         // Emptied or ended since the cache was filled.
         changedAfterCommit(x);
-        return xp;
+        return 0;
     }
     // Who did the work, for the place's standings (eventStandingsAt). In the
     // award's own transaction, so an action that rolls back counts nothing.
@@ -174,7 +196,6 @@ export async function applyEventBonus(
     const kindler = event.kindledBy;
     if (kindler !== null && kindler !== playerId) {
         const uses = Number(taken.taken);
-        const locationId = Number(player.current_location_id);
         afterCommit(x, () => {
             import('./spells')
                 .then(({ payKindler }) => payKindler(kindler, uses, newcomer ? { playerId, locationId, skill: skillName } : null))
@@ -189,7 +210,7 @@ export async function applyEventBonus(
     }
     const extra = Math.round(xp * (Number(taken.xp_multiplier) - 1) * Number(taken.taken) / want);
     if (extra > 0) afterCommit(x, () => noteEventXp(playerId, skillName, extra));
-    return xp + extra;
+    return extra;
 }
 
 // ── What the result card is told ──────────────────────────────────────────

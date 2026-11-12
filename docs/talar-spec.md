@@ -138,7 +138,7 @@ Every player has an internal reservoir of Talar.
 | **Larder Ward** | 8 | 0.5 per head-hour covered | one ward at a time | 30 min (~1,300) for 12 h, a share for fewer |
 | **Tether** | 10 | 25 | one fall at a time | 2 min (~90) |
 | **Sending** | 15 | 20 | 10 min | 2 min (~100) |
-| **Kindle** | 20 | 300 | 24 h | 30 min (~1,730) + others' use |
+| **Kindle** | 20 | 150 | 24 h | 30 min (~1,730) + others' use |
 | **Portal** | 22 | 20 + 0.25 per base second skipped (29 to 115 on Taiar) | 2 h | 12 min (~725) + riders |
 
 **knob** for every number. Levels are first guesses; Portal must sit inside T2 because Taiar has only quartz and garnet to train on. **Augury** (foresee the next world event) is a later-tier spell.
@@ -173,10 +173,10 @@ Moves **one stack** between your pack and **your own** property storage, from an
 Lights a small XP event where you stand, shared by everyone there: a player-made rift surge on the world-events machinery (`applyEventBonus` inside `awardXp`).
 
 Limits:
-- **Small pool:** ~80 actions over ~45 minutes (a scheduled event is 300 to 500).
-- **Per-player share cap:** nobody draws more than a quarter of the pool. Alone you get 20 boosted actions; it takes four people to empty it.
+- **Pool:** 400 actions over 3 hours, for 150 Talar (Nathan, 2026-11-12; it was 80 over 45 minutes for 200, against 1,000 to 1,500 over four to six hours for a common event).
+- **Per-player share cap:** nobody draws more than a quarter of the pool. Alone you get 100 boosted actions; it takes four people to empty it.
 - **Gathering skills only**, chosen from what can be done at that spot (processing gets stockpiled and drained, per the world-events doc).
-- **One per place,** never on top of a live event for the same skill there.
+- **One Kindle per place.** It may be lit over a live event for the same skill, and the bonuses add: +25% and +25% make +50% (Nathan, 2026-11-12). The live-event cache holds every event at a place and skill (`services/worldEvents.ts`); it used to hold one, so a second event there was silently ignored.
 - **The caster earns extra Talar XP for every boosted action by someone else** (**knob:** half a minute of band each, so up to ~30 minutes if others use their full share). The reward is for gathering people, not for the caster's own actions.
 
 Needs one new thing in the events core: a per-player cap on a pool. A `race:check` scenario covers it.

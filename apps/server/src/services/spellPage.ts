@@ -1,5 +1,5 @@
 import db from '../db';
-import { castXp, spellCooldownWords, spellCostWords, spellIsLive, type SpellRow } from './spells';
+import { castXp, spellCooldownWords, spellCostWords, spellIsLive, spellTermsWords, type SpellRow } from './spells';
 
 // Spell pages: the Manual's page for one spell, beside the item pages.
 //
@@ -14,6 +14,8 @@ export interface SpellPage {
     description: string | null;
     level: number;
     cost: string;
+    /** What it does, in numbers, where it has numbers of its own. */
+    terms: string | null;
     cast: string;
     xp: number;
     vigil: { minutes: number; offering: string | null; writ: string | null };
@@ -33,6 +35,7 @@ export async function buildSpellPage(name: string): Promise<SpellPage | null> {
         description: spell.description,
         level: spell.talar_level,
         cost: spellCostWords(spell),
+        terms: spellTermsWords(spell),
         cast: cast.charAt(0).toUpperCase() + cast.slice(1),
         xp: castXp(spell),
         vigil: { minutes: spell.vigil_minutes, offering: spell.offering_item_name, writ: spell.writ_item_name },

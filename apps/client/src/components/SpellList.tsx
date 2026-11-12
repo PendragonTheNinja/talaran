@@ -26,6 +26,8 @@ interface SpellView {
     armed: boolean
     /** No cooldown: the spell sets its own limit (Larder Ward, one ward at a time). */
     ownLimit?: boolean
+    /** What it does, in numbers, where it has numbers of its own. */
+    terms?: string | null
     xp: number
     vigilMinutes: number
     offering: string | null
@@ -231,6 +233,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             </span>
                         </div>
                         {s.description && <p className="spell-desc">{s.description}</p>}
+                        {s.terms && <p className="spell-needs muted-text">{s.terms}</p>}
                         {mode === 'cast' && s.armed && (
                             <p className="spell-needs gold-text">Active: it waits for your next fall.</p>
                         )}
