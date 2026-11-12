@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import EquipSlotPicker, { type PickableItem } from './EquipSlotPicker'
 import type { Hp } from '../lib/combat'
 import type { Talar } from '../lib/talar'
 import SpellList from './SpellList'
@@ -48,6 +49,10 @@ interface EquipmentPanelProps {
     talar?: Talar
     /** Unused here since Combat Stats moved into its own tab (StatsTabs); kept so callers need no change. */
     combat?: CombatProfile | null
+    /** The pack, for the slot picker (hold or right-click a slot). */
+    inventory?: PickableItem[]
+    /** Put a pack item on; LeftPanel's own equip, so both ways in behave alike. */
+    onEquipItem?: (item: PickableItem) => Promise<void>
 }
 
 /** How a weapon is held, in the panel's words. */
@@ -76,7 +81,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, talar }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInventoryUpdate, hp, talar, inventory, onEquipItem }: EquipmentPanelProps) {
     const [error, setError] = useState<string | null>(null)
     // Mid-fight HP, announced by GameView as each swing lands (lib/combat.ts
     // announceHp), so the bar keeps up without refetching the whole player.
@@ -107,6 +112,25 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
     // The spellbook opens from the Talar bar: what you know, ready to cast.
     const [spellbookOpen, setSpellbookOpen] = useState(false)
+    // The slot picker: which slot, and whether a hold just opened it (so the
+    // release that follows is not also a tap that takes the piece off).
+    const [picking, setPicking] = useState<{ key: string; label: string } | null>(null)
+    const [pickBusy, setPickBusy] = useState(false)
+    const holdTimer = useRef<number | null>(null)
+    const heldOpen = useRef(false)
+    const startHold = (key: string, label: string) => {
+        heldOpen.current = false
+        if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
+        holdTimer.current = window.setTimeout(() => {
+            heldOpen.current = true
+            navigator.vibrate?.(20)
+            setPicking({ key, label })
+        }, 500)
+    }
+    const endHold = () => {
+        if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
+        holdTimer.current = null
+    }
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl, hideTooltip } = useItemTooltip()
 
@@ -159,9 +183,17 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                         <div
                             key={key}
                             className={`equipment-slot panel-inset ${equipped ? 'occupied' : ''}`}
-                            title={equipped ? undefined : label}
-                            {...hoverProps(equipped, 'Left-click to unequip')}
-                            onClick={() => equipped && handleUnequip(key)}
+                            title={equipped ? undefined : `${label}. Hold or right-click to choose what goes here.`}
+                            {...hoverProps(equipped, 'Left-click to unequip · Hold or right-click to choose what goes here')}
+                            onPointerDown={() => startHold(key, label)}
+                            onPointerUp={endHold}
+                            onPointerLeave={endHold}
+                            onPointerCancel={endHold}
+                            onContextMenu={e => { e.preventDefault(); endHold(); setPicking({ key, label }) }}
+                            onClick={() => {
+                                if (heldOpen.current) { heldOpen.current = false; return }
+                                if (equipped) handleUnequip(key)
+                            }}
                         >
                             {equipped ? (
                                 <>
@@ -203,6 +235,26 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                         <SpellList mode="cast" />
                     </div>
                 </div>
+            )}
+
+            {picking && (
+                <EquipSlotPicker
+                    label={picking.label}
+                    slot={picking.key}
+                    items={inventory ?? []}
+                    equipped={equipmentData?.[picking.key as keyof EquipmentData] ?? null}
+                    busy={pickBusy}
+                    onClose={() => setPicking(null)}
+                    onTakeOff={async () => {
+                        setPickBusy(true)
+                        try { await handleUnequip(picking.key) } finally { setPickBusy(false); setPicking(null) }
+                    }}
+                    onEquip={async item => {
+                        if (!onEquipItem) return
+                        setPickBusy(true)
+                        try { await onEquipItem(item) } finally { setPickBusy(false); setPicking(null) }
+                    }}
+                />
             )}
 
             {tooltipEl}

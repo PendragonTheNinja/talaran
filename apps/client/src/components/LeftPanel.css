@@ -960,3 +960,17 @@
 .stat-tabs-body[hidden] {
   display: none;
 }
+
+/* Holding a slot opens the slot picker (EquipSlotPicker.tsx), so a long press
+   must not select the icon or open the browser's own image menu on a phone. */
+.equipment-slot {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.equipment-slot img {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}

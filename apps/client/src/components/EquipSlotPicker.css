@@ -1,0 +1,64 @@
+/* The slot picker (EquipSlotPicker.tsx). Its frame is the spellbook's
+   (.farm-modal), which Stonehold already dresses in stone; these rules only
+   lay out what is inside, in tokens, so every theme follows. */
+.equip-picker {
+    max-width: 460px;
+}
+
+.equip-picker-worn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: 0 var(--space-lg) var(--space-sm);
+    color: var(--color-text-base);
+    font-size: 14px;
+}
+
+.equip-picker .farm-note {
+    padding: 0 var(--space-lg) var(--space-md);
+}
+
+.equip-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: var(--space-sm);
+    padding: 0 var(--space-lg) var(--space-lg);
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+/* A pack tile (inventory-slot), with its name under it so items that share an
+   icon can be told apart. */
+.equip-picker-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: auto;
+    min-height: 84px;
+    padding: 6px 4px 4px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.equip-picker-item .inventory-item-icon {
+    width: 44px;
+    height: 44px;
+}
+
+.equip-picker-name {
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    color: var(--color-text-base);
+    word-break: break-word;
+}
+
+.equip-picker-item:disabled {
+    opacity: 0.6;
+    cursor: default;
+}

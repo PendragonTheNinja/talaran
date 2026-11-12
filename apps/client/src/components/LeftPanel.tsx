@@ -665,6 +665,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         hp={hp}
         talar={talar}
         combat={combat}
+        inventory={inventoryData}
+        onEquipItem={item => handleEquip(item as InventoryItem)}
       />
 
       {/* Combat Stats and Provisions, one tab each (they used to stack, and
