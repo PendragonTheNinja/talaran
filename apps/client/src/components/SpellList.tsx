@@ -24,6 +24,8 @@ interface SpellView {
     readyAt: string | null
     /** Cast ahead and waiting to take effect (Tether, until the next fall). */
     armed: boolean
+    /** No cooldown: the spell sets its own limit (Larder Ward, one ward at a time). */
+    ownLimit?: boolean
     xp: number
     vigilMinutes: number
     offering: string | null
@@ -86,6 +88,7 @@ interface CastResult {
 
 /** What a spell's cooldown says on its card. */
 function cooldownText(s: SpellView): string {
+    if (s.ownLimit) return s.key === 'larder_ward' ? 'One ward at a time' : 'One at a time'
     if (s.cooldownKind === 'daily') return 'Once a day'
     if (s.cooldownKind === 'per_death') return 'One fall at a time'
     const m = Math.round((s.cooldownSeconds ?? 0) / 60)

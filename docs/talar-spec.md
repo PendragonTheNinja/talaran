@@ -135,7 +135,7 @@ Every player has an internal reservoir of Talar.
 |---|---|---|---|---|
 | **Wearsight** | 1 | 5 | 1 h | 6 min of band (~220) |
 | **Daily Step** | 5 | 0.1 per base second skipped (4 to 38 on Taiar) | once a day | 30 min (~1,210) |
-| **Larder Ward** | 8 | 0.5 per head-hour covered | 12 h | 30 min (~1,300) |
+| **Larder Ward** | 8 | 0.5 per head-hour covered | one ward at a time | 30 min (~1,300) for 12 h, a share for fewer |
 | **Tether** | 10 | 25 | one fall at a time | 2 min (~90) |
 | **Sending** | 15 | 20 | 10 min | 2 min (~100) |
 | **Kindle** | 20 | 300 | 24 h | 30 min (~1,730) + others' use |
@@ -151,6 +151,8 @@ One-way teleport, alone, to **any location you have visited on this island** (`p
 
 ### Larder Ward
 Cast on your farmstead; covers every pen there for up to N hours (**knob:** 12 at T1).
+
+**One ward at a time, no cooldown** (Nathan, 2026-11-12): a new ward is refused while one holds, and lifting one early lets the next be cast at once. Its XP is the full amount for 12 hours and that share for fewer, paid for the hours it holds. It was the full amount for any length, behind a 12-hour cooldown that ending early cleared, so a 4-hour ward ended a minute short paid nearly a full ward's XP and could be cast again straight away (forum, 2026-11-12). The row's `cooldown_seconds` (12 h) now only sizes the XP (`ownLimit` on the effect in `services/spells.ts`).
 
 How pens work today: feeding lasts 12 h, mucking is due every 24 h, and an animal's clocks run only until whichever runs out first (`penRunningUntil` in `services/husbandry.ts`). The ward stretches that:
 

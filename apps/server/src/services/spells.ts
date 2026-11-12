@@ -107,6 +107,12 @@ interface SpellEffect {
      * the spell actually did (Larder Ward: the hours the ward held).
      */
     deferXp?: boolean
+    /**
+     * The effect sets its own limit, so a cast never starts the spell's
+     * cooldown (Larder Ward: one ward at a time). The row's cooldown then only
+     * sizes the spell's XP (castMinutes).
+     */
+    ownLimit?: boolean
 }
 
 // ── Wearsight (§6) ───────────────────────────────────────────────────────────
@@ -545,6 +551,18 @@ const larderWard: SpellEffect = {
     },
     cast: async (trx, playerId, spell, params) => {
         const hours = wardHours(params)
+        // One ward at a time (Nathan, 2026-11-12), checked under the player's
+        // spell row, which castSpell holds locked and endLarderWard takes
+        // first. It was the 12-hour cooldown that kept a second ward out, and
+        // ending a ward early cleared that cooldown, so a short ward ended just
+        // before it ran out paid nearly a full ward's XP and could be cast
+        // again at once (forum, 2026-11-12; audit 2026-11-09).
+        const holding = await trx('larder_wards').where({ player_id: playerId }).where('ends_at', '>', new Date()).first('ends_at')
+        if (holding) {
+            const mins = Math.max(1, Math.ceil((new Date(holding.ends_at).getTime() - Date.now()) / 60000))
+            const left = mins < 60 ? `${mins} more minute${mins === 1 ? '' : 's'}` : `${Math.ceil(mins / 60)} more hour${Math.ceil(mins / 60) === 1 ? '' : 's'}`
+            throw new SpellAbort(`A ward already holds over your pens for ${left}. Lift it first, or let it run.`)
+        }
         const r = await wardFarmsteadWithin(trx, playerId, hours)
         if ('error' in r) throw new SpellAbort(r.error)
         // The last ward's XP first, if it ran its course unpaid: this row is
@@ -558,7 +576,10 @@ const larderWard: SpellEffect = {
             player_id: playerId, head: r.head, hours,
             paid_hundredths: Math.round(Number(spell.cost) * r.head * hours * HUNDREDTHS),
             starts_at: now, ends_at: new Date(now.getTime() + hours * 3600 * 1000),
-            xp_due: castXp(spell), xp_settled_at: null,
+            // A full ward's XP for a full 12 hours, a share of it for fewer: it
+            // was the whole amount for any length, so a 4-hour ward taught as
+            // much as a 12-hour one.
+            xp_due: Math.round(castXp(spell) * hours / WARD_MAX_HOURS), xp_settled_at: null,
         }
         await trx('larder_wards').insert(record).onConflict('player_id').merge(record)
         const fed = r.toppedUp ? ` ${r.toppedUp === 1 ? 'One empty trough fills' : `${r.toppedUp} empty troughs fill`} from your store.` : ''
@@ -568,6 +589,7 @@ const larderWard: SpellEffect = {
         }
     },
     deferXp: true,
+    ownLimit: true,
 }
 
 /**
@@ -942,7 +964,8 @@ export function spellCostWords(spell: Pick<SpellRow, 'key' | 'cost'>): string {
     }
 }
 
-export function spellCooldownWords(spell: Pick<SpellRow, 'cooldown_kind' | 'cooldown_seconds'>): string {
+export function spellCooldownWords(spell: Pick<SpellRow, 'key' | 'cooldown_kind' | 'cooldown_seconds'>): string {
+    if (EFFECTS[spell.key]?.ownLimit) return spell.key === 'larder_ward' ? 'one ward at a time' : 'one at a time'
     if (spell.cooldown_kind === 'daily') return 'once a day'
     if (spell.cooldown_kind === 'per_death') return 'one fall at a time'
     const m = Math.round(Number(spell.cooldown_seconds ?? 0) / 60)
@@ -971,6 +994,8 @@ export interface SpellView {
     readyAt: string | null
     /** Cast ahead and waiting to take effect (Tether, until the next fall). */
     armed: boolean
+    /** No cooldown: the spell sets its own limit (Larder Ward, one ward at a time). */
+    ownLimit: boolean
     xp: number
     vigilMinutes: number
     offering: string | null
@@ -1019,8 +1044,9 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 key: s.key, name: s.name, description: s.description, level: s.talar_level,
                 cost: Number(s.cost), cooldownKind: s.cooldown_kind, cooldownSeconds: s.cooldown_seconds,
                 learned: !!own, canLearn: level >= s.talar_level,
-                readyAt: ready && ready.getTime() > now ? ready.toISOString() : null,
+                readyAt: ready && ready.getTime() > now && !EFFECTS[s.key]?.ownLimit ? ready.toISOString() : null,
                 armed: !!own?.armed_at,
+                ownLimit: !!EFFECTS[s.key]?.ownLimit,
                 xp: castXp(s),
                 vigilMinutes: Number(s.vigil_minutes),
                 offering: s.offering_item_name, writ: s.writ_item_name,
@@ -1243,7 +1269,9 @@ export async function castSpell(
             // and written under it, so parallel casts land one at a time.
             const own = await trx('player_spells').where({ player_id: playerId, spell_id: spell.id }).forUpdate().first()
             if (!own) throw new SpellAbort(`You have not learned ${spell.name}.`)
-            if (own.ready_at && new Date(own.ready_at).getTime() > now.getTime()) {
+            // A spell with its own limit has no cooldown to wait on, whatever an
+            // older cast left in ready_at.
+            if (!effect.ownLimit && own.ready_at && new Date(own.ready_at).getTime() > now.getTime()) {
                 const mins = Math.ceil((new Date(own.ready_at).getTime() - now.getTime()) / 60000)
                 const wait = mins < 60 ? `${mins} more minute${mins === 1 ? '' : 's'}`
                     : `${Math.ceil(mins / 60)} more hour${Math.ceil(mins / 60) === 1 ? '' : 's'}`
@@ -1256,7 +1284,7 @@ export async function castSpell(
 
             const outcome = await effect.cast(trx, playerId, spell, params)
 
-            const ready = nextReady(spell, now)
+            const ready = effect.ownLimit ? null : nextReady(spell, now)
             await trx('player_spells').where({ player_id: playerId, spell_id: spell.id })
                 .update({ ready_at: ready, last_cast_at: now })
 
