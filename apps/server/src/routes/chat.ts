@@ -7,6 +7,7 @@ import { badgeGlyph } from '../services/feats';
 import { chatLimit, chatReadLimit } from '../middleware/rateLimit';
 import { pushToAll, pushToPlayer, pushToRoom } from '../lib/realtime';
 import { cleanPublicText, FilterRefusal, SWEAR_NOTICE } from '../services/wordFilter';
+import { isMutedNow } from '../lib/mute';
 
 // Channels a guest may post in.
 const GUEST_CHAT_CHANNELS = ['help'];
@@ -281,19 +282,11 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
 
   try {
     const player = await db('players').where({ id: playerId }).first();
-    // Check if player is muted
-    if (player.is_chat_muted) {
-      const now = new Date();
-      if (!player.chat_muted_until || new Date(player.chat_muted_until) > now) {
-        // A mute still leaves guild chat open, and nothing else: in particular
-        // not a whisper that happens to have been posted on the guild channel.
-        if (effectiveChannel !== 'guild') {
-          res.status(403).json({ error: 'You are muted and cannot send chat messages.' });
-          return;
-        }
-      } else {
-        await db('players').where({ id: playerId }).update({ is_chat_muted: false, chat_muted_until: null });
-      }
+    // A mute still leaves guild chat open, and nothing else: in particular
+    // not a whisper that happens to have been posted on the guild channel.
+    if (effectiveChannel !== 'guild' && await isMutedNow(player)) {
+      res.status(403).json({ error: 'You are muted and cannot send chat messages.' });
+      return;
     }
     const location = await db('locations').where({ id: player.current_location_id }).first();
     const region = location?.region || 'Unknown';

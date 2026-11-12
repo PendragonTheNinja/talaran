@@ -5,6 +5,7 @@ import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { pushToPlayer } from '../lib/realtime';
 import { readText, TEXT_LIMITS } from '../lib/textLimits';
+import { isMutedNow } from '../lib/mute';
 
 const router = Router();
 
@@ -88,6 +89,11 @@ router.post('/send', requireAuth, requireTrusted, async (req: AuthRequest, res: 
     if (!cleanBody.ok) { res.status(400).json({ error: cleanBody.error }); return; }
 
     const sender = await db('players').where({ id: playerId }).first();
+    // A mute covers private messages too (Nathan, 2026-11-11).
+    if (await isMutedNow(sender)) {
+      res.status(403).json({ error: 'You are muted and cannot send messages.' });
+      return;
+    }
     // Case-insensitive, matching whispers, login and guild invites.
     const recipient = await db('players')
       .whereRaw('LOWER(username) = LOWER(?)', [recipientName.trim()])
