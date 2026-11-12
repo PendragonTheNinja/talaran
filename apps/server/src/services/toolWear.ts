@@ -26,6 +26,9 @@ import { logger } from '../lib/logger'
 import { toolBreakChancePct, toolTierRule, ToolTierRule } from '../lib/toolWear'
 import { wearItemByRule, WearableItem, DurabilityRule } from './durability'
 import { incrementStats } from './stats'
+import { playerSkillLevel } from './xp'
+import { gateSkill } from './equipGates'
+import { takeItemsWithin } from './inventory'
 import { isLiquid } from './liquids'
 import { parseTable } from './foraging'
 
@@ -184,6 +187,13 @@ function listNames(names: string[]): string {
     return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
+/** What hand wear leaves on the card: a break with no spare stops the work; a spared one is a line. */
+function noteHandWear(actionId: number, wear: HandWear): void {
+    const stopped = wear.broken.filter((name, i) => wear.broken.indexOf(name) === i && !wear.spared.includes(name))
+    if (stopped.length) note(actionId, { handBroken: stopped })
+    if (wear.spared.length) note(actionId, { notes: [spareMessage(wear.spared)] })
+}
+
 /** The sentence a broken hand tool stops the action with. */
 export function handBreakMessage(names: string[]): string {
     const one = names.length === 1
@@ -217,10 +227,7 @@ export async function wearToolsAfter(action: any, result: any): Promise<void> {
                 const { handHeldToolsOf } = await import('./workstations')
                 const recipe = await db('recipes').where({ id: recipeId }).first('required_tools', 'skill')
                 const held = handHeldToolsOf(recipe)
-                if (held.length) {
-                    const handBroken = await wearHandTools(action.player_id, recipe.skill, held, timer)
-                    if (handBroken.length) note(action.id, { handBroken })
-                }
+                if (held.length) noteHandWear(action.id, await wearHandToolsWithSpares(action.player_id, recipe.skill, held, timer))
             }
             return
         }
@@ -228,23 +235,45 @@ export async function wearToolsAfter(action: any, result: any): Promise<void> {
         if (!spec) return
         const subtypes = typeof spec.tools === 'function' ? await spec.tools(action, result) : spec.tools
         if (!subtypes.length) return
-        const broken = await wearHandTools(action.player_id, spec.skill, subtypes, timer)
-        if (broken.length) note(action.id, { handBroken: broken })
+        noteHandWear(action.id, await wearHandToolsWithSpares(action.player_id, spec.skill, subtypes, timer))
     } catch (err) {
         logger.error(`wearToolsAfter error (player ${action?.player_id}, ${action?.action_type}): ${err}`)
     }
 }
 
-/** One use of each hand tool of these subtypes that is in hand. A broken one leaves its slot. */
-export async function wearHandTools(playerId: number, skill: string, subtypes: string[], timerSeconds: number): Promise<string[]> {
-    const broken: string[] = []
+/**
+ * A spare from the pack for a broken hand tool (Nathan, 2026-11-12): once the
+ * player is this many levels past what the tool asks, an identical one goes
+ * straight into the hand and the work carries on. Below it, a break stops the
+ * work as before. Only the same item, never a "best other" one, so what goes
+ * on is never a surprise. Not in a fight: a broken weapon is re-equipped by
+ * hand (combat, Nathan 2026-10-13).
+ */
+export const SPARE_TOOL_LEVELS = 7
+
+/** The skill whose level earns a tool's spare: the one its level is checked against, else the work's own. */
+function spareSkill(item: { subtype?: string | null; weapon_form?: string | null; armour?: number | null }, workSkill: string): string {
+    return gateSkill(item) ?? workSkill
+}
+
+export interface HandWear {
+    /** Every tool that broke. */
+    broken: string[]
+    /** Of those, the ones a spare from the pack replaced: the work goes on. */
+    spared: string[]
+}
+
+/** One use of each hand tool of these subtypes that is in hand. A broken one leaves its slot, or a spare takes it. */
+export async function wearHandToolsWithSpares(playerId: number, skill: string, subtypes: string[], timerSeconds: number): Promise<HandWear> {
+    const out: HandWear = { broken: [], spared: [] }
     await db.transaction(async trx => {
+        // The equipment row first, then the pack: the equip button's order.
         const eq = await trx('player_equipment').where({ player_id: playerId }).forUpdate().first()
         if (!eq) return
         const ids = HAND_COLUMNS.map(c => eq[c]).filter(Boolean)
         if (!ids.length) return
         const items = await trx('items').whereIn('id', ids)
-            .select('id', 'name', 'tier', 'subtype', 'durability_uses', 'durability_break_pct')
+            .select('id', 'name', 'tier', 'subtype', 'level_required', 'durability_uses', 'durability_break_pct')
         const byId = new Map(items.map((i: any) => [Number(i.id), i]))
         const rules = await loadToolRules(trx)
         const done = new Set<string>()
@@ -254,12 +283,30 @@ export async function wearHandTools(playerId: number, skill: string, subtypes: s
             done.add(column)
             const item = byId.get(Number(eq[column]))
             if (!(await wearItemByRule(trx, playerId, item, toolRule(item, skill, timerSeconds, rules), Math.random))) continue
+            out.broken.push(item.name)
+            const level = await playerSkillLevel(playerId, spareSkill(item, skill), trx)
+            const earned = level >= (Number(item.level_required) || 1) + SPARE_TOOL_LEVELS
+            if (earned && (await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: 1 }])).ok) {
+                // The spare goes where the broken one was: the slot keeps its item.
+                out.spared.push(item.name)
+                continue
+            }
             await trx('player_equipment').where({ player_id: playerId }).update({ [column]: null })
-            broken.push(item.name)
         }
-        if (broken.length) await incrementStats(playerId, { total_tools_broken: broken.length }, trx)
+        if (out.broken.length) await incrementStats(playerId, { total_tools_broken: out.broken.length }, trx)
     })
-    return broken
+    return out
+}
+
+/** wearHandToolsWithSpares, for a caller that only wants what broke. */
+export async function wearHandTools(playerId: number, skill: string, subtypes: string[], timerSeconds: number): Promise<string[]> {
+    return (await wearHandToolsWithSpares(playerId, skill, subtypes, timerSeconds)).broken
+}
+
+/** The line a spare leaves on the card. */
+export function spareMessage(names: string[]): string {
+    const one = names.length === 1
+    return `Your ${listNames(names)} ${one ? 'breaks' : 'break'}. You take ${one ? 'a spare' : 'spares'} from your pack and carry on.`
 }
 
 /**

@@ -1891,6 +1891,39 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'tool', name: 'a hatchet breaks with a spare in the pack while it is taken off five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/toolWear.ts wearHandToolsWithSpares: past the tool's
+            // level by SPARE_TOOL_LEVELS, a broken hand tool is replaced by an
+            // identical one from the pack, under the equipment row's lock and
+            // then the pack's. Taken off first, nothing breaks and two
+            // hatchets are left; broken first, the spare goes into the hand, and
+            // every break takes exactly one hatchet out of the world.
+            const w = await world(ctx);
+            const woodcutting = await ctx.seed.row('skills', { name: 'Woodcutting' });
+            const { xpForLevel } = await import('../services/xp');
+            await ctx.seed.row('player_skills', { player_id: w.player.id, skill_id: woodcutting.id, xp: xpForLevel(8) });
+            const axe = await ctx.seed.row('items', {
+                name: 'Brittle Spare Hatchet', type: 'tool', subtype: 'axe', slot: 'mainhand', level_required: 1,
+                tier: 1, durability_uses: 0, durability_break_pct: 100,
+            });
+            await wearing(ctx, w.player.id, 'mainhand_item_id', axe.id);
+            await ctx.seed.row('player_inventory', { player_id: w.player.id, item_id: axe.id, quantity: 1 });
+            const { wearHandToolsWithSpares } = await import('../services/toolWear');
+            const [st, wear] = await Promise.all([
+                ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/equipment/unequip', { slot: 'mainhand' })),
+                Promise.all([1, 2, 3].map(() => wearHandToolsWithSpares(w.player.id, 'Woodcutting', ['axe'], 30))),
+            ]);
+            const broke = wear.reduce((n, x) => n + x.broken.length, 0);
+            const spared = wear.reduce((n, x) => n + x.spared.length, 0);
+            // It may break twice: once, and then the spare that replaced it.
+            if (spared > 1) return `${spared} spares taken with one in the pack`;
+            if (broke > spared + 1) return `the hatchet broke ${broke} times with ${spared} spare taken`;
+            return changed('hatchets left (one less for each break)', 2 - broke, await ctx.itemTotal(axe.id))
+                ?? (st.some(s => s >= 500) ? 'a request failed with a server error' : null);
+        },
+    },
+    {
         id: 'tool', name: 'tongs give out while they are taken from the bench five times at once', rounds: 10,
         run: async (ctx) => {
             // services/toolWear.ts wearBenchTools locks the station, then its
