@@ -126,6 +126,8 @@ interface Deed {
     n: number
     slots: Slots
     score: number
+    /** A find commoner than COMMON_FIND_ONE_IN: the item, so only one of it is told a page. */
+    commonFind?: string
 }
 
 /** The game-day window of a day key: from its midnight to the next. */
@@ -136,6 +138,14 @@ function dayWindow(dayKey: string): { start: Date; end: Date } {
 }
 
 const DROP_KINDS = new Set(['drop_rare', 'cryptid', 'world_first_item', 'trophy'])
+/**
+ * A find commoner than one in this many is told only when nothing better
+ * fills the page, and once a page for each item, whoever found it (Nathan,
+ * 2026-11-12: a Bird Nest, one log in 25, filled a page with its finders).
+ * Its score is cut to COMMON_FIND_WEIGHT of what its odds would give it.
+ */
+const COMMON_FIND_ONE_IN = 100
+const COMMON_FIND_WEIGHT = 0.1
 const ROLLED_UP = new Set(['newcomers', 'guest_claimed'])
 
 /** The rarest chance an item drops at anywhere, as a fraction (1/250 = 0.004). */
@@ -282,10 +292,12 @@ async function readDay(dayKey: string, settings: ChronicleSettings, names: boole
             subject: r.subject, data, n: 1, slots, score: 0,
         }
         const chance = DROP_KINDS.has(r.kind) && item ? chances.get(String(item)) : undefined
-        const rarity = chance ? 1 + Math.log10(1 / chance) : 1
+        const common = r.kind === 'drop_rare' && chance !== undefined && chance > 1 / COMMON_FIND_ONE_IN
+        const rarity = (chance ? 1 + Math.log10(1 / chance) : 1) * (common ? COMMON_FIND_WEIGHT : 1)
         const fresh = playerId && seenYesterday.has(`${playerId}:${r.kind}:${r.subject ?? ''}`) ? 0.5 : 1
         const jitter = 0.9 + 0.2 * seededUnit(`${dayKey}:${r.id}`)
         deed.score = kind.base_weight * rarity * magnitude(deed) * fresh * jitter
+        if (common) deed.commonFind = String(item)
         deeds.push(deed)
     }
     // Arrivals and claims become one line each, with how many (§6).
@@ -308,7 +320,16 @@ async function readDay(dayKey: string, settings: ChronicleSettings, names: boole
     }
     deeds.sort((a, b) => b.score - a.score || a.id - b.id)
 
-    return { deeds, kinds, nameable, guildBy }
+    // One line a page for each common find: the best-scored finder of it.
+    const commonTold = new Set<string>()
+    const kept = deeds.filter(d => {
+        if (!d.commonFind) return true
+        if (commonTold.has(d.commonFind)) return false
+        commonTold.add(d.commonFind)
+        return true
+    })
+
+    return { deeds: kept, kinds, nameable, guildBy }
 }
 
 // ── Verses ──────────────────────────────────────────────────────────────────
