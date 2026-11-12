@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { formatGameTime } from '../lib/time'
 import ChatMessageLine, { type ChatMessage } from './ChatMessageLine'
 import './ChatHistory.css'
+import { backdropClose } from '../lib/backdrop'
 
 // Everything said in the last two days, rendered exactly as the chat box renders
 // it — the line component is shared, not copied.
@@ -99,7 +100,7 @@ export default function ChatHistoryPanel({
     useEffect(() => { load(channel) }, [channel, load])
 
     return (
-        <div className="chat-history-overlay" onClick={onClose}>
+        <div className="chat-history-overlay" {...backdropClose(onClose)}>
             <div className="chat-history-modal" onClick={e => e.stopPropagation()}>
                 <div className="chat-history-header">
                     <h2 className="gold-text">Chat History</h2>

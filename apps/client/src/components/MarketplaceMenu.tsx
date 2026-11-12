@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './MarketplaceMenu.css'
 import { useItemTooltip } from './ItemTooltip'
+import { backdropClose } from '../lib/backdrop'
 
 // Taiar Marketplace. Same modal shape and tokens as FishingMenu.
 //
@@ -372,7 +373,7 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
     // ── Render ───────────────────────────────────────────────────────────────
 
     return (
-        <div className="mkt-overlay" onClick={onClose}>
+        <div className="mkt-overlay" {...backdropClose(onClose)}>
             <div className="mkt-modal" onClick={e => e.stopPropagation()}>
                 <div className="mkt-header">
                     <h2>Taiar Marketplace</h2>

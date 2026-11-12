@@ -8,6 +8,7 @@ import { apiFetch as apiFetchPalettes } from '../lib/api'
 import './PlayerProfile.css'
 import { useSkillTooltip } from './SkillTooltip'
 import { avatarSrc } from '../lib/avatar'
+import { backdropClose } from '../lib/backdrop'
 
 interface ProfileSkill {
     name: string
@@ -84,7 +85,7 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
 
     const formatDate = (str: string) => formatGameDateLong(new Date(str))
     return (
-        <div className="profile-overlay" onClick={onClose}>
+        <div className="profile-overlay" {...backdropClose(onClose)}>
             <div className="profile-popup" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-btn profile-close" onClick={onClose}>✕</button>
 

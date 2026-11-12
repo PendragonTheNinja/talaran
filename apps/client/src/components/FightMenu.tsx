@@ -3,6 +3,7 @@ import { fetchFightState, openBestiary, type FightFood, type FightingSpot, type 
 import { getCreatureImage } from '../lib/items'
 import CombatAwaySetting from './CombatAwaySetting'
 import './FightMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface FightMenuProps {
     spot: FightingSpot
@@ -32,7 +33,7 @@ export default function FightMenu({ spot, onClose, onStart }: FightMenuProps) {
     const creatures = [...spot.creatures].sort((a, b) => a.level - b.level)
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="fight-menu-modal" onClick={e => e.stopPropagation()}>
                 <div className="fight-menu-header">
                     <h3 className="gold-text">{spot.name}</h3>

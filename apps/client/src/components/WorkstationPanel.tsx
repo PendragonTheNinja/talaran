@@ -3,6 +3,7 @@ import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './WorkstationPanel.css'
 import { useItemTooltip } from './ItemTooltip'
+import { backdropClose } from '../lib/backdrop'
 
 interface EligibleItem {
     itemId: number
@@ -126,7 +127,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
 
     if (!station) {
         return (
-            <div className="workstation-overlay" onClick={onClose}>
+            <div className="workstation-overlay" {...backdropClose(onClose)}>
                 <div className="workstation-panel" onClick={e => e.stopPropagation()}>
                     <div className="workstation-header">
                         <h3>{title}</h3>
@@ -146,7 +147,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
     }
 
     return (
-        <div className="workstation-overlay" onClick={onClose}>
+        <div className="workstation-overlay" {...backdropClose(onClose)}>
         <div className="workstation-panel" onClick={e => e.stopPropagation()}>
             <div className="workstation-header">
                 <h3>{title}</h3>

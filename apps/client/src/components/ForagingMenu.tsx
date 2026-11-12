@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './ForagingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface HabitatItem {
     name: string | null      // null → not yet discovered → render "???"
@@ -47,7 +48,7 @@ export default function ForagingMenu({ onClose, onStartForage, playerForagingLev
     const tools = data?.tools
 
     return (
-        <div className="foraging-overlay" onClick={onClose}>
+        <div className="foraging-overlay" {...backdropClose(onClose)}>
             <div className="foraging-modal" onClick={e => e.stopPropagation()}>
                 <div className="foraging-header">
                     <h2>Foraging</h2>

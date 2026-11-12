@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type { Talar } from '../lib/talar'
 import './SpellCastPopup.css'
+import { backdropClose } from '../lib/backdrop'
 
 export interface SpellCast {
     spell: string
@@ -24,7 +25,7 @@ export default function SpellCastPopup({ cast, onClose }: { cast: SpellCast; onC
     }, [onClose])
 
     return createPortal(
-        <div className="spellcast-backdrop" onClick={onClose}>
+        <div className="spellcast-backdrop" {...backdropClose(onClose)}>
             <div className="spellcast-card" role="dialog" aria-label={`${cast.spell} cast`} onClick={e => e.stopPropagation()}>
                 <button className="spellcast-x" aria-label="Close" onClick={onClose}>✕</button>
                 <div className="spellcast-rays" />

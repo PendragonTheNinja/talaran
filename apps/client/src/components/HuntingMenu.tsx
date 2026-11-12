@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getCreatureImage, getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './HuntingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface HuntableAnimal {
     id: number
@@ -377,7 +378,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
     }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="hunting-menu-modal" onClick={e => e.stopPropagation()}>
                 <div className="hunting-menu-header">
                     <h3 className="gold-text">Hunting Grounds</h3>

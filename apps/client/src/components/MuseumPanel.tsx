@@ -5,6 +5,7 @@ import { useItemTooltip } from './ItemTooltip'
 import ConfirmModal from './ConfirmModal'
 import './FarmPanel.css'
 import './MuseumPanel.css'
+import { backdropClose } from '../lib/backdrop'
 
 // An island museum (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2). One modal, a tab
 // per exhibit, a case per item. A case shows the item's outline until you have
@@ -114,7 +115,7 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
     const exhibit = museum?.exhibits.find(e => e.id === tab) ?? null
 
     return (
-        <div className="farm-overlay" onClick={onClose}>
+        <div className="farm-overlay" {...backdropClose(onClose)}>
             <div className="farm-modal museum-modal" onClick={e => e.stopPropagation()}>
                 <div className="farm-header">
                     <h2>{museum?.name ?? 'Museum'}</h2>

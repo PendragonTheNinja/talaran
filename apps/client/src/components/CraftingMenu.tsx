@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface CraftingMenuProps {
     onClose: () => void
@@ -55,7 +56,7 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
         : title
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
                 <div className="smithing-menu-header">
                     <h3 className="gold-text">{heading}</h3>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react'
 import { apiFetch } from '../lib/api'
 import BalladRest from './BalladRest'
 import './TavernPanel.css'
+import { backdropClose } from '../lib/backdrop'
 
 // The Salty Sloth (docs/chronicle-spec.md §2, step 3): Wenna's tab, with what
 // she has heard today and nobody's name in it, and the book of pages, each a
@@ -253,7 +254,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
     }
 
     return (
-        <div className="tavern-overlay" onClick={onClose}>
+        <div className="tavern-overlay" {...backdropClose(onClose)}>
             <div className="tavern-modal" onClick={e => e.stopPropagation()}>
                 <div className="tavern-header">
                     <h2>{away ? 'The Chronicle' : front?.tavern.name ?? 'The Salty Sloth'}</h2>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './LoadoutsModal.css'
+import { backdropClose } from '../lib/backdrop'
 
 /**
  * Named loadouts (server services/loadouts.ts): save what you wear now, put a
@@ -72,7 +73,7 @@ export default function LoadoutsModal({ onClose, onChanged }: { onClose: () => v
     const full = (loadouts?.length ?? 0) >= MAX
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="modal-box loadouts-modal" onClick={e => e.stopPropagation()} role="dialog" aria-label="Loadouts">
                 <div className="loadouts-head">
                     <h3 className="gold-text">Loadouts</h3>

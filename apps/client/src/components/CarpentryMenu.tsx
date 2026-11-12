@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getItemIcon } from '../lib/items'
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface CarpentryMenuProps {
     onClose: () => void
@@ -31,7 +32,7 @@ export default function CarpentryMenu({ onClose, onStartSawing, onStartRecipe, p
     const [tab, setTab] = useState<'saw' | 'woodwork'>('saw')
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
                 <div className="smithing-menu-header">
                     <h3 className="gold-text">Carpentry Workshop</h3>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './NPCDialogue.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface DialogueOption {
     label: string
@@ -136,7 +137,7 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
     }
 
     return (
-        <div className="npc-overlay" onClick={onClose}>
+        <div className="npc-overlay" {...backdropClose(onClose)}>
             <div className="npc-dialogue" onClick={e => e.stopPropagation()}>
 
                 {loading ? (

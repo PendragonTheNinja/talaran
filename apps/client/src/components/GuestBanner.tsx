@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Player } from '../types'
 import { RulesAgree } from './RulesPage'
 import './GuestBanner.css'
+import { backdropClose } from '../lib/backdrop'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -151,7 +152,7 @@ export default function GuestBanner({
             </div>
 
             {open && (
-                <div className="guest-modal-back" onClick={close}>
+                <div className="guest-modal-back" {...backdropClose(close)}>
                     <div
                         className="guest-modal"
                         role="dialog"
@@ -265,7 +266,7 @@ export function ClaimSuccessModal({ username, onClose }: { username: string; onC
     }, [onClose])
 
     return (
-        <div className="guest-modal-back" onClick={onClose}>
+        <div className="guest-modal-back" {...backdropClose(onClose)}>
             <div
                 className="guest-modal"
                 role="dialog"

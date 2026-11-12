@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './FishingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 // The fishing panel. Follows ForagingMenu's shape (modal, "???" until found,
 // tool row) with the three things fishing adds: a live window and season
@@ -172,7 +173,7 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
     void tick   // the interval above exists purely to re-render the countdown
 
     return (
-        <div className="fishing-overlay" onClick={onClose}>
+        <div className="fishing-overlay" {...backdropClose(onClose)}>
             <div className="fishing-modal" onClick={e => e.stopPropagation()}>
                 <div className="fishing-header">
                     <h2>Fishing</h2>

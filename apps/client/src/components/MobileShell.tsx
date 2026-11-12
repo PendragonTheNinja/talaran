@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './MobileShell.css'
 import { CHAT_UNSEEN_EVENT, CHAT_SHOWN_EVENT } from './ChatPanel'
+import { backdropClose } from '../lib/backdrop'
 
 type MobileView = 'action' | 'inventory' | 'skills' | 'chat' | 'map'
 
@@ -136,7 +137,7 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
             </nav>
 
             {showFullMap && (
-                <div className="map-overlay" onClick={() => setShowFullMap(false)}>
+                <div className="map-overlay" {...backdropClose(() => setShowFullMap(false))}>
                     <div className="map-popup" onClick={e => e.stopPropagation()}>
                         <button className="modal-close-btn map-close" onClick={() => setShowFullMap(false)}>✕</button>
                         <img
@@ -149,7 +150,7 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
             )}
 
             {menuOpen && (
-                <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
+                <div className="mobile-menu-overlay" {...backdropClose(() => setMenuOpen(false))}>
                     <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
                         <div className="mobile-menu-header">
                             <span className="mobile-brand">Menu</span>

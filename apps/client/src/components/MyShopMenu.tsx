@@ -6,6 +6,7 @@ import { useItemTooltip } from './ItemTooltip'
 import StoreSortBar from './StoreSortBar'
 import { sortItems, useStoreSort } from '../lib/itemSort'
 import { loadItemDetails, type ItemDetail } from '../lib/itemDetails'
+import { backdropClose } from '../lib/backdrop'
 
 // The owner's side of a player shop (docs/marketplace-spec.md §4).
 //
@@ -188,7 +189,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
 
     if (loading) {
         return (
-            <div className="msh-overlay" onClick={onClose}>
+            <div className="msh-overlay" {...backdropClose(onClose)}>
                 <div className="msh-modal" onClick={e => e.stopPropagation()}>
                     <p className="msh-empty">Opening up…</p>
                 </div>
@@ -198,7 +199,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
 
     if (!shop) {
         return (
-            <div className="msh-overlay" onClick={onClose}>
+            <div className="msh-overlay" {...backdropClose(onClose)}>
                 <div className="msh-modal" onClick={e => e.stopPropagation()}>
                     <p className="msh-empty">You have no shop.</p>
                 </div>
@@ -210,7 +211,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
     const orderSlotsLeft = shop.buySlots - shop.buyOrders.length
 
     return (
-        <div className="msh-overlay" onClick={onClose}>
+        <div className="msh-overlay" {...backdropClose(onClose)}>
             <div className="msh-modal" onClick={e => e.stopPropagation()}>
                 <div className="msh-header">
                     <h2>{shop.name}</h2>

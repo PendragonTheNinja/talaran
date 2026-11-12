@@ -1,5 +1,6 @@
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface SmithingMenuProps {
   onClose: () => void
@@ -14,7 +15,7 @@ interface SmithingMenuProps {
 // now data-driven, and Fletch Arrows joins it under Hunting for free.
 export default function SmithingMenu({ onClose, onStartRecipe, playerSmithingLevel, stationActive = true }: SmithingMenuProps) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropClose(onClose)}>
       <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
         <div className="smithing-menu-header">
           <h3 className="gold-text">Smith Ambren Items</h3>

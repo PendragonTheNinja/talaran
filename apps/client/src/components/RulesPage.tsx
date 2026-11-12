@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import './LegalPages.css'
 import './RulesPage.css'
+import { backdropClose } from '../lib/backdrop'
 
 // The rules (docs/rules-draft.md, agreed with Nathan 2026-11-08). One text,
 // shown two ways: the public /rules page, linked from the home page and the
@@ -125,7 +126,7 @@ export function RulesPage() {
 /** The same rules in game, over whatever the player was doing. */
 export function RulesModal({ onClose }: { onClose: () => void }) {
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="modal-box rules-modal" onClick={e => e.stopPropagation()} role="dialog" aria-label="Rules">
                 <div className="rules-modal-head">
                     <h3 className="gold-text">Rules</h3>

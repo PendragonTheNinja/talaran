@@ -3,6 +3,7 @@ import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import './SmithingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface SmeltRecipe {
   key: string
@@ -53,7 +54,7 @@ export default function ForgeMenu({
   const held = (name: string) => inventory.find(i => i.name === name)?.quantity || 0
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropClose(onClose)}>
       <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
         <div className="smithing-menu-header">
           <h3 className="gold-text">The Forge</h3>

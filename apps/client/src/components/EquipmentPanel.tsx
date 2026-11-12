@@ -6,6 +6,7 @@ import './FarmPanel.css'
 import { getItemIcon, getSlotIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { useItemTooltip } from './ItemTooltip'
+import { backdropClose } from '../lib/backdrop'
 
 interface EquipmentData {
     head: any | null
@@ -192,7 +193,7 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
             </div>
 
             {spellbookOpen && (
-                <div className="farm-overlay" onClick={() => setSpellbookOpen(false)}>
+                <div className="farm-overlay" {...backdropClose(() => setSpellbookOpen(false))}>
                     <div className="farm-modal" onClick={e => e.stopPropagation()}>
                         <div className="farm-header">
                             <h2>Spellbook</h2>

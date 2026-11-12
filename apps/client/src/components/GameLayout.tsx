@@ -42,6 +42,7 @@ import { syncThemeFromServer } from '../lib/theme'
 import SupportPanel from './SupportPanel'
 import JournalPanel from './JournalPanel'
 import type { SupportTab } from '../lib/talerStore'
+import { backdropClose } from '../lib/backdrop'
 
 // Opened now and then, so fetched when first opened (audit 2026-11-09, D2).
 const ForumPanel = lazy(() => import('./ForumPanel'))
@@ -928,7 +929,7 @@ export default function GameLayout({
         />
       )}
       {showKilnModal && (
-        <div className="modal-overlay" onClick={() => setShowKilnModal(false)}>
+        <div className="modal-overlay" {...backdropClose(() => setShowKilnModal(false))}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <h3 className="gold-text">Load Kiln</h3>
             <p className="muted-text">Logs burn in batches of 20 over 3 hours. Better logs yield more Charc.</p>
@@ -967,7 +968,7 @@ export default function GameLayout({
         </div>
       )}
       {showSmeltModal && (
-        <div className="modal-overlay" onClick={() => setShowSmeltModal(false)}>
+        <div className="modal-overlay" {...backdropClose(() => setShowSmeltModal(false))}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             {!smeltSkipConfirm ? (
               <>
@@ -1150,7 +1151,7 @@ export default function GameLayout({
       )}
 
       {showTanningModal && (
-        <div className="modal-overlay" onClick={() => setShowTanningModal(false)}>
+        <div className="modal-overlay" {...backdropClose(() => setShowTanningModal(false))}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <h3 className="gold-text">Fill a Vat</h3>
             <p className="muted-text">
@@ -1437,7 +1438,7 @@ export default function GameLayout({
       )}
 
       {showStatsModal && (
-        <div className="modal-overlay" onClick={() => setShowStatsModal(false)}>
+        <div className="modal-overlay" {...backdropClose(() => setShowStatsModal(false))}>
           <div className="stats-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowStatsModal(false)}>✕</button>
             <PlayerStats playerId={player.id} />
@@ -1446,7 +1447,7 @@ export default function GameLayout({
       )}
 
       {showQuestsModal && (
-        <div className="modal-overlay" onClick={() => setShowQuestsModal(false)}>
+        <div className="modal-overlay" {...backdropClose(() => setShowQuestsModal(false))}>
           <div className="quests-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowQuestsModal(false)}>✕</button>
             <QuestsView />
@@ -1455,7 +1456,7 @@ export default function GameLayout({
       )}
 
       {bestiary && (
-        <div className="modal-overlay" onClick={() => setBestiary(null)}>
+        <div className="modal-overlay" {...backdropClose(() => setBestiary(null))}>
           <div className="quests-popup bestiary-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setBestiary(null)}>✕</button>
             <BestiaryPanel initialCreatureId={bestiary.creatureId} />
@@ -1464,7 +1465,7 @@ export default function GameLayout({
       )}
 
       {showFeatsModal && (
-        <div className="modal-overlay" onClick={() => setShowFeatsModal(false)}>
+        <div className="modal-overlay" {...backdropClose(() => setShowFeatsModal(false))}>
           <div className="quests-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowFeatsModal(false)}>✕</button>
             <FeatsPanel />

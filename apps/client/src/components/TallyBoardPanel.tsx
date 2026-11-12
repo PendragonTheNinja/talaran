@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import './TallyBoard.css'
+import { backdropClose } from '../lib/backdrop'
 
 // The Tally Board (see apps/server/src/services/tally.ts for the design rule).
 //
@@ -168,7 +169,7 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
     }
 
     return (
-        <div className="tally-overlay" onClick={onClose}>
+        <div className="tally-overlay" {...backdropClose(onClose)}>
             <div className="tally-modal" onClick={e => e.stopPropagation()}>
                 <div className="tally-header">
                     <h2 className="gold-text">Tally Board</h2>

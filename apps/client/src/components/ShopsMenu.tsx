@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './ShopsMenu.css'
 import { useItemTooltip } from './ItemTooltip'
+import { backdropClose } from '../lib/backdrop'
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -256,7 +257,7 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
     )
 
     return (
-        <div className="shp-overlay" onClick={onClose}>
+        <div className="shp-overlay" {...backdropClose(onClose)}>
             <div className="shp-modal" onClick={e => e.stopPropagation()}>
                 <div className="shp-header">
                     <h2>{openShop ? openShop.name : 'Player Shops'}</h2>

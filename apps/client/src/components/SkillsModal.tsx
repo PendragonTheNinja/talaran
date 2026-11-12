@@ -1,4 +1,5 @@
 import './SkillsModal.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface Skill {
     id: number
@@ -20,7 +21,7 @@ export default function SkillsModal({ skills, onClose }: SkillsModalProps) {
     const totalXp = skills.reduce((s, k) => s + k.xp, 0)
 
     return (
-        <div className="skills-modal-overlay" onClick={onClose}>
+        <div className="skills-modal-overlay" {...backdropClose(onClose)}>
             <div className="skills-modal" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>✕</button>
                 <h3 className="gold-text">Skills</h3>

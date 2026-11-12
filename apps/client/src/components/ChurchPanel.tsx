@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './FarmPanel.css'
 import SpellList from './SpellList'
+import { backdropClose } from '../lib/backdrop'
 
 // A church (server: services/church.ts), on the museum's pattern: one modal,
 // a tab per writing, and a Spells tab where spells are learned
@@ -41,7 +42,7 @@ export default function ChurchPanel({ churchId, onClose, onKeepVigil }: {
     const writing = church?.writings.find(w => w.id === tab) ?? null
 
     return (
-        <div className="farm-overlay" onClick={onClose}>
+        <div className="farm-overlay" {...backdropClose(onClose)}>
             <div className="farm-modal" onClick={e => e.stopPropagation()}>
                 <div className="farm-header">
                     <h2>{church?.name ?? 'Chapel'}</h2>

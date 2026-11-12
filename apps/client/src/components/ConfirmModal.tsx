@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import './ConfirmModal.css'
+import { backdropClose } from '../lib/backdrop'
 
 interface ConfirmModalProps {
     message: string
@@ -35,7 +36,7 @@ export default function ConfirmModal({
     const [understood, setUnderstood] = useState(false)
     const blocked = !!acknowledge && !understood
     return (
-        <div className="modal-overlay" onClick={onCancel}>
+        <div className="modal-overlay" {...backdropClose(onCancel)}>
             <div className={`confirm-modal ${children ? 'confirm-modal-detailed' : ''}`} onClick={e => e.stopPropagation()}>
                 {title && <h3 className="gold-text confirm-title">{title}</h3>}
                 <p className="confirm-message">{message}</p>

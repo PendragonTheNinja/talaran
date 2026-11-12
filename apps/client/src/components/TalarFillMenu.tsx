@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import { useItemTooltip } from './ItemTooltip'
 import './SmithingMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 // Filling gems at a rift (server: services/talar.ts fillOptions). The cards
 // are the bench's own (RecipeList), so a stone reads the same here as it did
@@ -61,7 +62,7 @@ export default function TalarFillMenu({ onClose, onStartFill }: TalarFillMenuPro
     const start = (itemId: number | null) => { onStartFill(itemId); onClose() }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" {...backdropClose(onClose)}>
             <div className="smithing-menu-modal" onClick={e => e.stopPropagation()}>
                 <div className="smithing-menu-header">
                     <h3 className="gold-text">Fill a Gem</h3>

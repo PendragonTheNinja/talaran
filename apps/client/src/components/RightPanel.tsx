@@ -5,6 +5,7 @@ import { useState } from 'react'
 import PlayerStats from './PlayerStats'
 import SkillsPanel from './SkillsPanel'
 import TabbedPanel from './TabbedPanel'
+import { backdropClose } from '../lib/backdrop'
 
 interface Location {
   id: number
@@ -104,7 +105,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
       />
 
       {showMap && (
-        <div className="map-overlay" onClick={() => setShowMap(false)}>
+        <div className="map-overlay" {...backdropClose(() => setShowMap(false))}>
           <div className="map-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn map-close" onClick={() => setShowMap(false)}>✕</button>
             <img

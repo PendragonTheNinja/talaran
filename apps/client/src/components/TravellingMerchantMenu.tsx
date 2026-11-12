@@ -4,6 +4,7 @@ import { onWorldEventsChanged, timeLeft } from '../lib/worldEvents'
 import { useItemTooltip } from './ItemTooltip'
 import { ItemIcon, QtyPicker } from './MarketplaceMenu'
 import './MarketplaceMenu.css'
+import { backdropClose } from '../lib/backdrop'
 
 // The travelling merchant's cart (docs/WORLD-EVENTS-AND-MUSEUMS.md, step 3).
 // The marketplace's modal, rows and controls, with one difference that matters:
@@ -104,7 +105,7 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
     const wants = visit?.wants ?? []
 
     return (
-        <div className="mkt-overlay" onClick={onClose}>
+        <div className="mkt-overlay" {...backdropClose(onClose)}>
             <div className="mkt-modal" onClick={e => e.stopPropagation()}>
                 <div className="mkt-header">
                     <h2>The Travelling Merchant</h2>
