@@ -12,18 +12,9 @@ import { onlinePlayers, pushToAll, pushToPlayer, announcePlayersHere } from '../
 import { endSessions, forgetSession } from '../lib/sessions';
 import { maskEmail } from '../lib/email';
 import { clearAvatar } from '../services/avatars';
+import { hasPermission, STAFF_PERMISSIONS } from '../lib/staffPermissions';
 
 const router = Router();
-
-// Helper to check permissions
-async function hasPermission(playerId: number, permission: string): Promise<boolean> {
-    const player = await db('players').where({ id: playerId }).first();
-    if (player.is_admin) return true;
-    if (!player.is_mod) return false;
-    const perms = await db('mod_permissions').where({ player_id: playerId }).first();
-    if (!perms) return false;
-    return perms[permission] === true;
-}
 
 /**
  * Moderators see a player's email masked (p•••@example.com); only admins see it
@@ -795,12 +786,16 @@ router.post('/mod-permissions', requireAuth, async (req: AuthRequest, res: Respo
             return;
         }
 
+        // Only the permission columns, each a true or false: the body used to be
+        // spread into the row as sent.
+        const given = (permissions && typeof permissions === 'object' ? permissions : {}) as Record<string, unknown>;
+        const chosen = Object.fromEntries(STAFF_PERMISSIONS.map(k => [k, given[k] === true]));
         // Set is_mod if any permissions are granted
-        const anyPermission = Object.values(permissions).some(v => v === true);
+        const anyPermission = Object.values(chosen).some(v => v === true);
         await db('players').where({ id: targetId }).update({ is_mod: anyPermission });
 
         await db('mod_permissions')
-            .insert({ player_id: targetId, ...permissions })
+            .insert({ player_id: targetId, ...chosen })
             .onConflict(['player_id'])
             .merge();
 

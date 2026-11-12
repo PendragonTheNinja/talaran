@@ -1371,6 +1371,7 @@ export default function GameLayout({
           playerUsername={player.username}
           isAdmin={playerData?.player?.is_admin || false}
           isMod={playerData?.player?.is_mod || false}
+          canModerate={playerData?.player?.can_moderate_forum || false}
           closing={forumClosing}
           onViewProfile={(id) => setProfilePlayerId(id)}
           openThreadId={forumOpenThreadId}

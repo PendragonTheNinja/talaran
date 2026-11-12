@@ -132,5 +132,5 @@ export async function boot() {
         await db.destroy()
         setTimeout(() => process.exit(0), 200)
     }
-    return { db, post, get, mkPlayer, give, wear, qty, xp, action, resolveNow, sleep, pushes, close }
+    return { db, call, post, get, mkPlayer, give, wear, qty, xp, action, resolveNow, sleep, pushes, close }
 }

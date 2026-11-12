@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import db from '../db';
+import { hasPermission } from '../lib/staffPermissions';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { levelFromXp, skillProgress } from '../services/xp';
 import { Request } from 'express';
@@ -48,6 +49,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
     // pg returns bigint as a string. The client does arithmetic and formatting
     // on this, so normalise once here rather than at every call site.
     player.gold = Number(player.gold ?? 0);
+    // What the forum lets this player moderate (pin, lock, delete or edit others' posts).
+    player.can_moderate_forum = await hasPermission(playerId, 'can_moderate_forum');
 
     // Get all skills with player XP
     const skills = await db('skills')

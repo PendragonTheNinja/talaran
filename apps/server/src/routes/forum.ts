@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
+import { hasPermission } from '../lib/staffPermissions';
 import { pushToAll, pushToPlayer } from '../lib/realtime';
 import { readText, TEXT_LIMITS } from '../lib/textLimits';
 import { cleanPublicText, FilterRefusal, SWEAR_NOTICE } from '../services/wordFilter';
@@ -332,7 +333,7 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
             totalCount: parseInt(totalCount?.count as string) || 0,
             page,
             totalPages: Math.ceil((parseInt(totalCount?.count as string) || 0) / limit),
-            myRole: { isAdmin: player.is_admin, isMod: player.is_mod },
+            myRole: { isAdmin: player.is_admin, isMod: player.is_mod, canModerate: await hasPermission(playerId, 'can_moderate_forum') },
             following,
         });
     } catch (err) {
@@ -679,7 +680,7 @@ router.delete('/posts/:id', requireAuth, async (req: AuthRequest, res: Response)
             return;
         }
 
-        if (post.author_id !== playerId && !player.is_admin && !player.is_mod) {
+        if (post.author_id !== playerId && !(await hasPermission(playerId, 'can_moderate_forum'))) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
@@ -713,7 +714,7 @@ router.delete('/threads/:id', requireAuth, async (req: AuthRequest, res: Respons
             return;
         }
 
-        if (thread.author_id !== playerId && !player.is_admin && !player.is_mod) {
+        if (thread.author_id !== playerId && !(await hasPermission(playerId, 'can_moderate_forum'))) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
@@ -754,8 +755,7 @@ router.post('/threads/:id/pin', requireAuth, async (req: AuthRequest, res: Respo
     const threadId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
 
     try {
-        const player = await db('players').where({ id: playerId }).first();
-        if (!player.is_admin && !player.is_mod) {
+        if (!(await hasPermission(playerId, 'can_moderate_forum'))) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
@@ -775,8 +775,7 @@ router.post('/threads/:id/lock', requireAuth, async (req: AuthRequest, res: Resp
     const { reason } = req.body;
 
     try {
-        const player = await db('players').where({ id: playerId }).first();
-        if (!player.is_admin && !player.is_mod) {
+        if (!(await hasPermission(playerId, 'can_moderate_forum'))) {
             res.status(403).json({ error: 'No permission.' });
             return;
         }
@@ -826,13 +825,14 @@ router.put('/posts/:postId', requireAuth, async (req: AuthRequest, res: Response
             return;
         }
 
-        const canEdit = post.author_id === playerId || isStaff;
+        const moderates = await hasPermission(playerId, 'can_moderate_forum');
+        const canEdit = post.author_id === playerId || moderates;
 
         if (!canEdit) {
             res.status(403).json({ error: 'You cannot edit this post.' });
             return;
         }
-        if (!isStaff && await forumBanned(player)) {
+        if (!moderates && await forumBanned(player)) {
             res.status(403).json({ error: 'You are banned from the forum.' });
             return;
         }

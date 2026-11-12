@@ -113,11 +113,13 @@ function writeForumPlace(place: ForumPlace): void {
     try { sessionStorage.setItem(FORUM_PLACE_KEY, JSON.stringify(place)) } catch { /* storage blocked */ }
 }
 
-export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, closing, onViewProfile, openThreadId, onThreadOpened, onShareToChat }: {
+export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, canModerate, closing, onViewProfile, openThreadId, onThreadOpened, onShareToChat }: {
     onClose: () => void
     playerUsername: string
     isAdmin: boolean
     isMod: boolean
+    /** May pin, lock, delete and edit others' posts (an admin, or a moderator with forum rights). */
+    canModerate: boolean
     closing?: boolean
     onViewProfile?: (playerId: number) => void
     openThreadId?: number | null
@@ -434,7 +436,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
 
     // A post's Edit button, at its top and again at its foot, so a long post
     // need not be scrolled through to reach it (Nathan, 2026-11-07).
-    const editButton = (post: ForumPost) => (post.author_name === playerUsername || isAdmin || isMod) && editingPostId !== post.id ? (
+    const editButton = (post: ForumPost) => (post.author_name === playerUsername || canModerate) && editingPostId !== post.id ? (
         <button
             className="btn"
             style={{ fontSize: '12px' }}
@@ -692,7 +694,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                 <span style={{ fontSize: '16px' }}>Last: {thread.last_poster_name}</span>
                                             )}
                                         </div>
-                                        {(isAdmin || isMod) && (
+                                        {canModerate && (
                                             <div className="forum-mod-actions" onClick={e => e.stopPropagation()}>
                                                 <button className="btn" style={{ fontSize: '12px' }} onClick={() => handlePin(thread.id)}>
                                                     {thread.is_pinned ? 'Unpin' : 'Pin'}
@@ -719,7 +721,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                     <span className="forum-locked-badge">🔒 Locked{currentThread.locked_reason ? `: ${currentThread.locked_reason}` : ''}</span>
                                 )}
                             </div>
-                            {(isAdmin || isMod) && (
+                            {canModerate && (
                                 <div className="forum-mod-actions">
                                     <button className="btn" style={{ fontSize: '12px' }} onClick={() => handlePin(currentThread.id)}>
                                         {currentThread.is_pinned ? 'Unpin' : 'Pin'}
@@ -864,7 +866,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                                                     >▼ {post.downvotes}</button>
                                                 </div>
                                             )}
-                                            {(post.author_name === playerUsername || isAdmin || isMod) && (
+                                            {(post.author_name === playerUsername || canModerate) && (
                                                 <button className="btn btn-red" style={{ fontSize: '10px' }} onClick={() => handleDeletePost(post.id)}>
                                                     Delete
                                                 </button>
