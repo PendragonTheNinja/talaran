@@ -4,6 +4,7 @@ import { formatGameTime } from '../lib/time'
 import ChatMessageLine, { type ChatMessage } from './ChatMessageLine'
 import './ChatHistory.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // Everything said in the last two days, rendered exactly as the chat box renders
 // it — the line component is shared, not copied.
@@ -121,7 +122,7 @@ export default function ChatHistoryPanel({
                 </div>
 
                 <div className="chat-history-body">
-                    {error && <p className="guild-error">{error}</p>}
+                    <ErrorLine message={error} className="guild-error" />
 
                     {hasMore && (
                         <button

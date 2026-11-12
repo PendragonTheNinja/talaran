@@ -10,6 +10,7 @@ import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { useDraft } from '../lib/drafts'
 import { TEXT_LIMITS } from '../lib/textLimits'
+import ErrorLine from './ErrorLine'
 
 interface NewsPost {
     id: number
@@ -179,7 +180,7 @@ export default function NewsPanel({ onClose, isAdmin, onViewThread, closing }: N
                     <button className="modal-close-btn" onClick={onClose}>✕</button>                </div>
             </div>
 
-            {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
+            <ErrorLine message={error} className="guild-error" style={{ padding: '0 var(--space-lg)' }} />
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             {view === 'list' && (

@@ -3,6 +3,7 @@ import { getCreatureImage, getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './HuntingMenu.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 interface HuntableAnimal {
     id: number
@@ -348,7 +349,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                             </p>
                         )}
 
-                        {baitNotice && <p className="trapline-error">{baitNotice}</p>}
+                        <ErrorLine message={baitNotice} className="trapline-error" />
                     </div>
                 )}
 
@@ -371,7 +372,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                     })}
                 </div>
 
-                {trapError && <p className="trapline-error">{trapError}</p>}
+                <ErrorLine message={trapError} className="trapline-error" />
                 {trapNote && <p className="last-result-jewelry">{trapNote}</p>}
             </div>
         )

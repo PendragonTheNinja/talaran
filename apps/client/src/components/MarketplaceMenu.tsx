@@ -4,6 +4,7 @@ import { getItemIcon } from '../lib/items'
 import './MarketplaceMenu.css'
 import { useItemTooltip } from './ItemTooltip'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // Taiar Marketplace. Same modal shape and tokens as FishingMenu.
 //
@@ -420,8 +421,8 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
                             </button>
                         </div>
 
-                        {error && <p className="mkt-error">{error}</p>}
-                        {notice && <p className="mkt-notice">{notice}</p>}
+                        <ErrorLine message={error} className="mkt-error" />
+                        <ErrorLine message={notice} className="mkt-notice" />
 
                         {/* ── Buy ─────────────────────────────────────────── */}
                         {tab === 'buy' && !buying && (

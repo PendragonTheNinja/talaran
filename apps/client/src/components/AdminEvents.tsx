@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { onWorldEventsChanged, timeLeft, endedWords, isMerchant } from '../lib/worldEvents'
 import ConfirmModal from './ConfirmModal'
 import './AdminEvents.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * The Events tab (docs/WORLD-EVENTS-AND-MUSEUMS.md, "Admin: an Events section").
@@ -126,7 +127,7 @@ export default function AdminEvents() {
 
     return (
         <div className="admin-events">
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
             {success && <p className="guild-success">{success}</p>}
 
             <div className="admin-action-card">

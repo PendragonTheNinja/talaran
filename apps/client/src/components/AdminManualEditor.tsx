@@ -4,6 +4,7 @@ import ManualRenderer from './ManualRenderer'
 import { loadManifest, loadShippedPage, type ManualManifest } from '../lib/manual'
 import { createZip } from '../lib/zip'
 import './Manual.css'
+import ErrorLine from './ErrorLine'
 
 // Live manual editing (docs/manual-spec.md §2).
 //
@@ -335,7 +336,7 @@ export default function AdminManualEditor() {
                 <button className="btn mobile-back-btn" onClick={() => setPaneOpen(false)}>
                     ‹ Pages
                 </button>
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
                 {message && <p className="guild-success">{message}</p>}
 
                 {!isDirtyPage ? (

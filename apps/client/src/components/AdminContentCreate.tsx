@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
+import ErrorLine from './ErrorLine'
 
 type ColumnKind = 'boolean' | 'integer' | 'float' | 'string' | 'text' | 'json' | 'array'
 
@@ -161,7 +162,7 @@ export default function AdminContentCreate({ table, label, columns, columnKinds,
                     {initialValues ? 'duplicated — give it a new name' : 'blank fields use the column default'}
                 </span>
             </p>
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
             <div className="admin-create-grid">
                 {fields.map(c => (
                     <label key={c} className="admin-balance-field">

@@ -4,6 +4,7 @@ import { getItemIcon } from '../lib/items'
 import { useItemTooltip } from './ItemTooltip'
 import './SmithingMenu.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // Filling gems at a rift (server: services/talar.ts fillOptions). The cards
 // are the bench's own (RecipeList), so a stone reads the same here as it did
@@ -69,7 +70,7 @@ export default function TalarFillMenu({ onClose, onStartFill }: TalarFillMenuPro
                     <button className="modal-close-btn" onClick={onClose}>✕</button>
                 </div>
 
-                {error && <p className="muted-text" style={{ textAlign: 'center', padding: '12px' }}>{error}</p>}
+                <ErrorLine message={error} className="muted-text" style={{ textAlign: 'center', padding: '12px' }} />
                 {!data && !error && <p className="muted-text" style={{ textAlign: 'center', padding: '12px' }}>Looking into the light…</p>}
 
                 {data && data.open.length > 0 && (

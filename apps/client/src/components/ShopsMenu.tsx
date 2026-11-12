@@ -4,6 +4,7 @@ import { getItemIcon } from '../lib/items'
 import './ShopsMenu.css'
 import { useItemTooltip } from './ItemTooltip'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -267,8 +268,8 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                     </div>
                 </div>
 
-                {error && <p className="shp-error">{error}</p>}
-                {notice && <p className="shp-notice">{notice}</p>}
+                <ErrorLine message={error} className="shp-error" />
+                <ErrorLine message={notice} className="shp-notice" />
 
                 {loading && <p className="shp-empty">Walking the row…</p>}
 

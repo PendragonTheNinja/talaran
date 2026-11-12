@@ -10,6 +10,7 @@ import { THEMES, applyTheme, previewTheme, initTheme, saveTheme, type ThemeId } 
 import ConfirmModal from './ConfirmModal'
 import './SupportPanel.css'
 import './SettingsPanel.css'
+import ErrorLine from './ErrorLine'
 
 interface Tier {
     usdCents: number
@@ -192,7 +193,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                     {crediting && <span className="support-crediting">Payment received — crediting…</span>}
                 </div>
 
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
 
                 {tab === 'talers' && (
                     <>

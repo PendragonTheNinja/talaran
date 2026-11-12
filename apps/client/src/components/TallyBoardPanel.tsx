@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import './TallyBoard.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // The Tally Board (see apps/server/src/services/tally.ts for the design rule).
 //
@@ -101,7 +102,7 @@ function Licence({ report, busy, onBought }: {
             ) : (
                 <p className="muted-text tally-licence-why">{licence.reason}</p>
             )}
-            {error && <p className="tally-licence-error">{error}</p>}
+            <ErrorLine message={error} className="tally-licence-error" />
         </div>
     )
 }
@@ -176,7 +177,7 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                     <button className="tally-close" onClick={onClose}>✕</button>
                 </div>
 
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
 
                 {!report ? (
                     <p className="muted-text">Reading the board…</p>

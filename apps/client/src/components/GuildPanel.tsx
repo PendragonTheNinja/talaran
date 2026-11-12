@@ -9,6 +9,7 @@ import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { TEXT_LIMITS } from '../lib/textLimits'
+import ErrorLine from './ErrorLine'
 
 interface GuildMember {
     id: number
@@ -399,7 +400,7 @@ export default function GuildPanel({ onClose, closing, playerUsername, onViewPro
                     </div>
                 </div>
 
-                {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
+                <ErrorLine message={error} className="guild-error" style={{ padding: '0 var(--space-lg)' }} />
                 {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
                 {/* Tabs for my_guild view */}

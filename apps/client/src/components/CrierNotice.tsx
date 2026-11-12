@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { onSocket } from '../lib/socket'
 import { getItemIcon } from '../lib/items'
 import './CrierNotice.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * The Town Crier's polls on the scene (server services/crierPolls.ts).
@@ -259,7 +260,7 @@ export default function CrierNotice() {
                     : <button className="crier-link" onClick={() => setDraft(q.id, { commentOn: true })}>Add a note</button>
             )}
 
-            {error && <p className="crier-error" role="alert">{error}</p>}
+            <ErrorLine message={error} className="crier-error" />
             </div>
 
             <div className="crier-foot">

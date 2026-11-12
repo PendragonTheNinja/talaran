@@ -5,6 +5,7 @@ import PropertyStorage from './PropertyStorage'
 import AnimalsTab from './AnimalsTab'
 import ConfirmModal from './ConfirmModal'
 import './FarmPanel.css'
+import ErrorLine from './ErrorLine'
 
 interface CropDef {
     id: number; name: string; seedItem: string; produceItem: string
@@ -169,7 +170,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                 )}
 
                 {loading && <p className="farm-empty">Walking the fields…</p>}
-                {error && <p className="farm-error">{error}</p>}
+                <ErrorLine message={error} className="farm-error" />
 
                 {/* ── Build offer ─────────────────────────────── */}
                 {!loading && data && !data.hasFarmstead && data.build && (

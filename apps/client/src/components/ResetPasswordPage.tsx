@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import './ResetPasswordPage.css'
+import ErrorLine from './ErrorLine'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -73,7 +74,7 @@ export default function ResetPasswordPage() {
                                 placeholder="••••••••"
                             />
                         </div>
-                        {error && <div className="reset-error">{error}</div>}
+                        <ErrorLine message={error} className="reset-error" as="div" />
                         <button className="reset-submit" onClick={submit} disabled={loading}>
                             {loading ? 'Resetting…' : 'Reset password'}
                         </button>

@@ -6,6 +6,7 @@ import { useIsMobile } from '../lib/useIsMobile'
 import ConfirmModal from './ConfirmModal'
 import './SettingsPanel.css'
 import './JournalPanel.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * The Journal (Nathan, 2026-11-03): a player's own notes, kept on their
@@ -280,7 +281,7 @@ export default function JournalPanel({ onClose, closing, onOpenItem }: JournalPa
                 </aside>
 
                 <section className="jr-note">
-                    {error && <p className="guild-error">{error}</p>}
+                    <ErrorLine message={error} className="guild-error" />
                     {!note ? (
                         <p className="jr-empty muted-text">Pick a note, or start a new one.</p>
                     ) : (

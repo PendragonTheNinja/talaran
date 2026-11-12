@@ -3,6 +3,7 @@ import { Player } from '../types'
 import { RulesAgree } from './RulesPage'
 import './GuestBanner.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -210,7 +211,7 @@ export default function GuestBanner({
 
                             <RulesAgree id="guest-agree-rules" checked={agreeRules} onChange={setAgreeRules} />
 
-                            {error && <div className="guest-error">{error}</div>}
+                            <ErrorLine message={error} className="guest-error" as="div" />
 
                             <button className="guest-submit" onClick={submit} disabled={saving}>
                                 {saving ? 'Please wait' : 'Claim character'}

@@ -3,6 +3,7 @@ import { formatGameDateLong } from '../lib/time'
 import './AuthScreen.css'
 import { Link, useNavigate } from 'react-router-dom'
 import { RulesAgree } from './RulesPage'
+import ErrorLine from './ErrorLine'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -397,7 +398,7 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
                                     <RulesAgree id="home-agree-rules" checked={agreeRules} onChange={setAgreeRules} />
                                 )}
 
-                                {error && <div className="home-error">{error}</div>}
+                                <ErrorLine message={error} className="home-error" as="div" />
                                 {info && <div className="home-info">{info}</div>}
 
                                 <button

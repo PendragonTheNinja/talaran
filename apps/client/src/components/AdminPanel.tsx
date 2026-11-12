@@ -12,6 +12,7 @@ import { FILTER_PLACE } from '../lib/filterPlaces'
 import AdminEvents from './AdminEvents'
 import { avatarSrc } from '../lib/avatar'
 import './AdminPanel.css'
+import ErrorLine from './ErrorLine'
 
 interface PlayerInfo {
     id: number
@@ -456,7 +457,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                 <button className="modal-close-btn" onClick={onClose}>✕</button>
             </div>
 
-            {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
+            <ErrorLine message={error} className="guild-error" style={{ padding: '0 var(--space-lg)' }} />
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             {mainTab === 'content' ? <AdminContentBrowser /> :

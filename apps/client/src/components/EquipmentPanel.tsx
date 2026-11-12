@@ -7,6 +7,7 @@ import { getItemIcon, getSlotIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import { useItemTooltip } from './ItemTooltip'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 interface EquipmentData {
     head: any | null
@@ -131,7 +132,7 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
 
     return (
         <div className="equipment-panel">
-            {error && <div className="equipment-error">{error}</div>}
+            <ErrorLine message={error} className="equipment-error" as="div" />
 
             {/* Bars flank the doll rather than stacking above it. Two full-width
                 bars cost more vertical space than the doll itself, and the panel

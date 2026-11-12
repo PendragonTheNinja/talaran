@@ -8,6 +8,7 @@ import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { TEXT_LIMITS } from '../lib/textLimits'
 import { useDraft } from '../lib/drafts'
+import ErrorLine from './ErrorLine'
 
 interface MessageSummary {
     id: number
@@ -185,7 +186,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
                 </div>
             </div>
 
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
             {success && <p className="guild-success">{success}</p>}
 
             {/* On a phone the list and the reading pane take turns (MobileShell.css). */}

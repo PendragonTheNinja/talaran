@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './TradeWindow.css'
 import { useItemTooltip } from './ItemTooltip'
+import ErrorLine from './ErrorLine'
 
 interface TradeItem {
     player_id: number
@@ -193,7 +194,7 @@ export default function TradeWindow({
                     <h3 className="gold-text">Trading with {otherPlayer.username}</h3>
                 </div>
 
-                {error && <p className="guild-error" style={{ padding: '0 var(--space-md)', fontSize: '13px' }}>{error}</p>}
+                <ErrorLine message={error} className="guild-error" style={{ padding: '0 var(--space-md)', fontSize: '13px' }} />
 
                 <div className="trade-body">
                     {/* My offer */}

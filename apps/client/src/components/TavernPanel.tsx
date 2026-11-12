@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import BalladRest from './BalladRest'
 import './TavernPanel.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // The Salty Sloth (docs/chronicle-spec.md §2, step 3): Wenna's tab, with what
 // she has heard today and nobody's name in it, and the book of pages, each a
@@ -100,7 +101,7 @@ function BalladsTab() {
             <p className="tavern-say">
                 "A song for your guild, sung in the tidings for the whole island to read. {fmt(data.price)} gold, and I'll not do the same guild twice in {inWords(data.cooldownDays)} days."
             </p>
-            {error && <p className="tavern-error">{error}</p>}
+            <ErrorLine message={error} className="tavern-error" />
             {notice && <p className="tavern-line">{notice}</p>}
             {data.inGuild && (
                 <p className="tavern-scene">
@@ -269,7 +270,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                     </div>
                 )}
 
-                {error && <p className="tavern-error">{error}</p>}
+                <ErrorLine message={error} className="tavern-error" />
 
                 {tab === 'wenna' && front && (
                     <div className="tavern-wenna">
@@ -349,7 +350,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                                 />
                                 <button className="btn btn-gold" onClick={() => findNamed(search, searchKind)}>Look</button>
                             </div>
-                            {searchNote && <p className="tavern-error" role="status">{searchNote}</p>}
+                            <ErrorLine message={searchNote} className="tavern-error" />
                             {named && (
                                 named.days.length === 0
                                     ? <p className="tavern-scene">"{named.name}? Not in the book yet. Give it time."</p>

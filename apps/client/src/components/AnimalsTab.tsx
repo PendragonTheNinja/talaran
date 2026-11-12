@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import ConfirmModal from './ConfirmModal'
 import './AnimalsTab.css'
+import ErrorLine from './ErrorLine'
 
 interface AnimalCard {
     id: number; name: string; species: string; stage: string
@@ -231,7 +232,7 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
 
     return (
         <>
-            {error && <p className="farm-error">{error}</p>}
+            <ErrorLine message={error} className="farm-error" />
             {grown.map((m, i) => <p key={i} className="farm-note farm-grown">{grownLine(m)}</p>)}
 
             <div className="farm-status">

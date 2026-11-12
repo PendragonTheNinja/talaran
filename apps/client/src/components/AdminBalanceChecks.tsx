@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import './AdminBalanceChecks.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * The economy self-checks, on screen.
@@ -90,7 +91,7 @@ export default function AdminBalanceChecks() {
                 </div>
             </div>
 
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             {/* Collapsed: one line per check, no detail. Enough to see WHICH
                 check is unhappy without surrendering the tab to it. */}

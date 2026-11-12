@@ -12,6 +12,7 @@ import { announceHp, type Hp } from '../lib/combat'
 import FillingGem from './FillingGem'
 import LoadoutsModal from './LoadoutsModal'
 import { announceTalar, CHARGED_QUALITIES, type Talar } from '../lib/talar'
+import ErrorLine from './ErrorLine'
 
 interface InventoryItem {
   id: number
@@ -652,7 +653,7 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
         )}
       </div>
 
-      {error && <div className="equipment-error">{error}</div>}
+      <ErrorLine message={error} className="equipment-error" as="div" />
 
       <div className="divider" />
 

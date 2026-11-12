@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './LoadoutsModal.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 /**
  * Named loadouts (server services/loadouts.ts): save what you wear now, put a
@@ -80,7 +81,7 @@ export default function LoadoutsModal({ onClose, onChanged }: { onClose: () => v
                     <button className="modal-close-btn" onClick={onClose} aria-label="Close">✕</button>
                 </div>
 
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
 
                 {report && (
                     <div className={`loadouts-report ${report.r.missing.length || report.r.refused.length ? 'partial' : ''}`} role="status">

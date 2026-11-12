@@ -9,6 +9,7 @@ import './ForumPanel.css'
 import './GuildForum.css'
 import { TEXT_LIMITS } from '../lib/textLimits'
 import { useDraft } from '../lib/drafts'
+import ErrorLine from './ErrorLine'
 
 // The guild's own forum, shown inside the guild page.
 //
@@ -101,7 +102,7 @@ export default function GuildForum({ openThreadId }: { openThreadId?: number | n
 
     return (
         <div className="guild-forum">
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             {view.kind === 'boards' && (
                 <Boards
@@ -249,7 +250,7 @@ function Threads({
                 {canPost && <button className="btn btn-gold" onClick={onCompose}>New thread</button>}
             </div>
 
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             {threads.length === 0 ? (
                 <p className="muted-text">Nothing here yet.</p>
@@ -345,7 +346,7 @@ function ThreadView({ threadId, onBack }: { threadId: number; onBack: () => void
                 <p className="guild-section-title gold-text">{data.thread.title}</p>
             </div>
 
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             <div className="forum-posts-list">
                 {data.posts.map(post => (
@@ -464,7 +465,7 @@ function Compose({
                 <p className="guild-section-title gold-text">New thread in {category.name}</p>
             </div>
 
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             <input
                 className="guild-forum-input"
@@ -567,7 +568,7 @@ function ManageBoards({
                 <p className="guild-section-title gold-text">Manage boards</p>
             </div>
 
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             {categories.map(cat => (
                 <div key={cat.id} className="guild-forum-manage-row">

@@ -3,6 +3,7 @@ import { getItemIcon } from '../lib/items'
 import { apiFetch } from '../lib/api'
 import './FishingMenu.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // The fishing panel. Follows ForagingMenu's shape (modal, "???" until found,
 // tool row) with the three things fishing adds: a live window and season
@@ -181,7 +182,7 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
                 </div>
 
                 {loading && <p className="fishing-empty">Reading the water…</p>}
-                {error && <p className="fishing-error">{error}</p>}
+                <ErrorLine message={error} className="fishing-error" />
 
                 {!loading && !error && data && data.species.length === 0 && (
                     <p className="fishing-empty">There is nothing to fish for here.</p>
@@ -262,7 +263,7 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
                                 <p className="fishing-note">Nothing in your pack would tempt a fish. Grain, cheese, eggs, spawn and raw meat all serve.</p>
                             )}
 
-                            {notice && <p className="fishing-notice">{notice}</p>}
+                            <ErrorLine message={notice} className="fishing-notice" />
                         </div>
 
                         <div className="fishing-actions">

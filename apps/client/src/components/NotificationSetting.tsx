@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { currentSubscription, pushSupport, subscribeThisDevice, unsubscribeThisDevice } from '../lib/push'
 import './SettingsPanel.css'
+import ErrorLine from './ErrorLine'
 
 interface PushConfig {
     publicKey: string | null
@@ -118,7 +119,7 @@ export default function NotificationSetting() {
                     </div>
                 )}
                 {note && <p className="muted-text" style={{ fontSize: '13px' }}>{note}</p>}
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
             </div>
         </div>
     )

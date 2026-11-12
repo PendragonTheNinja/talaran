@@ -18,6 +18,7 @@ import BellSetting from './BellSetting'
 import NotificationSetting from './NotificationSetting'
 import { CHAT_SIZES, currentChatSize, setChatSize, type ChatSizeId } from '../lib/chatSize'
 import { CHAT_START_CHOICES, chatStartChoice, setChatStartChoice, type ChatStartId } from '../lib/chatChannel'
+import ErrorLine from './ErrorLine'
 
 type SettingsTab = 'profile' | 'account' | 'chat' | 'game' | 'combat' | 'themes'
 
@@ -293,7 +294,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                 ))}
             </div>
 
-            {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
+            <ErrorLine message={error} className="guild-error" style={{ padding: '0 var(--space-lg)' }} />
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             <div className="settings-body">

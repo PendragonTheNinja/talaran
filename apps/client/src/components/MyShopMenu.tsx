@@ -7,6 +7,7 @@ import StoreSortBar from './StoreSortBar'
 import { sortItems, useStoreSort } from '../lib/itemSort'
 import { loadItemDetails, type ItemDetail } from '../lib/itemDetails'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // The owner's side of a player shop (docs/marketplace-spec.md §4).
 //
@@ -237,8 +238,8 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                     </button>
                 </div>
 
-                {error && <p className="msh-error">{error}</p>}
-                {notice && <p className="msh-notice">{notice}</p>}
+                <ErrorLine message={error} className="msh-error" />
+                <ErrorLine message={notice} className="msh-notice" />
 
                 {/* ── Storage ───────────────────────────────────────────── */}
                 {/* Two grids, same slot styling as the homestead store. Tap a

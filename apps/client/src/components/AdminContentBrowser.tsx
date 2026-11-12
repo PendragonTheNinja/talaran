@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import AdminContentCreate from './AdminContentCreate'
 import AdminItemUsage from './AdminItemUsage'
+import ErrorLine from './ErrorLine'
 
 interface ContentTable {
     name: string
@@ -537,7 +538,7 @@ export default function AdminContentBrowser() {
                 <button className="btn mobile-back-btn" onClick={() => { setSelected(null); setUsageItem(null) }}>
                     ‹ Tables
                 </button>
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
                 {warning && <p style={{ color: '#e8a030', fontSize: '14px', marginBottom: '8px' }}>⚠ {warning}</p>}
                 {!selected && !error && (
                     <p className="muted-text">

@@ -6,6 +6,7 @@ import {
 } from '../lib/bell'
 import { openSupport } from '../lib/talerStore'
 import './SettingsPanel.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * Settings > Game: the timer bell (lib/bell.ts). Which sound, how loud, and
@@ -124,7 +125,7 @@ export default function BellSetting({ hasCustomPerk }: { hasCustomPerk: boolean 
                         <button className="btn" onClick={() => openSupport('perks')}>See perks</button>
                     </div>
                 )}
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
             </div>
         </div>
     )

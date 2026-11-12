@@ -14,6 +14,7 @@ import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
 import { TEXT_LIMITS } from '../lib/textLimits'
 import { useDraft, readDraft, writeDraft, clearDraft } from '../lib/drafts'
+import ErrorLine from './ErrorLine'
 
 const POLL_DRAFT = 'forum:new-thread:poll'
 
@@ -569,7 +570,7 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                 </div>
             </div>
 
-            {error && <p className="guild-error" style={{ padding: '0 var(--space-lg)' }}>{error}</p>}
+            <ErrorLine message={error} className="guild-error" style={{ padding: '0 var(--space-lg)' }} />
             {success && <p className="guild-success" style={{ padding: '0 var(--space-lg)' }}>{success}</p>}
 
             <div

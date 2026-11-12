@@ -8,6 +8,7 @@ import ConfirmModal from './ConfirmModal'
 import { useItemTooltip } from './ItemTooltip'
 import './PropertyStorage.css'
 import './GuildHallTab.css'
+import ErrorLine from './ErrorLine'
 
 // The guild hall, as the Guild panel's Hall tab (server services/guildHall.ts).
 // Building, the storehouse and its ledger are sub-tabs here, open only while
@@ -175,7 +176,7 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                 ) : (
                     <p className="muted-text">The guild&apos;s leader decides where its hall will stand.</p>
                 )}
-                {error && <p className="store-error">{error}</p>}
+                <ErrorLine message={error} className="store-error" />
                 {elsewhere}
                 {confirm === 'found' && (
                     <ConfirmModal
@@ -201,7 +202,7 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                 {state.requests.length > 0 && (
                     <>
                         <p className="guild-section-title">Storehouse Requests</p>
-                        {error && <p className="store-error">{error}</p>}
+                        <ErrorLine message={error} className="store-error" />
                         {requestList(state)}
                     </>
                 )}
@@ -232,7 +233,7 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                 <button className={`hall-tab ${sub === 'ledger' ? 'active' : ''}`} onClick={() => setSub('ledger')} disabled={hall.tier < 1}>Ledger</button>
             </div>
 
-            {error && <p className="store-error">{error}</p>}
+            <ErrorLine message={error} className="store-error" />
 
             {sub === 'build' && (
                 <div className="hall-build">

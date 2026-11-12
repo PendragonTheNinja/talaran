@@ -6,6 +6,7 @@ import ConfirmModal from './ConfirmModal'
 import './FarmPanel.css'
 import './MuseumPanel.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // An island museum (docs/WORLD-EVENTS-AND-MUSEUMS.md, Part 2). One modal, a tab
 // per exhibit, a case per item. A case shows the item's outline until you have
@@ -131,8 +132,8 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                 </div>
 
                 {!museum && !error && <p className="farm-empty">Pushing open the doors…</p>}
-                {error && <p className="farm-error">{error}</p>}
-                {notice && <p className="farm-note museum-notice">{notice}</p>}
+                <ErrorLine message={error} className="farm-error" />
+                <ErrorLine message={notice} className="farm-note museum-notice" />
 
                 {museum && (
                     <div className="farm-tabs museum-tabs">

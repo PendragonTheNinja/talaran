@@ -5,6 +5,7 @@ import { useItemTooltip } from './ItemTooltip'
 import { ItemIcon, QtyPicker } from './MarketplaceMenu'
 import './MarketplaceMenu.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // The travelling merchant's cart (docs/WORLD-EVENTS-AND-MUSEUMS.md, step 3).
 // The marketplace's modal, rows and controls, with one difference that matters:
@@ -132,8 +133,8 @@ export default function TravellingMerchantMenu({ onClose, onGoldChanged }: {
                                 </button>
                             </div>
                         )}
-                        {error && <p className="mkt-error">{error}</p>}
-                        {notice && <p className="mkt-notice">{notice}</p>}
+                        <ErrorLine message={error} className="mkt-error" />
+                        <ErrorLine message={notice} className="mkt-notice" />
 
                         {tab === 'sell' && !selling && (
                             wants.length === 0

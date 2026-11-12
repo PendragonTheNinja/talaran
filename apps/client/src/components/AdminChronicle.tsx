@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch, apiUrl } from '../lib/api'
 import './AdminChronicle.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * The Chronicle tab (docs/chronicle-spec.md §14, step 1): the raw deed journal,
@@ -108,7 +109,7 @@ function PageCard({ day }: { day: string }) {
     return (
         <div className="admin-action-card">
             <p className="admin-section-title">🍺 Wenna's Page: {data.day}</p>
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
             <label className="chron-admin-check">
                 <input type="checkbox" checked={data.enabled} disabled={busy} onChange={e => post('settings', { enabled: e.target.checked })} />
                 Write a page every midnight (and catch up on missed days)
@@ -238,7 +239,7 @@ export default function AdminChronicle() {
 
     return (
         <div className="admin-chronicle">
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
 
             <PageCard day={data.dayKey} />
 

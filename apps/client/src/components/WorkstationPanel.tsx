@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api'
 import './WorkstationPanel.css'
 import { useItemTooltip } from './ItemTooltip'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 interface EligibleItem {
     itemId: number
@@ -154,7 +155,7 @@ export default function WorkstationPanel({ stationType, title, onClose, onInvent
                 <button className="workstation-close" onClick={onClose}>✕</button>
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            <ErrorLine message={error} className="error-message" as="div" />
             {lockedReason && <p className="workstation-locked muted-text">{lockedReason}</p>}
             {(station.brokenTools?.length ?? 0) > 0 && (
                 <p className="station-broken-notice">

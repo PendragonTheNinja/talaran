@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import './FarmPanel.css'
 import SpellList from './SpellList'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 // A church (server: services/church.ts), on the museum's pattern: one modal,
 // a tab per writing, and a Spells tab where spells are learned
@@ -50,7 +51,7 @@ export default function ChurchPanel({ churchId, onClose, onKeepVigil }: {
                 </div>
 
                 {!church && !error && <p className="farm-empty">Lifting the latch…</p>}
-                {error && <p className="farm-error">{error}</p>}
+                <ErrorLine message={error} className="farm-error" />
                 {church?.description && <p className="farm-build-lead">{church.description}</p>}
 
                 {church && church.writings.length > 0 && (

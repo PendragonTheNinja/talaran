@@ -5,6 +5,7 @@ import './PropertyStorage.css'
 import StoreSortBar from './StoreSortBar'
 import { sortItems, useStoreSort } from '../lib/itemSort'
 import { useItemTooltip } from './ItemTooltip'
+import ErrorLine from './ErrorLine'
 
 interface StoredItem { itemId: number; quantity: number; name: string; type: string; subtype?: string }
 
@@ -156,7 +157,7 @@ export default function PropertyStorage({
                 <p className="store-note">Tap items in your inventory to store them. Tap items in the store to take them back.</p>
             )}
             {full && <p className="store-note">The store is full, though existing stacks can still be topped up.</p>}
-            {error && <p className="store-error">{error}</p>}
+            <ErrorLine message={error} className="store-error" />
 
             <StoreSortBar sort={sort} onChange={setSort} />
 

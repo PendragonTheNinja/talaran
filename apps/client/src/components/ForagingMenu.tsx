@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import './ForagingMenu.css'
 import { backdropClose } from '../lib/backdrop'
+import ErrorLine from './ErrorLine'
 
 interface HabitatItem {
     name: string | null      // null → not yet discovered → render "???"
@@ -70,7 +71,7 @@ export default function ForagingMenu({ onClose, onStartForage, playerForagingLev
                 )}
 
                 {loading && <p className="foraging-empty">Reading the land…</p>}
-                {error && <p className="foraging-error">{error}</p>}
+                <ErrorLine message={error} className="foraging-error" />
                 {!loading && !error && data && data.habitats.length === 0 && (
                     <p className="foraging-empty">There is nothing to forage here.</p>
                 )}

@@ -5,6 +5,7 @@ import SendingPicker, { type SendingStore } from './SendingPicker'
 import SpellCastPopup, { type SpellCast } from './SpellCastPopup'
 import ConfirmModal from './ConfirmModal'
 import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
+import ErrorLine from './ErrorLine'
 
 // Spells (server: services/spells.ts). One list in two places: the church,
 // where spells are learned, and the spellbook (the Talar bar), where they are
@@ -163,7 +164,7 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                     onCancel={() => setConfirmEnd(false)}
                 />
             )}
-            {note && <p className={note.error ? 'farm-error' : 'farm-note'}>{note.text}</p>}
+            <ErrorLine message={note?.text} className={note?.error ? 'farm-error' : 'farm-note'} />
             {mode === 'cast' && shown.length === 0 && (
                 <p className="farm-empty">You know no workings yet. They are taught in a church.</p>
             )}

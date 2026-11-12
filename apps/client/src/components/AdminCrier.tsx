@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch, apiUrl } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './AdminCrier.css'
+import ErrorLine from './ErrorLine'
 
 /**
  * The admin panel's Polls tab (server services/crierPolls.ts): write the Town
@@ -216,7 +217,7 @@ export default function AdminCrier() {
 
     return (
         <div className="admin-crier">
-            {error && <p className="guild-error">{error}</p>}
+            <ErrorLine message={error} className="guild-error" />
             {note && <p className="guild-success">{note}</p>}
             <div className="admin-action-card">
                 <p className="admin-section-title">📯 The Town Crier's polls</p>
@@ -451,7 +452,7 @@ function PollEditor({ draft, onCancel, onSaved }: { draft: PollDraft; onCancel: 
             ))}
 
             <div className="admin-action-card">
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
                 <div className="crier-admin-actions">
                     <button className="btn" disabled={p.questions.length >= 10} onClick={() => setP({ ...p, questions: [...p.questions, blankQuestion()] })}>Add a question</button>
                     <span className="crier-admin-spacer" />
@@ -517,7 +518,7 @@ function PollResultsView({ id, onBack }: { id: number; onBack: () => void }) {
                     <button className="btn btn-gold" onClick={exportCsv} disabled={!data.responses.length}>Export CSV</button>
                 </div>
                 <p className="crier-admin-note">{r.respondents} answered{r.closedAt ? `, closed ${when(r.closedAt)}` : ', still open'}.</p>
-                {error && <p className="guild-error">{error}</p>}
+                <ErrorLine message={error} className="guild-error" />
             </div>
 
             {r.questions.map((q, i) => (

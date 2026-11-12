@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { onSocket } from '../lib/socket'
+import ErrorLine from './ErrorLine'
 
 // Doorways open where the player stands (Portal; server: services/spells.ts).
 // Anyone here may step through while one holds. Stepping through leaves the
@@ -59,7 +60,7 @@ export default function PortalDoors({ locationId }: { locationId: number | undef
                     </button>
                 )
             })}
-            {error && <p className="farm-error">{error}</p>}
+            <ErrorLine message={error} className="farm-error" />
         </>
     )
 }
