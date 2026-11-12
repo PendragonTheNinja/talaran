@@ -15,6 +15,7 @@ const SUBTYPE_SKILL: Record<string, string> = {
     pickaxe: 'Mining',
     bow: 'Hunting',
     hoe: 'Farming',
+    scythe: 'Farming',
     mallet: 'Carpentry',
     foraging_knife: 'Foraging',
     foraging_gloves: 'Foraging',

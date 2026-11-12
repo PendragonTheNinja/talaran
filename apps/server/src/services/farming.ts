@@ -51,6 +51,17 @@ const TILL_SECONDS = 90;                  // rare, but real work
 const SOW_SECONDS_PER_SEED = 6;           // 60s for a full 10-seed plot
 export const HARVEST_SECONDS_PER_SEED = 8; // 80s for a full plot
 
+// The scythe (Nathan, 2026-11-12). Grain and flax are cut by hand without one,
+// taking what the hand can gather; a scythe cuts the stalk low, so more of the
+// field comes in, and quicker. It never threshes: straw still comes from
+// threshing the sheaves, so more sheaves means more straw. Never required.
+// Held in the main hand, as the hoe is.
+export const SCYTHE_CROP_TYPES = ['grain', 'fiber'];
+/** Share of a field's yield a scythe adds, at least one more. */
+export const SCYTHE_YIELD_SHARE = 0.25;
+/** A field's harvest time with a scythe, as a share of the time by hand. */
+export const SCYTHE_TIMER_SHARE = 0.8;
+
 // ── soil (M2) ───────────────────────────────────────────────────────────────
 // Three states. A hungry crop drops the soil a step when harvested; legumes lift
 // it; a field left to rest lifts slowly; manure lifts it at once. Soil scales the
@@ -131,6 +142,8 @@ export interface FarmActionResult {
      * gold is priced from attention, never elapsed time (services/goldFinds.ts).
      */
     goldBasisXp?: number[];
+    /** Hand tools this work actually used, for tool wear (services/toolWear.ts): the scythe on grain and flax. */
+    toolsUsed?: string[];
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -254,6 +267,20 @@ async function equippedTool(playerId: number, subtype: string) {
     const id = equipment?.mainhand_item_id;
     if (!id) return null;
     return db('items').where({ id, subtype }).first();
+}
+
+/** The scythe in hand, if this plot's crop is one a scythe cuts; null otherwise. */
+async function scytheFor(playerId: number, plot: any): Promise<any | null> {
+    if (!plot?.crop_id) return null;
+    const crop = await db('crops').where({ id: plot.crop_id }).first('crop_type');
+    if (!crop || !SCYTHE_CROP_TYPES.includes(crop.crop_type)) return null;
+    return equippedTool(playerId, 'scythe');
+}
+
+/** How long one field takes to bring in, by hand or with a scythe. */
+async function harvestSecondsFor(playerId: number, plot: any): Promise<number> {
+    const byHand = Math.max(1, plot.seed_count) * HARVEST_SECONDS_PER_SEED;
+    return (await scytheFor(playerId, plot)) ? Math.max(1, Math.round(byHand * SCYTHE_TIMER_SHARE)) : byHand;
 }
 
 // Thin local name over the shared writer in services/xp.ts.
@@ -531,7 +558,7 @@ export async function startHarvest(playerId: number, plotId: number): Promise<{ 
     if (!plot.ready_at || Date.now() < new Date(plot.ready_at).getTime()) return { ok: false, error: 'The crop is not ready yet.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const seconds = Math.max(1, plot.seed_count) * HARVEST_SECONDS_PER_SEED;
+    const seconds = await harvestSecondsFor(playerId, plot);
     const { novita } = await playerProperty(playerId);
     const started = await startAction(playerId, 'farm_harvest', seconds, String(plotId), novita?.id ?? null);
     return { ok: true, timerSeconds: started };
@@ -892,13 +919,19 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
     /** Seed that came back with the crop, crop chance and ring together. */
     seedsBack: number;
     soilChange: -1 | 0 | 1;
+    /** What the scythe brought in beyond the hand's share; 0 without one. */
+    scytheExtra: number;
+    scytheName: string | null;
 } | null> {
     if (plot.state !== 'growing' || !plot.crop_id) return null;
     const crop = await db('crops').where({ id: plot.crop_id }).first();
     if (!crop) return null;
 
     const soilBefore = plot.soil_state || 'normal';
-    const yieldQty = Math.max(1, Math.round(plot.seed_count * crop.yield_per_seed * (SOIL_YIELD[soilBefore] ?? 1)));
+    const byHand = Math.max(1, Math.round(plot.seed_count * crop.yield_per_seed * (SOIL_YIELD[soilBefore] ?? 1)));
+    const scythe = await scytheFor(playerId, plot);
+    const scytheExtra = scythe ? Math.max(1, Math.round(byHand * SCYTHE_YIELD_SHARE)) : 0;
+    const yieldQty = byHand + scytheExtra;
 
     // Per-seed XP for the crop, plus active pay for the digging.
     const activeXp = activeXpForSeconds(level, plot.seed_count * HARVEST_SECONDS_PER_SEED);
@@ -950,7 +983,7 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
 
     await updateQuestObjectiveProgress(playerId, 'harvest', crop.produce_item_name, 1);
 
-    return { xp, activeXp, crop, yieldQty, seedsBack, soilChange: soilAfter === soilBefore ? 0 : dir };
+    return { xp, activeXp, crop, yieldQty, seedsBack, soilChange: soilAfter === soilBefore ? 0 : dir, scytheExtra, scytheName: scythe?.name ?? null };
 }
 
 export async function resolveHarvest(playerId: number, plotIdRaw: string | null): Promise<FarmActionResult> {
@@ -985,7 +1018,9 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
                     : done.soilChange < 0
                         ? ' The soil is poorer for the taking.'
                         : '')
-                + seedsLine(done.seedsBack, crop.seed_item_name),
+                + seedsLine(done.seedsBack, crop.seed_item_name)
+                + (done.scytheExtra > 0 ? ` Your ${done.scytheName} cut it low: ${done.scytheExtra} more ${crop.produce_item_name} than the hand would take.` : ''),
+            toolsUsed: done.scytheExtra > 0 ? ['scythe'] : [],
         };
     } catch (err) {
         logger.error(`resolveHarvest error: ${err}`);
@@ -1039,7 +1074,7 @@ export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; 
     // One field at a time, each on its own timer, in slot order. The fields
     // are fixed when the work BEGINS: a crop that ripens on the way is not
     // added, or its seconds would never have been spent.
-    const seconds = Math.max(1, ripe[0].seed_count) * HARVEST_SECONDS_PER_SEED;
+    const seconds = await harvestSecondsFor(playerId, ripe[0]);
     const plotIds = ripe.map((p: any) => p.id).join(',');
     const started = await startAction(playerId, 'farm_harvest_all', seconds, plotIds, novita.id);
     return { ok: true, timerSeconds: started };
@@ -1078,7 +1113,7 @@ export async function resolveHarvestStep(playerId: number, plotIdsRaw: string | 
     return {
         result,
         next: {
-            seconds: await buffedSeconds(playerId, 'Farming', Math.max(1, waiting[0].seed_count) * HARVEST_SECONDS_PER_SEED),
+            seconds: await buffedSeconds(playerId, 'Farming', await harvestSecondsFor(playerId, waiting[0])),
             actionData: waiting.map((p) => p.id).join(','),
         },
     };

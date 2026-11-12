@@ -67,6 +67,7 @@ const MERCHANTS: MerchantSeed[] = [
             'Ambren Saw',
             'Ambren Plane',
             'Ambren Hoe',
+            'Ambren Scythe',
             'Ambren Foraging Knife',
             'Ambren Butchering Knife',
             'Ambren Hook',

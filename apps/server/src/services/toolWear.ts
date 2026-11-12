@@ -44,6 +44,8 @@ interface HandToolSpec {
     tools: ToolList
     /** Where `tools` is worked out per action: every subtype it can name (Wearsight reads it). */
     can?: string[]
+    /** The work goes on without the tool (the scythe at harvest): a break is a line on the card, not a stop. */
+    optional?: boolean
 }
 
 const BUILD = ['mallet', 'saw']
@@ -88,6 +90,9 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
         },
     },
     farm_till: { skill: 'Farming', tools: ['hoe'] },
+    // The scythe, only where it cut (grain and flax): the harvest says so.
+    farm_harvest: { skill: 'Farming', can: ['scythe'], optional: true, tools: (_a, r) => r?.toolsUsed ?? [] },
+    farm_harvest_all: { skill: 'Farming', can: ['scythe'], optional: true, tools: (_a, r) => r?.toolsUsed ?? [] },
     farm_establish: { skill: 'Carpentry', tools: BUILD },
     farm_build_plot: { skill: 'Carpentry', tools: BUILD },
     shop_establish: { skill: 'Carpentry', tools: BUILD },
@@ -188,9 +193,10 @@ function listNames(names: string[]): string {
 }
 
 /** What hand wear leaves on the card: a break with no spare stops the work; a spared one is a line. */
-function noteHandWear(actionId: number, wear: HandWear): void {
+function noteHandWear(actionId: number, wear: HandWear, optional = false): void {
     const stopped = wear.broken.filter((name, i) => wear.broken.indexOf(name) === i && !wear.spared.includes(name))
-    if (stopped.length) note(actionId, { handBroken: stopped })
+    if (stopped.length && optional) note(actionId, { notes: [`Your ${listNames(stopped)} ${stopped.length === 1 ? 'breaks' : 'break'}. You carry on by hand.`] })
+    else if (stopped.length) note(actionId, { handBroken: stopped })
     if (wear.spared.length) note(actionId, { notes: [spareMessage(wear.spared)] })
 }
 
@@ -235,7 +241,7 @@ export async function wearToolsAfter(action: any, result: any): Promise<void> {
         if (!spec) return
         const subtypes = typeof spec.tools === 'function' ? await spec.tools(action, result) : spec.tools
         if (!subtypes.length) return
-        noteHandWear(action.id, await wearHandToolsWithSpares(action.player_id, spec.skill, subtypes, timer))
+        noteHandWear(action.id, await wearHandToolsWithSpares(action.player_id, spec.skill, subtypes, timer), spec.optional)
     } catch (err) {
         logger.error(`wearToolsAfter error (player ${action?.player_id}, ${action?.action_type}): ${err}`)
     }
