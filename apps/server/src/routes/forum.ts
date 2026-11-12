@@ -22,28 +22,38 @@ async function forumBanned(player: { id: number; is_forum_banned: boolean; forum
     return false;
 }
 
-// ── Replies to your own threads (Nathan, 2026-11-07) ─────────────────────────
+// ── Replies to threads you follow (Nathan, 2026-11-07; follows 2026-11-12) ──
 // The Forum button counts replies other players have left on threads you
-// started since you last opened each one, as Messages counts unread messages.
-// Replying to a comment on someone else's thread never counts: only the
-// thread's starter is told. forum_threads.author_seen_at is stamped when the
-// starter opens the thread; a reply pushes 'forum_replies_changed' to them.
+// follow since you last opened each one, as Messages counts unread messages.
+// Starting a thread or replying to one follows it; anyone may follow or
+// unfollow from the thread (forum_thread_follows). Opening a thread stamps its
+// seen_at; a reply pushes 'forum_replies_changed' to every other follower.
+// forum_threads.author_seen_at is no longer read: the follows replaced it.
 
 const POSTS_PER_PAGE = 20;
 
 interface ThreadWithReplies { thread_id: number; title: string; newReplies: number; firstNewPage: number; lastReplyAt: string }
 
+/**
+ * New replies on the threads this player follows (forum_thread_follows): every
+ * thread they started or replied to unless they unfollowed it, and any they
+ * chose to follow (forum, 2026-11-10). It used to be the threads they started,
+ * and no way to stop.
+ */
 async function repliesToMyThreads(playerId: number): Promise<ThreadWithReplies[]> {
     const player = await db('players').where({ id: playerId }).first('is_admin', 'is_mod');
     const isStaff = !!(player?.is_admin || player?.is_mod);
     const rows = await db('forum_threads as t')
+        .join('forum_thread_follows as f', function () {
+            this.on('f.thread_id', '=', 't.id').andOn('f.player_id', '=', db.raw('?', [playerId]))
+        })
         .join('forum_posts as p', 'p.thread_id', 't.id')
         .join('forum_categories as c', 'c.id', 't.category_id')
-        .where('t.author_id', playerId)
+        .where('f.following', true)
         .where('t.is_deleted', false)
         .where('p.is_deleted', false)
         .whereNot('p.author_id', playerId)
-        .whereRaw('p.created_at > COALESCE(t.author_seen_at, t.created_at)')
+        .whereRaw('p.created_at > f.seen_at')
         .modify(q => { if (!isStaff) q.where('c.staff_only', false); })
         .groupBy('t.id', 't.title')
         .orderByRaw('MAX(p.created_at) DESC')
@@ -251,12 +261,12 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
         // Increment view count
         await db('forum_threads').where({ id: threadId }).increment('view_count', 1);
 
-        // The starter has now seen every reply: their Forum count drops, in
+        // A follower has now seen every reply: their Forum count drops, in
         // every tab they have open.
-        if (Number(thread.author_id) === playerId) {
-            await db('forum_threads').where({ id: threadId }).update({ author_seen_at: db.fn.now() });
-            pushToPlayer(playerId, 'forum_replies_changed', { threadId });
-        }
+        const seen = await db('forum_thread_follows').where({ player_id: playerId, thread_id: threadId })
+            .update({ seen_at: db.fn.now() }).returning('following');
+        const following = !!seen[0]?.following;
+        if (following) pushToPlayer(playerId, 'forum_replies_changed', { threadId });
 
         const posts = await db('forum_posts')
             .where({ thread_id: threadId, is_deleted: false })
@@ -323,6 +333,7 @@ router.get('/threads/:id', requireAuth, async (req: AuthRequest, res: Response) 
             page,
             totalPages: Math.ceil((parseInt(totalCount?.count as string) || 0) / limit),
             myRole: { isAdmin: player.is_admin, isMod: player.is_mod },
+            following,
         });
     } catch (err) {
         logger.error(`Forum thread error: ${err}`);
@@ -433,6 +444,10 @@ router.post('/threads', requireAuth, requireTrusted, async (req: AuthRequest, re
         // Increment post count
         await db('players').where({ id: playerId }).increment('forum_post_count', 1);
 
+        // The starter follows their own thread; they may unfollow it.
+        await db('forum_thread_follows').insert({ player_id: playerId, thread_id: thread.id, following: true })
+            .onConflict(['player_id', 'thread_id']).ignore();
+
         if (poll) {
             const [created] = await db('forum_polls').insert({
                 thread_id: thread.id,
@@ -537,10 +552,16 @@ router.post('/threads/:id/reply', requireAuth, requireTrusted, async (req: AuthR
 
         await db('players').where({ id: playerId }).increment('forum_post_count', 1);
 
-        // Only the thread's starter is told, and never about their own reply.
-        if (Number(thread.author_id) !== playerId) {
-            pushToPlayer(Number(thread.author_id), 'forum_replies_changed', { threadId });
-        }
+        // Replying follows the thread, unless the player had unfollowed it
+        // (that row is kept, so a reply does not undo their "no"). Seen now:
+        // their own reply is not news to them.
+        await db('forum_thread_follows').insert({ player_id: playerId, thread_id: threadId, following: true })
+            .onConflict(['player_id', 'thread_id']).merge({ seen_at: db.fn.now() });
+        // Every other follower is told, in every tab they have open.
+        const followers: number[] = (await db('forum_thread_follows')
+            .where({ thread_id: threadId, following: true }).whereNot({ player_id: playerId })
+            .pluck('player_id')).map(Number);
+        for (const id of followers) pushToPlayer(id, 'forum_replies_changed', { threadId });
 
         logger.info(`Player ${playerId} replied to thread ${threadId}`);
         res.json({ success: true, notice: filteredReply.changed ? SWEAR_NOTICE : null });
@@ -705,6 +726,29 @@ router.delete('/threads/:id', requireAuth, async (req: AuthRequest, res: Respons
 });
 
 // Pin/unpin a thread (mod/admin only)
+// Follow or unfollow a thread: be told of new replies to it, or not.
+router.post('/threads/:id/follow', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    const threadId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+    const follow = req.body?.follow === true;
+    try {
+        const player = await db('players').where({ id: playerId }).first('is_admin', 'is_mod');
+        const thread = await db('forum_threads as t').join('forum_categories as c', 'c.id', 't.category_id')
+            .where({ 't.id': threadId, 't.is_deleted': false }).first('t.id', 'c.staff_only');
+        if (!thread || (thread.staff_only && !(player?.is_admin || player?.is_mod))) {
+            res.status(404).json({ error: 'Thread not found.' });
+            return;
+        }
+        await db('forum_thread_follows').insert({ player_id: playerId, thread_id: threadId, following: follow })
+            .onConflict(['player_id', 'thread_id']).merge({ following: follow, seen_at: db.fn.now() });
+        pushToPlayer(playerId, 'forum_replies_changed', { threadId });
+        res.json({ success: true, following: follow });
+    } catch (err) {
+        logger.error(`Forum follow error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.post('/threads/:id/pin', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     const threadId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);

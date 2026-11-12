@@ -674,3 +674,19 @@
   margin-left: 3px;
   vertical-align: middle;
 }
+
+/* Follow a thread (next to Back). Tokens only, so every theme follows. */
+.forum-follow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 6px;
+    font-size: 14px;
+    color: var(--color-text-base);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.forum-follow input {
+    accent-color: var(--color-gold);
+}

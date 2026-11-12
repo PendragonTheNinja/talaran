@@ -126,6 +126,9 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
     onShareToChat?: (text: string) => void
 }) {
     const [view, setView] = useState<ForumView>('home')
+    // Follow a thread to be told of its new replies; the starter and anyone
+    // who replies follow it already, and anyone may stop (forum, 2026-11-10).
+    const [following, setFollowing] = useState(false)
     const [categories, setCategories] = useState<ForumCategory[]>([])
     const [recentThreads, setRecentThreads] = useState<RecentThread[]>([])
     // Threads this player started that have new replies; the Forum button's count.
@@ -229,9 +232,10 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
 
     const loadThread = async (threadId: number, p = 1) => {
         try {
-            const data = await apiFetch<{ thread: any; posts: ForumPost[]; poll: Poll | null; totalPages: number }>
+            const data = await apiFetch<{ thread: any; posts: ForumPost[]; poll: Poll | null; totalPages: number; following?: boolean }>
                 (`/api/forum/threads/${threadId}?page=${p}`)
             setCurrentThread(data.thread)
+            setFollowing(!!data.following)
             setPosts(data.posts)
             setPoll(data.poll)
             setTotalPages(data.totalPages)
@@ -301,6 +305,20 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
             await loadThread(data.threadId)
         } catch (err: any) {
             setError(err.message)
+        }
+    }
+
+    const toggleFollow = async (next: boolean) => {
+        if (!currentThread) return
+        setFollowing(next)
+        try {
+            const r = await apiFetch<{ following: boolean }>(`/api/forum/threads/${currentThread.id}/follow`, {
+                method: 'POST', body: JSON.stringify({ follow: next }),
+            })
+            setFollowing(r.following)
+        } catch (err) {
+            setFollowing(!next)
+            setError((err as Error).message || 'Could not change that.')
         }
     }
 
@@ -543,6 +561,12 @@ export default function ForumPanel({ onClose, playerUsername, isAdmin, isMod, cl
                             else if (view === 'category') loadHome()
                             else if (view === 'new_thread') setView(currentCategory ? 'category' : 'home')
                         }}>← Back</button>
+                    )}
+                    {view === 'thread' && currentThread && (
+                        <label className="forum-follow" title="Be told of new replies to this thread">
+                            <input type="checkbox" checked={following} onChange={e => toggleFollow(e.target.checked)} />
+                            Follow
+                        </label>
                     )}
                     {(view === 'home' || view === 'category') && canPost(currentCategory) && (
                         <button className="btn btn-gold" onClick={() => {
