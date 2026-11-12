@@ -8,6 +8,7 @@ import { failureStatus } from '../lib/serviceResult';
 import { addItemToInventoryWithin, notifyInventoryChanged } from '../services/inventory';
 import { ensureEquipmentRow, restoreDeathLoadoutWithin } from '../services/equipment';
 import { pushToPlayer } from '../lib/realtime';
+import { settleBeforeGearChange } from '../services/combatFights';
 
 const router = Router();
 
@@ -164,6 +165,8 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
         // The player's own stack, still private to them: if it came off them
         // when they died, what they wore goes back on, as with Take back.
         const ownPrivate = groundItem.dropped_by_player_id === playerId && new Date(groundItem.visible_to_all_at) > now;
+        // Taking back a death pile can put gear on; a fight is settled first (audit B4).
+        await settleBeforeGearChange(playerId);
         const claimed = await db.transaction(async (trx) => {
             // Equipment before the pack, the equip button's order, so the two
             // never deadlock (restoreDeathLoadoutWithin).
@@ -219,6 +222,8 @@ router.post('/pickup', requireAuth, async (req: AuthRequest, res: Response) => {
 router.post('/take-back', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
+        // Taking back a death pile can put gear on; a fight is settled first (audit B4).
+        await settleBeforeGearChange(playerId);
         const { taken, reequipped } = await db.transaction(async (trx) => {
             const player = await trx('players').where({ id: playerId }).select('current_location_id').first();
             if (!player?.current_location_id) return { taken: [], reequipped: [] };

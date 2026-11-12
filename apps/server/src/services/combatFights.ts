@@ -195,6 +195,17 @@ interface FightReport {
     pile: { place: string; stacks: number } | null
 }
 
+/** The weapon with the most swings, ties to the one in hand; null when no weapon swung. */
+function mostSwung(swings: Record<string, number>, inHand: number | null): number | null {
+    let best: number | null = null
+    let most = 0
+    for (const [id, n] of Object.entries(swings)) {
+        const itemId = Number(id)
+        if (n > most || (n === most && n > 0 && itemId === inHand)) { best = itemId; most = n }
+    }
+    return best
+}
+
 // ── The settle ───────────────────────────────────────────────────────────────
 
 /** 'replaced': another action is taking the fight's place (travel, Stop, a vein); the client already knows. */
@@ -270,6 +281,10 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     let froze = false
     let killCount: number = fight.kills
     let weapon = ''
+    // Swings per weapon in the kill in progress (item id to count). Gear
+    // changes settle the fight first (settleBeforeGearChange), so every swing
+    // here was made with what is worn now.
+    let swings: Record<string, number> = { ...(fight.kill_swings ?? {}) }
 
     if (!frozen) {
         for (let segment = 0; segment < MAX_SEGMENTS; segment++) {
@@ -279,6 +294,11 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             const foe = creatureCombatant(creature)
             const r = settle(Math.random, clock, max - missing, me.combatant, foe, stanceMultiplier(creature, me.damageType), until)
             for (const e of r.events) events.push({ ...e, creature: creature.name })
+            const inHand = worn.mainhand?.weapon_form ? worn.mainhand : null
+            if (inHand) {
+                const made = r.events.filter(e => e.by === 'player').length
+                if (made) swings[inHand.id] = (swings[inHand.id] ?? 0) + made
+            }
             missing = max - r.playerHp
             clock = r.clock
             settledAt = r.settledTo
@@ -328,17 +348,38 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             // Wear (§13): the weapon every kill, and ARMOUR_PIECES_WORN_PER_KILL
             // of the armour pieces worn, at random. A piece past its
             // guarantee may break; a broken piece is gone from its slot.
+            //
+            // The weapon worn is the one that swung most in this kill, ties
+            // going to the one in hand (audit B4). It used to be whatever was
+            // in hand as the kill landed, so a blade taken off for the last
+            // blow never wore, and a player switching weapons to suit a
+            // weakness had the wrong one charged.
+            const inHandNow = worn.mainhand?.weapon_form ? worn.mainhand : null
+            const swungMost = mostSwung(swings, inHandNow?.id ?? null)
+            swings = {}
             const wearing: string[] = []
-            if (worn.mainhand?.weapon_form) wearing.push('mainhand')
+            if (swungMost !== null && swungMost === inHandNow?.id) wearing.push('mainhand')
             const armourSlots = Object.keys(worn).filter(slot => Number(worn[slot]?.armour) > 0)
             wearing.push(...armourSlotsWorn(Math.random, armourSlots))
             const broken: string[] = []
+            let brokeWorn = false
             for (const slot of wearing) {
                 const piece = worn[slot]
                 if (!piece || !(await wearItem(trx, playerId, piece, tiers, Math.random))) continue
                 await trx('player_equipment').where({ player_id: playerId }).update({ [`${slot}_item_id`]: null })
                 broken.push(piece.name)
+                brokeWorn = true
                 delete worn[slot]
+            }
+            // A weapon swapped out before the kill still takes the use. If it
+            // breaks, one leaves the pack; the fight goes on with what is worn.
+            if (swungMost !== null && swungMost !== inHandNow?.id) {
+                const spare = await trx('items').where({ id: swungMost })
+                    .first('id', 'name', 'tier', 'durability_uses', 'durability_break_pct')
+                if (spare && await wearItem(trx, playerId, spare, tiers, Math.random)) {
+                    const taken = await takeItemsWithin(trx, playerId, [{ name: spare.name, quantity: 1 }])
+                    if (taken.ok) broken.push(spare.name)
+                }
             }
             if (broken.length) await incrementStats(playerId, { total_gear_broken: broken.length }, trx)
 
@@ -359,7 +400,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
 
             // Something broke: the kill stands, and the fight waits for the
             // player to equip a replacement (§13).
-            if (broken.length) {
+            if (brokeWorn) {
                 end = end ?? 'broke'
                 break
             }
@@ -429,6 +470,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             kill_absorbed: clock.absorbed,
             kill_landed: clock.landed,
             kill_dodged: clock.dodged,
+            kill_swings: JSON.stringify(swings),
             kills: killCount,
             frozen: frozen || froze,
         })
@@ -799,6 +841,19 @@ export async function fleeFight(playerId: number): Promise<{ success: boolean; e
  * this plays the swings up to the moment first, so none are lost. A no-op for
  * anything that is not a fight.
  */
+/**
+ * Settle a running fight to this moment before the player changes what they
+ * wear, so every swing so far is played with the gear that made it and counted
+ * for that weapon (audit B4). A settle replays the whole gap since the last one
+ * with what is worn when it runs, so without this a weapon put on mid-fight
+ * took the credit, and the wear, for swings it never made. Does nothing
+ * outside a fight. Its own transaction, finished before the change starts.
+ */
+export async function settleBeforeGearChange(playerId: number): Promise<void> {
+    const fighting = await db('player_actions').where({ player_id: playerId, action_type: 'combat' }).first('id')
+    if (fighting) await runSettle(playerId, Date.now(), null)
+}
+
 export async function endFightIfAny(playerId: number): Promise<void> {
     try {
         await runSettle(playerId, Date.now(), 'replaced')

@@ -7,6 +7,7 @@ import { combatLevels, combatProfile, CombatProfile, COMBAT_SKILLS } from '../se
 import { listLoadouts, saveLoadout, updateLoadout, deleteLoadout, wearLoadout } from '../services/loadouts';
 import { failureStatus } from '../lib/serviceResult';
 import { VALID_SLOTS, ensureEquipmentRow, equipLevelRefusal, wearFromPackWithin } from '../services/equipment';
+import { settleBeforeGearChange } from '../services/combatFights';
 
 const router = Router();
 
@@ -92,6 +93,8 @@ router.post('/equip', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 
   try {
+    // A fight is played up to now with the old gear first (audit B4).
+    await settleBeforeGearChange(playerId);
     const item = await db('items').where({ id: itemId }).first();
     if (!item) {
       res.status(404).json({ error: 'Item not found' });
@@ -203,6 +206,8 @@ router.post('/unequip', requireAuth, async (req: AuthRequest, res: Response) => 
   }
 
   try {
+    // A fight is played up to now with the old gear first (audit B4).
+    await settleBeforeGearChange(playerId);
     // Read the slot INSIDE the transaction, with the equipment row locked.
     //
     // It used to read the worn item first and open the transaction after, so two
@@ -278,6 +283,8 @@ router.delete('/loadouts/:id', requireAuth, async (req: AuthRequest, res: Respon
 
 router.post('/loadouts/:id/wear', requireAuth, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
+  // A fight is played up to now with the old gear first (audit B4).
+  await settleBeforeGearChange(playerId);
   const r = await wearLoadout(playerId, req.params.id);
   if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
   res.json({ report: r.report, ...(await equipmentState(playerId)) });
