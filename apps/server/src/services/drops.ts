@@ -24,6 +24,30 @@ async function awardItemById(playerId: number, itemId: number, qty: number): Pro
 }
 
 /**
+ * One roll of a protected drop, after the luck of the dice: a hit empties the
+ * player's count; a miss adds one, and the miss that reaches `mark` becomes a
+ * hit and empties it. Each step is one statement, and the count is claimed by
+ * a conditional reset, so two kills landing at once give the owed drop once
+ * (race:check "luck"). No transaction: drops roll after the fight commits.
+ */
+export async function badLuckRoll(playerId: number, entryId: number, mark: number, hit: boolean): Promise<boolean> {
+    const key = { player_id: playerId, entry_id: entryId };
+    if (hit) {
+        await db('player_drop_luck').insert({ ...key, kills: 0 })
+            .onConflict(['player_id', 'entry_id']).merge({ kills: 0, updated_at: db.fn.now() });
+        return true;
+    }
+    const [row] = await db('player_drop_luck').insert({ ...key, kills: 1 })
+        .onConflict(['player_id', 'entry_id'])
+        .merge({ kills: db.raw('player_drop_luck.kills + 1'), updated_at: db.fn.now() })
+        .returning('kills');
+    if (Number(row?.kills ?? 0) < mark) return false;
+    const claimed = await db('player_drop_luck').where(key).where('kills', '>=', mark)
+        .update({ kills: 0, updated_at: db.fn.now() });
+    return claimed === 1;
+}
+
+/**
  * Roll a source's secondary-drop table.
  * PROVENANCE: call this ONLY from inside an action resolver at roll time —
  * never from a generic inventory-add path.
@@ -66,6 +90,9 @@ export async function rollSecondaryDrops(
                 const pct = (100 / Math.max(1, entry.chance_one_in)) * rareMult;
                 hit = entry.chance_one_in <= 1 || Math.random() * 100 < pct;
             }
+            // Bad-luck protection (migration 20261112180000): a miss counts
+            // toward the mark, and the kill that reaches it gives the drop.
+            if (entry.bad_luck_kills) hit = await badLuckRoll(playerId, entry.id, Number(entry.bad_luck_kills), hit);
             if (!hit) continue;
 
             let qty = entry.max_qty > entry.min_qty

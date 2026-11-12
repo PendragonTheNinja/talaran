@@ -13,6 +13,15 @@ import './BestiaryPanel.css'
 
 const list = (xs: string[]) => xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
 
+/** How the trail to a protected drop reads: words, never a count. */
+function trailWord(trail: number): string {
+    if (trail >= 0.95) return 'any kill now'
+    if (trail >= 0.75) return 'close'
+    if (trail >= 0.5) return 'warm'
+    if (trail >= 0.25) return 'faint'
+    return 'cold'
+}
+
 function Entry({ entry, steps }: { entry: BestiaryEntry; steps: BestiaryData['steps'] }) {
     const { hoverProps, tooltipEl } = useItemTooltip()
     return (
@@ -74,6 +83,20 @@ function Entry({ entry, steps }: { entry: BestiaryEntry; steps: BestiaryData['st
                 )
             ) : (
                 <p className="bestiary-line muted-text">Kill {steps.commonDrops} to learn what it carries.</p>
+            )}
+            {entry.drops?.some(d => d.trail !== undefined) && (
+                <div className="bestiary-trails">
+                    {entry.drops.filter(d => d.trail !== undefined).map(d => (
+                        <div key={`trail-${d.name}`} className="bestiary-trail">
+                            <span className="bestiary-trail-name">{d.name}</span>
+                            <span className="bestiary-trail-track" aria-hidden="true">
+                                <span className="bestiary-trail-fill" style={{ width: `${Math.round((d.trail ?? 0) * 100)}%` }} />
+                            </span>
+                            <span className="muted-text bestiary-trail-word">{trailWord(d.trail ?? 0)}</span>
+                        </div>
+                    ))}
+                    <p className="bestiary-line muted-text">Every kill without it brings you closer, and when the bar is full the next one is yours.</p>
+                </div>
             )}
             {entry.drops && !entry.allDrops && (
                 <p className="bestiary-line muted-text">Kill {steps.allDrops} and you will know the rest.</p>

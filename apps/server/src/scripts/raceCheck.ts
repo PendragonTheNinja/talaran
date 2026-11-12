@@ -1924,6 +1924,30 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'luck', name: 'five kills one short of a rare drop\'s mark land at once', rounds: 10,
+        run: async (ctx) => {
+            // services/drops.ts badLuckRoll: each miss adds one to the player's
+            // count, and the one that reaches the mark claims it with a
+            // conditional reset. Drops roll after the fight commits, with no
+            // transaction, so five kills settling together race for it. The
+            // owed blade must come exactly once.
+            const w = await world(ctx);
+            const blade = await ctx.seed.row('items', { name: 'Racecheck Cutlass', type: 'weapon', subtype: 'rare_weapon' });
+            const entry = await ctx.seed.row('drop_table_entries', {
+                source_key: 'combat:racecheck_wrecker', item_id: blade.id, chance_one_in: 1000000000, min_qty: 1, max_qty: 1,
+                is_active: true, bad_luck_kills: 10,
+            });
+            await ctx.seed.row('player_drop_luck', { player_id: w.player.id, entry_id: entry.id, kills: 9 });
+            const { rollSecondaryDrops } = await import('../services/drops');
+            const rolls = await Promise.all([1, 2, 3, 4, 5].map(() => rollSecondaryDrops(w.player.id, 'combat:racecheck_wrecker')));
+            const given = rolls.flat().filter(d => d.name === blade.name).length;
+            const left = Number((await ctx.db('player_drop_luck').where({ player_id: w.player.id, entry_id: entry.id }).first())?.kills ?? -1);
+            return changed('owed blades given', 1, given)
+                ?? changed('blades anywhere', 1, await ctx.itemTotal(blade.id))
+                ?? (left < 0 || left > 4 ? `the count was left at ${left}` : null);
+        },
+    },
+    {
         id: 'tool', name: 'tongs give out while they are taken from the bench five times at once', rounds: 10,
         run: async (ctx) => {
             // services/toolWear.ts wearBenchTools locks the station, then its

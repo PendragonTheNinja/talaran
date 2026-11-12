@@ -144,6 +144,50 @@
     cursor: default;
 }
 
+/* Bad-luck protection: how near a rare drop is owed (services/bestiary.ts). */
+.bestiary-trails {
+    margin-top: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bestiary-trail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(80px, 160px) auto;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 13px;
+}
+
+.bestiary-trail-name {
+    color: var(--color-text-base);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bestiary-trail-track {
+    position: relative;
+    display: block;
+    height: 8px;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-mid);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bestiary-trail-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright));
+}
+
+.bestiary-trail-word {
+    font-size: 12px;
+    min-width: 5.5em;
+}
+
 .bestiary-lore {
     margin: var(--space-sm) 0 0;
     padding: var(--space-sm);

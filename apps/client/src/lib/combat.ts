@@ -79,7 +79,8 @@ export interface BestiaryEntry {
     description: string | null
     places: string[]
     stances: Stances | null
-    drops: { name: string; where?: string }[] | null
+    /** `trail`: how near the player is to being owed a protected drop, 0 to 1 (server services/bestiary.ts). */
+    drops: { name: string; where?: string; trail?: number }[] | null
     allDrops: boolean
     lore: string | null
     mastered: boolean

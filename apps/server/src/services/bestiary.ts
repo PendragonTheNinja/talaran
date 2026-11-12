@@ -47,7 +47,12 @@ export interface BestiaryEntry {
     description: string | null
     places: string[]
     stances: Stances | null
-    drops: { name: string; where?: string }[] | null
+    /**
+     * `trail`: for a drop with bad-luck protection, how near the player is to
+     * being owed it, from 0 to 1 in twentieths. Never a count, so the drop's
+     * chance cannot be read from it.
+     */
+    drops: { name: string; where?: string; trail?: number }[] | null
     allDrops: boolean
     lore: string | null
     mastered: boolean
@@ -73,7 +78,9 @@ export async function bestiaryFor(playerId: number): Promise<{ entries: Bestiary
         .where('drop_table_entries.source_key', 'like', 'combat:%')
         .andWhere('drop_table_entries.is_active', true)
         .orderBy('drop_table_entries.chance_one_in')
-        .select('drop_table_entries.source_key', 'drop_table_entries.chance_one_in', 'items.name')
+        .select('drop_table_entries.id', 'drop_table_entries.source_key', 'drop_table_entries.chance_one_in', 'drop_table_entries.bad_luck_kills', 'items.name')
+    const luck = new Map<number, number>((await db('player_drop_luck').where({ player_id: playerId }).select('entry_id', 'kills'))
+        .map((r: any) => [Number(r.entry_id), Number(r.kills)]))
 
     const steps = [BESTIARY_STEPS.found, BESTIARY_STEPS.stances, BESTIARY_STEPS.commonDrops, BESTIARY_STEPS.allDrops, BESTIARY_STEPS.mastery]
     const entries: BestiaryEntry[] = []
@@ -97,7 +104,9 @@ export async function bestiaryFor(playerId: number): Promise<{ entries: Bestiary
             drops: showDrops
                 ? own.filter((d: any) => allDrops || Number(d.chance_one_in) <= UNCOMMON_LIMIT_ONE_IN).map((d: any) => {
                     const spot = String(d.source_key).split('@')[1]
-                    return spot ? { name: d.name, where: placeOfSpot.get(spot) } : { name: d.name }
+                    const mark = Number(d.bad_luck_kills) || 0
+                    const trail = mark > 0 ? { trail: Math.min(20, Math.floor((20 * (luck.get(Number(d.id)) ?? 0)) / mark)) / 20 } : {}
+                    return spot ? { name: d.name, where: placeOfSpot.get(spot), ...trail } : { name: d.name, ...trail }
                 })
                 : null,
             allDrops,
