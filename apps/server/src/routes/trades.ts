@@ -11,6 +11,9 @@ const router = Router();
 
 const TRADING_POST_LOCATION = 'Talador';
 
+/** How long a trade request waits for an answer before it lapses. */
+const TRADE_REQUEST_SECONDS = 120;
+
 async function cancelTrade(tradeId: number, reason: string) {
     await db('trades').where({ id: tradeId }).update({ status: 'cancelled' });
     const trade = await db('trades').where({ id: tradeId }).first();
@@ -98,32 +101,57 @@ router.post('/request', requireAuth, requireTrusted, async (req: AuthRequest, re
             return;
         }
 
-        // Check neither player is already in a trade
-        const existingTrade = await db('trades')
-            .where(function () {
-                this.where({ player1_id: playerId }).orWhere({ player2_id: playerId })
-                    .orWhere({ player1_id: targetPlayerId }).orWhere({ player2_id: targetPlayerId })
-            })
-            .whereIn('status', ['pending', 'active'])
-            .first();
+        // One transaction under both players' locks (ascending id, as the
+        // accept takes them), so two requests at once cannot put a player in
+        // two trades. A request nobody answers lapses after
+        // TRADE_REQUEST_SECONDS: it used to stand for ever, and while it stood
+        // neither player could trade with anyone else, so someone who kept
+        // asking could keep a player from trading at all (audit 2026-11-09).
+        const expired: any[] = [];
+        const trade = await db.transaction(async (trx) => {
+            await lockPlayersInOrder(trx, [playerId, Number(targetPlayerId)]);
+            const lapsed = await trx('trades')
+                .where(function () {
+                    this.whereIn('player1_id', [playerId, targetPlayerId]).orWhereIn('player2_id', [playerId, targetPlayerId])
+                })
+                .where({ status: 'pending' })
+                .where('created_at', '<', new Date(Date.now() - TRADE_REQUEST_SECONDS * 1000))
+                .update({ status: 'cancelled' })
+                .returning(['id', 'player1_id', 'player2_id']);
+            expired.push(...lapsed);
 
-        if (existingTrade) {
+            // Neither player already in a trade.
+            const existingTrade = await trx('trades')
+                .where(function () {
+                    this.where({ player1_id: playerId }).orWhere({ player2_id: playerId })
+                        .orWhere({ player1_id: targetPlayerId }).orWhere({ player2_id: targetPlayerId })
+                })
+                .whereIn('status', ['pending', 'active'])
+                .first();
+            if (existingTrade) return null;
+
+            const [created] = await trx('trades').insert({
+                player1_id: playerId,
+                player2_id: targetPlayerId,
+                location_id: player.current_location_id,
+                status: 'pending',
+            }).returning('*');
+            // Initialize gold offers
+            await trx('trade_gold').insert([
+                { trade_id: created.id, player_id: playerId, gold_amount: 0 },
+                { trade_id: created.id, player_id: targetPlayerId, gold_amount: 0 },
+            ]);
+            return created;
+        });
+        for (const t of expired) {
+            pushToPlayer(t.player1_id, 'trade_cancelled', { reason: 'The trade request lapsed.' });
+            pushToPlayer(t.player2_id, 'trade_cancelled', { reason: 'The trade request lapsed.' });
+        }
+
+        if (!trade) {
             res.status(400).json({ error: 'One of you is already in a trade.' });
             return;
         }
-
-        const [trade] = await db('trades').insert({
-            player1_id: playerId,
-            player2_id: targetPlayerId,
-            location_id: player.current_location_id,
-            status: 'pending',
-        }).returning('*');
-
-        // Initialize gold offers
-        await db('trade_gold').insert([
-            { trade_id: trade.id, player_id: playerId, gold_amount: 0 },
-            { trade_id: trade.id, player_id: targetPlayerId, gold_amount: 0 },
-        ]);
 
         pushToPlayer(targetPlayerId, 'trade_requested', {
             tradeId: trade.id,
@@ -147,6 +175,11 @@ router.post('/respond', requireAuth, requireTrusted, async (req: AuthRequest, re
         const trade = await db('trades').where({ id: tradeId, player2_id: playerId, status: 'pending' }).first();
         if (!trade) {
             res.status(404).json({ error: 'Trade request not found.' });
+            return;
+        }
+        if (Date.now() - new Date(trade.created_at).getTime() > TRADE_REQUEST_SECONDS * 1000) {
+            await cancelTrade(tradeId, 'The trade request lapsed.');
+            res.status(404).json({ error: 'That trade request has lapsed. Ask again.' });
             return;
         }
 
