@@ -37,7 +37,24 @@ interface SpellView {
     wardTown?: string
     wardLastEndedAt?: string | null
     farmHead?: number
+    /** Wearsight: the last reading of each look, newest first. */
+    readings?: WearReading[]
 }
+
+/** One piece of gear or one tool, as Wearsight read it (server: WearLine in services/spells.ts). */
+interface WearLine {
+    name: string
+    where: string
+    /** Sure uses left, as a whole percent. */
+    pct: number
+    past: boolean
+    breakPct: number | null
+    broken?: boolean
+}
+
+interface WearReading { look: 'worn' | 'pack' | 'benches'; at: string; lines: WearLine[] }
+
+const LOOK_WORDS: Record<WearReading['look'], string> = { worn: 'What you wear', pack: 'What you carry', benches: 'Your bench tools' }
 
 /** One choice a spell needs before it is cast (Daily Step's places, Larder Ward's hours). */
 interface SpellTarget {
@@ -48,13 +65,14 @@ interface SpellTarget {
 }
 
 /** Spells that ask for a choice first. */
-const PICKS_TARGET = new Set(['daily_step', 'larder_ward', 'sending', 'kindle', 'portal'])
+const PICKS_TARGET = new Set(['wearsight', 'daily_step', 'larder_ward', 'sending', 'kindle', 'portal'])
 
 /** What a spell's cost says on its card, for those priced by what they cover. */
 function costText(s: SpellView): string {
     if (s.key === 'daily_step') return 'Talar by the road'
     if (s.key === 'larder_ward') return `${s.cost} Talar a head an hour`
     if (s.key === 'portal') return `${s.cost} Talar and more by the road`
+    if (s.key === 'wearsight') return `${s.cost} Talar, more for pack or benches`
     return `${s.cost} Talar`
 }
 
@@ -76,13 +94,44 @@ function cooldownText(s: SpellView): string {
 
 /** "45 min", or "6 h 29 min" once it runs past an hour. */
 
-/** Wearsight's reading: a line per worn piece. */
-function WearReading({ detail }: { detail: { slot: string; name: string; word: string }[] }) {
-    if (!detail.length) return null
+/** What one line of a reading says of its piece. */
+function wearWords(d: WearLine): string {
+    if (d.broken) return 'broken; the bench makes do at half speed'
+    if (!d.past) return `${d.pct}% of its sure uses left`
+    return d.breakPct !== null
+        ? `sure uses spent; ${d.breakPct}% chance to break each use`
+        : 'sure uses spent; any use may break it'
+}
+
+/** When a reading was taken, in the player's own clock. */
+function readingTime(at: string): string {
+    return new Date(at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+/** Wearsight's kept readings: one fold per look, the newest open when just cast. */
+function WearReadings({ readings, fresh }: { readings: WearReading[]; fresh: string | null }) {
+    if (!readings.length) return null
     return (
-        <ul className="spell-reading">
-            {detail.map(d => <li key={d.slot}><span className="gold-text">{d.name}</span>: {d.word}</li>)}
-        </ul>
+        <div className="spell-readings">
+            {readings.map(r => (
+                <details key={r.look} className="spell-reading-fold" open={fresh === r.at}>
+                    <summary>
+                        <span className="gold-text">{LOOK_WORDS[r.look]}</span>
+                        <span className="muted-text tabular-num"> · {readingTime(r.at)}</span>
+                    </summary>
+                    {r.lines.length === 0
+                        ? <p className="spell-needs muted-text">Nothing that could wear out.</p>
+                        : <ul className="spell-reading">
+                            {r.lines.map((d, i) => (
+                                <li key={`${d.where}:${d.name}:${i}`} className={d.past ? 'spell-wear-past' : undefined}>
+                                    <span className="gold-text">{d.name}</span>
+                                    <span className="muted-text"> ({d.where})</span>: <span className="tabular-num">{wearWords(d)}</span>
+                                </li>
+                            ))}
+                        </ul>}
+                </details>
+            ))}
+        </div>
     )
 }
 
@@ -253,8 +302,9 @@ export default function SpellList({ mode, onKeepVigil }: { mode: 'learn' | 'cast
                             <SendingPicker key={sendTo} store={picking.targets[sendTo] as SendingStore} busy={busy}
                                 onSend={params => cast(s, params)} />
                         )}
-                        {reading?.key === s.key && s.key === 'wearsight' && Array.isArray(reading.detail) && (
-                            <WearReading detail={reading.detail as { slot: string; name: string; word: string }[]} />
+                        {s.key === 'wearsight' && s.readings && (
+                            <WearReadings readings={s.readings}
+                                fresh={reading?.key === s.key ? (reading.detail as WearReading | undefined)?.at ?? null : null} />
                         )}
                     </div>
                 )

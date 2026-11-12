@@ -144,7 +144,7 @@ Every player has an internal reservoir of Talar.
 **knob** for every number. Levels are first guesses; Portal must sit inside T2 because Taiar has only quartz and garnet to train on. **Augury** (foresee the next world event) is a later-tier spell.
 
 ### Wearsight
-Reads the wear on everything you have **equipped**, in words, never numbers: *sound*, *worn*, *near its end*, *living on borrowed time* (past its guaranteed uses, rolling to break). Wear stays silent everywhere else (Nathan, 2026-10-12); this is the one paid exception. Reads `player_item_wear` against the item's durability (`services/durability.ts`).
+Reads the wear on gear and tools, in numbers since 2026-11-12 (Nathan): the share of each item's sure uses left, and once those are spent, its chance to break on each use where that chance is fixed (gear always; a tool only where an override pins it, because a tool's chance rides on the timer of the work). Three looks, chosen when casting: **what you wear** (5 Talar), **what you carry** and **your bench tools** at your own benches anywhere (5 plus 1 a piece, `WEARSIGHT_PIECE_COST`). The last reading of each look is kept with its time (`player_spells.last_reading`) and shown in the spellbook. Wear stays silent everywhere else (Nathan, 2026-10-12); this is the one paid exception. Reads `player_item_wear` against the rule that wears the item: `services/durability.ts` for weapons and armour, `services/toolWear.ts` for hand and bench tools.
 
 ### Daily Step
 One-way teleport, alone, to **any location you have visited on this island** (`player_exploration` rows of `discovery_type 'location'`, plus Talador, where everyone starts). Once a day, resetting at server midnight like the daily allowances. Settles and cancels whatever you were doing first, exactly as starting travel does (`routes/travel.ts`). Pays no Wayfaring XP and finds nothing on the road.
@@ -323,7 +323,7 @@ One migration, upsert by creature key and item name, loud throw on a missing row
 | Kindle, surges | `services/worldEvents.ts` |
 | Portal, Daily Step | `routes/travel.ts` (settle and cancel first) |
 | Tether | `services/groundItems.ts` |
-| Wearsight | `services/durability.ts` |
+| Wearsight | `services/durability.ts`, `services/toolWear.ts` |
 | Sending | `services/property.ts`, storage routes; `race:check` |
 | Church | museum (`/api/museum/here`, `LocationPanel.tsx`) |
 | Georome | `getDialogueStage` in `routes/npcs.ts`; quest via `backfillQuestObjectives` |

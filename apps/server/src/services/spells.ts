@@ -6,7 +6,8 @@ import { activeXpForSeconds } from './farming'
 import { awardXp, playerSkillLevel } from './xp'
 import { HUNDREDTHS, returnTalarWithin, spendTalarWithin, type TalarState } from './talar'
 import { churchHere } from './church'
-import { loadDurabilityTiers, durabilityRule } from './durability'
+import { loadDurabilityTiers, durabilityRule, type DurabilityRule } from './durability'
+import { handToolSkill, loadToolRules, toolRule, type ToolRules } from './toolWear'
 import { endFightIfAny } from './combatFights'
 import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
@@ -109,41 +110,229 @@ interface SpellEffect {
 }
 
 // ── Wearsight (§6) ───────────────────────────────────────────────────────────
-// Reads the wear on everything worn, in words, never numbers. Wear is silent
-// everywhere else (Nathan, 2026-10-12); this is the one paid exception.
+// Reads the wear on gear and tools. Wear is silent everywhere else (Nathan,
+// 2026-10-12); this is the one paid exception, and since 2026-11-12 it says it
+// in numbers (Nathan): the share of an item's sure uses left, and once those
+// are spent, its chance to break on each use where that chance is fixed.
+//
+// Three looks, each a target in the spellbook:
+//   worn      what is worn, for the spell's cost
+//   pack      what is carried, plus WEARSIGHT_PIECE_COST for each kind of item
+//   benches   the tools in the player's own bench slots, wherever the benches
+//             are, plus the same for each tool
+// Wear is counted per player per kind of item (player_item_wear), so two
+// copies of one make read the same and are one line. The last reading of each
+// look is kept on the player's spell row (player_spells.last_reading) and
+// shown in the spellbook with when it was taken (forum, 2026-11-05).
+//
+// Each kind of item is read by the rule that wears it: weapons and armour by
+// durability_tiers (services/durability.ts), hand and bench tools by
+// tool_durability_tiers (services/toolWear.ts). Tools were read by the combat
+// rule until 2026-11-12, so a tier 1 pickaxe read "near its end" with 120 of
+// its 300 sure uses left (audit 2026-11-09).
 
-/** The word for how much use is left: by uses against the item's guarantee. */
-export function wearWord(uses: number, guaranteedUses: number): string {
-    if (uses > guaranteedUses) return 'living on borrowed time'
-    if (uses > guaranteedUses * 0.85) return 'near its end'
-    if (uses > guaranteedUses * 0.5) return 'worn'
-    return 'sound'
+export const WEARSIGHT_PIECE_COST = 1
+
+export type WearLook = 'worn' | 'pack' | 'benches'
+const WEAR_LOOKS: WearLook[] = ['worn', 'pack', 'benches']
+
+export interface WearLine {
+    name: string
+    /** Where it is: a worn slot, 'pack', or a bench ("smithing bench, Talador"). */
+    where: string
+    /** Sure uses left, as a whole percent of the item's guarantee. */
+    pct: number
+    /** Its sure uses are spent: any use may now break it. */
+    past: boolean
+    /** Past its sure uses: the chance in percent that a use breaks it, where that is fixed; null where it rides on the work's timer. */
+    breakPct: number | null
+    /** A bench tool already broken, making do in its slot. */
+    broken?: boolean
+}
+
+export interface WearReadingOut { look: WearLook; at: string; lines: WearLine[] }
+
+/** What a reading says of one item, from its uses and its rule. */
+export function wearLine(name: string, where: string, uses: number, rule: { guaranteedUses: number; breakChancePct: number | null }): WearLine {
+    const g = Math.max(0, rule.guaranteedUses)
+    const past = uses >= g
+    const pct = g > 0 ? Math.max(0, Math.min(100, Math.floor((100 * (g - uses)) / g))) : 0
+    const breakPct = past && rule.breakChancePct !== null ? Math.round(rule.breakChancePct * 100) / 100 : null
+    return { name, where, pct, past, breakPct }
+}
+
+interface WearableRow { id: number; name: string; tier: number | null; subtype: string | null; weapon_form: string | null; armour: number | null; durability_uses: number | null; durability_break_pct: number | null }
+const WEARABLE_COLUMNS = ['id', 'name', 'tier', 'subtype', 'weapon_form', 'armour', 'durability_uses', 'durability_break_pct']
+
+interface WearRules {
+    gear: Map<number, DurabilityRule>
+    tools: ToolRules
+    /** Subtypes that fit a bench slot that wears. */
+    benchSubtypes: Set<string>
+    benchNames: Set<string>
+}
+
+async function loadWearRules(conn: any): Promise<WearRules> {
+    // One after another: inside a cast this is one transaction's one connection.
+    const gear = await loadDurabilityTiers(conn)
+    const tools = await loadToolRules(conn)
+    const slotTypes = await conn('workstation_slot_types').where({ wears: true }).select('accepts_subtype', 'accepts_names')
+    const benchSubtypes = new Set<string>()
+    const benchNames = new Set<string>()
+    for (const t of slotTypes) {
+        if (t.accepts_subtype) benchSubtypes.add(t.accepts_subtype)
+        else if (t.accepts_names) {
+            try { for (const n of JSON.parse(t.accepts_names)) benchNames.add(String(n)) } catch { /* a slot with bad names accepts nothing */ }
+        }
+    }
+    return { gear, tools, benchSubtypes, benchNames }
+}
+
+/** The rule an item wears by, or null when nothing wears it (rings, mounts, a cane). */
+function wearRuleFor(item: WearableRow, rules: WearRules): { guaranteedUses: number; breakChancePct: number | null } | null {
+    if (item.weapon_form || Number(item.armour) > 0) return durabilityRule(item, rules.gear)
+    const handSkill = handToolSkill(item.subtype)
+    const bench = (item.subtype && rules.benchSubtypes.has(item.subtype)) || rules.benchNames.has(item.name)
+    if (!handSkill && !bench) return null
+    const tier = Number(item.tier) || 1
+    // A tool's chance past its guarantee comes from the timer of the work it
+    // does, so it is fixed only where an item or skill override pins it.
+    const fixed = item.durability_break_pct ?? (handSkill ? rules.tools.overrides.get(`${handSkill}:${tier}`) : undefined) ?? null
+    const { guaranteedUses } = toolRule(item, handSkill ?? '', 60, rules.tools)
+    return { guaranteedUses, breakChancePct: fixed === null ? null : Number(fixed) }
+}
+
+async function usesOf(conn: any, playerId: number, ids: number[]): Promise<Map<number, number>> {
+    if (!ids.length) return new Map()
+    const rows = await conn('player_item_wear').where({ player_id: playerId }).whereIn('item_id', ids).select('item_id', 'uses')
+    return new Map(rows.map((w: any) => [Number(w.item_id), Number(w.uses)]))
+}
+
+const SLOT_WORDS: Record<string, string> = {
+    head: 'head', neck: 'neck', back: 'back', chest: 'chest', mainhand: 'main hand', offhand: 'off hand',
+    legs: 'legs', hands: 'hands', feet: 'feet', finger: 'finger', mount: 'mount',
+}
+
+/** What is worn and wears, a line each. */
+async function readWorn(conn: any, playerId: number, rules: WearRules): Promise<WearLine[]> {
+    const worn = await conn('player_equipment').where({ player_id: playerId }).first()
+    const slots = Object.entries(worn ?? {})
+        .filter(([column, itemId]) => column.endsWith('_item_id') && column !== 'trophy_item_id' && itemId)
+        .map(([column, itemId]) => ({ slot: column.slice(0, -'_item_id'.length), itemId: Number(itemId) }))
+    if (!slots.length) return []
+    const ids = slots.map(s => s.itemId)
+    const items = await conn('items').whereIn('id', ids).select(WEARABLE_COLUMNS)
+    const uses = await usesOf(conn, playerId, ids)
+    const byId = new Map<number, WearableRow>(items.map((i: any) => [Number(i.id), i]))
+    const lines: WearLine[] = []
+    for (const s of slots) {
+        const item = byId.get(s.itemId)
+        const rule = item && wearRuleFor(item, rules)
+        if (item && rule) lines.push(wearLine(item.name, SLOT_WORDS[s.slot] ?? s.slot, uses.get(s.itemId) ?? 0, rule))
+    }
+    return lines
+}
+
+/** Every kind of item in the pack that wears. */
+async function packWearables(conn: any, playerId: number, rules: WearRules): Promise<{ item: WearableRow; rule: NonNullable<ReturnType<typeof wearRuleFor>> }[]> {
+    const items: WearableRow[] = await conn('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+        .where('pi.player_id', playerId).where('pi.quantity', '>', 0)
+        .distinct(WEARABLE_COLUMNS.map(c => `i.${c}`)).orderBy('i.name')
+    return items.flatMap(item => {
+        const rule = wearRuleFor(item, rules)
+        return rule ? [{ item, rule }] : []
+    })
+}
+
+/** Every tool in the player's own bench slots that wears, with where its bench is. */
+async function benchWearables(conn: any, playerId: number, rules: WearRules): Promise<{ item: WearableRow; rule: NonNullable<ReturnType<typeof wearRuleFor>>; where: string; broken: boolean }[]> {
+    const slots = await conn('workstation_slots as ws')
+        .join('workstations as w', 'w.id', 'ws.workstation_id')
+        .join('workstation_slot_types as st', function (this: any) { this.on('st.station_type', 'w.type').andOn('st.slot', 'ws.slot') })
+        .leftJoin('locations as l', 'l.id', 'w.location_id')
+        .where('w.player_id', playerId).whereNull('w.expires_at').where('st.wears', true)
+        .select('ws.item_name', 'ws.broken_at', 'w.type', 'l.name as place')
+        .orderBy([{ column: 'l.name' }, { column: 'w.type' }, { column: 'ws.slot' }])
+    if (!slots.length) return []
+    const items: WearableRow[] = await conn('items').whereIn('name', [...new Set(slots.map((s: any) => s.item_name))]).select(WEARABLE_COLUMNS)
+    const byName = new Map(items.map(i => [i.name, i]))
+    return slots.flatMap((s: any) => {
+        const item = byName.get(s.item_name)
+        const rule = item && wearRuleFor(item, rules)
+        return item && rule ? [{ item, rule, where: `${s.type} bench, ${s.place ?? 'somewhere'}`, broken: !!s.broken_at }] : []
+    })
+}
+
+function wearLookOf(params: Record<string, unknown>): WearLook {
+    const look = String(params.look ?? 'worn')
+    if (!WEAR_LOOKS.includes(look as WearLook)) throw new SpellAbort('Wearsight looks at what you wear, what you carry, or your benches.')
+    return look as WearLook
+}
+
+/** How many pieces a look reads beyond what is worn, for its price. */
+async function wearPieces(conn: any, playerId: number, look: WearLook, rules: WearRules): Promise<number> {
+    if (look === 'pack') return (await packWearables(conn, playerId, rules)).length
+    if (look === 'benches') return (await benchWearables(conn, playerId, rules)).length
+    return 0
 }
 
 const wearsight: SpellEffect = {
-    cost: async (_trx, _playerId, spell) => Number(spell.cost),
-    cast: async (trx, playerId) => {
-        const worn = await trx('player_equipment').where({ player_id: playerId }).first()
-        const slots = Object.entries(worn ?? {})
-            .filter(([column, itemId]) => column.endsWith('_item_id') && column !== 'trophy_item_id' && itemId)
-            .map(([column, itemId]) => ({ slot: column.slice(0, -'_item_id'.length), itemId: Number(itemId) }))
-        if (!slots.length) return { message: 'You look yourself over. You are wearing nothing that could wear out.', detail: [] }
-
-        const ids = slots.map(s => s.itemId)
-        const [items, wear, tiers] = await Promise.all([
-            trx('items').whereIn('id', ids).select('id', 'name', 'tier', 'durability_uses', 'durability_break_pct'),
-            trx('player_item_wear').where({ player_id: playerId }).whereIn('item_id', ids).select('item_id', 'uses'),
-            loadDurabilityTiers(trx),
+    targets: async (playerId, spell) => {
+        const rules = await loadWearRules(db)
+        const [pack, benches] = await Promise.all([
+            wearPieces(db, playerId, 'pack', rules),
+            wearPieces(db, playerId, 'benches', rules),
         ])
-        const byId = new Map(items.map((i: any) => [Number(i.id), i]))
-        const usesOf = new Map<number, number>(wear.map((w: any) => [Number(w.item_id), Number(w.uses)]))
-        const detail = slots.map(s => {
-            const item: any = byId.get(s.itemId)
-            const rule = durabilityRule(item, tiers)
-            return { slot: s.slot, name: item?.name ?? '?', word: wearWord(usesOf.get(s.itemId) ?? 0, rule.guaranteedUses) }
-        })
-        return { message: 'You look over what you are wearing, and see it plainly.', detail }
+        const base = Number(spell.cost)
+        const targets: SpellTarget[] = [{ label: 'What you wear', cost: base, params: { look: 'worn' } }]
+        if (pack) targets.push({ label: `What you carry (${pack})`, cost: base + pack * WEARSIGHT_PIECE_COST, params: { look: 'pack' } })
+        if (benches) targets.push({ label: `Your bench tools (${benches})`, cost: base + benches * WEARSIGHT_PIECE_COST, params: { look: 'benches' } })
+        return targets
     },
+    cost: async (trx, playerId, spell, params) => {
+        const look = wearLookOf(params)
+        const pieces = await wearPieces(trx, playerId, look, await loadWearRules(trx))
+        if (look !== 'worn' && pieces === 0) {
+            throw new SpellAbort(look === 'pack' ? 'You carry nothing that could wear out.' : 'There is no tool on your benches that could wear out.')
+        }
+        return Number(spell.cost) + pieces * WEARSIGHT_PIECE_COST
+    },
+    cast: async (trx, playerId, spell, params) => {
+        const look = wearLookOf(params)
+        const rules = await loadWearRules(trx)
+        let lines: WearLine[]
+        let message: string
+        if (look === 'pack') {
+            const found = await packWearables(trx, playerId, rules)
+            const uses = await usesOf(trx, playerId, found.map(f => Number(f.item.id)))
+            lines = found.map(f => wearLine(f.item.name, 'pack', uses.get(Number(f.item.id)) ?? 0, f.rule))
+            message = 'You turn out your pack and look over every piece in it.'
+        } else if (look === 'benches') {
+            const found = await benchWearables(trx, playerId, rules)
+            const uses = await usesOf(trx, playerId, [...new Set(found.map(f => Number(f.item.id)))])
+            lines = found.map(f => f.broken
+                ? { name: f.item.name, where: f.where, pct: 0, past: true, breakPct: null, broken: true }
+                : wearLine(f.item.name, f.where, uses.get(Number(f.item.id)) ?? 0, f.rule))
+            message = 'Your mind goes out to your benches, and you see every tool on them.'
+        } else {
+            lines = await readWorn(trx, playerId, rules)
+            message = lines.length
+                ? 'You look over what you are wearing, and see it plainly.'
+                : 'You look yourself over. You are wearing nothing that could wear out.'
+        }
+        const reading: WearReadingOut = { look, at: new Date().toISOString(), lines }
+        // Kept per look, beside the others (one jsonb update on the row the cast already holds locked).
+        await trx('player_spells').where({ player_id: playerId, spell_id: spell.id })
+            .update({ last_reading: trx.raw(`COALESCE(last_reading, '{}'::jsonb) || jsonb_build_object(?::text, ?::jsonb)`, [look, JSON.stringify(reading)]) })
+        return { message, detail: reading }
+    },
+}
+
+/** The readings Wearsight last gave this player, newest first. */
+export function wearReadingsOf(lastReading: unknown): WearReadingOut[] {
+    const raw = (lastReading && typeof lastReading === 'object' ? lastReading : {}) as Record<string, WearReadingOut>
+    return WEAR_LOOKS.flatMap(look => raw[look] ? [raw[look]] : [])
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 }
 
 // ── Daily Step (§6) ──────────────────────────────────────────────────────────
@@ -748,6 +937,7 @@ export function spellCostWords(spell: Pick<SpellRow, 'key' | 'cost'>): string {
         case 'daily_step': return `${cost} Talar per second of road skipped`
         case 'larder_ward': return `${cost} Talar a head an hour`
         case 'portal': return `${cost} Talar and ${PORTAL_RATE} more per second of road`
+        case 'wearsight': return `${cost} Talar for what you wear; ${WEARSIGHT_PIECE_COST} more a piece for your pack or your benches`
         default: return `${cost} Talar`
     }
 }
@@ -795,6 +985,8 @@ export interface SpellView {
     wardAtFarm?: boolean
     wardTown?: string
     wardLastEndedAt?: string | null
+    /** Wearsight only: the last reading of each look, newest first. */
+    readings?: WearReadingOut[]
 }
 
 /** Every spell, as this player stands with it. Only spells whose effect exists are offered. */
@@ -803,7 +995,7 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
     await settleWardXp(playerId)
     const [rows, learned, level, church, carried] = await Promise.all([
         db('spells').where({ is_active: true }).orderBy([{ column: 'talar_level' }, { column: 'display_order' }]),
-        db('player_spells').where({ player_id: playerId }).select('spell_id', 'ready_at', 'armed_at'),
+        db('player_spells').where({ player_id: playerId }).select('spell_id', 'ready_at', 'armed_at', 'last_reading'),
         playerSkillLevel(playerId, 'Talar'),
         churchHere(playerId),
         db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
@@ -834,6 +1026,7 @@ export async function listSpells(playerId: number): Promise<{ spells: SpellView[
                 offering: s.offering_item_name, writ: s.writ_item_name,
                 hasOffering: !s.offering_item_name || inPack.has(s.offering_item_name),
                 hasWrit: !s.writ_item_name || inPack.has(s.writ_item_name),
+                ...(s.key === 'wearsight' ? { readings: wearReadingsOf(own?.last_reading) } : {}),
                 ...(s.key === 'larder_ward' ? {
                     farmHead: head,
                     wardAtFarm: standing.atFarm,

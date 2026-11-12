@@ -39,6 +39,8 @@ interface HandToolSpec {
     skill: string
     /** Subtypes of the hand tools this action actually uses. */
     tools: ToolList
+    /** Where `tools` is worked out per action: every subtype it can name (Wearsight reads it). */
+    can?: string[]
 }
 
 const BUILD = ['mallet', 'saw']
@@ -58,6 +60,7 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
     hunting: { skill: 'Hunting', tools: ['bow'] },
     foraging: {
         skill: 'Foraging',
+        can: ['foraging_knife', 'foraging_basket', 'foraging_gloves'],
         // The knife speeds every pick and the basket adds to every yield, so
         // both are in use whenever worn. Gloves only where the habitat has
         // something that needs them.
@@ -74,6 +77,7 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
     // The saw in hand, at your own workshop or Geossica's bench (Nathan, 2026-11-09).
     sawing: {
         skill: 'Carpentry',
+        can: ['saw'],
         tools: async (action) => {
             const { canSawHere } = await import('./carpentry')
             const at = await canSawHere(action.player_id, action.location_id)
@@ -96,23 +100,36 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
     husbandry_slaughter_all: { skill: 'Husbandry', tools: ['butcher_knife'] },
     husbandry_tame: { skill: 'Husbandry', tools: ['halter'] },
     // Milk goes into the pail; eggs and truffles are gathered by hand.
-    husbandry_collect: { skill: 'Husbandry', tools: (_a, r) => (r?.itemName && isLiquid(r.itemName) ? ['pail'] : []) },
-    husbandry_collect_all: { skill: 'Husbandry', tools: (_a, r) => (r?.itemName && isLiquid(r.itemName) ? ['pail'] : []) },
+    husbandry_collect: { skill: 'Husbandry', can: ['pail'], tools: (_a, r) => (r?.itemName && isLiquid(r.itemName) ? ['pail'] : []) },
+    husbandry_collect_all: { skill: 'Husbandry', can: ['pail'], tools: (_a, r) => (r?.itemName && isLiquid(r.itemName) ? ['pail'] : []) },
+}
+
+/**
+ * The skill whose work wears a hand tool of this subtype (the first that uses
+ * it), or null when no action wears it: it is not a hand tool.
+ */
+export function handToolSkill(subtype: string | null | undefined): string | null {
+    if (!subtype) return null
+    for (const spec of Object.values(HAND_TOOLS_BY_ACTION)) {
+        const names = Array.isArray(spec.tools) ? spec.tools : spec.can ?? []
+        if (names.includes(subtype)) return spec.skill
+    }
+    return null
 }
 
 // ── The numbers ────────────────────────────────────────────────────
 
-interface ToolRules {
+export interface ToolRules {
     tiers: Map<number, ToolTierRule>
     /** `${skill}:${tier}` to a fixed break chance in percent. */
     overrides: Map<string, number>
 }
 
-async function loadToolRules(x: Knex | Knex.Transaction): Promise<ToolRules> {
-    const [tiers, overrides] = await Promise.all([
-        x('tool_durability_tiers').select('tier', 'guaranteed_uses', 'life_hours'),
-        x('tool_break_overrides').select('skill', 'tier', 'break_chance_pct'),
-    ])
+export async function loadToolRules(x: Knex | Knex.Transaction): Promise<ToolRules> {
+    // One after another: every wear path calls this inside a transaction, whose
+    // one connection cannot run two queries at once (pg queues them and warns).
+    const tiers = await x('tool_durability_tiers').select('tier', 'guaranteed_uses', 'life_hours')
+    const overrides = await x('tool_break_overrides').select('skill', 'tier', 'break_chance_pct')
     return {
         tiers: new Map(tiers.map((r: any) => [Number(r.tier), { guaranteedUses: Number(r.guaranteed_uses), lifeHours: Number(r.life_hours) }])),
         overrides: new Map(overrides.map((r: any) => [`${r.skill}:${Number(r.tier)}`, Number(r.break_chance_pct)])),
