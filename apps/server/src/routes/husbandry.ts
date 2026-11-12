@@ -12,6 +12,7 @@ import {
     startMuckAll,
     startCollect,
     startCollectAll,
+    startGatherAllPens,
     startSlaughter,
     startSlaughterAll,
     startTame,
@@ -109,6 +110,19 @@ router.post('/collect', requireAuth, botCheckGate,
 
 router.post('/collect-all', requireAuth, botCheckGate,
     startHandler(startCollectAll, 'Collecting', (req) => [req.body.penId]));
+
+// Every pen with something ready, one after another (forum, 2026-11-11).
+router.post('/gather-all', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    try {
+        const r = await startGatherAllPens(req.player!.playerId);
+        if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
+        res.json({ message: 'Gathering', timerSeconds: r.timerSeconds, skipped: r.skipped ?? [] });
+    } catch (err: any) {
+        if (err?.code === '23505') { res.status(409).json({ error: 'You are already performing an action' }); return; }
+        logger.error(`Husbandry gather-all error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
 router.post('/slaughter', requireAuth, botCheckGate,
     startHandler(startSlaughter, 'Slaughtering', (req) => [req.body.animalId]));

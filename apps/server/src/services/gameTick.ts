@@ -9,10 +9,10 @@ import {
 } from './fishing';
 import { addItemToInventory, recordItemFirstByName, takeItemsWithin } from './inventory';
 import { incrementStats } from './stats';
-import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestAll, resolveManure, resolveTend, resolveUproot } from './farming';
+import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestStep, resolveManure, resolveTend, resolveUproot } from './farming';
 import { resolveEstablishShop } from './shops';
 import {
-  resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveCollectAll, resolveSlaughter, resolveSlaughterAll, resolveTame,
+  resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveGatherStep, resolveSlaughter, resolveSlaughterAll, resolveTame,
 } from './husbandry';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
 import { buffTimerBonus } from './buffs';
@@ -531,8 +531,13 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'farm_harvest':
       case 'farm_harvest_all':
       case 'farm_uproot': {
-        // One-shot farm work: clear the action, resolve it, report.
-        await db('player_actions').where({ id: action.id }).delete();
+        // One-shot farm work: clear the action, resolve it, report. Harvest
+        // All is the exception: a chain of single harvests, one field per
+        // step, so its row is kept for the next field (forum, 2026-11-11).
+        let farmNext: { seconds: number; actionData: string } | null = null;
+        if (action.action_type !== 'farm_harvest_all') {
+          await db('player_actions').where({ id: action.id }).delete();
+        }
 
         let farmResult;
         if (action.action_type === 'farm_establish') farmResult = await resolveEstablish(action.player_id);
@@ -545,7 +550,12 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         // "anything left is a harvest", so a new farm action would silently
         // resolve as one.
         else if (action.action_type === 'farm_uproot') farmResult = await resolveUproot(action.player_id, action.action_data);
-        else if (action.action_type === 'farm_harvest_all') farmResult = await resolveHarvestAll(action.player_id, action.action_data);
+        else if (action.action_type === 'farm_harvest_all') {
+          const step = await resolveHarvestStep(action.player_id, action.action_data);
+          farmResult = step.result;
+          farmNext = step.next;
+          if (!farmNext) await db('player_actions').where({ id: action.id }).delete();
+        }
         else farmResult = await resolveHarvest(action.player_id, action.action_data);
 
         if (!farmResult.success) {
@@ -553,6 +563,18 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           return;
         }
         await wearToolsAfter(action, farmResult);
+
+        // The chain goes on to its next field (after wear, before the timer, as
+        // every repeating action does).
+        let farmNextCompletes: Date | null = null;
+        if (farmNext) {
+          farmNextCompletes = new Date(Date.now() + farmNext.seconds * 1000);
+          await db('player_actions').where({ id: action.id }).update({
+            completes_at: farmNextCompletes,
+            last_timer_seconds: farmNext.seconds,
+            action_data: farmNext.actionData,
+          });
+        }
 
         const farmFirst = farmResult.itemName
           ? (await recordItemFirstByName(action.player_id, farmResult.itemName, action.action_type)).firstEver
@@ -569,6 +591,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         await emitActionComplete(io, action, {
           actionType: action.action_type,
           firstEver: farmFirst,
+          ...(farmNext && farmNextCompletes ? { timerSeconds: farmNext.seconds, nextCompletes: farmNextCompletes } : {}),
           result: {
             itemName: farmResult.itemName,
             quantity: farmResult.quantity,
@@ -651,7 +674,12 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       case 'husbandry_tame': {
         // One-shot husbandry work, same shape as the farm block: clear the
         // action, resolve it, report. The service owns its own transaction.
-        await db('player_actions').where({ id: action.id }).delete();
+        // Gathering is the exception: a chain of whole-pen gathers, one pen a
+        // step, so its row is kept for the next pen (forum, 2026-11-11).
+        let husNext: { seconds: number; actionData: string } | null = null;
+        if (action.action_type !== 'husbandry_collect_all') {
+          await db('player_actions').where({ id: action.id }).delete();
+        }
 
         let husResult;
         if (action.action_type === 'husbandry_build_pen') husResult = await resolveBuildPen(action.player_id, action.action_data);
@@ -661,7 +689,12 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         else if (action.action_type === 'husbandry_muck_all') husResult = await resolveMuckAll(action.player_id);
         else if (action.action_type === 'husbandry_muck') husResult = await resolveMuck(action.player_id, action.action_data);
         else if (action.action_type === 'husbandry_collect') husResult = await resolveCollect(action.player_id, action.action_data);
-        else if (action.action_type === 'husbandry_collect_all') husResult = await resolveCollectAll(action.player_id, action.action_data);
+        else if (action.action_type === 'husbandry_collect_all') {
+          const step = await resolveGatherStep(action.player_id, action.action_data);
+          husResult = step.result;
+          husNext = step.next;
+          if (!husNext) await db('player_actions').where({ id: action.id }).delete();
+        }
         else if (action.action_type === 'husbandry_slaughter') husResult = await resolveSlaughter(action.player_id, action.action_data);
         else if (action.action_type === 'husbandry_slaughter_all') husResult = await resolveSlaughterAll(action.player_id, action.action_data);
         else husResult = await resolveTame(action.player_id, action.action_data);
@@ -671,6 +704,16 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           return;
         }
         await wearToolsAfter(action, husResult);
+
+        let husNextCompletes: Date | null = null;
+        if (husNext) {
+          husNextCompletes = new Date(Date.now() + husNext.seconds * 1000);
+          await db('player_actions').where({ id: action.id }).update({
+            completes_at: husNextCompletes,
+            last_timer_seconds: husNext.seconds,
+            action_data: husNext.actionData,
+          });
+        }
 
         // The service deliberately does NOT record the first, so this check is
         // the one that decides whether the sparkle fires.
@@ -689,6 +732,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         await emitActionComplete(io, action, {
           actionType: action.action_type,
           firstEver: husFirst,
+          ...(husNext && husNextCompletes ? { timerSeconds: husNext.seconds, nextCompletes: husNextCompletes } : {}),
           result: {
             itemName: husResult.itemName,
             quantity: husResult.quantity,

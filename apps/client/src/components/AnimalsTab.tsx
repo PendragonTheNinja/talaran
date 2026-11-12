@@ -282,6 +282,20 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                         onClick={() => act('/api/husbandry/muck-all', 'muck_all')}>
                         Muck Out All Pens{costSuffix(data.pensToMuck, data.muckRoundCost)}
                     </button>
+                    {/* One pen after another, each as long as gathering it alone
+                        (forum, 2026-11-11). Stopping keeps what was gathered. */}
+                    {(() => {
+                        const ready = data.pens.filter(p => p.readyUnits > 0).length
+                        return (
+                            <button className="farm-btn primary"
+                                disabled={busy || !data.atNovita || ready === 0}
+                                title={ready === 0 ? 'Nothing is ready to gather yet'
+                                    : `Gathers from ${ready} ${ready === 1 ? 'pen' : 'pens'}, one after another`}
+                                onClick={() => act('/api/husbandry/gather-all', 'collect_all')}>
+                                Gather All{ready > 0 ? ` (${ready} ${ready === 1 ? 'pen' : 'pens'})` : ''}
+                            </button>
+                        )
+                    })()}
                 </div>
             )}
 

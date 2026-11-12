@@ -1000,7 +1000,12 @@ export async function resolveHarvest(playerId: number, plotIdRaw: string | null)
 // and each field pays exactly what harvesting it alone would — same per-seed XP,
 // same perennial rule, same soil — because it goes through harvestPlot above.
 
-export const HARVEST_ALL_MIN_PLOTS = 4;
+/**
+ * Fields needed before Harvest All is offered. It brought every ripe field in
+ * under one timer, all or nothing, so it waited for four fields to be worth it.
+ * Now it is a chain of ordinary harvests (forum, 2026-11-11), so two will do.
+ */
+export const HARVEST_ALL_MIN_PLOTS = 2;
 
 /** Ripe plots on a farmstead, in slot order. */
 async function ripePlots(propertyId: number) {
@@ -1021,82 +1026,54 @@ export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; 
         return { ok: false, error: 'You must be at your farmstead to bring in the harvest.' };
     }
 
-    const plotCount = Number((await db('farm_plots')
-        .where({ property_id: property.id }).count({ c: '*' }).first())?.c ?? 0);
-    if (plotCount < HARVEST_ALL_MIN_PLOTS) {
-        return { ok: false, error: `You need ${HARVEST_ALL_MIN_PLOTS} fields before you can bring them in together.` };
-    }
-
     const ripe = await ripePlots(property.id);
     if (ripe.length === 0) return { ok: false, error: 'Nothing is ready to harvest yet.' };
+    if (ripe.length < HARVEST_ALL_MIN_PLOTS) {
+        return { ok: false, error: 'Only one field is ready. Harvest it on its own.' };
+    }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const seconds = ripe.reduce(
-        (s: number, p: any) => s + Math.max(1, p.seed_count) * HARVEST_SECONDS_PER_SEED, 0);
-
-    // The fields are fixed when the work BEGINS. Otherwise a crop that ripened
-    // while the timer ran would be harvested at the end of it without its own
-    // seconds ever having been spent — free fields for waiting inside the action.
+    // One field at a time, each on its own timer, in slot order. The fields
+    // are fixed when the work BEGINS: a crop that ripens on the way is not
+    // added, or its seconds would never have been spent.
+    const seconds = Math.max(1, ripe[0].seed_count) * HARVEST_SECONDS_PER_SEED;
     const plotIds = ripe.map((p: any) => p.id).join(',');
     await startAction(playerId, 'farm_harvest_all', seconds, plotIds, novita.id);
     return { ok: true, timerSeconds: seconds };
 }
 
-export async function resolveHarvestAll(playerId: number, plotIdsRaw: string | null): Promise<FarmActionResult> {
-    try {
-        const ids = (plotIdsRaw || '').split(',').map((s) => parseInt(s)).filter((n) => n > 0);
-        if (ids.length === 0) return { success: false, error: 'There was nothing to bring in.' };
+/** One step of a chain of farm work: what this step paid, and the next step, if any. */
+export interface FarmChainStep {
+    result: FarmActionResult
+    next: { seconds: number; actionData: string } | null
+}
 
-        const lvl = await skillLevel(playerId, 'Farming');
-        let totalXp = 0;
-        let totalYield = 0;
-        const brought = new Map<string, number>();
-        const goldBasisXp: number[] = [];
-        const seedsKept = new Map<string, number>();
-
-        for (const id of ids) {
-            // Re-read each plot: it may have been uprooted, or harvested one by
-            // one, while the bulk timer ran. ownedPlot also refuses a plot that
-            // is no longer this player's.
-            const plot = await ownedPlot(playerId, id);
-            if (!plot) continue;
-            const done = await harvestPlot(playerId, plot, lvl);
-            if (!done) continue;
-            totalXp += done.xp;
-            totalYield += done.yieldQty;
-            goldBasisXp.push(done.activeXp);
-            const name = done.crop.produce_item_name;
-            brought.set(name, (brought.get(name) ?? 0) + done.yieldQty);
-            if (done.seedsBack > 0) {
-                const seed = done.crop.seed_item_name;
-                seedsKept.set(seed, (seedsKept.get(seed) ?? 0) + done.seedsBack);
-            }
-        }
-
-        if (brought.size === 0) return { success: false, error: 'The fields had nothing left to give.' };
-
-        await awardXp(playerId, 'Farming', totalXp, { units: goldBasisXp.length });
-        await incrementStats(playerId, {
-            total_actions_completed: 1,
-            total_crops_harvested: totalYield,
-        });
-
-        // The result card shows one item; the largest haul takes it, and the
-        // message names the rest.
-        const sorted = [...brought.entries()].sort((a, b) => b[1] - a[1]);
-        const fields = ids.length;
-        return {
-            success: true, xp: totalXp, skillName: 'Farming',
-            itemName: sorted[0][0], quantity: sorted[0][1],
-            goldBasisXp,
-            message: `You bring in ${fields} field${fields === 1 ? '' : 's'}: `
-                + sorted.map(([n, q]) => `${q} ${n}`).join(', ') + '.'
-                + (seedsKept.size > 0
-                    ? ` Kept back for sowing: ${[...seedsKept.entries()].map(([n, q]) => `${q} ${n}`).join(', ')}.`
-                    : ''),
-        };
-    } catch (err) {
-        logger.error(`resolveHarvestAll error: ${err}`);
-        return { success: false, error: SERVER_ERROR };
+/**
+ * One field of a Harvest All: harvest the first field on the list, exactly as
+ * harvesting it on its own does (same timer, XP, yield and seeds), then name
+ * the next. It used to bring every field in at the end of one long timer, so
+ * stopping part-way kept nothing (forum, 2026-11-11). Fields uprooted or
+ * harvested by hand on the way are skipped.
+ */
+export async function resolveHarvestStep(playerId: number, plotIdsRaw: string | null): Promise<FarmChainStep> {
+    const ids = (plotIdsRaw || '').split(',').map((s) => parseInt(s)).filter((n) => n > 0);
+    let result: FarmActionResult | null = null;
+    while (ids.length && !result) {
+        const r = await resolveHarvest(playerId, String(ids.shift()));
+        if (r.success) result = r;
+        else if (r.error === SERVER_ERROR) return { result: r, next: null };
     }
+    if (!result) return { result: { success: false, error: 'The fields had nothing left to give.' }, next: null };
+
+    const waiting: any[] = [];
+    for (const id of ids) {
+        const plot = await ownedPlot(playerId, id);
+        if (plot && plot.state === 'growing' && plot.crop_id) waiting.push(plot);
+    }
+    if (!waiting.length) return { result, next: null };
+    result.message = `${result.message ? `${result.message} ` : ''}${waiting.length} field${waiting.length === 1 ? '' : 's'} still to bring in.`;
+    return {
+        result,
+        next: { seconds: Math.max(1, waiting[0].seed_count) * HARVEST_SECONDS_PER_SEED, actionData: waiting.map((p) => p.id).join(',') },
+    };
 }

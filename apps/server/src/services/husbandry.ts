@@ -2109,6 +2109,45 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
 // action walks the pen and clears everything ready in it.
 
 export async function startCollectAll(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const plan = await collectAllPlan(playerId, penId);
+    if (!plan.ok) return plan;
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const { novita } = await playerProperty(playerId);
+    await startAction(playerId, 'husbandry_collect_all', plan.seconds, String(penId), novita?.id ?? null);
+    return { ok: true, timerSeconds: plan.seconds };
+}
+
+/**
+ * Gather from every pen with something ready, one pen after another (forum,
+ * 2026-11-11). Each pen takes exactly what gathering it on its own takes; the
+ * chain only saves the clicks, and stopping part-way keeps what is gathered.
+ * Pens that cannot be gathered (no pail for the cows, no bucket for the milk)
+ * are left out, and named, rather than stopping the chain.
+ */
+export async function startGatherAllPens(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number; skipped?: string[] }> {
+    const { novita, property } = await playerProperty(playerId);
+    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const here = await db('players').where({ id: playerId }).first('current_location_id');
+    if (Number(here?.current_location_id) !== Number(novita.id)) return { ok: false, error: 'You must be at your farmstead to gather.' };
+
+    const pens = await db('player_pens').where({ property_id: property.id }).whereNotNull('species_id').orderBy('slot_index', 'asc');
+    const ready: { id: number; seconds: number }[] = [];
+    const skipped: string[] = [];
+    for (const pen of pens) {
+        const plan = await collectAllPlan(playerId, pen.id);
+        if (plan.ok) ready.push({ id: pen.id, seconds: plan.seconds });
+        else if (!/^(Nothing is ready yet|There is nothing)/.test(plan.error)) skipped.push(plan.error);
+    }
+    if (!ready.length) return { ok: false, error: skipped[0] ?? 'Nothing is ready yet.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    await startAction(playerId, 'husbandry_collect_all', ready[0].seconds, ready.map(p => p.id).join(','), novita.id);
+    return { ok: true, timerSeconds: ready[0].seconds, skipped };
+}
+
+/** Whether one pen can be gathered from now, and how long it takes. */
+async function collectAllPlan(playerId: number, penId: number): Promise<{ ok: true; seconds: number } | { ok: false; error: string }> {
     const pen = await ownedPen(playerId, penId);
     if (!pen || !pen.species_id) return { ok: false, error: 'There is nothing in that pen.' };
 
@@ -2131,12 +2170,29 @@ export async function startCollectAll(playerId: number, penId: number): Promise<
         && !(await canFill(playerId, species.product_item_name, species.product_qty))) {
         return { ok: false, error: 'You have nowhere to put it — you need an empty Lanai Bucket.' };
     }
-    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+    return { ok: true, seconds: collectAllSeconds(units) };
+}
 
-    const { novita } = await playerProperty(playerId);
-    const seconds = collectAllSeconds(units);
-    await startAction(playerId, 'husbandry_collect_all', seconds, String(penId), novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+/**
+ * One pen of a gather: gather the first pen on the list exactly as gathering
+ * it alone does, then name the next pen that can still be gathered.
+ */
+export async function resolveGatherStep(playerId: number, penIdsRaw: string | null): Promise<{
+    result: Awaited<ReturnType<typeof resolveCollectAll>>
+    next: { seconds: number; actionData: string } | null
+}> {
+    const ids = (penIdsRaw || '').split(',').map(s => parseInt(s)).filter(n => n > 0);
+    const first = ids.shift();
+    const result = await resolveCollectAll(playerId, first ? String(first) : null);
+    if (!result.success) return { result, next: null };
+    const waiting: { id: number; seconds: number }[] = [];
+    for (const id of ids) {
+        const plan = await collectAllPlan(playerId, id);
+        if (plan.ok) waiting.push({ id, seconds: plan.seconds });
+    }
+    if (!waiting.length) return { result, next: null };
+    result.message = `${result.message ? `${result.message} ` : ''}${waiting.length} pen${waiting.length === 1 ? '' : 's'} still to gather.`;
+    return { result, next: { seconds: waiting[0].seconds, actionData: waiting.map(p => p.id).join(',') } };
 }
 
 /** Scales with the work, but sub-linearly — a full pen should beat six singles. */

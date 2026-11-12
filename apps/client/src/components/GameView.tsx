@@ -815,10 +815,18 @@ export default function GameView({
           if (data.xpInfo?.leveledUp) {
             setLevelUpSkill({ name: skillName, level: data.xpInfo.level })
           }
-          setCurrentAction(null)
-          setActiveNodeId(null)
-          setTimerSeconds(0)
-          if (timerRef.current) clearInterval(timerRef.current)
+          // Gathering from several pens goes on to the next one; everything
+          // else here is one-shot.
+          if (data.timerSeconds && data.nextCompletes) {
+            setTimerSeconds(data.timerSeconds)
+            setTimerMax(data.timerSeconds)
+            startCountdown(data.timerSeconds, data.nextCompletes)
+          } else {
+            setCurrentAction(null)
+            setActiveNodeId(null)
+            setTimerSeconds(0)
+            if (timerRef.current) clearInterval(timerRef.current)
+          }
           onPlayerDataUpdate()
           onInventoryUpdate()
           setActionsCompleted(prev => prev + 1)
@@ -849,10 +857,17 @@ export default function GameView({
           if (data.xpInfo?.leveledUp) {
             setLevelUpSkill({ name: skillName, level: data.xpInfo.level })
           }
-          setCurrentAction(null)
-          setActiveNodeId(null)
-          setTimerSeconds(0)
-          if (timerRef.current) clearInterval(timerRef.current)
+          // Harvest All goes on to its next field; everything else here is one-shot.
+          if (data.timerSeconds && data.nextCompletes) {
+            setTimerSeconds(data.timerSeconds)
+            setTimerMax(data.timerSeconds)
+            startCountdown(data.timerSeconds, data.nextCompletes)
+          } else {
+            setCurrentAction(null)
+            setActiveNodeId(null)
+            setTimerSeconds(0)
+            if (timerRef.current) clearInterval(timerRef.current)
+          }
           return
         }
 
