@@ -39,7 +39,8 @@ import messagesRoutes from './routes/messages';
 import forumRoutes from './routes/forum';
 import newsRoutes from './routes/news';
 import manualRoutes from './routes/manual';
-import { takeWeeklySnapshot, getWeekStart } from './services/weeklySnapshot';
+import { takeWeeklySnapshot, weekHasSnapshot } from './services/weeklySnapshot';
+import { nextGameWeekStart } from './lib/gameTime';
 import { pruneChatHistory } from './services/chatRetention';
 import highscoresRoutes from './routes/highscores';
 import groundItemsRoutes from './routes/groundItems';
@@ -552,30 +553,18 @@ if (require.main === module) {
   });
 
   // Take weekly snapshot on startup if not taken this week
-  const now = new Date();
-  const weekStart = getWeekStart(now);
-  db('skill_snapshots')
-    .where('snapshot_date', weekStart)
-    .count('id as count')
-    .first()
-    .then(result => {
-      if (parseInt(result?.count as string) === 0) {
-        takeWeeklySnapshot();
-      }
-    })
+  weekHasSnapshot()
+    .then(has => { if (!has) takeWeeklySnapshot(); })
     .catch(err => logger.error(`Weekly snapshot check failed at boot: ${err}`));
 
-  // Schedule weekly snapshot every Monday
-  const msUntilMonday = () => {
-    const now = new Date();
-    const nextMonday = getWeekStart(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
-    return nextMonday.getTime() - now.getTime();
-  };
-
-  setTimeout(function scheduleSnapshot() {
-    takeWeeklySnapshot();
-    setTimeout(scheduleSnapshot, 7 * 24 * 60 * 60 * 1000);
-  }, msUntilMonday());
+  // Then at every Monday midnight on the game clock, worked out afresh each
+  // time: a fixed seven-day timer drifted by an hour across a clock change.
+  (function scheduleSnapshot() {
+    setTimeout(() => {
+      takeWeeklySnapshot();
+      scheduleSnapshot();
+    }, Math.max(60_000, nextGameWeekStart().getTime() - Date.now()));
+  })();
 
   // Audit finding 7: chat_messages was never pruned. Daily, and once shortly
   // after boot so the first large backlog clears without waiting a day.

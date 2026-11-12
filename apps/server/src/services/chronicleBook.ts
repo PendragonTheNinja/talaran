@@ -1,6 +1,6 @@
 import db from '../db'
 import { gameDayKey } from '../lib/gameTime'
-import { balladStanzas, dayTitle, renderVerse, seededUnit } from '../lib/chronicleVerse'
+import { addDays, balladStanzas, dayTitle, renderVerse, seededUnit } from '../lib/chronicleVerse'
 import { todaySoFar } from './chronicleComposer'
 
 // ── The Chronicle, step 3: reading the book at the Salty Sloth (docs/chronicle-spec.md §2) ──
@@ -145,7 +145,8 @@ const NOTICE_DAYS = 7
 export async function chronicleNotice(playerId: number): Promise<{ dayKey: string; title: string; inLines: boolean } | null> {
     const player = await db('players').where({ id: playerId }).first('chronicle_seen_day')
     const since = player?.chronicle_seen_day ?? ''
-    const oldest = new Date(Date.now() - NOTICE_DAYS * 86400_000).toISOString().slice(0, 10)
+    // A game day key, like the keys it is compared with (lib/gameTime.ts).
+    const oldest = addDays(gameDayKey(), -NOTICE_DAYS)
     const row = await db('chronicle_mentions as m')
         .join('chronicle_days as d', 'd.day_key', 'm.day_key')
         .leftJoin('chronicle_lines as l', 'l.id', 'm.line_id')

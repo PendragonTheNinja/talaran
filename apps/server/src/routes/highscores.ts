@@ -1,7 +1,7 @@
 import { Router, Response, Request } from 'express';
 import db from '../db';
 import { logger } from '../lib/logger';
-import { getWeekStart } from '../services/weeklySnapshot';
+import { currentSnapshotDate } from '../services/weeklySnapshot';
 import { levelFromXp, countedSkillIds } from '../services/xp';
 import { combatStanding, COMBAT_SKILLS } from '../services/combat';
 
@@ -61,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
         const sortBy: SortBy = requestedSort ?? (mode === 'weekly' ? 'weeklyXp' : 'level');
         const dir: 1 | -1 = (req.query.sortDir as string) === 'asc' ? 1 : -1;
 
-        const weekStart = mode === 'weekly' ? getWeekStart(new Date()) : null;
+        const weekStart = mode === 'weekly' ? await currentSnapshotDate() : null;
 
         if (skillId === 'total') {
             const rows = await db('player_skills')

@@ -59,6 +59,35 @@ export function nextGameMidnight(now: Date = new Date()): Date {
     return instantForGameWallClock(wall, now);
 }
 
+/**
+ * The instant the game's week began: Monday midnight on the game clock. The
+ * weekly highscores used the server's own clock for this, while every daily
+ * rule used this one (Nathan, 2026-11-11: every clock-based rule on the same
+ * clock).
+ */
+export function startOfGameWeek(now: Date = new Date()): Date {
+    const wall = asGameWallClock(now);
+    const sinceMonday = (wall.getDay() + 6) % 7;
+    wall.setDate(wall.getDate() - sinceMonday);
+    wall.setHours(0, 0, 0, 0);
+    return toWholeMinute(instantForGameWallClock(wall, now));
+}
+
+// The wall-clock conversion drops milliseconds from the reference, so the
+// instant it returns can carry a stray fraction of a second. Clock offsets are
+// whole minutes, so the true instant is the nearest minute. Matters wherever
+// the instant is stored and matched, as a weekly snapshot's date is.
+function toWholeMinute(d: Date): Date {
+    return new Date(Math.round(d.getTime() / 60_000) * 60_000);
+}
+
+/** The next Monday midnight on the game clock. */
+export function nextGameWeekStart(now: Date = new Date()): Date {
+    const wall = asGameWallClock(startOfGameWeek(now));
+    wall.setDate(wall.getDate() + 7);
+    return toWholeMinute(instantForGameWallClock(wall, now));
+}
+
 // ---------------------------------------------------------------------------
 // Time of day and season.
 //

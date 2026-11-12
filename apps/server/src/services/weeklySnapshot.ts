@@ -1,5 +1,6 @@
 import db from '../db';
 import { logger } from '../lib/logger';
+import { startOfGameWeek } from '../lib/gameTime';
 
 export async function takeWeeklySnapshot(): Promise<void> {
     try {
@@ -28,11 +29,24 @@ export async function takeWeeklySnapshot(): Promise<void> {
     }
 }
 
+/** Monday midnight on the game clock (lib/gameTime.ts). */
 export function getWeekStart(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
+    return startOfGameWeek(date);
+}
+
+/**
+ * The snapshot this week's gains are counted from: the newest one taken. The
+ * board used to ask for the snapshot dated exactly at this week's start, so a
+ * week whose snapshot was stamped a little differently (the move to the game
+ * clock shifted the stamp by five hours) showed nobody as having gained anything.
+ */
+export async function currentSnapshotDate(now: Date = new Date()): Promise<Date | null> {
+    const row = await db('skill_snapshots').where('snapshot_date', '<=', now).max('snapshot_date as at').first();
+    return row?.at ? new Date(row.at) : null;
+}
+
+/** Whether this week already has its snapshot. A day's grace covers a stamp from the old server-clock week. */
+export async function weekHasSnapshot(now: Date = new Date()): Promise<boolean> {
+    const at = await currentSnapshotDate(now);
+    return !!at && at.getTime() >= getWeekStart(now).getTime() - 24 * 60 * 60 * 1000;
 }

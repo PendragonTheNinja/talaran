@@ -1,6 +1,7 @@
 import db from '../db'
 import { logSubtypeFor } from './woodcutting'
 import { rockSubtypeFor } from './mining'
+import { gameDayKey } from '../lib/gameTime'
 
 // ── Rumours (docs/chronicle-spec.md §15, step 5) ─────────────────────────────
 //
@@ -124,7 +125,7 @@ async function merchantDue(): Promise<Rumour[]> {
     const live = await db('world_events').where({ kind: 'merchant' }).whereNull('ended_at').where('ends_at', '>', db.fn.now()).first('id')
     if (live) return []
     const place = await placeName(s.merchant_next_location_id)
-    return place ? [{ kind: 'rumour_merchant', subject: `merchant:${new Date(at).toISOString().slice(0, 10)}`, slots: { place } }] : []
+    return place ? [{ kind: 'rumour_merchant', subject: `merchant:${gameDayKey(new Date(at))}`, slots: { place } }] : []
 }
 
 /** Every rumour true right now. */
