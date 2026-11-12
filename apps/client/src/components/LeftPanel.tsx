@@ -780,7 +780,10 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                   handleEquip(contextMenu.item)
                   setContextMenu(null)
                 }}>
-                  {equipmentData?.[contextMenu.item.slot as keyof EquipmentData] ? 'Unequip' : 'Equip'}
+                  {/* This item is in the pack, so the action is always to put it on
+                      (swapping out whatever is worn there). It said "Unequip"
+                      whenever the slot was already filled (forum, 2026-11-11). */}
+                  Equip
                 </button>
               )}
               <button className="context-menu-item" onClick={() => {
