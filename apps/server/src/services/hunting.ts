@@ -5,6 +5,8 @@ export const HUNT_AMMO = 'Ambren Arrow';
 import { levelFromXp } from './xp'
 import { levelTimerFactor } from '../lib/actionTimers'
 import { standsAt } from '../lib/whereabouts'
+import { doubleYield } from './buffs'
+import { noteJewelry } from './jewelry'
 
 // ── Tuning constants ──────────────────────────────────────────────
 const CATCH_PER_LEVEL = 0.5           // +0.5% catch chance per level over req
@@ -178,7 +180,18 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     // standing in the bracken. Everything else, trophies included, still comes
     // only from a kill. Young are whatever a husbandry species is raised from.
     const young = new Set<string>(await db('animal_species').whereNotNull('baby_item_name').pluck('baby_item_name'))
-    const drops = rollDrops(animal.drop_table, await babyFindMultiplier(playerId), success ? undefined : young)
+    let drops = rollDrops(animal.drop_table, await babyFindMultiplier(playerId), success ? undefined : young)
+
+    // A double-yield provision doubles what a kill gives (meat, hide, bones,
+    // trophies), never a young animal found by the way. The hunt never asked,
+    // so the Poacher's Supper did nothing (audit 2026-11-09).
+    if (success) {
+        const twice = await doubleYield(playerId, 'Hunting')
+        if (twice) {
+            drops = drops.map(d => (young.has(d.itemName) ? d : { ...d, quantity: d.quantity * 2 }))
+            noteJewelry(db, playerId, `Your ${twice} doubled the kill.`)
+        }
+    }
 
     // Arrow consumed; maybe recovered
     const recoveryChance = calculateArrowRecovery(success, level, animal.required_level)

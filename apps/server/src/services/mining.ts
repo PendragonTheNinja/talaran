@@ -9,6 +9,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { standsAt } from '../lib/whereabouts';
+import { doubleYield, doubledLine } from './buffs';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
@@ -37,6 +38,8 @@ export async function veinNode(locationId: number, oreItemId: number): Promise<a
 export interface MiningResult {
   success: boolean;
   itemName?: string;
+  /** Two when a double-yield provision fired, else one. */
+  quantity?: number;
   xpAwarded?: number;
   veinFound?: boolean;
   veinOreName?: string;
@@ -178,10 +181,13 @@ export async function processMiningRock(
       ? await db('items').where({ subtype: rockSubtype, type: 'rock' }).first()
       : null;
 
+    // A double-yield provision may make it two.
+    const rockTwice = rockItem ? await doubleYield(playerId, 'Mining') : null;
     if (rockItem) {
       // An atomic add (services/inventory.ts): the old read-then-insert let a
       // first rock of a kind collide on the one-stack-per-item rule.
-      await db.transaction((trx) => addItemToInventoryWithin(trx, playerId, rockItem.id, 1));
+      await db.transaction((trx) => addItemToInventoryWithin(trx, playerId, rockItem.id, rockTwice ? 2 : 1));
+      if (rockTwice) noteJewelry(db, playerId, doubledLine(rockTwice, rockItem.name));
     }
 
     await awardXp(playerId, miningSkill.id, node.xp_reward);
@@ -226,6 +232,7 @@ export async function processMiningRock(
     return {
       success: true,
       itemName: rockItem?.name || 'Rock',
+      quantity: rockTwice ? 2 : 1,
       xpAwarded: node.xp_reward,
       veinFound,
       veinOreName,
@@ -281,6 +288,7 @@ export async function processMiningVein(
     // read above and written back as that number minus one, and the ore added
     // with an unlocked read-then-write, so two players on a vein's last ore
     // both got it. Now the vein gives up an ore only while it still has one.
+    const oreTwice = await doubleYield(playerId, 'Mining');
     const newRemaining = await db.transaction(async (trx) => {
       const [left] = await trx('ore_veins')
         .where({ id: veinId, is_depleted: false })
@@ -291,9 +299,11 @@ export async function processMiningVein(
         })
         .returning('remaining_quantity');
       if (!left) return null;
-      await addItemToInventoryWithin(trx, playerId, oreItem.id, 1);
+      // A double-yield provision may make it two; the vein gives up only one.
+      await addItemToInventoryWithin(trx, playerId, oreItem.id, oreTwice ? 2 : 1);
       return Number(left.remaining_quantity);
     });
+    if (newRemaining !== null && oreTwice) noteJewelry(db, playerId, doubledLine(oreTwice, oreItem.name));
     if (newRemaining === null) return { success: false, error: 'This vein has been depleted' };
 
     // From the ore node's data, like every other gathering action. This was
@@ -353,6 +363,7 @@ export async function processMiningVein(
     return {
       success: true,
       itemName: oreItem.name,
+      quantity: oreTwice ? 2 : 1,
       xpAwarded: oreXp,
       drops,
     };

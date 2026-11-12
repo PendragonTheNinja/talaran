@@ -11,6 +11,7 @@ import { awardXp as awardSkillXp } from './xp';
 import { pushToPlayer } from '../lib/realtime';
 import { namesRefusal, cleanPublicText, FilterRefusal } from './wordFilter'
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { buffedSeconds, skillForWork } from './buffs';
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -100,6 +101,8 @@ async function busy(playerId: number): Promise<boolean> {
 
 async function startAction(playerId: number, type: string, seconds: number, locationId: number | null) {
     const now = new Date();
+    // The provision for the skill this work pays (audit 2026-11-09).
+    seconds = await buffedSeconds(playerId, skillForWork(type, 'Carpentry'), seconds);
     await db('player_actions').insert({
         player_id: playerId,
         action_type: type,
@@ -113,6 +116,7 @@ async function startAction(playerId: number, type: string, seconds: number, loca
         last_bot_check: now,
         bot_check_pending: false,
     });
+    return seconds;
 }
 
 // ── Lookup ──────────────────────────────────────────────────────────────────
@@ -193,8 +197,8 @@ export async function startEstablishShop(playerId: number): Promise<{ ok: boolea
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    await startAction(playerId, 'shop_establish', ESTABLISH_SECONDS, town.id);
-    return { ok: true, timerSeconds: ESTABLISH_SECONDS };
+    const started = await startAction(playerId, 'shop_establish', ESTABLISH_SECONDS, town.id);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveEstablishShop(playerId: number): Promise<ShopActionResult> {

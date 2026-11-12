@@ -6,6 +6,7 @@ import { getTimeWindow, getSeason, nextWindowChange, TimeWindow, Season } from '
 import { awardXp } from './xp';
 import { noteDeed } from './chronicle';
 import { jewelryAid, noteJewelry } from './jewelry';
+import { doubleYield, doubledLine } from './buffs';
 import { SERVER_ERROR } from '../lib/serviceResult';
 
 // Fishing (docs/fishing-spec.md). Closest sibling is services/foraging.ts: a
@@ -638,6 +639,9 @@ export async function processFishingCast(
 
         let out: FishingResult = { success: false };
 
+        // Rolled before the transaction: reading a buff can clear an expired one
+        // on the plain connection (rule 18). A double doubles a rod's fish.
+        const twice = await doubleYield(playerId, 'Fishing');
         await db.transaction(async (trx) => {
             // Bait is spent on a snap as well as a catch, so it is resolved first.
             let baitRemaining: number | null = null;
@@ -699,7 +703,8 @@ export async function processFishingCast(
             );
 
             const weightCw = rollWeightCw(picked.min_weight_cw, picked.max_weight_cw);
-            await addToInventory(trx, playerId, picked.item_name, 1);
+            await addToInventory(trx, playerId, picked.item_name, twice ? 2 : 1);
+            if (twice) noteJewelry(trx, playerId, doubledLine(twice, picked.item_name));
             await awardSkillXp(trx, playerId, 'Fishing', picked.xp);
 
             const firstDiscovery = await recordDiscovery(trx, playerId, picked.name);
@@ -709,7 +714,7 @@ export async function processFishingCast(
                 success: true,
                 snapped: false,
                 itemName: picked.item_name,
-                quantity: 1,
+                quantity: twice ? 2 : 1,
                 xp: picked.xp,
                 weightLb: cwToLb(weightCw),
                 newRecord: newHeaviest || newLightest,
@@ -718,7 +723,7 @@ export async function processFishingCast(
                 firstDiscovery,
                 baitRemaining: baitRemaining ?? undefined,
                 baitCategory: baited ? baitCategory : null,
-                drops: [{ name: picked.item_name, quantity: 1 }],
+                drops: [{ name: picked.item_name, quantity: twice ? 2 : 1 }],
             };
         });
 

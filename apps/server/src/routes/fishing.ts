@@ -16,6 +16,7 @@ import {
     BAIT_CATEGORIES,
 } from '../services/fishing';
 import { failureStatus } from '../lib/serviceResult';
+import { buffedSeconds } from '../services/buffs';
 
 const router = Router();
 
@@ -109,7 +110,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         // start should match the cast the player is about to get.
         const pouch = await getBaitPouch(playerId);
         const baited = bait !== '' && (pouch[bait] || 0) > 0;
-        const timerSeconds = rodTimer(level, tier, baited);
+        const timerSeconds = await buffedSeconds(playerId, 'Fishing', rodTimer(level, tier, baited));
 
         const now = new Date();
         const inserted = await insertAction({
@@ -149,7 +150,7 @@ router.post('/net/start', requireAuth, botCheckGate, async (req: AuthRequest, re
 
         const level = await playerLevelFor(playerId, 'Fishing');
         const tier = await equippedToolTier(playerId, 'fishing_net');
-        const timerSeconds = netTimer(level, tier);
+        const timerSeconds = await buffedSeconds(playerId, 'Fishing', netTimer(level, tier));
 
         const now = new Date();
         const inserted = await insertAction({
@@ -204,7 +205,7 @@ router.post('/cut', requireAuth, botCheckGate, async (req: AuthRequest, res: Res
         }
 
         const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-        const timerSeconds = cutBaitTimer();
+        const timerSeconds = await buffedSeconds(playerId, 'Fishing', cutBaitTimer());
 
         const now = new Date();
         const inserted = await insertAction({

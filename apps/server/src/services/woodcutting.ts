@@ -9,6 +9,8 @@ import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { levelTimerFactor } from '../lib/actionTimers';
 import { standsAt } from '../lib/whereabouts';
+import { doubleYield, doubledLine } from './buffs';
+import { noteJewelry } from './jewelry';
 
 const TOOL_TIER_PENALTY = 0.4;
 const MAX_TIER_DIFFERENCE = 3;
@@ -17,6 +19,8 @@ const LEVEL_QUALITY_SHIFT = 0.3;
 export interface WoodcuttingResult {
   success: boolean;
   itemName?: string;
+  /** Two when a double-yield provision fired, else one. */
+  quantity?: number;
   xpAwarded?: number;
   error?: string;
   drops?: SecondaryDrop[];
@@ -230,7 +234,10 @@ export async function processWoodcuttingAction(
     if (!logItem) return { success: false, error: 'Log item not found' };
 
     // Add log to inventory: one atomic upsert (rule 13; audit 2026-11-09, B9).
-    await addItemToInventory(playerId, logItem.id, 1);
+    // A double-yield provision may make it two.
+    const twice = await doubleYield(playerId, 'Woodcutting');
+    await addItemToInventory(playerId, logItem.id, twice ? 2 : 1);
+    if (twice) noteJewelry(db, playerId, doubledLine(twice, logItem.name));
 
     // Award XP
     await awardXp(playerId, woodcuttingSkill.id, node.xp_reward);
@@ -290,7 +297,7 @@ export async function processWoodcuttingAction(
     }
 
     logger.info(`Player ${playerId} chopped ${logItem.name} from ${node.name}`);
-    return { success: true, itemName: logItem.name, xpAwarded: node.xp_reward, drops };
+    return { success: true, itemName: logItem.name, quantity: twice ? 2 : 1, xpAwarded: node.xp_reward, drops };
 
   } catch (err) {
     logger.error(`Woodcutting error for player ${playerId}: ${err}`);

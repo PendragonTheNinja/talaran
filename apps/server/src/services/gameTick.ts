@@ -15,7 +15,7 @@ import {
   resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveGatherStep, resolveSlaughter, resolveSlaughterAll, resolveTame,
 } from './husbandry';
 import { levelFromXp, xpToNextLevel, xpForLevel } from './xp';
-import { buffTimerBonus } from './buffs';
+import { buffTimerBonus, buffedSeconds } from './buffs';
 import { processMiningRock, processMiningVein, checkVeinAnnouncements, veinNode } from './mining';
 import { smeltIngots, collectKiln, SMELT_RECIPES } from './smithing';
 import { processingTimerFor } from './recipes';
@@ -1326,6 +1326,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       }
 
       if (canRepeat) {
+        // A Fishing provision (or an all-skill one) on every cast after the first (audit 2026-11-09).
+        nextTimer = await buffedSeconds(action.player_id, 'Fishing', nextTimer);
         const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
         await db('player_actions').where({ id: action.id }).update({
           completes_at: nextCompletion,

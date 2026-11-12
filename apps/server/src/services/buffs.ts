@@ -155,6 +155,44 @@ export async function buffTimerBonus(playerId: number, skill?: string): Promise<
  * One place, so the recipe bench and the resource nodes cannot drift apart.
  * Rounded UP, never below one second when a buff is running at all.
  */
+/**
+ * An action's seconds with the player's provision taken off, for the skill the
+ * action pays. Fishing, farming and husbandry never asked, so the Fisherman's
+ * Stew, the Ploughman's Lunch and the Drover's Pottage did nothing at all, and
+ * the all-skill tisanes skipped those skills (audit 2026-11-09). Never below a
+ * second, and always at least a second off while a matching buff is on.
+ */
+export async function buffedSeconds(playerId: number, skill: string, seconds: number): Promise<number> {
+    const pct = await buffTimerBonus(playerId, skill)
+    if (pct <= 0) return seconds
+    return Math.max(1, seconds - timerCut(seconds, pct))
+}
+
+/**
+ * Whether this action's main yield comes twice: the provision's name when a
+ * double-yield buff for this skill (or for every skill) fires, else null. The
+ * caller adds the second one and says so on the card. The buff used to reach
+ * only the rare bonus drops (rollSecondaryDrops), never the log, the ore, the
+ * forage find or the hunt itself, so the Poacher's Supper did nothing and the
+ * Lavender Tisane never doubled anything a player was watching for (audit
+ * 2026-11-09). Bonus drops still double as before.
+ */
+export async function doubleYield(playerId: number, skill: string): Promise<string | null> {
+    const buff = await activeBuff(playerId)
+    if (!appliesTo(buff, EFFECTS.DOUBLE, skill)) return null
+    return Math.random() * 100 < buff!.magnitude ? buff!.sourceItem : null
+}
+
+/** The line a provision puts on the result card when it doubled a yield. */
+export function doubledLine(source: string, what: string): string {
+    return `Your ${source} doubled it: a second ${what}.`
+}
+
+/** The skill a farm, pen or shop action pays: building is Carpentry (CLAUDE.md §2 Property). */
+export function skillForWork(actionType: string, otherwise: string): string {
+    return /(_establish|_build_plot|_build_pen|_demolish_pen)$/.test(actionType) ? 'Carpentry' : otherwise
+}
+
 export function timerCut(seconds: number, percent: number): number {
     if (percent <= 0 || seconds <= 0) return 0
     return Math.max(1, Math.ceil(seconds * percent / 100))

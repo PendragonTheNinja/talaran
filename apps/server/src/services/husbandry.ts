@@ -14,6 +14,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { afterCommit } from '../lib/afterCommit';
 import { noteDeed } from './chronicle';
 import { lockReservoir, spendTalarWithin, HUNDREDTHS } from './talar';
+import { buffedSeconds, skillForWork } from './buffs';
 
 // Husbandry (docs/husbandry-design.md). Pens are raised on the Novita farmstead
 // beside the fields, then stocked with animals found in the wild: feed → collect
@@ -242,6 +243,8 @@ async function busy(playerId: number): Promise<boolean> {
 
 async function startAction(playerId: number, type: string, seconds: number, data: string | null, locationId: number | null) {
     const now = new Date();
+    // The provision for the skill this work pays (audit 2026-11-09).
+    seconds = await buffedSeconds(playerId, skillForWork(type, 'Husbandry'), seconds);
     await db('player_actions').insert({
         player_id: playerId,
         action_type: type,
@@ -1097,8 +1100,8 @@ export async function startBuildPen(playerId: number, penType: string): Promise<
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    await startAction(playerId, 'husbandry_build_pen', BUILD_PEN_SECONDS, penType, novita?.id ?? null);
-    return { ok: true, timerSeconds: BUILD_PEN_SECONDS };
+    const started = await startAction(playerId, 'husbandry_build_pen', BUILD_PEN_SECONDS, penType, novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveBuildPen(playerId: number, penTypeRaw: string | null): Promise<HusbandryActionResult> {
@@ -1222,8 +1225,8 @@ export async function startDemolishPen(
 
     const { novita } = await playerProperty(playerId);
     const data = occupied && isApiary(pen.pen_type) ? `${penId}:${disposition}` : String(penId);
-    await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, data, novita?.id ?? null);
-    return { ok: true, timerSeconds: DEMOLISH_SECONDS };
+    const started = await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, data, novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveDemolishPen(playerId: number, penIdRaw: string | null): Promise<HusbandryActionResult> {
@@ -1458,8 +1461,8 @@ export async function startFeed(playerId: number, penId: number): Promise<{ ok: 
 
     const { novita } = await playerProperty(playerId);
     const seconds = Math.max(5, animals.length * FEED_SECONDS_PER_HEAD);
-    await startAction(playerId, 'husbandry_feed', seconds, String(penId), novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'husbandry_feed', seconds, String(penId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveFeed(playerId: number, penIdRaw: string | null): Promise<HusbandryActionResult> {
@@ -1639,8 +1642,8 @@ export async function startFeedAll(playerId: number): Promise<{ ok: boolean; err
 
     const { novita } = await playerProperty(playerId);
     const seconds = feedRoundSeconds(head);
-    await startAction(playerId, 'husbandry_feed_all', seconds, null, novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'husbandry_feed_all', seconds, null, novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveFeedAll(playerId: number): Promise<HusbandryActionResult> {
@@ -1728,8 +1731,8 @@ export async function startMuckAll(playerId: number): Promise<{ ok: boolean; err
 
     const { novita } = await playerProperty(playerId);
     const seconds = muckRoundSeconds(pens.length);
-    await startAction(playerId, 'husbandry_muck_all', seconds, null, novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'husbandry_muck_all', seconds, null, novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveMuckAll(playerId: number): Promise<HusbandryActionResult> {
@@ -1822,8 +1825,8 @@ export async function startMuck(playerId: number, penId: number): Promise<{ ok: 
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'husbandry_muck', MUCK_SECONDS, String(penId), novita?.id ?? null);
-    return { ok: true, timerSeconds: MUCK_SECONDS };
+    const started = await startAction(playerId, 'husbandry_muck', MUCK_SECONDS, String(penId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveMuck(playerId: number, penIdRaw: string | null): Promise<HusbandryActionResult> {
@@ -1995,8 +1998,8 @@ export async function startCollect(playerId: number, animalId: number): Promise<
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'husbandry_collect', COLLECT_SECONDS, String(animalId), novita?.id ?? null);
-    return { ok: true, timerSeconds: COLLECT_SECONDS };
+    const started = await startAction(playerId, 'husbandry_collect', COLLECT_SECONDS, String(animalId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveCollect(playerId: number, animalIdRaw: string | null): Promise<HusbandryActionResult> {
@@ -2114,8 +2117,8 @@ export async function startCollectAll(playerId: number, penId: number): Promise<
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'husbandry_collect_all', plan.seconds, String(penId), novita?.id ?? null);
-    return { ok: true, timerSeconds: plan.seconds };
+    const started = await startAction(playerId, 'husbandry_collect_all', plan.seconds, String(penId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 /**
@@ -2142,8 +2145,8 @@ export async function startGatherAllPens(playerId: number): Promise<{ ok: boolea
     if (!ready.length) return { ok: false, error: skipped[0] ?? 'Nothing is ready yet.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    await startAction(playerId, 'husbandry_collect_all', ready[0].seconds, ready.map(p => p.id).join(','), novita.id);
-    return { ok: true, timerSeconds: ready[0].seconds, skipped };
+    const started = await startAction(playerId, 'husbandry_collect_all', ready[0].seconds, ready.map(p => p.id).join(','), novita.id);
+    return { ok: true, timerSeconds: started, skipped };
 }
 
 /** Whether one pen can be gathered from now, and how long it takes. */
@@ -2192,7 +2195,7 @@ export async function resolveGatherStep(playerId: number, penIdsRaw: string | nu
     }
     if (!waiting.length) return { result, next: null };
     result.message = `${result.message ? `${result.message} ` : ''}${waiting.length} pen${waiting.length === 1 ? '' : 's'} still to gather.`;
-    return { result, next: { seconds: waiting[0].seconds, actionData: waiting.map(p => p.id).join(',') } };
+    return { result, next: { seconds: await buffedSeconds(playerId, 'Husbandry', waiting[0].seconds), actionData: waiting.map(p => p.id).join(',') } };
 }
 
 /** Scales with the work, but sub-linearly — a full pen should beat six singles. */
@@ -2303,8 +2306,8 @@ export async function startSlaughter(playerId: number, animalId: number): Promis
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'husbandry_slaughter', SLAUGHTER_SECONDS, String(animalId), novita?.id ?? null);
-    return { ok: true, timerSeconds: SLAUGHTER_SECONDS };
+    const started = await startAction(playerId, 'husbandry_slaughter', SLAUGHTER_SECONDS, String(animalId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveSlaughter(playerId: number, animalIdRaw: string | null): Promise<HusbandryActionResult> {
@@ -2393,8 +2396,8 @@ export async function startSlaughterAll(playerId: number, penId: number): Promis
 
     const { novita } = await playerProperty(playerId);
     const seconds = slaughterAllSeconds(grown.length);
-    await startAction(playerId, 'husbandry_slaughter_all', seconds, String(penId), novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'husbandry_slaughter_all', seconds, String(penId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 function slaughterAllSeconds(count: number): number {
@@ -2488,8 +2491,8 @@ export async function startTame(playerId: number, animalId: number): Promise<{ o
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'husbandry_tame', TAME_SECONDS, String(animalId), novita?.id ?? null);
-    return { ok: true, timerSeconds: TAME_SECONDS };
+    const started = await startAction(playerId, 'husbandry_tame', TAME_SECONDS, String(animalId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveTame(playerId: number, animalIdRaw: string | null): Promise<HusbandryActionResult> {

@@ -6,7 +6,8 @@ import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { standsAt } from '../lib/whereabouts';
 import { levelTimerFactor } from '../lib/actionTimers';
-import { timerCut } from './buffs';
+import { buffRareBonus, doubleYield, timerCut } from './buffs';
+import { noteJewelry } from './jewelry';
 import { addItemToInventory } from './inventory';
 
 // Exploration XP for the first time a player pulls a given item from a given
@@ -175,15 +176,25 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         const pool = table.filter(e => !e.requiresGloves || hasGloves);
         if (pool.length === 0) return { success: false, error: 'You need foraging gloves to gather here.' };
 
-        const pick = weightedPick(pool);
+        // A better-finds provision raises the rare finds' share, as a percent
+        // of their own weight (EFFECTS.RARE), the rule bonus drops use. The
+        // forage roll never asked, so the Dandelion Cordial and the Hedgerow
+        // Basket did nothing (audit 2026-11-09).
+        const rareMult = 1 + Math.max(0, await buffRareBonus(playerId, 'Foraging')) / 100;
+        const pick = weightedPick(rareMult > 1
+            ? pool.map(e => (e.notable ? { ...e, weight: e.weight * rareMult } : e))
+            : pool);
         let qty = randInt(pick.min, pick.max);
         if (hasBasket) qty += 1;   // slight, reliable yield nudge
+        const twice = await doubleYield(playerId, 'Foraging');
+        if (twice) qty *= 2;
 
         const item = await db('items').where({ name: pick.itemName }).first();
         if (!item) return { success: false, error: `Foraged item missing: ${pick.itemName}` };
 
         // One atomic upsert (rule 13; audit B9).
         await addItemToInventory(playerId, item.id, qty);
+        if (twice) noteJewelry(db, playerId, `Your ${twice} doubled the find: ${qty} ${item.name}.`);
 
         await awardXp(playerId, foragingSkill.id, pick.xp);
 

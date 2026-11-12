@@ -9,6 +9,7 @@ import { addItemToInventory, takeItemsWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { noteDeed } from './chronicle';
+import { buffedSeconds, skillForWork } from './buffs';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -284,6 +285,8 @@ async function busy(playerId: number): Promise<boolean> {
 
 async function startAction(playerId: number, type: string, seconds: number, data: string | null, locationId: number | null) {
     const now = new Date();
+    // The provision for the skill this work pays (audit 2026-11-09).
+    seconds = await buffedSeconds(playerId, skillForWork(type, 'Farming'), seconds);
     await db('player_actions').insert({
         player_id: playerId,
         action_type: type,
@@ -444,8 +447,8 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    await startAction(playerId, 'farm_establish', ESTABLISH_SECONDS, null, novita.id);
-    return { ok: true, timerSeconds: ESTABLISH_SECONDS };
+    const started = await startAction(playerId, 'farm_establish', ESTABLISH_SECONDS, null, novita.id);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
@@ -477,8 +480,8 @@ export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; e
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    await startAction(playerId, 'farm_build_plot', BUILD_PLOT_SECONDS, null, novita.id);
-    return { ok: true, timerSeconds: BUILD_PLOT_SECONDS };
+    const started = await startAction(playerId, 'farm_build_plot', BUILD_PLOT_SECONDS, null, novita.id);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function startTill(playerId: number, plotId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
@@ -489,8 +492,8 @@ export async function startTill(playerId: number, plotId: number): Promise<{ ok:
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'farm_till', TILL_SECONDS, String(plotId), novita?.id ?? null);
-    return { ok: true, timerSeconds: TILL_SECONDS };
+    const started = await startAction(playerId, 'farm_till', TILL_SECONDS, String(plotId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function startSow(playerId: number, plotId: number, cropId: number, seedCount: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
@@ -517,8 +520,8 @@ export async function startSow(playerId: number, plotId: number, cropId: number,
 
     const seconds = count * SOW_SECONDS_PER_SEED;
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'farm_sow', seconds, JSON.stringify({ p: plotId, c: cropId, n: count }), novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'farm_sow', seconds, JSON.stringify({ p: plotId, c: cropId, n: count }), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function startHarvest(playerId: number, plotId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
@@ -530,8 +533,8 @@ export async function startHarvest(playerId: number, plotId: number): Promise<{ 
 
     const seconds = Math.max(1, plot.seed_count) * HARVEST_SECONDS_PER_SEED;
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'farm_harvest', seconds, String(plotId), novita?.id ?? null);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'farm_harvest', seconds, String(plotId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 // ── uproot ──────────────────────────────────────────────────────────────────
@@ -559,8 +562,8 @@ export async function startUproot(playerId: number, plotId: number): Promise<{ o
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'farm_uproot', UPROOT_SECONDS, String(plotId), novita?.id ?? null);
-    return { ok: true, timerSeconds: UPROOT_SECONDS };
+    const started = await startAction(playerId, 'farm_uproot', UPROOT_SECONDS, String(plotId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveUproot(playerId: number, plotIdRaw: string | null): Promise<FarmActionResult> {
@@ -618,8 +621,8 @@ export async function startTend(playerId: number): Promise<{ ok: boolean; error?
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const seconds = plots.length * TEND_SECONDS_PER_PLOT;
-    await startAction(playerId, 'farm_tend', seconds, null, novita.id);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'farm_tend', seconds, null, novita.id);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveTend(playerId: number): Promise<FarmActionResult> {
@@ -671,8 +674,8 @@ export async function startManure(playerId: number, plotId: number): Promise<{ o
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { novita } = await playerProperty(playerId);
-    await startAction(playerId, 'farm_manure', MANURE_SECONDS, String(plotId), novita?.id ?? null);
-    return { ok: true, timerSeconds: MANURE_SECONDS };
+    const started = await startAction(playerId, 'farm_manure', MANURE_SECONDS, String(plotId), novita?.id ?? null);
+    return { ok: true, timerSeconds: started };
 }
 
 export async function resolveManure(playerId: number, plotIdRaw: string | null): Promise<FarmActionResult> {
@@ -1038,8 +1041,8 @@ export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; 
     // added, or its seconds would never have been spent.
     const seconds = Math.max(1, ripe[0].seed_count) * HARVEST_SECONDS_PER_SEED;
     const plotIds = ripe.map((p: any) => p.id).join(',');
-    await startAction(playerId, 'farm_harvest_all', seconds, plotIds, novita.id);
-    return { ok: true, timerSeconds: seconds };
+    const started = await startAction(playerId, 'farm_harvest_all', seconds, plotIds, novita.id);
+    return { ok: true, timerSeconds: started };
 }
 
 /** One step of a chain of farm work: what this step paid, and the next step, if any. */
@@ -1074,6 +1077,9 @@ export async function resolveHarvestStep(playerId: number, plotIdsRaw: string | 
     result.message = `${result.message ? `${result.message} ` : ''}${waiting.length} field${waiting.length === 1 ? '' : 's'} still to bring in.`;
     return {
         result,
-        next: { seconds: Math.max(1, waiting[0].seed_count) * HARVEST_SECONDS_PER_SEED, actionData: waiting.map((p) => p.id).join(',') },
+        next: {
+            seconds: await buffedSeconds(playerId, 'Farming', Math.max(1, waiting[0].seed_count) * HARVEST_SECONDS_PER_SEED),
+            actionData: waiting.map((p) => p.id).join(','),
+        },
     };
 }
