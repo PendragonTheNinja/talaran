@@ -23,7 +23,7 @@ Animals live in pens, and pens are joinery, the same fencing and nails your fiel
 
 Your **Husbandry level** decides how many pens you may keep. One to begin with, another every three levels, to a ceiling of twelve. Your Farming level does the same for fields, and the two counts do not interfere.
 
-The first pen teaches you all that its animals' milk, eggs, and honey are worth. Each pen after teaches a little less, as fields do, and the pens list says how much. The work of feeding, mucking, and collecting is paid in full in every pen, and no animal gives a drop less for being in the twelfth.
+Your pens are ranked by what their grown animals give. The pen whose milk, eggs, or honey teaches the most comes first and teaches you all of it; the next teaches a little less, and so on, as fields do, and the pens list says how much. You never have to arrange them. Young animals give nothing yet, so a pen of them waits at the back until they grow. The work of feeding, mucking, and collecting is paid in full in every pen, and no animal gives a drop less for being in the twelfth.
 
 ## The wheel
 

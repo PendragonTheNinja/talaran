@@ -1,5 +1,9 @@
 // Diminishing XP by field and pen (Nathan, 2026-11-13; audit 2026-11-09).
 //
+// Fields go by their number on the farmstead. Pens go by what their grown
+// animals produce, best first (penRanks in services/husbandry.ts), since pens
+// hold different kinds and cannot be laid out like fields (Nathan, 2026-11-13).
+//
 // Fields and pens multiply twenty- and twelve-fold with level while the XP
 // band grows about four-fold, and every one paid alike, so a full farmstead
 // earned more than a whole active day besides whatever its owner did (about

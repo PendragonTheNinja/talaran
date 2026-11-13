@@ -1,7 +1,7 @@
 import type { Knex } from 'knex';
 import db from '../db';
 import { logger } from '../lib/logger';
-import { holdingShare, holdingRank } from '../lib/holdingShare';
+import { holdingShare } from '../lib/holdingShare';
 import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { notifyInventoryChanged, addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
@@ -546,6 +546,47 @@ function taperedXp(level: number, species: any, column: 'xp_product' | 'xp_matur
     return Math.max(1, Math.round(stored * levelTaper(Number(species.husbandry_level) || 1, level)));
 }
 
+/**
+ * Each pen's place on the farmstead for its share of produce XP
+ * (lib/holdingShare.ts), best producers first (Nathan, 2026-11-13). A pen's
+ * worth is what its grown animals' produce teaches an hour, from the animals
+ * alone: species, stage, and the player's level. Never from feeding, mucking,
+ * or an apiary's flowers, which can be switched at will: a pen let go hungry
+ * would drop below the next, have that one collected in full, and be fed
+ * again. Young produce nothing and count nothing. Ties, and pens worth
+ * nothing, go by pen number. So the only way to move a pen up is to have
+ * fewer good animals in the pens above it. Returns pen id to 0-based place.
+ */
+async function penRanks(x: Ex, propertyId: number, level: number): Promise<Map<number, number>> {
+    const pens = await x('player_pens').where({ property_id: propertyId }).orderBy('slot_index', 'asc').select('id', 'slot_index');
+    const animals = pens.length
+        ? await x('player_animals').whereIn('pen_id', pens.map((p: any) => p.id)).select('pen_id', 'species_id', 'grow_seconds_accrued')
+        : [];
+    const speciesIds = [...new Set(animals.map((a: any) => Number(a.species_id)))];
+    const species = new Map<number, any>(speciesIds.length
+        ? (await x('animal_species').whereIn('id', speciesIds)).map((sp: any) => [Number(sp.id), sp])
+        : []);
+    const worth = new Map<number, number>(pens.map((p: any) => [Number(p.id), 0]));
+    for (const a of animals) {
+        const sp = species.get(Number(a.species_id));
+        if (!sp?.product_item_name || !(Number(sp.product_seconds) > 0)) continue;
+        const stage = stageOf(a, sp);
+        if (stage === 'juvenile') continue;
+        const seconds = Number(sp.product_seconds) * (stage === 'elder' ? Number(sp.elder_time_multiplier) || 1 : 1);
+        const perHour = taperedXp(level, sp, 'xp_product') * (Number(sp.product_chance ?? 100) / 100) * 3600 / seconds;
+        worth.set(Number(a.pen_id), (worth.get(Number(a.pen_id)) ?? 0) + perHour);
+    }
+    const order = [...pens].sort((p: any, q: any) =>
+        (worth.get(Number(q.id))! - worth.get(Number(p.id))!) || (Number(p.slot_index) - Number(q.slot_index)));
+    return new Map(order.map((p: any, i: number) => [Number(p.id), i]));
+}
+
+/** One pen's share of its produce XP, by its place (penRanks). */
+async function penShare(x: Ex, pen: { id: number; property_id: number }, level: number): Promise<number> {
+    const ranks = await penRanks(x, Number(pen.property_id), level);
+    return holdingShare(ranks.get(Number(pen.id)) ?? 0);
+}
+
 function lifeFraction(animal: any, species: any): number {
     const full = species.grow_seconds + species.elder_seconds;
     return Math.min(1, animal.grow_seconds_accrued / Math.max(1, full));
@@ -1026,8 +1067,9 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
         const muckDue = pen.muck_due_at ? new Date(pen.muck_due_at).getTime() : 0;
         pens.push({
             id: pen.id, slotIndex: pen.slot_index, penType: pen.pen_type,
-            // What this pen's produce teaches, by its place (lib/holdingShare.ts).
-            xpShare: Math.round(100 * holdingShare(penRows.indexOf(pen))),
+            // What this pen's produce teaches, by its place (penRanks), set
+            // once every pen's animals are brought up to date, below.
+            xpShare: 100,
             // Apiaries only. Everything else reports an empty list and the
             // client never draws the strip.
             flowers: pen.pen_type === 'apiary' ? await penFlowers(pen.id) : [],
@@ -1061,6 +1103,10 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
     }
 
     const nextPen = pens.length + 1;
+    // Best producers first (penRanks), once growing up has been settled above.
+    const ranks = await penRanks(db, property.id, husbandryLvl);
+    for (const p of pens as any[]) p.xpShare = Math.round(100 * holdingShare(ranks.get(Number(p.id)) ?? 0));
+
     return {
         ...base,
         hasFarmstead: true,
@@ -2072,7 +2118,7 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
             }
             const collectLvl = await skillLevel(playerId, 'Husbandry', trx);
             // The produce's XP shared by the pen's place (lib/holdingShare.ts); the work in full.
-            xp = Math.round(taperedXp(collectLvl, species, 'xp_product') * hits * (pen ? holdingShare(await holdingRank(trx, 'player_pens', pen)) : 1))
+            xp = Math.round(taperedXp(collectLvl, species, 'xp_product') * hits * (pen ? await penShare(trx, pen, collectLvl) : 1))
                 + activeXp;
             await awardXp(playerId, 'Husbandry', xp, trx);
             afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'collect', productItem, qty));
@@ -2253,7 +2299,7 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
 
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
             // The produce's XP shared by the pen's place (lib/holdingShare.ts); the work in full.
-            xp = Math.round(taperedXp(lvl, species, 'xp_product') * hits * holdingShare(await holdingRank(trx, 'player_pens', pen)))
+            xp = Math.round(taperedXp(lvl, species, 'xp_product') * hits * await penShare(trx, pen, lvl))
                 + activeXpForSeconds(lvl, collectAllSeconds(totalUnits));
 
             if (hits > 0) {
