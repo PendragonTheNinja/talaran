@@ -21,6 +21,8 @@ interface CropDef {
 }
 interface Plot {
     id: number; slotIndex: number; state: string; soilState: string
+    /** Percent of a crop's XP this field teaches, by its place (server lib/holdingShare.ts). */
+    xpShare?: number
     crop: { id: number; name: string; isPerennial: boolean } | null
     seedCount: number; readyAt: string | null; secondsRemaining: number | null
     yieldModifier?: number; restingSecondsToNextStep?: number | null; tended?: boolean
@@ -261,6 +263,11 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                 <div key={p.id} className={`farm-plot state-${p.state}`}>
                                     <div className="farm-plot-head">
                                         Plot {p.slotIndex + 1}
+                                        {p.xpShare !== undefined && p.xpShare < 100 && (
+                                            <span className="holding-share" title="Each field after the first teaches a smaller share of its crop's XP. The work of planting and harvesting pays in full, and the crop is never smaller.">
+                                                {p.xpShare}% XP
+                                            </span>
+                                        )}
                                         <span className={`farm-soil soil-${p.soilState}`}>
                                             {SOIL_LABEL[p.soilState] || p.soilState}
                                             {p.yieldModifier && p.yieldModifier !== 1
@@ -294,7 +301,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                             >
                                                 {unlockedCrops.map(c => (
                                                     <option key={c.id} value={c.id}>
-                                                        {c.name} ({c.seedsHeld}){c.xpPerSeed ? ` · ${c.xpPerSeed} XP/seed` : ''}
+                                                        {c.name} ({c.seedsHeld}){c.xpPerSeed ? ` · ${Math.max(1, Math.round(c.xpPerSeed * (p.xpShare ?? 100) / 100))} XP/seed` : ''}
                                                     </option>
                                                 ))}
                                             </select>

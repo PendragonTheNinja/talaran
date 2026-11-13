@@ -777,6 +777,14 @@ body {
 }
 
 /* Geomima's mealtime fire: her hearth at full speed (server lib/keeperFires.ts). */
+/* A field's or pen's share of its XP (server lib/holdingShare.ts). */
+.holding-share {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--color-text-muted);
+}
+
 .station-tag.lit {
   color: var(--color-xp);
 }

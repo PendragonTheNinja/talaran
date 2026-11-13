@@ -18,6 +18,8 @@ interface AnimalCard {
 interface PenFlower { slotIndex: number; itemName: string }
 interface Pen {
     id: number; slotIndex: number; penType: string
+    /** Percent of its produce's XP this pen teaches, by its place (server lib/holdingShare.ts). */
+    xpShare?: number
     /** Apiaries only; every other pen sends an empty list. */
     flowers?: PenFlower[]; flowerSlots?: number
     hiveRate?: { seasonPct: number; flowerPct: number; totalPct: number } | null
@@ -315,6 +317,11 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                                     demolition it drifts: a first pen could read "Pen 2". */}
                                 Pen {penOrdinal + 1}: {PEN_LABEL[pen.penType] ?? 'Pen'}
                                 {pen.species && <span className="animal-pen-species"> · {pen.species}</span>}
+                                {pen.xpShare !== undefined && pen.xpShare < 100 && (
+                                    <span className="holding-share" title="Each pen after the first teaches a smaller share of what its animals give. The work pays in full, and the yield is never smaller.">
+                                        {pen.xpShare}% XP
+                                    </span>
+                                )}
                             </span>
                             <span className="animal-pen-count">
                                 {/* Bees cannot be moved out first, so an occupied

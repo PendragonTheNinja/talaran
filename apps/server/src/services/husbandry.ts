@@ -1,6 +1,7 @@
 import type { Knex } from 'knex';
 import db from '../db';
 import { logger } from '../lib/logger';
+import { holdingShare, holdingRank } from '../lib/holdingShare';
 import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { notifyInventoryChanged, addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
@@ -1025,6 +1026,8 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
         const muckDue = pen.muck_due_at ? new Date(pen.muck_due_at).getTime() : 0;
         pens.push({
             id: pen.id, slotIndex: pen.slot_index, penType: pen.pen_type,
+            // What this pen's produce teaches, by its place (lib/holdingShare.ts).
+            xpShare: Math.round(100 * holdingShare(penRows.indexOf(pen))),
             // Apiaries only. Everything else reports an empty list and the
             // client never draws the strip.
             flowers: pen.pen_type === 'apiary' ? await penFlowers(pen.id) : [],
@@ -2068,7 +2071,8 @@ export async function resolveCollect(playerId: number, animalIdRaw: string | nul
                 await giveItem(playerId, productItem, qty, trx);
             }
             const collectLvl = await skillLevel(playerId, 'Husbandry', trx);
-            xp = taperedXp(collectLvl, species, 'xp_product') * hits
+            // The produce's XP shared by the pen's place (lib/holdingShare.ts); the work in full.
+            xp = Math.round(taperedXp(collectLvl, species, 'xp_product') * hits * (pen ? holdingShare(await holdingRank(trx, 'player_pens', pen)) : 1))
                 + activeXp;
             await awardXp(playerId, 'Husbandry', xp, trx);
             afterCommit(trx, () => updateQuestObjectiveProgress(playerId, 'collect', productItem, qty));
@@ -2248,7 +2252,8 @@ export async function resolveCollectAll(playerId: number, penIdRaw: string | nul
             if (totalUnits < 1) throw new Error('NOT_READY');
 
             const lvl = await skillLevel(playerId, 'Husbandry', trx);
-            xp = taperedXp(lvl, species, 'xp_product') * hits
+            // The produce's XP shared by the pen's place (lib/holdingShare.ts); the work in full.
+            xp = Math.round(taperedXp(lvl, species, 'xp_product') * hits * holdingShare(await holdingRank(trx, 'player_pens', pen)))
                 + activeXpForSeconds(lvl, collectAllSeconds(totalUnits));
 
             if (hits > 0) {

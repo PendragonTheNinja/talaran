@@ -9,7 +9,8 @@ import { addItemToInventory, takeItemsWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { noteDeed } from './chronicle';
-import { buffedSeconds, skillForWork } from './buffs';
+import { buffedSeconds, skillForWork } from './buffs'
+import { holdingShare, holdingRank } from '../lib/holdingShare';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -181,10 +182,13 @@ async function itemByName(name: string) {
  * of the crop ladder rather than a wall.
  *
  * Considered and rejected on the way here, so nobody has to re-derive it: a
- * band-anchored payout divided by plot count (correct maths, but it has to pay
- * "less per field as you build more" and reads as dishonest); a daily XP
- * allowance (it works, and players hate a cap); pricing the wait against work
- * seconds (makes a 20-hour crop pay less per hour waited than a 12-hour one).
+ * daily XP allowance (it works, and players hate a cap); pricing the wait
+ * against work seconds (makes a 20-hour crop pay less per hour waited than a
+ * 12-hour one). A payout divided by plot count was rejected here too, as
+ * reading dishonest, until the plot count proved to be the problem: a full
+ * farm earned more than a whole active day (Nathan, 2026-11-13). It is now a
+ * fixed share per field by its place (lib/holdingShare.ts), shown on each
+ * field, rather than one divisor that shifts with what is planted.
  */
 // The taper itself lives in services/xp.ts, shared with Husbandry.
 export const PERENNIAL_REGROWTH_SHARE = 0.2;
@@ -399,12 +403,14 @@ export async function getFarmState(playerId: number) {
     const manureHeld = await inventoryQty(playerId, 'Manure');
     const bucketHeld = await inventoryQty(playerId, 'Lanai Bucket');
     const missingBuild = (await missingBuildTool(playerId))?.itemName ?? null;
-    const plotView = plots.map(p => {
+    const plotView = plots.map((p, rank) => {
         const crop = crops.find(c => c.id === p.crop_id) || null;
         const readyAt = p.ready_at ? new Date(p.ready_at).getTime() : null;
         const isReady = p.state === 'growing' && readyAt !== null && now >= readyAt;
         return {
             id: p.id, slotIndex: p.slot_index,
+            // What a crop here teaches, by the field's place (lib/holdingShare.ts).
+            xpShare: Math.round(100 * holdingShare(rank)),
             state: isReady ? 'ready' : p.state,
             soilState: p.soil_state,
             crop: crop ? { id: crop.id, name: crop.name, isPerennial: !!crop.is_perennial } : null,
@@ -941,9 +947,14 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
     const scytheExtra = scythe ? Math.max(1, Math.round(byHand * SCYTHE_YIELD_SHARE)) : 0;
     const yieldQty = byHand + scytheExtra;
 
-    // Per-seed XP for the crop, plus active pay for the digging.
+    // Per-seed XP for the crop, shared by the field's place on the farm
+    // (lib/holdingShare.ts), plus active pay for the digging in full. A
+    // perennial's regrowth already pays a flat PERENNIAL_REGROWTH_SHARE and
+    // takes no further share; its first harvest, which used a seed, does.
     const activeXp = activeXpForSeconds(level, plot.seed_count * HARVEST_SECONDS_PER_SEED);
-    const xp = harvestSeedXp(level, crop, plot.seed_count, Number(plot.harvests_since_sow) || 0)
+    const regrowth = !!crop.is_perennial && Number(plot.harvests_since_sow) > 0;
+    const share = regrowth ? 1 : holdingShare(await holdingRank(db, 'farm_plots', plot));
+    const xp = Math.max(1, Math.round(harvestSeedXp(level, crop, plot.seed_count, Number(plot.harvests_since_sow) || 0) * share))
         + activeXp;
 
     await giveItem(playerId, crop.produce_item_name, yieldQty);

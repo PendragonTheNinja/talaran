@@ -41,6 +41,14 @@ A hungry crop drags the soil down a step when you pull it. Legumes lift it, bein
 
 Rich soil is worth about a quarter again over ordinary. Depleted costs you nearly half. Neither is worth a moment's panic.
 
+Pull up a strawberry bed or a raspberry row and the soil pays for it after all. Roots that have held a field for seasons tear it as they come out, and it drops a step.
+
+## What a field teaches
+
+Your first field teaches you the whole of what its crop is worth. The second teaches a little less, and each one after a little less again, though never nothing. The farm screen marks each field with its share.
+
+This is not meanness. A man with twenty fields does not learn twenty times what a man with one does; he learns to keep twenty fields, which is a smaller lesson than it sounds. The digging, the sowing and the harvest are paid in full on every field, and the crop is never smaller. More fields are more food, more seed and more experience. Just not twenty times more.
+
 ## Tending
 
 Tend a field with a bucket and you shave a tenth off whatever growing time remains. Fifteen seconds a field, and across a large farmstead it accumulates into something that looks almost like cleverness.
