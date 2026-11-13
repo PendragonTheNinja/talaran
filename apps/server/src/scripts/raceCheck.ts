@@ -1924,6 +1924,24 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'open', name: 'open the last two nests five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/containers.ts resolveOpen takes the container under its
+            // stack's lock (takeItemsWithin) and pays XP in the same
+            // transaction; what is inside rolls only once that has committed.
+            // Two nests, five openings: two open, three find none left.
+            const w = await world(ctx);
+            const nest = await ctx.seed.row('items', { name: 'Racecheck Nest', type: 'collectible', subtype: 'container' });
+            await ctx.seed.row('container_types', { item_id: nest.id, key: 'racecheck_nest', skill: 'Woodcutting', timer_seconds: 10, xp: 8 });
+            await ctx.seed.row('player_inventory', { player_id: w.player.id, item_id: nest.id, quantity: 2 });
+            const { resolveOpen } = await import('../services/containers');
+            const results = await Promise.all([1, 2, 3, 4, 5].map(() => resolveOpen(w.player.id, String(nest.id))));
+            const opened = results.filter(r => r.success).length;
+            if (results.some(r => !r.success && r.error === 'Server error')) return 'an opening failed with a server error';
+            return changed('nests opened', 2, opened) ?? changed('nests left', 0, await ctx.itemTotal(nest.id));
+        },
+    },
+    {
         id: 'luck', name: 'five kills one short of a rare drop\'s mark land at once', rounds: 10,
         run: async (ctx) => {
             // services/drops.ts badLuckRoll: each miss adds one to the player's

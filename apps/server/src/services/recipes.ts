@@ -573,6 +573,15 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             ? `Player ${playerId} burnt ${recipe.output_item_name} (${recipe.name})`
             : `Player ${playerId} crafted ${recipe.output_qty}x ${recipe.output_item_name} (${recipe.name})`)
 
+        // Finds in the making (drop_table_entries under 'recipe:<name>',
+        // migration 20261113100000): a pearl in a pot of mussels. Rolled once
+        // the craft has committed, never for a ruined one.
+        let finds: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[] = []
+        if (!burnt) {
+            const { rollSecondaryDrops } = await import('./drops')
+            finds = await rollSecondaryDrops(playerId, `recipe:${recipe.name}`, recipe.skill)
+        }
+
         const remaining = await inputsRemaining(playerId, inputs)
         const totalRow = outputItem
             ? await db('player_inventory').where({ player_id: playerId, item_id: outputItem.id }).first()
@@ -588,8 +597,8 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             ingredientsRemaining: remaining,
             outputTotal: totalRow ? totalRow.quantity : recipe.output_qty,
             byproduct,
-            drops: byproduct
-                ? [{ name: byproduct.itemName, quantity: byproduct.quantity }]
+            drops: byproduct || finds.length
+                ? [...(byproduct ? [{ name: byproduct.itemName, quantity: byproduct.quantity }] : []), ...finds]
                 : undefined,
         }
     } catch (err) {

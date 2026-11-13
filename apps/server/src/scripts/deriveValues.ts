@@ -158,6 +158,10 @@ const OVERRIDES: Record<string, { value: number; why: string }> = {
     // Writs are found, never made, priced by the work it takes to find one.
     // Kindling derives itself (1 in 1,500 mining swings, about 7.5 hours: 1,800).
     'Writ of Sending': { value: 1800, why: '1 in 500 road minutes on foot, about 8 hours of walking: as Kindling' },
+    // Found in one Bird Nest in 2,000 (migration 20261113100000). By the
+    // container rule it would be worth the chopping of fifty thousand logs;
+    // it is a museum piece and a story, priced as one (Nathan to confirm).
+    "Magpie's Ring": { value: 2000, why: 'A museum curio, 1 in 2,000 nests: hand-set' },
     'Writ of the Open Door': { value: 800, why: '1 in 120 Hodag kills (1 in 200 Agropelter), about 2 to 3 hours: Hodag XP 120 x 32 / 5' },
 };
 
@@ -657,6 +661,47 @@ async function main(): Promise<void> {
     // with was always empty. A report that disagrees with the write is worse
     // than no report.
     //
+    // ---- Containers (container_types, migration 20261113100000) --------------
+    // Opening one pays its XP and rolls 'open:<item>'. Two rules:
+    //  1. What only a container gives (a pearl) is a byproduct of opening it:
+    //     (the container's price + the opening's XP / 5) x its odds / quantity.
+    //  2. A container is then worth what it holds on average, contents and
+    //     coins. A Bird Nest was priced as a 1-in-25 byproduct of a chop
+    //     (140g, 63 to a merchant), several times what it holds, so selling
+    //     beat opening and two nests an hour paid more gold than the chopping
+    //     (audit 2026-11-09).
+    const containerRows = await readTable('container_types');
+    const entriesAll = await readTable('drop_table_entries');
+    for (const c of containerRows) {
+        const cname = itemById.get(Number(c.item_id));
+        if (!cname) continue;
+        const own = entriesAll.filter((e: any) => String(e.source_key) === `open:${cname}`);
+        const shell = best.get(cname)?.value ?? 1;
+        for (const e of own) {
+            const name = itemById.get(Number(e.item_id));
+            if (!name || (best.has(name) && best.get(name)!.method !== 'tier-estimate')) continue;
+            const avgQty = ((Number(e.min_qty) || 1) + (Number(e.max_qty) || 1)) / 2;
+            best.set(name, {
+                value: Math.max(1, Math.round(((shell + Number(c.xp) / VALUE_DIVISOR) * Math.max(1, Number(e.chance_one_in))) / avgQty)),
+                method: 'byproduct', level: 1,
+                basis: `1-in-${e.chance_one_in} from opening a ${cname}`,
+            });
+        }
+        let worth = 0;
+        for (const e of own) {
+            const name = itemById.get(Number(e.item_id));
+            const v = name ? (OVERRIDES[name]?.value ?? best.get(name)?.value ?? 0) : 0;
+            const avgQty = ((Number(e.min_qty) || 1) + (Number(e.max_qty) || 1)) / 2;
+            worth += (v * avgQty) / Math.max(1, Number(e.chance_one_in));
+        }
+        if (c.coin_one_in && c.coin_min) worth += ((Number(c.coin_min) + Number(c.coin_max ?? c.coin_min)) / 2) / Number(c.coin_one_in);
+        best.set(cname, {
+            value: Math.max(1, Math.round(worth)),
+            method: 'byproduct', level: best.get(cname)?.level ?? 1,
+            basis: `what a ${cname} holds on average, opened`,
+        });
+    }
+
     // Dense ore is proposed at a flat multiple of its base, but propose() keeps
     // the CHEAPEST path, so a recipe that happens to use dense ore could drag it
     // below the plain version. A dense rock being worth less than an ordinary

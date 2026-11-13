@@ -69,6 +69,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     tool_break_overrides:        { label: 'Tool Break Overrides',  group: 'Tools',      snapshot: true, editable: true },
     recipes:                     { label: 'Recipes',               group: 'Crafting',   snapshot: true, editable: true },
     drop_table_entries:          { label: 'Drop Table Entries',    group: 'Drops',      snapshot: true, editable: true },
+    container_types:             { label: 'Containers',            group: 'Drops',      snapshot: true, editable: true },
     quests:                      { label: 'Quests',                group: 'Quests',     snapshot: true, editable: true },
     quest_objectives:            { label: 'Quest Objectives',      group: 'Quests',     snapshot: true, editable: true },
 

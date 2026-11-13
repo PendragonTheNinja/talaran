@@ -240,6 +240,8 @@ export default function GameView({
   const [veinNotification, setVeinNotification] = useState<string | null>(null)
   const [farmKind, setFarmKind] = useState<string>('till')
   const [husbandryKind, setHusbandryKind] = useState<string>('feed')
+  // What is being opened (server container_types.key), for the scene's wording.
+  const [openingKind, setOpeningKind] = useState<string | null>(null)
   const [lastResult, setLastResult] = useState<LastResult | null>(null)
   // What worn jewelry did on the last card (services/jewelry.ts): shown under it.
   const [jewelryLines, setJewelryLines] = useState<string[]>([])
@@ -692,7 +694,7 @@ export default function GameView({
           return
         }
 
-        // Raising a guild hall (server services/guildHall.ts): Carpentry XP and a
+        // Raising a guild hall (server services/guildHall.ts), and opening things: XP and a
         // line saying how far the material has got; no item comes out, so it
         // cannot use the itemName gate below. Repeats while the server sends a
         // next completion.
@@ -701,11 +703,14 @@ export default function GameView({
           firstEver?: boolean
           timerSeconds?: number
           nextCompletes?: string
-          result: { xpAwarded?: number; message?: string; eventXp?: number }
+          result: { xpAwarded?: number; message?: string; eventXp?: number; skillName?: string; drops?: { name: string; quantity: number; notable?: boolean; firstEver?: boolean }[] }
           xpInfo?: XpInfo & { xpAtLevel?: number }
         }
-        if (build.actionType === 'guild_build') {
+        // Opening things (server services/containers.ts) has the same shape:
+        // XP, a line, and what was inside as drops, no single item.
+        if (build.actionType === 'guild_build' || build.actionType === 'container_open') {
           const r = build.result
+          const skill = r.skillName || 'Carpentry'
           setLastResult({
             firstEver: build.firstEver,
             itemName: null,
@@ -714,13 +719,13 @@ export default function GameView({
             level: build.xpInfo?.level || 1,
             xpToNext: build.xpInfo?.xpToNext || 0,
             xpAtLevel: build.xpInfo?.xpAtLevel || 0,
-            skillName: 'Carpentry',
+            skillName: skill,
             message: r.message,
-            drops: [],
+            drops: r.drops ?? [],
             eventXp: r.eventXp,
             guildXp: (r as { guildXp?: number }).guildXp,
           })
-          if (build.xpInfo?.leveledUp) setLevelUpSkill({ name: 'Carpentry', level: build.xpInfo.level })
+          if (build.xpInfo?.leveledUp) setLevelUpSkill({ name: skill, level: build.xpInfo.level })
           onPlayerDataUpdate()
           onInventoryUpdate()
           setActionsCompleted(prev => prev + 1)
@@ -1386,6 +1391,15 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      // Opening things: the kind (for the wording) is not in the row, so the
+      // scene says the plain line until the next open.
+      case 'container_open':
+        setCurrentAction('container_open')
+        setOpeningKind(null)
+        setTimerMax(action.last_timer_seconds || secondsLeft || 10)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       case 'fishing_rod':
       case 'fishing_net':
       case 'fishing_cut_bait':
@@ -1510,6 +1524,35 @@ export default function GameView({
   }
 
   // ── External action handler ───────────────────────────────────────
+  // Opening things (server services/containers.ts): the same opening as every
+  // other start (checklist item 8).
+  const startOpening = async (itemId: number) => {
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+      const res = await apiFetch<{ timerSeconds: number; completesAt: string; kind: string }>('/api/inventory/open', {
+        method: 'POST',
+        body: JSON.stringify({ itemId }),
+      })
+      setOpeningKind(res.kind)
+      setCurrentAction('container_open')
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds, res.completesAt)
+    } catch (caught) {
+      const err = caught as { status?: number; message?: string }
+      if (err.status === 423) {
+        rememberPendingAction(() => startOpening(itemId))
+        return
+      }
+      addLog(err.message || 'It will not open.', 'error')
+    }
+  }
+
   useEffect(() => {
     if (!externalAction) return
 
@@ -1590,6 +1633,8 @@ export default function GameView({
       startNetFishing()
     } else if (externalAction.type === 'fishing_cut_bait') {
       startCutBait(externalAction.id as string)
+    } else if (externalAction.type === 'container_open') {
+      startOpening(externalAction.id as number)
     } else if (externalAction.type === 'recipe') {
       startRecipe(externalAction.id as number)
     } else if (externalAction.type === 'combat') {
@@ -1923,6 +1968,7 @@ export default function GameView({
   const startCutBait = (species: string) =>
     startFishingAction('/api/fishing/cut', { species }, 'fishing_cut_bait', 'Could not cut bait.')
 
+
   // What the scene says and what the stop button reads, from the server.
   // Empty until it arrives, which is safe: the helpers fall back to a plain
   // sentence and a working Stop.
@@ -1937,6 +1983,7 @@ export default function GameView({
    */
   const actionKind = currentAction === 'farming' ? farmKind
     : currentAction === 'husbandry' ? husbandryKind
+    : currentAction === 'container_open' ? openingKind
     : null
 
   // ── Derived values ────────────────────────────────────────────────

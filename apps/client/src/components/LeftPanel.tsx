@@ -31,6 +31,8 @@ interface InventoryItem {
   heal_amount?: number | null
   /** Talar a gem holds (charged gems are absorbed from the pack). */
   talar?: number | null
+  /** Can be opened, one at a time (server services/containers.ts): a Bird Nest, a River Mussel. */
+  opens?: boolean
   quantity: number
   slot?: string
   /** Open liquid containers are not real inventory rows — see routes/inventory. */
@@ -314,6 +316,14 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
     }
   }
 
+  /**
+   * Open a stack, one at a time on a short timer. A timed action, so the game
+   * view starts it (GameLayout listens for this, as the Bestiary's opener does).
+   */
+  const openAll = (item: InventoryItem) => {
+    window.dispatchEvent(new CustomEvent('talaran:start-action', { detail: { type: 'container_open', id: item.item_id } }))
+  }
+
   /** Food that mends and nothing else: eaten through the fight's own door, in a fight or out. */
   const isMendingFood = (item: InventoryItem) => Number(item.heal_amount) > 0 && !item.buff_effect
 
@@ -458,6 +468,8 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                 eatMeal(item)
               } else if (isChargedGem(item)) {
                 askAbsorbGem(item)
+              } else if (item.opens) {
+                openAll(item)
               } else if (item.subtype === 'provision') {
                 // Provisions are eaten, not worn. Falling through to handleEquip
                 // told the player a pasty "cannot be equipped", which is true and
@@ -758,6 +770,15 @@ export default function LeftPanel({ inventoryData, equipmentData, onEquipmentUpd
                   askAbsorbGem(item)
                 }}>
                   Take the Light
+                </button>
+              )}
+              {contextMenu.item.opens && (
+                <button className="context-menu-item" onClick={() => {
+                  const item = contextMenu.item
+                  setContextMenu(null)
+                  openAll(item)
+                }}>
+                  {contextMenu.item.quantity > 1 ? 'Open All' : 'Open'}
                 </button>
               )}
               {isFirewood(contextMenu.item) && (

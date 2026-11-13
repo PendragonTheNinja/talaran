@@ -753,6 +753,53 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
         return;
       }
+      // Opening things (services/containers.ts): one per lap, through the
+      // stack. Re-checked every lap: the next one must still be in the pack.
+      case 'container_open': {
+        const { resolveOpen } = await import('./containers');
+        const opened = await resolveOpen(action.player_id, action.action_data);
+        if (!opened.success) {
+          await db('player_actions').where({ id: action.id }).delete();
+          pushToPlayer(action.player_id, 'action_failed', { error: opened.error || 'It will not open.' });
+          return;
+        }
+        let openNextCompletes: Date | null = null;
+        if ((opened.left ?? 0) > 0 && opened.timerSeconds) {
+          openNextCompletes = new Date(Date.now() + opened.timerSeconds * 1000);
+          await db('player_actions').where({ id: action.id }).update({
+            completes_at: openNextCompletes,
+            last_timer_seconds: opened.timerSeconds,
+          });
+        } else {
+          await db('player_actions').where({ id: action.id }).delete();
+        }
+        const openSkill = await db('skills').where({ name: opened.skillName }).first();
+        const openPs = openSkill
+          ? await db('player_skills').where({ player_id: action.player_id, skill_id: openSkill.id }).first()
+          : null;
+        const openXpTotal = openPs ? parseInt(openPs.xp.toString()) : 0;
+        const openLevel = levelFromXp(openXpTotal);
+        await emitActionComplete(io, action, {
+          actionType: action.action_type,
+          ...(openNextCompletes ? { timerSeconds: opened.timerSeconds, nextCompletes: openNextCompletes } : {}),
+          result: {
+            itemName: null,
+            xpAwarded: opened.xp,
+            skillName: opened.skillName,
+            // XP-only cards render through the message branch (§5 item 9).
+            message: opened.left ? `${opened.message} ${opened.left} left to open.` : opened.message,
+            drops: opened.drops ?? [],
+          },
+          xpInfo: {
+            totalXp: openXpTotal,
+            level: openLevel,
+            xpToNext: xpToNextLevel(openXpTotal),
+            leveledUp: levelFromXp(Math.max(0, openXpTotal - (opened.xp || 0))) < openLevel,
+            xpAtLevel: xpForLevel(openLevel),
+          },
+        });
+        return;
+      }
       case 'recipe': {
         const { resolveRecipe } = await import('./recipes');
         result = await resolveRecipe(action.player_id, parseInt(action.action_data));

@@ -672,6 +672,16 @@ export default function GameLayout({
     window.addEventListener('talaran:open-bestiary', onOpen)
     return () => window.removeEventListener('talaran:open-bestiary', onOpen)
   }, [])
+  // A timed action started from somewhere outside the game view (the pack's
+  // Open: services/containers.ts), handed to it as any panel's start is.
+  useEffect(() => {
+    const onStart = (e: Event) => {
+      const d = (e as CustomEvent<{ type: string; id: number | string }>).detail
+      if (d?.type) setGameViewAction({ type: d.type, id: d.id })
+    }
+    window.addEventListener('talaran:start-action', onStart)
+    return () => window.removeEventListener('talaran:start-action', onStart)
+  }, [])
   useEffect(() => {
     const onOpen = (e: Event) => {
       const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab

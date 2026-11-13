@@ -1,8 +1,11 @@
 import { Router, Response } from 'express';
 import db from '../db';
+import { logger } from '../lib/logger';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { LIQUIDS, openUnits } from '../services/liquids';
 import { chargedNameFor, cutGradeOf } from '../lib/gemGrades';
+import { openableItemIds, startOpening } from '../services/containers';
+import { botCheckGate } from '../services/botCheck';
 
 const router = Router();
 
@@ -39,7 +42,11 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   'items.talar'
 );
 
-    // The open container has no player_inventory row — it is a bucket in use, not
+    // What can be opened (services/containers.ts), so the pack can offer it.
+    const openable = await openableItemIds();
+    for (const row of inventory as any[]) row.opens = openable.has(Number(row.item_id));
+
+        // The open container has no player_inventory row — it is a bucket in use, not
     // a bucket held. It rides along as a synthetic tile so the pack shows the
     // whole picture, and because it has no row it cannot be stored, traded or
     // dropped: the "partials don't travel" rule enforces itself.
@@ -98,6 +105,18 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 
     res.json({ inventory, openContainers });
   } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/inventory/open  { itemId } - open a stack, one at a time (services/containers.ts)
+router.post('/open', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+  try {
+    const started = await startOpening(req.player!.playerId, req.body?.itemId);
+    if (!started.ok) { res.status(started.status).json({ error: started.error }); return; }
+    res.json(started);
+  } catch (err) {
+    logger.error(`Start opening error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }
 });
