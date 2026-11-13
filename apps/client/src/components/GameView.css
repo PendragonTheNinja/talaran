@@ -70,6 +70,21 @@
   gap: var(--space-lg);
   padding: 0 var(--space-xl);
   width: 100%;
+  /* Never taller than the scene: a long event table pushed the place's
+     description off the top and its own last rows off the bottom, with no way
+     to reach either on a phone (forum, 2026-11-13). Short content still sits
+     centred; long content scrolls, with room at the foot to clear the log and
+     bell buttons in the corners. */
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.scene-idle:has(.event-standings) {
+  padding-top: var(--space-md);
+  padding-bottom: 64px;
 }
 
 .scene-description {
