@@ -40,6 +40,13 @@ export interface ItemUse {
     into: string;
     detail?: string;
     link?: string;
+    /**
+     * The Manual page `into` opens (an item's or a spell's), set only when
+     * there is one. `into` is often a description ("Filling at Talar Rift",
+     * "Feeding Chicken"), and the page used to make every one a link, so those
+     * opened an empty page (forum, 2026-11-12).
+     */
+    page?: string;
 }
 
 export interface ItemPage {
@@ -780,6 +787,21 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
     recipeSeen.clear();
     exactSeen.clear();
     const finalUses = dedupe(uses);
+
+    // Which entries open a page: those naming a real item or spell, and
+    // "Learning <spell>", which opens the spell's page.
+    const learning = (into: string) => (into.startsWith('Learning ') ? into.slice('Learning '.length) : null);
+    const named = [...new Set(finalUses.flatMap((u) => [u.into, learning(u.into)].filter((x): x is string => !!x)))];
+    const pages = new Set<string>(named.length
+        ? [
+            ...(await db('items').whereIn('name', named).pluck('name')),
+            ...(await db('spells').whereIn('name', named).where('is_active', true).pluck('name')),
+        ]
+        : []);
+    for (const u of finalUses) {
+        if (pages.has(u.into)) u.page = u.into;
+        else if (learning(u.into) && pages.has(learning(u.into)!)) u.page = learning(u.into)!;
+    }
 
     // Creatures that carry it: distinct creatures, not drop rows, since one
     // creature can carry an item at several spots (combat:<key>@<spot>).

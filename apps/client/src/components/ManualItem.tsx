@@ -14,6 +14,8 @@ interface Entry {
     where?: string
     detail?: string
     link?: string
+    /** The page `into` opens (an item's or a spell's); a description has none and is not a link. */
+    page?: string
     /** A recipe's ingredients, each linked to its own page. */
     inputs?: { name: string; qty: number }[]
 }
@@ -183,8 +185,8 @@ export default function ManualItem({
         <li key={i} className="mitem-entry">
             <span className="mitem-entry-kind">{e.kind}</span>
             <span className="mitem-entry-main">
-                {key === 'into' && e.into ? (
-                    <button className="mitem-link" onClick={() => onOpenItem(e.into!)}>
+                {key === 'into' && e.into && e.page ? (
+                    <button className="mitem-link" onClick={() => onOpenItem(e.page!)}>
                         {e.into}
                     </button>
                 ) : (
