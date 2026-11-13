@@ -1,7 +1,7 @@
 import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { getPlayerTraps, placeTrap, collectTrap, dismantleTrap, trapSlotsForLevel, baitOptionsAt } from '../services/trapping'
+import { getPlayerTraps, placeTrap, collectTrap, dismantleTrap, trapSlotsForLevel, baitOptionsAt, baitTrap } from '../services/trapping'
 import { convertibleBait } from '../services/fishing'
 import { levelFromXp } from '../services/xp'
 import { logger } from '../lib/logger';
@@ -44,7 +44,8 @@ router.get('/traps', requireAuth, async (req: AuthRequest, res: Response) => {
             })
         }
 
-        res.json({ traps, huntingLevel: level, slots: { used, max: trapSlotsForLevel(level) }, trapTypes })
+        const setting = await db('player_settings').where({ player_id: playerId }).first('trap_rebait')
+        res.json({ traps, huntingLevel: level, slots: { used, max: trapSlotsForLevel(level) }, trapTypes, rebait: !!setting?.trap_rebait })
     } catch (err) {
         logger.error('Trapping traps error: ' + err)
         res.status(500).json({ error: 'Server error' })
@@ -112,6 +113,37 @@ router.post('/collect', requireAuth, async (req: AuthRequest, res: Response) => 
         res.json(result)
     } catch (err) {
         logger.error('Trapping collect error: ' + err)
+        res.status(500).json({ error: 'Server error' })
+    }
+})
+
+/** Bait a bare snare where it stands (services/trapping.ts baitTrap checks presence). */
+router.post('/bait-trap', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId
+    try {
+        const result = await baitTrap(playerId, req.body?.trapId, req.body?.bait)
+        if (!result.success) {
+            res.status(failureStatus(result.error)).json({ error: result.error })
+            return
+        }
+        res.json({ message: result.baitKeptBy ? `Baited. Your ${result.baitKeptBy} kept the bait in your pouch.` : 'Baited.' })
+    } catch (err) {
+        logger.error('Trapping bait-trap error: ' + err)
+        res.status(500).json({ error: 'Server error' })
+    }
+})
+
+/** Re-bait snares after a catch, from the pouch (player_settings.trap_rebait). */
+router.post('/rebait', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, trap_rebait: req.body?.on === true })
+            .onConflict(['player_id'])
+            .merge(['trap_rebait'])
+        res.json({ success: true, rebait: req.body?.on === true })
+    } catch (err) {
+        logger.error('Trapping rebait setting error: ' + err)
         res.status(500).json({ error: 'Server error' })
     }
 })

@@ -176,12 +176,20 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
     drops?: { itemName: string; quantity: number; notable: boolean }[]
     broke?: boolean
     scavenged?: boolean
-    /** The bait this catch consumed, if any. The snare is unbaited afterwards. */
+    /** The bait this catch consumed, if any. The snare is unbaited afterwards, unless re-baited. */
     baitUsed?: string | null
+    /** Re-baited from the pouch after the catch (player_settings.trap_rebait). */
+    rebaited?: boolean
+    /** Asked to re-bait, but the pouch had none of that bait left. */
+    rebaitShort?: boolean
+    /** A Baitkeeper's Amulet kept the fresh bait in the pouch. */
+    baitKeptBy?: string
 }> {
     try {
         let result: any = null
         let catchPlace: number | null = null
+        // Read before the transaction: a setting, not state the catch changes.
+        const rebait = !!(await db('player_settings').where({ player_id: playerId }).first('trap_rebait'))?.trap_rebait
 
         await db.transaction(async (trx) => {
             const trap = await trx('player_traps')
@@ -234,6 +242,18 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
             const broke = Math.random() * 100 < trapType.break_chance
             const wasBaited = trap.bait_category as string | null
 
+            // Re-baiting (Nathan, 2026-11-12): another of the same bait from
+            // the pouch, in this transaction, when the snare survived and the
+            // player asked for it. The bait that was there is still eaten.
+            let rebaited = false
+            let rebaitShort = false
+            let keptBy: string | null = null
+            if (!broke && wasBaited && rebait) {
+                const left = await spendBait(trx, playerId, wasBaited, (piece) => { keptBy = piece })
+                rebaited = left !== null
+                rebaitShort = left === null
+            }
+
             if (broke) {
                 await trx('player_traps').where({ id: trap.id }).delete()
             } else {
@@ -242,8 +262,9 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
                     // Bait is EATEN by the thing that took it. Resetting the trap
                     // without clearing this left a single bait working forever,
                     // aiming every subsequent catch until the snare broke, which
-                    // is the opposite of the rule.
-                    bait_category: null,
+                    // is the opposite of the rule. Fresh bait is a new one, paid
+                    // for above.
+                    bait_category: rebaited ? wasBaited : null,
                     next_roll_at: new Date(Date.now() + trapType.roll_interval_seconds * 1000),
                 })
             }
@@ -254,6 +275,8 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
                 // So the panel can say the snare is bare again rather than
                 // leaving the owner to wonder.
                 baitUsed: wasBaited,
+                rebaited, rebaitShort,
+                ...(keptBy ? { baitKeptBy: keptBy } : {}),
             }
         })
 
@@ -270,6 +293,46 @@ export async function collectTrap(playerId: number, trapId: number): Promise<{
         if (err.message === 'NOT_YOURS') return { success: false, error: 'That trap is not yours to check.' }
         if (err.message === 'NOTHING_CAUGHT') return { success: false, error: 'Nothing has been caught yet.' }
         logger.error('collectTrap error: ' + err)
+        return { success: false, error: SERVER_ERROR }
+    }
+}
+
+/**
+ * Bait a bare snare where it stands (Nathan, 2026-11-12): it used to take
+ * dismantling and setting it again. The player must be at the snare (presence
+ * in the service, CLAUDE.md §2); the snare locked, set, and bare; the bait one
+ * something here wants. Spent from the pouch in the same transaction.
+ */
+export async function baitTrap(playerId: number, trapIdRaw: unknown, baitCategory: unknown): Promise<{ success: boolean; error?: string; baitKeptBy?: string }> {
+    try {
+        const trapId = Math.floor(Number(trapIdRaw))
+        if (!Number.isFinite(trapId) || trapId <= 0 || typeof baitCategory !== 'string' || !baitCategory) {
+            return { success: false, error: 'Choose a snare and a bait.' }
+        }
+        let keptBy: string | null = null
+        await db.transaction(async (trx) => {
+            const trap = await trx('player_traps').where({ id: trapId, player_id: playerId }).forUpdate().first()
+            if (!trap) throw new Error('NOT_YOURS')
+            const player = await trx('players').where({ id: playerId }).first('current_location_id')
+            if (Number(player?.current_location_id) !== Number(trap.location_id)) throw new Error('NOT_HERE')
+            if (trap.state !== 'set') throw new Error('COLLECT_FIRST')
+            if (trap.bait_category) throw new Error('BAITED')
+            const wanted = await trx('trap_targets')
+                .where({ location_id: trap.location_id, is_active: true, bait_category: baitCategory }).first('id')
+            if (!wanted) throw new Error('UNWANTED')
+            const left = await spendBait(trx, playerId, baitCategory, (piece) => { keptBy = piece })
+            if (left === null) throw new Error('NO_BAIT')
+            await trx('player_traps').where({ id: trap.id }).update({ bait_category: baitCategory })
+        })
+        return keptBy ? { success: true, baitKeptBy: keptBy } : { success: true }
+    } catch (err: any) {
+        if (err.message === 'NOT_YOURS') return { success: false, error: 'That trap is not yours.' }
+        if (err.message === 'NOT_HERE') return { success: false, error: 'You must be at the trap to bait it.' }
+        if (err.message === 'COLLECT_FIRST') return { success: false, error: 'Collect the catch first.' }
+        if (err.message === 'BAITED') return { success: false, error: 'That snare is already baited.' }
+        if (err.message === 'UNWANTED') return { success: false, error: 'Nothing here is interested in that bait.' }
+        if (err.message === 'NO_BAIT') return { success: false, error: 'You have none of that bait in your pouch.' }
+        logger.error('baitTrap error: ' + err)
         return { success: false, error: SERVER_ERROR }
     }
 }

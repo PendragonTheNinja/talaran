@@ -33,6 +33,8 @@ interface TraplineData {
     huntingLevel: number
     slots: { used: number; max: number }
     trapTypes: TrapType[]
+    /** Re-bait after a catch, from the pouch (server player_settings.trap_rebait). */
+    rebait?: boolean
 }
 
 interface CollectResult {
@@ -42,8 +44,13 @@ interface CollectResult {
     drops?: { itemName: string; quantity: number; notable: boolean }[]
     broke?: boolean
     scavenged?: boolean
-    /** Bait this catch ate. The snare is bare afterwards. */
+    /** Bait this catch ate. The snare is bare afterwards, unless re-baited. */
     baitUsed?: string | null
+    /** Fresh bait went on from the pouch after the catch. */
+    rebaited?: boolean
+    /** Asked to re-bait, but the pouch had none of that bait left. */
+    rebaitShort?: boolean
+    baitKeptBy?: string
 }
 
 interface HuntingMenuProps {
@@ -192,6 +199,30 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
         } finally { setBusy(false) }
     }
 
+    // Bait a bare snare where it stands, with the bait chosen below.
+    const doBait = async (trapId: number) => {
+        if (busy || !chosenBait) return
+        setBusy(true); setTrapError('')
+        try {
+            const res = await apiFetch<{ message?: string }>('/api/trapping/bait-trap', { method: 'POST', body: JSON.stringify({ trapId, bait: chosenBait }) })
+            if (res.message && res.message !== 'Baited.') setBaitNotice(res.message)
+            loadTrapline()
+        } catch (err: unknown) {
+            setTrapError((err as { message?: string }).message || 'Could not bait the snare.')
+        } finally { setBusy(false) }
+    }
+
+    // Re-bait after a catch: one setting for the whole line.
+    const setRebait = async (on: boolean) => {
+        setTrapline(t => t ? { ...t, rebait: on } : t)
+        try {
+            await apiFetch('/api/trapping/rebait', { method: 'POST', body: JSON.stringify({ on }) })
+        } catch (err: unknown) {
+            setTrapline(t => t ? { ...t, rebait: !on } : t)
+            setTrapError((err as { message?: string }).message || 'That setting could not be saved.')
+        }
+    }
+
     const doDismantle = async (trapId: number) => {
         if (busy) return
         setBusy(true); setTrapError('')
@@ -236,7 +267,11 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                         baited would look like the bait had failed. */}
                     {reveal.baitUsed && !reveal.broke && (
                         <p className="trapline-reveal-bait">
-                            The {(BAIT_LABELS[reveal.baitUsed] ?? reveal.baitUsed).toLowerCase()} bait is gone. Set fresh bait to aim the next one.
+                            {reveal.rebaited
+                                ? `The ${(BAIT_LABELS[reveal.baitUsed] ?? reveal.baitUsed).toLowerCase()} bait is gone, and fresh bait goes on.${reveal.baitKeptBy ? ` Your ${reveal.baitKeptBy} kept it in your pouch.` : ''}`
+                                : reveal.rebaitShort
+                                    ? `The ${(BAIT_LABELS[reveal.baitUsed] ?? reveal.baitUsed).toLowerCase()} bait is gone, and you have none left to put on. The snare is set bare.`
+                                    : `The ${(BAIT_LABELS[reveal.baitUsed] ?? reveal.baitUsed).toLowerCase()} bait is gone. Bait it again to aim the next one.`}
                         </p>
                     )}
                     {reveal.broke && (
@@ -261,6 +296,10 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
             <div className="trapline">
                 <div className="trapline-header">
                     <span>Traps set: {trapline.slots.used}/{trapline.slots.max}</span>
+                    <label className="trapline-rebait">
+                        <input type="checkbox" checked={!!trapline.rebait} onChange={e => setRebait(e.target.checked)} />
+                        Re-bait after a catch
+                    </label>
                 </div>
 
                 {trapline.traps.length === 0 && (
@@ -287,9 +326,16 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                                 Check trap
                             </button>
                         ) : (
-                            <button className="trap-btn" disabled={busy} onClick={() => doDismantle(trap.id)}>
-                                Dismantle
-                            </button>
+                            <div className="trap-card-actions">
+                                {!trap.bait && chosenBait && (
+                                    <button className="trap-btn" disabled={busy} onClick={() => doBait(trap.id)}>
+                                        Add {(BAIT_LABELS[chosenBait] ?? chosenBait).toLowerCase()} bait
+                                    </button>
+                                )}
+                                <button className="trap-btn" disabled={busy} onClick={() => doDismantle(trap.id)}>
+                                    Dismantle
+                                </button>
+                            </div>
                         )}
                     </div>
                 ))}
@@ -299,7 +345,7 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                     8% of catches. Baiting makes it 41%. */}
                 {baitData && baitData.baits.length > 0 && (
                     <div className="trap-bait">
-                        <p className="trap-bait-head">Bait the next snare</p>
+                        <p className="trap-bait-head">Bait the next snare, or a bare one</p>
                         <div className="trap-bait-row">
                             <button
                                 className={`trap-bait-chip${chosenBait === '' ? ' is-active' : ''}`}

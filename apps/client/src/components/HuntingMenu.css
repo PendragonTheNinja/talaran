@@ -109,10 +109,29 @@
 /* ── Trapline (Trapping tab) ─────────────────────────────── */
 .trapline-header {
     display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: center;
     justify-content: space-between;
     font-size: 13px;
     color: var(--color-text-muted);
     margin-bottom: 8px;
+}
+
+/* Re-bait after a catch: one box for the whole line. */
+.trapline-rebait {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--color-text-base);
+}
+
+.trap-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
 }
 
 .trap-card {

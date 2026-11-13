@@ -1276,6 +1276,27 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'trap', name: 'bait one bare snare five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/trapping.ts baitTrap locks the snare, refuses one already
+            // baited, and spends from the pouch under the pouch row's lock in the
+            // same transaction. Five at once: one baits, one bait is spent.
+            const w = await world(ctx);
+            const type = await ctx.seed.row('trap_types', { name: 'Snare', item_name: 'Snare', required_level: 1, roll_interval_seconds: 1800,
+                catch_chance: 100, break_chance: 0, scavenger_safe_hours: 1, scavenger_hourly_chance: 0 });
+            await ctx.seed.row('trap_targets', { location_id: w.town.id, trap_type_id: type.id, name: 'Rabbit', weight: 1, xp: 40, drop_table: '[]', bait_category: 'grain' });
+            const trap = await ctx.seed.row('player_traps', { player_id: w.player.id, trap_type_id: type.id, location_id: w.town.id,
+                state: 'set', next_roll_at: new Date(Date.now() + 3600_000) });
+            await ctx.seed.row('player_bait', { player_id: w.player.id, category: 'grain', amount: 3 });
+            const { baitTrap } = await import('../services/trapping');
+            const results = await Promise.all([1, 2, 3, 4, 5].map(() => baitTrap(w.player.id, trap.id, 'grain')));
+            const baited = results.filter(r => r.success).length;
+            const left = Number((await ctx.db('player_bait').where({ player_id: w.player.id, category: 'grain' }).first())?.amount ?? -1);
+            if (results.some(r => r.error === 'Server error')) return 'a baiting failed with a server error';
+            return changed('snares baited', 1, baited) ?? changed('grain bait left', 2, left);
+        },
+    },
+    {
         id: 'fight', name: 'five eats at once, mid-fight, with HP for two', rounds: 10,
         run: async (ctx) => {
             // 50 HP down and five 30-HP fish: the first heals 30, the second
