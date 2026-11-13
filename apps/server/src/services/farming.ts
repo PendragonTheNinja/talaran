@@ -602,8 +602,15 @@ export async function resolveUproot(playerId: number, plotIdRaw: string | null):
         const crop = await db('crops').where({ id: plot.crop_id }).first();
 
         // Left exactly as a harvest leaves it: tilled and ready to sow again.
-        // Soil is untouched, since pulling a crop early neither feeds nor drains it.
+        // An annual pulled early neither feeds nor drains the soil. Tearing out
+        // a perennial does (Nathan, 2026-11-13): its roots have held that ground
+        // for seasons, and they take the soil with them, a step down, as a
+        // hungry crop's harvest does. A perennial never drains it while it
+        // stands, so without this a strawberry bed was free soil.
+        const soilBefore = plot.soil_state || 'normal';
+        const soilAfter = crop?.is_perennial ? shiftSoil(soilBefore, -1) : soilBefore;
         await db('farm_plots').where({ id: plot.id }).update({
+            soil_state: soilAfter,
             state: 'tilled',
             crop_id: null,
             seed_count: 0,
@@ -617,7 +624,8 @@ export async function resolveUproot(playerId: number, plotIdRaw: string | null):
             success: true,
             xp: 0,
             skillName: 'Farming',
-            message: `You break the roots and turn the ${crop?.name?.toLowerCase() ?? 'crop'} back into the soil. The plot is bare again.`,
+            message: `You break the roots and turn the ${crop?.name?.toLowerCase() ?? 'crop'} back into the soil. The plot is bare again.`
+                + (soilAfter !== soilBefore ? ' The old roots tear the ground as they come up, and the soil is poorer for it.' : ''),
         };
     } catch (err) {
         logger.error(`resolveUproot error: ${err}`);
