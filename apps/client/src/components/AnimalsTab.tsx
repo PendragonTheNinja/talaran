@@ -47,9 +47,17 @@ interface SpeciesDef {
 /** An animal that came of age since the pens were last looked at. */
 export interface MaturedAnimal { name: string; species: string; xp: number }
 
-function grownLine(m: MaturedAnimal): string {
-    const who = m.name || `Your ${m.species.toLowerCase()}`
-    return `${who} has grown up. +${m.xp.toLocaleString()} Husbandry experience.`
+/**
+ * Every animal that grew up, in one line (forum, 2026-11-13): a line each
+ * filled the top of the tab after a night away.
+ */
+function grownLine(ms: MaturedAnimal[]): string {
+    const names = ms.map(m => m.name || `your ${m.species.toLowerCase()}`)
+    const who = names.length === 1 ? names[0]
+        : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    const xp = ms.reduce((n, m) => n + m.xp, 0)
+    const said = who.charAt(0).toUpperCase() + who.slice(1)
+    return `${said} ${ms.length === 1 ? 'has' : 'have'} grown up. +${xp.toLocaleString()} Husbandry experience.`
 }
 
 export interface HusbandryState {
@@ -167,11 +175,9 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                 const matured = d.matured ?? []
                 if (!matured.length) return
                 setGrown(prev => [...prev, ...matured])
-                for (const m of matured) {
-                    window.dispatchEvent(new CustomEvent('talaran:notice', {
-                        detail: { message: grownLine(m), type: 'success' },
-                    }))
-                }
+                window.dispatchEvent(new CustomEvent('talaran:notice', {
+                    detail: { message: grownLine(matured), type: 'success' },
+                }))
             })
             .catch(() => setError('Could not reach your pens.')).finally(() => setLoading(false))
     }, [])
@@ -235,7 +241,7 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
     return (
         <>
             <ErrorLine message={error} className="farm-error" />
-            {grown.map((m, i) => <p key={i} className="farm-note farm-grown">{grownLine(m)}</p>)}
+            {grown.length > 0 && <p className="farm-note farm-grown">{grownLine(grown)}</p>}
 
             <div className="farm-status">
                 <span>Husbandry Lv {data.husbandryLevel}</span>

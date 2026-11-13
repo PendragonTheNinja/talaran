@@ -106,7 +106,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [lapidaryQuestStatus, setLapidaryQuestStatus] = useState<string | null>(null)
   const [workshopOpen, setWorkshopOpen] = useState(false)
   const [cookhouseOpen, setCookhouseOpen] = useState(false)
-  const [farmsteadOpen, setFarmsteadOpen] = useState(false)
 
   const [tanningStatus, setTanningStatus] = useState<any>(null)
   const [craftworksOpen, setCraftworksOpen] = useState(false)
@@ -609,26 +608,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         )}
 
         {isNovita && (
-          <div className="location-submenu">
-            <button
-              className={`location-action-btn submenu-toggle ${farmsteadOpen ? 'open' : ''}`}
-              onClick={() => setFarmsteadOpen(!farmsteadOpen)}
-            >
-              {farmsteadOpen ? '▼' : '▶'} Farmstead
-            </button>
-            {farmsteadOpen && (
-              <div className="submenu-items">
-
-                <button
-                  className={`location-action-btn sub ${currentAction === 'farming' ? 'active' : ''}`}
-                  onClick={() => onStartAction('farm_panel', 0)}
-                >
-                  Your Homestead →
-                </button>
-
-              </div>
-            )}
-          </div>
+          <button
+            className={`location-action-btn ${currentAction === 'farming' ? 'active' : ''}`}
+            onClick={() => onStartAction('farm_panel', 0)}
+          >
+            {/* Straight to it: a Farmstead drop-down held this one button (Nathan, 2026-11-13). */}
+            Your Homestead →
+          </button>
         )}
 
         {/* Smithing — Emberra only */}
