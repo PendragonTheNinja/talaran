@@ -360,6 +360,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 Applies to everything a player reads: item and habitat descriptions, NPC dialogue, quest text, flavor and scene text, result and error messages, button labels, manual pages, patch notes. Not to conversation with Nathan.
 
 - **NO EM DASHES. Zero.** Use a full stop, comma, colon, semicolon, or a rewritten sentence. Hyphens in compounds and ranges are fine. **Grep before shipping any player-facing text.** Old text may still contain them; Nathan clears those by hand. Don't run a sweep.
+- **Always the Oxford comma** (Nathan, 2026-11-13): "A, B, and C", never "A, B and C"; the same with "or". Lists the game builds go through `listWords` (`lib/listWords.ts`, a copy in the server and the client), so a list built in code gets it too. This applies to conversation with Nathan as well.
 - **Banned:** "it's not just X, it's Y", "more than just", "not merely", "a testament to", "at its core", "the heart of", "delve", "tapestry", "rich history of", "seamlessly", "unlock", "whether you're a X or a Y", corporate register (leverage, streamline, optimize, robust, utilize, facilitate), and a closing sentence that restates the paragraph.
 - **Concrete nouns** ("tannin-stained hands", not "the tanning experience"). **Specific numbers** ("nine winters", not "many years"; the Manual narrator may use period diction like "a great many").
 - **Vary sentence length hard.** Fragments are good. No three-item lists used for rhythm.
