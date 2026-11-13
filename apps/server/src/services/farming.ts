@@ -645,9 +645,12 @@ export async function resolveUproot(playerId: number, plotIdRaw: string | null):
 // late. A bucket must be carried (not worn — you'd otherwise be swapping the hoe
 // out every time).
 async function tendablePlots(propertyId: number) {
+    // Only fields still growing: tending trims the time left, and a ripe field
+    // has none, so it was offered (and charged a tending's time) for nothing.
     return db('farm_plots')
         .where({ property_id: propertyId, state: 'growing', tended: false })
-        .whereNotNull('ready_at');
+        .whereNotNull('ready_at')
+        .where('ready_at', '>', new Date());
 }
 
 export async function startTend(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {

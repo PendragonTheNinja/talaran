@@ -217,12 +217,15 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                             for one-by-one to be the chore. It saves clicks, not
                             time: the timer is the sum of each field's harvest. */}
                         {(() => {
-                            const minPlots = data.harvestAllMinPlots ?? 4
+                            // The server sends a ripe field as 'ready'. This asked for
+                            // 'growing' with no time left, which never happens, so the
+                            // button never showed (forum, 2026-11-13). It shows once
+                            // as many fields are ripe as Harvest All asks for.
+                            const minPlots = data.harvestAllMinPlots ?? 2
                             const plots = data.plots ?? []
-                            if (plots.length < minPlots) return null
-                            const ripe = plots.filter(p =>
-                                p.state === 'growing' && p.crop && (p.secondsRemaining ?? 1) <= 0)
-                            if (ripe.length === 0) return null
+                            const ripe = plots.filter(p => p.crop && (p.state === 'ready'
+                                || (p.state === 'growing' && p.secondsRemaining != null && p.secondsRemaining <= 0)))
+                            if (ripe.length < minPlots) return null
                             const perSeed = data.timers?.harvestPerSeed ?? 8
                             const seconds = ripe.reduce((s, p) => s + Math.max(1, p.seedCount) * perSeed, 0)
                             return (
