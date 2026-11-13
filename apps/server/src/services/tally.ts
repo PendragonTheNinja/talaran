@@ -4,6 +4,7 @@ import { levelFromXp } from './xp';
 import { getGold, debitGoldWithin } from './gold';
 import { husbandryTallyEntries } from './husbandry';
 import { takeItemsWithin, addItemToInventoryWithin } from './inventory';
+import { listWords } from '../lib/listWords';
 
 // The Tally Board (see 20260726060000_tally_board for the design rationale).
 //
@@ -543,7 +544,7 @@ export async function tearDownTallyBoard(playerId: number): Promise<{ success: b
         logger.info(`Player ${playerId} took down a tally board`);
         return {
             success: true,
-            message: `You draw the nails and stack the planks. ${BUILD_COST.map(c => `${c.qty} ${c.itemName}`).join(' and ')} come back to you.`,
+            message: `You draw the nails and stack the planks. ${listWords(BUILD_COST.map(c => `${c.qty} ${c.itemName}`))} come back to you.`,
         };
     } catch (err) {
         logger.error(`Tally board teardown error: ${err}`);

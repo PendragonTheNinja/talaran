@@ -321,7 +321,7 @@ async function typeRow(f: TypeFields, partial: boolean): Promise<Record<string, 
     if (has('skill')) row.skill = await realSkill(f.skill);
     if (has('rarity')) {
         const r = String(f.rarity ?? '').toLowerCase();
-        if (!RARITIES.includes(r)) throw new Refusal('Rarity must be common, uncommon or rare.');
+        if (!RARITIES.includes(r)) throw new Refusal('Rarity must be common, uncommon, or rare.');
         row.rarity = r;
     }
     if (has('weight')) row.weight = whole(f.weight, 'Weight', 0, 1000);

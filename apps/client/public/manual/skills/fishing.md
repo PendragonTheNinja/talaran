@@ -34,7 +34,7 @@ And when the pouch runs dry, nothing stops. You simply carry on unbaited, a litt
 
 ## Cutting bait
 
-A butchering knife turns any fish into meat bait. Twenty seconds, a little experience in Fishing and a little in Crafting, and your smallest catches stop being clutter.
+A butchering knife turns any fish into meat bait. Twenty seconds, a little experience in Fishing, and a little in Crafting, and your smallest catches stop being clutter.
 
 I will be honest about the arithmetic, because you will work it out anyway: cutting everything you catch is very slightly slower than simply fishing. There is no catch hidden in that. Cut bait exists so a poor haul is never wasted, and so you are never stood at the water with nothing to offer it.
 

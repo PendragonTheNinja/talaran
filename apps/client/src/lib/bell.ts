@@ -215,7 +215,7 @@ export async function saveCustomSound(file: File): Promise<{ ok: true } | { ok: 
     try {
         buffer = await a.decodeAudioData(data.slice(0))
     } catch {
-        return { ok: false, error: 'That file is not a sound this browser can play. Try an MP3, OGG or WAV.' }
+        return { ok: false, error: 'That file is not a sound this browser can play. Try an MP3, OGG, or WAV.' }
     }
     if (buffer.duration > CUSTOM_MAX_SECONDS + 0.05) {
         return { ok: false, error: `That sound is ${buffer.duration.toFixed(1)} seconds long. Keep it to ${CUSTOM_MAX_SECONDS}.` }
@@ -276,7 +276,7 @@ export async function playBell(sound: BellSound = bellSound(), volume = bellVolu
 export type BellEvent = 'countdown' | 'stopped' | 'botcheck' | 'fallen' | 'arrived'
 
 export const BELL_EVENTS: { id: BellEvent; label: string; hint: string }[] = [
-    { id: 'countdown', label: 'Every countdown', hint: 'Each log, ore, catch or craft' },
+    { id: 'countdown', label: 'Every countdown', hint: 'Each log, ore, catch, or craft' },
     { id: 'stopped', label: 'Work stops', hint: 'Out of materials, a limit reached, a vein run dry, a fight over' },
     { id: 'botcheck', label: 'Bot check', hint: 'The game asks if you are there' },
     { id: 'fallen', label: 'Fallen in a fight', hint: 'You were carried back to Talador' },

@@ -4,6 +4,7 @@ import { SERVER_ERROR } from '../lib/serviceResult'
 import { takeItemsWithin, notifyInventoryChanged } from './inventory'
 import { awardXp } from './xp'
 import { incrementStats } from './stats'
+import { listWords } from '../lib/listWords'
 
 // Opening things (migration 20261113100000_containers): a Bird Nest, a River
 // Mussel. One at a time on a short timer, through the stack, as a processing
@@ -136,7 +137,7 @@ export async function resolveOpen(playerId: number, itemIdRaw: string | null): P
 
         const listed = drops.map(d => `${d.quantity > 1 ? `${d.quantity} ` : ''}${d.name}`)
         const message = drops.length
-            ? `Inside the ${c.item_name.toLowerCase()}: ${listed.length > 1 ? `${listed.slice(0, -1).join(', ')} and ${listed[listed.length - 1]}` : listed[0]}.`
+            ? `Inside the ${c.item_name.toLowerCase()}: ${listWords(listed)}.`
             : (c.empty_text ?? 'Nothing inside.')
         return {
             success: true, xp: c.xp, skillName: c.skill, message, drops,

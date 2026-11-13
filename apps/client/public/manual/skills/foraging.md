@@ -45,7 +45,7 @@ The habitats themselves, and how quickly each gives up its finds:
 
 {{data:foraging-speed}}
 
-And here is the part I was told not to write down. Every habitat's whole table, every weight, every seasonal row and every one that wants gloves. I am aware this removes a discovery some people treasure. Those people may close the ledger.
+And here is the part I was told not to write down. Every habitat's whole table, every weight, every seasonal row, and every one that wants gloves. I am aware this removes a discovery some people treasure. Those people may close the ledger.
 
 {{data:foraging-habitats}}
 {{/details}}

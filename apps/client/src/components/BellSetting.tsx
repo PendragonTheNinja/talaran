@@ -109,7 +109,7 @@ export default function BellSetting({ hasCustomPerk }: { hasCustomPerk: boolean 
                         <span className="muted-text" style={{ fontSize: '13px' }}>
                             {customName
                                 ? <>Loaded on this device: <span className="gold-text">{customName}</span></>
-                                : `An MP3, OGG or WAV of up to ${CUSTOM_MAX_SECONDS} seconds and ${CUSTOM_MAX_BYTES / 1024} KB. It stays on this device.`}
+                                : `An MP3, OGG, or WAV of up to ${CUSTOM_MAX_SECONDS} seconds and ${CUSTOM_MAX_BYTES / 1024} KB. It stays on this device.`}
                         </span>
                         <input
                             ref={fileRef}

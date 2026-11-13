@@ -107,7 +107,7 @@ The difference is not subtle:
 - **Wild Sow**, one in twenty five, becomes one in four.
 - The scarce and peculiar things stay scarce, but stop being hypothetical.
 
-**Bait comes from the same pouch your fishing does.** There is no separate trapping bait to hunt down and no new thing to make. Break down grain, cheese, eggs, spawn or raw meat in the trapline panel, exactly as you would at the water, and the pouch serves both trades.
+**Bait comes from the same pouch your fishing does.** There is no separate trapping bait to hunt down and no new thing to make. Break down grain, cheese, eggs, spawn, or raw meat in the trapline panel, exactly as you would at the water, and the pouch serves both trades.
 
 Which is a tension worth naming. Spawn is scarce, and spawn spent on a snare is spawn not spent on a line. That is a real decision and I decline to make it for you.
 

@@ -251,7 +251,7 @@ router.post(
     express.raw({ type: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], limit: AVATAR_MAX_UPLOAD_BYTES }),
     async (req: AuthRequest, res: Response) => {
         if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-            res.status(400).json({ error: 'Use a PNG, JPEG, WebP or GIF.' });
+            res.status(400).json({ error: 'Use a PNG, JPEG, WebP, or GIF.' });
             return;
         }
         const result = await setAvatar(req.player!.playerId, req.body, req.query as Record<string, unknown>);

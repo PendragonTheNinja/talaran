@@ -1,6 +1,6 @@
 Constitution is how much of you there is.
 
-It is the plainest trade in Talaran. It has no tools, no workshop and no technique. Every level makes you a little harder to kill, and that is the whole of it. I used to think it a dull skill. Then I counted the number of times a little more of me was the difference, and I stopped thinking so.
+It is the plainest trade in Talaran. It has no tools, no workshop, and no technique. Every level makes you a little harder to kill, and that is the whole of it. I used to think it a dull skill. Then I counted the number of times a little more of me was the difference, and I stopped thinking so.
 
 ## Where and how to start
 

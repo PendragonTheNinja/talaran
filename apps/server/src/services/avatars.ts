@@ -75,7 +75,7 @@ export async function processAvatar(buf: Buffer, rawCrop: Record<string, unknown
     // different ones.
     const meta = await sharp(buf, { animated: true, limitInputPixels: 40_000_000 }).metadata().catch(() => null)
     if (!meta) return { ok: false, error: 'That file is not a picture we can read.' }
-    if (!meta.format || !FORMATS.has(meta.format)) return { ok: false, error: 'Use a PNG, JPEG, WebP or GIF.' }
+    if (!meta.format || !FORMATS.has(meta.format)) return { ok: false, error: 'Use a PNG, JPEG, WebP, or GIF.' }
     const pages = meta.pages ?? 1
     if (pages > MAX_FRAMES) return { ok: false, error: `That animation is too long (${MAX_FRAMES} frames at most).` }
     const width = meta.width ?? 0

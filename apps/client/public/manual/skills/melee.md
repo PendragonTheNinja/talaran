@@ -1,4 +1,4 @@
-I have been bitten, butted, clawed and once, memorably, sat on, by a great many things in Talaran. I should say at the outset that I was not good at hitting them back.
+I have been bitten, butted, clawed, and once, memorably, sat on, by a great many things in Talaran. I should say at the outset that I was not good at hitting them back.
 
 Melee is the trade of hitting them back. It is the one trade where the thing you are working on objects. A tree does not mind being felled. A rat minds a great deal, and says so with its teeth.
 
@@ -12,7 +12,7 @@ On Taiar, the gentlest fighting is at **The Docks** in Talador. The rats there a
 
 You need nothing to begin. With nothing in your hand you fight with your fists, which crush, and which frighten nobody. Buy or forge a proper weapon as soon as you can.
 
-Before you go, read the [Combat](/manual/systems/combat) page. It covers health, food and what happens when you lose, which is the part people wish they had read first.
+Before you go, read the [Combat](/manual/systems/combat) page. It covers health, food, and what happens when you lose, which is the part people wish they had read first.
 
 ## Training path
 
@@ -30,7 +30,7 @@ Every weapon is held one of three ways, and the choice is the whole of a fighter
 
 None of the three is the best. They trade speed against weight against cover, and they come out close to even over an hour.
 
-**Aim** decides whether a blow lands. **Power** decides how hard. Each weapon also carries one kind of damage, pierce, slash or crush, and creatures are not equally soft to all three. A crab laughs at a sword. Your Bestiary learns which is which as you go.
+**Aim** decides whether a blow lands. **Power** decides how hard. Each weapon also carries one kind of damage, pierce, slash, or crush, and creatures are not equally soft to all three. A crab laughs at a sword. Your Bestiary learns which is which as you go.
 
 {{data:damage-types}}
 

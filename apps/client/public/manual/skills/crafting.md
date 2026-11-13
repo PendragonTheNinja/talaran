@@ -102,7 +102,7 @@ The grade matters because the light cares about it. A Polished stone holds half 
 
 ## Setting
 
-Once a stone has been filled at the Rift, a crafter can set it in Ambren as a ring or an amulet. Each piece takes **three Lit, two Bright or one Radiant** stones, so a cutter who turns out a Flawless stone needs only one of them, and a cutter who never does needs three. Either way the piece comes out the same.
+Once a stone has been filled at the Rift, a crafter can set it in Ambren as a ring or an amulet. Each piece takes **three Lit, two Bright, or one Radiant** stones, so a cutter who turns out a Flawless stone needs only one of them, and a cutter who never does needs three. Either way the piece comes out the same.
 
 What each piece does is on the Talar page, since the light is what makes them work.
 

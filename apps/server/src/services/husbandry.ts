@@ -1427,7 +1427,7 @@ export async function placeAnimal(playerId: number, penId: number, speciesId: nu
 export async function renameAnimal(playerId: number, animalId: number, name: string): Promise<HusbandryActionResult> {
     const clean = (name ?? '').trim().slice(0, 40);
     if (clean.length < 1) return { success: false, error: 'That name is too short.' };
-    if (!/^[A-Za-z0-9 '\-]+$/.test(clean)) return { success: false, error: 'Names may use letters, numbers, spaces, apostrophes and hyphens.' };
+    if (!/^[A-Za-z0-9 '\-]+$/.test(clean)) return { success: false, error: 'Names may use letters, numbers, spaces, apostrophes, and hyphens.' };
 
     const animal = await db('player_animals').where({ id: animalId, player_id: playerId }).first();
     if (!animal) return { success: false, error: 'That is not your animal.' };

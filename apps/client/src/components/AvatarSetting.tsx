@@ -52,7 +52,7 @@ export default function AvatarSetting() {
     const pick = (file: File | undefined) => {
         setError('')
         if (!file) return
-        if (!AVATAR_TYPES.includes(file.type)) { setError('Use a PNG, JPEG, WebP or GIF.'); return }
+        if (!AVATAR_TYPES.includes(file.type)) { setError('Use a PNG, JPEG, WebP, or GIF.'); return }
         if (file.size > AVATAR_MAX_UPLOAD_BYTES) { setError('That file is over 4 MB. Try a smaller one.'); return }
         const url = URL.createObjectURL(file)
         const img = new Image()
@@ -143,7 +143,7 @@ export default function AvatarSetting() {
                         <span className="settings-toggle-label">Your Picture</span>
                         <span className="muted-text" style={{ fontSize: '13px' }}>
                             Shown beside your forum posts, on your profile and in your fights.
-                            PNG, JPEG, WebP or GIF (animated is fine), up to 4 MB.
+                            PNG, JPEG, WebP, or GIF (animated is fine), up to 4 MB.
                         </span>
                         {blocked ? (
                             <span className="avatar-error">Staff have stopped you changing your picture.</span>

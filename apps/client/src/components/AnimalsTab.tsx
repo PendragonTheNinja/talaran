@@ -4,6 +4,7 @@ import { getItemIcon } from '../lib/items'
 import ConfirmModal from './ConfirmModal'
 import './AnimalsTab.css'
 import ErrorLine from './ErrorLine'
+import { listWords } from '../lib/listWords'
 
 interface AnimalCard {
     id: number; name: string; species: string; stage: string
@@ -53,8 +54,7 @@ export interface MaturedAnimal { name: string; species: string; xp: number }
  */
 function grownLine(ms: MaturedAnimal[]): string {
     const names = ms.map(m => m.name || `your ${m.species.toLowerCase()}`)
-    const who = names.length === 1 ? names[0]
-        : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    const who = listWords(names)
     const xp = ms.reduce((n, m) => n + m.xp, 0)
     const said = who.charAt(0).toUpperCase() + who.slice(1)
     return `${said} ${ms.length === 1 ? 'has' : 'have'} grown up. +${xp.toLocaleString()} Husbandry experience.`

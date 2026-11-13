@@ -17,6 +17,7 @@ import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
 import { eligibleLocations, eventsChanged } from './worldEvents'
 import { announceServer } from './records'
 import { takeItemsWithin, notifyInventoryChanged } from './inventory'
+import { listWords } from '../lib/listWords'
 
 // Spells (docs/talar-spec.md §5 to §7). A spell is a row (services' nouns);
 // what it does is an entry in EFFECTS below (verbs are code).
@@ -988,7 +989,7 @@ export function spellTermsWords(spell: Pick<SpellRow, 'key'>): string | null {
             + `It may be lit over an event for the same work, and the two add together. You earn Talar XP for every boosted action by someone else.`
     }
     if (spell.key === 'larder_ward') {
-        const hours = WARD_HOURS.length > 1 ? `${WARD_HOURS.slice(0, -1).join(', ')} or ${WARD_HOURS[WARD_HOURS.length - 1]}` : String(WARD_HOURS[0])
+        const hours = listWords(WARD_HOURS.map(String), 'or')
         return `Holds ${hours} hours. Lift it early and the Talar of the hours left comes back. One ward at a time.`
     }
     if (spell.key === 'wearsight') return `Shows the share of each piece's sure uses left, and its chance to break each use once those are spent.`

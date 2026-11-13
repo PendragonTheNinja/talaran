@@ -20,7 +20,7 @@ Tags are stored in capitals whatever you type, which has spared a number of guil
 
 ## Ranks
 
-Four of them. **Recruit**, **Member**, **Officer** and **Leader**. The founder holds the Leader's rank for as long as they lead, and if they ever hand the guild on, they step down to Officer like anyone else.
+Four of them. **Recruit**, **Member**, **Officer**, and **Leader**. The founder holds the Leader's rank for as long as they lead, and if they ever hand the guild on, they step down to Officer like anyone else.
 
 The Leader may do everything. What the other three may do is the Leader's choice, set once for the whole guild: inviting players, removing them, promoting them, taking from the storehouse, approving requests, keeping the guild forum, posting news. Left alone, Officers may do all of it, Members may take items from the storehouse, and Recruits may do none of it.
 

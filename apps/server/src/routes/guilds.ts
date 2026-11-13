@@ -455,7 +455,7 @@ router.post('/rank', requireAuth, async (req: AuthRequest, res: Response) => {
 
     try {
         if (role !== 'leader' && !(CONFIGURABLE_RANKS as readonly string[]).includes(role)) {
-            res.status(400).json({ error: 'Choose Leader, Officer, Member or Recruit.' });
+            res.status(400).json({ error: 'Choose Leader, Officer, Member, or Recruit.' });
             return;
         }
         const me = await membershipOf(playerId);
@@ -511,7 +511,7 @@ router.put('/permissions', requireAuth, async (req: AuthRequest, res: Response) 
         }
         const clean = cleanRankPermissions(req.body?.rankPermissions);
         if (!clean) {
-            res.status(400).json({ error: 'Send a choice for Officer, Member and Recruit.' });
+            res.status(400).json({ error: 'Send a choice for Officer, Member, and Recruit.' });
             return;
         }
         await db('guilds').where({ id: me.guildId }).update({ rank_permissions: JSON.stringify(clean), updated_at: new Date() });

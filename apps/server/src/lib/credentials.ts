@@ -64,7 +64,7 @@ export const EMAIL_PROBLEM = 'That does not look like an email address';
 
 /**
  * The name to store, or why this can't be one (audit L-4). Trimmed; 3 to 32
- * characters; plain letters, digits, single spaces, hyphens and underscores,
+ * characters; plain letters, digits, single spaces, hyphens, and underscores,
  * starting and ending with a letter or digit. Anything else used to pass:
  * trailing spaces, zero-width characters, and look-alike letters from other
  * alphabets, which let one player pass as another in chat. Existing names are
@@ -75,7 +75,7 @@ export function cleanUsername(raw: unknown): { ok: true; value: string } | { ok:
     const name = raw.trim();
     if (name.length < 3 || name.length > 32) return { ok: false, error: 'Username must be between 3 and 32 characters' };
     if (!/^[A-Za-z0-9](?:[A-Za-z0-9_-]| (?! ))*[A-Za-z0-9]$/.test(name)) {
-        return { ok: false, error: 'Names can use letters, numbers, single spaces, hyphens and underscores, and must start and end with a letter or number' };
+        return { ok: false, error: 'Names can use letters, numbers, single spaces, hyphens, and underscores, and must start and end with a letter or number' };
     }
     // Guest names end in this, so a chosen name may not (it would pass for one).
     if (name.toLowerCase().endsWith(GUEST_SUFFIX)) return { ok: false, error: `Usernames cannot end in "${GUEST_SUFFIX}"` };

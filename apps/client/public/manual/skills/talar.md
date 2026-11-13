@@ -52,7 +52,7 @@ Two things worth knowing:
 - **Leaving costs you nothing.** Stop, walk off, come back next week: the stone keeps what it had taken.
 - **A better cut holds more.** A Polished stone holds half again what a Cut one does and fills a little faster; a Flawless one holds three times as much. That is why a good cutter is worth knowing.
 
-When a stone is full it glows and goes into your pack as a charged stone: **Lit**, **Bright** or **Radiant**, after the cut it began as. Charged stones can be kept, traded, or taken in.
+When a stone is full it glows and goes into your pack as a charged stone: **Lit**, **Bright**, or **Radiant**, after the cut it began as. Charged stones can be kept, traded, or taken in.
 
 ## Surges
 

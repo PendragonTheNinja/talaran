@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { getTalerBalance } from '../services/talers';
 import { TALER_TIERS } from '../config/talerTiers';
 import { STORE_ITEMS } from '../services/store';
+import { listWords } from '../lib/listWords';
 
 /**
  * What an unlock was, in words: "Forgeheart theme", "Custom Palettes, Moonveil
@@ -19,7 +20,7 @@ function describeUnlocks(keys: string[]): string | null {
     const themes = keys.filter(k => k.startsWith('theme:')).map(nameOf);
     const parts = [...perks];
     if (themes.length === 1) parts.push(`${themes[0]} theme`);
-    else if (themes.length > 1) parts.push(`${themes.slice(0, -1).join(', ')} and ${themes[themes.length - 1]} themes`);
+    else if (themes.length > 1) parts.push(`${listWords(themes)} themes`);
     return parts.join(', ');
 }
 

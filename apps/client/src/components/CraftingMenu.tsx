@@ -4,6 +4,7 @@ import RecipeList from './RecipeList'
 import './SmithingMenu.css'
 import { backdropClose } from '../lib/backdrop'
 import { formatGameTime } from '../lib/time'
+import { listWords } from '../lib/listWords'
 
 interface CraftingMenuProps {
     onClose: () => void
@@ -70,7 +71,7 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
 
                 {brokenTools.length > 0 && (
                     <p className="station-broken-notice">
-                        Your {brokenTools.join(' and ')} {brokenTools.length === 1 ? 'has' : 'have'} given out.
+                        Your {listWords(brokenTools)} {brokenTools.length === 1 ? 'has' : 'have'} given out.
                         Work that needs {brokenTools.length === 1 ? 'it' : 'them'} goes at half speed until you fit {brokenTools.length === 1 ? 'a new one' : 'new ones'} in the bench.
                     </p>
                 )}
@@ -79,7 +80,7 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
                     <p className="station-fire-notice">
                         {keeperFire.until
                             ? `${keeperFire.keeper}'s fire is lit for the meal. Her hearth works at full speed until ${formatGameTime(new Date(keeperFire.until))}.`
-                            : `${keeperFire.keeper} cooks at breakfast, noon and supper, and her hearth works at full speed while her fire burns. Next lit at ${formatGameTime(new Date(keeperFire.next))}.`}
+                            : `${keeperFire.keeper} cooks at breakfast, noon, and supper, and her hearth works at full speed while her fire burns. Next lit at ${formatGameTime(new Date(keeperFire.next))}.`}
                     </p>
                 )}
 

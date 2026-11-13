@@ -1,3 +1,5 @@
+import { listWords } from './listWords'
+
 // Wenna's verses, filled in (docs/chronicle-spec.md §8). Pure, so the composer,
 // the admin dry run and any test render the same line from the same deed.
 //
@@ -115,14 +117,13 @@ export function addDays(dayKey: string, n: number): string {
     return t.toISOString().slice(0, 10)
 }
 
-/** "Ellis, Corwin and Wren", or "Ellis, Corwin, Wren and 12 others" past the cap. */
+/** "Ellis, Corwin, and Wren", or "Ellis, Corwin, Wren, and 12 others" past the cap. */
 export function nameList(names: string[], max: number): string {
     if (!names.length) return ''
     const shown = names.slice(0, max)
     const rest = names.length - shown.length
-    if (rest > 0) return `${shown.join(', ')} and ${rest} other${rest === 1 ? '' : 's'}`
-    if (shown.length === 1) return shown[0]
-    return `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`
+    if (rest > 0) return listWords([...shown, `${rest} other${rest === 1 ? '' : 's'}`])
+    return listWords(shown)
 }
 
 /** A ballad's stanzas (blank lines between), for the page (the first is the line) and the book (all of them). */

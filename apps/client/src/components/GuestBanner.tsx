@@ -285,7 +285,7 @@ export function ClaimSuccessModal({ username, onClose }: { username: string; onC
                         <li>Trade with other players, and buy from their shops</li>
                         <li>Sell and buy at the Taiar Marketplace</li>
                         <li>Raise a shop of your own at Talador</li>
-                        <li>Talk in World, Region and Trade, not just Help</li>
+                        <li>Talk in World, Region, and Trade, not just Help</li>
                         <li>Post on the forums, and join a guild</li>
                         <li>Take your place on the highscores</li>
                     </ul>

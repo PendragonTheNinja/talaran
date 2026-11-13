@@ -6,7 +6,7 @@ Yours fills the same way. You cannot read about a creature in your Bestiary unti
 
 ## How it fills
 
-The first kill gives a creature its page: its picture, its level and where it lives.
+The first kill gives a creature its page: its picture, its level, and where it lives.
 
 After that, the page grows in steps. Each step is told to you when you reach it.
 

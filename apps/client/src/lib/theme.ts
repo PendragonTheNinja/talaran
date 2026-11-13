@@ -27,7 +27,7 @@ export const THEMES: ThemeMeta[] = [
         // The default look (Nathan, 2026-11-04): the mockup art, themes/stonehold.css.
         id: 'stonehold',
         name: 'Stonehold',
-        description: 'Rope-bound stone, gilt filigree and a red ground. The keep as it was first drawn.',
+        description: 'Rope-bound stone, gilt filigree, and a red ground. The keep as it was first drawn.',
         swatches: ['#0f0f0f', '#202020', '#cfc6b4', '#c9a14a'],
     },
     {

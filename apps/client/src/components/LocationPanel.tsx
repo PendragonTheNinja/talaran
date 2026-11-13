@@ -20,6 +20,7 @@ import MyShopMenu from './MyShopMenu'
 import { useItemTooltip } from './ItemTooltip'
 import { useWorldEvents, isMerchant } from '../lib/worldEvents'
 import './EventsPanel.css'
+import { listWords } from '../lib/listWords'
 
 interface GroundItem {
   id: number
@@ -164,7 +165,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // equipment_changed push; this only says so.
   const announceReequipped = (names?: string[]) => {
     if (!names?.length) return
-    const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    const list = listWords(names)
     window.dispatchEvent(new CustomEvent('talaran:notice', {
       detail: { message: `You put your ${list} back on.`, type: 'success' },
     }))

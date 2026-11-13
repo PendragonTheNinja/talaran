@@ -23,7 +23,7 @@ router.post('/register', async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
   if (!username || !req.body.email || !password) {
-    res.status(400).json({ error: 'Username, email and password are required' });
+    res.status(400).json({ error: 'Username, email, and password are required' });
     return;
   }
   // The rules (RulesPage.tsx on the client): the box must be ticked, and the
@@ -326,7 +326,7 @@ router.post('/upgrade', requireAuthToClaim, async (req: AuthRequest, res: Respon
   const { username, password } = req.body;
 
   if (!username || !req.body.email || !password) {
-    res.status(400).json({ error: 'Username, email and password are required' });
+    res.status(400).json({ error: 'Username, email, and password are required' });
     return;
   }
   // The rules (RulesPage.tsx on the client): the box must be ticked, and the

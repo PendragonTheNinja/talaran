@@ -31,6 +31,7 @@ import { gateSkill } from './equipGates'
 import { takeItemsWithin } from './inventory'
 import { isLiquid } from './liquids'
 import { parseTable } from './foraging'
+import { listWords } from '../lib/listWords'
 
 /** The slots a hand tool may be worn in. */
 const HAND_COLUMNS = ['mainhand_item_id', 'offhand_item_id', 'hands_item_id'] as const
@@ -189,7 +190,7 @@ export function takeToolWear(actionId: number): ToolWearOutcome | null {
 }
 
 function listNames(names: string[]): string {
-    return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    return listWords(names)
 }
 
 /** What hand wear leaves on the card: a break with no spare stops the work; a spared one is a line. */

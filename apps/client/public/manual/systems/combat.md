@@ -43,7 +43,7 @@ Now and then, between one creature and the next, you will be asked a question to
 
 ## Combat level
 
-Your combat level is the average of your Melee, Defense and Constitution. It is the number creatures are measured against, and it has its own place on the highscores.
+Your combat level is the average of your Melee, Defense, and Constitution. It is the number creatures are measured against, and it has its own place on the highscores.
 
 It does not count toward a tally licence. The tally boards are for the trades, and fighting is not a shortcut to them.
 

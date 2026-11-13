@@ -3,6 +3,7 @@ import { getCreatureImage, getItemIcon } from '../lib/items'
 import { fetchBestiary, type BestiaryData, type BestiaryEntry } from '../lib/combat'
 import { useItemTooltip } from './ItemTooltip'
 import './BestiaryPanel.css'
+import { listWords } from '../lib/listWords'
 
 /**
  * The Bestiary (docs/combat-spec.md §8): every creature the player has killed,
@@ -11,7 +12,7 @@ import './BestiaryPanel.css'
  * the next part takes.
  */
 
-const list = (xs: string[]) => xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
+const list = (xs: string[]) => listWords(xs)
 
 /** How the trail to a protected drop reads: words, never a count. */
 function trailWord(trail: number): string {

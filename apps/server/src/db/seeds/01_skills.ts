@@ -20,7 +20,7 @@ export async function seed(knex: Knex): Promise<void> {
     { name: 'Crafting', type: 'crafting', display_order: 11, description: 'Create armor, jewelry, and goods from raw materials.' },
     // Combat
     // Combat: three skills since 20261010120000_combat_skills (Attack became Melee, Strength retired).
-    { name: 'Melee', type: 'combat', display_order: 12, description: "Fight at arm's length with blade, spear or hammer. The better your hand, the finer the weapon it can hold." },
+    { name: 'Melee', type: 'combat', display_order: 12, description: "Fight at arm's length with blade, spear, or hammer. The better your hand, the finer the weapon it can hold." },
     { name: 'Defense', type: 'combat', display_order: 13, description: 'Take the blow on your armour and not on yourself. The more you turn aside, the heavier the armour you can carry.' },
     { name: 'Constitution', type: 'combat', display_order: 14, description: 'Bear the blows that get through. A hardy body has more to lose before it falls.' },
     // Utility

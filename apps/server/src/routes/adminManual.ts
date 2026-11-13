@@ -91,7 +91,7 @@ router.put('/page', requireAuth, async (req: AuthRequest, res: Response) => {
 
         if (!section || !slug || !SLUG_RE.test(section) || !SLUG_RE.test(slug)) {
             res.status(400).json({
-                error: 'Section and slug are required, lowercase letters, numbers and hyphens only.',
+                error: 'Section and slug are required, lowercase letters, numbers, and hyphens only.',
             });
             return;
         }

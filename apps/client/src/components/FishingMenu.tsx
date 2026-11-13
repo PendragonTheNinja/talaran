@@ -260,7 +260,7 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
                                     <button className="fishing-secondary" onClick={convert}>Break down</button>
                                 </div>
                             ) : (
-                                <p className="fishing-note">Nothing in your pack would tempt a fish. Grain, cheese, eggs, spawn and raw meat all serve.</p>
+                                <p className="fishing-note">Nothing in your pack would tempt a fish. Grain, cheese, eggs, spawn, and raw meat all serve.</p>
                             )}
 
                             <ErrorLine message={notice} className="fishing-notice" />
