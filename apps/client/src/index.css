@@ -636,6 +636,13 @@ body {
   mix-blend-mode: multiply;
 }
 
+/* The skill hairline lies on the icon's art, not on the page, and this
+   theme's golds are inks made to be read on parchment: dark on a dark icon.
+   It takes a bright gold of its own. */
+:root[data-theme='scriptorium'] .skill-tile {
+  --skill-ring-color: #e8b84b;
+}
+
 :root[data-theme='scriptorium'] .top-nav {
   border-bottom: 1px solid var(--color-border-gold);
   box-shadow: var(--shadow-sm);

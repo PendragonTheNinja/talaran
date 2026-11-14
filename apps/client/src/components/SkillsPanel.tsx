@@ -34,9 +34,12 @@ interface SkillsPanelProps {
 
 const fmt = (n: number) => n.toLocaleString('en-US')
 
-// Rounded-rect perimeter for the progress outline (viewBox is 100×100).
-const RW = 94, RH = 94, RR = 12   // rect size + corner radius (in viewBox units)
-const RING_P = 2 * (RW - 2 * RR) + 2 * (RH - 2 * RR) + 2 * Math.PI * RR
+// The progress hairline runs along the icon's own edge: the path IS the tile's
+// outline (the whole 100×100 box, corners at the tile's 12%), so the line can
+// never sit inside the art. Its thickness is not set here: the stroke is drawn
+// wide and .skill-ring shows only its outermost edge (SkillsPanel.css).
+const RR = 12                     // the tile's corner radius, in viewBox units
+const RING_P = 4 * (100 - 2 * RR) + 2 * Math.PI * RR
 
 export default function SkillsPanel({ skills, playerName, totalLevel, totalXp, combatLevel, gold, wornTitle, wornBadge, wornBadgeGlyph }: SkillsPanelProps) {
     const [showModal, setShowModal] = useState(false)
@@ -85,17 +88,18 @@ export default function SkillsPanel({ skills, playerName, totalLevel, totalXp, c
                                 className="skill-icon"
                                 onError={e => { e.currentTarget.style.display = 'none' }}
                             />
-                            <svg className="skill-ring" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                <rect className="skill-ring-track" x="3" y="3" width={RW} height={RH} rx={RR} ry={RR} />
-                                <rect
-                                    className="skill-ring-fill"
-                                    x="3" y="3" width={RW} height={RH} rx={RR} ry={RR}
-                                    style={{
-                                        strokeDasharray: RING_P,
-                                        strokeDashoffset: RING_P * (1 - skill.progress / 100),
-                                    }}
-                                />
-                            </svg>
+                            <span className="skill-ring">
+                                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <rect
+                                        className="skill-ring-fill"
+                                        x="0" y="0" width="100" height="100" rx={RR} ry={RR}
+                                        style={{
+                                            strokeDasharray: RING_P,
+                                            strokeDashoffset: RING_P * (1 - skill.progress / 100),
+                                        }}
+                                    />
+                                </svg>
+                            </span>
                             <span className="skill-level">{skill.level}</span>
                         </button>
                     ))
