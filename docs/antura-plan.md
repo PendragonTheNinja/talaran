@@ -161,15 +161,15 @@ Nathan: three or four fish for each water across 13 to 24. A base cast of 80 s w
 
 | Water | 13 | 16 | 19 | 22 |
 |---|---|---|---|---|
-| Bidewater (fresh) | Tench | Grayling | Zander | One invented fish |
+| Bidewater (fresh) | Tench | Rudd | Zander | One invented fish |
 | Farvick Narrows (salt) | Mackerel | Pollock | Sea Bass | Turbot |
 
-- How the list was chosen: real fish of northern lakes and coasts that Taiar does not already have, ordered from common to prized, with Mackerel placed for the gooseberry dish and one slot left for an invented fish, as about a third of Taiar's are. Grayling is really a river fish; Roach or Rudd would suit a lake better. Held back for later islands: salmon, trout, cod, herring, sturgeon.
+- How the list was chosen: real fish of northern lakes and coasts that Taiar does not already have, ordered from common to prized, with Mackerel placed for the gooseberry dish and one slot left for an invented fish, as about a third of Taiar's are. Rudd took Grayling's place (Nathan, 2026-11-15): Grayling is a river fish, and Bidewater is a lake. Held back for later islands: salmon, trout, cod, herring, sturgeon.
 - Each fish gets a bait, a time of day, or a season, as Taiar's do. Taiar mixes real fish with invented ones (Tiddle, Chalkarp, Duskfin); the names here are Nathan's to change.
 - **Mackerel is wanted** for the gooseberry dish (§11).
 - **Serph Fishing Rod:** Lanai Tool Rod, Serph Hook, and two Linen Thread, at Carpentry 15 (`docs/fishing-spec.md` already plans it).
 - **Salvage:** reuse what exists (the locked chest, amber, mussels) in the new waters. Nothing new without a use.
-- **The net works on Antura, for the lower fish of each water only** (Nathan, 2026-11-15). Today it hauls fish of level 4 and under (`NET_MAX_SPECIES_LEVEL` in `services/fishing.ts`), which on Antura is nothing. Proposed rule: a net hauls fish up to three levels above the water's tier rung. That is exactly today's rule on Taiar (1 plus 3), and on Antura it means the level 13 and 16 fish: Tench and Grayling, Mackerel and Pollock. The net is linen and planks with no metal in it, so there is one net for every water and no Serph net.
+- **The net works on Antura, for the lower fish of each water only** (Nathan, 2026-11-15). Today it hauls fish of level 4 and under (`NET_MAX_SPECIES_LEVEL` in `services/fishing.ts`), which on Antura is nothing. Proposed rule: a net hauls fish up to three levels above the water's tier rung. That is exactly today's rule on Taiar (1 plus 3), and on Antura it means the level 13 and 16 fish: Tench and Rudd, Mackerel and Pollock. The net is linen and planks with no metal in it, so there is one net for every water and no Serph net.
 
 ## 10. Combat (proposed)
 
@@ -215,7 +215,7 @@ How Taiar's cooking is shaped, which this follows: a plain cooked fish or roast 
 | Level | Fish | Heals |
 |---|---|---|
 | 13 | Cooked Tench, Cooked Mackerel | 38 |
-| 16 | Cooked Grayling, Cooked Pollock | 45 |
+| 16 | Cooked Rudd, Cooked Pollock | 45 |
 | 19 | Cooked Zander, Cooked Sea Bass | 52 |
 | 22 | The invented lake fish, Cooked Turbot | 58 |
 
@@ -261,9 +261,9 @@ Its buff is Nathan's to set. Proposed: every skill 1% faster for 6 hours, a long
 | Samphire | 3 |
 | Cabbage, Beet, Broad bean, Gooseberry | 2 each, and Cabbage, Beet, and beans are also feed |
 
-That is 13 dishes, ale, and 8 cooked fish: 22 recipes, against Taiar's 78.
+That is 13 dishes, 2 provisions, ale, and 8 cooked fish: 24 recipes, against Taiar's 78.
 
-**None of the thirteen is a provision.** All are plain food: they heal, and can be eaten in a fight. Ale is the only new item with a buff. Tier 2's provisions already exist at Cooking 13 to 17 (Farming, Woodcutting, Mining, Fishing, Husbandry, Smithing, Carpentry, travel, Foraging's finds, Hunting's double). The skills with none are Cooking and Crafting, and combat by rule. Proposed, in the existing pattern of a finished dish plus one or two things:
+**None of the thirteen is a provision.** All are plain food: they heal, and can be eaten in a fight. Ale is the only new item with a buff. Tier 2's provisions already exist at Cooking 13 to 17 (Farming, Woodcutting, Mining, Fishing, Husbandry, Smithing, Carpentry, travel, Foraging's finds, Hunting's double). The skills with none were Cooking and Crafting, and combat by rule. **Two are added** (Nathan, 2026-11-15), in the existing pattern of a finished dish plus one or two things:
 
 | Level | Provision | Made from | Helps |
 |---|---|---|---|
