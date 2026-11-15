@@ -51,7 +51,7 @@ Taiar's roads run 36 to 162 seconds on foot at level 1, 82 on average. That is t
 - **Starting:** the travel route takes a mode on a sea connection, `'ferry'` or the player's boat. The fare is taken in the same transaction as the travel insert, with the player row locked and a `gold_ledger` row (reason `ferry_fare`), as every gold write is (CLAUDE.md §4 rules 1, 3, and 7). Not enough gold is a refusal before anything is written.
 - **Time:** about 8 minutes (Nathan, 2026-11-15). Fixed: Wayfaring, mounts, staffs, and provisions do not speed a ship a player is only a passenger on.
 - **XP: none** (Nathan, 2026-11-06). A passenger is not sailing.
-- **The fare** (Nathan, 2026-11-15): never nothing and never steep, since the ferry is also the slowest way across and pays no XP. Proposed 25 gold each way, about what an hour of gathering turns up in coins at level 13 (CLAUDE.md §8: gold from gathering is 1% of XP an hour). It is a number on the route's row, so it is tuned without code. The fare leaves the economy; check `reconcileGold()` after.
+- **The fare is 50 gold each way** (Nathan, 2026-11-15): never nothing and never steep, since the ferry is also the slowest way across and pays no XP. For scale, an hour of gathering turns up about 27 gold in coins at level 13 (CLAUDE.md §8: gold from gathering is 1% of XP an hour). It is a number on the route's row, so it is tuned without code. The fare leaves the economy; check `reconcileGold()` after.
 - **Your mount comes with you.** It stays worn; you ride it again on landing.
 - No special absence rule. The first draft exempted sea journeys from the 30-minute away rule (`lib/presence.ts`) because they outlasted it. At 8 minutes they do not.
 
@@ -85,7 +85,7 @@ Taiar's roads run 36 to 162 seconds on foot at level 1, 82 on average. That is t
 
 ### Building one (Nathan, 2026-11-15)
 
-- **On a slip in a port, in steps, a piece at a time**, as a guild hall is raised. The hull stands on the slip between sessions. Building pays Carpentry and reports `skillName: 'Carpentry'`; mallet and saw as for any build (`services/construction.ts`, never a copy). The guild hall's build code is made general and shared, never copied.
+- **On a slip in a port, in steps, a piece at a time**, as a guild hall is raised. **Talador and Wendhaven each have a slip** (Nathan, 2026-11-15). The hull stands on the slip between sessions. Building pays Carpentry and reports `skillName: 'Carpentry'`; mallet and saw as for any build (`services/construction.ts`, never a copy). The guild hall's build code is made general and shared, never copied.
 - **Rope is Nettle Cordage**, a new item twisted from Stinging Nettle (Bramble Thicket, Foraging 10, gloves), which until now went into one recipe. No cordage item existed. Proposed 2 nettles a cord. Nettle is about a fifth of the thicket's finds, roughly 24 an hour at base speed, so the Skiff's rope is about two and a half hours of foraging, near what its planks cost in chopping. Nathan: that is fine for rope.
 - **Only the Cog has a sail**, of Linen Cloth, which gives the loom a real customer. The Skiff is rowed.
 - **Materials** (agreed as decent starting amounts) and proposed pieces:
@@ -132,15 +132,19 @@ The full plan is `docs/islets-plan.md`. What is settled (Nathan, 2026-11-15):
 Every voyage writes its own record, so there is something to read at the end of it.
 
 - A voyage is split into **watches**, one every minute or so. Each rolls once and writes a line: the wind and weather, a sighting, a find hauled aboard.
-- Proposed: **the log belongs to the boat** (`vessel_log`), so it is the boat's own history. Ferry passengers get their crossing in the ordinary travel log.
+- **The log belongs to the sailor, not the boat** (Nathan, 2026-11-15), and is read in its own tab beside the travel log.
 - Lines are content rows, written from inside the world (CLAUDE.md §2 and §10), several for each thing so a sailor does not read the same line twice in an evening.
 - Settled on read, like a fight: the watches due are written when the voyage is next looked at or ends, never by a sweep ticking every boat.
 
-## 8. Sea finds on a crossing (proposed)
+## 8. What a crossing turns up (Nathan, 2026-11-15: mostly flavour text)
 
-- `TRAVEL_EVENTS` entries gain a `mode` (`'land'` or `'sea'`); the roll picks only finds for the journey's mode and region. A ferry rolls them too, at a lower rate, as a rider finds less than a walker.
-- **A sea find is never a second supply of another trade's goods.** Fishing owns salvage; driftwood would undercut Woodcutting. Proposals: a message in a bottle (a curio; some carry a writ, as the Writ of Sending is found on the road); sea glass for the lapidary; ambergris for the pawnbroker; a rare sighting of something vast under the hull, as a trophy.
-- Each needs a real use before it ships (Nathan's rule for every new item).
+A crossing is for getting there. The islets are where things are found. So a crossing's watches are words in the log, not loot.
+
+Proposed, to fit how the land already works: a walker finds things on the road and a rider does not, and a sailor is paid as a rider is, so a crossing gives no ordinary finds. One exception keeps a long crossing from being nothing but waiting:
+
+- **A rare sighting:** something vast under the hull, kept as a trophy, at a rate scaled to how often crossings happen (CLAUDE.md §8 trophy rates). A trophy already has a use: it is worn, and it sells to the pawnbroker.
+
+Held back until something needs them: a message in a bottle (the natural carrier for a spell's writ, when a spell wants one found at sea), sea glass, ambergris. None ships without a real use.
 
 ## 9. Later, not now
 
@@ -158,16 +162,13 @@ Each step ends with Nathan testing. The first two need nothing from Antura, so s
 3. **The other finds.** Chests, guarded caches, young, flowers, artefacts and their museum exhibit, Quank.
 4. **The ferry.** Needs Wendhaven to exist. `travel_type: 'sea'` and `ferry_fare`; the fare in the travel transaction; the Skiff's crossing; the `Sailing` row retired; a race:check scenario for paying the fare five times at once; the Manual's Travel page gains the sea.
 5. **The Cog.** Needs Serph nails. Its rows, a slip at Wendhaven, Antura's islets.
-6. **The ship's log and sea finds.**
+6. **The ship's log**, in its own tab beside the travel log.
 7. §9, as wanted.
 
 ## 11. Open
 
-1. **The fare:** 25 gold each way is proposed.
-2. **The Carpentry levels** to build (10 and 19) are provisional.
-3. **The boats' speed numbers:** each one's start and floor, to land on about 7 and 5 minutes and stay behind walking for XP.
-4. **Which ports have a slip.** Proposed: Talador and Wendhaven.
-5. **Whether the log belongs to the boat or the sailor** (§7).
-6. **Which sea finds, if any** (§8).
-7. **The islets:** how many, their names, and the questions in `docs/islets-plan.md`.
-8. **The ferry's master and any names** on the water. Nathan's.
+1. **The Carpentry levels** to build (10 and 19) are provisional.
+2. **The boats' speed numbers:** each one's start and floor, to land on about 7 and 5 minutes and stay behind walking for XP.
+3. **Whether a crossing has the rare sighting** (§8), or words alone.
+4. **The islets:** how many, and the questions in `docs/islets-plan.md`.
+5. **The ferry's master and any names** on the water. Nathan's.

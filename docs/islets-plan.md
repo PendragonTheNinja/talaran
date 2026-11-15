@@ -37,7 +37,15 @@ Each islet has a character, so its picture always matches what is found there. R
 | 7 | A drowned quarry | Seldom | A great vein, a guarded cache |
 | 8 | The ruin | Rarely | An artefact, a great chest, a foal, Quank |
 
-Mock odds of reaching each: the five common islets 16% each (80%), the two seldom ones 8% each (16%), the ruin 4%. Names are Nathan's to give.
+Mock odds of reaching each: the five common islets 16% each (80%), the two seldom ones 8% each (16%), the ruin 4%.
+
+**The first player to reach an islet names it** (Nathan, 2026-11-15), and only after the full launch, so the alpha's testing names nothing. What that asks for:
+
+- The name is data on the islet, with who gave it and when, shown on the islet map and told in the Chronicle. **The islet pictures must carry no painted names**, since the name does not exist until a player gives it.
+- An unnamed islet needs words of its own until then ("an islet nobody has named").
+- A name is refused, not cleaned, by the same rule as guild and shop names (`namesRefusal`), with a length limit, and no two islets alike.
+- It is permanent. Staff can rename one that slips past the filter.
+- Because which islet a voyage reaches is chance, the first sailors out do not all name the same one.
 
 Antura has its own eight on the same pattern, and its islets also carry Nathan's quest series.
 
