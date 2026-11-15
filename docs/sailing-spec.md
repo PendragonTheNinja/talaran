@@ -129,9 +129,16 @@ Settled:
 - **Dropped:** salvage lumber (it is the trees again), and a unique resource for every skill.
 - **Antura's islets carry a quest series of Nathan's own.** Taiar's islets probably carry no quest.
 
+**The boats (Nathan, 2026-11-15). This replaces the ladder table in §5, whose Cutter of Hatch planks is wrong: Hatch is tier 3.**
+
+- **One boat a tier, and each does both jobs:** it explores its tier's islets and makes its tier's crossing.
+- **Tier 1 is the Skiff:** sailed from Wayfaring 1, built at Carpentry 10. Tier 1 has nowhere to cross to (the ferry goes to Antura), so it only explores Taiar's islets.
+- **Tier 2 is the Cog** (not "Cutter", an 18th-century word): sailed from Wayfaring 13, built at Carpentry 19. It is the boat for Antura: the crossing, and Antura's islets.
+- Two gates, as with a horse: Carpentry to build, Wayfaring to sail. The Carpentry levels are provisional.
+
 Open:
 
-- Whether there is a tier 1 boat at all, or the first boat is tier 2 (below), and the boats' names.
+- Where and how a boat is built, and what it costs (proposed 2026-11-15: on a slip in the port, in steps as a guild hall is raised, moored where it last landed; rope is Linen Thread and a sail is Linen Cloth, since no Cordage item exists).
 - §8's reasons to visit an islet predate this section and should be read through it.
 
 ## 9. Later, not now
