@@ -194,6 +194,7 @@ A first roster, in the vein of Taiar's (Hodag, Agropelter, Sidehill Gouger, Knoc
 - **Dropped armour set:** the Shellycoat's shells, sitting between late Serph and early Azulyss as Crabshell sits between Ambren and Serph. It could be a partial set from one creature, where Crabshell is six pieces from two.
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
+- **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. First ideas: give Bones a use (the Bonemeal idea in `docs/IDEAS.md`: ground and spread to keep a field's soil from falling) and make them every beast's common drop; Crab Meat from the two crabs, cooked as food, since they drop nothing else; Rabbit Meat from the Jackalope; Wolf Pelts at 1 in 5, where they are 1 in 12.
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
 
 ## 11. Cooking (a first full list, 2026-11-15, for Nathan to cut and change)
@@ -249,7 +250,7 @@ The fish names are placeholders (§9).
 |---|---|---|---|
 | 20 | Ale | 3 Barley, 1 Meadowsweet | In a cask, on its own clock |
 
-Its buff is Nathan's to set. Proposed: every skill 1% faster for 6 hours, a longer Meadowsweet Draught (1% for 2 hours), kept below the tier 2 provisions, which give one skill 1.5% for 5 hours, so ale never replaces them.
+**Its buff: every skill 1% faster for 6 hours, rounded up** (Nathan, 2026-11-15). It is a longer Meadowsweet Draught (1% for 2 hours), kept below the tier 2 provisions, which give one skill 1.5% for 5 hours, so ale never replaces them. The rounding is already how speed buffs work: `timerCut` in `services/buffs.ts` rounds the cut up to a whole second and never takes less than one.
 
 ### How often each new ingredient is used
 
@@ -282,7 +283,7 @@ That is 13 dishes, 2 provisions, ale, and 8 cooked fish: 24 recipes, against Tai
 1. **The map:** final positions, roads, and the picture for each place. Islet pictures carry no painted names.
 3. **Fish and creature names**, and the creatures' levels and weaknesses (§9, §10).
 4. **Whether to poll players before building tier 2 combat.**
-5. **The dish list** (§11), to cut and change, and ale's buff.
+5. **The dish list** (§11), to cut and change.
 6. **The numbers marked proposed in §4 to §6.**
 7. **The net:** no tier 2 for now is proposed (§9).
 8. **What survives the 1.0 reset**, and whether Thieving and Exploration are cut. Not Antura's questions, but the reset is when the free fixes in §14 land.
