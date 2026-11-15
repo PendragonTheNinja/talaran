@@ -1,0 +1,259 @@
+# Antura: the plan for island 2
+
+*Written with Nathan, 2026-11-14 and 15, as the brief for building it. **Settled** means Nathan decided it. **Proposed** means a first layout from Claude for him to change: names, levels, and numbers in those parts are placeholders until he says otherwise. §13 lists what he still has to decide. Not built.*
+
+Read with: `CLAUDE.md` §8 (the material ladder), `docs/foraging-farming-ladder.md`, `docs/sailing-spec.md`, `docs/islets-plan.md`.
+
+---
+
+## 1. What Antura is
+
+- **The second island, and tier 2 (levels 13 to 24).** Its theme is setting out, as Taiar's is new beginnings.
+- **It hosts tier 2 only where Taiar lacks it** (settled). Woodcutting (Deep Lanai), Hunting, Husbandry, and Talar already have tier 2 on Taiar and get nothing new here.
+- **Leaner than Taiar** (settled). Every skill opens 3 to 6 new things a tier. Nothing is added without a real use.
+- **A higher-tier recipe may use older ingredients** as long as one ingredient is of its own tier (settled).
+- **Actions run slightly longer each tier** (settled, Nathan 2026-11-15). XP per action rises to follow the band. Hunting may get a timer system of its own later.
+- **No church, no rift, no tutorial quests** (settled). A quest or two, plus Nathan's own series on its islets. The Geo- names are Taiar's tutors only.
+
+## 2. The places (settled names)
+
+| Place | What it is | What is there (proposed unless marked) |
+|---|---|---|
+| Wendhaven | The port | Ferry dock and slip (settled), museum, tavern for the ale round, marketplace |
+| Farefield | Farmland | The homestead site, the seed ground (settled), a low fighting spot |
+| Mettlefell | The forge town | Public smithy and carpentry bench, cookhouse, the tool merchants |
+| Underway | The mine | Granite and Serph (settled), old workings to fight in |
+| Bidewater | The lake | Freshwater fishing |
+| Farvick Narrows | The strait | Saltwater fishing, the tidal shore (settled), a fighting spot on the shoals |
+| Yondereach | The high passes (settled) | The top fighting ground |
+| Vergehorns | The twin headlands | A fighting ground |
+
+- **The circularity rule must hold here** (CLAUDE.md §2): every Serph tool that can break needs a path that does not need that tool. So Mettlefell's public benches lend Serph tools, or a merchant sells them.
+- One museum per island already works from `locations.region`. A guild already raises one hall per island where it chooses.
+
+### Roads (proposed, from Claude's sketch on Nathan's map; his final map decides)
+
+Slightly longer on average than Taiar's (settled). Taiar's 18 roads average 82 seconds. These eight average 95.
+
+| Road | Seconds on foot at level 1 |
+|---|---|
+| Wendhaven to Farefield | 45 |
+| Farefield to Mettlefell | 60 |
+| Mettlefell to Underway | 30 |
+| Farefield to Farvick Narrows | 55 |
+| Farvick Narrows to Mettlefell | 100 |
+| Mettlefell to Bidewater | 130 |
+| Bidewater to Yondereach | 110 |
+| Farvick Narrows to Vergehorns | 225 |
+
+## 3. Getting there
+
+All in `docs/sailing-spec.md`. In short: the ferry from Talador to Wendhaven (50 gold, about 8 minutes, no XP); the Skiff (tier 1, a little faster, free); the Cog (tier 2, fastest). Boats are built in pieces on a slip at Talador or Wendhaven. Each island has islets reached by chance (`docs/islets-plan.md`).
+
+## 4. Mining
+
+Settled:
+
+- Antura's granite is at Underway, with **Serph veins**. Serph is found in granite, as Ambren is.
+- **Its swing is slightly longer** than Taiar's, and **Serph veins come slightly rarer** than Ambren veins for the time spent.
+- **Garnet is the common gem here, Quartz still drops, and Amethyst (the tier 3 gem) is rare**, about 1 in 1,000.
+- No second mine.
+
+Proposed numbers:
+
+| | Taiar today | Antura |
+|---|---|---|
+| Granite swing | 20 s (15 at the floor) | 22 s (20 at the floor) |
+| Vein chance a swing | 1 in 100 | 1 in 100, so about 9% fewer veins an hour |
+| Granite XP | 7 | 9 |
+| Ore swing | 28 s | 30 s |
+| Ore XP | 32 | 46 |
+
+Gems, as a rule for every later rock (proposed):
+
+| | Own tier's gem | Tier below | Tier above |
+|---|---|---|---|
+| A rock swing | 1 in 200 | 1 in 400 | 1 in 1,000 |
+| An ore swing | 1 in 130 | 1 in 260 | 1 in 650 |
+| Antura | Garnet | Quartz | Amethyst |
+
+- Gem drops are keyed by rock type today (`mining:rock:granite`), so Antura's granite needs its own key or Taiar gets these odds too (settled that it needs one).
+- Taiar's granite can run at 15 s, under the game's 20 s floor. Raising it to 20 at the reset would keep the gap to Antura small at every level. Proposed.
+- Mining opens only Serph this tier. Nathan accepted that when he declined a second mine.
+
+## 5. Smithing
+
+Settled:
+
+- **Every Ambren tool gets a Serph tool**, and Serph weapons and armour follow the Ambren set.
+- **Serph tools reuse Lanai rods and planks.** Wood changes at tier 3.
+- **Serph smelts alone, on Charc**, and Charc is carried over from Taiar.
+
+Proposed:
+
+- **Each Ambren recipe at level L becomes a Serph recipe at L plus 12**, with the same number of ingots and the same wooden and leather parts. That is 44 recipes across Smithing 13 to 24: the tools at 13, one-hand weapons at 13, dual weapons at 16, two-hand weapons at 20, and one armour piece a level from 13 to 24, matching `docs/combat-spec.md` (Serph weapons at Melee 13, armour at Defense 13 to 24).
+- **Timers about a tenth longer than Ambren's**, XP from the band: a Serph Pickaxe about 148 XP in 100 s, where the Ambren one is 100 XP in 90 s.
+- **Smelting:** 1 Serph Ore and 2 Charc make 1 Serph Ingot, about 44 XP in 50 s. A dense ore makes 3 for twice the fuel, time, and XP, by the rule already written in `services/smithing.ts`.
+- Serph Nails 30 to an ingot and Serph Hooks 10, as Ambren's.
+
+## 6. Carpentry
+
+Settled: the existing recipes stay where they are, because nearly every one is a door into another skill. Carpentry's ladder comes from buildings and boats.
+
+| Carpentry level | Opens | State |
+|---|---|---|
+| 10 | Skiff | Settled, level provisional |
+| 13 | Antura homestead | Agreed spread |
+| 15 | Serph Fishing Rod | Agreed spread |
+| 17 | Tier 2 shop | Agreed spread |
+| 19 | Cog | Settled, level provisional |
+| 22 | Tier 2 guild hall work | Agreed spread |
+
+- The tier 2 guild hall is already a row: 3,000 Lanai Planks, 3,000 Granite Blocks, 5,000 Serph Nails.
+- Benches are built anew in each town (settled); on Antura they are Lanai benches with Serph tools.
+- Proposed costs, by the farmstead's shape (500 planks, 500 blocks, 1,000 nails): **Antura homestead** 600 Lanai Planks, 600 Granite Blocks, 1,200 Serph Nails. **Tier 2 shop** 450, 450, and 900, with 100 storage, 16 selling, and 8 buying slots where tier 1 has 75, 12, and 6.
+
+## 7. Farming and Husbandry
+
+Crops and feeds are in `docs/foraging-farming-ladder.md`. Settled:
+
+- **Six crops:** Barley 13, Cabbage 15, Leek 17, Beet 19, Broad bean 21, Gooseberry 23 (levels proposed).
+- **A homestead on Antura**, at Farefield, holding at most 10 fields and 12 pens.
+- **The XP share by place counts across every field and pen a player owns on every island**, fields highest-tier island first, so Taiar's are always the lowest places.
+- **One Flour.** Barley is its own item and mills to Flour at a better rate.
+- **Animals may eat whatever they really would**; the player picks by hand, and Larder Ward draws from storage cheapest first.
+- Husbandry gets no new animal. Young are carried over from Taiar, or found on islets.
+
+After Antura (Nathan, 2026-11-15): look again at every Farming and Husbandry action's timer. They are the same across the board today, which wants more thought.
+
+## 8. Foraging
+
+Settled, two habitats:
+
+| Habitat | Place | Level | Finds |
+|---|---|---|---|
+| Seed ground | Farefield | 13 | The six seeds and cuttings, nothing else |
+| Wild ground | Farvick Narrows, the tidal shore | 19 | Sea salt, samphire |
+
+Nettle gains a second use as Nettle Cordage (boats), and Meadowsweet as ale's herb. Both are Taiar forage.
+
+## 9. Fishing (proposed)
+
+Nathan: three or four fish for each water across 13 to 24. A base cast of 75 s where Taiar's is 70, and XP from the band (about 61 at level 13 rising to about 76 at 22).
+
+| Water | 13 | 16 | 19 | 22 |
+|---|---|---|---|---|
+| Bidewater (fresh) | Tench | Grayling | Zander | One invented fish |
+| Farvick Narrows (salt) | Mackerel | Pollock | Sea Bass | Turbot |
+
+- Each fish gets a bait, a time of day, or a season, as Taiar's do. Taiar mixes real fish with invented ones (Tiddle, Chalkarp, Duskfin); the names here are Nathan's to change.
+- **Mackerel is wanted** for the gooseberry dish (§11).
+- **Serph Fishing Rod:** Lanai Tool Rod, Serph Hook, and two Linen Thread, at Carpentry 15 (`docs/fishing-spec.md` already plans it).
+- **Salvage:** reuse what exists (the locked chest, amber, mussels) in the new waters. Nothing new without a use.
+- Open: whether the net gets a tier 2, since today's catches nothing above level 4.
+
+## 10. Combat (proposed)
+
+From `docs/combat-spec.md`: Serph weapons at Melee 13, Serph armour one piece a Defense level from 13 to 24, creatures of level 13 to 24, several fighting spots, and each island wants a mix of quick, slow, and costly creatures.
+
+Nathan, 2026-11-14: keep three rare weapons an island and a dropped armour set, at least through island 3. The forms rotate, so Antura's are the three Taiar did not use.
+
+A first roster, in the vein of Taiar's (Hodag, Agropelter, Sidehill Gouger, Knocker). Every name and level is a placeholder:
+
+| Creature | Level | Where | Its character |
+|---|---|---|---|
+| Hoop Snake | 13 | Farefield | Quick, light, the first fight here |
+| Billdad | 14 | Bidewater | Slow and safe to leave |
+| Shellycoat | 16 | Farvick Narrows | Armoured in shells; costly in food, and drops the armour set |
+| Wampus Cat | 17 | Mettlefell's hills | Quick XP, hard to leave |
+| Cutty Soams | 18 | Underway | A mine spirit; may open a Serph vein, as Knockers open veins on Taiar |
+| Snallygaster | 21 | Vergehorns | Winged, hits hard |
+| Hidebehind | 22 | Yondereach | Hard to hit |
+| Slide-rock Bolter | 24 | Yondereach | Slow, huge blows; the island's top fight |
+
+- **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have.
+- **Dropped armour set:** the Shellycoat's shells, sitting between late Serph and early Azulyss as Crabshell sits between Ambren and Serph. It could be a partial set from one creature, where Crabshell is six pieces from two.
+- Gems from creatures follow §4's pattern.
+- **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
+
+## 11. Cooking (proposed)
+
+Cooking already has 27 recipes at 13 to 18, including the tier 2 provisions. So the new dishes sit at 19 to 24, plus a cooked version of each new fish at the fish's own level, as on Taiar.
+
+Settled:
+
+- **Salt is an optional pinch** when cooking starts: one salt for a small chance of doubling the dish. A few preserved foods name it as an ingredient.
+- **Ale** is brewed from Barley and Meadowsweet in a cask on its own clock, Cooking's first slow work. At a tavern a player can stand a round, and everyone there gets its buff. Never a combat buff.
+- No pease pottage.
+- Each wild staple must go into at least three recipes.
+
+A first list, to cut freely:
+
+| Level | Dish | Its tier 2 ingredient |
+|---|---|---|
+| 19 | Barley Pottage | Barley, Leek |
+| 19 | Buttered Samphire | Samphire |
+| 20 | Salt Fish | Sea salt |
+| 20 | Ale | Barley |
+| 21 | Bean and Barley Stew | Broad bean, Barley |
+| 21 | Pickled Beet | Beet, Sea salt |
+| 22 | Mackerel in Gooseberry Sauce | Mackerel, Gooseberry |
+| 22 | Leek and Cheese Tart | Leek |
+| 23 | Samphire and Fish Broth | Samphire |
+| 23 | Gooseberry Fool | Gooseberry |
+| 24 | Salt Beef and Cabbage | Sea salt, Cabbage |
+| 24 | Shore Pie | Samphire |
+
+Sea salt is in three recipes and the pinch; samphire is in three. Healing amounts wait on a healing ladder against Antura's creatures.
+
+## 12. Crafting, Talar, and the rest
+
+- **Crafting:** garnet jewelry, already specced in `docs/talar-spec.md` and waiting on Serph (rings at Crafting 20, amulets at 22). Nettle Cordage, proposed at 2 nettles a cord. With Refine Garnet at 13 and Tan Slothhide at 17 already there, that is four things in the tier.
+- **Talar:** nothing new. Garnets are far commoner here (§4), which feeds tier 2 filling and vigils back on Taiar.
+- **Woodcutting, Hunting, Husbandry:** nothing new.
+- **Wayfaring:** the roads (§2), the boats, and the islets.
+
+## 13. What Nathan still has to decide
+
+1. **The map:** final positions, roads, and the picture for each place. Islet pictures carry no painted names.
+2. **Player shops:** one per island or one per location. Antura forces it; `SHOP_TOWN` is `'Talador'` today.
+3. **Fish and creature names**, and the creatures' levels and weaknesses (§9, §10).
+4. **Whether to poll players before building tier 2 combat.**
+5. **The dish list** (§11), and what ale's buff is.
+6. **The numbers marked proposed in §4 to §6.**
+7. **The tier 2 net.**
+8. **What survives the 1.0 reset**, and whether Thieving and Exploration are cut. Not Antura's questions, but the reset is when the free fixes in §14 land.
+
+## 14. What the code assumes today that Antura breaks
+
+For whoever builds it. Each of these is one island's worth of assumption.
+
+- **The farmstead is at Novita:** `FARMSTEAD_TOWN` in `services/farming.ts`, with the Novita row looked up throughout; husbandry follows it.
+- **The XP share counts within one farmstead:** `holdingRank` in `lib/holdingShare.ts` filters by `property_id`. It must count across all of a player's homesteads, fields highest-tier island first, before a second homestead ships.
+- **The field ceiling is one number:** `PLOT_MAX` 20. Past Taiar it is 10.
+- **Shops are raised in Talador only:** `SHOP_TOWN` in `services/shops.ts`; `SHOP_TIERS` holds tier 1 only.
+- **The map folder is Taiar's:** `MiniMap.tsx` builds `/images/locations/Taiar_Island/<place>.jpg`, and the exit hotspots are hard-coded in `lib/locationExits`. Both must come from the place's region.
+- **Road finds are Taiar's, in code:** every entry in `services/travelEvents.ts` is keyed `'Taiar Island'`, and `gameTick.ts` falls back to that region.
+- **"Taiar Island" is written into the client** in several headings (`RightPanel.tsx`, the Manual, News, and Highscores pages).
+- **Gem drops are keyed by rock type**, not place (§4).
+- **Smelting and sawing are tables in code:** `SMELT_RECIPES` needs Serph; `WOOD_TYPES` has the wrong levels for every wood after Lanai (CLAUDE.md §8).
+- **An animal has one feed:** `animal_species.feed_item_name`, read in about eight places in `services/husbandry.ts`.
+- **`services/unlocks.ts`** needs a branch for boats, or level-ups say nothing about them.
+- **The committed content snapshot is stale:** the merchant seed fails on a fresh database because `Ambren Scythe` is missing. Export from live before building on it.
+
+Free to fix at the 1.0 reset, and costly after: the item tiers of Hatch, Bearn, Mirrith, Craxial, Limestone, Sandstone, Marble, Basalt, and Koric; the placeholder ores `Ore 3` to `Ore 7`; the name `Tal's Hope`, which breaks the lore rule; Taiar granite's 15 s floor.
+
+## 15. A build order
+
+Each step ends with Nathan testing. Steps 1 and 2 need nothing from Antura and can go to the alpha first.
+
+1. **The Skiff:** boats, the slip at Talador, building in pieces, Nettle Cordage.
+2. **Taiar's islets:** exploring, landings, finds.
+3. **Antura's shell:** the places, roads, map, museum, merchants, public benches; the ferry.
+4. **The main chain:** Underway's granite and Serph, smelting, the Serph tools.
+5. **The homestead:** the cross-island XP share first, then Farefield, the six crops, the seed ground, the feed table.
+6. **The water:** the fish, the Serph rod, the tidal shore.
+7. **Cooking:** cooked fish, the dishes, the salt pinch, ale and the round.
+8. **Combat:** Serph arms, the creatures, the rare drops. After the poll, if there is one.
+9. **Carpentry's builds:** the tier 2 shop and guild hall work.
+10. **The Cog and Antura's islets,** and garnet jewelry.
