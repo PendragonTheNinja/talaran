@@ -40,6 +40,7 @@ Read with: `CLAUDE.md` §8 (the material ladder), `docs/foraging-farming-ladder.
 
 - **The circularity rule must hold here** (CLAUDE.md §2): every Serph tool that can break needs a path that does not need that tool. So Mettlefell's public benches lend Serph tools, or a merchant sells them.
 - One museum per island already works from `locations.region`. A guild already raises one hall per island where it chooses.
+- **Player shops: one per island, in its port town** (Nathan, 2026-11-15). So Talador on Taiar, as today, and Wendhaven on Antura.
 
 ### Roads (proposed, from Claude's sketch on Nathan's map; his final map decides)
 
@@ -167,7 +168,7 @@ Nathan: three or four fish for each water across 13 to 24. A base cast of 80 s w
 - **Mackerel is wanted** for the gooseberry dish (§11).
 - **Serph Fishing Rod:** Lanai Tool Rod, Serph Hook, and two Linen Thread, at Carpentry 15 (`docs/fishing-spec.md` already plans it).
 - **Salvage:** reuse what exists (the locked chest, amber, mussels) in the new waters. Nothing new without a use.
-- Open: whether the net gets a tier 2, since today's catches nothing above level 4.
+- **The net** (proposed: no tier 2 net for now). Today's net hauls only fish of level 4 and under, so on Antura it would haul nothing. Its job is cheap volume, Taiar's net already does that, and four fish a water is too few to split between rod and net. The game must say plainly that there is nothing here to net.
 
 ## 10. Combat (proposed)
 
@@ -193,9 +194,9 @@ A first roster, in the vein of Taiar's (Hodag, Agropelter, Sidehill Gouger, Knoc
 - Gems from creatures follow §4's pattern.
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
 
-## 11. Cooking (proposed)
+## 11. Cooking (a first full list, 2026-11-15, for Nathan to cut and change)
 
-Cooking already has 27 recipes at 13 to 18, including the tier 2 provisions. So the new dishes sit at 19 to 24, plus a cooked version of each new fish at the fish's own level, as on Taiar.
+Cooking already has 27 recipes at 13 to 18, including the tier 2 provisions, so the new dishes sit at 19 to 24. Each new fish gets a plain cooked version at its own level, as on Taiar.
 
 Settled:
 
@@ -203,25 +204,62 @@ Settled:
 - **Ale** is brewed from Barley and Meadowsweet in a cask on its own clock, Cooking's first slow work. At a tavern a player can stand a round, and everyone there gets its buff. Never a combat buff.
 - No pease pottage.
 - Each wild staple must go into at least three recipes.
+- A recipe may use older ingredients as long as one is tier 2.
 
-A first list, to cut freely:
+How Taiar's cooking is shaped, which this follows: a plain cooked fish or roast takes 30 s and heals about 10 plus 2.5 a level (10 at level 1, 30 at 9, 46 at 17); a made dish heals about five and a half times its level (56 at 10, 84 at 15, 100 at 18) and takes 45 s at level 3 rising to 110 s at 18.
 
-| Level | Dish | Its tier 2 ingredient |
+### Cooked fish
+
+| Level | Fish | Heals |
 |---|---|---|
-| 19 | Barley Pottage | Barley, Leek |
-| 19 | Buttered Samphire | Samphire |
-| 20 | Salt Fish | Sea salt |
-| 20 | Ale | Barley |
-| 21 | Bean and Barley Stew | Broad bean, Barley |
-| 21 | Pickled Beet | Beet, Sea salt |
-| 22 | Mackerel in Gooseberry Sauce | Mackerel, Gooseberry |
-| 22 | Leek and Cheese Tart | Leek |
-| 23 | Samphire and Fish Broth | Samphire |
-| 23 | Gooseberry Fool | Gooseberry |
-| 24 | Salt Beef and Cabbage | Sea salt, Cabbage |
-| 24 | Shore Pie | Samphire |
+| 13 | Cooked Tench, Cooked Mackerel | 38 |
+| 16 | Cooked Grayling, Cooked Pollock | 45 |
+| 19 | Cooked Zander, Cooked Sea Bass | 52 |
+| 22 | The invented lake fish, Cooked Turbot | 58 |
 
-Sea salt is in three recipes and the pinch; samphire is in three. Healing amounts wait on a healing ladder against Antura's creatures.
+The fish names are placeholders (§9).
+
+### Dishes
+
+| Level | Dish | Made from | Tools | Heals |
+|---|---|---|---|---|
+| 19 | Barley Pottage | 2 Barley, 1 Leek, 1 Onion | Cauldron, ladle | 102 |
+| 19 | Buttered Samphire | 3 Samphire, 1 Butter | Skillet | 100 |
+| 20 | Salt Fish | 2 of any raw fish, 2 Sea Salt | Cooking knife | 104 |
+| 20 | Buttered Worts | 1 Cabbage, 1 Leek, 1 Butter | Cauldron | 106 |
+| 21 | Bean and Barley Stew | 2 Broad Beans, 1 Barley, 1 Garlic, 1 Onion | Cauldron, ladle | 112 |
+| 21 | Pickled Beet | 2 Beet, 1 Sea Salt, 1 Honey | Cauldron, cooking knife | 110 |
+| 22 | Mackerel in Gooseberry Sauce | 1 Cooked Mackerel, 2 Gooseberry, 1 Butter | Skillet | 118 |
+| 22 | Leek and Cheese Tart | 2 Flour, 2 Leek, 1 Cheese, 1 Egg | Hearth, cooking knife | 118 |
+| 23 | Samphire and Fish Broth | 2 Samphire, 2 of any cooked fish, 1 Leek | Cauldron, ladle | 124 |
+| 23 | Gooseberry Fool | 3 Gooseberry, 1 Milk, 1 Honey | Mortar and pestle | 122 |
+| 23 | Beans and Pork | 1 Pork, 2 Broad Beans, 1 Onion | Cauldron, meat cleaver | 126 |
+| 24 | Salt Beef and Cabbage | 1 Beef, 1 Sea Salt, 1 Cabbage, 1 Beet | Cauldron, meat cleaver | 130 |
+| 24 | Shore Pie | 2 Flour, 2 Samphire, 2 of any cooked fish, 1 Butter | Hearth, ladle | 132 |
+
+- Timers about 90 to 130 s, a little longer than Taiar's top dishes; XP from the band at build.
+- Salt Fish and Gooseberry Fool cannot burn: one is cured, the other is not cooked.
+- Buttered Worts is a real medieval dish of greens and leeks in butter.
+
+### Ale
+
+| Level | Brew | Made from | How |
+|---|---|---|---|
+| 20 | Ale | 3 Barley, 1 Meadowsweet | In a cask, on its own clock |
+
+Its buff is Nathan's to set. Proposed: every skill 1% faster for 6 hours, a longer Meadowsweet Draught (1% for 2 hours), kept below the tier 2 provisions, which give one skill 1.5% for 5 hours, so ale never replaces them.
+
+### How often each new ingredient is used
+
+| Ingredient | Recipes |
+|---|---|
+| Leek | 4 |
+| Barley | 3 (with ale) |
+| Sea salt | 3, and the pinch |
+| Samphire | 3 |
+| Cabbage, Beet, Broad bean, Gooseberry | 2 each, and Cabbage, Beet, and beans are also feed |
+
+That is 13 dishes, ale, and 8 cooked fish: 22 recipes, against Taiar's 78. Possible later: a provision each for Cooking and Crafting, the two skills that have none.
 
 ## 12. Crafting, Talar, and the rest
 
@@ -233,12 +271,11 @@ Sea salt is in three recipes and the pinch; samphire is in three. Healing amount
 ## 13. What Nathan still has to decide
 
 1. **The map:** final positions, roads, and the picture for each place. Islet pictures carry no painted names.
-2. **Player shops:** one per island or one per location. Antura forces it; `SHOP_TOWN` is `'Talador'` today.
 3. **Fish and creature names**, and the creatures' levels and weaknesses (§9, §10).
 4. **Whether to poll players before building tier 2 combat.**
-5. **The dish list** (§11), and what ale's buff is.
+5. **The dish list** (§11), to cut and change, and ale's buff.
 6. **The numbers marked proposed in §4 to §6.**
-7. **The tier 2 net.**
+7. **The net:** no tier 2 for now is proposed (§9).
 8. **What survives the 1.0 reset**, and whether Thieving and Exploration are cut. Not Antura's questions, but the reset is when the free fixes in §14 land.
 
 ## 14. What the code assumes today that Antura breaks
