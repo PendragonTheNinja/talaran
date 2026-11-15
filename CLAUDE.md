@@ -67,6 +67,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - Active workstation at your location = full speed; otherwise timer ×2 ("making do at the public bench"). `null` station = no penalty.
 - **Graded recipes** (`recipes.grade_outputs`, a JSON list, worst grade first): `resolveRecipe` rolls which grade comes out by levels over the recipe (`lib/gemGrades.ts`); `output_item_name` names the plainest grade, and `values:derive` prices the others by `GRADE_WORTH`. Gem cutting runs this way at the **lapidary** (`station: 'lapidary'`, slots `lap_wheel` + `gem_chisel`, Caliwen), where jewelry will be made too.
 - **`RecipeList` takes a `station` filter** (a station type, or `null` for station-less work). A station's menu passes its own, or it lists every recipe of the skill.
+- **A higher-tier recipe may use older ingredients** (Nathan, 2026-11-15): forage, crops, meat, anything from an earlier tier, as long as at least ONE ingredient is of the recipe's own tier. This is the rule for every later island's cooking; it keeps old ingredients in demand and means a new tier needs only a few new ones.
 - **New recipes set `flavor_text`.** `RECIPE_FLAVOR_BY_SKILL` in `GameView.tsx` is a net, not the plan, and needs an entry for any new recipe-owning skill.
 
 ### Property & homestead
@@ -304,6 +305,14 @@ The tick is a 2-second `setInterval`, one branch per action type. **It claims be
 - **`items.tier` is DERIVED:** the band of the lowest level at which the item can be obtained. Bands: T1 1–12 · T2 13–24 · T3 25–36 · T4 37–49 · T5 50–61 · T6 62–74 · T7 75–86 · T8 87–99 · T9 100. A level that starts a rung opens the new tier. Tier is never about rarity or value. Taiar hosts nothing above T2. **Don't infer the rule from neighbouring rows**; many were wrong.
 - **Durability scales with tier:** a larger guaranteed use count before the break roll, and a lower break chance after. Tracked per player per item name, whether carried, worn or socketed.
 - **Trophy rates scale to event frequency:** ~0.33%/kill (hunting), ~5%/catch (trapping).
+
+### The material ladder (Nathan, 2026-11-14)
+The repo's item rows and code disagree with this in places; this is what is right.
+- **Wood and rock span two tiers each, metals one.** Lanai and Granite are T1 and T2; Hatch and Limestone T3 and T4; Bearn and Sandstone T5 and T6; Mirrith and Marble T7 and T8; Craxial and Basalt T9. A wood's two trees open at its two rungs (Lanai 1 and 13, Hatch 25 and 37, Bearn 50 and 62, Mirrith 75 and 87, Craxial 100). `WOOD_TYPES` in `services/carpentry.ts` (Hatch 13, Bearn 30, Mirrith 50, Craxial 70) and the `items.tier` of those logs, planks, and rocks are wrong.
+- **Metals sit in the rock of their tiers:** Ambren and Serph in Granite, Azulyss and the T4 metal in Limestone. **Serph smelts alone** (no partner ore), with Charc. **Koric is the fuel from T5 up**, not T2.
+- **Island 2 hosts T2 only where Taiar lacks it.** Woodcutting (Deep Lanai), Hunting, Husbandry, and Talar already have their T2 on Taiar and get nothing new there. Island 2's granite gives Serph veins and better garnet odds than Taiar's, so its drops need their own key (`mining:rock:granite` is shared by every granite today).
+- **Later tiers are leaner than Taiar's.** Two or three foraging habitats per level gate at most, a handful of fish per water, and nothing is added without a real use. Seeds are foraging's main T2 drop.
+- **Island 2's places:** Wendhaven (port), Farefield (farmland), Mettlefell, Underway (mine), Bidewater (lake), Farvick Narrows (strait), Yondereach, Vergehorns. Its theme is setting out, as Taiar's is new beginnings.
 
 ### Currency
 - **Value is DERIVED:** `value = xp of the yielding action ÷ 5`, min 1, whole gold, written by `scripts/deriveValues.ts`. Hand edits are overwritten unless `value_locked` (set automatically by the admin content browser; the script's `OVERRIDES` map is the versioned alternative).
