@@ -133,6 +133,7 @@ Settled:
 
 - **One boat a tier, and each does both jobs:** it explores its tier's islets and makes its tier's crossing.
 - **Tier 1 is the Skiff:** sailed from Wayfaring 1, built at Carpentry 10. It explores Taiar's islets **and can make the crossing to the next island** (Nathan, 2026-11-15).
+- **Every boat of a player's own crosses faster than the ferry** (Nathan, 2026-11-15), the Skiff included, if only by a little: ferry slowest and paid, Skiff a little faster and free, Cog fastest. A slower Skiff would be built only by players who wanted the islets, since a small fare buys the quicker crossing. The ferry is for players with no boat yet.
 - **Tier 2 is the Cog** (not "Cutter", an 18th-century word): sailed from Wayfaring 13, built at Carpentry 19. It is the boat for Antura's islets, and makes the crossing faster than the Skiff.
 - **A boat, once built, is at whichever port its owner stands in** (Nathan, 2026-11-15): the deckhands bring it round. It is never moored in one place, because a player can change islands without it (a portal, the Daily Step, a death that wakes them in Talador) and would be stranded from their own boat. This settles §11's "moored, or carried?": neither. It is still never an item in the pack.
 - Two gates, as with a horse: Carpentry to build, Wayfaring to sail. The Carpentry levels are provisional.
@@ -140,7 +141,6 @@ Settled:
 Open:
 
 - How a boat is built and what it costs (proposed 2026-11-15: on a slip in a port, in steps as a guild hall is raised). No Cordage item exists today. Proposed: rope is a new Nettle Cordage twisted from Stinging Nettle, which today goes into one recipe, and only the Cog's sail is Linen Cloth. First estimates: Skiff 250 Lanai Planks, 500 Ambren Nails, 30 Nettle Cordage; Cog 600 Lanai Planks, 1,200 Serph Nails, 60 Nettle Cordage, 20 Linen Cloth.
-- How the Skiff's crossing compares with the ferry's (proposed: slower than the ferry but free and paying Wayfaring, so the ferry is still worth its fare, and the Cog beats both).
 - §8's reasons to visit an islet predate this section and should be read through it.
 
 ## 9. Later, not now
