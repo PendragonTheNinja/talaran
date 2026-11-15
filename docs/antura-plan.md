@@ -90,8 +90,10 @@ Gems, as a rule for every later rock: the tier's own gem about once an hour of r
 | Antura granite (30 s) | Garnet, 1 in 135 | Quartz, 1 in 270 | Amethyst, 1 in 670 |
 | Antura Serph ore (40 s) | Garnet, 1 in 90 | Quartz, 1 in 180 | Amethyst, 1 in 450 |
 
-- Nathan's figure for the tier 3 gem was about 1 in 1,000, said before the swing grew to 30 s. 1 in 670 is the same pace by the hour; 1 in 1,000 a swing would be one every eight hours.
-- The Writ of Kindling drops from Taiar's granite at 1 in 1,500. If Antura's granite carries it, 1 in 1,000 keeps its pace.
+- Nathan, 2026-11-15: these numbers are good.
+- **The Writ of Kindling drops here too** (Nathan, 2026-11-15), at 1 in 1,000 a swing, which keeps the pace of Taiar's 1 in 1,500. Island 3 will use something different.
+- **These timers are for a miner at the node's own level with the tier's own tool** (Nathan, 2026-11-15): Serph ore is 40 s at Mining 13 with a Serph pickaxe, and slower with an Ambren one. The code already works this way: levels count from the node's own level (`lib/actionTimers.ts`), and `calculateTimer` in `services/woodcutting.ts` slows a tool below the node's `required_tool_tier` and speeds one above it by a tenth a tier. So Antura's granite and Serph ore are rows with `required_tool_tier` 2.
+- To decide: Deep Lanai is tier 2 work but asks for a tier 1 hatchet today, so its 60 s is the Ambren time and a Serph hatchet would cut it to 54. Raising it to tier 2 makes 60 s the Serph time and slows Ambren hatchets on it.
 - Gem drops are keyed by rock type today (`mining:rock:granite`), so Antura's granite needs its own key or Taiar gets these odds too (settled that it needs one).
 - Mining opens only Serph this tier. Nathan accepted that when he declined a second mine.
 
