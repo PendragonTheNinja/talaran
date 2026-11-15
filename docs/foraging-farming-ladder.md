@@ -102,13 +102,20 @@ Cabbage and beet descend from real shore plants (wild cabbage, sea beet), which 
 - **Sea salt:** scraped from dried rock pools. See Salt, above.
 - **Samphire:** the green to cook with the new fish.
 - **Rejected: wrack (seaweed).** Its case was dressing fields, and farming already has manure from mucking out.
-- **Only if ale is made from the barley:** a bittering herb such as bog myrtle, which is what ale used before hops.
+- **No third find for ale.** Its herb is Meadowsweet, already on Taiar's Creekbank (see Ale, below).
 - **Possible later:** a habitat that opens only at low tide on the game clock, as some fish bite only at certain hours. It needs a time window on habitats; everything else here is rows.
+
+### Ale (in, Nathan 2026-11-15; not built)
+
+- **Made from Barley and Meadowsweet.** Meadowsweet is the real herb for it (the name is from flavouring mead and ale), it is already foraged on Taiar's Creekbank at level 7, and today it goes into one recipe. Barley is the recipe's tier 2 ingredient, so the recipe rule holds and no new forageable is needed. No water: no existing drink asks for it.
+- **Brewing is slow work for Cooking:** the ale sits in a cask on its own clock, as hides sit in the tanning barrel. It is Cooking's first passive work, so it is priced as passive (CLAUDE.md §8).
+- **A round for the house:** at a tavern, a player puts down a number of ales and everyone standing there gets its buff. It is the first buff given to other people, and a deed for the Chronicle. Wendhaven wants a tavern for it.
+- **Never a combat buff.** Buff dishes stay out of fights.
+- Check before building: Meadowsweet is about a tenth of Creekbank's finds, so its supply against what brewing asks for.
 
 ### Still to decide for tier 2
 
 - A pease pottage, so Peas have a recipe. Under the recipe rule it can be a tier 2 dish (old peas, new salt).
-- Whether ale is in.
 - The dishes each staple feeds: each needs three.
 
 ---
