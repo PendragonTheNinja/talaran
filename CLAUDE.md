@@ -312,7 +312,13 @@ The repo's item rows and code disagree with this in places; this is what is righ
 - **Metals sit in the rock of their tiers:** Ambren and Serph in Granite, Azulyss and the T4 metal in Limestone. **Serph smelts alone** (no partner ore), with Charc. **Koric is the fuel from T5 up**, not T2.
 - **Island 2 hosts T2 only where Taiar lacks it.** Woodcutting (Deep Lanai), Hunting, Husbandry, and Talar already have their T2 on Taiar and get nothing new there. Island 2's granite gives Serph veins and better garnet odds than Taiar's, so its drops need their own key (`mining:rock:granite` is shared by every granite today).
 - **Later tiers are leaner than Taiar's.** Two or three foraging habitats per level gate at most, a handful of fish per water, and nothing is added without a real use. Seeds are foraging's main T2 drop.
-- **Island 2's places:** Wendhaven (port), Farefield (farmland), Mettlefell, Underway (mine), Bidewater (lake), Farvick Narrows (strait), Yondereach, Vergehorns. Its theme is setting out, as Taiar's is new beginnings.
+- **Island 2 is Antura.** Its places: Wendhaven (port), Farefield (farmland), Mettlefell, Underway (mine), Bidewater (lake), Farvick Narrows (strait), Yondereach, Vergehorns. Its theme is setting out, as Taiar's is new beginnings.
+- **Every skill opens 3 to 6 new things a tier** (Nathan, 2026-11-15), depending on the skill: enough that no skill goes a whole tier with nothing new, few enough that Taiar's sprawl is not repeated.
+- **Every Ambren tool gets a Serph tool** (Nathan, 2026-11-15), and so on up the metals. Serph tools reuse Lanai rods and wooden parts; the wood changes at T3 with Hatch. How a tool's tier affects speed and what it may work is the existing rule (`lib/actionTimers.ts`, `required_tool_tier`), not a new one.
+- **Charc stays Taiar's until Hatch** (Nathan, 2026-11-15): Antura has no kiln wood of its own, so Serph is smelted on Charc carried over.
+- **Benches are built anew in each town** (Nathan, 2026-11-15). Any tier of tool works at any bench; a bench on Antura is simply nearer the T2 work. A later smithy may be required for its own tier's metal because it burns hotter.
+- **Every island has its own homestead** for farming and husbandry (Nathan's plan, 2026-11-15). Open: whether fields, pens, and the XP share by place (`lib/holdingShare.ts`) are counted per homestead or across all of a player's homesteads. Per homestead, a second island doubles what a farm earns.
+- **Young animals keep coming from Hunting and Trapping.** Breeding is open to a case (Nathan, 2026-11-15); until one is accepted the Husbandry rule in §2 stands.
 
 ### Currency
 - **Value is DERIVED:** `value = xp of the yielding action ÷ 5`, min 1, whole gold, written by `scripts/deriveValues.ts`. Hand edits are overwritten unless `value_locked` (set automatically by the admin content browser; the script's `OVERRIDES` map is the versioned alternative).
