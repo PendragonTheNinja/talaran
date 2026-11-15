@@ -66,12 +66,12 @@ Any real creature may eat whatever it really would (Nathan). This also changes t
 
 - Every valid feed counts the same. Only the amount differs, by how filling it is.
 - Feeding by hand, **the player picks** the feed.
-- **Larder Ward draws from the farmstead's storage.** Proposed: valid feeds in a fixed order, cheapest first, so a ward never lapses while usable feed is there.
+- **Larder Ward draws from the farmstead's storage**, valid feeds in a fixed order, cheapest first (Nathan, 2026-11-15), so a ward never lapses while usable feed is there.
 - The code change: a species has exactly one feed today (`animal_species.feed_item_name` and `feed_qty`), read in about eight places in `services/husbandry.ts`. It needs a feed table (species, item, amount) and the choice at the trough.
 
-### Salt (proposed, not locked)
+### Salt (locked, Nathan 2026-11-15)
 
-Salt helps the cook, not the dish: an optional pinch when cooking starts uses one salt, and that batch burns less often or has a chance of an extra portion. The dish is the same item either way, so stacks never split. Salt as a named ingredient is kept for a few preserved foods (salt fish, cured meat). Putting salt in most recipes was rejected: it would make Foraging a toll on all Cooking, the shape of the feather shortage.
+Salt helps the cook, not the dish. It is **optional**: a pinch added when cooking starts uses one salt and gives that batch **a small chance of doubling the dish**. The dish is the same item either way, so stacks never split. Salt as a named ingredient is kept for a few preserved foods (salt fish, cured meat). Putting salt in most recipes was rejected: it would make Foraging a toll on all Cooking, the shape of the feather shortage. The chance itself is still to be set, and checked against how much salt an hour of foraging brings in.
 
 ---
 
