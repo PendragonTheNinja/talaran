@@ -114,6 +114,27 @@ How each is reached:
 - Each islet is a small location with one reason to go: a deep-water fishing spot (a Fishing tier tie-in), a rare forage, a creature that lives nowhere else, a ruin with a quest giver (quests are found by exploring, CLAUDE.md §9).
 - Islets belong to their island's region, so their museum and Manual pages are the island's own.
 
+## 8a. Exploring (Nathan, 2026-11-15; design, not built)
+
+Sailing is two things on one boat: **crossing** (port to port, §4 and §5) and **exploring**. Exploring is Nathan's old Sailing concept kept without the skill: the voyage pays Wayfaring, and what is found is worked with the skill that owns it (a stand of trees with Woodcutting, its own tools and XP), so a find is never a second supply of another trade's goods (§7).
+
+Settled:
+
+- **Each island has its own map of islets**, and each islet has its own zoomed picture, which is where the player lands. Islets are fixed places.
+- **Travel to them is by chance.** A player puts to sea and the voyage decides which islet is reached; there is no choosing one, and no near or far waters to pick between.
+- **Some islets are rarer to come across and hold better things on average.**
+- **What is on an islet is rolled each landing.**
+- **Finds in the first build:** something to work (trees, a vein, fish, plants and seeds), buried chests, creatures guarding loot, a barren islet, rare flowers, a rare artefact for the museum, a rare Quank encounter, and **young animals of tier 1 and 2**.
+- **Later:** combination chests (meant to be an ordinary, regular find once built), a large source of Talar, a shipwreck that costs time and never the boat.
+- **Dropped:** salvage lumber (it is the trees again), and a unique resource for every skill.
+- **Antura's islets carry a quest series of Nathan's own.** Taiar's islets probably carry no quest.
+
+Open:
+
+- Whether there is a tier 1 boat at all, or the first boat is tier 2 (below), and the boats' names.
+- How young animals are taken on an islet. CLAUDE.md §2 says young come only from Hunting and Trapping; a catch made with the bow or a snare keeps that rule.
+- §8's reasons to visit an islet predate this section and should be read through it.
+
 ## 9. Later, not now
 
 - **The ship's hold.** A vessel with storage: a `player_properties` row whose location is wherever the vessel is moored. It moves goods between islands without trading them, which makes hauling a thing to do. Big enough to need its own pass, and it touches every storage rule (CLAUDE.md §2 Property, §4).
