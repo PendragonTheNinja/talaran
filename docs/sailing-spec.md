@@ -140,7 +140,7 @@ Every voyage writes its own record, so there is something to read at the end of 
 
 A crossing is for getting there. The islets are where things are found. So a crossing's watches are words in the log, not loot.
 
-Proposed, to fit how the land already works: a walker finds things on the road and a rider does not, and a sailor is paid as a rider is, so a crossing gives no ordinary finds. One exception keeps a long crossing from being nothing but waiting:
+Agreed (Nathan, 2026-11-15), to fit how the land already works: a walker finds things on the road and a rider does not, and a sailor is paid as a rider is, so a crossing gives no ordinary finds. One exception keeps a long crossing from being nothing but waiting:
 
 - **A rare sighting:** something vast under the hull, kept as a trophy, at a rate scaled to how often crossings happen (CLAUDE.md §8 trophy rates). A trophy already has a use: it is worn, and it sells to the pawnbroker.
 
@@ -169,6 +169,5 @@ Each step ends with Nathan testing. The first two need nothing from Antura, so s
 
 1. **The Carpentry levels** to build (10 and 19) are provisional.
 2. **The boats' speed numbers:** each one's start and floor, to land on about 7 and 5 minutes and stay behind walking for XP.
-3. **Whether a crossing has the rare sighting** (§8), or words alone.
-4. **The islets:** how many, and the questions in `docs/islets-plan.md`.
-5. **The ferry's master and any names** on the water. Nathan's.
+3. **The islets:** how many, and the questions in `docs/islets-plan.md`.
+4. **The ferry's master and any names** on the water. Nathan's.

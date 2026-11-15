@@ -46,6 +46,7 @@ Mock odds of reaching each: the five common islets 16% each (80%), the two seldo
 - A name is refused, not cleaned, by the same rule as guild and shop names (`namesRefusal`), with a length limit, and no two islets alike.
 - It is permanent. Staff can rename one that slips past the filter.
 - Because which islet a voyage reaches is chance, the first sailors out do not all name the same one.
+- Naming is switched off through the alpha (Nathan, 2026-11-15), so testers are never asked to name something the 1.0 reset will wipe.
 
 Antura has its own eight on the same pattern, and its islets also carry Nathan's quest series.
 
