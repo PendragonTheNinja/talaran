@@ -187,24 +187,24 @@ A second roster, eight creatures, every name and level still a placeholder:
 |---|---|---|---|---|---|
 | Mettlefell | Wolverine | Real | 13 | Quick and fierce; the island's first fight | Slash |
 | Farvick Narrows | Bull Seal | Real | 15 | Slow, thick with blubber; safe to leave | Pierce |
-| Farvick Narrows | Shellycoat | Cryptid | 17 | A river spirit in a coat of shells; hard to hurt; drops the armour set | Crush |
+| Farvick Narrows | Shellycoat | Cryptid | 17 | A river spirit in a coat of shells; hard to hurt | Crush |
 | Vergehorns | Sea Eagle | Real | 19 | Light and hard to hit | Slash |
-| Vergehorns | Great Elk | Ancient | 20 | The giant deer; heavy antlers, hits hard | Pierce |
-| Vergehorns | Snallygaster | Cryptid | 21 | Winged, the lord of the headlands | Pierce |
+| Vergehorns | Reaver | A person | 20 | A sea raider in mail; hard to hurt, slow; carries coin | Crush |
+| Vergehorns | Snallygaster | Cryptid | 21 | Winged and scaled, the lord of the headlands; drops the armour set | Pierce |
 | Yondereach | Cave Bear | Ancient | 22 | Huge and slow; costly in food | Slash |
 | Yondereach | Slide-rock Bolter | Cryptid | 24 | Huge blows; the island's top fight | Crush |
 
-- That is three real, two ancient, and three cryptids. Slash and pierce are each the weakness of three, crush of two.
-- Vergehorns has three; dropping the Great Elk leaves two.
+- That is three real animals, one person, one ancient creature, and three cryptids. Slash and crush are each the weakness of three, pierce of two.
+- **The Great Elk is out** (Nathan, 2026-11-15): a deer is game, and belongs to Hunting. The Reaver takes its place, so Antura has a person as Taiar has its Wrecker and Jumper. An ancient alternative for that slot: a giant sea scorpion.
 - Yondereach is drawn, so a fighter there meets the Bolter now and then whether they want to or not.
 - Out of the first roster: Hoop Snake, Billdad, Wampus Cat, Cutty Soams, Hidebehind.
-- Each should have a common drop of its own (see the note on thin drops below): a Wolverine pelt, seal meat, elk meat and hide, a bear pelt. A bear pelt could make a tier 2 cloak, as the Wolf Pelt makes Taiar's.
+- **No meat from creatures fought** (Nathan, 2026-11-15): meat is Hunting's. Each creature still wants a common drop of its own (see the note on thin drops below): a pelt from the Wolverine and the Cave Bear (a bear pelt could make a tier 2 cloak, as the Wolf Pelt makes Taiar's), coin from the Reaver, garnets from the Bolter. The Bull Seal, the Shellycoat, and the Sea Eagle still need one; the eagle cannot give feathers (CLAUDE.md §2 Materials).
 
-- **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have. Proposed: the dual pierce from the Sea Eagle (its talons), the two-hand slash from the Snallygaster, the one-hand crush from the Cave Bear.
-- **Dropped armour set:** the Shellycoat's shells, sitting between late Serph and early Azulyss as Crabshell sits between Ambren and Serph. It could be a partial set from one creature, where Crabshell is six pieces from two.
+- **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have. Proposed: the dual pierce from the Sea Eagle (its talons), the two-hand slash from the Reaver (his blade, as the Wrecker drops a cutlass), the one-hand crush from the Cave Bear.
+- **Dropped armour set: not shell again** (Nathan, 2026-11-15); Taiar's is Crabshell. Proposed: Snallygaster scale, from the Snallygaster, sitting between late Serph and early Azulyss as Crabshell sits between Ambren and Serph. The Shellycoat drops no armour.
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
-- **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. First ideas: give Bones a use (the Bonemeal idea in `docs/IDEAS.md`: ground and spread to keep a field's soil from falling) and make them every beast's common drop; Crab Meat from the two crabs, cooked as food, since they drop nothing else; Rabbit Meat from the Jackalope; Wolf Pelts at 1 in 5, where they are 1 in 12.
+- **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. No meat: that is Hunting's (Nathan, 2026-11-15). First ideas: give Bones a use (the Bonemeal idea in `docs/IDEAS.md`: ground and spread to keep a field's soil from falling) and make them every beast's common drop; something from the two crabs that is not food, such as claws for fishing bait, since they drop nothing but armour; Wolf Pelts at 1 in 5, where they are 1 in 12.
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
 
 ## 11. Cooking (a first full list, 2026-11-15, for Nathan to cut and change)
