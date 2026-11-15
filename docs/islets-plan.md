@@ -47,11 +47,11 @@ Antura has its own eight on the same pattern, and its islets also carry Nathan's
 
 | Find | Worked with | The fixed amount | The boost |
 |---|---|---|---|
-| A stand of trees | Woodcutting | 30 chops | Better odds of Fine and Excellent logs (more planks a log); Bird Nests and Wild Hives several times likelier |
-| An exposed vein | Mining | 25 to 40 ore (a mainland vein is 8 to 20) | Dense ore likelier; gems several times likelier |
-| A shoal | Fishing | 30 casts | Bites as if on the best bait, with none used; heavier fish, so records fall here; salvage likelier |
-| A wild patch | Foraging | 30 searches | Notable finds several times likelier; the island's seeds |
-| A game trail | Hunting | 12 hunts | Surer shots; trophies likelier |
+| A stand of trees | Woodcutting | 40 chops | Better odds of Fine and Excellent logs (more planks a log); Bird Nests and Wild Hives several times likelier |
+| An exposed vein | Mining | 25 to 40 ore (a mainland vein is 8 to 20; Nathan: leave this one as it is) | Dense ore likelier; gems several times likelier |
+| A shoal | Fishing | 40 casts | Bites as if on the best bait, with none used; heavier fish, so records fall here; salvage likelier |
+| A wild patch | Foraging | 40 searches | Notable finds several times likelier; the island's seeds |
+| A game trail | Hunting | 15 hunts | Surer shots; trophies likelier |
 | A buried chest | Nobody's skill | One dig | Coins, rough gems, a curio, sometimes a tool |
 | A guarded cache | Combat | One fight | The creature's own drops, and the cache behind it |
 | A nest of young | None | Take them | One or two young of tier 1 or 2 |
@@ -60,11 +60,11 @@ Antura has its own eight on the same pattern, and its islets also carry Nathan's
 | Quank | None | Talk | Rare. Something odd, and never the same twice |
 | Nothing | | | The strandline only |
 
-"Several times likelier" is a dial per find, set in data. A starting point is three to five times.
+"Several times likelier" is a dial per find, set in data. A starting point is three to five times. The amounts were raised a little across the board on 2026-11-15 (Nathan), the vein excepted.
 
 ### Why this cannot take over a skill
 
-- A stand of 30 chops is about 22 minutes of work behind about 6 minutes of sailing. Over that half hour the islet pays about four fifths of the Woodcutting XP that staying at the tree would. It is always the slower way to level.
+- A stand of 40 chops is about 30 minutes of work behind about 6 minutes of sailing. Over that time the islet pays about five sixths of the Woodcutting XP that staying at the tree would. It is always the slower way to level.
 - The player cannot pick the stand. Four landings in five are something else.
 - The amounts are fixed, so a find cannot be farmed.
 
@@ -91,14 +91,31 @@ Every landing, one short search of the shore, with a sure find from a small tabl
 
 It is small on purpose. It is the floor under a barren landing, not a reason to sail.
 
-## 6. Things to decide
+## 6. Settled with Nathan, 2026-11-15
 
-1. **Falling in a fight on an islet.** A death drops everything where the player stands, and they wake in Talador. They cannot choose to sail back to that islet. Proposed: what a player drops on an islet is carried to the port they sailed from, and waits there as a death pile does now.
-2. **Does a better boat or a higher Wayfaring level change what is found, or only how fast the voyage is?** Proposed: speed only, so the odds are the same for everyone.
-3. **How much a find adapts to the player.** Proposed: a stand, vein, shoal, patch, or trail is the best of its kind on that island that the player has the level for, so a level 1 sailor and a level 20 sailor both find something they can work.
-4. **Two players on one islet.** Proposed: they can see and talk to each other, and each has their own find.
-5. **The sizes** (30 chops, 25 to 40 ore, 12 hunts) and **the boost** (three to five times). These want a sim against each skill's hour at home before they are fixed.
-6. **How many islets.** Eight is a guess to get the shape right; the islet maps decide.
+- **Falling in a fight on an islet:** what the player drops is carried to the port they sailed from and waits there as a death pile does now. They could never choose to sail back to the islet.
+- **A better boat or a higher Wayfaring level changes the speed of the voyage only**, never what is found.
+- **Players on the same islet see each other**, and each has their own find, rolled for them alone, so two may find different things on one islet.
+- **The amounts and the boost are checked in a sim** against each skill's hour at home before they are fixed.
+
+Still open:
+
+- **How much a find adapts to the player.** Proposed: a stand, vein, shoal, patch, or trail is the best of its kind on that island that the player has the level for.
+- **How many islets.** Eight is a guess to get the shape right; the islet maps decide.
+
+## 6a. Quank
+
+He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
+
+- **He says something he has never said to this player before.** His lines are content rows; a player hears each once, so those who meet him often are collecting him. Each time he is doing something that explains nothing.
+- **He tells one true thing.** A rumour of the kind the tavern already keeps (`services/chronicleRumours.ts`): something real that nobody has done yet. It never tells what the Bestiary or the museum keeps back.
+- **The sighting is counted.** A feat ladder for meeting him, and a line for the Chronicle. Players will compare numbers.
+- **No power from him.** No buff, no loot. He gave the pony once.
+- He insists he has not left the square.
+
+## 6b. Words
+
+Nathan wants a great deal of flavour text here (2026-11-15). All of it is content rows, several ways of saying each thing so a sailor does not read the same line twice in an evening: each islet's arrival, each find's discovery and its last action, the strandline's finds, the watches of the ship's log, every Quank line, and the line for coming home with nothing. Written from inside the world, under CLAUDE.md §10.
 
 ## 7. What it would take to build
 
