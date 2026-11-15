@@ -12,7 +12,17 @@ Read with: `CLAUDE.md` §8 (the material ladder), `docs/foraging-farming-ladder.
 - **It hosts tier 2 only where Taiar lacks it** (settled). Woodcutting (Deep Lanai), Hunting, Husbandry, and Talar already have tier 2 on Taiar and get nothing new here.
 - **Leaner than Taiar** (settled). Every skill opens 3 to 6 new things a tier. Nothing is added without a real use.
 - **A higher-tier recipe may use older ingredients** as long as one ingredient is of its own tier (settled).
-- **Actions run slightly longer each tier** (settled, Nathan 2026-11-15). XP per action rises to follow the band. Hunting may get a timer system of its own later.
+- **Actions run longer each tier, by an amount set for each skill** (settled, Nathan 2026-11-15), not one share for all. XP per action rises to follow the band. Hunting may get a timer system of its own later. What tier 1 and tier 2 look like:
+
+| Action | Tier 1 | Tier 2 | State |
+|---|---|---|---|
+| Chopping | 45 s (Lanai Tree) | 60 s (Deep Lanai) | Live today |
+| Granite | 20 s | 30 s | Settled |
+| Ore | 28 s | 40 s | Proposed |
+| A cast | 70 s | 80 s | Proposed |
+| Foraging | 45 to 60 s across four habitats | 65 s and 70 s | Proposed |
+| Bench work | 45 to 270 s by size | About a tenth longer | Proposed |
+| Hunting | 65, 85, and 120 s | Nothing new | Its own system later |
 - **No church, no rift, no tutorial quests** (settled). A quest or two, plus Nathan's own series on its islets. The Geo- names are Taiar's tutors only.
 
 ## 2. The places (settled names)
@@ -59,26 +69,30 @@ Settled:
 - **Garnet is the common gem here, Quartz still drops, and Amethyst (the tier 3 gem) is rare**, about 1 in 1,000.
 - No second mine.
 
-Proposed numbers:
+**Antura's granite takes 30 seconds a swing** (Nathan, 2026-11-15), where Taiar's takes 20. Everything that rolls on a swing is reset for that, so each comes at about the pace it does on Taiar or a little slower. Proposed:
 
 | | Taiar today | Antura |
 |---|---|---|
-| Granite swing | 20 s (15 at the floor) | 22 s (20 at the floor) |
-| Vein chance a swing | 1 in 100 | 1 in 100, so about 9% fewer veins an hour |
-| Granite XP | 7 | 9 |
-| Ore swing | 28 s | 30 s |
-| Ore XP | 32 | 46 |
+| Granite swing | 20 s, 15 at its fastest | 30 s, 22 at its fastest |
+| Vein chance a swing | 1 in 100 | 14 in 1,000 (about 1 in 71) |
+| Veins an hour at base speed | 1.8 | 1.7, slightly rarer |
+| Granite XP | 7 | 14 |
+| Ore swing | 28 s | 40 s |
+| Ore XP | 32 | 61 |
 
-Gems, as a rule for every later rock (proposed):
+The fastest swing is 22 s, not the game's 20 s floor, so that a high-level miner also finds veins slightly slower here than on Taiar (2.3 an hour against 2.4). At 20 s they would find them faster.
+
+Gems, as a rule for every later rock: the tier's own gem about once an hour of rock, the gem below at half that, the gem above at a fifth.
 
 | | Own tier's gem | Tier below | Tier above |
 |---|---|---|---|
-| A rock swing | 1 in 200 | 1 in 400 | 1 in 1,000 |
-| An ore swing | 1 in 130 | 1 in 260 | 1 in 650 |
-| Antura | Garnet | Quartz | Amethyst |
+| Taiar granite (20 s) | Quartz, 1 in 200 | none | Garnet, 1 in 800 today |
+| Antura granite (30 s) | Garnet, 1 in 135 | Quartz, 1 in 270 | Amethyst, 1 in 670 |
+| Antura Serph ore (40 s) | Garnet, 1 in 90 | Quartz, 1 in 180 | Amethyst, 1 in 450 |
 
+- Nathan's figure for the tier 3 gem was about 1 in 1,000, said before the swing grew to 30 s. 1 in 670 is the same pace by the hour; 1 in 1,000 a swing would be one every eight hours.
+- The Writ of Kindling drops from Taiar's granite at 1 in 1,500. If Antura's granite carries it, 1 in 1,000 keeps its pace.
 - Gem drops are keyed by rock type today (`mining:rock:granite`), so Antura's granite needs its own key or Taiar gets these odds too (settled that it needs one).
-- Taiar's granite can run at 15 s, under the game's 20 s floor. Raising it to 20 at the reset would keep the gap to Antura small at every level. Proposed.
 - Mining opens only Serph this tier. Nathan accepted that when he declined a second mine.
 
 ## 5. Smithing
@@ -139,7 +153,7 @@ Nettle gains a second use as Nettle Cordage (boats), and Meadowsweet as ale's he
 
 ## 9. Fishing (proposed)
 
-Nathan: three or four fish for each water across 13 to 24. A base cast of 75 s where Taiar's is 70, and XP from the band (about 61 at level 13 rising to about 76 at 22).
+Nathan: three or four fish for each water across 13 to 24. A base cast of 80 s where Taiar's is 70 (proposed), and XP from the band (about 65 at level 13 rising to about 80 at 22).
 
 | Water | 13 | 16 | 19 | 22 |
 |---|---|---|---|---|
