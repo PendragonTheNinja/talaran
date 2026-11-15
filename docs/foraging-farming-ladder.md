@@ -115,7 +115,7 @@ Cabbage and beet descend from real shore plants (wild cabbage, sea beet), which 
 
 ### Still to decide for tier 2
 
-- A pease pottage, so Peas have a recipe. Under the recipe rule it can be a tier 2 dish (old peas, new salt).
+- No pease pottage (Nathan, 2026-11-15). Peas stay a soil crop that can be eaten raw, and gain a use as feed.
 - The dishes each staple feeds: each needs three.
 
 ---
