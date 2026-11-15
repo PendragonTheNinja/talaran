@@ -1,6 +1,6 @@
 # The islets: a first plan
 
-*Mocked up for Nathan, 2026-11-15, to work from. Everything here is a proposal unless it says "settled". The settled rules it builds on are in `docs/sailing-spec.md` §8a. Not built.*
+*Mocked up for Nathan, 2026-11-15, to work from. Everything here is a proposal unless it says "settled". The settled rules it builds on are in `docs/sailing-spec.md` §6. Not built.*
 
 ## 1. What an islet has to do
 
@@ -18,7 +18,7 @@ The plan meets all four the same way: **an islet pays the normal XP for the work
    - **The strandline.** Every landing, whatever else is there, has something washed up: one short search of the shore with a small sure find (§5). This is what makes a barren islet still worth the sail.
    - **The find.** One thing rolled for this landing from what that islet can hold (§4). It belongs to this player alone, as a vein belongs to its finder.
 3. A find is a **fixed amount of work**, as a vein is a fixed count of ore. When it is worked out, or the player sails home, it is gone. There is no coming back to it.
-4. The player sails home to the port they left. The ship's log tells the voyage (`docs/sailing-spec.md` §6).
+4. The player sails home to the port they left. The ship's log tells the voyage (`docs/sailing-spec.md` §7).
 
 The first landing on an islet **discovers** it: its place fills in on the island's islet map, the Chronicle may write it up as it does a road first walked, and finding every islet of an island is a feat.
 
@@ -87,7 +87,7 @@ Every landing, one short search of the shore, with a sure find from a small tabl
 - a handful of coins (the player is doing something, so coins are allowed: CLAUDE.md §5 item 14);
 - a few seeds of the island's crops;
 - bait;
-- now and then something better: a Bird Nest, a locked chest of the kind Fishing salvages, a message in a bottle (`docs/sailing-spec.md` §7).
+- now and then something better: a Bird Nest, a locked chest of the kind Fishing salvages, a message in a bottle (`docs/sailing-spec.md` §8).
 
 It is small on purpose. It is the floor under a barren landing, not a reason to sail.
 
@@ -107,9 +107,9 @@ Still open:
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
 
-- **He says something he has never said to this player before.** His lines are content rows; a player hears each once, so those who meet him often are collecting him. Each time he is doing something that explains nothing.
+- **He is found once on each island's islets and never there again** (Nathan, 2026-11-15). After a player meets him among Taiar's islets he is gone from Taiar's rolls for that player; Antura's islets hold their own meeting. So each island's Quank is one written scene, not a line from a pool, and each time he is doing something that explains nothing. Since it can happen only once, a long run of bad luck should not hide him for ever: proposed, the same kind of quiet count the rare weapons have.
 - **He tells one true thing.** A rumour of the kind the tavern already keeps (`services/chronicleRumours.ts`): something real that nobody has done yet. It never tells what the Bestiary or the museum keeps back.
-- **The sighting is counted.** A feat ladder for meeting him, and a line for the Chronicle. Players will compare numbers.
+- **The sighting is counted.** A feat for each island's Quank, and a line for the Chronicle. Players will compare how many islands they have found him on.
 - **No power from him.** No buff, no loot. He gave the pony once.
 - He insists he has not left the square.
 

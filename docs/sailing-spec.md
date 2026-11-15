@@ -1,178 +1,173 @@
-# Sea travel: ferries, vessels and Wayfaring at sea
+# Sea travel: the ferry, boats, and exploring
 
-*Drafted 2026-11-05 with Nathan, answers added 2026-11-06. Status: design, not built. Decisions marked **(locked)** were made with Nathan; everything else is a proposal to react to. Section 11 lists what is still open.*
-
-The second island needs a way across the water. This is how players get there, what owning a boat adds, and why none of it is a skill of its own.
+*Second draft, 2026-11-15, written with Nathan. It replaces the draft of 2026-11-05, several of whose decisions he has since changed (long voyages, moored vessels, the Cutter, one long build). Status: design, not built. Anything dated is Nathan's decision; anything marked "proposed" is waiting on him. §11 lists what is open. The islets have their own plan: `docs/islets-plan.md`.*
 
 ---
 
-## 1. The decision: no Sailing skill **(locked)**
+## 1. No Sailing skill (Nathan, 2026-11-05; players polled 22 to 2 in favour)
 
-Sailing is not a skill. **Every journey, over land or sea, pays Wayfaring.** Sea travel is a sub-system of Wayfaring the way riding is.
+Sailing is not a skill. **Every journey, over land or sea, pays Wayfaring.** Sea travel is a part of Wayfaring the way riding is.
 
-Why: a skill whose XP comes from waiting on a boat is the thin skill this game has already merged away once (Agility and Equitation became Wayfaring, `20261016130000`). Click-and-wait at sea would be the same thing a third time. The interesting parts of sailing are owning the boat, where it can take you and what you find on the way, and those all fit around the skill players already train by travelling.
+Why: a skill whose XP comes from waiting on a boat is the thin skill this game has already merged away once (Agility and Equitation became Wayfaring, `20261016130000`). What is interesting about sailing is owning the boat, where it takes you, and what you find there, and all of that fits around the skill players already train by travelling.
 
-Consequences:
+- The unused `Sailing` row in `skills` (`is_implemented` false) is retired in the first step's migration. Nothing has ever paid it XP.
+- Wayfaring already gates the better horses and shortens every journey. Boats add to that; shortcuts on foot may come later (Nathan).
 
-- The unused `Sailing` row in `skills` (seed `01_skills.ts`, `type: 'utility'`, never implemented) is retired in step 1's migration. Nothing has ever paid it XP, so no player loses anything.
-- CLAUDE.md's "Sailing will be its own skill" (§2 Husbandry, Mounts) is replaced by a pointer here.
-- `services/travelEvents.ts` says "Wayfaring now; Sailing later": finds gain a travel mode instead (§6).
+## 2. The shape of it
 
-## 2. The shape of it **(locked)**
+**A boat does two things:**
 
-1. **The ferry: anyone can cross.** Paid passage from a port to a port. No boat, no level. Slower than sailing your own.
-2. **Vessels work like mounts.** Carpentry builds them; Wayfaring level decides which you may captain. This is the mount pattern exactly: raised by one skill, used through another (`services/equipGates.ts`).
-3. **Your own vessel is free to sail and faster**, and the better vessels reach places the ferry does not.
+1. **Crossing:** port to port, island to island.
+2. **Exploring:** putting to sea with no destination, landing on one of the island's islets by chance, and coming home (§6).
 
-## 3. Where the world stands today
+**Three ways across** (Nathan, 2026-11-15):
+
+| | Cost | Speed | Wayfaring XP |
+|---|---|---|---|
+| Ferry | A fare | Slowest | None |
+| Skiff | Free | A little faster | Yes |
+| Cog | Free | Fastest | Yes |
+
+Every boat of a player's own beats the ferry, the Skiff included, if only by a little. A slower Skiff would be built only by players who wanted the islets, since a small fare would buy the quicker crossing. The ferry is for players with no boat yet, and it reaches every inhabited island's port, so no island is ever locked behind a level.
+
+## 3. What exists today
 
 | Piece | What exists | What sea travel uses it for |
 |---|---|---|
-| `location_connections` | `from`/`to`, `base_travel_time`, `travel_type` (default `'walking'`), `required_skill`/`required_level` (road gates, already Wayfaring), `is_bidirectional` | A sea route is a connection with `travel_type: 'sea'`. No new table. |
-| `computeTravelTime` (`services/travel.ts`) | Foot and mount curves: `fraction = floor + (start - floor) * rate^level` | A vessel has a start and a floor, as a mount does (§5). |
-| Travel XP | `FOOT_XP_RATE` 0.7, `MOUNT_XP_RATE` 0.45 per second of base time, always on base, never on the shortened time | A third rate for sailing your own vessel, and one for the ferry (§4, §5). |
-| `TRAVEL_EVENTS` (`services/travelEvents.ts`) | Region-keyed finds rolled per journey segment (daisies, Taiaria, Writ of Sending) | Sea finds, keyed by mode as well as region (§6). |
-| `travel_log` | Every journey and its finds, with `skill_name` | Unchanged; sea journeys log with `Wayfaring` and the mode. |
-| `locations.region` | The island | A new island is a new region; museums, guild halls and the Manual's island column already read it. |
-| Talador | The first port city; ships "from distant lands dock here" in its own description | The Taiar end of the first ferry. |
-| The Taiar map | Several small islets north-west, south-west and south-east that nothing uses | Boat-only places (§7). |
+| `location_connections` | `from`/`to`, `base_travel_time` in seconds, `travel_type` (default `'walking'`), `required_skill`/`required_level`, `is_bidirectional` | A sea route is a connection with `travel_type: 'sea'`. No new table. |
+| `computeTravelTime` (`services/travel.ts`) | Foot and mount curves: `fraction = floor + (start - floor) * rate^level` | A boat has a start and a floor, as a mount does. |
+| Travel XP | `FOOT_XP_RATE` 0.7 and `MOUNT_XP_RATE` 0.45 a second of base time, always on base, never the shortened time | Sailing pays near the mount's rate (§5). |
+| `TRAVEL_EVENTS` (`services/travelEvents.ts`) | Finds by region, rolled on each journey | Sea finds, keyed by mode as well as region (§8). |
+| `travel_log` | Every journey and its finds | Sea journeys log there too. |
+| `locations.region` | The island | An islet belongs to its island's region. |
+| `services/guildHall.ts` | A build raised a material at a time by a repeating 20-second action that pays Carpentry | The pattern for building a boat (§5), made general and shared. |
+| Portal, the Daily Step, death | A player can change islands with no boat | Why a boat is never moored in one place (§5). |
 
-## 4. The ferry (step 1)
+Taiar's roads run 36 to 162 seconds on foot at level 1, 82 on average. That is the scale a crossing is set against.
 
-- **A sea route with a fare.** `location_connections` gains `ferry_fare` (whole gold, null where no ferry runs). Talador to the second island's port is the first.
-- **Starting:** the travel route takes a mode, `'ferry'` or `'vessel'`, on a sea connection. The fare is taken in the same transaction as the travel insert, with the player row locked and a `gold_ledger` row (reason `ferry_fare`), as every gold write is (CLAUDE.md §4 rules 1, 3, 7). Not enough gold is a refusal before anything is written.
-- **Time:** the ferry runs at a fixed share of the route's base time (`FERRY_FRACTION`, proposed 1.0: the base time is the ferry's time). Wayfaring, mounts, staffs and provisions do not speed a ship you are a passenger on.
-- **Voyages are short** (Nathan, 2026-11-15, replacing "voyages are long" of 2026-11-06): players will not wait an hour between islands, however true to life. A crossing is the longest single journey in the game and is still measured in minutes. Taiar's roads run 36 to 162 seconds on foot at level 1, 82 on average. Agreed as the starting numbers (Nathan, 2026-11-15): ferry about 8 minutes, Skiff about 7 at Wayfaring 1, Cog about 5 at Wayfaring 13, each boat falling with Wayfaring as a mount does; an islet voyage 2 to 4 minutes each way. What this changes below: a sea journey no longer outlasts the 30-minute absence rule, so the exemption is not needed; a voyage is no longer one click for an hour, so its XP can be paid by the second as riding is (§5), still sim-checked; and the ship's log (§6) keeps a watch every minute or so, not every ten.
-- **XP: none** **(locked, Nathan 2026-11-06)**. A passenger is not sailing.
-- **Gold sink:** the fare leaves the economy. **Not a ton, but never negligible** **(locked, Nathan 2026-11-06)**: set against `docs/economy-spec.md`, and checked with `reconcileGold()` after.
-- **The ferry is slower than the Cutter** **(locked)**, so a vessel of your own beats it on both time and gold.
-- **You cannot step off a boat.** Today an action is cancelled once its player has been away 30 minutes (`lib/presence.ts`), and a cancelled journey leaves you where you started. A sea journey is exempt: it completes, and you arrive. Otherwise an absent player loses the fare and the crossing both.
-- **Your mount comes with you.** It stays worn (it is an item); you ride it again on landing.
+## 4. The ferry
 
-## 5. Vessels (step 3)
+- **A sea route with a fare.** `location_connections` gains `ferry_fare` (whole gold, null where no ferry runs). Talador to Wendhaven is the first.
+- **Starting:** the travel route takes a mode on a sea connection, `'ferry'` or the player's boat. The fare is taken in the same transaction as the travel insert, with the player row locked and a `gold_ledger` row (reason `ferry_fare`), as every gold write is (CLAUDE.md §4 rules 1, 3, and 7). Not enough gold is a refusal before anything is written.
+- **Time:** about 8 minutes (Nathan, 2026-11-15). Fixed: Wayfaring, mounts, staffs, and provisions do not speed a ship a player is only a passenger on.
+- **XP: none** (Nathan, 2026-11-06). A passenger is not sailing.
+- **The fare** (Nathan, 2026-11-15): never nothing and never steep, since the ferry is also the slowest way across and pays no XP. Proposed 25 gold each way, about what an hour of gathering turns up in coins at level 13 (CLAUDE.md §8: gold from gathering is 1% of XP an hour). It is a number on the route's row, so it is tuned without code. The fare leaves the economy; check `reconcileGold()` after.
+- **Your mount comes with you.** It stays worn; you ride it again on landing.
+- No special absence rule. The first draft exempted sea journeys from the 30-minute away rule (`lib/presence.ts`) because they outlasted it. At 8 minutes they do not.
 
-### What a vessel is
+## 5. Boats
 
-Proposed: **a vessel is moored, not carried.** It is a row (`player_vessels`: owner, vessel type, where it is moored) at a port, never a stack in your pack. A rowing boat in a backpack is the ingots-in-a-barrel problem again. It sails with you and stays moored where you land. Walk or take the ferry back without it, and it waits where you left it; the harbour lists it.
+### What a boat is
 
-Vessel types are rows (`vessel_types`: name, tier, `wayfaring_level`, `travel_speed_modifier` and `travel_floor` like a mount's, which sea routes it may take, build inputs), so a new boat is content, not code.
+- A row, never an item (`player_vessels`: owner, vessel type). A boat in a backpack is the ingots-in-a-barrel problem again.
+- **Once built, it is at whichever port its owner stands in** (Nathan, 2026-11-15): the deckhands bring it round. It is never moored in one place, because a player can change islands without it and would be stranded from their own boat. This settles the first draft's "moored, or carried?": neither.
+- Vessel types are rows (`vessel_types`: name, tier, Wayfaring level to sail, Carpentry level to build, speed start and floor like a mount's, the pieces it is built from), so a new boat is content, not code.
 
-### Building one
+### The ladder (Nathan, 2026-11-15)
 
-- **Carpentry builds vessels, at a shipwright's slip in a port** (a workstation type, `'shipwright'`). Building pays Carpentry and reports `skillName: 'Carpentry'` (CLAUDE.md §2 Property). The mallet and saw check is `services/construction.ts`'s, never a copy.
-- **Inputs cross the trades:** planks of the vessel's tier (Woodcutting, Carpentry), nails (Smithing), rope from plant-fibre cordage (Foraging), and sailcloth woven from linen at the spinning wheel and loom (Foraging's flax, the textile station). A boat is a thing a guild builds together, which is the point of guilds (Manual, Guilds).
-- Proposed: a vessel is one long build, a timed action like establishing a farmstead, with the inputs taken at start through `takeItemsWithin`.
+**One boat a tier, and each does both jobs.**
 
-### Captaining one
+| Boat | Tier | Sail at Wayfaring | Build at Carpentry | Explores | Crossing |
+|---|---|---|---|---|---|
+| Skiff | 1 | 1 | 10 | Taiar's islets | About 7 minutes at Wayfaring 1 |
+| Cog | 2 | 13 | 19 | Antura's islets (and Taiar's, faster) | About 5 minutes at Wayfaring 13 |
 
-- **Wayfaring gates the vessel** (`vessel_types.wayfaring_level`), as it gates mounts. A level-up that opens a vessel says so (`services/unlocks.ts` needs a branch, or it says nothing: CLAUDE.md §9).
-- **Speed:** a vessel's start and floor, closed by Wayfaring level on `MOUNT_RATE`, exactly as a mount's are. Better vessels end up faster; Wayfaring decides how fast you get there.
-- **XP: close to a horse's** (Nathan, 2026-11-15, replacing "priced as passive"). For the time spent, sailing a boat of one's own pays Wayfaring at about what riding does (`MOUNT_XP_RATE`, 0.45 a second of base time against walking's 0.7), and **walking stays the best Wayfaring XP for the time spent**. Check in a sim at every Wayfaring level before it ships, since a boat's time falls with level as a mount's does while its XP is paid on base time. The ferry still pays nothing (§4).
+- Two gates, as with a horse: Carpentry to build, Wayfaring to sail. The Carpentry levels are provisional, set by Carpentry's own ladder.
+- "Cog", not "Cutter", which is an 18th-century word. Later boats could run Hulk, Caravel, Carrack.
+- Later tiers take each tier's wood (Hatch from tier 3) and metal.
 
-### A first ladder (proposal)
+### Sailing one
 
-| Vessel | Wayfaring | Built from | Reaches |
+- **Speed:** a boat's start and floor, closed by Wayfaring level as a mount's are. A better boat is faster; Wayfaring decides how much of that the sailor gets. **A better boat or a higher level changes speed only**, never what is found (Nathan, 2026-11-15).
+- **Voyages are short** (Nathan, 2026-11-15, replacing "voyages are long"). Players will not wait an hour between islands. A crossing is the longest single journey in the game and is still minutes. An islet voyage is 2 to 4 minutes each way.
+- **XP: close to a horse's** (Nathan, 2026-11-15). For the time spent, sailing pays Wayfaring at about what riding does, and **walking stays the best Wayfaring XP for the time spent**. Sim it at every Wayfaring level before it ships: travel XP is paid on base time while a boat's real time falls with level.
+- A level that opens a boat says so (`services/unlocks.ts` needs a branch, or the level-up says nothing: CLAUDE.md §9).
+
+### Building one (Nathan, 2026-11-15)
+
+- **On a slip in a port, in steps, a piece at a time**, as a guild hall is raised. The hull stands on the slip between sessions. Building pays Carpentry and reports `skillName: 'Carpentry'`; mallet and saw as for any build (`services/construction.ts`, never a copy). The guild hall's build code is made general and shared, never copied.
+- **Rope is Nettle Cordage**, a new item twisted from Stinging Nettle (Bramble Thicket, Foraging 10, gloves), which until now went into one recipe. No cordage item existed. Proposed 2 nettles a cord. Nettle is about a fifth of the thicket's finds, roughly 24 an hour at base speed, so the Skiff's rope is about two and a half hours of foraging, near what its planks cost in chopping. Nathan: that is fine for rope.
+- **Only the Cog has a sail**, of Linen Cloth, which gives the loom a real customer. The Skiff is rowed.
+- **Materials** (agreed as decent starting amounts) and proposed pieces:
+
+| Skiff | Lanai Planks | Ambren Nails | Other |
 |---|---|---|---|
-| Skiff | 1 | Lanai planks, cordage | Coastal routes and the near islets of Taiar |
-| Cutter | 13 | Hatch planks, nails, cordage, sailcloth | The second island, and its islets |
-| Later tiers | 25, 37, ... | Each tier's planks and better cloth | Each further island |
+| Keel and ribs | 80 | 160 | |
+| Planking | 140 | 300 | |
+| Thwarts and oars | 30 | 40 | |
+| Lines | | | 30 Nettle Cordage |
+| **Total** | **250** | **500** | |
 
-The ferry always reaches every inhabited island's port, so no island is ever locked behind a level. What a vessel adds is speed, no fare, and the places the ferry does not go.
+| Cog | Lanai Planks | Serph Nails | Other |
+|---|---|---|---|
+| Keel and ribs | 150 | 300 | |
+| Planking | 300 | 650 | |
+| Deck | 110 | 200 | |
+| Mast and yard | 40 | 50 | |
+| Rigging | | | 60 Nettle Cordage |
+| Sail | | | 20 Linen Cloth |
+| **Total** | **600** | **1,200** | |
 
-## 6. The ship's log **(wanted, Nathan 2026-11-06)**
+For scale: a shop is 350 planks, 350 blocks, and 700 nails; a farmstead 500, 500, and 1,000. The Cog needs planks from Taiar and nails from Antura, so half of it comes over on the ferry whichever port it is built in. Check the linen: each cloth is three threads and each thread two lots of fibre, all from flax.
 
-Every voyage writes its own record, so coming back to a finished voyage has something to read.
+## 6. Exploring
 
-- A voyage is split into **watches** (proposed every 10 minutes of the voyage's time). Each watch rolls once and writes a line: the wind and weather, a sighting, a find hauled aboard (§7), now and then a squall that costs time and says so.
-- Proposed: **the log belongs to the vessel** (`vessel_log`: vessel, voyage, watch, line, any find), so it is the ship's own history, whoever was captain. Ferry passengers get their voyage, finds and all, in their ordinary travel log (`travel_log`).
-- Watch lines are content rows (`voyage_lines`, by kind and region), written from inside the world, never hard-coded (CLAUDE.md §2, §10).
-- Settled on read, like a fight: the watches due are written when the voyage is next looked at or completes, never by a sweep ticking every boat.
+The full plan is `docs/islets-plan.md`. What is settled (Nathan, 2026-11-15):
 
-## 7. Sea finds (step 2)
+- **Each island has its own map of islets**, and each islet its own zoomed picture, which is where the player lands. Islets are fixed places.
+- **Which islet is reached is pure chance.** No choosing one, and no near or far waters.
+- **Some islets are reached more rarely and hold better things on average.**
+- **What is on an islet is rolled each landing, for each player alone.** Players on one islet see each other and may find different things.
+- **What is found is worked with the skill that owns it**, at that skill's normal XP, so a find is never a second supply of another trade's goods and never the way to train a skill. The reward is a boost to what the work can turn up besides.
+- **Even a barren islet turns up something.**
+- **In the first build:** something to work (trees, a vein, fish, plants and seeds, game), buried chests, creatures guarding loot, young animals of tier 1 and 2, flowers, a rare artefact for the museum, Quank, and nothing. Young may come from more places than Hunting and Trapping.
+- **Later:** combination chests (an ordinary, regular find once built), a large source of Talar, a shipwreck that costs time and never the boat.
+- **Dropped:** salvage lumber, and a unique resource for every skill.
+- **Falling in a fight on an islet:** what is dropped is carried to the port the player sailed from.
+- **Quank is found once on each island's islets and never there again.**
+- **Antura's islets carry a quest series of Nathan's own.** Taiar's carry none.
 
-- `TRAVEL_EVENTS` entries gain a `mode` (`'land'` or `'sea'`, default `'land'`); the roll picks only finds for the journey's mode and region. A ferry rolls sea finds too, at a lower rate than captaining your own vessel, as a rider finds less than a walker.
-- **Sea finds must not be a second supply of another trade's goods.** Fishing owns salvage (`fish_species` kind `salvage`); driftwood would undercut Woodcutting. Sea finds are their own things. Proposals:
-  - **Message in a bottle:** a curio; some carry a writ, as the Writ of Sending is found on the road (a spell-learning route that sends players to sea).
-  - **Sea glass:** a rough piece the lapidary can polish, a small new input for jewelry, never a substitute for a mined gem.
-  - **Ambergris:** rare, sells only to the pawnbroker.
-  - **A sighting:** something vast under the hull. A trophy at ~0.3% per crossing, scaled to how often crossings happen (CLAUDE.md §8 trophy rates).
-- Every find's flavour lines are written from inside the world (CLAUDE.md §10). No em dashes.
+## 7. The ship's log (wanted, Nathan 2026-11-06)
 
-## 8. Boat-only places (step 4)
+Every voyage writes its own record, so there is something to read at the end of it.
 
-The small islets on the Taiar map are unused. The skiff exists only if they are worth reaching (Nathan, 2026-11-06), so each one gets one reason to go, chosen from:
+- A voyage is split into **watches**, one every minute or so. Each rolls once and writes a line: the wind and weather, a sighting, a find hauled aboard.
+- Proposed: **the log belongs to the boat** (`vessel_log`), so it is the boat's own history. Ferry passengers get their crossing in the ordinary travel log.
+- Lines are content rows, written from inside the world (CLAUDE.md §2 and §10), several for each thing so a sailor does not read the same line twice in an evening.
+- Settled on read, like a fight: the watches due are written when the voyage is next looked at or ends, never by a sweep ticking every boat.
 
-- **Offshore fishing grounds:** species only found in deep water.
-- **A shore habitat for Foraging:** rock pools, samphire for Cooking. No feathers (CLAUDE.md §2 Materials).
-- **A hermit or a lighthouse keeper** with a quest.
-- **A creature found nowhere else**, with its own Bestiary entry.
-- **A sea cliff** with a rare mining node, at tier 1 or 2 (Taiar hosts nothing above T2).
+## 8. Sea finds on a crossing (proposed)
 
-How each is reached:
-
-- A sea route to an islet with no ferry (`ferry_fare` null), gated by vessel.
-- Each islet is a small location with one reason to go: a deep-water fishing spot (a Fishing tier tie-in), a rare forage, a creature that lives nowhere else, a ruin with a quest giver (quests are found by exploring, CLAUDE.md §9).
-- Islets belong to their island's region, so their museum and Manual pages are the island's own.
-
-## 8a. Exploring (Nathan, 2026-11-15; design, not built)
-
-Sailing is two things on one boat: **crossing** (port to port, §4 and §5) and **exploring**. Exploring is Nathan's old Sailing concept kept without the skill: the voyage pays Wayfaring, and what is found is worked with the skill that owns it (a stand of trees with Woodcutting, its own tools and XP), so a find is never a second supply of another trade's goods (§7).
-
-Settled:
-
-- **Each island has its own map of islets**, and each islet has its own zoomed picture, which is where the player lands. Islets are fixed places.
-- **Travel to them is by chance.** A player puts to sea and the voyage decides which islet is reached; there is no choosing one, and no near or far waters to pick between.
-- **Some islets are rarer to come across and hold better things on average.**
-- **What is on an islet is rolled each landing.**
-- **Finds in the first build:** something to work (trees, a vein, fish, plants and seeds), buried chests, creatures guarding loot, a barren islet, rare flowers, a rare artefact for the museum, a rare Quank encounter, and **young animals of tier 1 and 2**. Young may come from more places than Hunting and Trapping (Nathan, 2026-11-15), so an islet's young need not be hunted or snared.
-- **Later:** combination chests (meant to be an ordinary, regular find once built), a large source of Talar, a shipwreck that costs time and never the boat.
-- **Dropped:** salvage lumber (it is the trees again), and a unique resource for every skill.
-- **Antura's islets carry a quest series of Nathan's own.** Taiar's islets probably carry no quest.
-
-**The boats (Nathan, 2026-11-15). This replaces the ladder table in §5, whose Cutter of Hatch planks is wrong: Hatch is tier 3.**
-
-- **One boat a tier, and each does both jobs:** it explores its tier's islets and makes its tier's crossing.
-- **Tier 1 is the Skiff:** sailed from Wayfaring 1, built at Carpentry 10. It explores Taiar's islets **and can make the crossing to the next island** (Nathan, 2026-11-15).
-- **Every boat of a player's own crosses faster than the ferry** (Nathan, 2026-11-15), the Skiff included, if only by a little: ferry slowest and paid, Skiff a little faster and free, Cog fastest. A slower Skiff would be built only by players who wanted the islets, since a small fare buys the quicker crossing. The ferry is for players with no boat yet.
-- **Tier 2 is the Cog** (not "Cutter", an 18th-century word): sailed from Wayfaring 13, built at Carpentry 19. It is the boat for Antura's islets, and makes the crossing faster than the Skiff.
-- **A boat, once built, is at whichever port its owner stands in** (Nathan, 2026-11-15): the deckhands bring it round. It is never moored in one place, because a player can change islands without it (a portal, the Daily Step, a death that wakes them in Talador) and would be stranded from their own boat. This settles §11's "moored, or carried?": neither. It is still never an item in the pack.
-- Two gates, as with a horse: Carpentry to build, Wayfaring to sail. The Carpentry levels are provisional.
-
-**Building a boat (Nathan, 2026-11-15).**
-
-- **On a slip in a port, in steps, a piece at a time**, as a guild hall is raised (`services/guildHall.ts`: a repeating 20-second action that takes materials and pays Carpentry). The hull stands on the slip between sessions. The guild hall's build code is made general and shared, never copied. Mallet and saw as for any build (`services/construction.ts`).
-- **Rope is Nettle Cordage**, a new item twisted from Stinging Nettle (Bramble Thicket, Foraging 10, gloves), which until now went into one recipe. No Cordage item existed. Only the Cog's sail is Linen Cloth; the Skiff is rowed and needs no linen.
-- **Materials, agreed as decent starting amounts:** Skiff 250 Lanai Planks, 500 Ambren Nails, 30 Nettle Cordage. Cog 600 Lanai Planks, 1,200 Serph Nails, 60 Nettle Cordage, 20 Linen Cloth. For scale: a shop is 350 planks, 350 blocks, and 700 nails; a farmstead 500, 500, and 1,000.
-- **Proposed pieces.** Skiff: keel and ribs (80 planks, 160 nails), planking (140, 300), thwarts and oars (30, 40), lines (30 cordage). Cog: keel and ribs (150, 300), planking (300, 650), deck (110, 200), mast and yard (40, 50), rigging (60 cordage), sail (20 Linen Cloth).
-- **Check before fixing the cordage numbers:** nettle is about a fifth of the Bramble Thicket's finds, one to three at a time, so roughly 24 nettles an hour at the habitat's base timer. At 2 nettles a cord, the Skiff's 30 cords are about two and a half hours of foraging, near what its planks cost in chopping; Nathan: that is fine for rope (2026-11-15).
-
-**The fare (Nathan, 2026-11-15):** never nothing and never steep, since the ferry is also the slowest way across and pays no XP. Proposed 25 gold each way, about what an hour of gathering turns up in coins at level 13 (CLAUDE.md §8: gold from gathering is 1% of XP an hour). It is a number on the route's row (`ferry_fare`), so it is tuned without code.
-
-Open:
-
-- §8's reasons to visit an islet predate this section and should be read through it.
+- `TRAVEL_EVENTS` entries gain a `mode` (`'land'` or `'sea'`); the roll picks only finds for the journey's mode and region. A ferry rolls them too, at a lower rate, as a rider finds less than a walker.
+- **A sea find is never a second supply of another trade's goods.** Fishing owns salvage; driftwood would undercut Woodcutting. Proposals: a message in a bottle (a curio; some carry a writ, as the Writ of Sending is found on the road); sea glass for the lapidary; ambergris for the pawnbroker; a rare sighting of something vast under the hull, as a trophy.
+- Each needs a real use before it ships (Nathan's rule for every new item).
 
 ## 9. Later, not now
 
-- **The ship's hold.** A vessel with storage: a `player_properties` row whose location is wherever the vessel is moored. It moves goods between islands without trading them, which makes hauling a thing to do. Big enough to need its own pass, and it touches every storage rule (CLAUDE.md §2 Property, §4).
-- **Fair winds.** A world event of a new kind that shortens sea journeys from one port for an hour, through the existing scheduler (`services/worldEvents.ts`, admin Events tab).
-- **Weather that costs time.** Only ever as a delay that is told to the player, never a loss (nothing dies, nothing sinks).
+- **The ship's hold:** a boat with storage, which moves goods between islands without trading them. It touches every storage rule and needs its own pass.
+- **Fair winds:** a world event that shortens voyages from one port for an hour.
+- **Weather that costs time:** only ever a delay that is told to the player. Nothing sinks.
+- **Guildmates helping to build a boat.**
 
 ## 10. Build plan
 
-Each step ends with Nathan testing.
+Each step ends with Nathan testing. The first two need nothing from Antura, so sailing can be tried on Taiar in the alpha before the second island exists.
 
-1. **Sea routes and the ferry.** `travel_type: 'sea'` and `ferry_fare` on the Talador route; the ferry mode in the travel route and tick (fare in the travel transaction, fixed time, `FERRY_XP_RATE`, exempt from the absence cancel); the second island's port as a location in its own region with its map; the `Sailing` skill row retired; a race:check scenario for paying the fare five times at once; Manual page (Travel and Mounts gains a sea section). **This alone opens the second island.**
-2. **Sea finds.** `mode` on travel events; the first finds for the crossing; their items and museum places.
-3. **Vessels.** `vessel_types` and `player_vessels`; the shipwright's slip and its build action; captaining gated by Wayfaring; the vessel curve and `VESSEL_XP_RATE`, sim-checked; the harbour listing what is moored there; `unlocks.ts` branch.
-4. **Boat-only places.** The first islets as locations, their routes, and one reason to visit each.
-5. **The rest of section 8,** as wanted.
+1. **Boats, and the Skiff.** `vessel_types` and `player_vessels`; the guild hall's build made general, and a slip at Talador built on it; the Nettle Cordage item and its recipe; the Skiff's rows; the `unlocks.ts` branch. Building moves items, so a race:check scenario, shown to fail first.
+2. **Exploring Taiar.** Islets as places in Taiar's region; putting to sea and the chance of each islet; the landing, the strandline, and the finds that are work (stand, vein, shoal, patch, trail) with their boosts; the islet map filling in; the rule for falling on an islet; the boat's speed and XP, sim-checked against walking and riding.
+3. **The other finds.** Chests, guarded caches, young, flowers, artefacts and their museum exhibit, Quank.
+4. **The ferry.** Needs Wendhaven to exist. `travel_type: 'sea'` and `ferry_fare`; the fare in the travel transaction; the Skiff's crossing; the `Sailing` row retired; a race:check scenario for paying the fare five times at once; the Manual's Travel page gains the sea.
+5. **The Cog.** Needs Serph nails. Its rows, a slip at Wendhaven, Antura's islets.
+6. **The ship's log and sea finds.**
+7. §9, as wanted.
 
-## 11. Open questions for Nathan
+## 11. Open
 
-1. **Moored, or carried?** Section 5 proposes vessels moored at a port. Nathan is polling the players (2026-11-06).
-2. ~~Does the ferry pay Wayfaring?~~ No (locked).
-3. **The fare:** not a ton, never negligible (locked); the exact figure at build time.
-4. **Voyage lengths:** proposed in §4; and voyage XP priced as passive (§5).
-5. **The islets:** which reasons from §8, on which islets. The skiff stands or falls on these.
-6. **Names:** the second island, its port, the ferry and its master. To come from Nathan.
+1. **The fare:** 25 gold each way is proposed.
+2. **The Carpentry levels** to build (10 and 19) are provisional.
+3. **The boats' speed numbers:** each one's start and floor, to land on about 7 and 5 minutes and stay behind walking for XP.
+4. **Which ports have a slip.** Proposed: Talador and Wendhaven.
+5. **Whether the log belongs to the boat or the sailor** (§7).
+6. **Which sea finds, if any** (§8).
+7. **The islets:** how many, their names, and the questions in `docs/islets-plan.md`.
+8. **The ferry's master and any names** on the water. Nathan's.
