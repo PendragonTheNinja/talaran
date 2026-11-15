@@ -177,20 +177,30 @@ From `docs/combat-spec.md`: Serph weapons at Melee 13, Serph armour one piece a 
 
 Nathan, 2026-11-14: keep three rare weapons an island and a dropped armour set, at least through island 3. The forms rotate, so Antura's are the three Taiar did not use.
 
-A first roster, in the vein of Taiar's (Hodag, Agropelter, Sidehill Gouger, Knocker). Every name and level is a placeholder:
+**Where they fight** (Nathan, 2026-11-15): one creature at Mettlefell; two at Farvick Narrows, chosen; two at Yondereach, drawn; two or three at Vergehorns, chosen. A **chosen** spot lets the player pick the creature, for spots where each is farmed for something. A **drawn** spot hands out its creatures at random, which is what makes leaving a fight there risky (`docs/combat-spec.md`, Fighting spots). Farefield, Bidewater, and Underway have no fighting.
 
-| Creature | Level | Where | Its character |
-|---|---|---|---|
-| Hoop Snake | 13 | Farefield | Quick, light, the first fight here |
-| Billdad | 14 | Bidewater | Slow and safe to leave |
-| Shellycoat | 16 | Farvick Narrows | Armoured in shells; costly in food, and drops the armour set |
-| Wampus Cat | 17 | Mettlefell's hills | Quick XP, hard to leave |
-| Cutty Soams | 18 | Underway | A mine spirit; may open a Serph vein, as Knockers open veins on Taiar |
-| Snallygaster | 21 | Vergehorns | Winged, hits hard |
-| Hidebehind | 22 | Yondereach | Hard to hit |
-| Slide-rock Bolter | 24 | Yondereach | Slow, huge blows; the island's top fight |
+**Not all cryptids** (Nathan, 2026-11-15): real and ancient creatures beside them. Taiar is already that mix: five real animals (two rats, a dog, a crab, a wolf), two people (Wrecker, Jumper), and five cryptids, with the ancient Ground Sloth to hunt.
 
-- **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have.
+A second roster, eight creatures, every name and level still a placeholder:
+
+| Place | Creature | Kind | Level | Its character | Weak to |
+|---|---|---|---|---|---|
+| Mettlefell | Wolverine | Real | 13 | Quick and fierce; the island's first fight | Slash |
+| Farvick Narrows | Bull Seal | Real | 15 | Slow, thick with blubber; safe to leave | Pierce |
+| Farvick Narrows | Shellycoat | Cryptid | 17 | A river spirit in a coat of shells; hard to hurt; drops the armour set | Crush |
+| Vergehorns | Sea Eagle | Real | 19 | Light and hard to hit | Slash |
+| Vergehorns | Great Elk | Ancient | 20 | The giant deer; heavy antlers, hits hard | Pierce |
+| Vergehorns | Snallygaster | Cryptid | 21 | Winged, the lord of the headlands | Pierce |
+| Yondereach | Cave Bear | Ancient | 22 | Huge and slow; costly in food | Slash |
+| Yondereach | Slide-rock Bolter | Cryptid | 24 | Huge blows; the island's top fight | Crush |
+
+- That is three real, two ancient, and three cryptids. Slash and pierce are each the weakness of three, crush of two.
+- Vergehorns has three; dropping the Great Elk leaves two.
+- Yondereach is drawn, so a fighter there meets the Bolter now and then whether they want to or not.
+- Out of the first roster: Hoop Snake, Billdad, Wampus Cat, Cutty Soams, Hidebehind.
+- Each should have a common drop of its own (see the note on thin drops below): a Wolverine pelt, seal meat, elk meat and hide, a bear pelt. A bear pelt could make a tier 2 cloak, as the Wolf Pelt makes Taiar's.
+
+- **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have. Proposed: the dual pierce from the Sea Eagle (its talons), the two-hand slash from the Snallygaster, the one-hand crush from the Cave Bear.
 - **Dropped armour set:** the Shellycoat's shells, sitting between late Serph and early Azulyss as Crabshell sits between Ambren and Serph. It could be a partial set from one creature, where Crabshell is six pieces from two.
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
