@@ -138,9 +138,18 @@ Settled:
 - **A boat, once built, is at whichever port its owner stands in** (Nathan, 2026-11-15): the deckhands bring it round. It is never moored in one place, because a player can change islands without it (a portal, the Daily Step, a death that wakes them in Talador) and would be stranded from their own boat. This settles §11's "moored, or carried?": neither. It is still never an item in the pack.
 - Two gates, as with a horse: Carpentry to build, Wayfaring to sail. The Carpentry levels are provisional.
 
+**Building a boat (Nathan, 2026-11-15).**
+
+- **On a slip in a port, in steps, a piece at a time**, as a guild hall is raised (`services/guildHall.ts`: a repeating 20-second action that takes materials and pays Carpentry). The hull stands on the slip between sessions. The guild hall's build code is made general and shared, never copied. Mallet and saw as for any build (`services/construction.ts`).
+- **Rope is Nettle Cordage**, a new item twisted from Stinging Nettle (Bramble Thicket, Foraging 10, gloves), which until now went into one recipe. No Cordage item existed. Only the Cog's sail is Linen Cloth; the Skiff is rowed and needs no linen.
+- **Materials, agreed as decent starting amounts:** Skiff 250 Lanai Planks, 500 Ambren Nails, 30 Nettle Cordage. Cog 600 Lanai Planks, 1,200 Serph Nails, 60 Nettle Cordage, 20 Linen Cloth. For scale: a shop is 350 planks, 350 blocks, and 700 nails; a farmstead 500, 500, and 1,000.
+- **Proposed pieces.** Skiff: keel and ribs (80 planks, 160 nails), planking (140, 300), thwarts and oars (30, 40), lines (30 cordage). Cog: keel and ribs (150, 300), planking (300, 650), deck (110, 200), mast and yard (40, 50), rigging (60 cordage), sail (20 Linen Cloth).
+- **Check before fixing the cordage numbers:** nettle is about a fifth of the Bramble Thicket's finds, one to three at a time, so roughly 24 nettles an hour at the habitat's base timer. At a proposed 2 nettles a cord, the Skiff's 30 cords are about two and a half hours of foraging, near what its planks cost in chopping.
+
+**The fare (Nathan, 2026-11-15):** never nothing and never steep, since the ferry is also the slowest way across and pays no XP. Proposed 25 gold each way, about what an hour of gathering turns up in coins at level 13 (CLAUDE.md §8: gold from gathering is 1% of XP an hour). It is a number on the route's row (`ferry_fare`), so it is tuned without code.
+
 Open:
 
-- How a boat is built and what it costs (proposed 2026-11-15: on a slip in a port, in steps as a guild hall is raised). No Cordage item exists today. Proposed: rope is a new Nettle Cordage twisted from Stinging Nettle, which today goes into one recipe, and only the Cog's sail is Linen Cloth. First estimates: Skiff 250 Lanai Planks, 500 Ambren Nails, 30 Nettle Cordage; Cog 600 Lanai Planks, 1,200 Serph Nails, 60 Nettle Cordage, 20 Linen Cloth.
 - §8's reasons to visit an islet predate this section and should be read through it.
 
 ## 9. Later, not now
