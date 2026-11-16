@@ -190,7 +190,7 @@ A second roster, eight creatures, every name and level still a placeholder:
 | Farvick Narrows | Shellycoat | Cryptid | 17 | A river spirit in a coat of shells; hard to hurt | Crush |
 | Vergehorns | Sea Eagle | Real | 19 | Light and hard to hit | Slash |
 | Vergehorns | Reaver | A person | 20 | A sea raider in mail; hard to hurt, slow; carries coin | Crush |
-| Vergehorns | Snallygaster | Cryptid | 21 | Winged and scaled, the lord of the headlands; sheds the scales the armour is made from | Pierce |
+| Vergehorns | Snallygaster | Cryptid | 21 | Winged and scaled, the lord of the headlands; sheds the Snallyscales the armour is made from | Pierce |
 | Yondereach | Cave Bear | Ancient | 22 | Huge and slow; costly in food | Slash |
 | Yondereach | Slide-rock Bolter | Cryptid | 24 | Huge blows; the island's top fight | Crush |
 
@@ -199,21 +199,21 @@ A second roster, eight creatures, every name and level still a placeholder:
 - **The Great Elk is out** (Nathan, 2026-11-15): a deer is game, and belongs to Hunting. The Reaver takes its place, so Antura has a person as Taiar has its Wrecker and Jumper. An ancient alternative for that slot: a giant sea scorpion.
 - Yondereach is drawn, so a fighter there meets the Bolter now and then whether they want to or not.
 - Out of the first roster: Hoop Snake, Billdad, Wampus Cat, Cutty Soams, Hidebehind.
-- **No meat from creatures fought** (Nathan, 2026-11-15): meat is Hunting's. Each creature still wants a common drop of its own (see the note on thin drops below). Proposed: pelts from the Wolverine and the Cave Bear (a bear pelt could make a tier 2 cloak, as the Wolf Pelt makes Taiar's); Feathers from the Sea Eagle, now that feathers may come from other creatures (Nathan, 2026-11-15); coin from the Reaver and from the Kelpie, which drowns travellers; River Mussels from the Shellycoat's coat; scales from the Snallygaster; garnets from the Bolter.
+- **No meat from creatures fought** (Nathan, 2026-11-15): meat is Hunting's. Each creature still wants a common drop of its own (see the note on thin drops below). **The rest of each creature's drops are decided together with Taiar's, in one pass over both islands** (Nathan, 2026-11-16). First ideas until then: pelts from the Wolverine and the Cave Bear, which **together make the tier 2 cloak** (Nathan, 2026-11-16), as twenty Wolf Pelts make Taiar's; Feathers from the Sea Eagle, now that feathers may come from other creatures (Nathan, 2026-11-15); coin from the Reaver and from the Kelpie, which drowns travellers; River Mussels from the Shellycoat's coat; Snallyscales from the Snallygaster; garnets from the Bolter.
 
 - **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have. Proposed: the dual pierce from the Sea Eagle (its talons), the two-hand slash from the Reaver (his blade, as the Wrecker drops a cutlass), the one-hand crush from the Cave Bear.
-- **The armour set is crafted, not dropped** (Nathan, 2026-11-15). The Snallygaster drops **scales**, and Crafting turns them into the pieces. Not shell again: Taiar's set is Crabshell. It sits between late Serph and early Azulyss, as Crabshell sits between Ambren and Serph, and lasts far longer than smithed armour. Scales can be traded, so a fighter can sell them to a crafter. Proposed, to argue with:
+- **The Snallyscale armour set is crafted, not dropped** (Nathan, 2026-11-15). The Snallygaster drops **Snallyscales**, and Crafting turns them into the pieces. The item is a Snallyscale, never a plain "scale", so other creatures' scales can be their own items later (Nathan, 2026-11-16). Not shell again: Taiar's set is Crabshell. It sits between late Serph and early Azulyss, as Crabshell sits between Ambren and Serph, and lasts far longer than smithed armour. Snallyscales can be traded, so a fighter can sell them to a crafter. Proposed, to argue with:
 
-| Piece | Crafting level | Worn from Defense | Scales |
+| Piece | Crafting level | Worn from Defense | Snallyscales |
 |---|---|---|---|
-| Scale Gauntlets | 14 | 19 | 15 |
-| Scale Sabatons | 15 | 20 | 15 |
-| Scale Helm | 16 | 21 | 20 |
-| Scale Shield | 18 | 22 | 30 |
-| Scale Greaves | 19 | 23 | 30 |
-| Scale Cuirass | 21 | 24 | 40 |
+| Snallyscale Gauntlets | 14 | 19 | 15 |
+| Snallyscale Sabatons | 15 | 20 | 15 |
+| Snallyscale Helm | 16 | 21 | 20 |
+| Snallyscale Shield | 18 | 22 | 30 |
+| Snallyscale Greaves | 19 | 23 | 30 |
+| Snallyscale Cuirass | 21 | 24 | 40 |
 
-  Each also takes leather and Linen Thread, as the Wolfskin Cloak does. With a scale about one kill in four, the 150 scales are about 600 kills. Crabshell asks about 550 kills of each crab. Six recipes take Crafting past its tier's three to six, which Nathan allows where the reason is good; this is also what gives Crafting something at nearly every level from 13 to 22.
+  **Snallyscales are all a piece takes** (proposed 2026-11-16). An earlier draft added leather and Linen Thread "as the Wolfskin Cloak does", which was wrong: the cloak is twenty Wolf Pelts and nothing else. With a Snallyscale about one kill in four, the 150 are about 600 kills. Crabshell asks about 550 kills of each crab. Six recipes take Crafting past its tier's three to six, which Nathan allows where the reason is good; this is also what gives Crafting something at nearly every level from 13 to 22.
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
 - **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. No meat: that is Hunting's (Nathan, 2026-11-15). First ideas: give Bones a use (the Bonemeal idea in `docs/IDEAS.md`: ground and spread to keep a field's soil from falling) and make them every beast's common drop; something from the two crabs that is not food, such as claws for fishing bait, since they drop nothing but armour; Wolf Pelts at 1 in 5, where they are 1 in 12.
