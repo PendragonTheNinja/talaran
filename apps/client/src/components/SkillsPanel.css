@@ -83,27 +83,52 @@
     z-index: 0;
 }
 
-.skill-ring {
+/* Progress to the next level: a hairline on the very edge of the icon.
+   A dark line first, all the way round, so the gold reads against any art;
+   the gold lies on its outer part and runs as far as the level has. */
+.skill-tile {
+    --skill-ring-w: 1.5px;
+    --skill-ring-color: var(--color-gold-bright);
+}
+
+.skill-tile::before {
+    content: '';
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
+    border-radius: 12%;
+    box-shadow: inset 0 0 0 calc(var(--skill-ring-w) + 1px) rgba(0, 0, 0, 0.6);
     z-index: 1;
     pointer-events: none;
 }
 
-.skill-ring-track {
-    fill: none;
-    stroke: var(--color-bg-raised);
-    stroke-width: 4;
-    opacity: 0.1;
+/* Only the outermost --skill-ring-w of this box shows: the padding is the
+   line's thickness and the mask cuts away everything inside it. The stroke
+   underneath is far wider than that, so the line is the same thickness on a
+   44px tile and a 110px one, and always flush with the icon's edge. */
+.skill-ring {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: 12%;
+    padding: var(--skill-ring-w);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+}
+
+.skill-ring svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .skill-ring-fill {
     fill: none;
-    stroke: var(--color-gold);
-    stroke-width: 4;
-    stroke-linecap: round;
+    stroke: var(--skill-ring-color);
+    stroke-width: 16;
     transition: stroke-dashoffset 0.4s ease;
 }
 
