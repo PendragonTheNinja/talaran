@@ -14,11 +14,11 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Done and settled:** the places and their names (§2), getting there (§3, sailing spec), Mining (§4), Farming and Husbandry rules (§7), Foraging (§8), the fish (§9), Cooking's 24 recipes (§11), the creature roster and the Snallyscale set (§10).
 
-**In progress, pick up here:** the Carpentry and Smithing review (§6a). Nathan ruled on its four findings on 2026-11-16; one question is still open there (what Carpentry trains on from 13 to 24 once the builds are done), and whether guild halls take the new build roll.
+**In progress, pick up here:** the Carpentry and Smithing review (§6a). Nathan ruled on its four findings on 2026-11-16; carpenters build for other players (§6b, its design proposed), and one question is open: whether homesteads and shops are raised in pieces too.
 
 **Still to do with Nathan, in rough order:**
 
-1. Finish §6a: Carpentry's tier 2 work and the guild hall question, then the Carpentry and Smithing numbers.
+1. Finish §6a and §6b: building for hire, and whether homesteads and shops are raised in pieces; then the Carpentry and Smithing numbers.
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -171,14 +171,31 @@ Checked against the code, and put to Nathan on 2026-11-16.
    | 24 or more | 4 | 0 / 5 / 21 / 42 / 32% | 1.1 h | 2.6 h |
 
    **XP stays per action**, 20 seconds at the boat's tier's band, as the hall's: so Carpentry XP an hour is on band whatever is rolled, and a skilled carpenter finishes the same boat sooner for less XP in all, as with any quicker work. Paying per item instead would put a skilled builder well over band. The roll takes the place of a falling timer: build actions keep their flat 20 s.
-   **The homestead and the tier 2 shop are single long actions**, as the farmstead (600 s) and the shop (480 s) are on Taiar, not built in pieces.
-   **Open:** whether guild halls take the same roll. The code is to be shared (`docs/sailing-spec.md` §5), but a hall is a guild's sink, live today at one item an action, and the roll would raise it two to four times as fast.
+   **Guild halls roll 1 to 3** (Nathan, 2026-11-16), weighted the same way: 1 plus two flips at the same 25% to 75%, so 1.5 an action on average at the hall's level and 2.5 at 24 over. Today's halls place one an action.
 2. **Carpentry has nothing repeatable at tier 2's band.** Sawing pays a flat 23 XP a saw whatever the sawyer's level (`SAW_XP` in `services/carpentry.ts`), Deep Lanai drops the same Lanai logs as the level 1 tree, and every bench recipe is level 8 or below. From 13 to 24 the only Carpentry XP at the band is the builds, which are one-off, and now quicker (finding 1). Put to Nathan on 2026-11-16:
    - **Deep Lanai logs as their own item: no** (Nathan).
    - **A cask for brewing ale: not yet** (Nathan). Brewing is not designed past "a cask, on its own clock" (§11), and he does not like a cask used up every brew. If a cask is a reusable fixture, a middle way is that it wears like any bench tool (`services/toolWear.ts`), lasting many hours of brewing. That waits for brewing's own design.
-   - **Still open:** what Carpentry trains on between 13 and 24 once the builds are done, or whether builds and sawing are enough until Hatch at 25.
+   - **Carpenters build for other players** (Nathan, 2026-11-16): shops, homesteads, and boats. A player need not raise their own; they can hire a carpenter and pay them. This is Carpentry's repeatable work at every tier: the builds are one-off for each owner, not for the trade. The design is §6b.
 3. **Bench tools already follow the tier rule; nothing to build.** `tierMultiplier` in `services/workstations.ts`: work at the tool's own tier is on band, each tier above the tool is 35% slower and more than two is refused, each tier below is 12% faster. So a Serph recipe at an Ambren-tooled bench is 35% slower, and Serph bench tools speed tier 1 recipes by 12%.
 4. **26 of the 44 Serph recipes open at Smithing 13**, as 26 open at Smithing 1 on Taiar. The tools have to, since each is a door into another skill (the argument Nathan made for Carpentry). The other 18 spread across 14 to 24. Nathan, 2026-11-16: that is fine.
+
+## 6b. Building for hire (Nathan, 2026-11-16; the design below is proposed)
+
+Settled: a carpenter can build a shop, a homestead, or a boat for another player, who pays them.
+
+Proposed, for Nathan to change:
+
+- **One build site, for everything built in pieces.** The guild hall's build is made general (as `docs/sailing-spec.md` §5 already asks): a site has an owner, a place, a kind (boat, homestead, shop, hall), and the materials still wanted. Guild halls move onto it. Every build action places a roll of materials (§6a) and pays the hand that placed them.
+- **The owner founds the site** where the building will stand (a slip for a boat, Farefield for Antura's homestead, the port town for a shop), and is the owner of what is raised on it from the first piece. Only the owner's own gates apply to owning (one homestead an island, one shop an island).
+- **Anyone may bring materials to a site**: the owner, the carpenter, a friend. A build action takes from the builder's own pack, as the hall's does; or the owner can lay materials at the site for the hired hand to use. Materials laid at the site and not yet built in can be taken back by the owner; once built in, they are the building.
+- **Who may build:** the owner, and anyone the owner names. Naming a carpenter is the hire.
+- **Pay is per piece, from escrow.** The owner sets a rate (gold for each material placed) and lays gold at the site; each action pays the hand who placed the pieces at once, from that gold, inside the action's transaction. No lump on completion, so neither side can be cheated by the other walking away: the carpenter is paid for what is placed, and the owner pays for nothing unbuilt. A site with no gold left stops paying, and the hired hand is told before the next action.
+- **XP goes to whoever places the pieces**, at the building's tier band, as §6a.
+- **The builder needs the Carpentry level for that building** (the Skiff 10, the Cog 19, the homestead and shop at their levels) and a mallet and saw (`services/construction.ts`). The owner needs neither.
+- **Finding work:** no index of sites across the world, as there is no index of shop prices (CLAUDE.md §2); players find each other in trade chat. A notice at the place itself (the slip, Farefield) of sites there that want a hand would fit, and is Nathan's call.
+- Moving items and gold between two players: race:check scenarios for laying materials, taking them back, laying gold, and five build actions at once against one site's gold.
+
+**Open, and it changes §6a:** if building for hire is Carpentry's work, a homestead and a shop that are single ten-minute actions give a hired carpenter almost nothing to do and almost no XP (the farmstead pays 600 seconds of XP at 1.25 times, about 570 XP at Carpentry 10, where raised in pieces it would be about 12,000 at its own level). Raised in pieces with the roll, Antura's homestead (2,400 materials) is about 3.3 hours at 24 levels over and 6.7 at its own level; Taiar's farmstead (2,000) would be 2.8 to 5.6 hours, where today it is 10 minutes. Proposed: everything is raised in pieces from now on, Taiar's farmstead and shop included for anyone who builds one after the change. Those already standing are untouched.
 
 Rough ingot counts, for scale, to check in a sim: a full Serph armour set is 35 ingots, the homestead's nails 40, the Cog's 40, a tier 2 guild hall's 167. A level 13 miner on Antura's granite finds about 17 Serph ore an hour by the §4 numbers, and one ore makes one ingot.
 
