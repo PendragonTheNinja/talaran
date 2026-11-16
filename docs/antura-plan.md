@@ -6,6 +6,32 @@ Read with: `CLAUDE.md` §8 (the material ladder), `docs/foraging-farming-ladder.
 
 ---
 
+## 0. Where this stands, and what to do next (2026-11-16)
+
+Nathan and Claude designed Antura over three days and stopped part-way through reviewing Carpentry and Smithing. **Nothing here is built.** This section is the handoff for the next session.
+
+**Read first:** this file, then `docs/sailing-spec.md`, `docs/islets-plan.md`, `docs/foraging-farming-ladder.md`, and CLAUDE.md §8 "The material ladder". Every decision of Nathan's is dated in those five places. Anything marked "proposed" is Claude's and still his to change.
+
+**Done and settled:** the places and their names (§2), getting there (§3, sailing spec), Mining (§4), Farming and Husbandry rules (§7), Foraging (§8), the fish (§9), Cooking's 24 recipes (§11), the creature roster and the Snallyscale set (§10).
+
+**In progress, pick up here:** the Carpentry and Smithing review (§6a). It found four things Nathan has not yet seen or ruled on.
+
+**Still to do with Nathan, in rough order:**
+
+1. Finish §6a: the four findings, then the Carpentry and Smithing numbers.
+2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
+3. The tier 2 cloak: its name, pelt counts, and levels (§10).
+4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
+5. What survives the 1.0 reset, and whether Thieving and Exploration are cut (§13).
+
+**Waiting on Nathan alone:** the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
+
+**Before building anything:** export a fresh content snapshot from live (the committed one predates the scythe and the merchant seed fails on it), and read §14, which lists what the code assumes that a second island breaks. §15 is the build order; its first two steps (the Skiff, Taiar's islets) need nothing from Antura.
+
+**Also on this branch (`ccr-85dfc5b0-gyhmxo`), not merged to `main`:** the skill-icon hairline (`components/SkillsPanel.tsx`, `SkillsPanel.css`, `index.css`) and Stonehold's full-colour skill icons (`themes/stonehold.css`). Both were checked in a browser in Chromium only; look at the hairline on an iPhone before it deploys.
+
+---
+
 ## 1. What Antura is
 
 - **The second island, and tier 2 (levels 13 to 24).** Its theme is setting out, as Taiar's is new beginnings.
@@ -130,6 +156,19 @@ Settled: the existing recipes stay where they are, because nearly every one is a
 - The tier 2 guild hall is already a row: 3,000 Lanai Planks, 3,000 Granite Blocks, 5,000 Serph Nails.
 - Benches are built anew in each town (settled); on Antura they are Lanai benches with Serph tools.
 - Proposed costs, by the farmstead's shape (500 planks, 500 blocks, 1,000 nails): **Antura homestead** 600 Lanai Planks, 600 Granite Blocks, 1,200 Serph Nails. **Tier 2 shop** 450, 450, and 900, with 100 storage, 16 selling, and 8 buying slots where tier 1 has 75, 12, and 6.
+
+## 6a. The Carpentry and Smithing review (started 2026-11-16, not finished)
+
+Checked against the code. Nathan has not seen these four findings.
+
+1. **Building in pieces is slow, and that may be the point.** A guild hall build step places ONE item per 20-second action and pays Carpentry for 20 seconds at the tier's band (`services/guildHall.ts`, `activeXpForSeconds(rungOfTier(tier), BUILD_SECONDS)`). Built the same way, the Skiff's 780 materials are 780 actions, about 4.3 hours of Carpentry XP; the Cog's 1,880 are about 10.4 hours; an Antura homestead of 2,400 would be about 13.3 hours, where today's farmstead is one ten-minute action. To decide: is that wanted, or should a boat's action place several items at once.
+2. **Carpentry has nothing repeatable at tier 2's band.** Sawing pays a flat 23 XP a saw whatever the sawyer's level (`SAW_XP` in `services/carpentry.ts`), Deep Lanai drops the same Lanai logs as the level 1 tree, and every bench recipe is level 8 or below. From 13 to 24 the only Carpentry XP at the band is the builds, which are one-off. Finding 1 makes the builds a real source, but once they are done there is nothing until Hatch at 25. Options to put to Nathan: a cask for brewing ale as a repeatable tier 2 recipe; or Deep Lanai logs as their own items sawn at 13 for tier 2 XP.
+3. **Bench tools already follow the tier rule; nothing to build.** `tierMultiplier` in `services/workstations.ts`: work at the tool's own tier is on band, each tier above the tool is 35% slower and more than two is refused, each tier below is 12% faster. So a Serph recipe at an Ambren-tooled bench is 35% slower, and Serph bench tools speed tier 1 recipes by 12%.
+4. **26 of the 44 Serph recipes open at Smithing 13**, as 26 open at Smithing 1 on Taiar. The tools have to, since each is a door into another skill (the argument Nathan made for Carpentry). The other 18 spread across 14 to 24. Worth his knowing; probably fine.
+
+Rough ingot counts, for scale, to check in a sim: a full Serph armour set is 35 ingots, the homestead's nails 40, the Cog's 40, a tier 2 guild hall's 167. A level 13 miner on Antura's granite finds about 17 Serph ore an hour by the §4 numbers, and one ore makes one ingot.
+
+Not yet asked: whether there are Serph Arrows, and whether the Ground Sloth should want them as Deep Lanai now wants a Serph Hatchet; the Serph Scythe (Ambren's is Smithing 3, so 15); whether the "tier 2 shop" is simply the Wendhaven shop or an upgrade to the Talador one.
 
 ## 7. Farming and Husbandry
 
