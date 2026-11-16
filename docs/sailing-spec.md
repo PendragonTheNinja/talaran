@@ -86,6 +86,7 @@ Taiar's roads run 36 to 162 seconds on foot at level 1, 82 on average. That is t
 ### Building one (Nathan, 2026-11-15)
 
 - **On a slip in a port, in steps, a piece at a time**, as a guild hall is raised. **Talador and Wendhaven each have a slip** (Nathan, 2026-11-15). The hull stands on the slip between sessions. Building pays Carpentry and reports `skillName: 'Carpentry'`; mallet and saw as for any build (`services/construction.ts`, never a copy). The guild hall's build code is made general and shared, never copied.
+- **Each build action places 1 to 5 of the materials wanted** (Nathan, 2026-11-16), and a higher Carpentry level rolls the higher counts more often; the roll, its numbers, and the XP rule are in `docs/antura-plan.md` §6a. A Skiff is then about 1 to 2 hours of building and the Cog 2.5 to 5, where one item an action would have made them 4.3 and 10.4.
 - **Rope is Nettle Cordage**, a new item twisted from Stinging Nettle (Bramble Thicket, Foraging 10, gloves), which until now went into one recipe. No cordage item existed. Proposed 2 nettles a cord. Nettle is about a fifth of the thicket's finds, roughly 24 an hour at base speed, so the Skiff's rope is about two and a half hours of foraging, near what its planks cost in chopping. Nathan: that is fine for rope.
 - **Only the Cog has a sail**, of Linen Cloth, which gives the loom a real customer. The Skiff is rowed.
 - **Materials** (agreed as decent starting amounts) and proposed pieces:

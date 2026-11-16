@@ -14,11 +14,11 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Done and settled:** the places and their names (§2), getting there (§3, sailing spec), Mining (§4), Farming and Husbandry rules (§7), Foraging (§8), the fish (§9), Cooking's 24 recipes (§11), the creature roster and the Snallyscale set (§10).
 
-**In progress, pick up here:** the Carpentry and Smithing review (§6a). It found four things Nathan has not yet seen or ruled on.
+**In progress, pick up here:** the Carpentry and Smithing review (§6a). Nathan ruled on its four findings on 2026-11-16; one question is still open there (what Carpentry trains on from 13 to 24 once the builds are done), and whether guild halls take the new build roll.
 
 **Still to do with Nathan, in rough order:**
 
-1. Finish §6a: the four findings, then the Carpentry and Smithing numbers.
+1. Finish §6a: Carpentry's tier 2 work and the guild hall question, then the Carpentry and Smithing numbers.
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -159,12 +159,26 @@ Settled: the existing recipes stay where they are, because nearly every one is a
 
 ## 6a. The Carpentry and Smithing review (started 2026-11-16, not finished)
 
-Checked against the code. Nathan has not seen these four findings.
+Checked against the code, and put to Nathan on 2026-11-16.
 
-1. **Building in pieces is slow, and that may be the point.** A guild hall build step places ONE item per 20-second action and pays Carpentry for 20 seconds at the tier's band (`services/guildHall.ts`, `activeXpForSeconds(rungOfTier(tier), BUILD_SECONDS)`). Built the same way, the Skiff's 780 materials are 780 actions, about 4.3 hours of Carpentry XP; the Cog's 1,880 are about 10.4 hours; an Antura homestead of 2,400 would be about 13.3 hours, where today's farmstead is one ten-minute action. To decide: is that wanted, or should a boat's action place several items at once.
-2. **Carpentry has nothing repeatable at tier 2's band.** Sawing pays a flat 23 XP a saw whatever the sawyer's level (`SAW_XP` in `services/carpentry.ts`), Deep Lanai drops the same Lanai logs as the level 1 tree, and every bench recipe is level 8 or below. From 13 to 24 the only Carpentry XP at the band is the builds, which are one-off. Finding 1 makes the builds a real source, but once they are done there is nothing until Hatch at 25. Options to put to Nathan: a cask for brewing ale as a repeatable tier 2 recipe; or Deep Lanai logs as their own items sawn at 13 for tier 2 XP.
+1. **Building in pieces was far too slow** (Nathan, 2026-11-16: "I never meant for it to be that slow"). A guild hall build step places ONE item per 20-second action (`services/guildHall.ts`), which would have made the Skiff's 780 materials about 4.3 hours and the Cog's 1,880 about 10.4.
+   **Settled: a boat's build action places 1 to 5 of the materials wanted, and a higher Carpentry level rolls the higher counts more often** (Nathan, 2026-11-16). Proposed roll: 1 plus four coin flips, each landing at a chance that runs from 25% at the boat's own Carpentry level to 75% at 24 levels over it. The count is cut to what the piece still wants and what the pack holds.
+
+   | Levels over the boat's | Average placed | 1 / 2 / 3 / 4 / 5 | Skiff (780) | Cog (1,880) |
+   |---|---|---|---|---|
+   | 0 | 2 | 32 / 42 / 21 / 5 / 0% | 2.2 h | 5.2 h |
+   | 12 | 3 | 6 / 25 / 38 / 25 / 6% | 1.4 h | 3.5 h |
+   | 24 or more | 4 | 0 / 5 / 21 / 42 / 32% | 1.1 h | 2.6 h |
+
+   **XP stays per action**, 20 seconds at the boat's tier's band, as the hall's: so Carpentry XP an hour is on band whatever is rolled, and a skilled carpenter finishes the same boat sooner for less XP in all, as with any quicker work. Paying per item instead would put a skilled builder well over band. The roll takes the place of a falling timer: build actions keep their flat 20 s.
+   **The homestead and the tier 2 shop are single long actions**, as the farmstead (600 s) and the shop (480 s) are on Taiar, not built in pieces.
+   **Open:** whether guild halls take the same roll. The code is to be shared (`docs/sailing-spec.md` §5), but a hall is a guild's sink, live today at one item an action, and the roll would raise it two to four times as fast.
+2. **Carpentry has nothing repeatable at tier 2's band.** Sawing pays a flat 23 XP a saw whatever the sawyer's level (`SAW_XP` in `services/carpentry.ts`), Deep Lanai drops the same Lanai logs as the level 1 tree, and every bench recipe is level 8 or below. From 13 to 24 the only Carpentry XP at the band is the builds, which are one-off, and now quicker (finding 1). Put to Nathan on 2026-11-16:
+   - **Deep Lanai logs as their own item: no** (Nathan).
+   - **A cask for brewing ale: not yet** (Nathan). Brewing is not designed past "a cask, on its own clock" (§11), and he does not like a cask used up every brew. If a cask is a reusable fixture, a middle way is that it wears like any bench tool (`services/toolWear.ts`), lasting many hours of brewing. That waits for brewing's own design.
+   - **Still open:** what Carpentry trains on between 13 and 24 once the builds are done, or whether builds and sawing are enough until Hatch at 25.
 3. **Bench tools already follow the tier rule; nothing to build.** `tierMultiplier` in `services/workstations.ts`: work at the tool's own tier is on band, each tier above the tool is 35% slower and more than two is refused, each tier below is 12% faster. So a Serph recipe at an Ambren-tooled bench is 35% slower, and Serph bench tools speed tier 1 recipes by 12%.
-4. **26 of the 44 Serph recipes open at Smithing 13**, as 26 open at Smithing 1 on Taiar. The tools have to, since each is a door into another skill (the argument Nathan made for Carpentry). The other 18 spread across 14 to 24. Worth his knowing; probably fine.
+4. **26 of the 44 Serph recipes open at Smithing 13**, as 26 open at Smithing 1 on Taiar. The tools have to, since each is a door into another skill (the argument Nathan made for Carpentry). The other 18 spread across 14 to 24. Nathan, 2026-11-16: that is fine.
 
 Rough ingot counts, for scale, to check in a sim: a full Serph armour set is 35 ingots, the homestead's nails 40, the Cog's 40, a tier 2 guild hall's 167. A level 13 miner on Antura's granite finds about 17 Serph ore an hour by the §4 numbers, and one ore makes one ingot.
 
