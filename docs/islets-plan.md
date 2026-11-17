@@ -159,57 +159,53 @@ Numbers (simulated 2026-11-17; proposed):
 
 Still open: what the sea chest holds besides a piece (proposed: the island's goods, as the buried chest), what a Locked Rusty Chest holds, Geoffrey's fees, and the set's names.
 
-## 6e. The chests: a draft (Claude, 2026-11-17, for Nathan to cut)
+## 6e. The chests (Nathan, 2026-11-17; rows still his to cut)
 
-**How a locked chest is opened.** Geoffrey opens it, for a fee, with no XP, before or after his quest (settled). Proposed: he opens it there and then. The fee is taken and the contents rolled and put in the pack in one locked transaction, so nothing is half done. "Open one" or "Open all", a fee for each. The contents are ordinary rows under `open:<chest name>` and the coins are columns on `container_types`, as Bird Nests and River Mussels already work (migration `20261113100000_containers`), so every number below is tuned in the admin content browser, not code. If Thieving is ever built, picking a lock yourself would roll the same rows. A race:check scenario: five "open all" at once with three chests and gold for two.
+**Settled:**
+- **Geoffrey unlocks a locked chest for a fee and hands back its unlocked twin**: a Locked Rusty Chest becomes a Rusty Chest (the item Fishing's salvage already gives), a Locked Sea Chest a Sea Chest. No XP for the unlocking, before or after his quest. **The player opens it themselves**, a 10-second action that pays Fishing, the same way Bird Nests and River Mussels open (`container_types`, contents as `open:<chest>` rows, migration `20261113100000_containers`). If Thieving is ever built, it would pick the lock in his place.
+- **Fees: 25 gold for a rusty chest, 100 for a sea chest** (200 proposed for Antura's).
+- **No Tarnished Coin, Chipped Arrowhead, Ambren Tinderbox, Freshwater Pearl, Writ of the Open Door, or Magpie's Ring in any chest**: each belongs where it already comes from (the road, the mussel, the Agropelter and Hodag, the bird's nest), and a tinderbox is no prize.
+- **Worked goods are in both chests, and commoner in the Sea Chest than the rusty one.**
+- **There is no iron in this world.** The Trow's keepsake is of Ambren. (The Knocker's Hammer, live today, is described as "old black iron": Nathan's to reword.)
+- **The buried chest find digs up a Locked Rusty Chest** with a few coins, so there is one rusty chest everywhere.
 
-**Three chests, not more:**
-
-| Chest | Comes from | Geoffrey's fee | Worth inside, on average |
-|---|---|---|---|
-| Locked Rusty Chest (exists) | Fishing salvage; the Wrecker, 1 in 30; the strandline; **the buried chest find** on an islet | 25 gold | about 70 gold |
-| Taiar Sea Chest (new) | A Taiar guardian, always, and nothing else | 100 gold | about 350 gold, plus the chance of a piece |
-| Antura Sea Chest (new) | An Antura guardian | 200 gold | Antura's goods, about twice Taiar's |
-
-The fee is a gold sink kept well under what is inside, so opening is always worth it but never free. **The buried chest find simply digs up a Locked Rusty Chest**, with a handful of coins from the digging, so there is one rusty chest everywhere and no fourth kind.
-
-**Locked Rusty Chest** (a drowned trader's strongbox; several rows can come up at once):
+**Rusty Chest** (a drowned trader's strongbox; several rows can come up at once; proposed):
 
 | Inside | Chance | How many |
 |---|---|---|
 | Coins | always | 15 to 60 |
-| Tarnished Coin (curio) | 1 in 4 | 1 to 3 |
 | Ambren Nails | 1 in 4 | 10 to 30 |
 | Amber | 1 in 5 | 1 to 2 |
-| Chipped Arrowhead (curio) | 1 in 6 | 1 |
 | Linen Thread | 1 in 8 | 1 to 3 |
-| Freshwater Pearl | 1 in 15 | 1 |
+| Ambren Ingot | 1 in 8 | 1 to 2 |
+| Lanai Planks | 1 in 8 | 2 to 5 |
+| Granite Block | 1 in 8 | 2 to 5 |
+| Cooked Whiting | 1 in 10 | 1 to 2 |
 | Rough Quartz | 1 in 25 | 1 |
-| Ambren Tinderbox | 1 in 40 | 1 |
-| Writ of the Open Door | 1 in 500 | 1 |
-| Magpie's Ring | 1 in 1,500 | 1 |
+| Fish Pie | 1 in 30 | 1 |
+| **Salt-Stained Ledger** (new, its own super rare: a trader's account book, the ink run but the sums still legible; for the museum) | 1 in 1,000 | 1 |
 
-**Taiar Sea Chest** (a drowned crew's own chest, taken back from what guarded it):
+**Sea Chest** (a drowned crew's own chest, from a Taiar guardian only; proposed):
 
 | Inside | Chance | How many |
 |---|---|---|
-| A piece of the sailor's set | 1 in 3 (never one already found until all of Taiar's four are found; certain after six chests without one) | 1 |
+| A piece of the sailor's set | 1 in 3 (never one already found until all of Taiar's four are; certain after six chests without one) | 1 |
 | Coins | always | 60 to 200 |
-| Tarnished Coin | 1 in 2 | 1 to 4 |
 | Ambren Ingot | 1 in 3 | 2 to 5 |
+| Lanai Planks | 1 in 3 | 5 to 15 |
 | Linen Cloth | 1 in 3 | 1 to 2 |
+| Granite Block | 1 in 4 | 5 to 15 |
 | Charc | 1 in 4 | 5 to 10 |
+| Cooked Conger Eel | 1 in 4 | 2 to 4 |
 | Rough Quartz | 1 in 5 | 1 |
+| Fish Pie | 1 in 10 | 1 to 2 |
 | A Locked Rusty Chest, packed inside | 1 in 10 | 1 |
 | Rough Garnet | 1 in 30 | 1 |
-| Writ of the Open Door | 1 in 60 | 1 |
-| The guardian's keepsake (below) | 1 in 20 | 1 |
+| The guardian's keepsake | 1 in 20 | 1 |
 
-**Each guardian's keepsake**, so the three fights are not interchangeable: a curio for the museum, from that guardian's own chest only. Proposed: the **Siren's Comb** (a whalebone comb with hair still in it), the **Trow's Thimble** (an iron thimble, far too big for any hand), and the **Drowned Captain's Seal** (a brass seal with a ship's name worn off it). Three cases in a "From the Islets" exhibit, which the artefacts of the ruin would join.
+**Keepsakes**, one per guardian, from its own chest only, for a "From the Islets" exhibit the ruin's artefacts would join: the **Siren's Comb** (whalebone, with hair still in it), the **Trow's Thimble** (Ambren gone black with age, far too big for any hand), and the **Drowned Captain's Seal** (brass, the ship's name worn off).
 
-**Antura's Sea Chest** follows the same shape with Serph Ingots in place of Ambren, Garnet as the common gem, Quartz the lower, Amethyst rare, and Antura's four set pieces; its numbers wait for Antura's build.
-
-Still Nathan's: whether Geoffrey opens chests outright (proposed) or turns them into an unlocked twin to open yourself; the fees; every row and chance above; the keepsakes.
+**Antura's** pair (proposed names: Locked Serph-Bound Chest and Serph-Bound Chest, 200 gold) follows the same shape with Serph Ingots, Garnet common, Quartz lower, Amethyst rare, and Antura's four set pieces; its numbers wait for Antura's build.
 
 ## 6a. Quank
 
