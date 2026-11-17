@@ -438,7 +438,7 @@ On the box: `cd /var/www/talaran` → `git pull` → `cd apps/server && npm run 
 
 ## 13. Open threads
 
-- **Antura (island 2) is designed, not built.** Start at `docs/antura-plan.md` §0, the handoff: what is settled, what is in progress (the Carpentry and Smithing review, §6a), and what to do next. Branch `ccr-85dfc5b0-gyhmxo` holds it, with two small UI changes, unmerged.
+- **Antura (island 2) is designed, not built** (design finished 2026-11-17, bar the lake fish, the map, and the islet maps). Start at `docs/antura-plan.md` §0, the handoff: what is settled, what can ship to Taiar first (its half of the drop pass), and the build order. Branch `ccr-bcfdecf4-g7j169` holds it, carrying on from `ccr-85dfc5b0-gyhmxo`, with two small UI changes, unmerged.
 - **Audit fix batches 1–4** (`docs/AUDIT-2026-09-22.md` §8).
 - **Combat** is built on `claude/admiring-babbage-ww0x2g` (steps 1 to 10), not yet deployed. Open: creature art and three skill icons. Patch notes wait for Nathan's go-ahead to deploy.
 - **Deferred by choice:** shop tier ladder (numbers already in a table) · stall rent · one-shop-per-island vs per-location poll · the Provisioner (seeded but disabled; activate with `sells: false`) · farming manure source / retting pool / house tiers · breeding (deliberately unbuilt).
