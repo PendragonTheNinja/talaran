@@ -26,7 +26,12 @@ export interface IsletFind {
     boost: number
     /** How what was handed over reads in its line ({find}): young, flowers, an artefact. */
     words?: string
+    /** A quest this find started (Quank's Tidbit), named for the landing's last line. */
+    questStarted?: string
 }
+
+/** Started when Quank hands over his Tidbit (migration 20261117200000). */
+export const QUANK_QUEST = 'Keep an Eye Out for Quank'
 
 async function skillLevel(x: any, playerId: number, skill: string): Promise<number> {
     const row = await x('player_skills as ps').join('skills as s', 's.id', 'ps.skill_id')
@@ -160,7 +165,9 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
         // Before he goes, a Tidbit: half a Tiddle (Nathan, 2026-11-17).
         const tidbit = await trx('items').where({ name: 'Tidbit' }).first('id');
         if (tidbit) await addItemToInventoryWithin(trx, playerId, tidbit.id, 1);
-        return { kind: 'quank', location_id: islet.id, target_id: tidbit?.id ?? null, remaining: 0, boost: 1 };
+        // ...and the scene's end starts his quest: next time, he wants it back.
+        const questStarted = await startQuankQuestWithin(trx, playerId);
+        return { kind: 'quank', location_id: islet.id, target_id: tidbit?.id ?? null, remaining: 0, boost: 1, questStarted: questStarted ?? undefined };
     }
     if (pick.kind === 'cache') {
         // A guarded cache: the guardian of this islet's guardian spot
@@ -253,4 +260,24 @@ async function clearFindWithin(x: any, playerId: number): Promise<void> {
 /** Leaving the islet: whatever was found there is gone. */
 export async function dropIsletFind(playerId: number, x: any = db): Promise<void> {
     await clearFindWithin(x, playerId);
+}
+
+/**
+ * Starts "Keep an Eye Out for Quank" inside the landing's transaction, once:
+ * the unique (player_id, quest_id) key is the gate. Returns the quest's name
+ * when this call started it, null when it was already under way or is not in
+ * the content.
+ */
+async function startQuankQuestWithin(trx: any, playerId: number): Promise<string | null> {
+    const quest = await trx('quests').where({ name: QUANK_QUEST, is_active: true }).first('id', 'name');
+    if (!quest) return null;
+    const started = await trx('player_quests').insert({ player_id: playerId, quest_id: quest.id, status: 'active' })
+        .onConflict(['player_id', 'quest_id']).ignore().returning('id');
+    if (!started.length) return null;
+    const objectives = await trx('quest_objectives').where({ quest_id: quest.id }).pluck('id');
+    for (const objective_id of objectives) {
+        await trx('player_quest_objectives').insert({ player_id: playerId, objective_id, current_amount: 0, is_complete: false })
+            .onConflict(['player_id', 'objective_id']).ignore();
+    }
+    return String(quest.name);
 }
