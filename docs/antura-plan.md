@@ -384,29 +384,44 @@ Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatu
 - **River Mussels are uncommon,** not frequent: they are already a fishing find.
 - **Ratskin and Jackalope Pelt have uses of their own:** a ratskin armour set, cheap, for new players with no Defense yet, giving a tiny bit of armour and breaking a good bit quicker (a player asked; "might be kind of funny"); and per island a crafted **ring that gives power and an amulet that gives aim**, as the Wolfskin Cloak gives armour, made with the pelts of creatures and perhaps one of the unused trophies.
 
-**Taiar, proposed** (changes in bold; everything else stays):
+**Nathan, 2026-11-17, on the second draft:** the seed, Jumper, Wrecker, and Agropelter changes are settled. Crabshell is crafted from plates and **the whole pieces no longer drop**; the plates must take about as long as the drops do now. **Every island's armour set is made this way** ("homogenize this idea"). The ring uses the Agropelter Knuckle, not the Wolf Fang; the Wolf Fang goes into the Wolfskin Cloak. The Jackalope Charm and the ratskin set stand.
+
+**Taiar** (changes in bold; everything else stays; settled except where marked):
 
 | Creature | Frequent drop | Other changes |
 |---|---|---|
 | Dock Rat | **Ratskin 1 in 4** | Bones removed. Onion Seeds 1 in 10 and Linen Cloth 1 in 200 stay |
 | Granary Rat | **Ratskin 1 in 4** | Grain 1 in 10 stays; **Carrot Seeds 1 in 20 to 1 in 12** |
-| Jackalope | **Jackalope Pelt 1 in 4** | **Turnip Seeds 1 in 20 to 1 in 12**; Jackalope Antler (the amulet's) **1 in 750 to 1 in 300** |
+| Jackalope | **Jackalope Pelt 1 in 4** | **Turnip Seeds 1 in 20 to 1 in 12**; Jackalope Antler (the charm's) **1 in 750 to 1 in 300** |
 | Feral Dog | **Garlic 1 in 25 to 1 in 8; Onion Seeds 1 in 15 added** (it digs in gardens) | |
-| Shore Crab | **Crabshell Plate 1 in 4** (see below) | The three dropped pieces stay at 1 in 300 |
+| Shore Crab | **Crabshell Plate 1 in 4** | **Its three pieces no longer drop** |
 | Wrecker | Coin 1 in 4 (stays) | **Locked Rusty Chest 1 in 55 to 1 in 30** |
 | Sidehill Gouger | **Wild Grain 1 in 25 to 1 in 8, 1 to 2; Pea Seeds 1 in 20 added** | |
 | Jumper | Coin 1 in 4 (stays) | **Charc 1 in 10 to 1 in 6** (Serph wants two a bar); **ore at its two mines 1 in 20 to 1 in 10** |
-| Grey Wolf | **Wolf Pelt 1 in 8** (settled) | Wolf Fang (the ring's) **1 in 750 to 1 in 300** |
-| Ol' Shellback | **Crabshell Plate 1 to 2, 1 in 3** | The three dropped pieces stay at 1 in 300 |
+| Grey Wolf | **Wolf Pelt 1 in 8** | Wolf Fang (now the cloak's) **1 in 750 to 1 in 300** |
+| Ol' Shellback | **Shellback Plate 1 in 4** (proposed) | **Its three pieces no longer drop** |
 | Knocker | **Granite 1 to 2, 1 in 4** (settled) | **Granite Block 1 in 40** (settled, for fun); Rough Quartz 1 in 40 stays |
-| Agropelter | Poor Lanai Log 1 in 5 (stays) | **Feathers 1 in 20 to 1 in 10** |
+| Agropelter | Poor Lanai Log 1 in 5 (stays) | **Feathers 1 in 20 to 1 in 10**; Agropelter Knuckle (now the ring's) **1 in 750 to 1 in 300** |
 | Hodag | **Raspberry Cane 1 in 100 to 1 in 12; Strawberry Runner 1 in 15 added** | |
 
-- **Crabshell Plate**, so the crabs give something but nothing else's: Crafting makes the Crabshell pieces from plates, as the Snallyscale set on Antura is made from Snallyscales, and the dropped whole pieces stay as the lucky shortcut. One set an island crafted from its armoured creature. Plates per piece as the Snallyscale table, scaled to Crabshell's levels.
-- **Two trophies get a use** and come at 1 in 300, the rate CLAUDE.md §8 gives hunting trophies (combat's sit at 1 in 750 today): the Wolf Fang and the Jackalope Antler. The Wrecker's Lantern, Knocker's Hammer, and Agropelter Knuckle stay keepsakes.
+- **Crabshell from plates, proposed.** Two plates, one a creature, so each piece costs kills of the creature that drops it today: Crabshell Plates from the Shore Crab for its three pieces, Shellback Plates from Ol' Shellback for its three. Today each piece is 1 in 300, but a kill rolls all three at once, so a creature's three pieces take about 550 kills on average (300 x (1 + 1/2 + 1/3)), with long unlucky tails. At 1 in 4, 135 plates is 540 kills, split by size as the Snallyscale set is. The luck goes; the time stays.
+
+  | Piece | Worn from Defense | Crafting | Plates |
+  |---|---|---|---|
+  | Crabshell Gauntlets | 7 | 2 | 40 Crabshell |
+  | Crabshell Sabatons | 8 | 3 | 40 Crabshell |
+  | Crabshell Helm | 9 | 4 | 55 Crabshell |
+  | Crabshell Shield | 10 | 5 | 40 Shellback |
+  | Crabshell Greaves | 11 | 6 | 40 Shellback |
+  | Crabshell Cuirass | 12 | 7 | 55 Shellback |
+
+  Their armour and long life (600 sure uses, then 0.4%) are unchanged; pieces already owned are untouched.
+- **The same rule for Antura, proposed:** a set's plates cost about the hours Crabshell's do at its tier. Crabshell is about 1,080 kills, some 13.5 hours at 80 an hour; the Snallyscale draft (150 scales, 600 kills) is about 9 hours at 65 an hour, less than the tier below. Raised by half, to 225 scales (about 900 kills, 14 hours): 23 / 23 / 30 / 45 / 45 / 60 for gauntlets, sabatons, helm, shield, greaves, cuirass.
+- **Three trophies get a use** and come at 1 in 300, the rate CLAUDE.md §8 gives hunting trophies (combat's are 1 in 750 today): the Agropelter Knuckle (the ring), the Jackalope Antler (the charm), and the Wolf Fang (the cloak). The Wrecker's Lantern and Knocker's Hammer stay keepsakes.
+- **The Wolfskin Cloak becomes 20 Wolf Pelts and 1 Wolf Fang** (settled). At 1 in 8 and 1 in 300, a cloak is about 330 kills on average, the fang being the longer wait, against about 240 today for 20 pelts at 1 in 12. Cloaks already worn are untouched.
 - **Supply, checked:** seeds and grain at these rates are a handful an hour each (5 to 10), below a field's harvest. Charc from Jumpers is about 20 an hour; Feathers from the Agropelter about 12 and from Antura's Sea Eagle about 24 at 1 in 4, against a coop of 12 chickens giving about 40 an hour of wall-clock time for no attention. Granite is a sixth of a miner's.
 
-**The ratskin set, proposed:** five pieces worn from Defense 1, Ratskin alone (as the Snallyscale set is Snallyscales alone), made by Crafting at levels 1 to 4. A new player's rats pay for it in about an hour and a half.
+**The ratskin set** (settled, 2026-11-17): five pieces worn from Defense 1, Ratskin alone (as the Snallyscale set is Snallyscales alone), made by Crafting at levels 1 to 4. A new player's rats pay for it in about an hour and a half.
 
 | Piece | Crafting | Ratskins | Armour | Ambren beside it |
 |---|---|---|---|---|
@@ -418,11 +433,11 @@ Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatu
 
 It wears out fast: 60 sure uses, then 3% a kill, where tier 1 metal is 200 and 1% (`items.durability_uses` and `durability_break_pct`, as Crabshell overrides).
 
-**Taiar's ring and amulet, proposed:** made at the lapidary by Crafting, worn in the finger and neck slots, so a fighter chooses between them and a Talar ring or amulet (loadouts make the swap one tap).
+**Taiar's ring and amulet** (settled, 2026-11-17; the stats still want a sim): made at the lapidary by Crafting, worn in the finger and neck slots, so a fighter chooses between them and a Talar ring or amulet (loadouts make the swap one tap).
 
 | Piece | Crafting | From | Gives |
 |---|---|---|---|
-| Wolf's-Tooth Ring | 8 | 1 Wolf Fang, 1 Ambren Ingot, 10 Ratskin | about 3 power (a one-hand Ambren weapon is 37 to 44) |
+| Knuckle Ring | 8 | 1 Agropelter Knuckle, 1 Ambren Ingot, 10 Ratskin | about 3 power (a one-hand Ambren weapon is 37 to 44) |
 | Jackalope Charm | 10 | 1 Jackalope Antler, 10 Jackalope Pelt | about 6 aim (a weapon is 90 to 110) |
 
 About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
@@ -433,14 +448,16 @@ About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. 
 |---|---|---|
 | Wolverine | Wolverine Pelt 1 in 6 | The tier 2 cloak |
 | Kelpie | Coin 1 in 4 | |
-| Shellycoat | River Mussel 1 in 15 | Uncommon (Nathan); its frequent drop is still to find |
+| Shellycoat | River Mussel 1 in 15; fish, see below | Uncommon (Nathan) |
 | Sea Eagle | Feathers 1 to 2, 1 in 4 | About 24 an hour |
 | Reaver | Coin 1 in 4, more than the Wrecker | |
 | Snallygaster | Snallyscale 1 in 4 | Settled |
 | Cave Bear | Cave Bear Pelt 1 in 6 | The tier 2 cloak |
 | Slide-rock Bolter | Granite 2 to 3, 1 in 4 | Garnet stays rare |
 
-New items: Ratskin, Jackalope Pelt, Crabshell Plate, the five ratskin pieces, the ring and amulet on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura.
+- **The Shellycoat's fish.** Nathan asked whether it could drop two or three tier 2 fish, at 1 in 4, 5, and 6. At those rates it gives about 40 fish an hour, where a fisher on Antura lands about 45 a cast hour (80 s casts), so fighting would out-fish Fishing; and a fish is food, where a creature's common drop is meant not to be (CLAUDE.md §2). Proposed instead: the Narrows' three lower fish, Mackerel 1 in 12, Pollock 1 in 15, and Sea Bass 1 in 20, about 13 an hour, under a third of a fisher. Still Nathan's call.
+
+New items: Ratskin, Jackalope Pelt, Crabshell Plate, Shellback Plate, the five ratskin pieces, the Knuckle Ring and the Jackalope Charm on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura.
 
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
 
