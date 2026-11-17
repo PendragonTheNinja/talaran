@@ -46,6 +46,7 @@ import { SERVER_ERROR } from '../lib/serviceResult'
 import { jewelryAid } from './jewelry'
 import { noteDeed, firstToday, BESTIARY_MARKS, STRONG_KILL_GAP } from './chronicle'
 import { combatLevel } from '../lib/combatMath'
+import { dropIsletFind, isletFindHere, spendIsletFind } from './isletFinds'
 
 /** Where a fallen fighter wakes (spec §14). */
 const RESPAWN_LOCATION = 'Talador'
@@ -187,7 +188,7 @@ interface FightReport {
     events: (SwingEvent & { creature: string })[]
     kills: KillReport[]
     /** How the fight ended in this settle, if it did. */
-    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | null
+    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won' | null
     froze: boolean
     hp: { current: number; max: number }
     view: FightView | null
@@ -209,7 +210,7 @@ function mostSwung(swings: Record<string, number>, inHand: number | null): numbe
 // ── The settle ───────────────────────────────────────────────────────────────
 
 /** 'replaced': another action is taking the fight's place (travel, Stop, a vein); the client already knows. */
-type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke'
+type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won'
 
 /**
  * Lock the player's fight and play it up to `until`, inside `trx`. With
@@ -292,11 +293,12 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             const me = playerCombatant(levels, worn, max - missing)
             weapon = me.weaponName
             const foe = creatureCombatant(creature)
-            const r = settle(Math.random, clock, max - missing, me.combatant, foe, stanceMultiplier(creature, me.damageType), until)
+            const r = settle(Math.random, clock, max - missing, me.combatant, foe, stanceMultiplier(creature, me.damageType), until,
+                COMBAT, Number(creature.hesitate_pct ?? 0))
             for (const e of r.events) events.push({ ...e, creature: creature.name })
             const inHand = worn.mainhand?.weapon_form ? worn.mainhand : null
             if (inHand) {
-                const made = r.events.filter(e => e.by === 'player').length
+                const made = r.events.filter(e => e.by === 'player' && !e.hesitated).length
                 if (made) swings[inHand.id] = (swings[inHand.id] ?? 0) + made
             }
             missing = max - r.playerHp
@@ -398,6 +400,15 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                 bestiaryStep,
             })
 
+            // An islet guardian (docs/islets-plan.md §6f) is one fight: its
+            // fall spends the guarded cache and ends the fight with nothing
+            // more to come.
+            if (spot.kind === 'guardian') {
+                await spendIsletFind(playerId, 'cache', creature.id, trx)
+                end = end ?? 'won'
+                break
+            }
+
             // Something broke: the kill stands, and the fight waits for the
             // player to equip a replacement (§13).
             if (brokeWorn) {
@@ -433,7 +444,9 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     let ended: FightReport['ended'] = null
     let pile: FightReport['pile'] = null
     if (died) {
-        const fellAt = spot.location_id
+        // Fallen on an islet: what was carried and worn goes back to the port
+        // the voyage left, and the voyage is over (Nathan, 2026-11-15).
+        const fellAt = await islandPortForPile(trx, playerId, spot.location_id)
         const { stacks } = await dropEverythingWithin(trx, playerId, fellAt, new Date(settledAt))
         const place = await trx('locations').where({ id: fellAt }).select('name').first()
         pile = { place: place?.name ?? 'where you fell', stacks }
@@ -481,7 +494,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     }
 
     const foe = creatureCombatant(creature)
-    const hidden = !ended && spot.kind !== 'chosen' && (frozen || froze || clock.engageAt > Date.now())
+    const hidden = !ended && spot.kind !== 'chosen' && spot.kind !== 'guardian' && (frozen || froze || clock.engageAt > Date.now())
     const totalKills = ended || hidden ? 0 : await killsOf(trx, playerId, creature.id)
     const knownStances = ended || hidden ? null
         : totalKills >= BESTIARY_STEPS.stances ? stancesOf(creature) : null
@@ -511,8 +524,25 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     }
 }
 
+/**
+ * Where a death's pile goes: where the player fell, or, on an islet, the port
+ * the voyage left (the island's first slip if there is no voyage row). The
+ * voyage ends and the islet's find is lost.
+ */
+async function islandPortForPile(trx: Knex.Transaction, playerId: number, fellAt: number): Promise<number> {
+    const place = await trx('locations').where({ id: fellAt }).first('islet_kind', 'region')
+    if (!place?.islet_kind) return fellAt
+    const voyage = await trx('player_voyages').where({ player_id: playerId }).first('home_location_id')
+    const port = voyage?.home_location_id
+        ?? (await trx('locations').where({ region: place.region, has_slip: true }).orderBy('id').first('id'))?.id
+    await trx('player_voyages').where({ player_id: playerId }).delete()
+    await dropIsletFind(playerId, trx)
+    return port ?? fellAt
+}
+
 const END_MESSAGES: Record<string, string> = {
     fled: 'You break off and back away.',
+    won: 'It falls, and what it guarded is yours. Nothing else waits for you here.',
     disconnected: 'You broke off the fight when your connection dropped.',
     absent: 'You broke off the fight after a long while away.',
 }
@@ -694,6 +724,10 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
             }
             const pool = await spotPool(trx, spot.id)
             if (!pool.length) throw new CombatAbort('Nothing stirs here today.')
+            // An islet guardian stands only over a cache this player found here.
+            if (spot.kind === 'guardian' && !(await isletFindHere(playerId, 'cache', pool[0].id, trx))) {
+                throw new CombatAbort('Nothing guards anything here for you now.')
+            }
 
             let chosen: any = null
             if (spot.kind === 'chosen') {

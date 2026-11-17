@@ -80,12 +80,15 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
         .orderBy(['creatures.level', 'creatures.name'])
         .select('fighting_spot_creatures.spot_id', 'creatures.id', 'creatures.key', 'creatures.name', 'creatures.level')
       : [];
+    // An islet guardian's spot shows only to a player whose find here is its
+    // guarded cache (docs/islets-plan.md §6f).
+    const guarding = isletFind?.kind === 'cache' ? isletFind.target_id : null;
     const fightingSpots = spots.map((spot) => ({
       ...spot,
       creatures: spotCreatures
         .filter((c) => c.spot_id === spot.id)
         .map(({ spot_id: _spotId, ...c }) => c),
-    }));
+    })).filter((spot) => spot.kind !== 'guardian' || spot.creatures.some((c: { id: number }) => c.id === guarding));
 
     // Direct connections FROM current location
     const directConnections = await db('location_connections')

@@ -239,7 +239,8 @@ export interface SeaArrival {
  */
 export async function arriveBySea(playerId: number, locationId: number, leg: SeaLeg): Promise<SeaArrival> {
     const place = await db('locations').where({ id: locationId }).first('id', 'name', 'region', 'islet_kind');
-    const findLine = async (moment: string) => line(island, moment);
+    // A find's line: this islet's own for that find if it has one, else the island's.
+    const findLine = async (moment: string) => (await line(island, moment, place.id)) ?? line(island, moment);
     const island = place?.region ?? '';
     if (leg === 'home' || !place?.islet_kind) {
         const broke = await db.transaction(async (trx) => {

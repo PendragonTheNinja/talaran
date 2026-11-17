@@ -209,7 +209,9 @@ Still open: what the sea chest holds besides a piece (proposed: the island's goo
 
 **Antura's** pair (proposed names: Locked Serph-Bound Chest and Serph-Bound Chest, 200 gold) follows the same shape with Serph Ingots, Garnet common, Quartz lower, Amethyst rare, and Antura's four set pieces; its numbers wait for Antura's build.
 
-## 6f. The guardians: a draft (Claude, 2026-11-17, simulated)
+## 6f. The guardians (settled 2026-11-17: the profiles and weights as below)
+
+**Built 2026-11-17** (migration `20261117180000_islet_guardians`): the Trow, Siren, and Draugr as creature rows; a `guardian` kind of fighting spot on each of their islets, shown and opened only for a player whose landing found that cache, ending after one kill (`services/combatFights.ts`); the Locked Sea Chest always, and the guardian's own keepsake 1 in 20, dropped by the guardian itself since every Taiar chest is the same Sea Chest; **the Siren's song** (`creatures.hesitate_pct` 15, `lib/combatFight.ts` settle): a strike sometimes never comes, and the fight log says "The Siren's song stays your hand, and the moment passes." (measured: 15% of strikes, a fight of about 89 s and 47% of health); **falling on an islet** puts the pile at the port the voyage left and ends the voyage. Tested through the fight service: a win paid the chest and spent the cache; a death left the pile in Talador.
 
 Each guards a drowned crew's chest (§6d), so each is a small boss: one fight, much longer than a normal kill, and its only drop is a **Locked Sea Chest**, always. Profiles below are multipliers on the level's baseline creature (`lib/combatMath.ts` `enemyStats`), as every creature row's are; XP per kill is scaled to the fight's length (`creatures.xp_multiplier`), so XP an hour stays on the band and the chest is the reward.
 

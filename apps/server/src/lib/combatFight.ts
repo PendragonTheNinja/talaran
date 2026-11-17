@@ -30,6 +30,8 @@ export interface SwingEvent {
     damage: number
     /** What armour stopped, on the creature's hits. */
     absorbed: number
+    /** The player's strike that never came: a Siren's song stayed their hand. */
+    hesitated?: boolean
 }
 
 export interface SettleResult {
@@ -77,6 +79,12 @@ export function settle(
     stanceMultiplier: number,
     until: number,
     c: CombatConstants = COMBAT,
+    /**
+     * A creature whose song stays the hand (creatures.hesitate_pct, the
+     * Siren): the chance, per strike, that the player does not strike at all.
+     * The strike's time passes; nothing lands.
+     */
+    hesitatePct = 0,
 ): SettleResult {
     const out: FightClock = { ...clock }
     const events: SwingEvent[] = []
@@ -85,6 +93,11 @@ export function settle(
         const playerTurn = out.playerNextAt <= out.enemyNextAt
         const at = playerTurn ? out.playerNextAt : out.enemyNextAt
         if (at > until) break
+        if (playerTurn && hesitatePct > 0 && rng() * 100 < hesitatePct) {
+            events.push({ at, by: 'player', hit: false, damage: 0, absorbed: 0, hesitated: true })
+            out.playerNextAt = at + player.swingSeconds * 1000
+            continue
+        }
         if (playerTurn) {
             const s = swing(rng, player, enemy, stanceMultiplier, c)
             out.enemyHp -= s.landed

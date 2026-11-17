@@ -13,7 +13,7 @@ import { creditGoldWithin } from './gold';
 // islet. Each skill's own action spends it, one use at a time, through
 // isletFindHere and spendIsletFind; nothing about the skill's rules changes.
 
-export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'nothing';
+export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'cache' | 'nothing';
 
 const CHEST_COINS_MIN = 3;
 const CHEST_COINS_MAX = 10;
@@ -113,6 +113,18 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
     }
     const nothing: IsletFind = { kind: 'nothing', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
     if (!pick || pick.kind === 'nothing') return nothing;
+    if (pick.kind === 'cache') {
+        // A guarded cache: the guardian of this islet's guardian spot
+        // (services/combatFights.ts), one fight, its chest the only reward.
+        const guardian = await trx('fighting_spots as s').join('fighting_spot_creatures as fc', 'fc.spot_id', 's.id')
+            .join('creatures as c', 'c.id', 'fc.creature_id')
+            .where({ 's.location_id': islet.id, 's.kind': 'guardian', 's.is_active': true, 'c.is_active': true })
+            .first('c.id');
+        if (!guardian) return nothing;
+        const find: IsletFind = { kind: 'cache', location_id: islet.id, target_id: Number(guardian.id), remaining: 1, boost: 1 };
+        await trx('player_islet_finds').insert({ player_id: playerId, ...find });
+        return find;
+    }
     if (pick.kind === 'chest') {
         // Dug up there and then: a Locked Rusty Chest for Geoffrey to open,
         // and a few loose coins from the digging. Nothing is left to work.
