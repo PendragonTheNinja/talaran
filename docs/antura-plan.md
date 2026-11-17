@@ -18,7 +18,7 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. The use proposed for Serph Arrows (§5). Smithing's numbers are otherwise settled (2026-11-17).
+1. The Serph Arrow numbers and the two lines of text (§5). Smithing's numbers are otherwise settled (2026-11-17).
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -200,7 +200,10 @@ Serph smelts alone (settled), so one ore makes one ingot. Dense follows the rule
 
 **Settled (Nathan, 2026-11-17):** the table's numbers; **Serph Arrows are in**; the Ambren Butchering Knife's XP is corrected to the rule, 35 to 55 (migration `20261117100000_butchering_knife_xp`). The Serph Scythe is at 15 by the rule (Ambren's is 3).
 
-**Serph Arrows need a use**, since a hunt today shoots only `HUNT_AMMO`, the Ambren Arrow (`services/hunting.ts`). Proposed, by the rule tools already follow: a hunt shoots the best arrow carried, and an animal of tier 2 (the Ground Sloth, Hunting 17) wants a tier 2 arrow, as Deep Lanai wants a Serph Hatchet. An Ambren arrow there is slower by the tool rule in `calculateTimer` (`TOOL_TIER_PENALTY` a tier); a Serph arrow on tier 1 game is faster by a tenth. Like Deep Lanai, this ships with the arrows, never before them.
+**Serph Arrows need a use**, since a hunt today shoots only `HUNT_AMMO`, the Ambren Arrow (`services/hunting.ts`). Settled (Nathan, 2026-11-17): **a hunt shoots the best arrow carried, and an arrow below the animal's tier lowers the chance of a catch, never lengthens the hunt.** An animal of tier 2 (today only the Ground Sloth, Hunting 17) wants a Serph arrow. Proposed numbers: **10 points off the catch chance for each tier the arrow is below the animal**, and 3 points on for each tier above, as a better bow gives (`BOW_TIER_CATCH_BONUS`). On the Sloth with Ambren arrows that is 45% in place of 55% at its own level: about 18% fewer catches, and 8% less XP an hour, since a miss still pays its share. A constant beside the others in `calculateCatchChance`. Ships with the arrows, never before them.
+- **The player is told, in the world's words** (Nathan, 2026-11-17). Text is content, so each animal gets a line on its row (proposed column `huntable_animals.weak_arrow_text`), shown on a miss when the arrow was below the animal's tier, and a short warning in the hunting panel before the hunt starts. Proposed for the Ground Sloth, for Nathan to change:
+  - On a miss: *"The arrow skips off the sloth's matted hide. That old beast wants a harder point than Ambren."*
+  - In the panel: *"Your Ambren arrows will barely mark a hide like that."*
 
 ## 6. Carpentry
 
