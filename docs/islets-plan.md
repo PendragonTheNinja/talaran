@@ -112,6 +112,31 @@ Still open:
 - **How much a find adapts to the player.** Proposed: a stand, vein, shoal, patch, or trail is the best of its kind on that island that the player has the level for.
 - **How many islets.** Eight is a guess to get the shape right; the islet maps decide.
 
+## 6c. Settled for building step 2 (Nathan, 2026-11-17)
+
+1. **Build with the eight mock islets** and the existing picture fallback; Nathan swaps in the islet maps and pictures later.
+2. **A work find matches the player:** a stand, vein, shoal, patch, or trail is the best of its kind on that island that the player has the level for.
+3. **Every boost starts at 3 times**, one dial per find, in data, checked in the sim.
+4. **Voyage times:** the Skiff about 3 minutes out at Wayfaring 1, falling toward 2 at high levels, Wayfaring XP near a horse's rate, simmed against walking and riding before the numbers are fixed.
+5. **The strandline:** coins, crop seeds, bait, and now and then a Bird Nest or a locked chest. No message in a bottle for now.
+6. **Flavour text, a great deal of it, drafted by Claude for Nathan's edit:** arrivals, finds, last actions, coming home empty, and real stories in the ship's log.
+7. **A player who leaves the game on an islet is sent home**, with everything they carry, as the death pile is carried to port; the find is lost, nothing else is. No one is ever stranded.
+
+**Open:**
+
+- **Sailing on from an islet to the next** (Nathan asked whether a player must go home after every landing). Proposed: a voyage may make up to **three landings** before it must make port ("the Skiff carries water for three landings"); sailing on costs one leg (about 3 minutes) where going home and back costs two. Unlimited sailing on would make skipping an unwanted find cheaper; going home every time is the silly case Nathan named. Each landing still rolls one find, and leaving a find unfinished loses it.
+- **The guarded cache** (step 3) needs islet creatures of its own, found nowhere on the mainland. Nathan, 2026-11-17: the first could be a **siren**, on Taiar's islets or Antura's. Proposed, from island folklore (Orkney's and the sea's):
+
+  | Island | Creature | Level | Guards on | Character | Weak to |
+  |---|---|---|---|---|---|
+  | Taiar | Siren | 10 | The sea stack and the reef | Sings from the rocks; a fight that starts with the fighter half drawn in | Pierce |
+  | Taiar | Trow | 9 | The rocky islet and the drowned quarry | A squat island troll that hoards; hard to hurt | Crush |
+  | Taiar | Draugr | 12 | The ruin | A drowned sailor still guarding his cargo | Slash |
+  | Antura | Finman | 19 | Its sea stacks and reefs | A sea sorcerer of the old stories | Slash |
+  | Antura | Nuckelavee | 24 | Its ruin | The sea-horse demon; the hardest fight on any islet | Pierce |
+
+  A guardian is one fight per find; it drops its own few things, and behind it is the cache.
+
 ## 6a. Quank
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
