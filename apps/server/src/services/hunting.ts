@@ -7,6 +7,7 @@ import { levelTimerFactor } from '../lib/actionTimers'
 import { standsAt } from '../lib/whereabouts'
 import { doubleYield } from './buffs'
 import { noteJewelry } from './jewelry'
+import { isletFindHere, spendIsletFind } from './isletFinds'
 
 // ── Tuning constants ──────────────────────────────────────────────
 const CATCH_PER_LEVEL = 0.5           // +0.5% catch chance per level over req
@@ -32,7 +33,10 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
 }> {
     const animal = await db('huntable_animals').where({ id: animalId }).first()
     if (!animal) return { allowed: false, reason: 'That animal cannot be found here.' }
-    if (!(await standsAt(playerId, animal.location_id))) return { allowed: false, reason: 'That animal cannot be found here.' }
+    // A game trail on an islet counts as this animal's ground while it has hunts left (services/isletFinds.ts).
+    if (!(await standsAt(playerId, animal.location_id)) && !(await isletFindHere(playerId, 'trail', animal.id))) {
+        return { allowed: false, reason: 'That animal cannot be found here.' }
+    }
 
     const level = await huntingLevel(playerId)
     if (level < animal.required_level) {
@@ -69,6 +73,11 @@ export function calculateCatchChance(baseCatch: number, playerLevel: number, req
     const fromLevel = levelsOver * CATCH_PER_LEVEL
     const fromBow = Math.max(0, bowTier - 1) * BOW_TIER_CATCH_BONUS
     return Math.min(CATCH_CAP, baseCatch + fromLevel + fromBow)
+}
+
+/** The names of a drop table's notable entries (trophies). */
+function parseNotable(dropTableJson: string): string[] {
+    try { return (JSON.parse(dropTableJson) as DropEntry[]).filter(d => d.notable).map(d => d.itemName) } catch { return [] }
 }
 
 /** Arrow recovery chance for this outcome. */
@@ -154,7 +163,9 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     if (!animal) return { success: false, xp: 0, drops: [], arrowRecovered: false, animalName: 'the animal' }
     // Re-checked each cycle (CLAUDE.md §5 item 5). No shot is fired, so no
     // arrow is spent, and the tick stops the loop.
-    if (!(await standsAt(playerId, animal.location_id))) {
+    const atGround = await standsAt(playerId, animal.location_id)
+    const trail = atGround ? null : await isletFindHere(playerId, 'trail', animal.id)
+    if (!atGround && !trail) {
         return { success: false, xp: 0, drops: [], arrowRecovered: true, notHere: true, animalName: animal.name }
     }
 
@@ -171,7 +182,16 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     }
     const bowTier = bow.tier ?? 1
 
-    const catchChance = calculateCatchChance(animal.base_catch_chance, level, animal.required_level, bowTier)
+    // A game trail on an islet: the hunt comes off the trail first, in one
+    // conditional statement, so two hunts never share its last one; a miss is
+    // `boost` times less likely and trophies `boost` times likelier.
+    if (!atGround && (await spendIsletFind(playerId, 'trail', animal.id)) === null) {
+        return { success: false, xp: 0, drops: [], arrowRecovered: true, notHere: true, animalName: animal.name }
+    }
+    const boost = trail?.boost ?? 1
+
+    const baseCatch = calculateCatchChance(animal.base_catch_chance, level, animal.required_level, bowTier)
+    const catchChance = boost > 1 ? Math.min(CATCH_CAP, 100 - (100 - baseCatch) / boost) : baseCatch
     const success = Math.random() * 100 < catchChance
 
     const xp = success ? animal.xp_success : animal.xp_failure
@@ -180,7 +200,11 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     // standing in the bracken. Everything else, trophies included, still comes
     // only from a kill. Young are whatever a husbandry species is raised from.
     const young = new Set<string>(await db('animal_species').whereNotNull('baby_item_name').pluck('baby_item_name'))
-    let drops = rollDrops(animal.drop_table, await babyFindMultiplier(playerId), success ? undefined : young)
+    const multipliers = await babyFindMultiplier(playerId)
+    if (boost > 1) {
+        for (const d of parseNotable(animal.drop_table)) multipliers.set(d, (multipliers.get(d) ?? 1) * boost)
+    }
+    let drops = rollDrops(animal.drop_table, multipliers, success ? undefined : young)
 
     // A double-yield provision doubles what a kill gives (meat, hide, bones,
     // trophies), never a young animal found by the way. The hunt never asked,

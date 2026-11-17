@@ -9,6 +9,12 @@ import { levelTimerFactor } from '../lib/actionTimers';
 import { buffRareBonus, doubleYield, timerCut } from './buffs';
 import { noteJewelry } from './jewelry';
 import { addItemToInventory } from './inventory';
+import { isletFindHere, liveIsletFind, spendIsletFind } from './isletFinds';
+
+/** A wild patch on an islet (services/isletFinds.ts) counts as this habitat while it has searches left. */
+async function patchHere(playerId: number, habitatId: number) {
+    return isletFindHere(playerId, 'patch', habitatId);
+}
 
 // Exploration XP for the first time a player pulls a given item from a given
 // habitat. Flat, because the discovery is the achievement, not the item.
@@ -108,6 +114,12 @@ export async function getForagingHabitats(playerId: number, locationId: number) 
     const habitats = await db('foraging_habitats')
         .where({ location_id: locationId, is_active: true })
         .orderBy('display_order', 'asc');
+    // On an islet, the player's wild patch is its habitat, with searches left.
+    const find = await liveIsletFind(playerId);
+    if (find?.kind === 'patch' && find.target_id && Number(find.location_id) === Number(locationId)) {
+        const patch = await db('foraging_habitats').where({ id: find.target_id, is_active: true }).first();
+        if (patch) habitats.push({ ...patch, islet_remaining: find.remaining });
+    }
 
     const discoveries = await db('player_foraging_discoveries').where({ player_id: playerId });
     const knifeTier = await bestToolTier(playerId, 'foraging_knife');
@@ -146,7 +158,9 @@ export async function getForagingHabitats(playerId: number, locationId: number) 
 export async function canForageHere(playerId: number, habitatId: number): Promise<{ allowed: boolean; reason?: string }> {
     const habitat = await db('foraging_habitats').where({ id: habitatId }).first();
     if (!habitat || !habitat.is_active) return { allowed: false, reason: 'That habitat cannot be foraged.' };
-    if (!(await standsAt(playerId, habitat.location_id))) return { allowed: false, reason: 'That habitat is not here.' };
+    if (!(await standsAt(playerId, habitat.location_id)) && !(await patchHere(playerId, habitat.id))) {
+        return { allowed: false, reason: 'That habitat is not here.' };
+    }
     const level = await playerLevelFor(playerId, 'Foraging');
     if (level < habitat.required_level) {
         return { allowed: false, reason: `You need Foraging level ${habitat.required_level} to forage here.` };
@@ -160,7 +174,16 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         const habitatId = typeof habitatIdRaw === 'string' ? parseInt(habitatIdRaw) : habitatIdRaw;
         const habitat = await db('foraging_habitats').where({ id: habitatId }).first();
         if (!habitat || !habitat.is_active) return { success: false, error: 'Habitat not found' };
-        if (!(await standsAt(playerId, habitat.location_id))) return { success: false, error: 'That habitat is not here.' };
+        // A wild patch on an islet: away from the habitat's own place the search
+        // MUST come off the patch first, in one conditional statement, so two
+        // searches never share its last one, and its notable finds come
+        // `boost` times likelier (services/isletFinds.ts).
+        const atHabitat = await standsAt(playerId, habitat.location_id);
+        const patch = atHabitat ? null : await patchHere(playerId, habitat.id);
+        if (!atHabitat && (await spendIsletFind(playerId, 'patch', habitat.id)) === null) {
+            return { success: false, error: 'The patch is picked over. Nothing worth taking is left here.' };
+        }
+        const boost = patch?.boost ?? 1;
 
         const foragingSkill = await db('skills').where({ name: 'Foraging' }).first();
         if (!foragingSkill) return { success: false, error: 'Foraging skill missing' };
@@ -180,7 +203,7 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
         // of their own weight (EFFECTS.RARE), the rule bonus drops use. The
         // forage roll never asked, so the Dandelion Cordial and the Hedgerow
         // Basket did nothing (audit 2026-11-09).
-        const rareMult = 1 + Math.max(0, await buffRareBonus(playerId, 'Foraging')) / 100;
+        const rareMult = (1 + Math.max(0, await buffRareBonus(playerId, 'Foraging')) / 100) * boost;
         const pick = weightedPick(rareMult > 1
             ? pool.map(e => (e.notable ? { ...e, weight: e.weight * rareMult } : e))
             : pool);
@@ -214,7 +237,8 @@ export async function processForagingAction(playerId: number, habitatIdRaw: numb
             .where({ player_id: playerId, habitat_id: habitatId, item_name: pick.itemName }).first();
         if (!already) {
             await db('player_foraging_discoveries')
-                .insert({ player_id: playerId, habitat_id: habitatId, item_name: pick.itemName });
+                .insert({ player_id: playerId, habitat_id: habitatId, item_name: pick.itemName })
+                .onConflict(['player_id', 'habitat_id', 'item_name']).ignore();
             // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
             firstDiscovery = true;
         }

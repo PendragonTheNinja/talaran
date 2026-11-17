@@ -7,8 +7,8 @@ import { hasContent } from '../../lib/migrationContent';
 //   islet_find_kinds    each kind of find: the skill that works it, how much
 //                       work it holds (a fixed amount, as a vein is), and how
 //                       many times likelier its extras are (the boost, 3 for
-//                       now, one dial per kind). A kind whose skill is not
-//                       wired yet is inactive and never rolled.
+//                       now, one dial per kind). An inactive kind is never
+//                       rolled (for a kind added before its skill is wired).
 //   islet_finds         what each islet can hold, by weight, by its
 //                       character (a wooded islet never shows a vein).
 //   player_islet_finds  the one live find a player has, on the islet where
@@ -20,7 +20,9 @@ import { hasContent } from '../../lib/migrationContent';
 // Wired so far: the stand of trees (services/woodcutting.ts), the exposed vein
 // (a private, never-announced ore_veins row, mined by services/mining.ts), and
 // the shoal (cast with a rod into its mainland water, services/fishing.ts
-// waterFor). The patch and trail follow.
+// waterFor), and the wild patch (the island's best habitat for the player,
+// services/foraging.ts), and the game trail (the island's best quarry for
+// the player, services/hunting.ts). Every work find is wired.
 
 const ISLAND = 'Taiar Island';
 
@@ -29,8 +31,8 @@ const KINDS: [string, string | null, number, number, number, boolean][] = [
     ['stand', 'Woodcutting', 40, 40, 3, true],
     ['vein', 'Mining', 25, 40, 3, true],
     ['shoal', 'Fishing', 40, 40, 3, true],
-    ['patch', 'Foraging', 40, 40, 3, false],
-    ['trail', 'Hunting', 15, 15, 3, false],
+    ['patch', 'Foraging', 40, 40, 3, true],
+    ['trail', 'Hunting', 15, 15, 3, true],
     ['nothing', null, 0, 0, 1, true],
 ];
 
@@ -67,6 +69,16 @@ const LINES: Record<string, string[]> = {
         'Off the point the water is boiling with fish, turning silver all at once and gone again. They have never seen a hook.',
         'The birds give it away first, diving and diving. Under them the sea is thick with a shoal.',
         'In the lee of the rocks the water is dark with fish, packed so close they push each other to the surface.',
+    ],
+    find_patch: [
+        'Behind the rocks the ground is thick with growth nobody has ever picked: leaves, berries, roots, the lot.',
+        'A hollow full of green, sheltered from the wind and left alone for years. It is like finding a larder unlocked.',
+        'Every plant on the mainland that people fight over grows here in heaps, and nobody to fight over it.',
+    ],
+    find_trail: [
+        'The heather is trodden flat in a path to the pond. Whatever made it is not shy, and has never been hunted here.',
+        'Fresh tracks in the mud, and droppings still warm. Something big lives on this islet, and it does not know about bows.',
+        'A game trail runs the length of the islet, worn deep. You nock an arrow without thinking about it.',
     ],
     find_nothing: [
         'You walk the islet end to end. Rock, weed, a few gulls. Nothing else worth the trip, this time.',

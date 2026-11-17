@@ -40,10 +40,20 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     const huntableAnimals = await db('huntable_animals')
       .where({ location_id: player.current_location_id, is_active: true })
       .orderBy('required_level');
+    // On an islet, the player's game trail brings its animal here (services/isletFinds.ts).
+    if (isletFind?.kind === 'trail' && isletFind.target_id) {
+      const animal = await db('huntable_animals').where({ id: isletFind.target_id, is_active: true }).first();
+      if (animal) huntableAnimals.push({ ...animal, islet_remaining: isletFind.remaining });
+    }
 
     const foragingHabitats = await db('foraging_habitats')
       .where({ location_id: player.current_location_id, is_active: true })
       .orderBy('display_order');
+    // On an islet, the player's wild patch is a habitat here (services/isletFinds.ts).
+    if (isletFind?.kind === 'patch' && isletFind.target_id) {
+      const patch = await db('foraging_habitats').where({ id: isletFind.target_id, is_active: true }).first();
+      if (patch) foragingHabitats.push({ ...patch, islet_remaining: isletFind.remaining });
+    }
 
     // Only a count is needed: the panel uses it to decide whether this place
     // has water worth fishing. The species themselves come from

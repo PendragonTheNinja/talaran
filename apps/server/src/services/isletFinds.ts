@@ -42,6 +42,22 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
             .first('n.id');
         return node ? Number(node.id) : null;
     }
+    if (kind === 'trail') {
+        const level = await skillLevel(x, playerId, 'Hunting');
+        const a = await x('huntable_animals as a').join('locations as l', 'l.id', 'a.location_id')
+            .where('l.region', island).whereNull('l.islet_kind').where('a.is_active', true)
+            .where('a.required_level', '<=', level)
+            .orderBy([{ column: 'a.required_level', order: 'desc' }, { column: 'a.id', order: 'asc' }]).first('a.id');
+        return a ? Number(a.id) : null;
+    }
+    if (kind === 'patch') {
+        const level = await skillLevel(x, playerId, 'Foraging');
+        const h = await x('foraging_habitats as h').join('locations as l', 'l.id', 'h.location_id')
+            .where('l.region', island).whereNull('l.islet_kind').where('h.is_active', true)
+            .where('h.required_level', '<=', level)
+            .orderBy([{ column: 'h.required_level', order: 'desc' }, { column: 'h.id', order: 'asc' }]).first('h.id');
+        return h ? Number(h.id) : null;
+    }
     if (kind === 'shoal') {
         // The island's water whose best fish the player can catch is the
         // highest; more such fish breaks a tie.

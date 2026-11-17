@@ -565,7 +565,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'foraging' ? 'active' : ''}`}
             onClick={() => onStartAction('foraging_menu', 0)}
           >
-            Forage the Forest →
+            {location?.islet_kind ? 'Forage the Wild Patch' : 'Forage the Forest'} →
           </button>
         )}
 
@@ -576,7 +576,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           >
             {/* Named for what is actually out there. Anywhere not listed keeps
                 the generic label. */}
-            {WATER_LABELS[locationData?.location?.name ?? ''] ?? 'Fish the Water'} →
+            {location?.islet_kind ? 'Fish the Shoal' : WATER_LABELS[locationData?.location?.name ?? ''] ?? 'Fish the Water'} →
           </button>
         )}
 
