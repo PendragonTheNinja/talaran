@@ -100,6 +100,7 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
     husbandry_build_pen: { skill: 'Carpentry', tools: BUILD },
     husbandry_demolish_pen: { skill: 'Carpentry', tools: BUILD },
     guild_build: { skill: 'Carpentry', tools: BUILD },
+    vessel_build: { skill: 'Carpentry', tools: BUILD },
     cooking_build_hearth: { skill: 'Crafting', tools: ['mallet'] },
     husbandry_feed: { skill: 'Husbandry', tools: ['pail'] },
     husbandry_feed_all: { skill: 'Husbandry', tools: ['pail'] },

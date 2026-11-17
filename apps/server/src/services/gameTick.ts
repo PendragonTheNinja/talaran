@@ -22,6 +22,7 @@ import { processingTimerFor } from './recipes';
 import { resolveVigil } from './spells';
 import { resolveFillCycle, FILL_CYCLE_SECONDS } from './talar';
 import { resolveBuildCycle, BUILD_SECONDS as GUILD_BUILD_SECONDS } from './guildHall';
+import { resolveBoatBuildCycle } from './boats';
 import { sawPlanks, SAW_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
@@ -92,6 +93,7 @@ const SKILL_BY_ACTION: Record<string, string> = {
   kiln_collect: 'Smithing',
   sawing: 'Carpentry',
   guild_build: 'Carpentry',
+  vessel_build: 'Carpentry',
 };
 
 async function emitActionComplete(io: Server | null, action: any, payload: any): Promise<void> {
@@ -506,6 +508,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         break;
       case 'guild_build':
         result = await resolveBuildCycle(action.player_id, action.action_data);
+        break;
+      case 'vessel_build':
+        result = await resolveBoatBuildCycle(action.player_id, action.action_data);
         break;
       case 'spell_vigil':
         result = await resolveVigil(action.player_id, action.action_data);
@@ -1153,7 +1158,9 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
     // Raising a guild hall (services/guildHall.ts): one piece set in per cycle,
     // Carpentry XP each time; it carries on while that material is wanted and
     // the player has more, and ends on any refusal with the reason.
-    if (action.action_type === 'guild_build') {
+    // A boat on a slip (services/boats.ts) runs the same way: 1 to 5 pieces a
+    // turn, Carpentry each time, ending on any refusal with the reason.
+    if (action.action_type === 'guild_build' || action.action_type === 'vessel_build') {
       if (!result || !result.success) {
         await db('player_actions').where({ id: action.id }).delete();
         pushToPlayer(action.player_id, 'action_failed', { error: result?.error || 'Your building stopped.', info: true });

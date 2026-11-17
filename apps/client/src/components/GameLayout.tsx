@@ -80,6 +80,8 @@ interface LocationData {
     description: string
     /** Gems are filled here (services/talar.ts). */
     is_rift?: boolean
+    /** Hulls are laid down here (services/boats.ts). */
+    has_slip?: boolean
   } | null
   nodes: {
     id: number

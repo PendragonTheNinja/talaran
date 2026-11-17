@@ -1573,6 +1573,41 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'boat', name: 'five turns at once on a hull whose piece wants seven planks, with fifteen in the pack', rounds: 20,
+        run: async (ctx) => {
+            // A boat's build turn sets in 1 to 5 pieces (services/boats.ts,
+            // lib/buildRoll.ts). However the rolls fall, the hull never takes
+            // more than its piece wants, and every plank is in the pack or the
+            // boat. The tick claims each action once; this is the guard if two
+            // resolves ever meet.
+            const w = await world(ctx);
+            await ctx.db('locations').where({ id: w.town.id }).update({ has_slip: true });
+            await ctx.seed.row('skills', { name: 'Carpentry' });
+            const type = await ctx.seed.row('vessel_types', {
+                key: 'rc_skiff', name: 'Racecheck Skiff', tier: 1, build_level: 1, sail_level: 1,
+                pieces: JSON.stringify([{ key: 'hull', name: 'Hull', materials: [{ item: w.plank.name, qty: 7 }] }]),
+            });
+            const build = await ctx.seed.row('vessel_builds', { player_id: w.player.id, vessel_type_id: type.id, location_id: w.town.id });
+            const mallet = await ctx.seed.row('items', { name: 'Lanai Mallet', type: 'tool', subtype: 'mallet', slot: 'mainhand' });
+            const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand' });
+            await ctx.seed.row('player_equipment', { player_id: w.player.id, mainhand_item_id: mallet.id, offhand_item_id: saw.id });
+            await inPack(ctx, w.player.id, w.plank.id, 15);
+            const { resolveBoatBuildCycle } = await import('../services/boats');
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => resolveBoatBuildCycle(w.player.id, `rc_skiff|${w.plank.name}`)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error === 'Server error')).length;
+            const built = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+            const owned = await ctx.db('player_vessels').where({ player_id: w.player.id, vessel_type_id: type.id }).first();
+            const progress = await ctx.db('vessel_build_progress').where({ build_id: build.id, item_id: w.plank.id }).first();
+            // A finished boat clears its hull and progress, so it holds seven then.
+            const inBoat = owned ? 7 : Number(progress?.delivered ?? 0);
+            const packs = Number((await ctx.db('player_inventory').where({ item_id: w.plank.id }).sum('quantity as n'))[0].n ?? 0);
+            return (crashed ? `${crashed} build turn(s) hit a server error` : null)
+                ?? (built < 2 ? `only ${built} build turn(s) went through` : null)
+                ?? (inBoat > 7 ? `the hull took ${inBoat} planks for a piece that wants 7` : null)
+                ?? changed('planks in the pack and the boat together', 15, packs + inBoat);
+        },
+    },
+    {
         id: 'guild', name: 'five members take 30 gold each at once from a guild purse of 100', rounds: 10,
         run: async (ctx) => {
             const g = await guildWorld(ctx, 100, 5);

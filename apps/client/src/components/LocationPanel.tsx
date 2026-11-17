@@ -8,6 +8,7 @@ import { getItemIcon } from '../lib/items'
 import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 import NPCDialogue from './NPCDialogue'
 import TavernPanel from './TavernPanel'
+import SlipPanel from './SlipPanel'
 import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
@@ -74,6 +75,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [merchantOpen, setMerchantOpen] = useState(false)
   // The Salty Sloth (docs/chronicle-spec.md §2), from its button or from Wenna.
   const [tavernOpen, setTavernOpen] = useState(false)
+  const [slipOpen, setSlipOpen] = useState(false)
   // Ground items get the same tooltip the pack does.
   const { hoverProps, tooltipEl } = useItemTooltip()
   const [shopsOpen, setShopsOpen] = useState(false)
@@ -465,6 +467,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {merchantHere && (
           <button className="location-action-btn" onClick={() => setMerchantOpen(true)}>
             The Travelling Merchant →
+          </button>
+        )}
+
+        {/* A slip for boats: the location row's own flag (services/boats.ts). */}
+        {location?.has_slip && (
+          <button
+            className={`location-action-btn ${currentAction === 'vessel_build' ? 'active' : ''}`}
+            onClick={() => setSlipOpen(true)}
+          >
+            The Slip →
           </button>
         )}
 
@@ -1110,6 +1122,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           onClose={() => setActiveNpcId(null)}
           onInteraction={refreshStations}
           onOpen={(what) => { if (what === 'tavern') setTavernOpen(true) }}
+        />
+      )}
+
+      {slipOpen && (
+        <SlipPanel
+          onClose={() => setSlipOpen(false)}
+          onStartBuild={(boat, item) => onStartAction('vessel_build', `${boat}|${item}`)}
         />
       )}
 

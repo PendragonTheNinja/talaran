@@ -708,7 +708,7 @@ export default function GameView({
         }
         // Opening things (server services/containers.ts) has the same shape:
         // XP, a line, and what was inside as drops, no single item.
-        if (build.actionType === 'guild_build' || build.actionType === 'container_open') {
+        if (build.actionType === 'guild_build' || build.actionType === 'vessel_build' || build.actionType === 'container_open') {
           const r = build.result
           const skill = r.skillName || 'Carpentry'
           setLastResult({
@@ -1391,6 +1391,12 @@ export default function GameView({
         startCountdown(secondsLeft, action.completes_at)
         break
 
+      case 'vessel_build':
+        setCurrentAction('vessel_build')
+        setTimerMax(action.last_timer_seconds || secondsLeft || 20)
+        startCountdown(secondsLeft, action.completes_at)
+        break
+
       // Opening things: the kind (for the wording) is not in the row, so the
       // scene says the plain line until the next open.
       case 'container_open':
@@ -1493,6 +1499,36 @@ export default function GameView({
     } catch (err) {
       const e = err as { status?: number; message?: string }
       if (e.status === 423) { rememberPendingAction(() => startGuildBuild(item)); return }
+      addLog(e.message || 'The work would not start.', 'error')
+    }
+  }
+
+  // A boat on the slip (server services/boats.ts): `data` is "boat|item". Sets
+  // 1 to 5 of the item into the hull every 20 seconds while the piece wants it
+  // and the pack has it.
+  const startBoatBuild = async (data: string) => {
+    const bar = data.indexOf('|')
+    const boat = data.slice(0, bar)
+    const item = data.slice(bar + 1)
+    try {
+      if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
+      setLastResult(null)
+      setCurrentAction(null)
+      setActiveNodeId(null)
+      setTimerSeconds(0)
+      onClearTravel()
+      if (timerRef.current) clearInterval(timerRef.current)
+
+      const res = await apiFetch<{ timerSeconds: number }>('/api/boats/build', {
+        method: 'POST',
+        body: JSON.stringify({ boat, item }),
+      })
+      setCurrentAction('vessel_build')
+      setTimerMax(res.timerSeconds)
+      startCountdown(res.timerSeconds)
+    } catch (err) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 423) { rememberPendingAction(() => startBoatBuild(data)); return }
       addLog(e.message || 'The work would not start.', 'error')
     }
   }
@@ -1626,6 +1662,8 @@ export default function GameView({
       startVigil(String(externalAction.id))
     } else if (externalAction.type === 'guild_build') {
       startGuildBuild(String(externalAction.id))
+    } else if (externalAction.type === 'vessel_build') {
+      startBoatBuild(String(externalAction.id))
     } else if (externalAction.type === 'fishing_rod') {
       // id carries the bait category, or an empty string for an unbaited cast.
       startRodFishing((externalAction.id as string) || null)

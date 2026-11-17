@@ -116,6 +116,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     spells:                      { label: 'Spells',                group: 'Talar',      snapshot: true, editable: true },
     // What each guild hall tier needs (by item name) and what its storehouse holds.
     guild_hall_tiers:            { label: 'Guild Hall Tiers',      group: 'Guilds',     snapshot: true, editable: true },
+    // Boats (services/boats.ts): each type, its levels, and the pieces it is raised from.
+    vessel_types:                { label: 'Vessel Types',          group: 'World',      snapshot: true, editable: true },
     // The Chronicle (docs/chronicle-spec.md): what each kind of deed weighs, the
     // bard's verses and the tavern she keeps them in are authored; the journal,
     // the finished pages and the ballads are state.

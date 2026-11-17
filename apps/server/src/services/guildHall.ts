@@ -6,11 +6,11 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
 import { creditGoldWithin, debitGoldWithin } from './gold';
 import { missingBuildTool } from './construction';
-import { activeXpForSeconds } from './farming';
-import { awardXp, levelFromXp } from './xp';
+import { awardXp } from './xp';
 import { membershipOf } from './guildRanks';
 import { noteDeed } from './chronicle';
-import { HALL_FLIPS, piecesAverage, piecesRolled } from '../lib/buildRoll';
+import { HALL_FLIPS, piecesAverage } from '../lib/buildRoll';
+import { BUILD_SECONDS, buildTurnXp, carpentryLevel, takeBuildPiecesWithin } from './builds';
 
 // ── Guild halls (migration 20261102170000; Nathan, 2026-11-02) ───────────────
 //
@@ -35,7 +35,7 @@ import { HALL_FLIPS, piecesAverage, piecesRolled } from '../lib/buildRoll';
 // storage or progress row. Writes are relative and conditional; a refusal
 // after a write throws HallAbort so the transaction rolls back (CLAUDE.md §4).
 
-export const BUILD_SECONDS = 20;
+export { BUILD_SECONDS };
 
 class HallAbort extends Error {
     constructor(message: string, public status = 400) { super(message); }
@@ -168,7 +168,7 @@ export async function hallState(playerId: number) {
             building: nextTier ? {
                 tier: nextTier.tier,
                 capacityAfter: nextTier.capacity,
-                xpPerPiece: activeXpForSeconds(rungOfTier(nextTier.tier), BUILD_SECONDS),
+                xpPerPiece: buildTurnXp(nextTier.tier),
                 // What one action sets in on average at this carpenter's level.
                 piecesPerAction: Math.round(piecesAverage(HALL_FLIPS, await carpentryLevel(playerId), rungOfTier(nextTier.tier)) * 10) / 10,
                 requirements: nextTier.requirements.map(r => {
@@ -291,13 +291,6 @@ export interface BuildCycleResult {
     carryOn?: boolean
 }
 
-/** The player's Carpentry level, for the build roll. */
-async function carpentryLevel(playerId: number, x: any = db): Promise<number> {
-    const row = await x('player_skills as ps').join('skills as s', 's.id', 'ps.skill_id')
-        .where({ 'ps.player_id': playerId, 's.name': 'Carpentry' }).first('ps.xp');
-    return row ? levelFromXp(Number(row.xp)) : 1;
-}
-
 /** Pieces set into the hall for the tick, 1 to 3 a cycle. Every precondition is re-checked. */
 export async function resolveBuildCycle(playerId: number, itemName: string): Promise<BuildCycleResult> {
     try {
@@ -315,20 +308,18 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
             const progress = await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).forUpdate().first();
             if (Number(progress.delivered) >= req.qty) throw new HallAbort(`The hall has all the ${itemName} this tier needs.`);
 
-            // The roll, cut to what the tier still wants and what the pack holds.
-            const heldRow = await trx('player_inventory').where({ player_id: playerId, item_id: item.id }).first('quantity');
-            const held = Number(heldRow?.quantity ?? 0);
-            if (held < 1) throw new HallAbort(`You have no ${itemName} left to give.`);
-            const pieces = Math.min(piecesRolled(HALL_FLIPS, carpentry, rungOfTier(next.tier)), req.qty - Number(progress.delivered), held);
-            const taken = await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: pieces }]);
-            if (!taken.ok) throw new HallAbort(`You have no ${itemName} left to give.`);
+            // The roll, cut to what the tier still wants and what the pack holds (services/builds.ts).
+            const pieces = await takeBuildPiecesWithin(trx, {
+                playerId, item, wanted: req.qty, delivered: Number(progress.delivered), flips: HALL_FLIPS, carpentry, tier: next.tier,
+            });
+            if (pieces < 1) throw new HallAbort(`You have no ${itemName} left to give.`);
 
             const delivered = Number(progress.delivered) + pieces;
             await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).increment('delivered', pieces);
             await trx('guild_hall_contributions').insert({ hall_id: hall.id, player_id: playerId, item_id: item.id, quantity: pieces })
                 .onConflict(['hall_id', 'player_id', 'item_id']).merge({ quantity: trx.raw('guild_hall_contributions.quantity + ?', [pieces]) });
 
-            const xp = activeXpForSeconds(rungOfTier(next.tier), BUILD_SECONDS);
+            const xp = buildTurnXp(next.tier);
             await awardXp(playerId, 'Carpentry', xp, trx);
 
             // Is the whole tier in? Every requirement, this one counted.

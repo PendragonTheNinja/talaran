@@ -22,6 +22,8 @@ Nathan and Claude designed Antura from 2026-11-14 to 17. **The design is finishe
 
 **Built before Antura, needing nothing from it:** Taiar's half of the drop pass (§10: the new drops, plates in place of whole Crabshell pieces, the ratskin set, the Knuckle Ring and the Jackalope Charm, the Wolf Fang in the cloak) can go to the alpha on its own, and answers the complaint that fighting pays too little. The ring and charm need the small code change in §10 (aim and power from slots other than the main hand) and a `combatSim.ts` run.
 
+**Built on this branch, 2026-11-17, waiting for Nathan's test:** Taiar's half of the drop pass (`20261117120000_taiar_drop_pass`, `20261117130000_fighters_crafts`); guild halls at 1 to 3 pieces a turn; the Skiff on a slip at Talador (`20261117140000_boats`, step 1 of `docs/sailing-spec.md` §10).
+
 **Before building anything:** export a fresh content snapshot from live if the committed one (2026-11-11) is stale by then, and read §14, which lists what the code assumes that a second island breaks. §15 is the build order; its first two steps (the Skiff, Taiar's islets) need nothing from Antura.
 
 **Also on this branch, not merged to `main`:** the skill-icon hairline (`components/SkillsPanel.tsx`, `SkillsPanel.css`, `index.css`) and Stonehold's full-colour skill icons (`themes/stonehold.css`). Both were checked in a browser in Chromium only; look at the hairline on an iPhone before it deploys.

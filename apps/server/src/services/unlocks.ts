@@ -37,6 +37,12 @@ export async function unlocksAt(skill: string, level: number): Promise<Unlock[]>
         .orderBy('name').select('name', 'output_item_name')
     for (const r of recipes) add(r.output_item_name || r.name, r.output_item_name)
 
+    // Boats (docs/sailing-spec.md §5): Carpentry builds them, Wayfaring sails them.
+    if (s === 'carpentry' || s === 'wayfaring') {
+        const column = s === 'carpentry' ? 'build_level' : 'sail_level'
+        const boats = await db('vessel_types').where({ [column]: level, is_active: true }).orderBy('name').select('name')
+        for (const b of boats) add(s === 'carpentry' ? `Build a ${b.name}` : `Sail a ${b.name}`, null)
+    }
     if (s === 'farming') {
         const crops = await db('crops').where({ plant_level: level, is_active: true }).orderBy('name').select('name', 'produce_item_name')
         for (const c of crops) add(c.name, c.produce_item_name)
