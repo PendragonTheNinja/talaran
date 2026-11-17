@@ -370,50 +370,77 @@ A second roster, eight creatures, every name and level still a placeholder:
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
 - **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. No meat: that is Hunting's (Nathan, 2026-11-15). **Not Bones** (Nathan, 2026-11-16): Bones stay Hunting's, mostly, and are not the answer for creatures fought. First ideas: something from the two crabs that is not food, such as claws for fishing bait, since they drop nothing but armour; Wolf Pelts at 1 in 5, where they are 1 in 12.
-### The drop pass (proposed 2026-11-17, for Nathan to change)
+### The drop pass (second draft, 2026-11-17)
 
-Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatures.json` of 2026-11-11; no later migration touches a combat drop).
+Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatures.json` of 2026-11-11; no later migration touches a combat drop). A fighter makes about 80 kills an hour on Taiar and about 65 on Antura.
 
-**The rules it follows.** Every creature gets one frequent drop of its own, about one kill in four, that is not food, has a real use, and is worth little, so the creature's money still comes from its rares (a trophy at 1 in 750 is already worth about 7 gold a kill). Other skills' goods may drop only below their main source's rate an hour (`docs/combat-spec.md`, combat drops). Existing rares, gems, writs, coins, and incidental seeds stay as they are. A fighter makes about 80 kills an hour on Taiar and about 65 on Antura (level-matched fights run 40 s at combat 1 and lengthen with level).
+**Nathan, 2026-11-17, on the first draft:**
+- **Combat should be more rewarding than it is.** Bump today's drops where it makes sense; a creature may have several seed drops if it fits.
+- **No pelts into Leather Strips:** Buckskin already supplies strips, and more would take from Hunting.
+- **No Crab Claw:** bait is not short.
+- **The Dock Rat's Bones go**, as other drops replace them.
+- **Grey Wolf Pelts 1 in 8** (from 1 in 12).
+- **Granite from the Knocker**, and a rarer Granite Block just for fun.
+- **River Mussels are uncommon,** not frequent: they are already a fishing find.
+- **Ratskin and Jackalope Pelt have uses of their own:** a ratskin armour set, cheap, for new players with no Defense yet, giving a tiny bit of armour and breaking a good bit quicker (a player asked; "might be kind of funny"); and per island a crafted **ring that gives power and an amulet that gives aim**, as the Wolfskin Cloak gives armour, made with the pelts of creatures and perhaps one of the unused trophies.
 
-**One new sink carries most of it: pelts into Leather Strips.** Furred creatures drop their own pelt, and one Crafting recipe cuts pelts into strips, taking "any pelt" by subtype as Fish Stew takes any cooked fish (`services/recipes.ts` wildcards). Strips go into every tool, weapon, and armour piece at the forge, which now wear and break, so the demand is steady. Proposed: four small pelts or one hide to a strip, the same yield as Buckskin. To check before seeding: combat's strips an hour stay below a herd's.
+**Taiar, proposed** (changes in bold; everything else stays):
 
-**Taiar:**
+| Creature | Frequent drop | Other changes |
+|---|---|---|
+| Dock Rat | **Ratskin 1 in 4** | Bones removed. Onion Seeds 1 in 10 and Linen Cloth 1 in 200 stay |
+| Granary Rat | **Ratskin 1 in 4** | Grain 1 in 10 stays; **Carrot Seeds 1 in 20 to 1 in 12** |
+| Jackalope | **Jackalope Pelt 1 in 4** | **Turnip Seeds 1 in 20 to 1 in 12**; Jackalope Antler (the amulet's) **1 in 750 to 1 in 300** |
+| Feral Dog | **Garlic 1 in 25 to 1 in 8; Onion Seeds 1 in 15 added** (it digs in gardens) | |
+| Shore Crab | **Crabshell Plate 1 in 4** (see below) | The three dropped pieces stay at 1 in 300 |
+| Wrecker | Coin 1 in 4 (stays) | **Locked Rusty Chest 1 in 55 to 1 in 30** |
+| Sidehill Gouger | **Wild Grain 1 in 25 to 1 in 8, 1 to 2; Pea Seeds 1 in 20 added** | |
+| Jumper | Coin 1 in 4 (stays) | **Charc 1 in 10 to 1 in 6** (Serph wants two a bar); **ore at its two mines 1 in 20 to 1 in 10** |
+| Grey Wolf | **Wolf Pelt 1 in 8** (settled) | Wolf Fang (the ring's) **1 in 750 to 1 in 300** |
+| Ol' Shellback | **Crabshell Plate 1 to 2, 1 in 3** | The three dropped pieces stay at 1 in 300 |
+| Knocker | **Granite 1 to 2, 1 in 4** (settled) | **Granite Block 1 in 40** (settled, for fun); Rough Quartz 1 in 40 stays |
+| Agropelter | Poor Lanai Log 1 in 5 (stays) | **Feathers 1 in 20 to 1 in 10** |
+| Hodag | **Raspberry Cane 1 in 100 to 1 in 12; Strawberry Runner 1 in 15 added** | |
 
-| Creature | Level | Frequent drop, new | Rate | Use | About an hour | Today's commonest |
-|---|---|---|---|---|---|---|
-| Dock Rat | 1 | Ratskin (small pelt) | 1 in 4 | Strips | 20 | Bones 1 in 5 (removed: Bones stay Hunting's) |
-| Granary Rat | 2 | Ratskin | 1 in 4 | Strips | 20 | Grain 1 in 10 (stays) |
-| Jackalope | 3 | Jackalope Pelt (small pelt) | 1 in 4 | Strips | 20 | Turnip Seeds 1 in 20 |
-| Feral Dog | 4 | Dog Hide (hide) | 1 in 4 | Strips | 20 | Garlic 1 in 25 |
-| Shore Crab | 5 | Crab Claw | 1 in 3 | Fishing bait | 27 | Nothing but armour (1 in 300 each) |
-| Wrecker | 6 | none new: coin is already 1 in 4 | | | | Coin 1 in 4 |
-| Sidehill Gouger | 6 | Gouger Hide (hide) | 1 in 4 | Strips | 20 | Wild Grain 1 in 25 |
-| Jumper | 8 | none new: coin 1 in 4, Charc 1 in 10 | | | | Coin 1 in 4 |
-| Grey Wolf | 8 | Wolf Pelt, already its own | see below | The cloak | | Wolf Pelt 1 in 12 |
-| Ol' Shellback | 9 | Crab Claw, 1 to 2 | 1 in 3 | Fishing bait | 40 | Nothing but armour |
-| Knocker | 9 | Granite, 1 to 2 | 1 in 4 | Masonry | 30 | Rough Quartz 1 in 40 |
-| Agropelter | 10 | none new: Poor Lanai Log 1 to 3 is already 1 in 5 | | | | Poor Lanai Log 1 in 5 |
-| Hodag | 12 | Hodag Hide (hide) | 1 in 4 | Strips | 20 | Writ 1 in 120 |
+- **Crabshell Plate**, so the crabs give something but nothing else's: Crafting makes the Crabshell pieces from plates, as the Snallyscale set on Antura is made from Snallyscales, and the dropped whole pieces stay as the lucky shortcut. One set an island crafted from its armoured creature. Plates per piece as the Snallyscale table, scaled to Crabshell's levels.
+- **Two trophies get a use** and come at 1 in 300, the rate CLAUDE.md §8 gives hunting trophies (combat's sit at 1 in 750 today): the Wolf Fang and the Jackalope Antler. The Wrecker's Lantern, Knocker's Hammer, and Agropelter Knuckle stay keepsakes.
+- **Supply, checked:** seeds and grain at these rates are a handful an hour each (5 to 10), below a field's harvest. Charc from Jumpers is about 20 an hour; Feathers from the Agropelter about 12 and from Antura's Sea Eagle about 24 at 1 in 4, against a coop of 12 chickens giving about 40 an hour of wall-clock time for no attention. Granite is a sixth of a miner's.
 
-- **Crab Claw as bait** was Nathan's idea (2026-11-15). It goes in the existing `meat` bait category, which `docs/fishing-spec.md` §5 allows ("five categories, ever"), though that spec also says no new bait items: Nathan's call to overrule it.
-- **Granite from the Knocker** is "a stone from a thing of rock" (CLAUDE.md §2, Combat). About 30 an hour against a miner's 180, so under the main source.
-- **The Grey Wolf's pelt is worth 82 gold** (derived from the Wolfskin Cloak). At 1 in 5 it would pay about 590 gold an hour at a merchant's 45%, against about 80 an hour that gathering pays at this level (1% of XP an hour). Proposed: 1 in 8, about 370 gold an hour, a cloak in about 2 hours. Or keep 1 in 12 and add nothing.
+**The ratskin set, proposed:** five pieces worn from Defense 1, Ratskin alone (as the Snallyscale set is Snallyscales alone), made by Crafting at levels 1 to 4. A new player's rats pay for it in about an hour and a half.
 
-**Antura** (the roster is still a placeholder):
-
-| Creature | Level | Frequent drop | Rate | Use |
+| Piece | Crafting | Ratskins | Armour | Ambren beside it |
 |---|---|---|---|---|
-| Wolverine | 13 | Wolverine Pelt | 1 in 6 | The tier 2 cloak; valuable, so rarer, as the wolf's |
-| Kelpie | 15 | Coin | 1 in 4 | It drowns travellers |
-| Shellycoat | 17 | River Mussel, 1 to 2 | 1 in 3 | Opened for pearls (an existing container) |
-| Sea Eagle | 19 | Feathers, 1 to 2 | 1 in 3 | Arrows, Serph Arrows included. About 32 an hour: check against the chickens before seeding |
-| Reaver | 20 | Coin, more than the Wrecker | 1 in 4 | A raider's purse |
-| Snallygaster | 21 | Snallyscale | 1 in 4 | The Snallyscale set (settled) |
-| Cave Bear | 22 | Cave Bear Pelt | 1 in 6 | The tier 2 cloak |
-| Slide-rock Bolter | 24 | Granite, 2 to 3 | 1 in 4 | Masonry. Garnet stays rare (about 1 in 100), not frequent: a garnet is worth 1,120 gold |
+| Ratskin Gloves | 1 | 4 | 2 | Bracers 6 |
+| Ratskin Boots | 1 | 4 | 2 | Boots 6 |
+| Ratskin Cap | 2 | 6 | 3 | Coif 8 |
+| Ratskin Leggings | 3 | 8 | 3 | Chausses 10 |
+| Ratskin Jerkin | 4 | 10 | 4 | Hauberk 14 |
 
-New items in all: Ratskin, Jackalope Pelt, Dog Hide, Gouger Hide, Hodag Hide, Crab Claw on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura; and the one strip-cutting recipe.
+It wears out fast: 60 sure uses, then 3% a kill, where tier 1 metal is 200 and 1% (`items.durability_uses` and `durability_break_pct`, as Crabshell overrides).
+
+**Taiar's ring and amulet, proposed:** made at the lapidary by Crafting, worn in the finger and neck slots, so a fighter chooses between them and a Talar ring or amulet (loadouts make the swap one tap).
+
+| Piece | Crafting | From | Gives |
+|---|---|---|---|
+| Wolf's-Tooth Ring | 8 | 1 Wolf Fang, 1 Ambren Ingot, 10 Ratskin | about 3 power (a one-hand Ambren weapon is 37 to 44) |
+| Jackalope Charm | 10 | 1 Jackalope Antler, 10 Jackalope Pelt | about 6 aim (a weapon is 90 to 110) |
+
+About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
+
+**Antura, revised:**
+
+| Creature | Frequent drop | Note |
+|---|---|---|
+| Wolverine | Wolverine Pelt 1 in 6 | The tier 2 cloak |
+| Kelpie | Coin 1 in 4 | |
+| Shellycoat | River Mussel 1 in 15 | Uncommon (Nathan); its frequent drop is still to find |
+| Sea Eagle | Feathers 1 to 2, 1 in 4 | About 24 an hour |
+| Reaver | Coin 1 in 4, more than the Wrecker | |
+| Snallygaster | Snallyscale 1 in 4 | Settled |
+| Cave Bear | Cave Bear Pelt 1 in 6 | The tier 2 cloak |
+| Slide-rock Bolter | Granite 2 to 3, 1 in 4 | Garnet stays rare |
+
+New items: Ratskin, Jackalope Pelt, Crabshell Plate, the five ratskin pieces, the ring and amulet on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura.
 
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
 
