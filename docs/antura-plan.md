@@ -18,10 +18,9 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. One pass over every creature's drops on both islands (§10), begun 2026-11-17. Smithing and Carpentry are settled (§5, §6, §6a, §6b).
-2. The tier 2 cloak: its name, pelt counts, and levels (§10).
-3. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
-4. What survives the 1.0 reset, and whether Thieving and Exploration are cut (§13).
+1. The tier 2 cloak: its name, pelt counts, and levels (§10). The drop pass on both islands is settled (§10, 2026-11-17), as are Smithing and Carpentry.
+2. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
+3. What survives the 1.0 reset, and whether Thieving and Exploration are cut (§13).
 
 **Waiting on Nathan alone:** the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
 
@@ -359,14 +358,14 @@ A second roster, eight creatures, every name and level still a placeholder:
 
 | Piece | Crafting level | Worn from Defense | Snallyscales |
 |---|---|---|---|
-| Snallyscale Gauntlets | 14 | 19 | 15 |
-| Snallyscale Sabatons | 15 | 20 | 15 |
-| Snallyscale Helm | 16 | 21 | 20 |
-| Snallyscale Shield | 18 | 22 | 30 |
-| Snallyscale Greaves | 19 | 23 | 30 |
-| Snallyscale Cuirass | 21 | 24 | 40 |
+| Snallyscale Gauntlets | 14 | 19 | 23 |
+| Snallyscale Sabatons | 15 | 20 | 23 |
+| Snallyscale Helm | 16 | 21 | 30 |
+| Snallyscale Shield | 18 | 22 | 45 |
+| Snallyscale Greaves | 19 | 23 | 45 |
+| Snallyscale Cuirass | 21 | 24 | 60 |
 
-  **Snallyscales are all a piece takes** (proposed 2026-11-16). An earlier draft added leather and Linen Thread "as the Wolfskin Cloak does", which was wrong: the cloak is twenty Wolf Pelts and nothing else. With a Snallyscale about one kill in four, the 150 are about 600 kills. Crabshell asks about 550 kills of each crab. Six recipes take Crafting past its tier's three to six, which Nathan allows where the reason is good; this is also what gives Crafting something at nearly every level from 13 to 22.
+  **Snallyscales are all a piece takes** (proposed 2026-11-16). An earlier draft added leather and Linen Thread "as the Wolfskin Cloak does", which was wrong: the cloak is twenty Wolf Pelts and nothing else. Raised from 150 to 226 (Nathan, 2026-11-17) so the set costs about the hours Crabshell's plates do (see the drop pass below): with a Snallyscale one kill in four, about 900 kills, some 14 hours. Six recipes take Crafting past its tier's three to six, which Nathan allows where the reason is good; this is also what gives Crafting something at nearly every level from 13 to 22.
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
 - **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. No meat: that is Hunting's (Nathan, 2026-11-15). **Not Bones** (Nathan, 2026-11-16): Bones stay Hunting's, mostly, and are not the answer for creatures fought. First ideas: something from the two crabs that is not food, such as claws for fishing bait, since they drop nothing but armour; Wolf Pelts at 1 in 5, where they are 1 in 12.
@@ -399,12 +398,12 @@ Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatu
 | Sidehill Gouger | **Wild Grain 1 in 25 to 1 in 8, 1 to 2; Pea Seeds 1 in 20 added** | |
 | Jumper | Coin 1 in 4 (stays) | **Charc 1 in 10 to 1 in 6** (Serph wants two a bar); **ore at its two mines 1 in 20 to 1 in 10** |
 | Grey Wolf | **Wolf Pelt 1 in 8** | Wolf Fang (now the cloak's) **1 in 750 to 1 in 300** |
-| Ol' Shellback | **Shellback Plate 1 in 4** (proposed) | **Its three pieces no longer drop** |
+| Ol' Shellback | **Shellback Plate 1 in 4** | **Its three pieces no longer drop** |
 | Knocker | **Granite 1 to 2, 1 in 4** (settled) | **Granite Block 1 in 40** (settled, for fun); Rough Quartz 1 in 40 stays |
 | Agropelter | Poor Lanai Log 1 in 5 (stays) | **Feathers 1 in 20 to 1 in 10**; Agropelter Knuckle (now the ring's) **1 in 750 to 1 in 300** |
 | Hodag | **Raspberry Cane 1 in 100 to 1 in 12; Strawberry Runner 1 in 15 added** | |
 
-- **Crabshell from plates, proposed.** Two plates, one a creature, so each piece costs kills of the creature that drops it today: Crabshell Plates from the Shore Crab for its three pieces, Shellback Plates from Ol' Shellback for its three. Today each piece is 1 in 300, but a kill rolls all three at once, so a creature's three pieces take about 550 kills on average (300 x (1 + 1/2 + 1/3)), with long unlucky tails. At 1 in 4, 135 plates is 540 kills, split by size as the Snallyscale set is. The luck goes; the time stays.
+- **Crabshell from plates** (settled, 2026-11-17). Two plates, one a creature, so each piece costs kills of the creature that drops it today: Crabshell Plates from the Shore Crab for its three pieces, Shellback Plates from Ol' Shellback for its three. Today each piece is 1 in 300, but a kill rolls all three at once, so a creature's three pieces take about 550 kills on average (300 x (1 + 1/2 + 1/3)), with long unlucky tails. At 1 in 4, 135 plates is 540 kills, split by size as the Snallyscale set is. The luck goes; the time stays.
 
   | Piece | Worn from Defense | Crafting | Plates |
   |---|---|---|---|
@@ -416,7 +415,7 @@ Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatu
   | Crabshell Cuirass | 12 | 7 | 55 Shellback |
 
   Their armour and long life (600 sure uses, then 0.4%) are unchanged; pieces already owned are untouched.
-- **The same rule for Antura, proposed:** a set's plates cost about the hours Crabshell's do at its tier. Crabshell is about 1,080 kills, some 13.5 hours at 80 an hour; the Snallyscale draft (150 scales, 600 kills) is about 9 hours at 65 an hour, less than the tier below. Raised by half, to 225 scales (about 900 kills, 14 hours): 23 / 23 / 30 / 45 / 45 / 60 for gauntlets, sabatons, helm, shield, greaves, cuirass.
+- **The same rule for Antura** (settled, 2026-11-17): a set's plates cost about the hours Crabshell's do at its tier. Crabshell is about 1,080 kills, some 13.5 hours at 80 an hour; the Snallyscale draft (150 scales, 600 kills) is about 9 hours at 65 an hour, less than the tier below. Raised by half, to 225 scales (about 900 kills, 14 hours): 23 / 23 / 30 / 45 / 45 / 60 for gauntlets, sabatons, helm, shield, greaves, cuirass.
 - **Three trophies get a use** and come at 1 in 300, the rate CLAUDE.md §8 gives hunting trophies (combat's are 1 in 750 today): the Agropelter Knuckle (the ring), the Jackalope Antler (the charm), and the Wolf Fang (the cloak). The Wrecker's Lantern and Knocker's Hammer stay keepsakes.
 - **The Wolfskin Cloak becomes 20 Wolf Pelts and 1 Wolf Fang** (settled). At 1 in 8 and 1 in 300, a cloak is about 330 kills on average, the fang being the longer wait, against about 240 today for 20 pelts at 1 in 12. Cloaks already worn are untouched.
 - **Supply, checked:** seeds and grain at these rates are a handful an hour each (5 to 10), below a field's harvest. Charc from Jumpers is about 20 an hour; Feathers from the Agropelter about 12 and from Antura's Sea Eagle about 24 at 1 in 4, against a coop of 12 chickens giving about 40 an hour of wall-clock time for no attention. Granite is a sixth of a miner's.
@@ -442,21 +441,20 @@ It wears out fast: 60 sure uses, then 3% a kill, where tier 1 metal is 200 and 1
 
 About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
 
-**Antura, revised:**
+**Antura** (settled 2026-11-17, with the roster still a placeholder):
 
 | Creature | Frequent drop | Note |
 |---|---|---|
 | Wolverine | Wolverine Pelt 1 in 6 | The tier 2 cloak |
 | Kelpie | Coin 1 in 4 | |
-| Shellycoat | River Mussel 1 in 15; fish, see below | Uncommon (Nathan) |
+| Shellycoat | Mackerel 1 in 8, Pollock 1 in 10, Sea Bass 1 in 12 | River Mussel 1 in 15, uncommon (Nathan) |
 | Sea Eagle | Feathers 1 to 2, 1 in 4 | About 24 an hour |
 | Reaver | Coin 1 in 4, more than the Wrecker | |
 | Snallygaster | Snallyscale 1 in 4 | Settled |
 | Cave Bear | Cave Bear Pelt 1 in 6 | The tier 2 cloak |
 | Slide-rock Bolter | Granite 2 to 3, 1 in 4 | Garnet stays rare |
 
-- **The Shellycoat's fish.** Nathan asked whether it could drop two or three tier 2 fish, at 1 in 4, 5, and 6. At those rates it gives about 40 fish an hour, where a fisher on Antura lands about 45 a cast hour (80 s casts), so fighting would out-fish Fishing; and a fish is food, where a creature's common drop is meant not to be (CLAUDE.md §2). Proposed instead: the Narrows' three lower fish, Mackerel 1 in 12, Pollock 1 in 15, and Sea Bass 1 in 20, about 13 an hour, under a third of a fisher. Still Nathan's call.
-
+- **The Shellycoat's fish.** Nathan asked whether it could drop two or three tier 2 fish, at 1 in 4, 5, and 6. At those rates it gives about 40 fish an hour, where a fisher on Antura lands about 45 a cast hour (80 s casts), so fighting would out-fish Fishing; and a fish is food, where a creature's common drop is meant not to be (CLAUDE.md §2). **Settled (Nathan, 2026-11-17): the Narrows' three lower fish, Mackerel 1 in 8, Pollock 1 in 10, and Sea Bass 1 in 12**, about 20 an hour, under half a fisher; a raw fish still has to be cooked before it is eaten. 
 New items: Ratskin, Jackalope Pelt, Crabshell Plate, Shellback Plate, the five ratskin pieces, the Knuckle Ring and the Jackalope Charm on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura.
 
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
