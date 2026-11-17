@@ -18,7 +18,7 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. The Smithing numbers (§5): the 44 Serph recipes, smelting, and nails. §6 and §6b are settled.
+1. The Smithing numbers (§5), drafted 2026-11-17: Serph Arrows, two Charc an ingot, and Nathan's yes to the table.
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -133,12 +133,74 @@ Settled:
 - **Serph tools reuse Lanai rods and planks.** Wood changes at tier 3.
 - **Serph smelts alone, on Charc**, and Charc is carried over from Taiar.
 
-Proposed:
+Proposed (drafted 2026-11-17 from the live Ambren rows, `content-snapshots/recipes.json` of 2026-11-11 and the scythe's migration):
 
-- **Each Ambren recipe at level L becomes a Serph recipe at L plus 12**, with the same number of ingots and the same wooden and leather parts. That is 44 recipes across Smithing 13 to 24: the tools at 13, one-hand weapons at 13, dual weapons at 16, two-hand weapons at 20, and one armour piece a level from 13 to 24, matching `docs/combat-spec.md` (Serph weapons at Melee 13, armour at Defense 13 to 24).
-- **Timers about a tenth longer than Ambren's**, XP from the band: a Serph Pickaxe about 148 XP in 100 s, where the Ambren one is 100 XP in 90 s.
-- **Smelting:** 1 Serph Ore and 2 Charc make 1 Serph Ingot, about 44 XP in 50 s. A dense ore makes 3 for twice the fuel, time, and XP, by the rule already written in `services/smithing.ts`.
-- Serph Nails 30 to an ingot and Serph Hooks 10, as Ambren's.
+- **Each Ambren recipe at level L becomes a Serph recipe at L plus 12**, with the same number of ingots and the same wooden and leather parts. That is 44 recipes across Smithing 13 to 24, matching `docs/combat-spec.md` (Serph weapons at Melee 13, armour one piece a Defense level from 13 to 24). What a piece is worn or used from is its Ambren twin's plus 12.
+- **Timers a tenth longer than Ambren's**, rounded to 5 s (nails and hooks to the second).
+- **XP from the band:** a finished good pays 1.1 x 1.8 x 2,000 an hour, raised by the curve to its level (`docs/xp-rebalance.md`), for its timer; nails, hooks, and arrows are intermediates at 0.6 of that. This is how the Ambren rows were set, and it reproduces them to within 1 XP, with one exception: the Ambren Butchering Knife pays 35 where the rule gives 55. The Serph one is set by the rule (80).
+
+| Smithing | Recipe | Makes | From | Ambren today | Serph timer | Serph XP |
+|---|---|---|---|---|---|---|
+| 13 | Fletch Serph Arrows | 5 Serph Arrow | 5 Lanai Arrow Shafts, 1 Serph Ingot, 2 Feathers | 30 s, 20 | 35 s | 31 |
+| 13 | Forge Serph Bracers | Serph Bracers | 1 Serph Ingot, 1 Leather Strips | 45 s, 50 | 50 s | 73 |
+| 13 | Forge Serph Hooks | 10 Serph Hook | 1 Serph Ingot | 20 s, 13 | 22 s | 19 |
+| 13 | Hammer Serph Nails | 30 Serph Nails | 1 Serph Ingot | 20 s, 13 | 22 s | 19 |
+| 13 | Forge Serph Butchering Knife | Serph Butchering Knife | 2 Serph Ingot, 1 Lanai Planks | 50 s, 35 | 55 s | 80 |
+| 13 | Forge Serph Foraging Knife | Serph Foraging Knife | 1 Serph Ingot, 1 Lanai Planks | 45 s, 50 | 50 s | 73 |
+| 13 | Forge Serph Gem Chisel | Serph Gem Chisel | 1 Serph Ingot, 1 Lanai Planks | 45 s, 50 | 50 s | 73 |
+| 13 | Forge Serph Hoe | Serph Hoe | 1 Serph Ingot, 1 Lanai Planks | 45 s, 50 | 50 s | 73 |
+| 13 | Forge Serph Jeweller's Pliers | Serph Jeweller's Pliers | 1 Serph Ingot | 45 s, 50 | 50 s | 73 |
+| 13 | Serph Anvil | Serph Anvil | 5 Serph Ingot | 225 s, 250 | 250 s | 366 |
+| 13 | Serph Cauldron | Serph Cauldron | 6 Serph Ingot | 240 s, 264 | 265 s | 388 |
+| 13 | Serph Cooking Knife | Serph Cooking Knife | 1 Serph Ingot, 1 Lanai Tool Rod | 90 s, 99 | 100 s | 146 |
+| 13 | Serph Flesh Hook | Serph Flesh Hook | 2 Serph Ingot | 80 s, 88 | 90 s | 132 |
+| 13 | Serph Hammer | Serph Hammer | 2 Serph Ingot, 1 Lanai Tool Rod | 90 s, 100 | 100 s | 146 |
+| 13 | Serph Hatchet | Serph Hatchet | 2 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 90 s, 100 | 100 s | 146 |
+| 13 | Serph Ladle | Serph Ladle | 2 Serph Ingot | 80 s, 88 | 90 s | 132 |
+| 13 | Serph Meat Cleaver | Serph Meat Cleaver | 2 Serph Ingot, 1 Lanai Tool Rod | 110 s, 121 | 120 s | 176 |
+| 13 | Serph Pickaxe | Serph Pickaxe | 2 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 90 s, 100 | 100 s | 146 |
+| 13 | Serph Plane | Serph Plane | 2 Serph Ingot, 2 Lanai Planks | 90 s, 100 | 100 s | 146 |
+| 13 | Serph Saw | Serph Saw | 2 Serph Ingot, 1 Lanai Planks | 90 s, 100 | 100 s | 146 |
+| 13 | Serph Skillet | Serph Skillet | 3 Serph Ingot | 120 s, 132 | 130 s | 190 |
+| 13 | Serph Tinderbox | Serph Tinderbox | 1 Serph Ingot, 1 Lanai Planks | 45 s, 50 | 50 s | 73 |
+| 13 | Serph Tongs | Serph Tongs | 1 Serph Ingot | 45 s, 50 | 50 s | 73 |
+| 13 | Forge Serph Mace | Serph Mace | 2 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 90 s, 99 | 100 s | 146 |
+| 13 | Forge Serph Scimitar | Serph Scimitar | 2 Serph Ingot, 1 Leather Strips | 90 s, 99 | 100 s | 146 |
+| 13 | Forge Serph Spear | Serph Spear | 1 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 45 s, 50 | 50 s | 73 |
+| 14 | Forge Serph Boots | Serph Boots | 1 Serph Ingot, 1 Leather Strips | 45 s, 51 | 50 s | 75 |
+| 15 | Forge Serph Scythe | Serph Scythe | 2 Serph Ingot, 1 Lanai Planks | 60 s, 69 | 65 s | 100 |
+| 15 | Forge Serph Coif | Serph Coif | 2 Serph Ingot, 1 Leather Strips | 90 s, 104 | 100 s | 153 |
+| 16 | Forge Serph Buckler | Serph Buckler | 2 Serph Ingot, 1 Leather Strips | 90 s, 106 | 100 s | 157 |
+| 16 | Forge Serph Daggers | Serph Daggers | 2 Serph Ingot, 1 Leather Strips | 90 s, 106 | 100 s | 157 |
+| 16 | Forge Serph Hand Axes | Serph Hand Axes | 2 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 90 s, 106 | 100 s | 157 |
+| 16 | Forge Serph War Hammers | Serph War Hammers | 3 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 135 s, 159 | 150 s | 236 |
+| 17 | Forge Serph Chausses | Serph Chausses | 3 Serph Ingot, 1 Leather Strips | 135 s, 163 | 150 s | 241 |
+| 18 | Forge Serph Hauberk | Serph Hauberk | 4 Serph Ingot, 1 Leather | 180 s, 223 | 200 s | 330 |
+| 19 | Forge Serph Gauntlets | Serph Gauntlets | 2 Serph Ingot, 1 Leather Strips | 90 s, 114 | 100 s | 169 |
+| 20 | Forge Serph Sabatons | Serph Sabatons | 2 Serph Ingot, 1 Leather Strips | 90 s, 117 | 100 s | 173 |
+| 20 | Forge Serph Atgeir | Serph Atgeir | 2 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 90 s, 117 | 100 s | 173 |
+| 20 | Forge Serph Greatsword | Serph Greatsword | 4 Serph Ingot, 1 Leather Strips | 180 s, 234 | 200 s | 346 |
+| 20 | Forge Serph Maul | Serph Maul | 4 Serph Ingot, 1 Lanai Tool Rod, 1 Leather Strips | 180 s, 234 | 200 s | 346 |
+| 21 | Forge Serph Helm | Serph Helm | 3 Serph Ingot, 1 Leather Strips | 135 s, 180 | 150 s | 265 |
+| 22 | Forge Serph Kite Shield | Serph Kite Shield | 5 Serph Ingot, 1 Leather | 225 s, 307 | 250 s | 453 |
+| 23 | Forge Serph Greaves | Serph Greaves | 4 Serph Ingot, 1 Leather Strips | 180 s, 251 | 200 s | 371 |
+| 24 | Forge Serph Cuirass | Serph Cuirass | 6 Serph Ingot, 1 Leather | 270 s, 386 | 300 s | 571 |
+
+Ingots, for scale: a full Serph armour set is 35, as Ambren's; the 26 recipes at level 13 take 48 between them, one of each.
+
+**Smelting** (`SMELT_RECIPES` in `services/smithing.ts`, which needs the rows):
+
+| | Makes | From | Timer | XP |
+|---|---|---|---|---|
+| Ambren today | 2 Ambren Ingot | 1 Ambren Ore, 1 Burgh Ore, 2 Charc | 45 s | 30 |
+| Serph | 1 Serph Ingot | 1 Serph Ore, 2 Charc | 50 s | 44 |
+| Dense Serph | 3 Serph Ingot | 1 Dense Serph Ore, 4 Charc | 100 s | 88 |
+
+Serph smelts alone (settled), so one ore makes one ingot. Dense follows the rule written in `services/smithing.ts`: two smelts' fuel, time, and XP, plus one ingot. **Two Charc a Serph ingot is twice Ambren's one**, and all Charc comes from Taiar until Hatch (CLAUDE.md §8). That is the tier's cost of a hotter metal, or it is a hauling chore: Nathan's to decide.
+
+**Not yet decided:**
+- **Serph Arrows** are in the table because Fletch Arrows is a Smithing recipe, but Hunting gets nothing new on Antura. Unless an arrow's tier does something in a hunt, they are a recipe without a use, which this plan rules out. Drop them, or give them a use.
+- The Serph Scythe at 15 follows the rule (Ambren's is 3).
 
 ## 6. Carpentry
 
