@@ -18,7 +18,7 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. Nathan's verdict on the hiring design in §6b; then the Carpentry and Smithing numbers.
+1. What a tier 2 homestead gives (§6), and Nathan's verdict on the hiring design in §6b; then the Carpentry and Smithing numbers.
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -147,15 +147,23 @@ Settled: the existing recipes stay where they are, because nearly every one is a
 | Carpentry level | Opens | State |
 |---|---|---|
 | 10 | Skiff | Settled, level provisional |
-| 13 | Antura homestead | Agreed spread |
+| 13 | Tier 2 homestead and tier 2 shop, built outright or upgraded from tier 1 | Settled (Nathan, 2026-11-17) |
 | 15 | Serph Fishing Rod | Agreed spread |
-| 17 | Tier 2 shop | Agreed spread |
 | 19 | Cog | Settled, level provisional |
 | 22 | Tier 2 guild hall work | Agreed spread |
 
 - The tier 2 guild hall is already a row: 3,000 Lanai Planks, 3,000 Granite Blocks, 5,000 Serph Nails.
 - Benches are built anew in each town (settled); on Antura they are Lanai benches with Serph tools.
-- Proposed costs, by the farmstead's shape (500 planks, 500 blocks, 1,000 nails): **Antura homestead** 600 Lanai Planks, 600 Granite Blocks, 1,200 Serph Nails. **Tier 2 shop** 450, 450, and 900, with 100 storage, 16 selling, and 8 buying slots where tier 1 has 75, 12, and 6.
+- **Homesteads and shops have tiers, not islands** (Nathan, 2026-11-17). A tier 1 homestead can be built on any island, Antura's included, from Carpentry 1, and upgraded later. **A tier 2 homestead can be built outright for more materials. Tier 2 needs Carpentry 13**, whether built outright or upgraded, and the same holds for shops. "Any island" is read as each island's homestead ground (Novita, Farefield) and port town (Talador, Wendhaven), one of each per island per player.
+- Proposed costs. Tier 1 is today's: the farmstead 500 Lanai Planks, 500 Granite Blocks, 1,000 Ambren Nails in 600 s; the shop 350, 350, and 700 in 480 s. The upgrade to tier 2 uses Serph Nails, and building tier 2 outright costs the tier 1 build and the upgrade together, all in Serph Nails, which is a little dearer than the two steps because Serph Nails are worth more than Ambren:
+
+  | | Tier 1 | Upgrade to tier 2 | Tier 2 outright |
+  |---|---|---|---|
+  | Homestead | 500 / 500 / 1,000 Ambren, 600 s | 600 / 600 / 1,200 Serph, 600 s | 1,100 / 1,100 / 2,200 Serph, 1,200 s |
+  | Shop | 350 / 350 / 700 Ambren, 480 s | 450 / 450 / 900 Serph, 480 s | 800 / 800 / 1,600 Serph, 960 s |
+
+  Planks, blocks, and nails in that order. A tier 2 shop has 100 storage, 16 selling, and 8 buying slots, where tier 1 has 75, 12, and 6 (`SHOP_TIERS` in `services/shops.ts` holds tier 1 today and was built to take more).
+- **Open: what a tier 2 homestead gives.** Fields are capped by Farming level and pens by Husbandry level, and CLAUDE.md §2 says never to gate one skill's capacity behind another's level, so a Carpentry-built tier cannot add fields or pens. What is the building's own is its storage (50 slots today, `player_properties.storage_slots`). Still Nathan's to decide.
 
 ## 6a. The Carpentry and Smithing review (started 2026-11-16, not finished)
 
@@ -201,7 +209,7 @@ Proposed, for Nathan to change:
 - **The owner names the carpenter at the place** and lays the fee there. The carpenter brings the materials, or uses any the owner has laid there.
 - **The carpenter runs the same single action**, and when it finishes, one transaction creates the property for the owner, takes the materials, and pays the fee to the carpenter. It is one action, so there is nothing to pay piece by piece, and nothing is paid if it does not finish.
 - **It pays the carpenter the build's XP**, as it would have paid the owner.
-- **What the hire is for:** a player who has no mallet and saw, no materials, or, on Antura, not yet Carpentry 13 (§6) can pay to have it done. Antura's homestead gate is where hiring matters most.
+- **What the hire is for:** a player who has no mallet and saw, no materials, or not yet Carpentry 13 for a tier 2 homestead or shop (§6) can pay to have it done. The tier 2 gate is where hiring matters most.
 
 Rough ingot counts, for scale, to check in a sim: a full Serph armour set is 35 ingots, the homestead's nails 40, the Cog's 40, a tier 2 guild hall's 167. A level 13 miner on Antura's granite finds about 17 Serph ore an hour by the §4 numbers, and one ore makes one ingot.
 
