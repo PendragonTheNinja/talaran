@@ -503,7 +503,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'woodcutting' ? 'active' : ''}`}
             onClick={() => onStartAction('woodcutting', node.id)}
           >
-            Chop {node.name}
+            Chop {node.name}{node.islet_remaining ? ` (${node.islet_remaining} left in the stand)` : ''}
           </button>
         ))}
 

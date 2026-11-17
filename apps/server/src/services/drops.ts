@@ -61,6 +61,11 @@ export async function rollSecondaryDrops(
      * which is the safe default rather than a buff leaking across skills.
      */
     skill?: string,
+    /**
+     * How many times likelier every entry is, on top of any buff: an islet
+     * find's boost (services/isletFinds.ts). 1 everywhere else.
+     */
+    boost = 1,
 ): Promise<SecondaryDrop[]> {
     try {
         // A PROPORTIONAL bonus, not percentage points.
@@ -71,7 +76,7 @@ export async function rollSecondaryDrops(
         // treats every entry alike, so a 10% buff is a 10% better chance whether
         // the drop is common or the rarest thing in the game.
         const rareBonus = skill ? await buffRareBonus(playerId, skill) : 0;
-        const rareMult = 1 + Math.max(0, rareBonus) / 100;
+        const rareMult = (1 + Math.max(0, rareBonus) / 100) * Math.max(1, boost);
         const doubleChance = skill ? await buffDoubleChance(playerId, skill) : 0;
         const entries = await db('drop_table_entries')
             .join('items', 'drop_table_entries.item_id', 'items.id')

@@ -118,6 +118,12 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     guild_hall_tiers:            { label: 'Guild Hall Tiers',      group: 'Guilds',     snapshot: true, editable: true },
     // Boats (services/boats.ts): each type, its levels, and the pieces it is raised from.
     vessel_types:                { label: 'Vessel Types',          group: 'World',      snapshot: true, editable: true },
+    // The islets (services/voyages.ts, services/isletFinds.ts): what each shore
+    // turns up, what the sea says, and what each islet can hold.
+    strandline_finds:            { label: 'Strandline Finds',      group: 'World',      snapshot: true, editable: true },
+    voyage_lines:                { label: 'Voyage Lines',          group: 'World',      snapshot: true, editable: true },
+    islet_find_kinds:            { label: 'Islet Find Kinds',      group: 'World',      snapshot: true, editable: true },
+    islet_finds:                 { label: 'Islet Finds',           group: 'World',      snapshot: true, editable: true },
     // The Chronicle (docs/chronicle-spec.md): what each kind of deed weighs, the
     // bard's verses and the tavern she keeps them in are authored; the journal,
     // the finished pages and the ballads are state.

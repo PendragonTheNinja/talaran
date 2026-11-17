@@ -1608,6 +1608,37 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'islet', name: 'five chops at once at an islet stand with two chops left', rounds: 20,
+        run: async (ctx) => {
+            // An islet find is spent one use at a time (services/isletFinds.ts),
+            // taken before the log is given, so two turns can never share its
+            // last use: five chops at a stand with two left give two logs.
+            const w = await world(ctx);
+            const islet = await ctx.seed.row('locations', { name: 'Racecheck Islet', region: 'Racecheck Isle', type: 'islet', islet_kind: 'common', islet_weight: 1, is_accessible: false });
+            await ctx.db('players').where({ id: w.player.id }).update({ current_location_id: islet.id });
+            await ctx.seed.row('skills', { name: 'Woodcutting' });
+            const node = await ctx.seed.row('resource_nodes', {
+                location_id: w.town.id, skill: 'Woodcutting', name: 'Lanai Tree', required_level: 1, xp_reward: 10,
+                base_timer: 45, min_timer: 20, poor_chance: 60, fine_chance: 35, excellent_chance: 5, required_tool_tier: 1,
+            });
+            const logs = [];
+            for (const quality of ['poor', 'fine', 'excellent']) {
+                logs.push(await ctx.seed.row('items', { name: `${quality} Lanai Log`, type: 'log', subtype: 'lanai', quality }));
+            }
+            await ctx.db('items').where({ id: w.hatchet.id }).update({ subtype: 'axe', tier: 1 });
+            await ctx.seed.row('player_equipment', { player_id: w.player.id, mainhand_item_id: w.hatchet.id });
+            await ctx.seed.row('islet_find_kinds', { key: 'stand', skill: 'Woodcutting', amount_min: 40, amount_max: 40, boost: 3, is_active: true });
+            await ctx.seed.row('player_islet_finds', { player_id: w.player.id, location_id: islet.id, kind: 'stand', target_id: node.id, remaining: 2, boost: 3 });
+            const { processWoodcuttingAction } = await import('../services/woodcutting');
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => processWoodcuttingAction(w.player.id, node.id)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error === 'Server error')).length;
+            let given = 0;
+            for (const l of logs) given += await ctx.itemTotal(l.id);
+            return (crashed ? `${crashed} chop(s) hit a server error` : null)
+                ?? changed('logs from a stand with two chops left', 2, given);
+        },
+    },
+    {
         id: 'guild', name: 'five members take 30 gold each at once from a guild purse of 100', rounds: 10,
         run: async (ctx) => {
             const g = await guildWorld(ctx, 100, 5);

@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { onlinePlayers } from '../lib/realtime';
 import { eventStandingsAt } from '../services/worldEvents';
+import { liveIsletFind } from '../services/isletFinds';
 
 const router = Router();
 
@@ -27,6 +28,13 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     const nodes = await db('resource_nodes')
       .where({ location_id: player.current_location_id, is_active: true })
       .select('*');
+    // On an islet, the player's own find stands here too while it has work
+    // left (services/isletFinds.ts): a stand is its node, with what is left.
+    const isletFind = await liveIsletFind(playerId);
+    if (isletFind?.kind === 'stand' && isletFind.target_id) {
+      const node = await db('resource_nodes').where({ id: isletFind.target_id, is_active: true }).first();
+      if (node) nodes.push({ ...node, islet_remaining: isletFind.remaining });
+    }
 
     const huntableAnimals = await db('huntable_animals')
       .where({ location_id: player.current_location_id, is_active: true })

@@ -7,6 +7,7 @@ import { levelFromXp } from './xp';
 import { addItemToInventoryWithin } from './inventory';
 import { creditGoldWithin } from './gold';
 import { endFightIfAny } from './combatFights';
+import { dropIsletFind, rollIsletFindWithin } from './isletFinds';
 
 // ── Voyages: putting to sea, islets, and coming home ─────────────────────────
 // (docs/sailing-spec.md §6, docs/islets-plan.md; Nathan, 2026-11-15 to 17)
@@ -136,6 +137,8 @@ async function startLeg(playerId: number, to: { id: number; name: string }, leg:
             .whereIn('status', ['pending', 'active']).first('id');
         if (trade) throw new VoyageAbort('Finish or cancel your trade before you put to sea.');
         await write(trx);
+        // Leaving an islet loses what was found there.
+        await dropIsletFind(playerId, trx);
         await trx('player_actions').where({ player_id: playerId }).delete();
         await trx('player_actions').insert({
             player_id: playerId,
@@ -232,6 +235,7 @@ export interface SeaArrival {
  */
 export async function arriveBySea(playerId: number, locationId: number, leg: SeaLeg): Promise<SeaArrival> {
     const place = await db('locations').where({ id: locationId }).first('id', 'name', 'region', 'islet_kind');
+    const findLine = async (moment: string) => line(island, moment);
     const island = place?.region ?? '';
     if (leg === 'home' || !place?.islet_kind) {
         await db('player_voyages').where({ player_id: playerId }).delete();
@@ -266,6 +270,10 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
                 }
             }
         }
+        // This landing's own find (services/isletFinds.ts), told after the shore.
+        const find = await rollIsletFindWithin(trx, playerId, { id: place.id, region: island });
+        const said = await findLine(`find_${find.kind}`);
+        if (said) events.push({ message: said, itemName: null, quantity: 0 });
         return { events, firstLanding: inserted.length > 0 };
     });
 }
@@ -317,6 +325,7 @@ export async function bringHomeIfAway(playerId: number, graceMs: number): Promis
             await trx('player_actions').where({ player_id: playerId }).delete();
             await trx('players').where({ id: playerId }).update({ current_location_id: home });
             await trx('player_voyages').where({ player_id: playerId }).delete();
+            await dropIsletFind(playerId, trx);
         });
         logger.info(`player ${playerId} was away on an islet and was brought home`);
         return true;

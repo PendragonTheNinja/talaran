@@ -9,6 +9,7 @@ import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { levelTimerFactor } from '../lib/actionTimers';
 import { standsAt } from '../lib/whereabouts';
+import { isletFindHere, spendIsletFind } from './isletFinds';
 import { doubleYield, doubledLine } from './buffs';
 import { noteJewelry } from './jewelry';
 
@@ -103,8 +104,12 @@ export async function canChopHere(
 ): Promise<{ allowed: boolean; reason?: string; toolTier?: number }> {
   const node = await db('resource_nodes').where({ id: nodeId }).first();
   if (!node) return { allowed: false, reason: 'Resource node not found' };
-  if (!(await standsAt(playerId, node.location_id))) {
-    return { allowed: false, reason: 'Those trees are not here.' };
+  // A stand found on an islet counts as here while it has chops left
+  // (services/isletFinds.ts).
+  if (!(await standsAt(playerId, node.location_id)) && !(await isletFindHere(playerId, 'stand', node.id))) {
+    const onIslet = await db('players as p').join('locations as l', 'l.id', 'p.current_location_id')
+      .where('p.id', playerId).whereNotNull('l.islet_kind').first('l.id');
+    return { allowed: false, reason: onIslet ? 'The stand is cut out. Nothing worth felling is left here.' : 'Those trees are not here.' };
   }
 
   // Check player level
@@ -215,11 +220,23 @@ export async function processWoodcuttingAction(
       ? await db('items').where({ id: equipment.mainhand_item_id }).first()
       : null;
 
+    // A stand on an islet (services/isletFinds.ts): better logs and extras,
+    // `boost` times likelier, for a fixed number of chops. Away from the
+    // node's own place the chop MUST come off the stand, taken first in one
+    // conditional statement, so two turns can never share its last use and a
+    // turn that finds the stand already gone gives nothing (race:check islet).
+    const atNode = await standsAt(playerId, node.location_id);
+    const islet = atNode ? null : await isletFindHere(playerId, 'stand', node.id);
+    if (!atNode && (await spendIsletFind(playerId, 'stand', node.id)) === null) {
+      return { success: false, error: 'The stand is cut out. Nothing worth felling is left here.' };
+    }
+    const boost = islet?.boost ?? 1;
+
     // Determine log quality
     const quality = determineLogQuality(
-      node.poor_chance,
+      node.poor_chance / boost,
       node.fine_chance,
-      node.excellent_chance,
+      Math.min(100, node.excellent_chance * boost),
       playerLevel,
       node.required_level
     );
@@ -264,12 +281,14 @@ export async function processWoodcuttingAction(
 
     if (!alreadyDiscovered) {
       // Recorded, not paid: Exploration is not built yet (Nathan, 2026-10-13).
+      // Two first chops at once both reach here; the second is a no-op, not
+      // an error after the log was already given.
       await db('player_exploration').insert({
         player_id: playerId,
         discovery_type: 'resource_node',
         discovery_key: discoveryKey,
         xp_awarded: 0,
-      });
+      }).onConflict(['player_id', 'discovery_type', 'discovery_key']).ignore();
       logger.info(`Player ${playerId} discovered ${node.name}`);
     }
 
@@ -279,8 +298,8 @@ export async function processWoodcuttingAction(
     // entries keep working untouched while a wild hive can be rarer in one wood
     // than another.
     const drops = [
-        ...await rollSecondaryDrops(playerId, `woodcutting:${subtype}`, 'Woodcutting'),
-        ...await rollSecondaryDrops(playerId, `woodcutting:node:${node.id}`, 'Woodcutting'),
+        ...await rollSecondaryDrops(playerId, `woodcutting:${subtype}`, 'Woodcutting', boost),
+        ...await rollSecondaryDrops(playerId, `woodcutting:node:${node.id}`, 'Woodcutting', boost),
     ];
 
     // A wild hive is decided the moment it drops, by whether you were carrying a

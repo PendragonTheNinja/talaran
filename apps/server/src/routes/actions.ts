@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { canChopHere, calculateTimer } from '../services/woodcutting';
+import { locationOf } from '../lib/whereabouts';
 import { buffTimerBonus } from '../services/buffs';
 import { levelFromXp } from '../services/xp';
 import { logger } from '../lib/logger';
@@ -84,7 +85,9 @@ router.post('/woodcutting/start', requireAuth, botCheckGate, async (req: AuthReq
       player_id: playerId,
       action_type: 'woodcutting',
       resource_node_id: nodeId,
-      location_id: node.location_id,
+      // Where the player stands: the node's own place, or an islet whose
+      // stand is this node (services/isletFinds.ts).
+      location_id: (await locationOf(playerId)) ?? node.location_id,
       started_at: now,
       completes_at: completesAt,
       last_timer_seconds: timerSeconds,
