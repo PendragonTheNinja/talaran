@@ -117,10 +117,17 @@ function fightingNumbers(levels: CombatLevels, worn: Record<string, WornCombatIt
     }
     const swingSeconds = FORMS[form].swingSeconds
 
+    // Aim and power worn anywhere but the main hand: a ring or a charm
+    // (docs/antura-plan.md §10, Nathan 2026-11-17). The weapon's own come
+    // from the main hand above, so it is never counted twice.
+    const extra = (key: 'aim' | 'power') => Object.entries(worn)
+        .filter(([slot]) => slot !== 'mainhand')
+        .reduce((sum, [, item]) => sum + (Number(item?.[key]) || 0), 0)
+
     return {
         weapon: { name, form, damageType, swingSeconds, unarmed },
-        aim: aim + levelTerm(levels.melee),
-        maxHit: playerMaxHit(power, levels.melee, swingSeconds),
+        aim: aim + extra('aim') + levelTerm(levels.melee),
+        maxHit: playerMaxHit(power + extra('power'), levels.melee, swingSeconds),
         defence,
         armour,
         absorb: absorption(armour),

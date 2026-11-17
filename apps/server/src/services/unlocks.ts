@@ -76,7 +76,7 @@ export async function unlocksAt(skill: string, level: number): Promise<Unlock[]>
 
     // Gear: whatever this skill gates (services/equipGates.ts).
     const gear = await db('items').where({ level_required: level, is_active: true })
-        .orderBy('name').select('name', 'weapon_form', 'armour', 'subtype')
+        .orderBy('name').select('name', 'weapon_form', 'armour', 'subtype', 'aim', 'power')
     for (const g of gear) {
         if ((gateSkill(g) ?? '').toLowerCase() === s) add(g.name, g.name)
     }

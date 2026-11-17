@@ -39,8 +39,10 @@ const SUBTYPE_SKILL: Record<string, string> = {
  * needs Defense. Subtypes would collide: the leatherworker's agility boots are
  * subtype 'boots' and must stay ungated by Defense.
  */
-export function gateSkill(item: { weapon_form?: string | null; armour?: number | null; subtype?: string | null }): string | null {
-    if (item.weapon_form) return COMBAT_SKILLS.melee
+export function gateSkill(item: { weapon_form?: string | null; armour?: number | null; subtype?: string | null; aim?: number | null; power?: number | null }): string | null {
+    // A ring that adds power or a charm that adds aim is Melee's, whatever its
+    // subtype (docs/antura-plan.md §10): the Talar rings and amulets have neither.
+    if (item.weapon_form || Number(item.aim) > 0 || Number(item.power) > 0) return COMBAT_SKILLS.melee
     if (item.armour) return COMBAT_SKILLS.defense
     return SUBTYPE_SKILL[item.subtype ?? ''] ?? null
 }

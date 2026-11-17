@@ -200,6 +200,8 @@ const TOOL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
 
 const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     hide: 'leatherworker', leather: 'leatherworker', bones: 'leatherworker',
+    // Crab plates are sewn into Crabshell by Crafting (docs/antura-plan.md §10).
+    shell: 'leatherworker',
     feather: 'leatherworker', cloth: 'leatherworker', fiber: 'leatherworker',
     bark: 'carpenter', shaft: 'carpenter', tool_rod: 'carpenter', reed: 'carpenter',
     stone: 'smith', component: 'smith',
@@ -220,7 +222,11 @@ const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
 // Armour by who makes it: the anvil's plate and rings, the leatherworker's boots.
 const ARMOR_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     metal_armor: 'smith',
-    // Crabshell is taken off the Dawncrest crabs whole; no trade makes it.
+    // Ratskin is cut and sewn like any leather (docs/antura-plan.md §10).
+    hide_armor: 'leatherworker',
+    // Crabshell is made from the crabs' own plates since 2026-11-17, but it
+    // stays the pawnbroker's, as it was when it dropped whole: no merchant
+    // stocks it.
     shell_armor: 'pawnbroker',
 };
 

@@ -445,10 +445,10 @@ It wears out fast: 60 sure uses, then 3% a kill, where tier 1 metal is 200 and 1
 
 | Piece | Crafting | From | Gives |
 |---|---|---|---|
-| Knuckle Ring | 8 | 1 Agropelter Knuckle, 1 Ambren Ingot, 10 Ratskin | about 3 power (a one-hand Ambren weapon is 37 to 44) |
-| Jackalope Charm | 10 | 1 Jackalope Antler, 10 Jackalope Pelt | about 6 aim (a weapon is 90 to 110) |
+| Knuckle Ring | 8 | 1 Agropelter Knuckle, 1 Ambren Ingot, 10 Ratskin | 3 power (a one-hand Ambren weapon is 37 to 44) |
+| Jackalope Charm | 10 | 1 Jackalope Antler, 10 Jackalope Pelt | 12 aim (a weapon is 90 to 110) |
 
-About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
+Simulated 2026-11-17 (`combatSim.ts` kits, combat 8 to 12, every form): +3 power is about 4% more kills an hour, and +12 aim about 4% too (+6 was only 2%, so the charm was raised to 12); both together about 8 to 9%. The cloak's 5 armour is about 5% less damage taken. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
 
 **Antura, every drop** (frequent drops settled 2026-11-17; the rest proposed the same day; the roster is still a placeholder). About 50 kills an hour at these levels (fights lengthen with level, `docs/combat-spec.md`).
 
@@ -476,7 +476,7 @@ About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. 
   | Piece | Crafting | From | Gives |
   |---|---|---|---|
   | Heartstone Ring | 18 | 1 Bolter's Heartstone, 1 Serph Ingot, 10 Wolverine Pelt | about 4 power |
-  | Kelpie's Bridle Charm | 20 | 1 Kelpie's Bridle, 1 Rough Garnet, 20 Feathers | about 8 aim |
+  | Kelpie's Bridle Charm | 20 | 1 Kelpie's Bridle, 1 Rough Garnet, 20 Feathers | about 16 aim (to sim) |
 
   A third more than Taiar's, as tier 2 weapons are about a third stronger. Names are placeholders.
 - **New items:** Wolverine Pelt, Cave Bear Pelt, Snallyscale, Kelpie's Bridle, Snallygaster's Eye, Cave Bear Skull, Bolter's Heartstone, Rough Amethyst (no row yet; Antura's granite needs it too), the three rare weapons, the mantle, the ring, and the charm.

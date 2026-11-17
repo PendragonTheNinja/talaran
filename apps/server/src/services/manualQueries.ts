@@ -95,7 +95,8 @@ export async function talarPathRows(): Promise<{ level: number; unlock: string; 
     const gems = await db('items').whereNotNull('talar_per_hour').where({ is_active: true, quality: 'cut' })
         .orderBy([{ column: 'tier' }, { column: 'name' }]).select('name', 'tier', 'talar', 'talar_per_hour', 'quality');
     const spells: SpellRow[] = (await db('spells').where({ is_active: true }).orderBy('talar_level')).filter((sp: SpellRow) => spellIsLive(sp.key));
-    const pieces = await db('items').where({ type: 'jewelry', is_active: true }).orderBy('name').select('name', 'tier', 'level_required', 'jewelry_aid');
+    // Only the pieces Talar fills; a fighter's ring or charm is worn on Melee.
+    const pieces = await db('items').where({ type: 'jewelry', is_active: true }).whereNotNull('jewelry_aid').orderBy('name').select('name', 'tier', 'level_required', 'jewelry_aid');
     return [
         ...gems.map((g: any) => {
             const level = rungOfTier(Number(g.tier) || 1);
@@ -170,7 +171,7 @@ export const extraQueries: Record<string, QueryHandler> = {
 
     'jewelry': async () => {
         const pieces = await db('items').where({ type: 'jewelry', is_active: true }).orderBy([{ column: 'subtype', order: 'desc' }, { column: 'name' }])
-            .select('name', 'subtype', 'tier', 'jewelry_aid');
+            .select('name', 'subtype', 'tier', 'jewelry_aid', 'aim', 'power');
         const recipes = await db('recipes').where({ is_active: true }).whereIn('output_item_name', pieces.map((p: any) => p.name))
             .select('output_item_name', 'required_level');
         const makeAt = new Map<string, number>();
@@ -187,9 +188,11 @@ export const extraQueries: Record<string, QueryHandler> = {
                 piece: p.name,
                 slot: p.subtype === 'ring' ? 'Finger' : 'Neck',
                 make: makeAt.get(p.name) ?? '',
-                does: isJewelryAid(p.jewelry_aid) ? cap(aidWords(p.jewelry_aid, Number(p.tier) || 1)) : '',
+                does: isJewelryAid(p.jewelry_aid) ? cap(aidWords(p.jewelry_aid, Number(p.tier) || 1))
+                    : Number(p.power) > 0 ? `+${Number(p.power)} power in a fight`
+                    : Number(p.aim) > 0 ? `+${Number(p.aim)} aim in a fight` : '',
             })),
-            note: 'Each draws 1 Talar for every 20 actions it helps with, and does nothing while the reservoir is empty. The Keeper\'s Band draws only when it spares your gear a use.',
+            note: 'A piece filled with Talar draws 1 Talar for every 20 actions it helps with, and does nothing while the reservoir is empty. The Keeper\'s Band draws only when it spares your gear a use.',
         };
     },
 
