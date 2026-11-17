@@ -18,7 +18,7 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. The Smithing numbers (§5), drafted 2026-11-17: Serph Arrows, two Charc an ingot, and Nathan's yes to the table.
+1. The use proposed for Serph Arrows (§5). Smithing's numbers are otherwise settled (2026-11-17).
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -196,11 +196,11 @@ Ingots, for scale: a full Serph armour set is 35, as Ambren's; the 26 recipes at
 | Serph | 1 Serph Ingot | 1 Serph Ore, 2 Charc | 50 s | 44 |
 | Dense Serph | 3 Serph Ingot | 1 Dense Serph Ore, 4 Charc | 100 s | 88 |
 
-Serph smelts alone (settled), so one ore makes one ingot. Dense follows the rule written in `services/smithing.ts`: two smelts' fuel, time, and XP, plus one ingot. **Two Charc a Serph ingot is twice Ambren's one**, and all Charc comes from Taiar until Hatch (CLAUDE.md §8). That is the tier's cost of a hotter metal, or it is a hauling chore: Nathan's to decide.
+Serph smelts alone (settled), so one ore makes one ingot. Dense follows the rule written in `services/smithing.ts`: two smelts' fuel, time, and XP, plus one ingot. **Two Charc a Serph ingot, twice Ambren's one** (Nathan, 2026-11-17): the tier's cost of a hotter metal. All Charc comes from Taiar until Hatch (CLAUDE.md §8).
 
-**Not yet decided:**
-- **Serph Arrows** are in the table because Fletch Arrows is a Smithing recipe, but Hunting gets nothing new on Antura. Unless an arrow's tier does something in a hunt, they are a recipe without a use, which this plan rules out. Drop them, or give them a use.
-- The Serph Scythe at 15 follows the rule (Ambren's is 3).
+**Settled (Nathan, 2026-11-17):** the table's numbers; **Serph Arrows are in**; the Ambren Butchering Knife's XP is corrected to the rule, 35 to 55 (migration `20261117100000_butchering_knife_xp`). The Serph Scythe is at 15 by the rule (Ambren's is 3).
+
+**Serph Arrows need a use**, since a hunt today shoots only `HUNT_AMMO`, the Ambren Arrow (`services/hunting.ts`). Proposed, by the rule tools already follow: a hunt shoots the best arrow carried, and an animal of tier 2 (the Ground Sloth, Hunting 17) wants a tier 2 arrow, as Deep Lanai wants a Serph Hatchet. An Ambren arrow there is slower by the tool rule in `calculateTimer` (`TOOL_TIER_PENALTY` a tier); a Serph arrow on tier 1 game is faster by a tenth. Like Deep Lanai, this ships with the arrows, never before them.
 
 ## 6. Carpentry
 
