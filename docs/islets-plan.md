@@ -209,6 +209,34 @@ Still open: what the sea chest holds besides a piece (proposed: the island's goo
 
 **Antura's** pair (proposed names: Locked Serph-Bound Chest and Serph-Bound Chest, 200 gold) follows the same shape with Serph Ingots, Garnet common, Quartz lower, Amethyst rare, and Antura's four set pieces; its numbers wait for Antura's build.
 
+## 6f. The guardians: a draft (Claude, 2026-11-17, simulated)
+
+Each guards a drowned crew's chest (§6d), so each is a small boss: one fight, much longer than a normal kill, and its only drop is a **Locked Sea Chest**, always. Profiles below are multipliers on the level's baseline creature (`lib/combatMath.ts` `enemyStats`), as every creature row's are; XP per kill is scaled to the fight's length (`creatures.xp_multiplier`), so XP an hour stays on the band and the chest is the reward.
+
+| Guardian | Level | Guards | Accuracy | Defence | Power | HP | Swing | Weak to | Resists | XP multiplier |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Trow | 9 | the rocky islet, the drowned quarry | 0.9 | 1.25 | 0.9 | 3.0 | 3.6 s | crush | slash | 3 |
+| Siren | 10 | the sea stack, the reef | 1.25 | 0.9 | 1.0 | 2.5 | 2.4 s | pierce | crush | 2 |
+| Draugr | 12 | the ruin | 1.0 | 1.05 | 1.2 | 3.5 | 3.6 s | slash | pierce | 3 |
+
+Simulated against a one-hand fighter (`combatSim.ts` kits, 3,000 fights each), with its weakness and with the wrong weapon:
+
+| Guardian | Fighter at its level | 3 levels below | 5 above |
+|---|---|---|---|
+| Trow | 133 s, 33% of health (wrong weapon 166 s, 42%) | 50% (63%) | 17% (22%) |
+| Siren | 92 s, 49% (115 s, 61%) | 72% (90%) | 29% (36%) |
+| Draugr | 148 s, 54% (185 s, 68%) | 82% (101%: death without food) | 37% (47%) |
+
+For scale, a Hodag at the same level is 49 s and 17%. So a guardian is about three Hodags in one, the Trow the gentlest door in and the Draugr a real fight below its level; the right weapon matters, and food is wanted for the Siren and the Draugr. Health never comes back on its own, which also limits how many guardians one voyage can take on.
+
+**How a fight would work (proposed):**
+- A **guarded cache** is an islet find like the rest (10 on the common islets, 20 on the seldom ones and the ruin, by §4), naming its guardian by the islet. The islet shows a fight against that guardian alone, for this player alone.
+- **One fight.** The kill pays its XP and the Locked Sea Chest, and the fight ends there with nothing more to come; fleeing, or sailing off, loses the find, as leaving any find does.
+- **Falling on an islet** (settled): the dropped things are carried to the port the voyage left, and wait there as a death pile does, private to the player for the usual time; the voyage is over.
+- Drops and weaknesses are the Bestiary's to tell, as for every creature.
+
+Still Nathan's: the three profiles; whether the Siren's song should do something of its own (a slower first swing from the fighter, say) or stay plain numbers; and the cache weights.
+
 ## 6a. Quank
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
