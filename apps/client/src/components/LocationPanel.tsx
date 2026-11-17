@@ -9,6 +9,7 @@ import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 import NPCDialogue from './NPCDialogue'
 import TavernPanel from './TavernPanel'
 import SlipPanel from './SlipPanel'
+import IsletActions from './IsletActions'
 import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
 import MarketplaceMenu from './MarketplaceMenu'
@@ -468,6 +469,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           <button className="location-action-btn" onClick={() => setMerchantOpen(true)}>
             The Travelling Merchant →
           </button>
+        )}
+
+        {/* On an islet: sail on or home (services/voyages.ts). */}
+        {location?.islet_kind && (
+          <IsletActions
+            locationId={location?.id}
+            busy={currentAction === 'traveling'}
+            onVoyage={(what) => onStartAction('voyage', what)}
+          />
         )}
 
         {/* A slip for boats: the location row's own flag (services/boats.ts). */}
@@ -1129,6 +1139,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         <SlipPanel
           onClose={() => setSlipOpen(false)}
           onStartBuild={(boat, item) => onStartAction('vessel_build', `${boat}|${item}`)}
+          onPutToSea={(boat) => onStartAction('voyage', `sail:${boat}`)}
         />
       )}
 

@@ -4,6 +4,7 @@ import { getItemIcon } from '../lib/items'
 import { backdropClose } from '../lib/backdrop'
 import { useItemTooltip } from './ItemTooltip'
 import ErrorLine from './ErrorLine'
+import type { VoyageState } from './IsletActions'
 import './TavernPanel.css'
 import './GuildHallTab.css'
 
@@ -40,12 +41,15 @@ interface State { locationName: string | null; hasSlip: boolean; carpentryLevel:
 const fmt = (n: number) => n.toLocaleString('en-US')
 const percent = (n: number, of: number) => `${Math.min(100, (n / Math.max(1, of)) * 100).toFixed(1)}%`
 
-export default function SlipPanel({ onClose, onStartBuild }: {
+export default function SlipPanel({ onClose, onStartBuild, onPutToSea }: {
     onClose: () => void
+    /** Put to sea in this boat (GameLayout's handleVoyage). */
+    onPutToSea: (boat: string) => void
     /** Start setting `item` into the hull of `boat` (GameView's vessel_build). */
     onStartBuild: (boat: string, item: string) => void
 }) {
     const [state, setState] = useState<State | null>(null)
+    const [voyage, setVoyage] = useState<VoyageState | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const { hoverProps, tooltipEl } = useItemTooltip()
@@ -59,6 +63,7 @@ export default function SlipPanel({ onClose, onStartBuild }: {
     }, [])
 
     useEffect(() => {
+        void apiFetch<VoyageState>('/api/voyages').then(setVoyage).catch(() => setVoyage(null))
         void apiFetch<State>('/api/boats')
             .then(setState)
             .catch(err => setError((err as { message?: string }).message || 'The slip could not be read.'))
@@ -97,7 +102,24 @@ export default function SlipPanel({ onClose, onStartBuild }: {
                         {b.description && <p className="tavern-scene">{b.description}</p>}
 
                         {b.owned ? (
-                            <p className="muted-text hall-note">Yours. Sailing comes with the next part of the work.</p>
+                            <>
+                                <p className="muted-text hall-note">
+                                    Yours. Out to the islets, by chance, and home again; up to three landings before you must make port.
+                                    {voyage && ` Islets found: ${voyage.islets.filter(i => i.found).length} of ${voyage.islets.length}.`}
+                                </p>
+                                {voyage && voyage.islets.some(i => i.found) && (
+                                    <p className="muted-text hall-note">
+                                        {voyage.islets.filter(i => i.found).map(i => `${i.name} (${i.landings} landing${i.landings === 1 ? '' : 's'})`).join(', ')}
+                                    </p>
+                                )}
+                                <button
+                                    className="btn btn-gold"
+                                    disabled={busy || !state.hasSlip}
+                                    onClick={() => { onPutToSea(b.key); onClose() }}
+                                >
+                                    Put to sea
+                                </button>
+                            </>
                         ) : !b.hull ? (
                             <>
                                 <p className="muted-text hall-note">

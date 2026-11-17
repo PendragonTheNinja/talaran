@@ -931,7 +931,7 @@ export default function GameView({
             level: data.result.level || 1,
             xpToNext: data.result.xpToNext || 0,
             xpAtLevel: data.result.xpAtLevel || 0,
-            message: `You arrive at ${data.result.destination}.`,
+            message: data.result.message || `You arrive at ${data.result.destination}.`,
             drops: data.result.drops || [],
           } as any)
         }

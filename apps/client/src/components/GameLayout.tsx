@@ -82,6 +82,8 @@ interface LocationData {
     is_rift?: boolean
     /** Hulls are laid down here (services/boats.ts). */
     has_slip?: boolean
+    /** An islet (services/voyages.ts): reached only by sea. */
+    islet_kind?: string | null
   } | null
   nodes: {
     id: number
@@ -174,6 +176,14 @@ export default function GameLayout({
     const now = new Date().getTime()
     const completesAt = new Date(playerData.currentAction.completes_at).getTime()
     const secondsLeft = Math.max(0, Math.round((completesAt - now) / 1000))
+
+    // A sea leg says only that the player is at sea: which islet is chance,
+    // and is told on landing (server services/voyages.ts).
+    const data = String((playerData.currentAction as { action_data?: unknown }).action_data ?? '')
+    if (secondsLeft > 0 && data.includes('"sea"')) {
+      void Promise.resolve().then(() => setTravelStatus({ message: 'At sea...', seconds: secondsLeft }))
+      return
+    }
 
     if (secondsLeft > 0) {
       const destination = playerData.currentAction.location_id
@@ -382,6 +392,24 @@ export default function GameLayout({
     }
   }
 
+  // A voyage (server services/voyages.ts): 'sail:<boat>' from a port, 'on'
+  // to another islet, or 'home'. Each leg is an ordinary journey to the server.
+  const handleVoyage = async (what: string) => {
+    const [path, boat] = what.split(':')
+    try {
+      const res = await apiFetch<{ travelTime: number; message: string | null }>(`/api/voyages/${path}`, {
+        method: 'POST',
+        body: JSON.stringify(boat ? { boat } : {}),
+      })
+      setTravelStatus({ message: res.message || (path === 'home' ? 'Sailing home...' : 'At sea...'), seconds: res.travelTime })
+      setFocusAction(n => n + 1)
+    } catch (err) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 423) { blockedByBotCheck(() => handleVoyage(what)); return }
+      setTravelStatus({ message: e.message || 'You could not put to sea.', seconds: 0 })
+    }
+  }
+
   const handleKilnCollect = async () => {
     try {
       const res = await apiFetch<{ timerSeconds: number }>('/api/smithing/kiln/collect/start', {
@@ -446,6 +474,8 @@ export default function GameLayout({
     if (type === 'travel') {
       const conn = locationData?.connections.find((c: any) => c.to_location_id === id)
       if (conn) handleTravel(id as number, conn.to_location_name, conn.base_travel_time)
+    } else if (type === 'voyage') {
+      handleVoyage(String(id))
     } else if (type === 'kiln_load') {
       setKilnError(null)
       setKilnLogCount(20)

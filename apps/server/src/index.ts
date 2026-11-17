@@ -15,6 +15,8 @@ import { startPushNotifications } from './services/pushNotify';
 import pushRoutes from './routes/push';
 import guildHallRoutes from './routes/guildHall';
 import boatRoutes from './routes/boats';
+import voyageRoutes from './routes/voyages';
+import { bringHomeIfAway } from './services/voyages';
 import { setPageVisibility, forgetSocket } from './lib/pageVisibility';
 import { startWorldEventScheduler } from './services/worldEvents';
 import eventRoutes from './routes/events';
@@ -71,7 +73,7 @@ import tradeRoutes from './routes/trades';
 import questRoutes from './routes/quests';
 import npcRoutes from './routes/npcs';
 import { issueBotCheck, hasPendingBotCheck } from './services/botCheck';
-import { markOffline, markOnline, recordSeen } from './lib/presence';
+import { markOffline, markOnline, recordSeen, OFFLINE_GRACE_MS } from './lib/presence';
 import huntingRoutes from './routes/hunting';
 import combatRoutes from './routes/combat';
 import foragingRoutes from './routes/foraging';
@@ -272,6 +274,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/guild-hall', guildHallRoutes);
 app.use('/api/boats', boatRoutes);
+app.use('/api/voyages', voyageRoutes);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/npcs', npcRoutes);
@@ -396,6 +399,9 @@ io.on('connection', (socket) => {
     // Counts as on screen until the page says otherwise (lib/pageVisibility.ts).
     setPageVisibility(socket.id, playerId, true);
     markOnline(playerId);   // second presence signal; see lib/presence.ts
+    // Away on an islet past the grace: home to port before last_seen is
+    // stamped (services/voyages.ts; nobody is stranded).
+    await bringHomeIfAway(playerId, OFFLINE_GRACE_MS);
     void recordSeen(playerId);
     logger.info(`Player ${playerId} joined their socket room`);
 
