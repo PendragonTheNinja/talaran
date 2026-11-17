@@ -6,27 +6,25 @@ Read with: `CLAUDE.md` §8 (the material ladder), `docs/foraging-farming-ladder.
 
 ---
 
-## 0. Where this stands, and what to do next (2026-11-16)
+## 0. Where this stands, and what to do next (2026-11-17)
 
-Nathan and Claude designed Antura over three days and stopped part-way through reviewing Carpentry and Smithing. **Nothing here is built.** This section is the handoff for the next session.
+Nathan and Claude designed Antura from 2026-11-14 to 17. **The design is finished, bar the items Nathan holds below. Nothing is built.** This section is the handoff for the next session.
 
-**Read first:** this file, then `docs/sailing-spec.md`, `docs/islets-plan.md`, `docs/foraging-farming-ladder.md`, and CLAUDE.md §8 "The material ladder". Every decision of Nathan's is dated in those five places. Anything marked "proposed" is Claude's and still his to change.
+**Read first:** this file, then `docs/sailing-spec.md`, `docs/islets-plan.md`, `docs/foraging-farming-ladder.md`, and CLAUDE.md §8 "The material ladder". Every decision of Nathan's is dated in those five places. Anything still marked "proposed" is Claude's and his to change.
 
-**Done and settled:** the places and their names (§2), getting there (§3, sailing spec), Mining (§4), Farming and Husbandry rules (§7), Foraging (§8), the fish (§9), Cooking's 24 recipes (§11), the creature roster and the Snallyscale set (§10).
+**Done and settled:** the places and their names (§2), getting there (§3, sailing spec), Mining (§4), Smithing's 44 Serph recipes and smelting (§5), Carpentry, homestead and shop tiers, and building for hire (§6, §6a, §6b), Farming and Husbandry rules (§7), Foraging (§8), the fish (§9), combat (§10): the roster, its names, levels, and weaknesses (Nathan, 2026-11-17), every drop on both islands, the rare weapons, the Snallyscale and Crabshell sets made from plates, the ratskin set, both islands' rings and charms, and the Bearverine Mantle; Cooking's 24 recipes (§11).
 
-**In progress, pick up here:** the Carpentry and Smithing review (§6a). Nathan ruled on its four findings on 2026-11-16; carpenters build for other players (§6b, its design proposed); homesteads and shops stay single actions (2026-11-17).
+**Waiting on Nathan alone:** the invented lake fish at Bidewater, level 22 (§9); the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
 
-**Still to do with Nathan, in rough order:**
+**Its own conversation, later:** the 1.0 reset (§13). Nathan, 2026-11-17: done properly, so that no player loses what they are meant to keep and everyone loses what they are not; and whether Thieving and Exploration are cut.
 
-1. The tier 2 cloak: its name, pelt counts, and levels (§10). The drop pass on both islands is settled (§10, 2026-11-17), as are Smithing and Carpentry.
-2. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
-3. What survives the 1.0 reset, and whether Thieving and Exploration are cut (§13).
+**Already delivered:** `20261117100000_butchering_knife_xp` (the Ambren Butchering Knife pays 55 XP by the rule, not 35), verified against Postgres; run `pnpm values:derive -- --write` after it.
 
-**Waiting on Nathan alone:** the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
+**Built before Antura, needing nothing from it:** Taiar's half of the drop pass (§10: the new drops, plates in place of whole Crabshell pieces, the ratskin set, the Knuckle Ring and the Jackalope Charm, the Wolf Fang in the cloak) can go to the alpha on its own, and answers the complaint that fighting pays too little. The ring and charm need the small code change in §10 (aim and power from slots other than the main hand) and a `combatSim.ts` run.
 
-**Before building anything:** export a fresh content snapshot from live (the committed one predates the scythe and the merchant seed fails on it), and read §14, which lists what the code assumes that a second island breaks. §15 is the build order; its first two steps (the Skiff, Taiar's islets) need nothing from Antura.
+**Before building anything:** export a fresh content snapshot from live if the committed one (2026-11-11) is stale by then, and read §14, which lists what the code assumes that a second island breaks. §15 is the build order; its first two steps (the Skiff, Taiar's islets) need nothing from Antura.
 
-**Also on this branch (`ccr-85dfc5b0-gyhmxo`), not merged to `main`:** the skill-icon hairline (`components/SkillsPanel.tsx`, `SkillsPanel.css`, `index.css`) and Stonehold's full-colour skill icons (`themes/stonehold.css`). Both were checked in a browser in Chromium only; look at the hairline on an iPhone before it deploys.
+**Also on this branch, not merged to `main`:** the skill-icon hairline (`components/SkillsPanel.tsx`, `SkillsPanel.css`, `index.css`) and Stonehold's full-colour skill icons (`themes/stonehold.css`). Both were checked in a browser in Chromium only; look at the hairline on an iPhone before it deploys.
 
 ---
 
@@ -471,7 +469,7 @@ About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. 
   - The Cave Bear's at 1 in 1,000, the Legbone's, as Yondereach draws the bear 70 times in 100 and the Bolter 30 (settled, Nathan 2026-11-17).
   - Trophies the same way. Taiar's three used trophies come at 1 in 600 to 860 kills of their spot (1 in 300 per creature, at 35 to 50 in 100). So the Bolter's Heartstone is 1 in 250 per Bolter (about 1 in 830 at Yondereach) and the Kelpie's Bridle 1 in 600, as the Narrows is chosen.
   - All with the bad-luck trail the Taiar three have (`20261112180000_bad_luck_trail`, at twice the odds).
-  - **Names** (Nathan, 2026-11-17): **Eagle Talons** (dual pierce) and the **Reaver's Dane Axe** (two-hand slash). The Cave Bear's one-hand crush is not a bone, since the Gouger's Legbone already is: proposed the **Dripstone Cudgel**, a club of cave stone from the bear's den.
+  - **Names** (Nathan, 2026-11-17): **Eagle Talons** (dual pierce) and the **Reaver's Dane Axe** (two-hand slash). The Cave Bear's one-hand crush is the **Dripstone Cudgel**, a club of cave stone from the bear's den, since the Gouger's Legbone is already a bone.
 - **The creature that drops an island's armour material drops nothing for its ring, charm, or cloak** (Nathan, 2026-11-17). The crabs drop plates only on Taiar, and on Antura the Snallygaster gives Snallyscales and a keepsake eye. So the ring's trophy moves to the Bolter's Heartstone.
 - **Antura's ring and amulet**, as Taiar's pair (Crafting at the lapidary, finger and neck slots, a trophy and the island's creatures):
 
@@ -572,12 +570,9 @@ That is 13 dishes, 2 provisions, ale, and 8 cooked fish: 24 recipes, against Tai
 ## 13. What Nathan still has to decide
 
 1. **The map:** final positions, roads, and the picture for each place. Islet pictures carry no painted names.
-3. **Fish and creature names**, and the creatures' levels and weaknesses (§9, §10).
-4. **Whether to poll players before building tier 2 combat.**
-5. **The dish list** (§11), to cut and change.
-6. **The numbers marked proposed in §4 to §6.**
-7. **The net:** no tier 2 for now is proposed (§9).
-8. **What survives the 1.0 reset**, and whether Thieving and Exploration are cut. Not Antura's questions, but the reset is when the free fixes in §14 land.
+2. **The invented lake fish** at Bidewater, level 22 (§9). The other fish and every creature's name, level, and weakness are settled (2026-11-17).
+3. **Whether to poll players before building tier 2 combat** (§10).
+4. **What survives the 1.0 reset**, and whether Thieving and Exploration are cut: a conversation of its own (Nathan, 2026-11-17). Not Antura's question, but the reset is when the free fixes in §14 land.
 
 ## 14. What the code assumes today that Antura breaks
 
