@@ -10,8 +10,10 @@ import { hasContent } from '../../lib/migrationContent';
 //                         items.set_island), one never found first, for the
 //                         museum ("a set per island").
 //   'quank'               met once on each island's islets, never again there
-//                         (player_quank_met): a written scene, then one true
-//                         thing from the Chronicle's rumours. No power, no loot.
+//                         (player_quank_met): a written scene, and before he
+//                         goes he leaves the player a Tidbit, half a Tiddle
+//                         (Nathan, 2026-11-17). No power. A keepsake for the
+//                         From the Islets exhibit.
 //   islet_finds weights   from §4: common islets young 8, flowers 10, Quank 1;
 //                         seldom young 15, artefact 3, Quank 2; the ruin young 15,
 //                         artefact 25, Quank 10.
@@ -37,6 +39,11 @@ const ARTEFACTS = [
     { name: 'Ambren Door Key', description: 'A heavy key of Ambren, green with age. The ruin has no doors left for it to open.' },
     { name: 'String of Sea-Glass Beads', description: 'Beads of green and blue glass on a rotten cord. Glass like this was not made on Taiar.' },
 ];
+
+const TIDBIT = {
+    name: 'Tidbit', type: 'curio', subtype: 'keepsake', tier: 1, level_required: 1,
+    description: 'Half a Tiddle, the back half. Quank gave it to you as if it were the most natural thing in the world. You did not ask what happened to the front.',
+};
 
 const HOLDS: Record<string, [string, number][]> = {
     'The Wooded Islet': [['young', 8], ['flowers', 10], ['quank', 1]],
@@ -64,14 +71,12 @@ const LINES: Record<string, string[]> = {
         'In a niche in the wall, as if somebody put it there to keep: {find}.',
         'Your boot turns something up out of the rubble: {find}.',
     ],
-    // Quank's scene on Taiar's islets: told in order, then the true thing.
+    // Quank's scene on Taiar's islets, told in order.
     quank: [
         'Somebody is sitting on an upturned bucket at the end of the islet, fishing with no line on the rod.',
         'It is Quank. He does not look round. "I have not left the square," he says. "Do not tell anyone you saw me not leaving it."',
-        'He reels in nothing, looks at it, and casts again. "Since you are here," he says, as if it costs him something, "I will tell you a thing that is true."',
-    ],
-    quank_coda: [
-        '"That is all," he says. "Go away. I am not here."',
+        'He reels in nothing, looks at it, and casts again. Then he reaches into his coat, takes out half a Tiddle, the back half, and presses it into your hand. "A tidbit," he says. "For your trouble."',
+        'When you look up from it, the bucket is empty and the islet is quiet. You have the feeling you will not find him out here again.',
     ],
 };
 
@@ -118,6 +123,10 @@ export async function up(knex: Knex): Promise<void> {
         await knex('islet_find_items').insert({ island: ISLAND, kind, item_name, min_qty, max_qty, weight, words_one, words_many, is_active: true })
             .onConflict(['island', 'kind', 'item_name']).merge();
     }
+    const tidbit = await knex('items').where({ name: TIDBIT.name }).first('id');
+    if (tidbit) await knex('items').where({ id: tidbit.id }).update(TIDBIT);
+    else await knex('items').insert({ ...TIDBIT, is_active: true });
+
     for (const a of ARTEFACTS) {
         const row = { name: a.name, type: 'curio', subtype: 'artefact', tier: 1, level_required: 1, set_island: ISLAND, description: a.description };
         const had = await knex('items').where({ name: a.name }).first('id');
@@ -146,7 +155,7 @@ export async function up(knex: Knex): Promise<void> {
             match.push({ type: 'curio', subtype: 'artefact' });
             await knex('museum_exhibits').where({ id: exhibit.id }).update({ match: JSON.stringify(match) });
         }
-        for (const a of ARTEFACTS) {
+        for (const a of [...ARTEFACTS, TIDBIT]) {
             const item = await knex('items').where({ name: a.name }).first('id');
             if (await knex('museum_cases').where({ item_id: item.id }).first()) continue;
             const [{ max }] = await knex('museum_cases').where({ exhibit_id: exhibit.id }).max('display_order as max');

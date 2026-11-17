@@ -246,14 +246,14 @@ Migration `20261117190000_islet_finds_rest`, `services/isletFinds.ts`. Weights f
 - **Young** (`islet_find_items`, by weight): a Chick or two 35, a Calf 30, a Piglet 20, a Rouncey Foal 10, a Palfrey Foal 5. Foals stay the rare ones, as on the hunt.
 - **Flowers**: two to five Daisies 35, two to four sprigs of Lavender 30, two or three Taiaria 25. Tal's Hope is left out on purpose: its name breaks the lore rule and is down for the 1.0 reset.
 - **The ruin's artefacts**, Taiar's set of five for the From the Islets exhibit: the Carved Lintel Stone, the Weathered Figurine, the Cracked Clay Lamp, the Ambren Door Key, and the String of Sea-Glass Beads. One never found first, then any (`player_artefacts_found`).
-- **Quank**, once on Taiar's islets and never again there (`player_quank_met`): his scene, three lines in order, then one thing that is true right now, a rumour from the Chronicle (`trueRumours`) in one of Wenna's own verses, then "That is all," he says. "Go away. I am not here." No power and no loot. Not yet: his feat, a Chronicle line (a new deed kind needs ten verses), and the quiet count for bad luck.
+- **Quank**, once on Taiar's islets and never again there (`player_quank_met`): his scene in four lines, in which he gives the player a **Tidbit**, half a Tiddle (the back half), a keepsake for the From the Islets exhibit, and is gone. **No rumour** (Nathan, 2026-11-17: telling true things is Wenna's, and it takes the player out of the moment). No power. Not yet: his feat, a Chronicle line (a new deed kind needs ten verses), and the quiet count for bad luck.
 
 ## 6a. Quank
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
 
 - **He is found once on each island's islets and never there again** (Nathan, 2026-11-15). After a player meets him among Taiar's islets he is gone from Taiar's rolls for that player; Antura's islets hold their own meeting. So each island's Quank is one written scene, not a line from a pool, and each time he is doing something that explains nothing. Since it can happen only once, a long run of bad luck should not hide him for ever: proposed, the same kind of quiet count the rare weapons have.
-- **He tells one true thing.** A rumour of the kind the tavern already keeps (`services/chronicleRumours.ts`): something real that nobody has done yet. It never tells what the Bestiary or the museum keeps back.
+- **He leaves a tidbit** (Nathan, 2026-11-17): half a Tiddle, in place of the true thing first proposed, which is Wenna's to tell.
 - **The sighting is counted.** A feat for each island's Quank, and a line for the Chronicle. Players will compare how many islands they have found him on.
 - **No power from him.** No buff, no loot. He gave the pony once.
 - He insists he has not left the square.

@@ -157,7 +157,10 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
         const met = await trx('player_quank_met').insert({ player_id: playerId, island: islet.region })
             .onConflict(['player_id', 'island']).ignore().returning('island');
         if (!met.length) return nothing;
-        return { kind: 'quank', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
+        // Before he goes, a Tidbit: half a Tiddle (Nathan, 2026-11-17).
+        const tidbit = await trx('items').where({ name: 'Tidbit' }).first('id');
+        if (tidbit) await addItemToInventoryWithin(trx, playerId, tidbit.id, 1);
+        return { kind: 'quank', location_id: islet.id, target_id: tidbit?.id ?? null, remaining: 0, boost: 1 };
     }
     if (pick.kind === 'cache') {
         // A guarded cache: the guardian of this islet's guardian spot
