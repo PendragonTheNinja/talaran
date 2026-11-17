@@ -7,15 +7,18 @@ import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
 import { creditGoldWithin, debitGoldWithin } from './gold';
 import { missingBuildTool } from './construction';
 import { activeXpForSeconds } from './farming';
-import { awardXp } from './xp';
+import { awardXp, levelFromXp } from './xp';
 import { membershipOf } from './guildRanks';
 import { noteDeed } from './chronicle';
+import { HALL_FLIPS, piecesAverage, piecesRolled } from '../lib/buildRoll';
 
 // ── Guild halls (migration 20261102170000; Nathan, 2026-11-02) ───────────────
 //
 // One hall per guild per island, at a location the guild chooses (the
 // leader lays the foundations where they stand). Members raise it together,
-// one material at a time, with a repeating 20-second action ('guild_build',
+// 1 to 3 pieces of a material at a time (more often 3 the better the
+// carpenter, lib/buildRoll.ts; Nathan, 2026-11-16), with a repeating
+// 20-second action ('guild_build',
 // resolved by the tick) that pays Carpentry at the band of the tier being
 // built and needs the usual mallet and saw (services/construction.ts). A
 // finished tier opens or enlarges the storehouse.
@@ -166,6 +169,8 @@ export async function hallState(playerId: number) {
                 tier: nextTier.tier,
                 capacityAfter: nextTier.capacity,
                 xpPerPiece: activeXpForSeconds(rungOfTier(nextTier.tier), BUILD_SECONDS),
+                // What one action sets in on average at this carpenter's level.
+                piecesPerAction: Math.round(piecesAverage(HALL_FLIPS, await carpentryLevel(playerId), rungOfTier(nextTier.tier)) * 10) / 10,
                 requirements: nextTier.requirements.map(r => {
                     const id = idByName.get(r.item);
                     return {
@@ -286,10 +291,18 @@ export interface BuildCycleResult {
     carryOn?: boolean
 }
 
-/** One piece set into the hall, for the tick. Every precondition is re-checked. */
+/** The player's Carpentry level, for the build roll. */
+async function carpentryLevel(playerId: number, x: any = db): Promise<number> {
+    const row = await x('player_skills as ps').join('skills as s', 's.id', 'ps.skill_id')
+        .where({ 'ps.player_id': playerId, 's.name': 'Carpentry' }).first('ps.xp');
+    return row ? levelFromXp(Number(row.xp)) : 1;
+}
+
+/** Pieces set into the hall for the tick, 1 to 3 a cycle. Every precondition is re-checked. */
 export async function resolveBuildCycle(playerId: number, itemName: string): Promise<BuildCycleResult> {
     try {
         let guildId = 0;
+        const carpentry = await carpentryLevel(playerId);
         const outcome = await db.transaction(async (trx) => {
             await trx('players').where({ id: playerId }).forNoKeyUpdate().first();
             const { me, hall: unlocked, next, req, item } = await buildCheck(playerId, itemName, trx);
@@ -302,13 +315,18 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
             const progress = await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).forUpdate().first();
             if (Number(progress.delivered) >= req.qty) throw new HallAbort(`The hall has all the ${itemName} this tier needs.`);
 
-            const taken = await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: 1 }]);
+            // The roll, cut to what the tier still wants and what the pack holds.
+            const heldRow = await trx('player_inventory').where({ player_id: playerId, item_id: item.id }).first('quantity');
+            const held = Number(heldRow?.quantity ?? 0);
+            if (held < 1) throw new HallAbort(`You have no ${itemName} left to give.`);
+            const pieces = Math.min(piecesRolled(HALL_FLIPS, carpentry, rungOfTier(next.tier)), req.qty - Number(progress.delivered), held);
+            const taken = await takeItemsWithin(trx, playerId, [{ name: item.name, quantity: pieces }]);
             if (!taken.ok) throw new HallAbort(`You have no ${itemName} left to give.`);
 
-            const delivered = Number(progress.delivered) + 1;
-            await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).increment('delivered', 1);
-            await trx('guild_hall_contributions').insert({ hall_id: hall.id, player_id: playerId, item_id: item.id, quantity: 1 })
-                .onConflict(['hall_id', 'player_id', 'item_id']).merge({ quantity: trx.raw('guild_hall_contributions.quantity + 1') });
+            const delivered = Number(progress.delivered) + pieces;
+            await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).increment('delivered', pieces);
+            await trx('guild_hall_contributions').insert({ hall_id: hall.id, player_id: playerId, item_id: item.id, quantity: pieces })
+                .onConflict(['hall_id', 'player_id', 'item_id']).merge({ quantity: trx.raw('guild_hall_contributions.quantity + ?', [pieces]) });
 
             const xp = activeXpForSeconds(rungOfTier(next.tier), BUILD_SECONDS);
             await awardXp(playerId, 'Carpentry', xp, trx);
@@ -345,7 +363,7 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
                     ? (next.tier === 1
                         ? 'The last piece goes in. The hall stands, and its storehouse is open.'
                         : `The last piece goes in. The hall's tier ${next.tier} is finished, and the storehouse grows.`)
-                    : `${item.name}: ${delivered.toLocaleString()} of ${req.qty.toLocaleString()} set into the hall.`,
+                    : `${pieces} ${item.name} set into the hall: ${delivered.toLocaleString()} of ${req.qty.toLocaleString()}.`,
             };
         });
         announce(guildId);

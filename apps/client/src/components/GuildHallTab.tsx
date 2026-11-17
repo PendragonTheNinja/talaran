@@ -42,7 +42,7 @@ interface HallState {
         gold: number
         capacity: number
         used: number
-        building: { tier: number; capacityAfter: number; xpPerPiece: number; requirements: Requirement[] } | null
+        building: { tier: number; capacityAfter: number; xpPerPiece: number; piecesPerAction?: number; requirements: Requirement[] } | null
         storage: StoredItem[]
         ledger: LedgerRow[]
         builders: { name: string; given: number }[]
@@ -240,8 +240,9 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                     {b ? (
                         <>
                             <p className="muted-text hall-note">
-                                Tier {b.tier}{hall.tier < 1 ? ', the hall itself' : ''}: every member can add to it, one piece every
-                                20 seconds, with a mallet and saw in hand. Each piece pays {b.xpPerPiece} Carpentry experience.
+                                Tier {b.tier}{hall.tier < 1 ? ', the hall itself' : ''}: every member can add to it, 1 to 3 pieces every
+                                20 seconds, with a mallet and saw in hand{b.piecesPerAction ? ` (about ${b.piecesPerAction} at your Carpentry level)` : ''}.
+                                Each turn pays {b.xpPerPiece} Carpentry experience.
                                 {` When it stands, the storehouse holds ${b.capacityAfter.toLocaleString()}.`}
                             </p>
                             {b.requirements.map(r => {

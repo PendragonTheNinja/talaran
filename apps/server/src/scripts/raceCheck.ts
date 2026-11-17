@@ -1539,6 +1539,40 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'hall', name: 'five members each set 1 to 3 planks into a hall that wants seven, at once', rounds: 20,
+        run: async (ctx) => {
+            // A build turn sets in 1 to 3 pieces (lib/buildRoll.ts). However the
+            // rolls fall, the hall never takes more than its tier wants, every
+            // plank is in a pack or in the hall, and the contributions add up
+            // to what the hall holds.
+            const g = await guildWorld(ctx, 100, 5);
+            await ctx.seed.row('skills', { name: 'Carpentry' });
+            await ctx.seed.row('guild_hall_tiers', { tier: 2, capacity: 200, requirements: JSON.stringify([{ item: g.w.plank.name, qty: 7 }]) });
+            const mallet = await ctx.seed.row('items', { name: 'Lanai Mallet', type: 'tool', subtype: 'mallet', slot: 'mainhand' });
+            const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand' });
+            for (const m of g.members) {
+                await inPack(ctx, m.id, g.w.plank.id, 3);
+                await ctx.seed.row('player_equipment', { player_id: m.id, mainhand_item_id: mallet.id, offhand_item_id: saw.id });
+            }
+            const { resolveBuildCycle } = await import('../services/guildHall');
+            const results = await Promise.allSettled(g.members.map(m => resolveBuildCycle(m.id, g.w.plank.name)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error === 'Server error')).length;
+            const progress = await ctx.db('guild_hall_progress').where({ hall_id: g.hall.id, item_id: g.w.plank.id }).first();
+            const hallTier = Number((await ctx.db('guild_halls').where({ id: g.hall.id }).first()).tier);
+            // A finished tier clears its progress rows, so the hall holds seven then.
+            const inHall = hallTier === 2 ? 7 : Number(progress?.delivered ?? 0);
+            const packs = Number((await ctx.db('player_inventory').where({ item_id: g.w.plank.id }).sum('quantity as n'))[0].n ?? 0);
+            const given = Number((await ctx.db('guild_hall_contributions').where({ hall_id: g.hall.id, item_id: g.w.plank.id }).sum('quantity as n'))[0].n ?? 0);
+            const built = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+            const refusal = results.map(r => (r.status === 'fulfilled' ? r.value.error : null)).find(e => e) ?? 'none';
+            return (crashed ? `${crashed} build turn(s) hit a server error` : null)
+                ?? (built < 2 ? `only ${built} build turn(s) went through (a refusal: ${refusal})` : null)
+                ?? (inHall > 7 ? `the hall took ${inHall} planks for a tier that wants 7` : null)
+                ?? changed('planks in packs and the hall together', 15, packs + inHall)
+                ?? changed('planks credited to the builders', inHall, given);
+        },
+    },
+    {
         id: 'guild', name: 'five members take 30 gold each at once from a guild purse of 100', rounds: 10,
         run: async (ctx) => {
             const g = await guildWorld(ctx, 100, 5);
