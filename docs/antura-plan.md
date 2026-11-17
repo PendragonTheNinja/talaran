@@ -398,7 +398,7 @@ Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatu
 
 - **Crab Claw as bait** was Nathan's idea (2026-11-15). It goes in the existing `meat` bait category, which `docs/fishing-spec.md` §5 allows ("five categories, ever"), though that spec also says no new bait items: Nathan's call to overrule it.
 - **Granite from the Knocker** is "a stone from a thing of rock" (CLAUDE.md §2, Combat). About 30 an hour against a miner's 180, so under the main source.
-- **The Grey Wolf's pelt is worth 82 gold** (derived from the Wolfskin Cloak). At 1 in 5 it would pay about 550 gold an hour at a merchant's 45%, against about 75 an hour that gathering pays at this level (1% of XP an hour). Proposed: 1 in 8, about 330 gold an hour, a cloak in about 2.5 hours. Or keep 1 in 12 and add nothing.
+- **The Grey Wolf's pelt is worth 82 gold** (derived from the Wolfskin Cloak). At 1 in 5 it would pay about 590 gold an hour at a merchant's 45%, against about 80 an hour that gathering pays at this level (1% of XP an hour). Proposed: 1 in 8, about 370 gold an hour, a cloak in about 2 hours. Or keep 1 in 12 and add nothing.
 
 **Antura** (the roster is still a placeholder):
 
