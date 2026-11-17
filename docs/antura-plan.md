@@ -18,7 +18,7 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. Nathan's verdict on the tier curve (§6) and the hiring design (§6b); then the Carpentry and Smithing numbers.
+1. The Smithing numbers (§5): the 44 Serph recipes, smelting, and nails. §6 and §6b are settled.
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -157,17 +157,17 @@ Settled: the existing recipes stay where they are, because nearly every one is a
 - **Homesteads and shops have tiers, not islands** (Nathan, 2026-11-17). A tier 1 homestead can be built on any island, Antura's included, from Carpentry 1, and upgraded later. **A tier 2 homestead can be built outright for more materials. Tier 2 needs Carpentry 13**, whether built outright or upgraded, and the same holds for shops. "Any island" is read as each island's homestead ground (Novita, Farefield) and port town (Talador, Wendhaven), one of each per island per player.
 - **Slots grow on a slight curve by tier** (Nathan, 2026-11-17): every tier gives more slots for the materials spent than the one before, counting everything spent on that building since tier 1.
 - **A homestead's tiers are for storage** (Nathan, 2026-11-17). Tier 2 crops and animals do not need a tier 2 homestead: Farming and Husbandry are gated by their own levels (CLAUDE.md §2), Antura's homestead is tier 1 by design and must grow Antura's crops, and every tier adds new items to keep, one slot each, so storage is what a farmer runs short of as they climb.
-- Proposed rule: **each upgrade costs the same number of materials, in its own tier's** (planks, blocks, and nails of that tier), **and adds 1.2 times the slots the last upgrade added.** Building a tier outright costs the tier 1 build and every upgrade to it together, all in that tier's nails. An upgrade takes 0.3 s a material, as the farmstead's 600 s for 2,000 does; building outright takes the tier 1 build's time and the upgrades' together.
+- Settled (Nathan, 2026-11-17): **each upgrade costs the same number of materials, in its own tier's** (planks, blocks, and nails of that tier), **and adds 1.2 times the slots the last upgrade added, except a shop's selling slots, whose gain grows 1.5 times a tier.** Building a tier outright costs the tier 1 build and every upgrade to it together, all in that tier's nails. An upgrade takes 0.3 s a material, as the farmstead's 600 s for 2,000 does; building outright takes the tier 1 build's time and the upgrades' together.
 
   | Tier | Homestead storage | Homestead materials | Shop storage / selling / buying | Shop materials |
   |---|---|---|---|---|
   | 1 | 50 | 2,000 (500 / 500 / 1,000 Ambren), 600 s | 75 / 12 / 6 | 1,400 (350 / 350 / 700 Ambren), 480 s |
   | 2 | 80 | upgrade 1,000 (250 / 250 / 500 Serph), 300 s | 100 / 16 / 8 | upgrade 400 (100 / 100 / 200 Serph), 120 s |
-  | 3 | 116 | upgrade 1,000 | 130 / 21 / 11 | upgrade 400 |
-  | 4 | 159 | upgrade 1,000 | 166 / 27 / 14 | upgrade 400 |
-  | 5 | 211 | upgrade 1,000 | 209 / 34 / 18 | upgrade 400 |
+  | 3 | 116 | upgrade 1,000 | 130 / 22 / 11 | upgrade 400 |
+  | 4 | 159 | upgrade 1,000 | 166 / 31 / 14 | upgrade 400 |
+  | 5 | 211 | upgrade 1,000 | 209 / 45 / 18 | upgrade 400 |
 
-  Slots for every 1,000 materials spent, homestead storage: 25, 27, 29, 32, 35. Shop storage: 54, 56, 59, 64, 70. The rise is 6 to 10% a tier. **Tier 2 outright:** a homestead 750 / 750 / 1,500 Serph in 900 s; a shop 450 / 450 / 900 Serph in 600 s. Rows above tier 2 are the curve's shape only, and the tier 1 numbers are live today and unchanged. Selling and buying gains round up, so they never stall.
+  Slots for every 1,000 materials spent, homestead storage: 25, 27, 29, 32, 35. Shop storage: 54, 56, 59, 64, 70. Shop selling: 8.6, 8.9, 10, 12, 15. The rise is 6 to 10% a tier, and steeper for selling slots. **Tier 2 outright:** a homestead 750 / 750 / 1,500 Serph in 900 s; a shop 450 / 450 / 900 Serph in 600 s. Rows above tier 2 are the curve's shape only, and the tier 1 numbers are live today and unchanged. Selling and buying gains round up, so they never stall.
 - Capacity already lives on the property row (`storage_slots`) and in `SHOP_TIERS` (`services/shops.ts`), so a tier is a number change; the upgrade action and the tier 2 rows are new.
 
 ## 6a. The Carpentry and Smithing review (started 2026-11-16, not finished)
@@ -193,11 +193,11 @@ Checked against the code, and put to Nathan on 2026-11-16.
 3. **Bench tools already follow the tier rule; nothing to build.** `tierMultiplier` in `services/workstations.ts`: work at the tool's own tier is on band, each tier above the tool is 35% slower and more than two is refused, each tier below is 12% faster. So a Serph recipe at an Ambren-tooled bench is 35% slower, and Serph bench tools speed tier 1 recipes by 12%.
 4. **26 of the 44 Serph recipes open at Smithing 13**, as 26 open at Smithing 1 on Taiar. The tools have to, since each is a door into another skill (the argument Nathan made for Carpentry). The other 18 spread across 14 to 24. Nathan, 2026-11-16: that is fine.
 
-## 6b. Building for hire (Nathan, 2026-11-16; the design below is proposed)
+## 6b. Building for hire (Nathan, 2026-11-16; the design below accepted 2026-11-17)
 
 Settled: a carpenter can build a shop, a homestead, or a boat for another player, who pays them.
 
-Proposed, for Nathan to change:
+Proposed by Claude, and accepted by Nathan with the tier curve (2026-11-17, "the rest is fine"):
 
 - **One build site, for everything built in pieces: boats and guild halls.** The guild hall's build is made general (as `docs/sailing-spec.md` §5 already asks): a site has an owner, a place, a kind (boat or hall), and the materials still wanted. Guild halls move onto it. Every build action places a roll of materials (§6a) and pays the hand that placed them.
 - **The owner founds the site** where the building will stand (a slip for a boat), and is the owner of what is raised on it from the first piece.
