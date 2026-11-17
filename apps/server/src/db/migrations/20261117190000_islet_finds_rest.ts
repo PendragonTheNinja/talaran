@@ -75,7 +75,7 @@ const LINES: Record<string, string[]> = {
     quank: [
         'Somebody is sitting on an upturned bucket at the end of the islet, fishing with no line on the rod.',
         'It is Quank. He does not look round. "I have not left the square," he says. "Do not tell anyone you saw me not leaving it."',
-        'He reels in nothing, looks at it, and casts again. Then he reaches into his coat, takes out half a Tiddle, the back half, and presses it into your hand. "A tidbit," he says. "For your trouble."',
+        'He reels in nothing, looks at it, and casts again. Then he reaches into his coat and presses something into your hand. "A tidbit," he says.',
         'When you look up from it, the bucket is empty and the islet is quiet. You have the feeling you will not find him out here again.',
     ],
 };
