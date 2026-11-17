@@ -159,6 +159,58 @@ Numbers (simulated 2026-11-17; proposed):
 
 Still open: what the sea chest holds besides a piece (proposed: the island's goods, as the buried chest), what a Locked Rusty Chest holds, Geoffrey's fees, and the set's names.
 
+## 6e. The chests: a draft (Claude, 2026-11-17, for Nathan to cut)
+
+**How a locked chest is opened.** Geoffrey opens it, for a fee, with no XP, before or after his quest (settled). Proposed: he opens it there and then. The fee is taken and the contents rolled and put in the pack in one locked transaction, so nothing is half done. "Open one" or "Open all", a fee for each. The contents are ordinary rows under `open:<chest name>` and the coins are columns on `container_types`, as Bird Nests and River Mussels already work (migration `20261113100000_containers`), so every number below is tuned in the admin content browser, not code. If Thieving is ever built, picking a lock yourself would roll the same rows. A race:check scenario: five "open all" at once with three chests and gold for two.
+
+**Three chests, not more:**
+
+| Chest | Comes from | Geoffrey's fee | Worth inside, on average |
+|---|---|---|---|
+| Locked Rusty Chest (exists) | Fishing salvage; the Wrecker, 1 in 30; the strandline; **the buried chest find** on an islet | 25 gold | about 70 gold |
+| Taiar Sea Chest (new) | A Taiar guardian, always, and nothing else | 100 gold | about 350 gold, plus the chance of a piece |
+| Antura Sea Chest (new) | An Antura guardian | 200 gold | Antura's goods, about twice Taiar's |
+
+The fee is a gold sink kept well under what is inside, so opening is always worth it but never free. **The buried chest find simply digs up a Locked Rusty Chest**, with a handful of coins from the digging, so there is one rusty chest everywhere and no fourth kind.
+
+**Locked Rusty Chest** (a drowned trader's strongbox; several rows can come up at once):
+
+| Inside | Chance | How many |
+|---|---|---|
+| Coins | always | 15 to 60 |
+| Tarnished Coin (curio) | 1 in 4 | 1 to 3 |
+| Ambren Nails | 1 in 4 | 10 to 30 |
+| Amber | 1 in 5 | 1 to 2 |
+| Chipped Arrowhead (curio) | 1 in 6 | 1 |
+| Linen Thread | 1 in 8 | 1 to 3 |
+| Freshwater Pearl | 1 in 15 | 1 |
+| Rough Quartz | 1 in 25 | 1 |
+| Ambren Tinderbox | 1 in 40 | 1 |
+| Writ of the Open Door | 1 in 500 | 1 |
+| Magpie's Ring | 1 in 1,500 | 1 |
+
+**Taiar Sea Chest** (a drowned crew's own chest, taken back from what guarded it):
+
+| Inside | Chance | How many |
+|---|---|---|
+| A piece of the sailor's set | 1 in 3 (never one already found until all of Taiar's four are found; certain after six chests without one) | 1 |
+| Coins | always | 60 to 200 |
+| Tarnished Coin | 1 in 2 | 1 to 4 |
+| Ambren Ingot | 1 in 3 | 2 to 5 |
+| Linen Cloth | 1 in 3 | 1 to 2 |
+| Charc | 1 in 4 | 5 to 10 |
+| Rough Quartz | 1 in 5 | 1 |
+| A Locked Rusty Chest, packed inside | 1 in 10 | 1 |
+| Rough Garnet | 1 in 30 | 1 |
+| Writ of the Open Door | 1 in 60 | 1 |
+| The guardian's keepsake (below) | 1 in 20 | 1 |
+
+**Each guardian's keepsake**, so the three fights are not interchangeable: a curio for the museum, from that guardian's own chest only. Proposed: the **Siren's Comb** (a whalebone comb with hair still in it), the **Trow's Thimble** (an iron thimble, far too big for any hand), and the **Drowned Captain's Seal** (a brass seal with a ship's name worn off it). Three cases in a "From the Islets" exhibit, which the artefacts of the ruin would join.
+
+**Antura's Sea Chest** follows the same shape with Serph Ingots in place of Ambren, Garnet as the common gem, Quartz the lower, Amethyst rare, and Antura's four set pieces; its numbers wait for Antura's build.
+
+Still Nathan's: whether Geoffrey opens chests outright (proposed) or turns them into an unlocked twin to open yourself; the fees; every row and chance above; the keepsakes.
+
 ## 6a. Quank
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
