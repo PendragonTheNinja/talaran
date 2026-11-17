@@ -457,25 +457,30 @@ About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. 
 | Creature | Where | Frequent drop | Other drops | Rare |
 |---|---|---|---|---|
 | Wolverine | Mettlefell | Wolverine Pelt 1 in 6 | Charc 1 to 2, 1 in 8 (it raids the charcoal burners' stores) | |
-| Kelpie | Farvick Narrows | Coin 1 in 4 | Linen Cloth 1 in 60 (a drowned traveller's) | **Kelpie's Bridle** 1 in 300 (the amulet's) |
+| Kelpie | Farvick Narrows | Coin 1 in 4 | Linen Cloth 1 in 60 (a drowned traveller's) | **Kelpie's Bridle** 1 in 600 (the charm's) |
 | Shellycoat | Farvick Narrows | Mackerel 1 in 8, Pollock 1 in 10, Sea Bass 1 in 12 | River Mussel 1 in 15; Amber 1 in 100 | Freshwater Pearl 1 in 200 |
-| Sea Eagle | Vergehorns | Feathers 1 to 2, 1 in 4 | | **Rare weapon, dual pierce** (its talons) 1 in 1,500 |
-| Reaver | Vergehorns | Coin 1 in 4, about twice the Wrecker's | Barley 1 to 3, 1 in 10; Broad Beans 1 in 15 (a raider's sacks); Locked Rusty Chest 1 in 30; Rough Garnet 1 in 250 | **Rare weapon, two-hand slash** (his blade) 1 in 1,500 |
-| Snallygaster | Vergehorns | Snallyscale 1 in 4 | | **Snallygaster Tooth** 1 in 300 (the ring's) |
-| Cave Bear | Yondereach | Cave Bear Pelt 1 in 6 | | **Rare weapon, one-hand crush** 1 in 1,500; Cave Bear Skull 1 in 750 (a keepsake) |
-| Slide-rock Bolter | Yondereach | Granite 2 to 3, 1 in 4 | Granite Block 1 in 40; **a Serph vein** 1 in 150, 15 to 30 ore (as the Knocker's Burgh vein, `openVein`); Rough Garnet 1 in 60, Rough Quartz 1 in 120, Rough Amethyst 1 in 300 | Bolter's Heartstone 1 in 750 (a keepsake) |
+| Sea Eagle | Vergehorns | Feathers 1 to 2, 1 in 4 | | **Rare weapon, dual pierce** (its talons) 1 in 1,250 |
+| Reaver | Vergehorns | Coin 1 in 4, about twice the Wrecker's | Barley 1 to 3, 1 in 10; Broad Beans 1 in 15 (a raider's sacks); Locked Rusty Chest 1 in 30; Rough Garnet 1 in 250 | **Rare weapon, two-hand slash** (his blade) 1 in 1,250 |
+| Snallygaster | Vergehorns | Snallyscale 1 in 4 | | Snallygaster's Eye 1 in 750 (a keepsake: it is drawn with one great eye) |
+| Cave Bear | Yondereach | Cave Bear Pelt 1 in 6 | | **Rare weapon, one-hand crush** 1 in 1,000; Cave Bear Skull 1 in 750 (a keepsake) |
+| Slide-rock Bolter | Yondereach | Granite 2 to 3, 1 in 4 | Granite Block 1 in 40; **a Serph vein** 1 in 150, 15 to 30 ore (as the Knocker's Burgh vein, `openVein`); Rough Garnet 1 in 60, Rough Quartz 1 in 120, Rough Amethyst 1 in 300 | **Bolter's Heartstone** 1 in 250 (the ring's) |
 
 - **Each item has its reason.** Charc on Antura breaks no rule: Charc stays Taiar's as a *gathered* fuel until Hatch, and a drop is a little help to the Serph smelter, as the Jumper's is on Taiar. The Reaver carries tier 2 seeds because no Antura creature lives on its farmland (Farefield has no fighting); the seed ground stays their main source. The Bolter's gems follow the §4 rule (own gem, half that of the one below, a fifth of the one above) and stay under a miner: about 0.8 garnets an hour against 0.9 on Antura's granite.
-- **The rare weapons** are the three forms Taiar did not use, each from a creature it is not the weakness of (settled 2026-11-14 and 15), with the bad-luck trail the Taiar three have (`20261112180000_bad_luck_trail`). Names to choose.
+- **A rare's chance is set per kill at its spot, not per kill of the creature** (Nathan, 2026-11-17: the Hodag Horn at 1 in 1,500 was a real problem, because the Hodag is only 15 of every 100 creatures at the Deep Wood; it is 1 in 300 now). On Taiar the three rare weapons land at about 1 in 1,250 to 2,000 kills at their spot: the Wrecker's Cutlass 1 in 1,250 at a chosen spot; the Gouger's Legbone 1 in 1,000 for a creature that is 60 in 100 of its spot (1 in 1,670 there); the Hodag Horn 1 in 300 at 15 in 100 (1 in 2,000). Antura keeps the same rates, since its creatures are harder and come slower (Nathan):
+  - The Sea Eagle's and the Reaver's weapons at 1 in 1,250, the Cutlass's rate, as Vergehorns is chosen.
+  - The Cave Bear's at 1 in 1,000, the Legbone's, if Yondereach draws the bear 70 times in 100 and the Bolter 30 (proposed weights).
+  - Trophies the same way. Taiar's three used trophies come at 1 in 600 to 860 kills of their spot (1 in 300 per creature, at 35 to 50 in 100). So the Bolter's Heartstone is 1 in 250 per Bolter (about 1 in 830 at Yondereach) and the Kelpie's Bridle 1 in 600, as the Narrows is chosen.
+  - All with the bad-luck trail the Taiar three have (`20261112180000_bad_luck_trail`, at twice the odds). Names to choose.
+- **The creature that drops an island's armour material drops nothing for its ring, charm, or cloak** (Nathan, 2026-11-17). The crabs drop plates only on Taiar, and on Antura the Snallygaster gives Snallyscales and a keepsake eye. So the ring's trophy moves to the Bolter's Heartstone.
 - **Antura's ring and amulet**, as Taiar's pair (Crafting at the lapidary, finger and neck slots, a trophy and the island's creatures):
 
   | Piece | Crafting | From | Gives |
   |---|---|---|---|
-  | Snallygaster's Tooth Ring | 18 | 1 Snallygaster Tooth, 1 Serph Ingot, 10 Wolverine Pelt | about 4 power |
+  | Heartstone Ring | 18 | 1 Bolter's Heartstone, 1 Serph Ingot, 10 Wolverine Pelt | about 4 power |
   | Kelpie's Bridle Charm | 20 | 1 Kelpie's Bridle, 1 Rough Garnet, 20 Feathers | about 8 aim |
 
   A third more than Taiar's, as tier 2 weapons are about a third stronger. Names are placeholders.
-- **New items:** Wolverine Pelt, Cave Bear Pelt, Snallyscale, Kelpie's Bridle, Snallygaster Tooth, Cave Bear Skull, Bolter's Heartstone, Rough Amethyst (no row yet; Antura's granite needs it too), the three rare weapons, the mantle, the ring, and the charm.
+- **New items:** Wolverine Pelt, Cave Bear Pelt, Snallyscale, Kelpie's Bridle, Snallygaster's Eye, Cave Bear Skull, Bolter's Heartstone, Rough Amethyst (no row yet; Antura's granite needs it too), the three rare weapons, the mantle, the ring, and the charm.
 
 - **The Shellycoat's fish.** Nathan asked whether it could drop two or three tier 2 fish, at 1 in 4, 5, and 6. At those rates it gives about 40 fish an hour, where a fisher on Antura lands about 45 a cast hour (80 s casts), so fighting would out-fish Fishing; and a fish is food, where a creature's common drop is meant not to be (CLAUDE.md §2). **Settled (Nathan, 2026-11-17): the Narrows' three lower fish, Mackerel 1 in 8, Pollock 1 in 10, and Sea Bass 1 in 12**, about 20 an hour, under half a fisher; a raw fish still has to be cooked before it is eaten. 
 New items: Ratskin, Jackalope Pelt, Crabshell Plate, Shellback Plate, the five ratskin pieces, the Knuckle Ring and the Jackalope Charm on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura.
