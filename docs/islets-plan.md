@@ -137,6 +137,28 @@ Still open:
 
   A guardian is one fight per find; it drops its own few things, and behind it is the cache.
 
+## 6d. The guardians and the sailor's set (Nathan, 2026-11-17)
+
+Settled:
+
+- **Up to three landings a voyage**, then the boat must make port.
+- **A guardian guards what a drowned crew left**, and its only reward is a **locked sea chest** that goes into the pack as an item. Inside, among other things, may be one piece of the sailor's set.
+- **Geoffrey opens locked chests for a fee**, as a service with no XP, before or after his quest. The same service opens the Locked Rusty Chests that Fishing and the Wrecker give. If Thieving is ever built, picking them yourself comes with it.
+- **The sailor's set fills every slot but the mount:** head, neck, back, chest, main hand, off hand, legs, hands, feet, finger, and trophy, eleven pieces, period-plausible (no spyglass; the Lodestone, Sunstone, and Sounding Lead are its instruments). Names still to settle.
+- **Each worn piece takes 1% off a sea journey**, and the whole set adds a bonus of its own (proposed 5%, about 16% in all). The boat stays the main factor.
+- **Pieces are spread over the first three islands**, 4, 4, and 3, so the whole set, and its bonus, is finished only on the third island's islets.
+- **Everything used for its work wears, and so does this.** Each sea journey wears ONE random worn sailing piece, as combat wears a few random armour pieces a kill (`ARMOUR_PIECES_WORN_PER_KILL`), so eleven pieces never mean eleven rolls a journey. Silent until a break, as all wear is. Never needed to sail, so the circularity rule holds.
+- **A cache gives a piece never found until an island's pieces have all been found**; after that it may give any of that island's pieces, so a broken one comes back through guardians or trade. What has been found is a permanent record; the pieces themselves are ordinary items, traded, dropped on death, and worn like any other (the Sunstone sits in the trophy slot, so it is kept on death).
+
+Numbers (simulated 2026-11-17; proposed):
+
+- **Guardians:** about 12% of landings, by the odds in §4 (10% on common islets, 20% on the seldom ones and the ruin).
+- **A sea chest holds a new piece 1 in 3 times** (30%). For a player sailing only for pieces, about 12 landings an hour (three-landing voyages of about 15 minutes), an island's four pieces take about 9 hours on average, half of players by 8.5 and nine in ten by 15.5; the whole set about 25 hours across three islands. A player working their finds (about 1.5 landings an hour) gathers them over many weeks without trying.
+- **Bad-luck count:** a piece for certain after six sea chests in a row without one, as the rare weapons have theirs (`bad_luck_kills`). It trims the long tail.
+- **Wear, by tier as all durability scales:** Taiar's pieces 600 sure wears then 0.25% a wear (about 1,000 on average); Antura's 750 then 0.21%; the third island's 940 then 0.18%. At 32 sea journeys a day, a full set's pieces last most of a year; a player sailing 8 hours a day on four pieces goes through one about a month.
+
+Still open: what the sea chest holds besides a piece (proposed: the island's goods, as the buried chest), what a Locked Rusty Chest holds, Geoffrey's fees, and the set's names.
+
 ## 6a. Quank
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:
