@@ -18,11 +18,10 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. The Serph Arrow numbers and the two lines of text (§5). Smithing's numbers are otherwise settled (2026-11-17).
-2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
-3. The tier 2 cloak: its name, pelt counts, and levels (§10).
-4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
-5. What survives the 1.0 reset, and whether Thieving and Exploration are cut (§13).
+1. One pass over every creature's drops on both islands (§10), begun 2026-11-17. Smithing and Carpentry are settled (§5, §6, §6a, §6b).
+2. The tier 2 cloak: its name, pelt counts, and levels (§10).
+3. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
+4. What survives the 1.0 reset, and whether Thieving and Exploration are cut (§13).
 
 **Waiting on Nathan alone:** the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
 
@@ -200,8 +199,8 @@ Serph smelts alone (settled), so one ore makes one ingot. Dense follows the rule
 
 **Settled (Nathan, 2026-11-17):** the table's numbers; **Serph Arrows are in**; the Ambren Butchering Knife's XP is corrected to the rule, 35 to 55 (migration `20261117100000_butchering_knife_xp`). The Serph Scythe is at 15 by the rule (Ambren's is 3).
 
-**Serph Arrows need a use**, since a hunt today shoots only `HUNT_AMMO`, the Ambren Arrow (`services/hunting.ts`). Settled (Nathan, 2026-11-17): **a hunt shoots the best arrow carried, and an arrow below the animal's tier lowers the chance of a catch, never lengthens the hunt.** An animal of tier 2 (today only the Ground Sloth, Hunting 17) wants a Serph arrow. Proposed numbers: **10 points off the catch chance for each tier the arrow is below the animal**, and 3 points on for each tier above, as a better bow gives (`BOW_TIER_CATCH_BONUS`). On the Sloth with Ambren arrows that is 45% in place of 55% at its own level: about 18% fewer catches, and 8% less XP an hour, since a miss still pays its share. A constant beside the others in `calculateCatchChance`. Ships with the arrows, never before them.
-- **The player is told, in the world's words** (Nathan, 2026-11-17). Text is content, so each animal gets a line on its row (proposed column `huntable_animals.weak_arrow_text`), shown on a miss when the arrow was below the animal's tier, and a short warning in the hunting panel before the hunt starts. Proposed for the Ground Sloth, for Nathan to change:
+**Serph Arrows need a use**, since a hunt today shoots only `HUNT_AMMO`, the Ambren Arrow (`services/hunting.ts`). Settled (Nathan, 2026-11-17): **a hunt shoots the best arrow carried, and an arrow below the animal's tier lowers the chance of a catch, never lengthens the hunt.** An animal of tier 2 (today only the Ground Sloth, Hunting 17) wants a Serph arrow. Settled numbers (Nathan, 2026-11-17): **10 points off the catch chance for each tier the arrow is below the animal**, and 3 points on for each tier above, as a better bow gives (`BOW_TIER_CATCH_BONUS`). On the Sloth with Ambren arrows that is 45% in place of 55% at its own level: about 18% fewer catches, and 8% less XP an hour, since a miss still pays its share. A constant beside the others in `calculateCatchChance`. Ships with the arrows, never before them.
+- **The player is told, in the world's words** (Nathan, 2026-11-17). Text is content, so each animal gets a line on its row (proposed column `huntable_animals.weak_arrow_text`), shown on a miss when the arrow was below the animal's tier, and a short warning in the hunting panel before the hunt starts. Settled for the Ground Sloth (Nathan, 2026-11-17):
   - On a miss: *"The arrow skips off the sloth's matted hide. That old beast wants a harder point than Ambren."*
   - In the panel: *"Your Ambren arrows will barely mark a hide like that."*
 
@@ -371,6 +370,51 @@ A second roster, eight creatures, every name and level still a placeholder:
 - Gems from creatures follow §4's pattern.
 - **Drops are thin on Taiar** (a player's complaint, and the data agrees). On the live tables most creatures' commonest drop is 1 in 10 to 1 in 25. The two crabs drop nothing but armour pieces at 1 in 300 each, so 99 kills in 100 give XP alone; the Feral Dog's only drop is 1 in 25; only three of thirteen creatures ever drop coins. A hunt, by contrast, always gives meat and a hide. Proposed for Antura: every creature has one drop with a real use that comes often, about one kill in three to five. The same fix on Taiar is rows only.
 - **Taiar's drops are to be looked at again** (Nathan, 2026-11-15). A caution for whoever does it: simply raising today's odds floods other trades, because most common drops are seeds, grain, logs, and ore. A level 1 fighter kills about 85 creatures an hour, so grain at 1 in 4 would be 21 an hour from rats. The frequent drop should be something of the creature's own. No meat: that is Hunting's (Nathan, 2026-11-15). **Not Bones** (Nathan, 2026-11-16): Bones stay Hunting's, mostly, and are not the answer for creatures fought. First ideas: something from the two crabs that is not food, such as claws for fishing bait, since they drop nothing but armour; Wolf Pelts at 1 in 5, where they are 1 in 12.
+### The drop pass (proposed 2026-11-17, for Nathan to change)
+
+Read from the live rows (`content-snapshots/drop_table_entries.json` and `creatures.json` of 2026-11-11; no later migration touches a combat drop).
+
+**The rules it follows.** Every creature gets one frequent drop of its own, about one kill in four, that is not food, has a real use, and is worth little, so the creature's money still comes from its rares (a trophy at 1 in 750 is already worth about 7 gold a kill). Other skills' goods may drop only below their main source's rate an hour (`docs/combat-spec.md`, combat drops). Existing rares, gems, writs, coins, and incidental seeds stay as they are. A fighter makes about 80 kills an hour on Taiar and about 65 on Antura (level-matched fights run 40 s at combat 1 and lengthen with level).
+
+**One new sink carries most of it: pelts into Leather Strips.** Furred creatures drop their own pelt, and one Crafting recipe cuts pelts into strips, taking "any pelt" by subtype as Fish Stew takes any cooked fish (`services/recipes.ts` wildcards). Strips go into every tool, weapon, and armour piece at the forge, which now wear and break, so the demand is steady. Proposed: four small pelts or one hide to a strip, the same yield as Buckskin. To check before seeding: combat's strips an hour stay below a herd's.
+
+**Taiar:**
+
+| Creature | Level | Frequent drop, new | Rate | Use | About an hour | Today's commonest |
+|---|---|---|---|---|---|---|
+| Dock Rat | 1 | Ratskin (small pelt) | 1 in 4 | Strips | 20 | Bones 1 in 5 (removed: Bones stay Hunting's) |
+| Granary Rat | 2 | Ratskin | 1 in 4 | Strips | 20 | Grain 1 in 10 (stays) |
+| Jackalope | 3 | Jackalope Pelt (small pelt) | 1 in 4 | Strips | 20 | Turnip Seeds 1 in 20 |
+| Feral Dog | 4 | Dog Hide (hide) | 1 in 4 | Strips | 20 | Garlic 1 in 25 |
+| Shore Crab | 5 | Crab Claw | 1 in 3 | Fishing bait | 27 | Nothing but armour (1 in 300 each) |
+| Wrecker | 6 | none new: coin is already 1 in 4 | | | | Coin 1 in 4 |
+| Sidehill Gouger | 6 | Gouger Hide (hide) | 1 in 4 | Strips | 20 | Wild Grain 1 in 25 |
+| Jumper | 8 | none new: coin 1 in 4, Charc 1 in 10 | | | | Coin 1 in 4 |
+| Grey Wolf | 8 | Wolf Pelt, already its own | see below | The cloak | | Wolf Pelt 1 in 12 |
+| Ol' Shellback | 9 | Crab Claw, 1 to 2 | 1 in 3 | Fishing bait | 40 | Nothing but armour |
+| Knocker | 9 | Granite, 1 to 2 | 1 in 4 | Masonry | 30 | Rough Quartz 1 in 40 |
+| Agropelter | 10 | none new: Poor Lanai Log 1 to 3 is already 1 in 5 | | | | Poor Lanai Log 1 in 5 |
+| Hodag | 12 | Hodag Hide (hide) | 1 in 4 | Strips | 20 | Writ 1 in 120 |
+
+- **Crab Claw as bait** was Nathan's idea (2026-11-15). It goes in the existing `meat` bait category, which `docs/fishing-spec.md` §5 allows ("five categories, ever"), though that spec also says no new bait items: Nathan's call to overrule it.
+- **Granite from the Knocker** is "a stone from a thing of rock" (CLAUDE.md §2, Combat). About 30 an hour against a miner's 180, so under the main source.
+- **The Grey Wolf's pelt is worth 82 gold** (derived from the Wolfskin Cloak). At 1 in 5 it would pay about 550 gold an hour at a merchant's 45%, against about 75 an hour that gathering pays at this level (1% of XP an hour). Proposed: 1 in 8, about 330 gold an hour, a cloak in about 2.5 hours. Or keep 1 in 12 and add nothing.
+
+**Antura** (the roster is still a placeholder):
+
+| Creature | Level | Frequent drop | Rate | Use |
+|---|---|---|---|---|
+| Wolverine | 13 | Wolverine Pelt | 1 in 6 | The tier 2 cloak; valuable, so rarer, as the wolf's |
+| Kelpie | 15 | Coin | 1 in 4 | It drowns travellers |
+| Shellycoat | 17 | River Mussel, 1 to 2 | 1 in 3 | Opened for pearls (an existing container) |
+| Sea Eagle | 19 | Feathers, 1 to 2 | 1 in 3 | Arrows, Serph Arrows included. About 32 an hour: check against the chickens before seeding |
+| Reaver | 20 | Coin, more than the Wrecker | 1 in 4 | A raider's purse |
+| Snallygaster | 21 | Snallyscale | 1 in 4 | The Snallyscale set (settled) |
+| Cave Bear | 22 | Cave Bear Pelt | 1 in 6 | The tier 2 cloak |
+| Slide-rock Bolter | 24 | Granite, 2 to 3 | 1 in 4 | Masonry. Garnet stays rare (about 1 in 100), not frequent: a garnet is worth 1,120 gold |
+
+New items in all: Ratskin, Jackalope Pelt, Dog Hide, Gouger Hide, Hodag Hide, Crab Claw on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura; and the one strip-cutting recipe.
+
 - **Before building this, ask the players why few fight.** On 2026-11-10 five players had reached Melee 2. A Crier poll first (Claude's recommendation; Nathan has not ruled).
 
 ## 11. Cooking (a first full list, 2026-11-15, for Nathan to cut and change)
