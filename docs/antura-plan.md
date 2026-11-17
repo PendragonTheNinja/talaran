@@ -353,17 +353,17 @@ A second roster, eight creatures, every name and level still a placeholder:
 - Out of the first roster: Hoop Snake, Billdad, Wampus Cat, Cutty Soams, Hidebehind.
 - **No meat from creatures fought** (Nathan, 2026-11-15): meat is Hunting's. Each creature still wants a common drop of its own (see the note on thin drops below). **The rest of each creature's drops are decided together with Taiar's, in one pass over both islands** (Nathan, 2026-11-16). First ideas until then: pelts from the Wolverine and the Cave Bear, which **together make the tier 2 cloak** (Nathan, 2026-11-16), as twenty Wolf Pelts make Taiar's; Feathers from the Sea Eagle, now that feathers may come from other creatures (Nathan, 2026-11-15); coin from the Reaver and from the Kelpie, which drowns travellers; River Mussels from the Shellycoat's coat; Snallyscales from the Snallygaster; garnets from the Bolter.
 
-- **The tier 2 cloak, proposed (2026-11-17).** The Wolfskin Cloak is Crafting 8, worn from Defense 8 (the wolf's level), 5 armour, 20 Wolf Pelts and 1 Wolf Fang, about 330 kills. Its twin, in the same places on the tier 2 ladder:
+- **The tier 2 cloak: the Bearverine Mantle** (Nathan, 2026-11-17, who named it and asked for it slightly cheaper than first drafted). The Wolfskin Cloak is Crafting 8, worn from Defense 8 (the wolf's level), 5 armour, 20 Wolf Pelts and 1 Wolf Fang, about 330 kills. Its twin, in the same places on the tier 2 ladder:
 
-  | | Wolfskin Cloak (tier 1) | Bearskin Mantle (tier 2) |
+  | | Wolfskin Cloak (tier 1) | Bearverine Mantle (tier 2) |
   |---|---|---|
   | Crafting, and worn from Defense | 8 | 20 |
   | Armour | 5 | 7 (late Serph armour is about 1.47 times late Ambren's, `docs/combat-spec.md`) |
-  | Made from | 20 Wolf Pelts, 1 Wolf Fang | 25 Wolverine Pelts, 20 Cave Bear Pelts |
-  | Kills, on average | about 330 | about 270, but of slower, costlier creatures, the bear above all |
+  | Made from | 20 Wolf Pelts, 1 Wolf Fang | 20 Wolverine Pelts, 18 Cave Bear Pelts |
+  | Kills, on average | about 330 | about 230, but of slower, costlier creatures, the bear above all |
   | Timer and XP | 180 s, 234 | 200 s, by the band |
 
-  The name is a placeholder; the wolverine fur would be its trim. Antura has no trophy yet to put in it, as the fang is in the wolf's: one could come with Antura's own ring and amulet.
+  It has no trophy in it, unlike the wolf's cloak, which keeps it the cheaper of the two in kills.
 - **Rare weapons:** dual pierce, two-hand slash, and one-hand crush, each from a creature it is not the weakness of, about 1 in 1,500 to 2,000, with the bad-luck count the Taiar three have. Proposed: the dual pierce from the Sea Eagle (its talons), the two-hand slash from the Reaver (his blade, as the Wrecker drops a cutlass), the one-hand crush from the Cave Bear.
 - **The Snallyscale armour set is crafted, not dropped** (Nathan, 2026-11-15). The Snallygaster drops **Snallyscales**, and Crafting turns them into the pieces. The item is a Snallyscale, never a plain "scale", so other creatures' scales can be their own items later (Nathan, 2026-11-16). Not shell again: Taiar's set is Crabshell. It sits between late Serph and early Azulyss, as Crabshell sits between Ambren and Serph, and lasts far longer than smithed armour. Snallyscales can be traded, so a fighter can sell them to a crafter. Proposed, to argue with:
 
@@ -452,18 +452,30 @@ It wears out fast: 60 sure uses, then 3% a kill, where tier 1 metal is 200 and 1
 
 About 6% of the stat, as the cloak's 5 armour is about 6% of a full Ambren set. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
 
-**Antura** (settled 2026-11-17, with the roster still a placeholder):
+**Antura, every drop** (frequent drops settled 2026-11-17; the rest proposed the same day; the roster is still a placeholder). About 50 kills an hour at these levels (fights lengthen with level, `docs/combat-spec.md`).
 
-| Creature | Frequent drop | Note |
-|---|---|---|
-| Wolverine | Wolverine Pelt 1 in 6 | The tier 2 cloak |
-| Kelpie | Coin 1 in 4 | |
-| Shellycoat | Mackerel 1 in 8, Pollock 1 in 10, Sea Bass 1 in 12 | River Mussel 1 in 15, uncommon (Nathan) |
-| Sea Eagle | Feathers 1 to 2, 1 in 4 | About 24 an hour |
-| Reaver | Coin 1 in 4, more than the Wrecker | |
-| Snallygaster | Snallyscale 1 in 4 | Settled |
-| Cave Bear | Cave Bear Pelt 1 in 6 | The tier 2 cloak |
-| Slide-rock Bolter | Granite 2 to 3, 1 in 4 | Garnet stays rare |
+| Creature | Where | Frequent drop | Other drops | Rare |
+|---|---|---|---|---|
+| Wolverine | Mettlefell | Wolverine Pelt 1 in 6 | Charc 1 to 2, 1 in 8 (it raids the charcoal burners' stores) | |
+| Kelpie | Farvick Narrows | Coin 1 in 4 | Linen Cloth 1 in 60 (a drowned traveller's) | **Kelpie's Bridle** 1 in 300 (the amulet's) |
+| Shellycoat | Farvick Narrows | Mackerel 1 in 8, Pollock 1 in 10, Sea Bass 1 in 12 | River Mussel 1 in 15; Amber 1 in 100 | Freshwater Pearl 1 in 200 |
+| Sea Eagle | Vergehorns | Feathers 1 to 2, 1 in 4 | | **Rare weapon, dual pierce** (its talons) 1 in 1,500 |
+| Reaver | Vergehorns | Coin 1 in 4, about twice the Wrecker's | Barley 1 to 3, 1 in 10; Broad Beans 1 in 15 (a raider's sacks); Locked Rusty Chest 1 in 30; Rough Garnet 1 in 250 | **Rare weapon, two-hand slash** (his blade) 1 in 1,500 |
+| Snallygaster | Vergehorns | Snallyscale 1 in 4 | | **Snallygaster Tooth** 1 in 300 (the ring's) |
+| Cave Bear | Yondereach | Cave Bear Pelt 1 in 6 | | **Rare weapon, one-hand crush** 1 in 1,500; Cave Bear Skull 1 in 750 (a keepsake) |
+| Slide-rock Bolter | Yondereach | Granite 2 to 3, 1 in 4 | Granite Block 1 in 40; **a Serph vein** 1 in 150, 15 to 30 ore (as the Knocker's Burgh vein, `openVein`); Rough Garnet 1 in 60, Rough Quartz 1 in 120, Rough Amethyst 1 in 300 | Bolter's Heartstone 1 in 750 (a keepsake) |
+
+- **Each item has its reason.** Charc on Antura breaks no rule: Charc stays Taiar's as a *gathered* fuel until Hatch, and a drop is a little help to the Serph smelter, as the Jumper's is on Taiar. The Reaver carries tier 2 seeds because no Antura creature lives on its farmland (Farefield has no fighting); the seed ground stays their main source. The Bolter's gems follow the §4 rule (own gem, half that of the one below, a fifth of the one above) and stay under a miner: about 0.8 garnets an hour against 0.9 on Antura's granite.
+- **The rare weapons** are the three forms Taiar did not use, each from a creature it is not the weakness of (settled 2026-11-14 and 15), with the bad-luck trail the Taiar three have (`20261112180000_bad_luck_trail`). Names to choose.
+- **Antura's ring and amulet**, as Taiar's pair (Crafting at the lapidary, finger and neck slots, a trophy and the island's creatures):
+
+  | Piece | Crafting | From | Gives |
+  |---|---|---|---|
+  | Snallygaster's Tooth Ring | 18 | 1 Snallygaster Tooth, 1 Serph Ingot, 10 Wolverine Pelt | about 4 power |
+  | Kelpie's Bridle Charm | 20 | 1 Kelpie's Bridle, 1 Rough Garnet, 20 Feathers | about 8 aim |
+
+  A third more than Taiar's, as tier 2 weapons are about a third stronger. Names are placeholders.
+- **New items:** Wolverine Pelt, Cave Bear Pelt, Snallyscale, Kelpie's Bridle, Snallygaster Tooth, Cave Bear Skull, Bolter's Heartstone, Rough Amethyst (no row yet; Antura's granite needs it too), the three rare weapons, the mantle, the ring, and the charm.
 
 - **The Shellycoat's fish.** Nathan asked whether it could drop two or three tier 2 fish, at 1 in 4, 5, and 6. At those rates it gives about 40 fish an hour, where a fisher on Antura lands about 45 a cast hour (80 s casts), so fighting would out-fish Fishing; and a fish is food, where a creature's common drop is meant not to be (CLAUDE.md §2). **Settled (Nathan, 2026-11-17): the Narrows' three lower fish, Mackerel 1 in 8, Pollock 1 in 10, and Sea Bass 1 in 12**, about 20 an hour, under half a fisher; a raw fish still has to be cooked before it is eaten. 
 New items: Ratskin, Jackalope Pelt, Crabshell Plate, Shellback Plate, the five ratskin pieces, the Knuckle Ring and the Jackalope Charm on Taiar; Wolverine Pelt, Cave Bear Pelt, Snallyscale on Antura.
