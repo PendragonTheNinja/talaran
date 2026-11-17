@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { onlinePlayers } from '../lib/realtime';
 import { eventStandingsAt } from '../services/worldEvents';
 import { liveIsletFind } from '../services/isletFinds';
+import { waterFor } from '../services/fishing';
 
 const router = Router();
 
@@ -47,8 +48,10 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     // Only a count is needed: the panel uses it to decide whether this place
     // has water worth fishing. The species themselves come from
     // /api/fishing/overview, which knows what the player has discovered.
+    // On an islet with a shoal, its water's fish (services/fishing.ts waterFor).
+    const fishWater = (await waterFor(playerId, player.current_location_id)).water;
     const fishSpecies = await db('fish_species')
-      .where({ location_id: player.current_location_id, is_active: true })
+      .where({ location_id: fishWater, is_active: true })
       .count('id as count').first();
     const fishSpeciesCount = Number(fishSpecies?.count || 0);
 

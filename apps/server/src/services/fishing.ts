@@ -8,6 +8,27 @@ import { noteDeed } from './chronicle';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { doubleYield, doubledLine } from './buffs';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { liveIsletFind, spendIsletFind, type IsletFind } from './isletFinds';
+
+/**
+ * The water a player fishes where they stand: the place itself, or, on an
+ * islet with a shoal (services/isletFinds.ts), the mainland water that shoal
+ * is the best of. Everything about a cast then reads that water's fish.
+ */
+export async function waterFor(playerId: number, locationId: number): Promise<{ water: number; shoal: IsletFind | null }> {
+    const find = await liveIsletFind(playerId);
+    if (find?.kind === 'shoal' && find.target_id && Number(find.location_id) === Number(locationId)) {
+        return { water: Number(find.target_id), shoal: find };
+    }
+    return { water: locationId, shoal: null };
+}
+
+/** Pick weight on a shoal: the better half of the water's fish bite `boost` times as readily. */
+function shoalWeight(row: FishSpeciesRow, eligible: FishSpeciesRow[], boost: number): number {
+    const levels = eligible.map(e => e.required_level).sort((a, b) => a - b);
+    const median = levels[Math.floor(levels.length / 2)] ?? 0;
+    return row.required_level >= median ? boost : 1;
+}
 
 // Fishing (docs/fishing-spec.md). Closest sibling is services/foraging.ts: a
 // weighted pick over a pool, with per-player "??? until caught" discovery. The
@@ -465,7 +486,9 @@ async function addToInventory(trx: any, playerId: number, itemName: string, qty:
 export async function canFishHere(
     playerId: number, locationId: number, mode: 'rod' | 'net',
 ): Promise<{ allowed: boolean; reason?: string }> {
-    const pool = await speciesAt(locationId);
+    const { water, shoal } = await waterFor(playerId, locationId);
+    if (shoal && mode === 'net') return { allowed: false, reason: 'A shoal is worked with a rod and line, a fish at a time.' };
+    const pool = await speciesAt(water);
     if (pool.length === 0) return { allowed: false, reason: 'There is nothing to fish for here.' };
 
     const subtype = mode === 'rod' ? 'fishing_rod' : 'fishing_net';
@@ -495,7 +518,9 @@ export async function canFishHere(
 
 const found_has = (set: Set<string>, name: string) => set.has(name);
 
-export async function getFishingOverview(playerId: number, locationId: number) {
+export async function getFishingOverview(playerId: number, locationIdHere: number) {
+    // On an islet with a shoal, the panel shows that shoal's water.
+    const locationId = (await waterFor(playerId, locationIdHere)).water;
     const location = await db('locations').where({ id: locationId }).first();
     const pool = await speciesAt(locationId);
     const level = await playerLevelFor(playerId, 'Fishing');
@@ -618,7 +643,10 @@ export async function processFishingCast(
             ? baitCategoryRaw
             : null;
 
-        const pool = await speciesAt(locationId);
+        // A shoal on an islet casts into its mainland water, boosted.
+        const { water, shoal } = await waterFor(playerId, locationId);
+        const boost = shoal?.boost ?? 1;
+        const pool = await speciesAt(water);
         if (pool.length === 0) return { success: false, error: 'There is nothing to fish for here.' };
 
         if ((await equippedToolTier(playerId, 'fishing_rod')) === 0) {
@@ -632,7 +660,7 @@ export async function processFishingCast(
         const eligible = pool.filter((s) => ineligibleReason(s, level, window, season) === null);
         if (eligible.length === 0) return { success: false, error: 'Nothing is biting here just now.' };
 
-        const salvage = await salvageAt(locationId);
+        const salvage = await salvageAt(water);
 
         // Something out there is beyond you. That is what can take the line.
         const hasBiggerFish = pool.some((s) => s.required_level > level);
@@ -642,11 +670,19 @@ export async function processFishingCast(
         // Rolled before the transaction: reading a buff can clear an expired one
         // on the plain connection (rule 18). A double doubles a rod's fish.
         const twice = await doubleYield(playerId, 'Fishing');
+        // The cast comes off the shoal first, in one conditional statement, so
+        // two casts never share its last one (race:check islet-shoal).
+        if (shoal && (await spendIsletFind(playerId, 'shoal', water)) === null) {
+            return { success: false, error: 'The shoal has moved on. The water here is empty.' };
+        }
         await db.transaction(async (trx) => {
             // Bait is spent on a snap as well as a catch, so it is resolved first.
+            // On a shoal the fish bite as if baited and no bait is used.
             let baitRemaining: number | null = null;
             let baited = false;
-            if (baitCategory) {
+            if (baitCategory && shoal) {
+                baited = true;
+            } else if (baitCategory) {
                 const remaining = await spendBait(trx, playerId, baitCategory,
                     (piece) => noteJewelry(trx, playerId, `Your ${piece} kept the bait.`));
                 if (remaining !== null) {
@@ -672,7 +708,7 @@ export async function processFishingCast(
             // pick and returns early. It pays half XP and, being no fish, rolls
             // no weight and touches no personal best. Bait having already been
             // spent is correct: the cast happened either way.
-            const salvageChance = baited ? SALVAGE_CHANCE_BAITED_PCT : SALVAGE_CHANCE_PCT;
+            const salvageChance = (baited ? SALVAGE_CHANCE_BAITED_PCT : SALVAGE_CHANCE_PCT) * boost;
             if (salvage.length > 0 && Math.random() * 100 < salvageChance) {
                 const found = weightedPick(
                     salvage.map((row) => ({ row, weight: row.base_weight })),
@@ -699,10 +735,16 @@ export async function processFishingCast(
             }
 
             const picked = weightedPick(
-                eligible.map((row) => ({ row, weight: pickWeightFor(row, window, season, baited ? baitCategory : null) })),
+                eligible.map((row) => ({
+                    row,
+                    weight: pickWeightFor(row, window, season, baited ? baitCategory : null) * (shoal ? shoalWeight(row, eligible, boost) : 1),
+                })),
             );
 
-            const weightCw = rollWeightCw(picked.min_weight_cw, picked.max_weight_cw);
+            // A shoal's fish run heavier: the better of two weights, so records fall here.
+            const weightCw = shoal
+                ? Math.max(rollWeightCw(picked.min_weight_cw, picked.max_weight_cw), rollWeightCw(picked.min_weight_cw, picked.max_weight_cw))
+                : rollWeightCw(picked.min_weight_cw, picked.max_weight_cw);
             await addToInventory(trx, playerId, picked.item_name, twice ? 2 : 1);
             if (twice) noteJewelry(trx, playerId, doubledLine(twice, picked.item_name));
             await awardSkillXp(trx, playerId, 'Fishing', picked.xp);

@@ -17,16 +17,18 @@ import { hasContent } from '../../lib/migrationContent';
 //   voyage_lines        new moments: 'find_<kind>' when a find is found,
 //                       'spent_<kind>' when it is worked out, 'find_nothing'.
 //
-// Only the stand of trees is wired in this step (services/woodcutting.ts);
-// the vein, shoal, patch, and trail follow, one skill at a time.
+// Wired so far: the stand of trees (services/woodcutting.ts), the exposed vein
+// (a private, never-announced ore_veins row, mined by services/mining.ts), and
+// the shoal (cast with a rod into its mainland water, services/fishing.ts
+// waterFor). The patch and trail follow.
 
 const ISLAND = 'Taiar Island';
 
 // [key, skill, min, max, boost, active]
 const KINDS: [string, string | null, number, number, number, boolean][] = [
     ['stand', 'Woodcutting', 40, 40, 3, true],
-    ['vein', 'Mining', 25, 40, 3, false],
-    ['shoal', 'Fishing', 40, 40, 3, false],
+    ['vein', 'Mining', 25, 40, 3, true],
+    ['shoal', 'Fishing', 40, 40, 3, true],
     ['patch', 'Foraging', 40, 40, 3, false],
     ['trail', 'Hunting', 15, 15, 3, false],
     ['nothing', null, 0, 0, 1, true],
@@ -55,6 +57,16 @@ const LINES: Record<string, string[]> = {
     spent_stand: [
         'The last good trunk comes down. What is left is brush and saplings, not worth the axe.',
         'You have cut the stand out. The islet looks bigger without it, and the light comes straight down.',
+    ],
+    find_vein: [
+        'Where the rock has split, a seam of ore shows in the face, bright as a wound. The sea has washed it clean for you.',
+        'A vein runs down through the stone into the water, fat with ore. Nobody has ever swung a pick at it.',
+        'The cliff has fallen away in a heap, and the fresh face shines with ore. Whatever brought it down did you a favour.',
+    ],
+    find_shoal: [
+        'Off the point the water is boiling with fish, turning silver all at once and gone again. They have never seen a hook.',
+        'The birds give it away first, diving and diving. Under them the sea is thick with a shoal.',
+        'In the lee of the rocks the water is dark with fish, packed so close they push each other to the surface.',
     ],
     find_nothing: [
         'You walk the islet end to end. Rock, weed, a few gulls. Nothing else worth the trip, this time.',

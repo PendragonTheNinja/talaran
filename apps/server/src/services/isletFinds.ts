@@ -42,15 +42,44 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
             .first('n.id');
         return node ? Number(node.id) : null;
     }
+    if (kind === 'shoal') {
+        // The island's water whose best fish the player can catch is the
+        // highest; more such fish breaks a tie.
+        const level = await skillLevel(x, playerId, 'Fishing');
+        const waters = await x('fish_species as f').join('locations as l', 'l.id', 'f.location_id')
+            .where('l.region', island).whereNull('l.islet_kind').where({ 'f.is_active': true, 'f.kind': 'fish' })
+            .where('f.required_level', '<=', level)
+            .groupBy('f.location_id')
+            .select('f.location_id').max('f.required_level as top').count('f.id as n')
+            .orderBy([{ column: 'top', order: 'desc' }, { column: 'n', order: 'desc' }, { column: 'f.location_id', order: 'asc' }]);
+        return waters.length ? Number(waters[0].location_id) : null;
+    }
+    if (kind === 'vein') {
+        // The best ore on the island the player has the level for: an ore some
+        // mainland node yields, the plain (not dense) kind.
+        const level = await skillLevel(x, playerId, 'Mining');
+        const subtypes = (await x('resource_nodes as n').join('locations as l', 'l.id', 'n.location_id')
+            .where('l.region', island).where('n.is_active', true).where('n.skill', 'mining').whereNotNull('n.ore_subtype')
+            .distinct('n.ore_subtype')).map((r: any) => r.ore_subtype);
+        if (!subtypes.length) return null;
+        const best = await x('items').where({ type: 'ore' }).whereNull('quality').whereIn('subtype', subtypes)
+            .where('level_required', '<=', level).orderBy('level_required', 'desc').select('id', 'level_required');
+        if (!best.length) return null;
+        const top = best.filter((o: any) => Number(o.level_required) === Number(best[0].level_required));
+        return Number(top[Math.floor(Math.random() * top.length)].id);
+    }
     return null;
 }
+
+/** An islet vein is a real vein, private to its finder and never announced (services/mining.ts mines it). */
+const NEVER = new Date('2999-01-01T00:00:00Z');
 
 /**
  * Roll this landing's find, inside the landing's transaction (the player row
  * is locked by the caller). Replaces any find the player still had.
  */
 export async function rollIsletFindWithin(trx: any, playerId: number, islet: { id: number; region: string }): Promise<IsletFind> {
-    await trx('player_islet_finds').where({ player_id: playerId }).delete();
+    await clearFindWithin(trx, playerId);
     const holds = await trx('islet_finds as f').join('islet_find_kinds as k', 'k.key', 'f.kind')
         .where({ 'f.location_id': islet.id, 'k.is_active': true })
         .select('f.kind', 'f.weight', 'k.amount_min', 'k.amount_max', 'k.boost');
@@ -67,9 +96,19 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
     const target = await targetFor(trx, playerId, pick.kind, islet.region);
     if (target === null) return nothing;
     const min = Number(pick.amount_min), max = Number(pick.amount_max);
+    const amount = min + Math.floor(Math.random() * (max - min + 1));
+    let targetId = target;
+    if (pick.kind === 'vein') {
+        // The target was the ore; the find points at the vein made of it.
+        const [vein] = await trx('ore_veins').insert({
+            location_id: islet.id, ore_item_id: target, total_quantity: amount, remaining_quantity: amount,
+            discovered_by_player_id: playerId, discovered_at: new Date(), announced_at: NEVER,
+            is_announced: false, is_dense: false, is_depleted: false,
+        }).returning('id');
+        targetId = Number(typeof vein === 'object' ? vein.id : vein);
+    }
     const find: IsletFind = {
-        kind: pick.kind, location_id: islet.id, target_id: target,
-        remaining: min + Math.floor(Math.random() * (max - min + 1)), boost: Number(pick.boost),
+        kind: pick.kind, location_id: islet.id, target_id: targetId, remaining: amount, boost: Number(pick.boost),
     };
     await trx('player_islet_finds').insert({ player_id: playerId, ...find });
     return find;
@@ -110,7 +149,16 @@ export async function spendIsletFind(playerId: number, kind: FindKind, targetId:
     return left;
 }
 
+/** A find, and whatever it put into the world (an islet vein), gone. */
+async function clearFindWithin(x: any, playerId: number): Promise<void> {
+    const old = await x('player_islet_finds').where({ player_id: playerId }).first('kind', 'target_id', 'location_id');
+    if (old?.kind === 'vein' && old.target_id) {
+        await x('ore_veins').where({ id: old.target_id, location_id: old.location_id, discovered_by_player_id: playerId }).delete();
+    }
+    await x('player_islet_finds').where({ player_id: playerId }).delete();
+}
+
 /** Leaving the islet: whatever was found there is gone. */
 export async function dropIsletFind(playerId: number, x: any = db): Promise<void> {
-    await x('player_islet_finds').where({ player_id: playerId }).delete();
+    await clearFindWithin(x, playerId);
 }

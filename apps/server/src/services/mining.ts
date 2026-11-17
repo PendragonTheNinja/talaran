@@ -9,11 +9,15 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin } from './inventory';
 import { jewelryAid, noteJewelry } from './jewelry';
 import { standsAt } from '../lib/whereabouts';
+import { isletFindHere } from './isletFinds';
 import { doubleYield, doubledLine } from './buffs';
 
 const VEIN_ANNOUNCE_DELAY = 10 * 60 * 1000;
 const DENSE_ORE_START_LEVELS = 15;
 const DENSE_ORE_GUARANTEED_LEVELS = 45;
+// On an islet vein, dense ore has this chance before the boost even below the
+// levels it usually needs (docs/islets-plan.md §4: "dense ore likelier").
+const ISLET_DENSE_FLOOR = 0.05;
 const MAX_TIER_DIFFERENCE = 3;
 
 /**
@@ -30,9 +34,15 @@ export async function veinNode(locationId: number, oreItemId: number): Promise<a
   const here = () => db('resource_nodes')
     .where({ location_id: locationId, skill: 'mining' })
     .whereNotNull('ore_subtype');
-  return (ore?.subtype ? await here().where({ ore_subtype: ore.subtype }).first() : null)
-    ?? (await here().first())
-    ?? null;
+  const found = (ore?.subtype ? await here().where({ ore_subtype: ore.subtype }).first() : null)
+    ?? (await here().first());
+  if (found || !ore?.subtype) return found ?? null;
+  // An islet has no ore nodes of its own: a vein found there is mined by the
+  // same ore's node elsewhere on its island (services/isletFinds.ts).
+  return (await db('resource_nodes as n').join('locations as l', 'l.id', 'n.location_id')
+    .join('locations as here', 'here.region', 'l.region')
+    .where({ 'here.id': locationId, 'n.skill': 'mining', 'n.ore_subtype': ore.subtype })
+    .orderBy('n.id').first('n.*')) ?? null;
 }
 
 export interface MiningResult {
@@ -276,6 +286,17 @@ export async function processMiningVein(
       isDense = Math.random() < denseChance;
     }
 
+    // An exposed vein on an islet (services/isletFinds.ts): dense ore and gems
+    // `boost` times likelier, dense from the first level.
+    const islet = await isletFindHere(playerId, 'vein', veinId);
+    const boost = islet?.boost ?? 1;
+    if (islet && !isDense) {
+      const base = levelsOver >= DENSE_ORE_START_LEVELS
+        ? (levelsOver - DENSE_ORE_START_LEVELS) / (DENSE_ORE_GUARANTEED_LEVELS - DENSE_ORE_START_LEVELS)
+        : ISLET_DENSE_FLOOR;
+      isDense = Math.random() < Math.min(1, Math.max(base, ISLET_DENSE_FLOOR) * boost);
+    }
+
     let oreItem = ore;
     if (isDense) {
       const denseOre = await db('items')
@@ -357,7 +378,7 @@ export async function processMiningVein(
 
     // Gems turn up in ore as they do in stone (docs/talar-spec.md §2), keyed by
     // the ore's kind so a dense swing rolls the same table as a plain one.
-    const drops = await rollSecondaryDrops(playerId, `mining:ore:${ore.subtype}`, 'Mining');
+    const drops = await rollSecondaryDrops(playerId, `mining:ore:${ore.subtype}`, 'Mining', boost);
 
     logger.info(`Player ${playerId} mined ${oreItem.name} from vein ${veinId} (${newRemaining} remaining)`);
     return {
