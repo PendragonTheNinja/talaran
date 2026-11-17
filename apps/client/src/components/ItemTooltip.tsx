@@ -72,6 +72,10 @@ function combatLines(d: ItemDetail | null): string[] {
         const type = d.damage_type ? d.damage_type.charAt(0).toUpperCase() + d.damage_type.slice(1) : ''
         lines.push(`${FORM_WORDS[d.weapon_form] ?? d.weapon_form}. ${type}${d.swing_seconds ? `, every ${d.swing_seconds}s` : ''}`)
         lines.push(`Aim ${d.aim ?? 0}, power ${d.power ?? 0}`)
+    } else {
+        // A ring or charm worn for a fight adds to the weapon's own numbers.
+        if (d.aim) lines.push(`Aim +${d.aim}`)
+        if (d.power) lines.push(`Power +${d.power}`)
     }
     if (d.armour) lines.push(`Armour ${d.armour}`)
     if (d.requires_skill && d.level_required && d.level_required > 1) {

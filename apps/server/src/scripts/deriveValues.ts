@@ -332,8 +332,9 @@ async function main(): Promise<void> {
     const COMBAT_NATIVE_SUBTYPES = new Set(['rare_weapon', 'shell_armor', 'trophy']);
     // Items of a shared kind whose only road is a fight, by name, as the museum
     // names its exceptions: a Wolf Pelt is a hide like any hunter's, but only
-    // a wolf gives it, so nothing else would ever price it.
-    const COMBAT_ONLY_ITEMS = new Set(['Wolf Pelt']);
+    // a wolf gives it, so nothing else would ever price it. The same for the
+    // pelts and plates of the drop pass (docs/antura-plan.md §10, 2026-11-17).
+    const COMBAT_ONLY_ITEMS = new Set(['Wolf Pelt', 'Ratskin', 'Jackalope Pelt', 'Crabshell Plate', 'Shellback Plate']);
     const subtypeByName = new Map(items.map((i) => [i.name, i.subtype]));
     const combatProposals: [string, Derived][] = [];
     const creaturesByKey = new Map((await readTable('creatures')).map((c: any) => [String(c.key), c]));
