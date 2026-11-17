@@ -18,7 +18,7 @@ Nathan and Claude designed Antura over three days and stopped part-way through r
 
 **Still to do with Nathan, in rough order:**
 
-1. What a tier 2 homestead gives (§6), and Nathan's verdict on the hiring design in §6b; then the Carpentry and Smithing numbers.
+1. Nathan's verdict on the tier curve (§6) and the hiring design (§6b); then the Carpentry and Smithing numbers.
 2. One pass over every creature's drops on both islands (§10): Taiar's are thin, Antura's are first ideas. No meat, no Bones.
 3. The tier 2 cloak: its name, pelt counts, and levels (§10).
 4. Creature levels, weaknesses, and names are placeholders until he confirms them; so is the invented lake fish (§9).
@@ -155,15 +155,20 @@ Settled: the existing recipes stay where they are, because nearly every one is a
 - The tier 2 guild hall is already a row: 3,000 Lanai Planks, 3,000 Granite Blocks, 5,000 Serph Nails.
 - Benches are built anew in each town (settled); on Antura they are Lanai benches with Serph tools.
 - **Homesteads and shops have tiers, not islands** (Nathan, 2026-11-17). A tier 1 homestead can be built on any island, Antura's included, from Carpentry 1, and upgraded later. **A tier 2 homestead can be built outright for more materials. Tier 2 needs Carpentry 13**, whether built outright or upgraded, and the same holds for shops. "Any island" is read as each island's homestead ground (Novita, Farefield) and port town (Talador, Wendhaven), one of each per island per player.
-- Proposed costs. Tier 1 is today's: the farmstead 500 Lanai Planks, 500 Granite Blocks, 1,000 Ambren Nails in 600 s; the shop 350, 350, and 700 in 480 s. The upgrade to tier 2 uses Serph Nails, and building tier 2 outright costs the tier 1 build and the upgrade together, all in Serph Nails, which is a little dearer than the two steps because Serph Nails are worth more than Ambren:
+- **Slots grow on a slight curve by tier** (Nathan, 2026-11-17): every tier gives more slots for the materials spent than the one before, counting everything spent on that building since tier 1.
+- **A homestead's tiers are for storage** (Nathan, 2026-11-17). Tier 2 crops and animals do not need a tier 2 homestead: Farming and Husbandry are gated by their own levels (CLAUDE.md §2), Antura's homestead is tier 1 by design and must grow Antura's crops, and every tier adds new items to keep, one slot each, so storage is what a farmer runs short of as they climb.
+- Proposed rule: **each upgrade costs the same number of materials, in its own tier's** (planks, blocks, and nails of that tier), **and adds 1.2 times the slots the last upgrade added.** Building a tier outright costs the tier 1 build and every upgrade to it together, all in that tier's nails. An upgrade takes 0.3 s a material, as the farmstead's 600 s for 2,000 does; building outright takes the tier 1 build's time and the upgrades' together.
 
-  | | Tier 1 | Upgrade to tier 2 | Tier 2 outright |
-  |---|---|---|---|
-  | Homestead | 500 / 500 / 1,000 Ambren, 600 s | 600 / 600 / 1,200 Serph, 600 s | 1,100 / 1,100 / 2,200 Serph, 1,200 s |
-  | Shop | 350 / 350 / 700 Ambren, 480 s | 450 / 450 / 900 Serph, 480 s | 800 / 800 / 1,600 Serph, 960 s |
+  | Tier | Homestead storage | Homestead materials | Shop storage / selling / buying | Shop materials |
+  |---|---|---|---|---|
+  | 1 | 50 | 2,000 (500 / 500 / 1,000 Ambren), 600 s | 75 / 12 / 6 | 1,400 (350 / 350 / 700 Ambren), 480 s |
+  | 2 | 80 | upgrade 1,000 (250 / 250 / 500 Serph), 300 s | 100 / 16 / 8 | upgrade 400 (100 / 100 / 200 Serph), 120 s |
+  | 3 | 116 | upgrade 1,000 | 130 / 21 / 11 | upgrade 400 |
+  | 4 | 159 | upgrade 1,000 | 166 / 27 / 14 | upgrade 400 |
+  | 5 | 211 | upgrade 1,000 | 209 / 34 / 18 | upgrade 400 |
 
-  Planks, blocks, and nails in that order. A tier 2 shop has 100 storage, 16 selling, and 8 buying slots, where tier 1 has 75, 12, and 6 (`SHOP_TIERS` in `services/shops.ts` holds tier 1 today and was built to take more).
-- **Open: what a tier 2 homestead gives.** Fields are capped by Farming level and pens by Husbandry level, and CLAUDE.md §2 says never to gate one skill's capacity behind another's level, so a Carpentry-built tier cannot add fields or pens. What is the building's own is its storage (50 slots today, `player_properties.storage_slots`). Still Nathan's to decide.
+  Slots for every 1,000 materials spent, homestead storage: 25, 27, 29, 32, 35. Shop storage: 54, 56, 59, 64, 70. The rise is 6 to 10% a tier. **Tier 2 outright:** a homestead 750 / 750 / 1,500 Serph in 900 s; a shop 450 / 450 / 900 Serph in 600 s. Rows above tier 2 are the curve's shape only, and the tier 1 numbers are live today and unchanged. Selling and buying gains round up, so they never stall.
+- Capacity already lives on the property row (`storage_slots`) and in `SHOP_TIERS` (`services/shops.ts`), so a tier is a number change; the upgrade action and the tier 2 rows are new.
 
 ## 6a. The Carpentry and Smithing review (started 2026-11-16, not finished)
 
