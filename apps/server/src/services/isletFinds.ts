@@ -1,5 +1,7 @@
 import db from '../db';
 import { levelFromXp } from './xp';
+import { addItemToInventoryWithin } from './inventory';
+import { creditGoldWithin } from './gold';
 
 // ── What a landing finds (docs/islets-plan.md §2 and §4) ─────────────────────
 //
@@ -11,7 +13,10 @@ import { levelFromXp } from './xp';
 // islet. Each skill's own action spends it, one use at a time, through
 // isletFindHere and spendIsletFind; nothing about the skill's rules changes.
 
-export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'nothing';
+export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'nothing';
+
+const CHEST_COINS_MIN = 3;
+const CHEST_COINS_MAX = 10;
 
 export interface IsletFind {
     kind: FindKind
@@ -108,6 +113,16 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
     }
     const nothing: IsletFind = { kind: 'nothing', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
     if (!pick || pick.kind === 'nothing') return nothing;
+    if (pick.kind === 'chest') {
+        // Dug up there and then: a Locked Rusty Chest for Geoffrey to open,
+        // and a few loose coins from the digging. Nothing is left to work.
+        const chest = await trx('items').where({ name: 'Locked Rusty Chest' }).first('id');
+        if (!chest) return nothing;
+        await addItemToInventoryWithin(trx, playerId, chest.id, 1);
+        const coins = CHEST_COINS_MIN + Math.floor(Math.random() * (CHEST_COINS_MAX - CHEST_COINS_MIN + 1));
+        await creditGoldWithin(trx, { playerId, amount: coins, reason: 'strandline_coins' });
+        return { kind: 'chest', location_id: islet.id, target_id: chest.id, remaining: 0, boost: 1 };
+    }
 
     const target = await targetFor(trx, playerId, pick.kind, islet.region);
     if (target === null) return nothing;

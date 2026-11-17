@@ -159,7 +159,9 @@ Numbers (simulated 2026-11-17; proposed):
 
 Still open: what the sea chest holds besides a piece (proposed: the island's goods, as the buried chest), what a Locked Rusty Chest holds, Geoffrey's fees, and the set's names.
 
-## 6e. The chests (Nathan, 2026-11-17; rows still his to cut)
+## 6e. The chests (Nathan, 2026-11-17)
+
+**Built 2026-11-17** (migration `20261117170000_chests_and_sailors_set`): `chest_locks` and Geoffrey's "Can you open a locked chest for me?" at every stage but the quest's accept (`services/chests.ts`: every chest the purse covers, cheapest first, one transaction; race:check `chest`); the Rusty Chest and Sea Chest as containers paying Fishing; their contents below as `open:` rows; Taiar's four pieces (Tarred Hood, Rope-Worker's Gloves, Sea Boots, Sounding Lead), each 1% off a sea leg, the 5% set bonus only with all eleven slots filled; one random worn piece worn each sea journey (600 then 0.25%), a break announced on arrival; the Sea Chest's piece (`services/sailorSet.ts`: never one already found first, certain at the sixth chest); the buried chest find (12 on the common islets, 10 on the seldom, 30 at the ruin); the keepsakes and the From the Islets exhibit; the Knocker's Hammer reworded. Not yet: the guardians, so nothing gives a Locked Sea Chest until step 3.
 
 **Settled:**
 - **Geoffrey unlocks a locked chest for a fee and hands back its unlocked twin**: a Locked Rusty Chest becomes a Rusty Chest (the item Fishing's salvage already gives), a Locked Sea Chest a Sea Chest. No XP for the unlocking, before or after his quest. **The player opens it themselves**, a 10-second action that pays Fishing, the same way Bird Nests and River Mussels open (`container_types`, contents as `open:<chest>` rows, migration `20261113100000_containers`). If Thieving is ever built, it would pick the lock in his place.

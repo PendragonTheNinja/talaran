@@ -1639,6 +1639,31 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'chest', name: 'Geoffrey asked five times at once to unlock three chests, with gold for two', rounds: 20,
+        run: async (ctx) => {
+            // services/chests.ts: every chest is either still locked or swapped
+            // for its unlocked twin, never both and never neither; only as many
+            // as the purse pays for are unlocked; the gold and its ledger agree.
+            const w = await world(ctx);
+            const locked = await ctx.seed.row('items', { name: 'Locked Rusty Chest', type: 'collectible', subtype: 'container_locked' });
+            const open = await ctx.seed.row('items', { name: 'Rusty Chest', type: 'collectible', subtype: 'container' });
+            await ctx.seed.row('chest_locks', { locked_item: 'Locked Rusty Chest', unlocked_item: 'Rusty Chest', fee: 25, is_active: true });
+            await inPack(ctx, w.player.id, locked.id, 3);
+            await fund(ctx, w.player.id, 50);
+            const { unlockChests } = await import('../services/chests');
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => unlockChests(w.player.id)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok && r.value.error === 'Server error')).length;
+            const stillLocked = await ctx.itemTotal(locked.id);
+            const unlocked = await ctx.itemTotal(open.id);
+            const gold = await goldOf(ctx, w.player.id);
+            return (crashed ? `${crashed} unlock(s) hit a server error` : null)
+                ?? changed('chests, locked and unlocked together', 3, stillLocked + unlocked)
+                ?? changed('chests unlocked with gold for two', 2, unlocked)
+                ?? changed('gold left after two unlocks at 25', 0, gold)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
         id: 'guild', name: 'five members take 30 gold each at once from a guild purse of 100', rounds: 10,
         run: async (ctx) => {
             const g = await guildWorld(ctx, 100, 5);

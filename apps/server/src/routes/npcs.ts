@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { crierHasWordFor, CRIER_ROAMS_WITH } from '../services/crierPolls';
 import { updateQuestObjectiveProgress, checkQuestCompletion, questStartChoices, questXpAwards } from './quests';
+import { unlockChests } from '../services/chests';
 
 const router = Router();
 
@@ -158,6 +159,15 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
 
         if (!action || action === 'close') {
             res.json({ success: true, action: 'close' });
+            return;
+        }
+
+        // Geoffrey opens locks for a fee (services/chests.ts). The action was
+        // checked above against what this NPC offers and where the player stands.
+        if (action === 'unlock_chests') {
+            const done = await unlockChests(playerId);
+            if (!done.ok) { res.status(done.status).json({ error: done.error }); return; }
+            res.json({ success: true, action, message: done.message });
             return;
         }
 

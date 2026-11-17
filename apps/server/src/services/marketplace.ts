@@ -266,6 +266,8 @@ const PAWN_ONLY_SUBTYPES = new Set([
     'writ',
     // Combat drops nobody makes (docs/combat-spec.md §8).
     'rare_weapon', 'shell_armor',
+    // From the islets: keepsakes and the sailor's set come out of chests only.
+    'keepsake', 'sailors_set',
 ]);
 
 export interface UnmappedItem {

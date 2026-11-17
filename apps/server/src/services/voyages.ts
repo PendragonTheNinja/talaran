@@ -8,6 +8,7 @@ import { addItemToInventoryWithin } from './inventory';
 import { creditGoldWithin } from './gold';
 import { endFightIfAny } from './combatFights';
 import { dropIsletFind, rollIsletFindWithin } from './isletFinds';
+import { seaSpeedFactor, wearSailingPieceWithin } from './sailorSet';
 
 // ── Voyages: putting to sea, islets, and coming home ─────────────────────────
 // (docs/sailing-spec.md §6, docs/islets-plan.md; Nathan, 2026-11-15 to 17)
@@ -127,7 +128,10 @@ async function startLeg(playerId: number, to: { id: number; name: string }, leg:
     write: (trx: any) => Promise<void>): Promise<{ travelTime: number }> {
     await endFightIfAny(playerId);
     const base = ISLET_LEG_SECONDS;
-    const travelTime = legSeconds(base, Number(vessel.speed_start ?? 1), Number(vessel.speed_floor ?? 1), await wayfaringLevel(playerId));
+    // The boat and Wayfaring set the leg; the sailor's set takes its share off (services/sailorSet.ts).
+    const travelTime = Math.max(1, Math.round(
+        legSeconds(base, Number(vessel.speed_start ?? 1), Number(vessel.speed_floor ?? 1), await wayfaringLevel(playerId))
+        * await seaSpeedFactor(playerId)));
     const now = new Date();
     const from = await db('players').where({ id: playerId }).first('current_location_id');
     await db.transaction(async (trx) => {
@@ -238,9 +242,15 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
     const findLine = async (moment: string) => line(island, moment);
     const island = place?.region ?? '';
     if (leg === 'home' || !place?.islet_kind) {
-        await db('player_voyages').where({ player_id: playerId }).delete();
+        const broke = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+            await trx('player_voyages').where({ player_id: playerId }).delete();
+            return wearSailingPieceWithin(trx, playerId);
+        });
         const said = await line(island, 'home');
-        return { events: said ? [{ message: said, itemName: null, quantity: 0 }] : [], firstLanding: false };
+        const events: SeaArrival['events'] = said ? [{ message: said, itemName: null, quantity: 0 }] : [];
+        if (broke) events.push({ message: `Your ${broke} gives out at last, worn through by the sea.`, itemName: null, quantity: 0 });
+        return { events, firstLanding: false };
     }
 
     const arrive = await line(island, 'arrive', place.id);
@@ -270,6 +280,9 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
                 }
             }
         }
+        // Every sea journey wears one worn piece of the sailor's set.
+        const broke = await wearSailingPieceWithin(trx, playerId);
+        if (broke) events.push({ message: `Your ${broke} gives out at last, worn through by the sea.`, itemName: null, quantity: 0 });
         // This landing's own find (services/isletFinds.ts), told after the shore.
         const find = await rollIsletFindWithin(trx, playerId, { id: place.id, region: island });
         const said = await findLine(`find_${find.kind}`);

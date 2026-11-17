@@ -59,6 +59,8 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [transitioning, setTransitioning] = useState(false)
+    // What the NPC said back to an action (Geoffrey unlocking chests).
+    const [said, setSaid] = useState<string | null>(null)
 
     const loadDialogue = async () => {
         try {
@@ -94,10 +96,11 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
         try {
             if (option.action) {
                 // Server action — interact then reload
-                const result = await apiFetch<{ rewards?: QuestRewards | null }>(
+                const result = await apiFetch<{ rewards?: QuestRewards | null; message?: string }>(
                     `/api/npcs/${npcId}/interact`,
                     { method: 'POST', body: JSON.stringify({ action: option.action }) },
                 )
+                setSaid(result?.message ?? null)
                 onInteraction?.()
 
                 // Finishing a quest ends the conversation. The rewards were
@@ -168,6 +171,7 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
                                     {error}
                                 </p>
                             )}
+                            {said && <p className="npc-text">{said}</p>}
 
                             {/* Dialogue text */}
                             <div className="npc-text-block">

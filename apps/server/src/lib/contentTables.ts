@@ -124,6 +124,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     voyage_lines:                { label: 'Voyage Lines',          group: 'World',      snapshot: true, editable: true },
     islet_find_kinds:            { label: 'Islet Find Kinds',      group: 'World',      snapshot: true, editable: true },
     islet_finds:                 { label: 'Islet Finds',           group: 'World',      snapshot: true, editable: true },
+    // Geoffrey's locks (services/chests.ts): each locked chest, its unlocked twin, and his fee.
+    chest_locks:                 { label: 'Chest Locks',           group: 'World',      snapshot: true, editable: true },
     // The Chronicle (docs/chronicle-spec.md): what each kind of deed weighs, the
     // bard's verses and the tavern she keeps them in are authored; the journal,
     // the finished pages and the ballads are state.
