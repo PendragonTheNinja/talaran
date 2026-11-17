@@ -157,17 +157,17 @@ Settled: the existing recipes stay where they are, because nearly every one is a
 - **Homesteads and shops have tiers, not islands** (Nathan, 2026-11-17). A tier 1 homestead can be built on any island, Antura's included, from Carpentry 1, and upgraded later. **A tier 2 homestead can be built outright for more materials. Tier 2 needs Carpentry 13**, whether built outright or upgraded, and the same holds for shops. "Any island" is read as each island's homestead ground (Novita, Farefield) and port town (Talador, Wendhaven), one of each per island per player.
 - **Slots grow on a slight curve by tier** (Nathan, 2026-11-17): every tier gives more slots for the materials spent than the one before, counting everything spent on that building since tier 1.
 - **A homestead's tiers are for storage** (Nathan, 2026-11-17). Tier 2 crops and animals do not need a tier 2 homestead: Farming and Husbandry are gated by their own levels (CLAUDE.md §2), Antura's homestead is tier 1 by design and must grow Antura's crops, and every tier adds new items to keep, one slot each, so storage is what a farmer runs short of as they climb.
-- Settled (Nathan, 2026-11-17): **each upgrade costs the same number of materials, in its own tier's** (planks, blocks, and nails of that tier), **and adds 1.2 times the slots the last upgrade added, except a shop's selling slots, whose gain grows 1.5 times a tier.** Building a tier outright costs the tier 1 build and every upgrade to it together, all in that tier's nails. An upgrade takes 0.3 s a material, as the farmstead's 600 s for 2,000 does; building outright takes the tier 1 build's time and the upgrades' together.
+- Settled (Nathan, 2026-11-17): **each upgrade costs the same number of materials, in its own tier's** (planks, blocks, and nails of that tier), **and adds 1.2 times the slots the last upgrade added, except a shop's selling slots, which multiply by 1.5 a tier, rounded up** (Nathan, 2026-11-17). Building a tier outright costs the tier 1 build and every upgrade to it together, all in that tier's nails. An upgrade takes 0.3 s a material, as the farmstead's 600 s for 2,000 does; building outright takes the tier 1 build's time and the upgrades' together.
 
   | Tier | Homestead storage | Homestead materials | Shop storage / selling / buying | Shop materials |
   |---|---|---|---|---|
   | 1 | 50 | 2,000 (500 / 500 / 1,000 Ambren), 600 s | 75 / 12 / 6 | 1,400 (350 / 350 / 700 Ambren), 480 s |
-  | 2 | 80 | upgrade 1,000 (250 / 250 / 500 Serph), 300 s | 100 / 16 / 8 | upgrade 400 (100 / 100 / 200 Serph), 120 s |
-  | 3 | 116 | upgrade 1,000 | 130 / 22 / 11 | upgrade 400 |
-  | 4 | 159 | upgrade 1,000 | 166 / 31 / 14 | upgrade 400 |
-  | 5 | 211 | upgrade 1,000 | 209 / 45 / 18 | upgrade 400 |
+  | 2 | 80 | upgrade 1,000 (250 / 250 / 500 Serph), 300 s | 100 / 18 / 8 | upgrade 400 (100 / 100 / 200 Serph), 120 s |
+  | 3 | 116 | upgrade 1,000 | 130 / 27 / 11 | upgrade 400 |
+  | 4 | 159 | upgrade 1,000 | 166 / 41 / 14 | upgrade 400 |
+  | 5 | 211 | upgrade 1,000 | 209 / 61 / 18 | upgrade 400 |
 
-  Slots for every 1,000 materials spent, homestead storage: 25, 27, 29, 32, 35. Shop storage: 54, 56, 59, 64, 70. Shop selling: 8.6, 8.9, 10, 12, 15. The rise is 6 to 10% a tier, and steeper for selling slots. **Tier 2 outright:** a homestead 750 / 750 / 1,500 Serph in 900 s; a shop 450 / 450 / 900 Serph in 600 s. Rows above tier 2 are the curve's shape only, and the tier 1 numbers are live today and unchanged. Selling and buying gains round up, so they never stall.
+  Slots for every 1,000 materials spent, homestead storage: 25, 27, 29, 32, 35. Shop storage: 54, 56, 59, 64, 70. Shop selling: 8.6, 10, 12, 16, 20. The rise is 6 to 10% a tier, and steeper for selling slots. **Tier 2 outright:** a homestead 750 / 750 / 1,500 Serph in 900 s; a shop 450 / 450 / 900 Serph in 600 s. Rows above tier 2 are the curve's shape only, and the tier 1 numbers are live today and unchanged. Buying gains round up, so they never stall.
 - Capacity already lives on the property row (`storage_slots`) and in `SHOP_TIERS` (`services/shops.ts`), so a tier is a number change; the upgrade action and the tier 2 rows are new.
 
 ## 6a. The Carpentry and Smithing review (started 2026-11-16, not finished)
