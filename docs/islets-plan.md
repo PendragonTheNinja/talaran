@@ -239,6 +239,15 @@ For scale, a Hodag at the same level is 49 s and 17%. So a guardian is about thr
 
 Still Nathan's: the three profiles; whether the Siren's song should do something of its own (a slower first swing from the fighter, say) or stay plain numbers; and the cache weights.
 
+## 6g. Young, flowers, the ruin's artefacts, and Quank (built 2026-11-17; proposed numbers)
+
+Migration `20261117190000_islet_finds_rest`, `services/isletFinds.ts`. Weights from §4: the common islets young 8, flowers 10, Quank 1; the seldom ones young 15, artefacts 3, Quank 2; the ruin young 15, artefacts 25, Quank 10 (only where the islet's character fits: no flowers on bare rock, no young on the drowned quarry).
+
+- **Young** (`islet_find_items`, by weight): a Chick or two 35, a Calf 30, a Piglet 20, a Rouncey Foal 10, a Palfrey Foal 5. Foals stay the rare ones, as on the hunt.
+- **Flowers**: two to five Daisies 35, two to four sprigs of Lavender 30, two or three Taiaria 25. Tal's Hope is left out on purpose: its name breaks the lore rule and is down for the 1.0 reset.
+- **The ruin's artefacts**, Taiar's set of five for the From the Islets exhibit: the Carved Lintel Stone, the Weathered Figurine, the Cracked Clay Lamp, the Ambren Door Key, and the String of Sea-Glass Beads. One never found first, then any (`player_artefacts_found`).
+- **Quank**, once on Taiar's islets and never again there (`player_quank_met`): his scene, three lines in order, then one thing that is true right now, a rumour from the Chronicle (`trueRumours`) in one of Wenna's own verses, then "That is all," he says. "Go away. I am not here." No power and no loot. Not yet: his feat, a Chronicle line (a new deed kind needs ten verses), and the quiet count for bad luck.
+
 ## 6a. Quank
 
 He leaves Talador's square at the end of his tutorial ("Do not come looking. There will be nothing to look at."), so finding him on an islet is finding where he went. Proposed, so that he stays a mystery and never becomes a shop:

@@ -286,8 +286,18 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
         if (broke) events.push({ message: `Your ${broke} gives out at last, worn through by the sea.`, itemName: null, quantity: 0 });
         // This landing's own find (services/isletFinds.ts), told after the shore.
         const find = await rollIsletFindWithin(trx, playerId, { id: place.id, region: island });
-        const said = await findLine(`find_${find.kind}`);
-        if (said) events.push({ message: said, itemName: null, quantity: 0 });
+        if (find.kind === 'quank') {
+            // His scene, in order, then one true thing, then his last word.
+            const scene = (await trx('voyage_lines').where({ island, moment: 'quank', is_active: true }).orderBy('id').pluck('text')) as string[];
+            for (const text of scene) events.push({ message: text, itemName: null, quantity: 0 });
+            const truth = await quankTruth();
+            if (truth) events.push({ message: `"${truth}"`, itemName: null, quantity: 0 });
+            const coda = await findLine('quank_coda');
+            if (coda) events.push({ message: coda, itemName: null, quantity: 0 });
+        } else {
+            const said = await findLine(`find_${find.kind}`);
+            if (said) events.push({ message: find.words ? said.replace('{find}', find.words) : said, itemName: null, quantity: 0 });
+        }
         return { events, firstLanding: inserted.length > 0 };
     });
 }
@@ -309,6 +319,25 @@ async function rollStrandline(island: string): Promise<{ item: string; quantity:
             const min = Number(r.min_qty), max = Number(r.max_qty);
             const quantity = min + Math.floor(Math.random() * (max - min + 1));
             return { item: r.item_name, quantity, words: strandWords(r, quantity) };
+        }
+    }
+    return null;
+}
+
+/**
+ * Quank's one true thing: a rumour that is true right now (the Chronicle's,
+ * services/chronicleRumours.ts), in one of Wenna's own verses for it. Never
+ * what the Bestiary or the museum keeps back, as no rumour is.
+ */
+async function quankTruth(): Promise<string | null> {
+    const { trueRumours } = await import('./chronicleRumours');
+    const { renderVerse } = await import('../lib/chronicleVerse');
+    const rumours = (await trueRumours()).sort(() => Math.random() - 0.5);
+    for (const r of rumours) {
+        const verses = (await db('chronicle_verses').where({ kind: r.kind, enabled: true }).pluck('text')) as string[];
+        for (const v of verses.sort(() => Math.random() - 0.5)) {
+            const said = renderVerse(v, r.slots, `quank:${r.subject}:${Date.now()}`);
+            if (said) return said;
         }
     }
     return null;

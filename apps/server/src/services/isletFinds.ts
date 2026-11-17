@@ -13,7 +13,7 @@ import { creditGoldWithin } from './gold';
 // islet. Each skill's own action spends it, one use at a time, through
 // isletFindHere and spendIsletFind; nothing about the skill's rules changes.
 
-export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'cache' | 'nothing';
+export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'cache' | 'young' | 'flowers' | 'artefact' | 'quank' | 'nothing';
 
 const CHEST_COINS_MIN = 3;
 const CHEST_COINS_MAX = 10;
@@ -24,6 +24,8 @@ export interface IsletFind {
     target_id: number | null
     remaining: number
     boost: number
+    /** How what was handed over reads in its line ({find}): young, flowers, an artefact. */
+    words?: string
 }
 
 async function skillLevel(x: any, playerId: number, skill: string): Promise<number> {
@@ -92,6 +94,19 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
     return null;
 }
 
+/** Pick a row by its weight column. */
+function pickByWeight<T extends { weight: unknown }>(rows: T[]): T | null {
+    const total = rows.reduce((s, r) => s + Number(r.weight), 0);
+    let roll = Math.random() * total;
+    for (const r of rows) { roll -= Number(r.weight); if (roll < 0) return r; }
+    return rows[rows.length - 1] ?? null;
+}
+
+/** "a" or "an" before a name, lower-case "the" names left alone. */
+function withArticleWord(name: string): string {
+    return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+}
+
 /** An islet vein is a real vein, private to its finder and never announced (services/mining.ts mines it). */
 const NEVER = new Date('2999-01-01T00:00:00Z');
 
@@ -113,6 +128,37 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
     }
     const nothing: IsletFind = { kind: 'nothing', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
     if (!pick || pick.kind === 'nothing') return nothing;
+    if (pick.kind === 'young' || pick.kind === 'flowers') {
+        // Handed over there and then, from the island's list (islet_find_items).
+        const rows = await trx('islet_find_items').where({ island: islet.region, kind: pick.kind, is_active: true })
+            .select('item_name', 'min_qty', 'max_qty', 'weight', 'words_one', 'words_many');
+        const row: any = pickByWeight(rows as any[]);
+        const item = row ? await trx('items').where({ name: row.item_name }).first('id', 'name') : null;
+        if (!row || !item) return nothing;
+        const qty = Number(row.min_qty) + Math.floor(Math.random() * (Number(row.max_qty) - Number(row.min_qty) + 1));
+        await addItemToInventoryWithin(trx, playerId, item.id, qty);
+        const written = qty === 1 ? row.words_one : row.words_many;
+        const words = written ? String(written).replace('{n}', String(qty)) : (qty === 1 ? item.name : `${qty} ${item.name}`);
+        return { kind: pick.kind, location_id: islet.id, target_id: item.id, remaining: 0, boost: 1, words };
+    }
+    if (pick.kind === 'artefact') {
+        // One of the island's relics, one never found first, then any.
+        const relics = await trx('items').where({ type: 'curio', subtype: 'artefact', set_island: islet.region, is_active: true }).select('id', 'name');
+        if (!relics.length) return nothing;
+        const had = new Set((await trx('player_artefacts_found').where({ player_id: playerId }).pluck('item_id')).map(Number));
+        const fresh = relics.filter((r: any) => !had.has(Number(r.id)));
+        const relic = (fresh.length ? fresh : relics)[Math.floor(Math.random() * (fresh.length || relics.length))];
+        await addItemToInventoryWithin(trx, playerId, relic.id, 1);
+        await trx('player_artefacts_found').insert({ player_id: playerId, item_id: relic.id }).onConflict(['player_id', 'item_id']).ignore();
+        return { kind: 'artefact', location_id: islet.id, target_id: relic.id, remaining: 0, boost: 1, words: `${withArticleWord(relic.name)}` };
+    }
+    if (pick.kind === 'quank') {
+        // Once on each island's islets, never again there (docs/islets-plan.md §6a).
+        const met = await trx('player_quank_met').insert({ player_id: playerId, island: islet.region })
+            .onConflict(['player_id', 'island']).ignore().returning('island');
+        if (!met.length) return nothing;
+        return { kind: 'quank', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
+    }
     if (pick.kind === 'cache') {
         // A guarded cache: the guardian of this islet's guardian spot
         // (services/combatFights.ts), one fight, its chest the only reward.
