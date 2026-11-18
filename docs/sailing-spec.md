@@ -137,13 +137,15 @@ Every voyage writes its own record, so there is something to read at the end of 
 - Lines are content rows, written from inside the world (CLAUDE.md §2 and §10), several for each thing so a sailor does not read the same line twice in an evening.
 - Settled on read, like a fight: the watches due are written when the voyage is next looked at or ends, never by a sweep ticking every boat.
 
+**Built 2026-11-18** (migration `20261117210000_ships_log`, `services/shipLog.ts`, `ShipLog.tsx` as the Ship's Log tab in the log panel). A voyage's weather (fair, grey, calm, fog, or squall) is set when it puts to sea; each leg is cut into watches, one a minute and at least two, all written as the leg starts, each shown once its moment has passed. A watch is the weather, the sea, something aboard, a sighting, or a step of a story told over two or three watches (one story a leg, never the same twice in a voyage). A leg's own lines keep their place: leaving early, landfall at the last watch. The landing's lines are kept beside the leg. The newest 20 voyages are kept. Lines are rows in `ship_log_lines` (kind, weather, leg, story key and step, weight), editable in the content browser.
+
 ## 8. What a crossing turns up (Nathan, 2026-11-15: mostly flavour text)
 
 A crossing is for getting there. The islets are where things are found. So a crossing's watches are words in the log, not loot.
 
 Agreed (Nathan, 2026-11-15), to fit how the land already works: a walker finds things on the road and a rider does not, and a sailor is paid as a rider is, so a crossing gives no ordinary finds. One exception keeps a long crossing from being nothing but waiting:
 
-- **A rare sighting:** something vast under the hull, kept as a trophy, at a rate scaled to how often crossings happen (CLAUDE.md §8 trophy rates). A trophy already has a use: it is worn, and it sells to the pawnbroker.
+- **A rare sighting:** something vast under the hull, kept as a trophy, at a rate scaled to how often crossings happen (CLAUDE.md §8 trophy rates). A trophy already has a use: it is worn, and it sells to the pawnbroker. **Built 2026-11-18, proposed numbers:** one watch in 300 (about five hours at sea, near hunting's trophy rate for a minute's work) tells one of three two-watch sightings, and the leg's arrival pays a **Fathom Scale** (trophy, a case in From the Islets, valued 2,000 by an override in `values:derive`), once, by a conditional flip on the locked leg.
 
 Held back until something needs them: a message in a bottle (the natural carrier for a spell's writ, when a spell wants one found at sea), sea glass, ambergris. None ships without a real use.
 

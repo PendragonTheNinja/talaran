@@ -162,6 +162,10 @@ const OVERRIDES: Record<string, { value: number; why: string }> = {
     // container rule it would be worth the chopping of fifty thousand logs;
     // it is a museum piece and a story, priced as one (Nathan to confirm).
     "Magpie's Ring": { value: 2000, why: 'A museum curio, 1 in 2,000 nests: hand-set' },
+    // The ship's log's rare sighting (services/shipLog.ts): 1 in 300 watches,
+    // a watch a minute, so about 5 hours at sea; a leg pays 81 Wayfaring XP
+    // (180 s at 0.45) in 2 to 3 minutes, about 2,000 XP an hour.
+    'Fathom Scale': { value: 2000, why: '1 in 300 sea watches, about 5 hours sailing: 10,000 XP / 5' },
     'Writ of the Open Door': { value: 800, why: '1 in 120 Hodag kills (1 in 200 Agropelter), about 2 to 3 hours: Hodag XP 120 x 32 / 5' },
 };
 

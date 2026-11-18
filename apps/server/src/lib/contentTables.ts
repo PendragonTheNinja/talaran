@@ -122,6 +122,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     // turns up, what the sea says, and what each islet can hold.
     strandline_finds:            { label: 'Strandline Finds',      group: 'World',      snapshot: true, editable: true },
     voyage_lines:                { label: 'Voyage Lines',          group: 'World',      snapshot: true, editable: true },
+    ship_log_lines:              { label: "Ship's Log Lines",      group: 'World',      snapshot: true, editable: true },
     islet_find_kinds:            { label: 'Islet Find Kinds',      group: 'World',      snapshot: true, editable: true },
     islet_finds:                 { label: 'Islet Finds',           group: 'World',      snapshot: true, editable: true },
     // Geoffrey's locks (services/chests.ts): each locked chest, its unlocked twin, and his fee.

@@ -9,6 +9,7 @@ import { creditGoldWithin } from './gold';
 import { endFightIfAny } from './combatFights';
 import { dropIsletFind, rollIsletFindWithin } from './isletFinds';
 import { seaSpeedFactor, wearSailingPieceWithin } from './sailorSet';
+import { closeVoyageLogWithin, landLegWithin, logLegWithin } from './shipLog';
 
 // ── Voyages: putting to sea, islets, and coming home ─────────────────────────
 // (docs/sailing-spec.md §6, docs/islets-plan.md; Nathan, 2026-11-15 to 17)
@@ -134,6 +135,7 @@ async function startLeg(playerId: number, to: { id: number; name: string }, leg:
         * await seaSpeedFactor(playerId)));
     const now = new Date();
     const from = await db('players').where({ id: playerId }).first('current_location_id');
+    const here = await standing(playerId);
     await db.transaction(async (trx) => {
         await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
         const trade = await trx('trades')
@@ -156,6 +158,10 @@ async function startLeg(playerId: number, to: { id: number; name: string }, leg:
             last_bot_check: now,
             bot_check_pending: false,
             action_data: JSON.stringify({ base, mounted: false, sea: leg }),
+        });
+        // The ship's log: the leg's watches, each due at its own moment (services/shipLog.ts).
+        await logLegWithin(trx, playerId, {
+            leg, island: here?.region ?? '', boat: vessel.name, from: here?.name ?? '', to: to.name, start: now, seconds: travelTime,
         });
     });
     announcePlayersHere(from?.current_location_id);
@@ -243,14 +249,16 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
     const findLine = async (moment: string) => (await line(island, moment, place.id)) ?? line(island, moment);
     const island = place?.region ?? '';
     if (leg === 'home' || !place?.islet_kind) {
-        const broke = await db.transaction(async (trx) => {
-            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
-            await trx('player_voyages').where({ player_id: playerId }).delete();
-            return wearSailingPieceWithin(trx, playerId);
-        });
         const said = await line(island, 'home');
         const events: SeaArrival['events'] = said ? [{ message: said, itemName: null, quantity: 0 }] : [];
-        if (broke) events.push({ message: `Your ${broke} gives out at last, worn through by the sea.`, itemName: null, quantity: 0 });
+        await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+            const broke = await wearSailingPieceWithin(trx, playerId);
+            if (broke) events.push({ message: `Your ${broke} gives out at last, worn through by the sea.`, itemName: null, quantity: 0 });
+            const sighting = await landLegWithin(trx, playerId, { home: true, landing: [...events] });
+            if (sighting) events.push(sighting);
+            await trx('player_voyages').where({ player_id: playerId }).delete();
+        });
         return { events, firstLanding: false };
     }
 
@@ -295,6 +303,9 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
             const said = await findLine(`find_${find.kind}`);
             if (said) events.push({ message: find.words ? said.replace('{find}', find.words) : said, itemName: null, quantity: 0 });
         }
+        // The ship's log keeps the landing beside the leg's watches, and pays a vast sighting.
+        const sighting = await landLegWithin(trx, playerId, { home: false, landing: [...events] });
+        if (sighting) events.push(sighting);
         return { events, firstLanding: inserted.length > 0 };
     });
 }
@@ -345,6 +356,7 @@ export async function bringHomeIfAway(playerId: number, graceMs: number): Promis
             await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
             await trx('player_actions').where({ player_id: playerId }).delete();
             await trx('players').where({ id: playerId }).update({ current_location_id: home });
+            await closeVoyageLogWithin(trx, playerId);
             await trx('player_voyages').where({ player_id: playerId }).delete();
             await dropIsletFind(playerId, trx);
         });

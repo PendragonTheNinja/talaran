@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import TravelLog from './TravelLog'
 import LootLog from './LootLog'
+import ShipLog from './ShipLog'
 import './LogPanel.css'
 
 // The shell for both logs. Previously TravelLog owned its own launcher button
@@ -8,7 +9,7 @@ import './LogPanel.css'
 // one frame, and TravelLog was reduced to just its entries. It is still mounted
 // and still live, rather than left behind as a second unused component.
 
-type Tab = 'loot' | 'travel'
+type Tab = 'loot' | 'travel' | 'ship'
 
 // Must match the log-panel-out animation in LogPanel.css. The panel has to stay
 // mounted for the length of its own exit, or there is nothing left on screen to
@@ -83,6 +84,13 @@ export default function LogPanel({
                     >
                         Travel
                     </button>
+                    {/* The ship's log: the sailor's voyages, watch by watch (docs/sailing-spec.md §7). */}
+                    <button
+                        className={`log-panel-tab ${tab === 'ship' ? 'active' : ''}`}
+                        onClick={() => setTab('ship')}
+                    >
+                        Ship's Log
+                    </button>
                 </div>
                 <button className="log-panel-close" onClick={beginClose} aria-label="Close logs">✕</button>
             </div>
@@ -90,7 +98,9 @@ export default function LogPanel({
             <div className="log-panel-body">
                 {tab === 'loot'
                     ? <LootLog refreshKey={lootRefreshKey} />
-                    : <TravelLog refreshKey={travelRefreshKey} />}
+                    : tab === 'travel'
+                        ? <TravelLog refreshKey={travelRefreshKey} />
+                        : <ShipLog refreshKey={travelRefreshKey} />}
             </div>
         </div>
     )

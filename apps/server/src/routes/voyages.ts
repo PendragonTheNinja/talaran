@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { botCheckGate } from '../services/botCheck';
 import { putToSea, sailHome, sailOn, voyageState } from '../services/voyages';
+import { shipLog } from '../services/shipLog';
 
 // Voyages (services/voyages.ts): putting to sea, sailing on, sailing home.
 // Every rule, presence included, is the service's. Setting out is behind the
@@ -22,6 +23,16 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
         res.json(await voyageState(req.player!.playerId));
     } catch (err) {
         logger.error(`voyage state error: ${err}`);
+        res.status(500).json({ error: SERVER_ERROR });
+    }
+});
+
+// The ship's log: the sailor's voyages, newest first (services/shipLog.ts).
+router.get('/log', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        res.json(await shipLog(req.player!.playerId));
+    } catch (err) {
+        logger.error(`ship log: ${err}`);
         res.status(500).json({ error: SERVER_ERROR });
     }
 });

@@ -343,3 +343,58 @@
         animation: none;
     }
 }
+/* ── The ship's log (ShipLog.tsx): voyages, legs, and watches ── */
+.ship-log-leg {
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid var(--color-border-mid);
+}
+
+.ship-log-leg:first-of-type {
+    border-top: none;
+}
+
+.ship-log-leg-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-bright);
+    margin-bottom: 2px;
+}
+
+.ship-log-underway {
+    font-weight: 400;
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+.ship-log-watch {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin: 2px 0;
+    color: var(--color-text-base);
+}
+
+.ship-log-bell {
+    flex: 0 0 auto;
+    min-width: 52px;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    padding-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ship-log-story,
+.ship-log-vast {
+    font-style: italic;
+}
+
+.ship-log-vast {
+    color: var(--color-gold);
+}
+
+.ship-log-landing {
+    color: var(--color-text-muted);
+    padding-left: 60px;
+}
