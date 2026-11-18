@@ -367,6 +367,28 @@ async function together<T extends { id: number }>(ctx: Ctx, players: T[], fn: (p
     return Promise.all(players.map(fn));
 }
 
+/**
+ * Pendragon's Racecheck Skiff on the slip in Talador, its one piece wanting
+ * `wanted` planks, with a mallet and saw seeded for anyone who works on it.
+ */
+async function hireWorld(ctx: Ctx, wanted = 7) {
+    const w = await world(ctx);
+    await ctx.db('locations').where({ id: w.town.id }).update({ has_slip: true });
+    await ctx.seed.row('skills', { name: 'Carpentry' });
+    const type = await ctx.seed.row('vessel_types', {
+        key: 'rc_skiff', name: 'Racecheck Skiff', tier: 1, build_level: 1, sail_level: 1,
+        pieces: JSON.stringify([{ key: 'hull', name: 'Hull', materials: [{ item: w.plank.name, qty: wanted }] }]),
+    });
+    const build = await ctx.seed.row('vessel_builds', { player_id: w.player.id, vessel_type_id: type.id, location_id: w.town.id });
+    const mallet = await ctx.seed.row('items', { name: 'Lanai Mallet', type: 'tool', subtype: 'mallet', slot: 'mainhand' });
+    const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand' });
+    return { w, type, build, mallet, saw };
+}
+
+async function stockAt(ctx: Ctx, buildId: number, itemId: number): Promise<number> {
+    return Number((await ctx.db('vessel_build_stock').where({ build_id: buildId, item_id: itemId }).first())?.quantity ?? 0);
+}
+
 async function inPack(ctx: Ctx, playerId: number, itemId: number, quantity: number) {
     await ctx.seed.row('player_inventory', { player_id: playerId, item_id: itemId, quantity });
 }
@@ -1605,6 +1627,91 @@ const SCENARIOS: Scenario[] = [
                 ?? (built < 2 ? `only ${built} build turn(s) went through` : null)
                 ?? (inBoat > 7 ? `the hull took ${inBoat} planks for a piece that wants 7` : null)
                 ?? changed('planks in the pack and the boat together', 15, packs + inBoat);
+        },
+    },
+    {
+        id: 'hire', name: 'an owner lays 30 gold in a slip purse five times at once, with 100', rounds: 10,
+        run: async (ctx) => {
+            // services/boats.ts layPurse: gold leaves the owner as it enters the
+            // purse, never one without the other, and the ledger follows.
+            const h = await hireWorld(ctx);
+            await fund(ctx, h.w.player.id, 100);
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/boats/purse/lay', { boat: 'rc_skiff', amount: 30 }));
+            const purse = Number((await ctx.db('vessel_builds').where({ id: h.build.id }).first()).fund_gold);
+            return noServerErrors(st)
+                ?? changed('gold with the owner and in the purse together', 100, (await goldOf(ctx, h.w.player.id)) + purse)
+                ?? changed('gold in the purse', 90, purse)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'hire', name: 'an owner takes 30 gold back from a slip purse of 100 five times at once', rounds: 10,
+        run: async (ctx) => {
+            const h = await hireWorld(ctx);
+            await ctx.db('vessel_builds').where({ id: h.build.id }).update({ fund_gold: 100 });
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/boats/purse/take', { boat: 'rc_skiff', amount: 30 }));
+            const purse = Number((await ctx.db('vessel_builds').where({ id: h.build.id }).first()).fund_gold);
+            return noServerErrors(st)
+                ?? changed('gold with the owner and in the purse together', 100, (await goldOf(ctx, h.w.player.id)) + purse)
+                ?? changed('gold taken back', 90, await goldOf(ctx, h.w.player.id))
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'hire', name: 'an owner lays 4 planks at the slip five times at once, with 10 in the pack', rounds: 10,
+        run: async (ctx) => {
+            const h = await hireWorld(ctx);
+            await inPack(ctx, h.w.player.id, h.w.plank.id, 10);
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/boats/stock/lay', { boat: 'rc_skiff', item: h.w.plank.name, quantity: 4 }));
+            const laid = await stockAt(ctx, h.build.id, h.w.plank.id);
+            return noServerErrors(st)
+                ?? changed('planks in the pack and at the slip together', 10, (await ctx.itemTotal(h.w.plank.id)) + laid)
+                ?? changed('planks laid at the slip', 8, laid);
+        },
+    },
+    {
+        id: 'hire', name: 'an owner takes 4 planks back from the slip five times at once, with 10 laid there', rounds: 10,
+        run: async (ctx) => {
+            const h = await hireWorld(ctx);
+            await ctx.seed.row('vessel_build_stock', { build_id: h.build.id, item_id: h.w.plank.id, quantity: 10 });
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/boats/stock/take', { boat: 'rc_skiff', item: h.w.plank.name, quantity: 4 }));
+            const laid = await stockAt(ctx, h.build.id, h.w.plank.id);
+            return noServerErrors(st)
+                ?? changed('planks in the pack and at the slip together', 10, (await ctx.itemTotal(h.w.plank.id)) + laid)
+                ?? changed('planks taken back', 8, await ctx.itemTotal(h.w.plank.id));
+        },
+    },
+    {
+        id: 'hire', name: 'five hired hands take a turn at once on one hull, with a purse that pays for four pieces', rounds: 20,
+        run: async (ctx) => {
+            // A hand is paid for each piece as they place it, from the purse
+            // (docs/antura-plan.md §6b): never more pieces than the purse pays
+            // for, never a piece unpaid, and every plank and coin accounted for.
+            const h = await hireWorld(ctx, 50);
+            await ctx.db('vessel_builds').where({ id: h.build.id }).update({ pay_rate: 10, fund_gold: 40 });
+            const hands: { id: number }[] = [];
+            for (let i = 0; i < 5; i++) {
+                const hand = await ctx.seed.row('players', { username: `Hand${i}`, email: `hand${i}@racecheck.test`, current_location_id: h.w.town.id });
+                await ctx.seed.row('vessel_build_hands', { build_id: h.build.id, player_id: hand.id });
+                await ctx.seed.row('player_equipment', { player_id: hand.id, mainhand_item_id: h.mallet.id, offhand_item_id: h.saw.id });
+                await inPack(ctx, hand.id, h.w.plank.id, 10);
+                hands.push(hand);
+            }
+            const { resolveBoatBuildCycle } = await import('../services/boats');
+            const results = await Promise.allSettled(hands.map((hand) => resolveBoatBuildCycle(hand.id, `rc_skiff|${h.w.plank.name}|${h.w.player.id}`)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error === 'Server error')).length;
+            const built = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+            const placed = Number((await ctx.db('vessel_build_progress').where({ build_id: h.build.id, item_id: h.w.plank.id }).first())?.delivered ?? 0);
+            const purse = Number((await ctx.db('vessel_builds').where({ id: h.build.id }).first()).fund_gold);
+            let wages = 0;
+            for (const hand of hands) wages += await goldOf(ctx, hand.id);
+            return (crashed ? `${crashed} turn(s) hit a server error` : null)
+                ?? (built < 1 ? 'no turn went through' : null)
+                ?? (placed > 4 ? `${placed} pieces placed with a purse that pays for 4` : null)
+                ?? changed('planks in packs and the hull together', 50, (await ctx.itemTotal(h.w.plank.id)) + placed)
+                ?? changed('gold in the purse and paid out together', 40, purse + wages)
+                ?? changed('gold paid for the pieces placed', placed * 10, wages)
+                ?? await ledgerProblem(ctx);
         },
     },
     {

@@ -43,12 +43,29 @@ export async function takeBuildPiecesWithin(trx: any, args: {
     flips: number
     carpentry: number
     tier: number
+    /**
+     * Materials laid at the site for the builder to use (a hired hand's, laid
+     * by the owner), taken before the builder's own: how many there are, and
+     * how to take some, conditionally, inside this transaction.
+     */
+    stock?: { held: number; take: (n: number) => Promise<boolean> }
+    /** At most this many this turn (what a hired hand's purse can still pay for). */
+    cap?: number
 }): Promise<number> {
     const heldRow = await trx('player_inventory').where({ player_id: args.playerId, item_id: args.item.id }).first('quantity');
     const held = Number(heldRow?.quantity ?? 0);
+    const stocked = Math.max(0, args.stock?.held ?? 0);
     const room = args.wanted - args.delivered;
-    if (held < 1 || room < 1) return 0;
-    const pieces = Math.min(piecesRolled(args.flips, args.carpentry, rungOfTier(args.tier)), room, held);
-    const taken = await takeItemsWithin(trx, args.playerId, [{ name: args.item.name, quantity: pieces }]);
-    return taken.ok ? pieces : 0;
+    if (held + stocked < 1 || room < 1) return 0;
+    const pieces = Math.min(piecesRolled(args.flips, args.carpentry, rungOfTier(args.tier)), room, held + stocked, args.cap ?? Infinity);
+    if (pieces < 1) return 0;
+    const fromStock = Math.min(stocked, pieces);
+    if (fromStock > 0 && !(await args.stock!.take(fromStock))) return 0;
+    const fromPack = pieces - fromStock;
+    if (fromPack > 0) {
+        const taken = await takeItemsWithin(trx, args.playerId, [{ name: args.item.name, quantity: fromPack }]);
+        // Nothing commits on its own: the caller throws on 0, rolling the stock back too.
+        if (!taken.ok) return 0;
+    }
+    return pieces;
 }

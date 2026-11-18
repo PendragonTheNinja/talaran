@@ -1,0 +1,39 @@
+/* Building for hire at the slip (SlipPanel.tsx HireControls). */
+.hall-hire {
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-border-mid);
+}
+
+.hall-hire-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0;
+}
+
+.hall-hire-row .hall-req-name {
+    flex: 1 1 140px;
+}
+
+.hall-hire-input {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 4px 8px;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-mid);
+    border-radius: 4px;
+    color: var(--color-text-bright);
+}
+
+.hall-hire-num {
+    flex: 0 0 90px;
+    font-variant-numeric: tabular-nums;
+}
+
+.hall-hire-chip {
+    margin: 0 4px 4px 0;
+    padding: 2px 8px;
+    font-size: 12px;
+}

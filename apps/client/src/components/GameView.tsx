@@ -1503,13 +1503,12 @@ export default function GameView({
     }
   }
 
-  // A boat on the slip (server services/boats.ts): `data` is "boat|item". Sets
-  // 1 to 5 of the item into the hull every 20 seconds while the piece wants it
-  // and the pack has it.
+  // A boat on the slip (server services/boats.ts): `data` is "boat|item", or
+  // "boat|item|ownerId" for a hand working on someone else's hull (building
+  // for hire). Sets 1 to 5 of the item into the hull every 20 seconds while
+  // the piece wants it and the pack or the slip has it.
   const startBoatBuild = async (data: string) => {
-    const bar = data.indexOf('|')
-    const boat = data.slice(0, bar)
-    const item = data.slice(bar + 1)
+    const [boat, item, owner] = data.split('|')
     try {
       if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
       setLastResult(null)
@@ -1521,7 +1520,7 @@ export default function GameView({
 
       const res = await apiFetch<{ timerSeconds: number }>('/api/boats/build', {
         method: 'POST',
-        body: JSON.stringify({ boat, item }),
+        body: JSON.stringify({ boat, item, owner: owner ? Number(owner) : undefined }),
       })
       setCurrentAction('vessel_build')
       setTimerMax(res.timerSeconds)

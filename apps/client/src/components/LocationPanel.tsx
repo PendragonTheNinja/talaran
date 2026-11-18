@@ -1138,7 +1138,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       {slipOpen && (
         <SlipPanel
           onClose={() => setSlipOpen(false)}
-          onStartBuild={(boat, item) => onStartAction('vessel_build', `${boat}|${item}`)}
+          onStartBuild={(boat, item, owner) => onStartAction('vessel_build', owner ? `${boat}|${item}|${owner}` : `${boat}|${item}`)}
           onPutToSea={(boat) => onStartAction('voyage', `sail:${boat}`)}
         />
       )}
