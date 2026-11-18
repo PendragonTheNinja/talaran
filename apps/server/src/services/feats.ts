@@ -122,7 +122,10 @@ async function snapshot(playerId: number) {
         .first()
     const chronicleDays = Number(chronicleRow?.n ?? 0)
 
-    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, chronicleDays }
+    // The islands whose islets this player has met Quank among: 'quank_met'.
+    const quankIslands = new Set<string>(await db('player_quank_met').where({ player_id: playerId }).pluck('island'))
+
+    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, chronicleDays, quankIslands }
 }
 
 /**
@@ -180,6 +183,9 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
         // Distinct days named in a page's own lines (services/chronicleComposer.ts).
         case 'chronicle_days':
             return snap.chronicleDays
+        // Quank met among this island's islets (criterion_target is the island).
+        case 'quank_met':
+            return snap.quankIslands.has(feat.criterion_target) ? 1 : 0
         default:
             return 0
     }

@@ -27,6 +27,7 @@ export type DeedKind =
     | 'mount_raised' | 'field_twenty'
     | 'guild_founded' | 'guild_hall_tier'
     | 'road_first' | 'gem_best_grade' | 'first_craft_tier' | 'feat_rare' | 'quest_first' | 'shop_big_sale'
+    | 'quank_seen'
 
 export interface Deed {
     kind: DeedKind

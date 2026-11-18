@@ -2,6 +2,9 @@ import db from '../db';
 import { levelFromXp } from './xp';
 import { addItemToInventoryWithin } from './inventory';
 import { creditGoldWithin } from './gold';
+import { noteDeed } from './chronicle';
+import { afterCommit } from '../lib/afterCommit';
+import { pushToPlayer } from '../lib/realtime';
 
 // ── What a landing finds (docs/islets-plan.md §2 and §4) ─────────────────────
 //
@@ -32,6 +35,15 @@ export interface IsletFind {
 
 /** Started when Quank hands over his Tidbit (migration 20261117200000). */
 export const QUANK_QUEST = 'Keep an Eye Out for Quank'
+
+/**
+ * The quiet count for bad luck (docs/islets-plan.md §6a): he is met once on
+ * each island's islets, about one landing in 58 on Taiar's, so a player who
+ * has landed this many times among an island's islets without meeting him
+ * meets him on the next. About three times the usual wait; one sailor in
+ * twenty gets there. Counted from player_islets_found, never shown.
+ */
+export const QUANK_OWED_LANDINGS = 175
 
 async function skillLevel(x: any, playerId: number, skill: string): Promise<number> {
     const row = await x('player_skills as ps').join('skills as s', 's.id', 'ps.skill_id')
@@ -131,6 +143,13 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
         roll -= Number(h.weight);
         if (roll < 0) { pick = h; break; }
     }
+    // Owed Quank: enough landings here and never met him (this landing is already counted by the caller).
+    const quank = holds.find((h: any) => h.kind === 'quank');
+    if (quank && pick?.kind !== 'quank' && !(await trx('player_quank_met').where({ player_id: playerId, island: islet.region }).first())) {
+        const [{ n }] = await trx('player_islets_found as f').join('locations as l', 'l.id', 'f.location_id')
+            .where({ 'f.player_id': playerId, 'l.region': islet.region }).sum('f.landings as n');
+        if (Number(n ?? 0) >= QUANK_OWED_LANDINGS) pick = quank;
+    }
     const nothing: IsletFind = { kind: 'nothing', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
     if (!pick || pick.kind === 'nothing') return nothing;
     if (pick.kind === 'young' || pick.kind === 'flowers') {
@@ -167,6 +186,12 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
         if (tidbit) await addItemToInventoryWithin(trx, playerId, tidbit.id, 1);
         // ...and the scene's end starts his quest: next time, he wants it back.
         const questStarted = await startQuankQuestWithin(trx, playerId);
+        // Counted: his feat, and a line in Wenna's tidings, once this commits.
+        noteDeed(trx, { kind: 'quank_seen', playerId, subject: 'Quank', data: { island: islet.region } });
+        afterCommit(trx, async () => {
+            const { evaluateFeats } = await import('./feats');
+            for (const feat of await evaluateFeats(playerId)) pushToPlayer(playerId, 'feat_earned', feat);
+        });
         return { kind: 'quank', location_id: islet.id, target_id: tidbit?.id ?? null, remaining: 0, boost: 1, questStarted: questStarted ?? undefined };
     }
     if (pick.kind === 'cache') {
