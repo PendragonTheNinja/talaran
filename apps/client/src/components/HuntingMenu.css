@@ -404,3 +404,12 @@
     line-height: 1.5;
     color: var(--color-text-dim);
 }
+
+/* Too weak an arrow for the animal (server routes/hunting.ts arrowWarning). */
+.hunting-arrow-warning {
+    font-size: 11px;
+    font-style: italic;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 0 4px 4px;
+}

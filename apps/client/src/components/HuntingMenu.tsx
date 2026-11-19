@@ -9,6 +9,8 @@ interface HuntableAnimal {
     id: number
     name: string
     required_level: number
+    /** Said when the best arrow carried is too weak for this animal (server routes/hunting.ts). */
+    arrowWarning?: string | null
 }
 
 interface PlayerTrap {
@@ -473,6 +475,9 @@ export default function HuntingMenu({ onClose, onStartHunt, playerHuntingLevel, 
                                         <span className="hunting-animal-name">{animal.name}</span>
                                         {locked && (
                                             <div className="hunting-locked-label">Level {animal.required_level}</div>
+                                        )}
+                                        {!locked && animal.arrowWarning && (
+                                            <div className="hunting-arrow-warning">{animal.arrowWarning}</div>
                                         )}
                                     </div>
                                 )

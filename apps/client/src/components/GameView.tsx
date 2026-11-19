@@ -624,6 +624,8 @@ export default function GameView({
             huntSuccess: r.huntSuccess,
             animalName: r.animalName,
             arrowRecovered: r.arrowRecovered,
+            arrowName: (r as { arrowName?: string }).arrowName,
+            weakArrowLine: (r as { weakArrowLine?: string }).weakArrowLine,
             drops: r.drops || [],
             ended: r.ended,
             eventXp: r.eventXp,
@@ -2162,6 +2164,8 @@ export default function GameView({
               ? `You felled the ${r.animalName}!`
               : `The ${r.animalName} got away, but you learned from the attempt.`}
           </p>
+          {/* Too weak an arrow for this animal, in the world's words (services/hunting.ts). */}
+          {r.weakArrowLine && <p className="last-result-gained">{r.weakArrowLine}</p>}
           <p className="last-result-xp">+{r.xpAwarded} {r.skillName} experience{eventXpTag(r.eventXp, r.guildXp)}, {r.totalXp.toLocaleString()} total.</p>
           <p className="last-result-next">
             {Math.ceil(r.xpToNext / r.xpAwarded).toLocaleString()} actions ({r.xpToNext.toLocaleString()} xp) to level {r.level + 1} ({
@@ -2184,7 +2188,9 @@ export default function GameView({
             )
           ))}
           <p className="last-result-remaining muted-text">
-            {r.arrowRecovered ? 'You recovered your arrow.' : 'Your arrow was lost.'}
+            {r.arrowRecovered
+              ? `You recovered your ${r.arrowName ?? 'arrow'}.`
+              : `Your ${r.arrowName ?? 'arrow'} was lost.`}
           </p>
           {r.ended === 'materials' && (
             <p className="last-result-ended-title gold-text">You've run out of arrows.</p>

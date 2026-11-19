@@ -2,7 +2,7 @@ import { Router, Response } from 'express'
 import db from '../db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { botCheckGate } from '../services/botCheck'
-import { canHunt, calculateHuntTimer } from '../services/hunting'
+import { canHunt, calculateHuntTimer, bestArrow, arrowCatchShift } from '../services/hunting'
 import { levelFromXp } from '../services/xp'
 import { logger } from '../lib/logger';
 
@@ -13,9 +13,15 @@ router.get('/animals', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId
     try {
         const player = await db('players').where({ id: playerId }).first()
-        const animals = await db('huntable_animals')
+        const rows = await db('huntable_animals')
             .where({ location_id: player.current_location_id, is_active: true })
             .orderBy('required_level')
+        // A warning where the best arrow carried is too weak (services/hunting.ts).
+        const arrow = await bestArrow(db, playerId)
+        const animals = rows.map((a: any) => ({
+            ...a,
+            arrowWarning: arrow && arrowCatchShift(arrow.tier, a.required_level) < 0 ? a.weak_arrow_warning ?? null : null,
+        }))
         res.json({ animals })
     } catch (err) {
         logger.error('Hunt animals error: ' + err)

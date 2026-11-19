@@ -1,6 +1,6 @@
 import db from '../db'
 
-/** Ammunition. One is spent per shot, and may be recovered on the roll. */
+/** The first ammunition, and still what a hunt names when nothing better is carried. */
 export const HUNT_AMMO = 'Ambren Arrow';
 import { levelFromXp } from './xp'
 import { levelTimerFactor } from '../lib/actionTimers'
@@ -8,11 +8,41 @@ import { standsAt } from '../lib/whereabouts'
 import { doubleYield } from './buffs'
 import { noteJewelry } from './jewelry'
 import { isletFindHere, spendIsletFind } from './isletFinds'
+import { tierOfLevel } from '../lib/tiers'
+
+/**
+ * The arrow a hunt shoots: the best carried (ammunition of subtype 'arrow', the
+ * highest tier first). Null when the pack holds none. Each shot reads it again,
+ * so running out of Serph falls back to Ambren.
+ */
+export async function bestArrow(x: any, playerId: number): Promise<{ id: number; name: string; tier: number } | null> {
+    const row = await x('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+        .where({ 'pi.player_id': playerId, 'i.subtype': 'arrow', 'i.is_active': true })
+        .where('pi.quantity', '>', 0)
+        .orderBy('i.tier', 'desc').orderBy('i.id', 'asc')
+        .first('i.id', 'i.name', 'i.tier')
+    return row ? { id: Number(row.id), name: row.name, tier: Number(row.tier) || 1 } : null
+}
+
+/** An animal's tier, from the level it is hunted at. */
+export function animalTier(requiredLevel: number): number {
+    return tierOfLevel(Math.max(1, Number(requiredLevel) || 1))
+}
+
+/** Catch points the arrow gives or takes against this animal (0 when the tiers match). */
+export function arrowCatchShift(arrowTier: number, requiredLevel: number): number {
+    const gap = arrowTier - animalTier(requiredLevel)
+    return gap < 0 ? gap * ARROW_TIER_CATCH_PENALTY : gap * ARROW_TIER_CATCH_BONUS
+}
 
 // ── Tuning constants ──────────────────────────────────────────────
 const CATCH_PER_LEVEL = 0.5           // +0.5% catch chance per level over req
 const CATCH_CAP = 95                  // max catch %
 const BOW_TIER_CATCH_BONUS = 3        // +3% catch per bow tier above 1
+// An arrow against the animal's tier (Nathan, 2026-11-17): a weaker point lowers
+// the catch, never lengthens the hunt; a better one helps as a better bow does.
+const ARROW_TIER_CATCH_PENALTY = 10   // -10% catch per tier the arrow is below the animal
+const ARROW_TIER_CATCH_BONUS = 3      // +3% catch per tier the arrow is above it
 const RECOVERY_BASE = 0.80            // 80% arrow recovery on success at req level
 const RECOVERY_PER_2_LEVELS = 0.01    // +1% recovery per 2 levels over req
 const RECOVERY_CAP = 0.95
@@ -50,12 +80,8 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
     const bow = await db('items').where({ id: bowId, subtype: 'bow' }).first()
     if (!bow) return { allowed: false, reason: 'You need a hunting bow equipped.' }
 
-    // At least one arrow in inventory
-    const arrowItem = await db('items').where({ name: HUNT_AMMO }).first()
-    const arrows = arrowItem
-        ? await db('player_inventory').where({ player_id: playerId, item_id: arrowItem.id }).first()
-        : null
-    if (!arrows || arrows.quantity < 1) {
+    // At least one arrow of any kind in the pack.
+    if (!(await bestArrow(db, playerId))) {
         return { allowed: false, reason: 'You have no arrows.' }
     }
 
@@ -154,6 +180,10 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     xp: number
     drops: { itemName: string; quantity: number }[]
     arrowRecovered: boolean
+    /** The arrow this shot used (bestArrow); spent or recovered by the tick. */
+    arrowName?: string
+    /** Said on a miss when the arrow was too weak for the animal (huntable_animals.weak_arrow_text). */
+    weakArrowLine?: string
     noBow?: boolean
     /** The player no longer stands where the animal lives; the hunt stops. */
     notHere?: boolean
@@ -190,7 +220,10 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     }
     const boost = trail?.boost ?? 1
 
-    const baseCatch = calculateCatchChance(animal.base_catch_chance, level, animal.required_level, bowTier)
+    const arrow = await bestArrow(db, playerId)
+    if (!arrow) return { success: false, xp: 0, drops: [], arrowRecovered: true, animalName: animal.name }
+    const shift = arrowCatchShift(arrow.tier, animal.required_level)
+    const baseCatch = Math.max(1, Math.min(CATCH_CAP, calculateCatchChance(animal.base_catch_chance, level, animal.required_level, bowTier) + shift))
     const catchChance = boost > 1 ? Math.min(CATCH_CAP, 100 - (100 - baseCatch) / boost) : baseCatch
     const success = Math.random() * 100 < catchChance
 
@@ -221,5 +254,6 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     const recoveryChance = calculateArrowRecovery(success, level, animal.required_level)
     const arrowRecovered = Math.random() < recoveryChance
 
-    return { success, xp, drops, arrowRecovered, animalName: animal.name }
+    const weakArrowLine = !success && shift < 0 && animal.weak_arrow_text ? String(animal.weak_arrow_text) : undefined
+    return { success, xp, drops, arrowRecovered, arrowName: arrow.name, weakArrowLine, animalName: animal.name }
 }

@@ -1037,17 +1037,17 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // the stack with no lock and wrote the count back as an absolute number,
       // so arrows dropped, traded or stored in the same moment came back
       // (audit 2026-11-09, B1; the September audit's M4).
-      const arrowItem = await db('items').where({ name: 'Ambren Arrow' }).first();
+      // The arrow this shot used (services/hunting.ts bestArrow), and whether
+      // any arrow of any kind is left for the next.
       let outOfArrows = false;
-      if (arrowItem) {
+      if (hunt.arrowName) {
         if (!hunt.arrowRecovered) {
           const taken = await db.transaction((trx) =>
-            takeItemsWithin(trx, action.player_id, [{ name: arrowItem.name, quantity: 1 }]));
+            takeItemsWithin(trx, action.player_id, [{ name: hunt.arrowName as string, quantity: 1 }]));
           if (!taken.ok) outOfArrows = true;
         }
-        const left = await db('player_inventory')
-          .where({ player_id: action.player_id, item_id: arrowItem.id }).first('quantity');
-        if (!left || Number(left.quantity) < 1) outOfArrows = true;
+        const { bestArrow } = await import('./hunting');
+        if (!(await bestArrow(db, action.player_id))) outOfArrows = true;
       }
 
       // Quest progress — 'hunt' objectives count successful catches
@@ -1097,6 +1097,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             huntSuccess: hunt.success,
             animalName: hunt.animalName,
             arrowRecovered: hunt.arrowRecovered,
+            arrowName: hunt.arrowName,
+            weakArrowLine: hunt.weakArrowLine,
             xpAwarded: hunt.xp,
             skillName: 'Hunting',
             drops: addedDrops,
@@ -1115,6 +1117,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
             huntSuccess: hunt.success,
             animalName: hunt.animalName,
             arrowRecovered: hunt.arrowRecovered,
+            arrowName: hunt.arrowName,
+            weakArrowLine: hunt.weakArrowLine,
             xpAwarded: hunt.xp,
             skillName: 'Hunting',
             drops: addedDrops,
