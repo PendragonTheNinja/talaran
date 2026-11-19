@@ -829,19 +829,13 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         return { ok: false, error: SERVER_ERROR, multiplier: 1, missingTools: [], usingPublic: false }
     }
 
+    // Held tools (the saw) are wanted in hand at your own bench. A public
+    // bench lends its own (Nathan, 2026-11-19), so without one in hand the job
+    // falls to the public bench where there is one, and is refused otherwise.
+    const notHeld: string[] = []
     if (held.length) {
         const { equippedBuildTool } = await import('./construction')
-        const notHeld: string[] = []
         for (const t of held) if (!(await equippedBuildTool(playerId, HAND_HELD_BENCH_TOOLS[t]))) notHeld.push(t)
-        if (notHeld.length) {
-            return {
-                ok: false,
-                error: `You need a ${notHeld.join(' and a ')} in hand for that.`,
-                multiplier: 1,
-                missingTools: notHeld,
-                usingPublic: false,
-            }
-        }
     }
 
     // Look for a campfire that has just gone out, BEFORE getWorkstation sweeps
@@ -895,8 +889,8 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
         return { ok: true, multiplier: CAMPFIRE_MULTIPLIER, missingTools: [], usingPublic: false }
     }
 
-    // 1. Your own bench, carrying what this job needs.
-    if (station && missing.length === 0) {
+    // 1. Your own bench, carrying what this job needs, the held tools in hand.
+    if (station && missing.length === 0 && notHeld.length === 0) {
         // A cold hearth cooks nothing. Refuelled from the pack if it can be,
         // so this only ever refuses a cook who has run out of wood.
         if (recipe.station === 'cooking') {
@@ -960,6 +954,15 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
     }
 
     // 3. Nothing here can do it.
+    if (station && missing.length === 0 && notHeld.length) {
+        return {
+            ok: false,
+            error: `You need a ${notHeld.join(' and a ')} in hand for that.`,
+            multiplier: 1,
+            missingTools: notHeld,
+            usingPublic: false,
+        }
+    }
     if (station && missing.length) {
         const labels = await db('workstation_slot_types')
             .where({ station_type: recipe.station })

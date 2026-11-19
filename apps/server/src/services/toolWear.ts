@@ -80,14 +80,15 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
             return used
         },
     },
-    // The saw in hand, at your own workshop or Geossica's bench (Nathan, 2026-11-09).
+    // The saw in hand, at your own workshop only: Geossica's bench lends its
+    // own, and a public bench never wears (Nathan, 2026-11-19).
     sawing: {
         skill: 'Carpentry',
         can: ['saw'],
         tools: async (action) => {
             const { canSawHere } = await import('./carpentry')
             const at = await canSawHere(action.player_id, action.location_id)
-            return at.allowed ? ['saw'] : []
+            return at.allowed && !at.usingBench ? ['saw'] : []
         },
     },
     farm_till: { skill: 'Farming', tools: ['hoe'] },
@@ -229,13 +230,16 @@ export async function wearToolsAfter(action: any, result: any): Promise<void> {
             const recipeId = parseInt(action.action_data)
             const broken = await wearBenchTools(action.player_id, recipeId, timer)
             if (broken.length) note(action.id, { notes: [benchBreakMessage(broken)] })
-            // A held tool the recipe needs (the saw) wears in hand wherever the
-            // job ran, and a break stops the job as any hand tool does.
+            // A held tool the recipe needs (the saw) wears in hand at the
+            // player's own bench, and a break stops the job as any hand tool
+            // does. A public bench lends its own and never wears (2026-11-19).
             if (recipeId) {
-                const { handHeldToolsOf } = await import('./workstations')
-                const recipe = await db('recipes').where({ id: recipeId }).first('required_tools', 'skill')
-                const held = handHeldToolsOf(recipe)
-                if (held.length) noteHandWear(action.id, await wearHandToolsWithSpares(action.player_id, recipe.skill, held, timer))
+                const { handHeldToolsOf, checkStation } = await import('./workstations')
+                const recipe = await db('recipes').where({ id: recipeId }).first()
+                const held = recipe ? handHeldToolsOf(recipe) : []
+                if (held.length && !(await checkStation(action.player_id, recipe, false)).usingPublic) {
+                    noteHandWear(action.id, await wearHandToolsWithSpares(action.player_id, recipe.skill, held, timer))
+                }
             }
             return
         }

@@ -75,22 +75,25 @@ export async function canSawHere(
     playerId: number,
     locationId: number
 ): Promise<{ allowed: boolean; error?: string; usingBench?: boolean; hasAccess: boolean }> {
-    // A saw in hand, always (Nathan, 2026-11-09): at a workshop of your own,
-    // or at Geossica's bench at half speed when you have none here. A bench
-    // never lends one; the Ambren Saw is on a merchant shelf. It wears in hand
-    // (services/toolWear.ts). The rack is not needed: sawing is a bench and a blade.
+    // At a workshop of your own, a saw in hand (it wears there, services/toolWear.ts).
+    // Geossica's bench lends its own saw, at half speed (Nathan, 2026-11-19):
+    // a new carpenter needs planks for their first saw, and planks need a saw,
+    // so the public bench must not ask for one. A player with a workshop but
+    // no saw in hand falls back to her bench where there is one. Public benches
+    // are Taiar's alone; every later tier starts with the tools already made.
     const workstation = await getCarpentryWorkstation(playerId, locationId);
     const { locationHasPublicStation } = await import('./workstations');
-    const publicHere = workstation ? false : await locationHasPublicStation(playerId, locationId, 'carpentry');
+    const publicHere = await locationHasPublicStation(playerId, locationId, 'carpentry');
     if (!workstation && !publicHere) {
         return { allowed: false, hasAccess: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
     }
+    if (workstation && (await equippedBuildTool(playerId, BUILD_SAW.subtype))) {
+        return { allowed: true, hasAccess: true, usingBench: false };
+    }
+    if (publicHere) return { allowed: true, hasAccess: true, usingBench: true };
     // hasAccess: a workshop to work in, saw or no saw. The workshop's own
     // recipes and the bench menu stay open without one; only sawing waits.
-    if (!(await equippedBuildTool(playerId, BUILD_SAW.subtype))) {
-        return { allowed: false, hasAccess: true, error: 'You need a saw in hand to saw logs.' };
-    }
-    return { allowed: true, hasAccess: true, usingBench: !workstation };
+    return { allowed: false, hasAccess: true, error: 'You need a saw in hand to saw logs at your own workshop.' };
 }
 
 // ── Pack readers for the result (the craft itself is craftItems in inventory.ts) ──

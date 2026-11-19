@@ -514,8 +514,9 @@ export default function GameLayout({
       apiFetch<any>('/api/carpentry/status')
         .then(st => {
           setCarpentryStationActive(!!st?.workstation?.is_active)
-          // Sawing needs a saw in hand everywhere (server canSawHere); say so
-          // before the player picks a log, and say when it is a half-speed bench.
+          // Sawing needs a saw in hand at your own workshop; Geossica's bench lends
+          // hers (server canSawHere). Say why it cannot start, or that it is the bench,
+          // before the player picks a log.
           setCarpentrySawNote(!st?.canSaw ? (st?.sawError ?? null)
             : st?.usingBench ? "You will saw at Geossica's bench, at half speed." : null)
         })
