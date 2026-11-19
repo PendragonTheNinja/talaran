@@ -236,7 +236,9 @@ export async function processMiningRock(
       total_actions_completed: 1,
     });
 
-    const drops = rockSubtype ? await rollSecondaryDrops(playerId, `mining:rock:${rockSubtype}`, 'Mining') : [];
+    // A node may name its own table (Antura's granite, its own gem odds); else by the rock.
+    const dropKey = node.drop_source_key || (rockSubtype ? `mining:rock:${rockSubtype}` : null);
+    const drops = dropKey ? await rollSecondaryDrops(playerId, dropKey, 'Mining') : [];
 
     logger.info(`Player ${playerId} mined ${rockItem?.name || 'rock'} at node ${nodeId}`);
     return {

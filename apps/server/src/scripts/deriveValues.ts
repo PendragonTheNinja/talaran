@@ -357,9 +357,11 @@ async function main(): Promise<void> {
             }]);
             continue;
         }
-        const parts = key.split(':');
+        // A node that names its own table ('mining:rock:granite@antura') is its own parent.
+        const parts = key.split('@')[0].split(':');
         const word = parts[parts.length - 1];
-        const parent = nodes.find((n) => String(n.name).toLowerCase().includes(word));
+        const parent = nodes.find((n) => n.drop_source_key === key)
+            ?? nodes.find((n) => String(n.name).toLowerCase().includes(word));
         if (!parent) continue;
         const name = itemById.get(Number(e.item_id));
         if (!name) continue;

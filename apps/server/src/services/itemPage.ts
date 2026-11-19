@@ -516,7 +516,8 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
         // 'woodcutting:lanai' and 'mining:rock:granite' are readable already;
         // they just need the punctuation turning into words.
         // 'mining:ore:ambren' reads as 'Ambren Ore', the ore's own name.
-        const parts = String(d.key).split(':');
+        // A node's own table ('mining:rock:granite@antura') reads as its rock.
+        const parts = String(d.key).split('@')[0].split(':');
         const skill = parts[0];
         const isOre = parts[1] === 'ore';
         const rest = parts.slice(1).filter(p => p !== 'rock' && p !== 'saw' && p !== 'ore');
