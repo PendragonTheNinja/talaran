@@ -96,6 +96,8 @@ interface LocationData {
   allLocations: any[]
   /** Places to fight here (routes/location.ts). */
   fightingSpots?: FightingSpot[]
+  /** The boats the player owns, sent where a sea road starts (routes/location.ts). */
+  ownBoats?: { key: string; name: string }[]
 }
 
 interface InventoryItem {
@@ -375,19 +377,20 @@ export default function GameLayout({
     if (!showFarmPanel && storeMode) setStoreMode(false)
   }, [showFarmPanel, storeMode])
 
-  const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number) => {
+  const handleTravel = async (toLocationId: number, toLocationName: string, _travelTime: number, mode?: string) => {
     try {
       const res = await apiFetch<{ travelTime: number; message: string }>('/api/travel/start', {
         method: 'POST',
-        body: JSON.stringify({ toLocationId }),
+        // A sea road is crossed by the ferry or in a boat of the player's own (routes/travel.ts).
+        body: JSON.stringify(mode ? { toLocationId, mode } : { toLocationId }),
       })
-      setTravelStatus({ message: `Traveling to ${toLocationName}...`, seconds: res.travelTime })
+      setTravelStatus({ message: mode ? res.message : `Traveling to ${toLocationName}...`, seconds: res.travelTime })
       // On mobile the map is its own tab, so tapping a road there left the
       // player staring at the same map wondering whether anything happened.
       // Send them to where the journey is actually visible.
       setFocusAction(n => n + 1)
     } catch (err: any) {
-      if (err.status === 423) { blockedByBotCheck(() => handleTravel(toLocationId, toLocationName, _travelTime)); return }
+      if (err.status === 423) { blockedByBotCheck(() => handleTravel(toLocationId, toLocationName, _travelTime, mode)); return }
       setTravelStatus({ message: err.message || 'Could not travel there', seconds: 0 })
     }
   }
@@ -928,6 +931,7 @@ export default function GameLayout({
       connections={locationData?.connections || []}
       onTravel={handleTravel}
       region={locationData?.location?.region}
+      ownBoats={locationData?.ownBoats}
     />
   )
 

@@ -168,6 +168,26 @@ async function startLeg(playerId: number, to: { id: number; name: string }, leg:
     return { travelTime };
 }
 
+/**
+ * A crossing in a boat of the player's own (docs/sailing-spec.md §2 and §4):
+ * port to port over a sea road whose base_travel_time is a boat's crossing at
+ * its slowest. Every owned boat beats the ferry. Refused when the player has
+ * no such boat or cannot sail it.
+ */
+export async function crossingSeconds(playerId: number, boatRaw: unknown, base: number): Promise<{ ok: true; seconds: number; boat: string } | { ok: false; error: string }> {
+    const boat = typeof boatRaw === 'string' ? boatRaw : '';
+    const vessel = await db('vessel_types').where({ key: boat, is_active: true }).first();
+    if (!vessel) return { ok: false, error: 'There is no such boat.' };
+    if (!(await db('player_vessels').where({ player_id: playerId, vessel_type_id: vessel.id }).first())) {
+        return { ok: false, error: `You have no ${vessel.name}.` };
+    }
+    const wayfaring = await wayfaringLevel(playerId);
+    if (wayfaring < Number(vessel.sail_level)) return { ok: false, error: `You need Wayfaring ${vessel.sail_level} to sail a ${vessel.name}.` };
+    const seconds = Math.max(1, Math.round(
+        legSeconds(base, Number(vessel.speed_start ?? 1), Number(vessel.speed_floor ?? 1), wayfaring) * await seaSpeedFactor(playerId)));
+    return { ok: true, seconds, boat: vessel.name };
+}
+
 /** From a port, in a boat the player owns: out to an islet of this island. */
 export async function putToSea(playerId: number, boatRaw: unknown): Promise<Ok<{ travelTime: number; message: string | null }> | Refused> {
     try {

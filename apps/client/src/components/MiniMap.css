@@ -87,3 +87,17 @@
   background: rgba(200, 146, 42, 0.3);
   outline: 1px solid rgba(200, 146, 42, 0.6);
 }
+/* A place with no picture yet (Antura's, until the art): its name in the frame. */
+.minimap-unpictured {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-style: italic;
+  background: var(--color-bg-dark);
+}

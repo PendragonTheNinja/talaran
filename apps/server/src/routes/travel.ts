@@ -6,12 +6,20 @@ import { botCheckGate } from '../services/botCheck';
 import { computeTravelTime } from '../services/travel'
 import { pushToPlayer, announcePlayersHere } from '../lib/realtime';
 import { endFightIfAny } from '../services/combatFights';
+import { debitGoldWithin } from '../services/gold';
+import { crossingSeconds } from '../services/voyages';
+
+/** A refusal inside the journey's transaction: it rolls back, and the player is told why. */
+class TravelAbort extends Error {}
 
 const router = Router();
 
 router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
   const playerId = req.player!.playerId;
   const { toLocationId } = req.body;
+  // A sea road (docs/sailing-spec.md §4) is crossed by the ferry or in a boat of
+  // the player's own: 'ferry', or the boat's key.
+  const mode = typeof req.body?.mode === 'string' && req.body.mode ? req.body.mode : 'ferry';
 
   if (!toLocationId) {
     res.status(400).json({ error: 'toLocationId is required' });
@@ -60,7 +68,32 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     const activeConnection = connection || reverseConnection;
     const baseTravelTime = activeConnection?.base_travel_time ?? 30;
 
-    const { travelTime, mounted } = await computeTravelTime(playerId, baseTravelTime);
+    // The crossing: a fixed ferry for a fare and no XP, or the player's own
+    // boat, which pays Wayfaring at sea's rate. Neither finds anything.
+    const sea = activeConnection?.travel_type === 'sea';
+    let travelTime: number;
+    let mounted = false;
+    let cross: 'ferry' | 'boat' | null = null;
+    let fare = 0;
+    if (sea && mode === 'ferry') {
+      if (activeConnection.ferry_fare === null || activeConnection.ferry_fare === undefined) {
+        res.status(400).json({ error: 'No ferry runs on this crossing.' });
+        return;
+      }
+      cross = 'ferry';
+      fare = Math.max(0, Number(activeConnection.ferry_fare) || 0);
+      travelTime = Number(activeConnection.ferry_seconds) || baseTravelTime;
+    } else if (sea) {
+      const boat = await crossingSeconds(playerId, mode, baseTravelTime);
+      if (!boat.ok) {
+        res.status(400).json({ error: boat.error });
+        return;
+      }
+      cross = 'boat';
+      travelTime = boat.seconds;
+    } else {
+      ({ travelTime, mounted } = await computeTravelTime(playerId, baseTravelTime));
+    }
 
     const now = new Date();
     const completesAt = new Date(now.getTime() + travelTime * 1000);
@@ -73,6 +106,18 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     // services/spells.ts does for portals.
     const cancelledWith = await db.transaction(async (trx) => {
       await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+      // Already aboard this ferry: a second tap is not a second fare. Read with
+      // the player row locked, so two taps at once pay once (race:check ferry).
+      if (cross === 'ferry') {
+        const aboard = await trx('player_actions')
+          .where({ player_id: playerId, action_type: 'traveling', location_id: toLocationId })
+          .first('action_data');
+        if (aboard && String(aboard.action_data ?? '').includes('"cross":"ferry"')) throw new TravelAbort('You are already aboard the ferry.');
+      }
+      if (fare > 0) {
+        const paid = await debitGoldWithin(trx, { playerId, amount: fare, reason: 'ferry_fare', refType: 'location_connection', refId: activeConnection.id });
+        if (!paid.ok) throw new TravelAbort(`The ferry costs ${fare} gold, and you have ${paid.balance}.`);
+      }
       await trx('player_actions').where({ player_id: playerId }).delete();
 
       const activeTrade = await trx('trades')
@@ -106,7 +151,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         // fixed here, at the start, with the speed: arrival pays by them, so
         // putting a mount away on the road cannot buy a rider's speed with a
         // walker's XP and finds (forum, 2026-11-08).
-        action_data: JSON.stringify({ base: baseTravelTime, mounted }),
+        action_data: JSON.stringify({ base: baseTravelTime, mounted, ...(cross ? { cross } : {}) }),
       });
       return otherId;
     });
@@ -117,15 +162,21 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
     // out anyone on the road).
     announcePlayersHere(player.current_location_id);
 
-    logger.info(`Player ${playerId} traveling to ${toLocation.name}`);
+    logger.info(`Player ${playerId} traveling to ${toLocation.name}${cross ? ` (${cross})` : ''}`);
     res.json({
-      message: `You begin traveling to ${toLocation.name}`,
+      message: cross === 'ferry'
+        ? `You pay ${fare} gold and board the ferry for ${toLocation.name}.`
+        : cross === 'boat' ? `You cast off for ${toLocation.name}.` : `You begin traveling to ${toLocation.name}`,
       travelTime,
       completesAt,
       destination: toLocation.name,
     });
 
   } catch (err) {
+    if (err instanceof TravelAbort) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
     logger.error(`Travel error: ${err}`);
     res.status(500).json({ error: 'Server error' });
   }

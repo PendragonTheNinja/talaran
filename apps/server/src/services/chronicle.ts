@@ -82,6 +82,11 @@ export const FIRST_CRAFT_MIN_TIER = 3
 export async function noteRoadWalked(playerId: number, fromId: number | null | undefined, toId: number): Promise<void> {
     try {
         if (!fromId || fromId === toId) return
+        // Only a road on land: a landing on an islet or a sea crossing is no road walked.
+        const road = await db('location_connections')
+            .where((q) => q.where({ from_location_id: fromId, to_location_id: toId }).orWhere({ from_location_id: toId, to_location_id: fromId }))
+            .whereNot('travel_type', 'sea').first('id')
+        if (!road) return
         const key = `${Math.min(fromId, toId)}-${Math.max(fromId, toId)}`
         const [made] = await db('road_firsts').insert({ road_key: key, player_id: playerId }).onConflict('road_key').ignore().returning('road_key')
         if (!made) return

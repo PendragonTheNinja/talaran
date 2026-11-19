@@ -161,11 +161,17 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     // Whether this is an island's homestead ground or its port with player
     // shops (services/islands.ts), so the client never matches on a town's name.
     const towns = await islandTowns();
+    // A sea road here: the boats the player could cross it in (routes/travel.ts).
+    const ownBoats = connections.some((c: any) => c.travel_type === 'sea')
+      ? await db('player_vessels as v').join('vessel_types as t', 't.id', 'v.vessel_type_id')
+          .where({ 'v.player_id': playerId, 't.is_active': true }).orderBy('t.tier').select('t.key', 't.name')
+      : [];
 
     res.json({
       location: currentLocation,
       homesteadHere: towns.homesteads.has(currentLocation.name),
       shopsHere: towns.shops.has(currentLocation.name),
+      ownBoats,
       guildHallHere,
       eventStandings,
       tavern: tavern ?? null,

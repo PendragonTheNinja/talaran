@@ -103,6 +103,7 @@ async function unwalkedRoads(): Promise<Rumour[]> {
         .join('locations as a', 'a.id', 'c.from_location_id')
         .join('locations as b', 'b.id', 'c.to_location_id')
         .where('a.is_accessible', true).where('b.is_accessible', true)
+        .whereNot('c.travel_type', 'sea')
         .whereNotExists(db('road_firsts as r').whereRaw("r.road_key = least(c.from_location_id, c.to_location_id) || '-' || greatest(c.from_location_id, c.to_location_id)"))
         .select('c.from_location_id', 'c.to_location_id', 'a.name as from_name', 'b.name as to_name')
     const seen = new Set<string>()

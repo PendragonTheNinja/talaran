@@ -1715,6 +1715,27 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'ferry', name: 'five taps on the ferry at once, with 120 gold and a fare of 50', rounds: 10,
+        run: async (ctx) => {
+            // routes/travel.ts: a fare is taken in the journey's transaction, and
+            // a second tap while already aboard is refused, not charged again.
+            const w = await world(ctx);
+            const port = await ctx.seed.row('locations', { name: 'Wendhaven', region: 'Antura' });
+            await ctx.seed.row('location_connections', {
+                from_location_id: w.town.id, to_location_id: port.id, base_travel_time: 420, travel_type: 'sea',
+                is_bidirectional: true, ferry_fare: 50, ferry_seconds: 480,
+            });
+            await fund(ctx, w.player.id, 120);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/travel/start', { toLocationId: port.id, mode: 'ferry' }));
+            const aboard = await ctx.db('player_actions').where({ player_id: w.player.id, action_type: 'traveling' }).count('* as n').first();
+            return noServerErrors(st)
+                ?? succeeded(st, 1)
+                ?? changed('gold after one fare of 50', 70, await goldOf(ctx, w.player.id))
+                ?? changed('journeys under way', 1, Number(aboard?.n ?? 0))
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
         id: 'islet', name: 'five chops at once at an islet stand with two chops left', rounds: 20,
         run: async (ctx) => {
             // An islet find is spent one use at a time (services/isletFinds.ts),

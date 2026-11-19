@@ -603,7 +603,7 @@ Each step ends with Nathan testing. Steps 1 and 2 need nothing from Antura and c
 
 1. **The Skiff:** boats, the slip at Talador, building in pieces, Nettle Cordage.
 2. **Taiar's islets:** exploring, landings, finds.
-3. **Antura's shell:** the places, roads, map, museum, merchants, public benches; the ferry.
+3. **Antura's shell:** the places, roads, map, museum, merchants, public benches; the ferry. **Started 2026-11-19:** the eight places on Claude's proposed roads (Nathan: use them until the final map), the `Antura` island row (tier 2, Farefield, Wendhaven, 10 fields), the ferry and boat crossings, and minimap buttons for any road a place's picture has no exit for (Antura has no art yet). Still to come: the museum, merchants, public benches, and the tavern.
 4. **The main chain:** Underway's granite and Serph, smelting, the Serph tools.
 5. **The homestead:** the cross-island XP share first, then Farefield, the six crops, the seed ground, the feed table.
 6. **The water:** the fish, the Serph rod, the tidal shore.

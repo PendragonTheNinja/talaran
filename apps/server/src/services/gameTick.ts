@@ -24,6 +24,7 @@ import { resolveFillCycle, FILL_CYCLE_SECONDS } from './talar';
 import { resolveBuildCycle, BUILD_SECONDS as GUILD_BUILD_SECONDS } from './guildHall';
 import { resolveBoatBuildCycle } from './boats';
 import { arriveBySea, SEA_XP_RATE, type SeaLeg } from './voyages';
+import { wearSailingPieceWithin } from './sailorSet';
 import { sawPlanks, SAW_RECIPES } from './carpentry';
 import { canMineHere, canMineVein, getActiveVeins } from '../services/mining';
 import { isBotCheckDue, issueBotCheck } from './botCheck';
@@ -241,13 +242,15 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
  * and feats cannot differ by which request happened to settle the swing.
  */
 /** A journey's base time and whether it was ridden, as fixed when it began. */
-async function journeyOf(action: any): Promise<{ baseTime: number; hasMountEquipped: boolean; sea: SeaLeg | null }> {
+async function journeyOf(action: any): Promise<{ baseTime: number; hasMountEquipped: boolean; sea: SeaLeg | null; cross: 'ferry' | 'boat' | null }> {
   const raw = action.action_data;
   if (typeof raw === 'string' && raw.trim().startsWith('{')) {
     try {
       const d = JSON.parse(raw);
       const sea: SeaLeg | null = d.sea === 'out' || d.sea === 'on' || d.sea === 'home' ? d.sea : null;
-      return { baseTime: Number(d.base) || 120, hasMountEquipped: d.mounted === true, sea };
+      // A crossing between islands (routes/travel.ts): the ferry, or a boat of the player's own.
+      const cross = d.cross === 'ferry' || d.cross === 'boat' ? d.cross : null;
+      return { baseTime: Number(d.base) || 120, hasMountEquipped: d.mounted === true, sea, cross };
     } catch { /* fall through to the old shape */ }
   }
   const equipment = await db('player_equipment').where({ player_id: action.player_id }).first();
@@ -255,6 +258,7 @@ async function journeyOf(action: any): Promise<{ baseTime: number; hasMountEquip
     baseTime: raw ? parseInt(raw) || 120 : 120,
     hasMountEquipped: equipment?.mount_item_id !== null && equipment?.mount_item_id !== undefined,
     sea: null,
+    cross: null,
   };
 }
 
@@ -851,16 +855,18 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // at the start too, as the speed was (routes/travel.ts): what is worn on
       // arrival does not matter. A journey begun before that was recorded
       // holds a bare number and falls back to what is worn now.
-      const { baseTime, hasMountEquipped, sea } = await journeyOf(action);
+      const { baseTime, hasMountEquipped, sea, cross } = await journeyOf(action);
       // Walked, ridden, or sailed, the journey trains Wayfaring; walking pays
-      // more per trip, and a sea leg pays a horse's rate (services/voyages.ts).
+      // more per trip, and a sea leg or a crossing in one's own boat pays a
+      // horse's rate (services/voyages.ts). A ferry passenger is not sailing,
+      // and is paid nothing (docs/sailing-spec.md §4).
       const skillName = TRAVEL_SKILL;
-      const rate = sea ? SEA_XP_RATE : hasMountEquipped ? MOUNT_XP_RATE : FOOT_XP_RATE;
+      const rate = cross === 'ferry' ? 0 : sea || cross === 'boat' ? SEA_XP_RATE : hasMountEquipped ? MOUNT_XP_RATE : FOOT_XP_RATE;
       const travelXp = Math.round(baseTime * rate);
 
       // The row is still read below for the arrival screen's level display.
       const travelSkill = await db('skills').where({ name: skillName }).first();
-      await awardXp(action.player_id, skillName, travelXp);
+      if (travelXp > 0) await awardXp(action.player_id, skillName, travelXp);
 
       // Both travel counters were declared in April and never written to, so
       // every feat resting on them could not be earned. Filled in here, which
@@ -874,7 +880,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // counter of any kind before this, so neither could carry a feat.
       await incrementStats(action.player_id, {
         total_distance_traveled: baseTime,
-        ...(hasMountEquipped ? { total_journeys_mounted: 1 } : { total_journeys_on_foot: 1 }),
+        ...(cross ? {} : hasMountEquipped ? { total_journeys_mounted: 1 } : { total_journeys_on_foot: 1 }),
       });
 
       // Distinct arrivals, counted from the discovery table rather than a
@@ -910,15 +916,27 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // Finds are for walkers: a rider covers the ground too fast to see them.
       // A Wayfinder's Amulet (docs/talar-spec.md §8) draws for every minute
       // of road walked, the unit the finds are rolled in, and raises the odds.
-      const wayfinder = hasMountEquipped || sea
+      const wayfinder = hasMountEquipped || sea || cross
         ? null
         : await jewelryAid(db, action.player_id, 'road', Math.max(1, Math.ceil(baseTime / 60)))
       // At sea there are no road finds: a landing searches the strandline
       // instead, and a homecoming ends the voyage (services/voyages.ts).
       const seaArrival = sea && action.location_id ? await arriveBySea(action.player_id, action.location_id, sea) : null;
+      // A crossing finds nothing (§8): the islets are where things are found.
+      // One in a boat of one's own wears a sailing piece, as every sea journey does.
+      const crossingLines: string[] = [];
+      if (cross === 'ferry') crossingLines.push(`The ferry ties up at ${destination?.name ?? 'the quay'}, and you step ashore.`);
+      if (cross === 'boat') {
+        crossingLines.push(`You bring your boat in under the harbour wall at ${destination?.name ?? 'the quay'}.`);
+        const broke = await db.transaction(async (trx) => {
+          await trx('players').where({ id: action.player_id }).forNoKeyUpdate().first('id');
+          return wearSailingPieceWithin(trx, action.player_id);
+        });
+        if (broke) crossingLines.push(`Your ${broke} gives out at last, worn through by the sea.`);
+      }
       const rolledEvents = seaArrival
         ? seaArrival.events.filter(e => e.itemName).map(e => ({ message: e.message, itemName: e.itemName as string, quantity: e.quantity }))
-        : hasMountEquipped
+        : hasMountEquipped || cross
           ? []
           : rollTravelEvents(baseTime, destRegion, lvl, wayfinder ? 1 + wayfinder.strength : 1)
 
@@ -964,7 +982,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
           xpAtLevel: xpForLevel(lvl),
           destination: destination?.name || 'your destination',
           // A sea arrival's own words: the landing, then what the tideline gave.
-          message: seaArrival && seaArrival.events.length ? seaArrival.events.map(e => e.message).join(' ') : undefined,
+          message: seaArrival && seaArrival.events.length ? seaArrival.events.map(e => e.message).join(' ')
+            : crossingLines.length ? crossingLines.join(' ') : undefined,
           drops: rolledEvents.map(e => ({ name: e.itemName, quantity: e.quantity })),
           jewelry: wayfinder && rolledEvents.length ? [`Your ${wayfinder.name} kept your eyes on the verge.`] : [],
           events: rolledEvents,  // ← full event log for this walk (message + item)

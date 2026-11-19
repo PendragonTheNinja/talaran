@@ -22,7 +22,7 @@ interface RightPanelProps {
   locationName: string
   allLocations: Location[]
   connections: any[]
-  onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
+  onTravel: (toLocationId: number, toLocationName: string, travelTime: number, mode?: string) => void
   locationData?: any
   equipmentData: any
   onEquipmentUpdate: () => void
@@ -77,6 +77,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
                   connections={connections}
                   onTravel={onTravel}
                   region={locationData?.location?.region}
+                  ownBoats={locationData?.ownBoats}
                 />
               </div>
             </div>
