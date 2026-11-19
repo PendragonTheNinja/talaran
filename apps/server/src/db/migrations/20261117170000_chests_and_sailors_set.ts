@@ -49,7 +49,7 @@ const ITEMS: Row[] = [
     KEEPSAKE('Salt-Stained Ledger', 'A trader\'s account book, swollen with seawater. The ink has run, but the sums are still legible, and they do not add up.'),
     KEEPSAKE('Siren\'s Comb', 'A comb cut from whalebone, the teeth worn smooth, with long pale hair still caught in it.'),
     KEEPSAKE('Trow\'s Thimble', 'A thimble of Ambren gone black with age, far too big for any hand you have seen.'),
-    KEEPSAKE('Drowned Captain\'s Seal', 'A brass seal on a short chain. The ship\'s name was cut into it once; the sea has worn it off.'),
+    KEEPSAKE('Drowned Captain\'s Seal', 'An Ambren seal on a short chain. The ship\'s name was cut into it once; the sea has worn it off.'),
     SET('Tarred Hood', 'head', 'A hood of sailcloth, painted with tar until it is stiff as a bucket. Rain runs off it and so does spray.'),
     SET('Rope-Worker\'s Gloves', 'hands', 'Leather gloves gone hard at the palms from years of hauling wet line. They grip a rope the way a bare hand never does.'),
     SET('Sea Boots', 'feet', 'Tall boots of greased hide that lace above the knee. They keep the bilge out, mostly.'),

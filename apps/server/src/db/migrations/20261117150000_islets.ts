@@ -63,7 +63,7 @@ const ISLETS: { name: string; kind: string; weight: number; description: string;
         arrive: [
             'You thread the gap in the reef with the oars shipped and drift into the lagoon. The water inside is glass.',
             'The swell breaks white on the outer edge and never reaches you. Inside, it is so quiet you can hear fish turning.',
-            'Weed streams from the rocks like hair. You tie up to an old iron ring somebody drove in long ago.',
+            'Weed streams from the rocks like hair. You tie up to an old Ambren ring, green with salt, that somebody drove in long ago.',
         ],
     },
     {
@@ -86,9 +86,9 @@ const ISLETS: { name: string; kind: string; weight: number; description: string;
     },
     {
         name: 'The Drowned Quarry', kind: 'seldom', weight: 8,
-        description: 'Somebody cut stone here once, and the sea came in after them. Square-sided pools, a crane rotted to its iron, and steps that go down into the water.',
+        description: 'Somebody cut stone here once, and the sea came in after them. Square-sided pools, a crane rotted down to its pegs, and steps that go down into the water.',
         arrive: [
-            'You tie up to an iron ring set in a cut wall. Whoever worked this stone left in a hurry, and left their wedges.',
+            'You tie up to an Ambren ring set in a cut wall. Whoever worked this stone left in a hurry, and left their wedges.',
             'The steps go down into green water and keep going. You can see them for a long way.',
             'Square pools, square walls, square shadows. It is the only straight thing for miles of sea.',
         ],
