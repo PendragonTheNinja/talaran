@@ -7,6 +7,7 @@ import { getSocket } from '../lib/socket'
 import './GameView.css'
 import LogPanel from './LogPanel'
 import './TravelLog.css'
+import { scenePicturesOn, scenePictureSrc, SCENE_PICTURES_EVENT } from '../lib/scenePictures'
 import BotCheckFab from './BotCheckFab'
 import BellButton from './BellButton'
 import CrierNotice from './CrierNotice'
@@ -2030,6 +2031,27 @@ export default function GameView({
   const miningNodes = locationData?.nodes.filter(n => n.skill === 'mining') || []
   const locationName = locationData?.location?.name || 'Unknown'
   const locationDesc = locationData?.location?.description || ''
+
+  // The place's picture behind the scene (lib/scenePictures.ts): loaded first,
+  // then shown, so a missing one never flashes a broken frame, and a place
+  // without one keeps the theme's background.
+  const [picturesOn, setPicturesOn] = useState(scenePicturesOn)
+  useEffect(() => {
+    const on = (e: Event) => setPicturesOn(!!(e as CustomEvent<boolean>).detail)
+    window.addEventListener(SCENE_PICTURES_EVENT, on)
+    return () => window.removeEventListener(SCENE_PICTURES_EVENT, on)
+  }, [])
+  const sceneSrc = picturesOn ? scenePictureSrc(locationData?.location?.region, locationData?.location?.name) : null
+  const [sceneShown, setSceneShown] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    if (!sceneSrc) { Promise.resolve().then(() => { if (live) setSceneShown(null) }); return () => { live = false } }
+    const img = new Image()
+    img.onload = () => { if (live) setSceneShown(sceneSrc) }
+    img.onerror = () => { if (live) setSceneShown(null) }
+    img.src = sceneSrc
+    return () => { live = false }
+  }, [sceneSrc])
   const connections = locationData?.connections || []
   const timerPercent = timerMax > 0 ? (timerSeconds / timerMax) * 100 : 0
   // Hunting phase narration — splits the single hunt timer into track → stalk → strike thirds
@@ -2255,7 +2277,10 @@ export default function GameView({
   return (
     <div className="game-view panel">
       <div className="game-view-main">
-        <div className="game-scene">
+        <div className={`game-scene ${sceneShown ? 'has-picture' : ''}`}>
+          {/* The place's own picture, behind everything (lib/scenePictures.ts). */}
+          <div className={`scene-backdrop ${sceneShown ? 'shown' : ''}`}
+            style={sceneShown ? { backgroundImage: `url("${sceneShown}")` } : undefined} aria-hidden="true" />
 
           {!currentAction && (
             <div className="scene-idle">

@@ -894,3 +894,47 @@
   opacity: 0.75;
   cursor: not-allowed;
 }
+
+/* ── The place's picture (lib/scenePictures.ts) ──────────────────────────
+   Behind every line of the scene: the scene is its own stacking context, so
+   the picture sits above the theme's background and below the text. Cover,
+   centred, never tiled; the subject wants to be in the middle third, since a
+   phone keeps little more than that. A dark wash keeps the text readable. */
+.game-scene {
+  isolation: isolate;
+}
+
+.scene-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+.scene-backdrop.shown {
+  opacity: 1;
+}
+
+.scene-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.6) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.2) 35%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-backdrop { transition: none; }
+}
+
+/* Over a picture, the scene's words carry a soft shadow so busy rock or
+   bright water behind them never swallows a line. */
+.game-scene.has-picture {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.85);
+}

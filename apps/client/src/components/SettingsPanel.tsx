@@ -17,6 +17,7 @@ import ChatMessageLine from './ChatMessageLine'
 import BellSetting from './BellSetting'
 import NotificationSetting from './NotificationSetting'
 import { CHAT_SIZES, currentChatSize, setChatSize, type ChatSizeId } from '../lib/chatSize'
+import { scenePicturesOn, setScenePictures } from '../lib/scenePictures'
 import { CHAT_START_CHOICES, chatStartChoice, setChatStartChoice, type ChatStartId } from '../lib/chatChannel'
 import ErrorLine from './ErrorLine'
 
@@ -70,6 +71,8 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
 
     // Chat text size: this device only (lib/chatSize.ts).
     const [chatSize, setChatSizeState] = useState<ChatSizeId>(currentChatSize)
+    // Place pictures behind the scene: this device only (lib/scenePictures.ts).
+    const [placePictures, setPlacePictures] = useState(scenePicturesOn)
     // Which channel chat opens on: this device only (lib/chatChannel.ts).
     const [chatStart, setChatStartState] = useState<ChatStartId>(chatStartChoice)
     const chooseChatSize = (id: ChatSizeId) => { setChatSize(id); setChatSizeState(id) }
@@ -486,6 +489,23 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                                 <button className="btn" onClick={() => openSupport('themes')}>See themes</button>
                             </p>
                         )}
+                        <h4 className="settings-section-title settings-section-gap">Place Pictures</h4>
+                        <p className="muted-text" style={{ fontSize: '14px', marginBottom: '12px' }}>
+                            A picture of where you stand behind the scene, where a place has one. Saved on this device only.
+                        </p>
+                        <div className="settings-size-row" role="radiogroup" aria-label="Place pictures">
+                            {[{ on: true, label: 'Shown' }, { on: false, label: 'Hidden' }].map(o => (
+                                <button
+                                    key={o.label}
+                                    role="radio"
+                                    aria-checked={placePictures === o.on}
+                                    className={`settings-size-btn ${placePictures === o.on ? 'active' : ''}`}
+                                    onClick={() => { setScenePictures(o.on); setPlacePictures(o.on) }}
+                                >
+                                    {o.label}
+                                </button>
+                            ))}
+                        </div>
                         <PaletteEditor
                             hasPerk={hasPalettePerk}
                             perkPrice={store?.items.find(i => i.key === 'perk:custom_palette')?.effectivePrice ?? 1500}
