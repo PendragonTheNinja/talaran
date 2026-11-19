@@ -2275,12 +2275,13 @@ export default function GameView({
   }
 
   return (
-    <div className="game-view panel">
+    // The place's picture is the panel's own background (lib/scenePictures.ts),
+    // so it fills everything inside a theme's frame and the frame's corners,
+    // a border image, are drawn over it. Inline, so it outranks any theme's.
+    <div className={`game-view panel ${sceneShown ? 'has-picture' : ''}`}
+      style={sceneShown ? { background: `var(--scene-wash), url("${sceneShown}") center / cover no-repeat` } : undefined}>
       <div className="game-view-main">
-        <div className={`game-scene ${sceneShown ? 'has-picture' : ''}`}>
-          {/* The place's own picture, behind everything (lib/scenePictures.ts). */}
-          <div className={`scene-backdrop ${sceneShown ? 'shown' : ''}`}
-            style={sceneShown ? { backgroundImage: `url("${sceneShown}")` } : undefined} aria-hidden="true" />
+        <div className="game-scene">
 
           {!currentAction && (
             <div className="scene-idle">

@@ -896,45 +896,36 @@
 }
 
 /* ── The place's picture (lib/scenePictures.ts) ──────────────────────────
-   Behind every line of the scene: the scene is its own stacking context, so
-   the picture sits above the theme's background and below the text. Cover,
-   centred, never tiled; the subject wants to be in the middle third, since a
-   phone keeps little more than that. A dark wash keeps the text readable. */
-.game-scene {
-  isolation: isolate;
+   The picture is .game-view's own background, set inline by GameView, so it
+   fills the whole panel inside a theme's frame and the frame (a border image,
+   Stonehold's gold knots) is drawn over it. Cover, centred, never tiled; the
+   subject wants to be in the middle third, since a phone keeps little more.
+   The wash darkens it for reading; the scene's own fills step aside. */
+:root {
+  --scene-wash:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.15) 35%, rgba(0, 0, 0, 0.5) 100%);
 }
 
-.scene-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-  pointer-events: none;
+html .game-view.has-picture .game-view-main,
+html .game-view.has-picture .game-scene {
+  background: transparent;
 }
 
-.scene-backdrop.shown {
-  opacity: 1;
-}
-
-.scene-backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.6) 100%),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.2) 35%, rgba(0, 0, 0, 0.55) 100%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scene-backdrop { transition: none; }
-}
-
-/* Over a picture, the scene's words carry a soft shadow so busy rock or
-   bright water behind them never swallows a line. */
-.game-scene.has-picture {
+/* Over a picture the words are drawn brighter, with a soft shadow, so busy
+   rock or bright water never swallows a line. */
+.game-view.has-picture .game-scene {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.85);
+}
+
+.game-view.has-picture .scene-description {
+  color: var(--color-text-base);
+}
+
+/* A full-screen desktop has room for larger scene words. */
+@media (min-width: 1600px) {
+  .scene-description {
+    font-size: 23px;
+    max-width: 900px;
+  }
 }
