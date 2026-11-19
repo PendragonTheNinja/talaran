@@ -927,6 +927,7 @@ export default function GameLayout({
       locationName={locationData?.location?.name || ''}
       connections={locationData?.connections || []}
       onTravel={handleTravel}
+      region={locationData?.location?.region}
     />
   )
 

@@ -905,7 +905,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
 
       // ── Travel find-events ────────────────────────────────────────
       // Region of the destination drives the eligible event pool.
-      const destRegion = destination?.region || 'Taiar Island'
+      // The destination's own island; no island, no finds.
+      const destRegion = destination?.region || ''
       // Finds are for walkers: a rider covers the ground too fast to see them.
       // A Wayfinder's Amulet (docs/talar-spec.md §8) draws for every minute
       // of road walked, the unit the finds are rolled in, and raises the odds.

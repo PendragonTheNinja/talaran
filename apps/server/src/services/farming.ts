@@ -10,7 +10,7 @@ import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { noteDeed } from './chronicle';
 import { buffedSeconds, skillForWork } from './buffs'
-import { holdingShare, holdingRank } from '../lib/holdingShare';
+import { holdingShare, holdingRank, fieldRanks } from '../lib/holdingShare';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -399,11 +399,14 @@ export async function getFarmState(playerId: number) {
     await refreshFallow(property.id);
 
     const plots = await db('farm_plots').where({ property_id: property.id }).orderBy('slot_index', 'asc');
+    // Places count across every field the player owns, on every island (lib/holdingShare.ts).
+    const ranks = await fieldRanks(db, playerId);
     const now = Date.now();
     const manureHeld = await inventoryQty(playerId, 'Manure');
     const bucketHeld = await inventoryQty(playerId, 'Lanai Bucket');
     const missingBuild = (await missingBuildTool(playerId))?.itemName ?? null;
-    const plotView = plots.map((p, rank) => {
+    const plotView = plots.map((p) => {
+        const rank = ranks.get(Number(p.id)) ?? 0;
         const crop = crops.find(c => c.id === p.crop_id) || null;
         const readyAt = p.ready_at ? new Date(p.ready_at).getTime() : null;
         const isReady = p.state === 'growing' && readyAt !== null && now >= readyAt;
@@ -956,7 +959,7 @@ async function harvestPlot(playerId: number, plot: any, level: number): Promise<
     // takes no further share; its first harvest, which used a seed, does.
     const activeXp = activeXpForSeconds(level, plot.seed_count * HARVEST_SECONDS_PER_SEED);
     const regrowth = !!crop.is_perennial && Number(plot.harvests_since_sow) > 0;
-    const share = regrowth ? 1 : holdingShare(await holdingRank(db, 'farm_plots', plot));
+    const share = regrowth ? 1 : holdingShare(await holdingRank(db, plot));
     const xp = Math.max(1, Math.round(harvestSeedXp(level, crop, plot.seed_count, Number(plot.harvests_since_sow) || 0) * share))
         + activeXp;
 

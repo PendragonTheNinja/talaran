@@ -48,7 +48,7 @@ export default function NewsPage() {
             <div className="news-page-hero">
                 <p className="news-page-eyebrow">Updates &amp; Patch Notes</p>
                 <h1 className="news-page-title">Talaran News</h1>
-                <p className="news-page-subtitle">Follow the development of Taiar Island</p>
+                <p className="news-page-subtitle">Follow the development of Talaran</p>
             </div>
 
             {loading ? (

@@ -14,11 +14,14 @@ interface MiniMapProps {
   locationName: string
   connections: Connection[]
   onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void
+  /** The place's island (locations.region): its pictures live in a folder of its own. */
+  region?: string
 }
 
-export default function MiniMap({ locationName, connections, onTravel }: MiniMapProps) {
+export default function MiniMap({ locationName, connections, onTravel, region }: MiniMapProps) {
   const filename = locationName.replace(/ /g, '_') + '.jpg'
-  const src = `/images/locations/Taiar_Island/${filename}`
+  const folder = (region || 'Taiar Island').replace(/ /g, '_')
+  const src = `/images/locations/${folder}/${filename}`
   const exits = LOCATION_EXITS[locationName] || []
 
   const handleZoneClick = (connectionName: string) => {

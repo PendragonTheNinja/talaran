@@ -557,8 +557,13 @@ function taperedXp(level: number, species: any, column: 'xp_product' | 'xp_matur
  * nothing, go by pen number. So the only way to move a pen up is to have
  * fewer good animals in the pens above it. Returns pen id to 0-based place.
  */
-async function penRanks(x: Ex, propertyId: number, level: number): Promise<Map<number, number>> {
-    const pens = await x('player_pens').where({ property_id: propertyId }).orderBy('slot_index', 'asc').select('id', 'slot_index');
+async function penRanks(x: Ex, playerId: number, level: number): Promise<Map<number, number>> {
+    // Every pen the player owns, on every island's homestead: best first carries
+    // across islands unchanged (CLAUDE.md §8). Ties go by homestead, then pen number.
+    const pens = (await x('player_pens as pn').join('player_properties as p', 'p.id', 'pn.property_id')
+        .where('p.player_id', playerId).orderBy([{ column: 'p.id' }, { column: 'pn.slot_index' }])
+        .select('pn.id', 'pn.slot_index'))
+        .map((p: any, i: number) => ({ id: p.id, slot_index: i }));
     const animals = pens.length
         ? await x('player_animals').whereIn('pen_id', pens.map((p: any) => p.id)).select('pen_id', 'species_id', 'grow_seconds_accrued')
         : [];
@@ -583,7 +588,9 @@ async function penRanks(x: Ex, propertyId: number, level: number): Promise<Map<n
 
 /** One pen's share of its produce XP, by its place (penRanks). */
 async function penShare(x: Ex, pen: { id: number; property_id: number }, level: number): Promise<number> {
-    const ranks = await penRanks(x, Number(pen.property_id), level);
+    const owner = await x('player_properties').where({ id: pen.property_id }).first('player_id');
+    if (!owner) return 1;
+    const ranks = await penRanks(x, Number(owner.player_id), level);
     return holdingShare(ranks.get(Number(pen.id)) ?? 0);
 }
 
@@ -1104,7 +1111,7 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
 
     const nextPen = pens.length + 1;
     // Best producers first (penRanks), once growing up has been settled above.
-    const ranks = await penRanks(db, property.id, husbandryLvl);
+    const ranks = await penRanks(db, Number(property.player_id), husbandryLvl);
     for (const p of pens as any[]) p.xpShare = Math.round(100 * holdingShare(ranks.get(Number(p.id)) ?? 0));
 
     return {

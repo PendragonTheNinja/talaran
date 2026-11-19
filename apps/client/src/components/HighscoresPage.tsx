@@ -109,7 +109,7 @@ export default function HighscoresPage() {
             <div className="hs-hero">
                 <p className="hs-eyebrow">Hall of Fame</p>
                 <h1 className="hs-title">Highscores</h1>
-                <p className="hs-subtitle">The finest adventurers of Taiar Island</p>
+                <p className="hs-subtitle">The finest adventurers of Talaran</p>
             </div>
 
             {/* Controls */}

@@ -31,11 +31,28 @@ export function holdingShare(rank: number): number {
 }
 
 /**
- * A field's or pen's place: how many of its kind stand before it on the same
- * farmstead. Not slot_index itself, which keeps its gap when a pen is
- * demolished, or every pen after it would teach as if the gap were standing.
+ * Every field a player owns, on every homestead on every island, in the order
+ * the share counts them (CLAUDE.md §8, Nathan 2026-11-15): the highest-tier
+ * island's first, each homestead's fields in their number order. Counted
+ * across all of them, never per homestead, or each new island would start
+ * again at 100% and undo the share. A field's island never changes, so the
+ * order cannot be gamed. Not slot_index itself, which keeps a gap when a
+ * field goes. Returns plot id to 0-based place.
  */
-export async function holdingRank(x: any, table: 'farm_plots' | 'player_pens', row: { property_id: number; slot_index: number }): Promise<number> {
-    const [{ n }] = await x(table).where({ property_id: row.property_id }).where('slot_index', '<', row.slot_index).count('* as n');
-    return Number(n) || 0;
+export async function fieldRanks(x: any, playerId: number): Promise<Map<number, number>> {
+    const plots = await x('farm_plots as f')
+        .join('player_properties as p', 'p.id', 'f.property_id')
+        .join('locations as l', 'l.id', 'p.location_id')
+        .leftJoin('islands as i', 'i.name', 'l.region')
+        .where('p.player_id', playerId)
+        .orderByRaw('coalesce(i.tier, 1) desc, p.id asc, f.slot_index asc')
+        .select('f.id');
+    return new Map(plots.map((r: any, i: number) => [Number(r.id), i]));
+}
+
+/** One field's place among all of its owner's (fieldRanks). */
+export async function holdingRank(x: any, plot: { id: number; property_id: number }): Promise<number> {
+    const owner = await x('player_properties').where({ id: plot.property_id }).first('player_id');
+    if (!owner) return 0;
+    return (await fieldRanks(x, Number(owner.player_id))).get(Number(plot.id)) ?? 0;
 }

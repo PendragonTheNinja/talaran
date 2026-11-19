@@ -47,7 +47,7 @@ interface PlayerData {
   currentAction: any
 }
 
-export default function RightPanel({ player, playerData, currentLocationId, locationName, allLocations, connections, onTravel, locationData, equipmentData, onEquipmentUpdate, onInventoryUpdate }: RightPanelProps) {
+export default function RightPanel({ player, playerData, currentLocationId, locationName, connections, onTravel, locationData, equipmentData, onEquipmentUpdate, onInventoryUpdate }: RightPanelProps) {
   const skills = playerData?.skills || []
   const totalLevel = playerData?.totalLevel || 0
   const totalXp = playerData?.totalXp || 0
@@ -59,7 +59,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
     <aside className="right-panel">
       <div className="minimap panel">
         <div className="minimap-header">
-          <div className="panel-title">Taiar Island</div>
+          <div className="panel-title">{locationData?.location?.region || 'Taiar Island'}</div>
           <button
             className="minimap-collapse-btn"
             onClick={() => setMapCollapsed(c => !c)}
@@ -74,9 +74,9 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
                 <MiniMap
                   currentLocationId={currentLocationId}
                   locationName={locationName}
-                  locations={allLocations}
                   connections={connections}
                   onTravel={onTravel}
+                  region={locationData?.location?.region}
                 />
               </div>
             </div>

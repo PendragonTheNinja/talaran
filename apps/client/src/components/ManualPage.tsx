@@ -24,7 +24,7 @@ export default function ManualPage() {
             </div>
 
             <div className="manual-page-hero">
-                <p className="manual-page-eyebrow">A Guide to Taiar Island</p>
+                <p className="manual-page-eyebrow">A Guide to Talaran</p>
                 <h1 className="manual-page-title">The Manual of Talaran</h1>
                 <p className="manual-page-subtitle">
                     Compiled by the Geographer, who tried everything once

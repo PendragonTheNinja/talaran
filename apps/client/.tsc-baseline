@@ -15,6 +15,5 @@ src/components/GameLayout.tsx: error TS2719: Type 'Skill[]' is not assignable to
 src/components/GameView.tsx: error TS2339: Property 'xpAtLevel' does not exist on type 'XpInfo'.
 src/components/GameView.tsx: error TS2339: Property 'xpAtLevel' does not exist on type 'XpInfo'.
 src/components/LocationPanel.tsx: error TS2339: Property 'onRequestTrade' does not exist on type 'LocationPanelProps'.
-src/components/RightPanel.tsx: error TS2322: Type '{ currentLocationId: number; locationName: string; locations: Location[]; connections: any[]; onTravel: (toLocationId: number, toLocationName: string, travelTime: number) => void; }' is not assignable to type 'IntrinsicAttributes & MiniMapProps'.
 src/components/SkillsPanel.tsx: error TS2719: Type 'Skill[]' is not assignable to type 'Skill[]'. Two different types with this name exist, but they are unrelated.
 src/components/TabbedPanel.tsx: error TS2719: Type 'Skill[]' is not assignable to type 'Skill[]'. Two different types with this name exist, but they are unrelated.
