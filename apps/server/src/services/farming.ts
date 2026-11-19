@@ -347,8 +347,11 @@ export async function getFarmState(playerId: number) {
     const farmingLvl = await skillLevel(playerId, 'Farming');
     const hoe = await equippedTool(playerId, 'hoe');
 
-    // Crops, with how many seeds the player is actually holding.
-    const crops = await db('crops').where({ is_active: true }).orderBy('plant_level', 'asc');
+    // Crops this homestead's soil takes (its island's, or any that grow anywhere:
+    // the sow check in startSow), with how many seeds the player is holding.
+    const region = home?.region ?? null;
+    const crops = (await db('crops').where({ is_active: true }).orderBy('plant_level', 'asc'))
+        .filter((c: any) => !c.region || c.grows_anywhere || c.region === region);
     // What each crop actually teaches THIS player, from the same functions the
     // harvest pays through. Without it the level taper is invisible: a level 40
     // farmer planting Flax just earns less and has no way to know why, which
