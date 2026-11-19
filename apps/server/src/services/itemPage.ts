@@ -576,12 +576,17 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
         });
     }
 
+    // What each animal eats (animal_feeds), or its one feed where it has no list.
+    const feeds = await db('animal_feeds').where({ is_active: true }).select('species_id', 'item_name', 'qty');
     for (const a of animals) {
-        if (String(a.feed_item_name || '').toLowerCase() === name.toLowerCase()) {
+        const own = feeds.filter((f: any) => Number(f.species_id) === Number(a.id));
+        const list = own.length ? own.map((f: any) => ({ item: f.item_name, qty: f.qty })) : [{ item: a.feed_item_name, qty: a.feed_qty }];
+        const eats = list.find(f => String(f.item || '').toLowerCase() === name.toLowerCase());
+        if (eats) {
             uses.push({
                 kind: 'Husbandry',
                 into: `Feeding ${a.name}`,
-                detail: `${a.feed_qty} at a time`,
+                detail: `${eats.qty} a head`,
                 link: SKILL_PAGE.Husbandry,
             });
         }

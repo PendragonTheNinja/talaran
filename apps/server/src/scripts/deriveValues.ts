@@ -443,7 +443,10 @@ async function main(): Promise<void> {
     // ---- 8. Husbandry products: feed + attention, NOT elapsed time ---------
     for (const s of await readTable('animal_species')) {
         if (!s.product_item_name || !s.product_seconds) continue;
-        const feedCost = (best.get(s.feed_item_name)?.value ?? 1) * Number(s.feed_qty || 1);
+        // The cheapest thing it eats (animal_feeds), as a player would feed it.
+        const feedRows = (await readTable('animal_feeds').catch(() => [])).filter((f: any) => Number(f.species_id) === Number(s.id) && f.is_active !== false);
+        const options = feedRows.length ? feedRows.map((f: any) => ({ item: f.item_name, qty: Number(f.qty) })) : [{ item: s.feed_item_name, qty: Number(s.feed_qty || 1) }];
+        const feedCost = Math.min(...options.map((o: any) => (best.get(o.item)?.value ?? 1) * o.qty));
         const attention = goldForSeconds(Number(s.husbandry_level) || 1, TEND_SECONDS);
         propose(s.product_item_name, {
             value: (attention + feedCost) / Math.max(1, Number(s.product_qty)),

@@ -54,6 +54,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     trap_types:                  { label: 'Trap Types',            group: 'Hunting',    snapshot: true, editable: true },
     trap_targets:                { label: 'Trap Targets',          group: 'Hunting',    snapshot: true, editable: true },
     animal_species:              { label: 'Animal Species',        group: 'Husbandry',  snapshot: true, editable: true },
+    animal_feeds:                { label: 'Animal Feeds',          group: 'Husbandry',  snapshot: true, editable: true },
     crops:                       { label: 'Crops',                 group: 'Farming',    snapshot: true, editable: true },
     // ---- Combat (docs/combat-spec.md §8) ----
     // Creatures, the places to fight them and which creature lives where.

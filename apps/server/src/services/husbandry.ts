@@ -197,6 +197,57 @@ async function consumeMaterials(playerId: number, cost: { itemName: string; qty:
     }
 }
 
+// ── Feeds (docs/foraging-farming-ladder.md §2; migration 20261119190000) ─────
+//
+// A species eats whatever it really would (animal_feeds): every feed counts
+// the same, only the amount a head differs. By hand the player picks; Feed All
+// and Larder Ward take the cheapest the pack or storehouse holds enough of.
+// A species with no rows falls back to its one feed_item_name.
+
+export interface FeedOption { itemName: string; qty: number }
+
+/** A species' feeds, cheapest a head first (value x amount; an unpriced feed last). */
+export async function feedsFor(x: Ex, species: any): Promise<FeedOption[]> {
+    if (!species) return [];
+    const rows = await x('animal_feeds as f').leftJoin('items as i', 'i.name', 'f.item_name')
+        .where({ 'f.species_id': species.id, 'f.is_active': true })
+        .select('f.item_name', 'f.qty', 'f.display_order', 'i.value');
+    if (!rows.length) {
+        return species.feed_item_name && Number(species.feed_qty) >= 1
+            ? [{ itemName: species.feed_item_name, qty: Number(species.feed_qty) }] : [];
+    }
+    const cost = (r: any) => (Number(r.value) > 0 ? Number(r.value) * Number(r.qty) : Infinity);
+    return rows
+        .sort((a: any, b: any) => (cost(a) - cost(b)) || (Number(a.display_order) - Number(b.display_order)))
+        .map((r: any) => ({ itemName: r.item_name, qty: Number(r.qty) }));
+}
+
+/**
+ * The feed for `head` animals: the one asked for, if the species eats it, or
+ * else the cheapest that `held` covers. `short` names what is missing when
+ * nothing will do (the asked-for feed, or the cheapest).
+ */
+async function pickFeed(
+    options: FeedOption[], head: number, held: (itemName: string) => Promise<number>, wanted?: string | null,
+): Promise<{ feed: FeedOption | null; short?: { itemName: string; need: number; have: number }; refused?: string }> {
+    if (!options.length) return { feed: null };
+    const chosen = wanted ? options.find(o => o.itemName.toLowerCase() === wanted.toLowerCase()) : null;
+    if (wanted && !chosen) return { feed: null, refused: `They will not eat ${wanted}.` };
+    for (const o of chosen ? [chosen] : options) {
+        const have = await held(o.itemName);
+        if (have >= o.qty * head) return { feed: o };
+        if (chosen) return { feed: null, short: { itemName: o.itemName, need: o.qty * head, have } };
+    }
+    const first = options[0];
+    return { feed: null, short: { itemName: first.itemName, need: first.qty * head, have: await held(first.itemName) } };
+}
+
+/** "Grain, Barley, or Peas": what a species eats, for a refusal. */
+function feedNames(options: FeedOption[]): string {
+    const n = options.map(o => o.itemName);
+    return n.length <= 1 ? (n[0] ?? '') : n.length === 2 ? `${n[0]} or ${n[1]}` : `${n.slice(0, -1).join(', ')}, or ${n[n.length - 1]}`;
+}
+
 async function equippedTool(playerId: number, subtype: string, x: Ex = db) {
     const column = TOOL_SLOT_COLUMN[subtype];
     if (!column) return null;
@@ -805,9 +856,14 @@ export async function settleWardsWithin(trx: Knex.Transaction, playerId: number,
     for (const pen of pens) {
         if (isApiary(pen.pen_type)) continue;
         const species = await trx('animal_species').where({ id: pen.species_id }).first();
-        if (!species?.feed_item_name || !(species.feed_qty >= 1)) continue;
-        const feed = await itemByName(species.feed_item_name, trx);
-        if (!feed) continue;
+        const options = await feedsFor(trx, species);
+        if (!options.length) continue;
+        // From the storehouse, the cheapest feed it holds enough of.
+        const stored = async (itemName: string) => {
+            const it = await itemByName(itemName, trx);
+            const row = it ? await trx('property_storage').where({ property_id: property.id, item_id: it.id }).first('quantity') : null;
+            return Number(row?.quantity ?? 0);
+        };
 
         const wardEnd = new Date(pen.warded_until).getTime();
         let current = pen;
@@ -819,7 +875,9 @@ export async function settleWardsWithin(trx: Knex.Transaction, playerId: number,
             // Up to the moment it ran dry, under the old trough.
             const animals = await accrueAllInPen(current, trx, at);
             if (!animals.length) break;
-            if (!(await takeFromStorage(trx, property.id, feed.id, species.feed_qty * animals.length))) {
+            const { feed: choice } = await pickFeed(options, animals.length, stored);
+            const feed = choice ? await itemByName(choice.itemName, trx) : null;
+            if (!choice || !feed || !(await takeFromStorage(trx, property.id, feed.id, choice.qty * animals.length))) {
                 await trx('player_pens').where({ id: pen.id }).update({ warded_from: now });
                 break;
             }
@@ -959,6 +1017,8 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
         speciesList.push({
             id: s.id, name: s.name, penType: s.pen_type, level: s.husbandry_level,
             babyItem: s.baby_item_name, feedItem: s.feed_item_name, feedQty: s.feed_qty,
+            // Everything it eats, a head's worth of each (animal_feeds).
+            feeds: await feedsFor(db, s),
             productItem: s.product_item_name, productSeconds: s.product_seconds,
             productChance: s.product_chance, growSeconds: s.grow_seconds,
             elderSeconds: s.elder_seconds, isMount: !!s.mount_item_name,
@@ -1004,7 +1064,7 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
         ...(await (async () => {
             const feedPens = await pensNeedingFeed(playerId);
             const muckPens = await pensNeedingMuck(playerId);
-            const feed = await roundCost(feedPens, 'feed');
+            const feed = await planFeedRound(playerId, feedPens);
             const muck = await roundCost(muckPens, 'muck');
             return {
                 pensToFeed: feedPens.length,
@@ -1013,7 +1073,7 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
                 // the button can say so instead of failing when pressed.
                 feedRoundCost: feed.cost,
                 muckRoundCost: muck.cost,
-                canFeedRound: (await hasMaterials(playerId, feed.cost)).ok,
+                canFeedRound: feed.ok,
                 canMuckRound: (await hasMaterials(playerId, muck.cost)).ok,
             };
         })()),
@@ -1106,8 +1166,19 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
             beddingItem: BEDDING.itemName,
             readyUnits: animalList.reduce((n, a) => n + (a.productUnits ?? 0), 0),
             slaughterable: animalList.filter((a) => a.canSlaughter).length,
-            feedItem: species?.feed_item_name ?? null,
-            feedCost: species ? species.feed_qty * animals.length : 0,
+            // The feed Feed would use now (the cheapest held), and every feed the
+            // pen eats with what it would take and what is carried, for the picker.
+            ...(await (async () => {
+                const options = await feedsFor(db, species);
+                const head = animals.length;
+                const { feed } = await pickFeed(options, head, (n) => inventoryQty(playerId, n));
+                const fallback = feed ?? options[0] ?? null;
+                return {
+                    feedItem: fallback?.itemName ?? null,
+                    feedCost: fallback ? fallback.qty * head : 0,
+                    feeds: await Promise.all(options.map(async o => ({ itemName: o.itemName, qty: o.qty * head, held: await inventoryQty(playerId, o.itemName) }))),
+                };
+            })()),
             animals: animalList,
         });
     }
@@ -1493,7 +1564,7 @@ export async function renameAnimal(playerId: number, animalId: number, name: str
 }
 
 // ── feed ────────────────────────────────────────────────────────────────────
-export async function startFeed(playerId: number, penId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+export async function startFeed(playerId: number, penId: number, feedRaw?: unknown): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     await settleWards(playerId);
     const pen = await ownedPen(playerId, penId);
     if (!pen) return { ok: false, error: 'That is not your pen.' };
@@ -1510,17 +1581,25 @@ export async function startFeed(playerId: number, penId: number): Promise<{ ok: 
     }
 
     const species = await db('animal_species').where({ id: pen.species_id }).first();
-    const cost = [{ itemName: species.feed_item_name, qty: species.feed_qty * animals.length }];
-    const matCheck = await hasMaterials(playerId, cost);
-    if (!matCheck.ok) {
-        const m = matCheck.missing[0];
-        return { ok: false, error: `You need ${m.need}x ${m.itemName} to feed them all (you have ${m.have}).` };
+    const options = await feedsFor(db, species);
+    const wanted = typeof feedRaw === 'string' && feedRaw.trim() ? feedRaw.trim() : null;
+    const pick = await pickFeed(options, animals.length, (n) => inventoryQty(playerId, n), wanted);
+    if (pick.refused) return { ok: false, error: pick.refused };
+    if (!pick.feed) {
+        const m = pick.short!;
+        return {
+            ok: false,
+            error: wanted || options.length === 1
+                ? `You need ${m.need}x ${m.itemName} to feed them all (you have ${m.have}).`
+                : `You have not enough of anything they eat for them all: ${feedNames(options)}.`,
+        };
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { home } = await playerProperty(playerId);
     const seconds = Math.max(5, animals.length * FEED_SECONDS_PER_HEAD);
-    const started = await startAction(playerId, 'husbandry_feed', seconds, String(penId), home?.id ?? null);
+    // The pen and the feed chosen; resolveFeed re-checks both.
+    const started = await startAction(playerId, 'husbandry_feed', seconds, `${penId}|${pick.feed.itemName}`, home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -1531,7 +1610,9 @@ export async function resolveFeed(playerId: number, penIdRaw: string | null): Pr
         let head = 0;
 
         await db.transaction(async (trx) => {
-            const pen = await ownedPen(playerId, penIdRaw ? parseInt(penIdRaw) : 0, trx);
+            // "pen|feed" since 2026-11-19; a bare pen id from before takes the cheapest held.
+            const [penPart, feedPart] = String(penIdRaw ?? '').split('|');
+            const pen = await ownedPen(playerId, penPart ? parseInt(penPart) : 0, trx);
             if (!pen || !pen.species_id) throw new Error('EMPTY_PEN');
             await trx('player_pens').where({ id: pen.id }).forUpdate().first();
 
@@ -1544,9 +1625,10 @@ export async function resolveFeed(playerId: number, penIdRaw: string | null): Pr
             }
 
             const species = await trx('animal_species').where({ id: pen.species_id }).first();
-            const cost = [{ itemName: species.feed_item_name, qty: species.feed_qty * animals.length }];
-            const matCheck = await hasMaterials(playerId, cost, trx);
-            if (!matCheck.ok) throw new Error(`SHORT_FEED:${species.feed_item_name}`);
+            const options = await feedsFor(trx, species);
+            const pick = await pickFeed(options, animals.length, (n) => inventoryQty(playerId, n, trx), feedPart || null);
+            if (!pick.feed) throw new Error(`SHORT_FEED:${pick.short?.itemName ?? feedPart ?? species.feed_item_name}`);
+            const cost = [{ itemName: pick.feed.itemName, qty: pick.feed.qty * animals.length }];
             await consumeMaterials(playerId, cost, trx);
 
             // Always from NOW: the pen is empty by the time we get here, and
@@ -1670,6 +1752,45 @@ async function roundCost(
 // animals produced. Feeding and mucking scale with the work, so the honest model
 // is no discount at all. The button saves clicks, not labour, and a full round
 // earns precisely what the individual rounds would have.
+/**
+ * A full feeding round, pen by pen: each takes the cheapest feed still in the
+ * pack once the pens before it have eaten, as resolveFeedAll does. What it
+ * would take (for the button), and a refusal if some pen would go without.
+ */
+async function planFeedRound(playerId: number, pens: any[], x: Ex = db): Promise<{
+    ok: boolean; error?: string; cost: { itemName: string; qty: number }[]; head: number
+}> {
+    const held = new Map<string, number>();
+    const left = async (n: string) => {
+        if (!held.has(n)) held.set(n, await inventoryQty(playerId, n, x));
+        return held.get(n)!;
+    };
+    const totals = new Map<string, number>();
+    let head = 0;
+    for (const pen of pens) {
+        const c = await x('player_animals').where({ pen_id: pen.id }).count({ c: '*' }).first();
+        const n = Number(c?.c ?? 0);
+        if (n < 1) continue;
+        const species = await x('animal_species').where({ id: pen.species_id }).first();
+        const options = await feedsFor(x, species);
+        if (!options.length) continue;
+        const pick = await pickFeed(options, n, left);
+        if (!pick.feed) {
+            const m = pick.short!;
+            return {
+                ok: false, cost: [...totals].map(([itemName, qty]) => ({ itemName, qty })), head,
+                error: options.length === 1
+                    ? `A full round needs ${m.need}x ${m.itemName} (you have ${m.have}).`
+                    : `A full round needs more feed: the ${species.name.toLowerCase()}s eat ${feedNames(options)}.`,
+            };
+        }
+        held.set(pick.feed.itemName, (await left(pick.feed.itemName)) - pick.feed.qty * n);
+        totals.set(pick.feed.itemName, (totals.get(pick.feed.itemName) ?? 0) + pick.feed.qty * n);
+        head += n;
+    }
+    return { ok: true, cost: [...totals].map(([itemName, qty]) => ({ itemName, qty })), head };
+}
+
 function feedRoundSeconds(head: number): number {
     return Math.max(5, head * FEED_SECONDS_PER_HEAD);
 }
@@ -1691,12 +1812,9 @@ export async function startFeedAll(playerId: number): Promise<{ ok: boolean; err
     // Check the whole round up front. The resolve loop still stops gracefully if
     // stock changes in the meantime, but nobody should sit through a timer only
     // to be told they had no grain when they pressed the button.
-    const { cost, head } = await roundCost(pens, 'feed');
-    const matCheck = await hasMaterials(playerId, cost);
-    if (!matCheck.ok) {
-        const m = matCheck.missing[0];
-        return { ok: false, error: `A full round needs ${m.need}x ${m.itemName} (you have ${m.have}).` };
-    }
+    const plan = await planFeedRound(playerId, pens);
+    if (!plan.ok) return { ok: false, error: plan.error };
+    const head = plan.head;
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { home } = await playerProperty(playerId);
@@ -1724,14 +1842,15 @@ export async function resolveFeedAll(playerId: number): Promise<HusbandryActionR
                 if (!animals.length) continue;
 
                 const species = await trx('animal_species').where({ id: pen.species_id }).first();
-                const cost = [{ itemName: species.feed_item_name, qty: species.feed_qty * animals.length }];
-                const matCheck = await hasMaterials(playerId, cost, trx);
-                if (!matCheck.ok) {
+                // The cheapest feed the pack still holds enough of, pen by pen.
+                const pick = await pickFeed(await feedsFor(trx, species), animals.length, (n) => inventoryQty(playerId, n, trx));
+                if (!pick.feed) {
                     // Out of feed: stop here and keep what has been done.
                     ranShort = true;
-                    shortItem = species.feed_item_name;
+                    shortItem = pick.short?.itemName ?? species.feed_item_name ?? 'feed';
                     break;
                 }
+                const cost = [{ itemName: pick.feed.itemName, qty: pick.feed.qty * animals.length }];
                 await consumeMaterials(playerId, cost, trx);
 
                 await trx('player_pens').where({ id: pen.id }).update({

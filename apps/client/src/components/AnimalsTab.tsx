@@ -35,6 +35,8 @@ interface Pen {
     readyUnits: number
     slaughterable: number
     feedItem: string | null; feedCost: number
+    /** Everything this pen eats: what a feeding takes, and how many are carried (server animal_feeds). */
+    feeds?: { itemName: string; qty: number; held: number }[]
     animals: AnimalCard[]
 }
 interface SpeciesDef {
@@ -150,6 +152,8 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
     const [renaming, setRenaming] = useState<number | null>(null)
     // Which flower to set next, per apiary. Mirrors `place` for animals.
     const [flowerChoice, setFlowerChoice] = useState<Record<number, string>>({})
+    // The feed picked for a pen, by hand; unpicked, the cheapest the pack holds (the server's pick).
+    const [feedChoice, setFeedChoice] = useState<Record<number, string>>({})
     const [newName, setNewName] = useState('')
     const [confirmKill, setConfirmKill] = useState<AnimalCard | null>(null)
     const [confirmKillAll, setConfirmKillAll] = useState<Pen | null>(null)
@@ -455,16 +459,37 @@ export default function AnimalsTab({ onActionStarted }: AnimalsTabProps) {
                             <div className="animal-pen-actions">
                                 {/* Hidden, not greyed out: a disabled Feed on
                                     something that does not eat reads as broken. */}
-                                {pen.hasUpkeep !== false && <button className="farm-btn"
-                                    disabled={busy || !data.atNovita || !data.hasPail || !pen.canFeed}
-                                    title={!data.hasPail ? 'You need a Feed Pail equipped'
-                                        : !pen.canFeed ? 'They have been fed — wait until the trough runs dry'
-                                            : undefined}
-                                    onClick={() => act('/api/husbandry/feed', 'feed', { penId: pen.id })}>
-                                    {pen.canFeed
-                                        ? `Feed All${pen.feedItem ? ` (${pen.feedCost} ${pen.feedItem})` : ''}`
-                                        : 'Fed'}
-                                </button>}
+                                {pen.hasUpkeep !== false && pen.canFeed && (pen.feeds?.length ?? 0) > 1 && (
+                                    <select
+                                        className="pen-feed-choice"
+                                        value={feedChoice[pen.id] ?? pen.feedItem ?? ''}
+                                        onChange={e => setFeedChoice(f => ({ ...f, [pen.id]: e.target.value }))}
+                                        title="What to feed them"
+                                    >
+                                        {pen.feeds!.map(f => (
+                                            <option key={f.itemName} value={f.itemName} disabled={f.held < f.qty}>
+                                                {f.qty} {f.itemName} (you have {f.held})
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                                {pen.hasUpkeep !== false && (() => {
+                                    const chosen = pen.feeds?.find(f => f.itemName === (feedChoice[pen.id] ?? pen.feedItem))
+                                    const feedName = chosen?.itemName ?? pen.feedItem
+                                    const feedQty = chosen?.qty ?? pen.feedCost
+                                    return (
+                                        <button className="farm-btn"
+                                            disabled={busy || !data.atNovita || !data.hasPail || !pen.canFeed}
+                                            title={!data.hasPail ? 'You need a Feed Pail equipped'
+                                                : !pen.canFeed ? 'They have been fed — wait until the trough runs dry'
+                                                    : undefined}
+                                            onClick={() => act('/api/husbandry/feed', 'feed', { penId: pen.id, ...(feedName ? { feed: feedName } : {}) })}>
+                                            {pen.canFeed
+                                                ? `Feed All${feedName ? ` (${feedQty} ${feedName})` : ''}`
+                                                : 'Fed'}
+                                        </button>
+                                    )
+                                })()}
                                 {pen.readyUnits > 0 && (
                                     <button className="farm-btn primary"
                                         disabled={busy || !data.atNovita}

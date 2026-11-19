@@ -90,7 +90,7 @@ router.post('/build-pen', requireAuth, botCheckGate,
     startHandler(startBuildPen, 'Building begun', (req) => [req.body.penType]));
 
 router.post('/feed', requireAuth, botCheckGate,
-    startHandler(startFeed, 'Feeding', (req) => [req.body.penId]));
+    startHandler(startFeed, 'Feeding', (req) => [req.body.penId, req.body.feed]));
 
 router.post('/demolish-pen', requireAuth, botCheckGate,
     // disposition is only read when an apiary still has bees in it.

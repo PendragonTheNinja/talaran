@@ -385,9 +385,16 @@ export const extraQueries: Record<string, QueryHandler> = {
     // end. Folding those into one row produced something nobody could read.
 
     'animals': async () => {
-        const rows = await db('animal_species')
+        const species = await db('animal_species')
             .orderBy(['husbandry_level', 'name'])
             .select('*');
+        // What each eats (animal_feeds), a head's worth of each, in Oxford-comma words.
+        const feeds = await db('animal_feeds').where({ is_active: true }).orderBy('display_order').select('species_id', 'item_name', 'qty');
+        const rows = species.map((r: any) => {
+            const own = feeds.filter((f: any) => Number(f.species_id) === Number(r.id)).map((f: any) => `${f.qty} ${f.item_name}`);
+            const words = own.length <= 1 ? own[0] : own.length === 2 ? `${own[0]} or ${own[1]}` : `${own.slice(0, -1).join(', ')}, or ${own[own.length - 1]}`;
+            return { ...r, feeds: words || null };
+        });
 
         return {
             title: 'The herd',
@@ -404,7 +411,8 @@ export const extraQueries: Record<string, QueryHandler> = {
                 babyItem: r.baby_item_name,
                 level: r.husbandry_level,
                 pen: r.pen_type,
-                feed: `${r.feed_qty} x ${r.feed_item_name}`,
+                // Everything it eats (animal_feeds), a head's worth of each.
+                feed: r.feeds ?? `${r.feed_qty} x ${r.feed_item_name}`,
                 feedItem: r.feed_item_name,
                 grow: seconds(r.grow_seconds),
                 elder: r.elder_seconds ? seconds(r.elder_seconds) : 'Never',
