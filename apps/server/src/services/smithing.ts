@@ -391,4 +391,34 @@ export const SMELT_RECIPES: Record<string, SmeltRecipe> = {
     timer: 90,
     bonus: true,
   },
+
+  // Serph (docs/antura-plan.md §5; Nathan, 2026-11-17): a single ore that smelts
+  // alone, so one ore makes one ingot, on two Charc a bar, twice Ambren's, the
+  // tier's cost of a hotter metal. 50 s and 44 XP, by the band at Smithing 13.
+  'serph': {
+    ingredients: [
+      { name: 'Serph Ore', quantity: 1 },
+      { name: 'Charc', quantity: 2 },
+    ],
+    output: 'Serph Ingot',
+    outputQuantity: 1,
+    requiredLevel: 13,
+    xp: 44,
+    timer: 50,
+  },
+
+  // Dense Serph, by the rule above: two smelts' fuel, time, and XP, and a
+  // single ore's 2 + 1 = 3 bars.
+  'serph_dense': {
+    ingredients: [
+      { name: 'Dense Serph Ore', quantity: 1 },
+      { name: 'Charc', quantity: 4 },
+    ],
+    output: 'Serph Ingot',
+    outputQuantity: 3,
+    requiredLevel: 13,
+    xp: 88,
+    timer: 100,
+    bonus: true,
+  },
 };
