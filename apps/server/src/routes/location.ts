@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { islandTowns } from '../services/islands';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { onlinePlayers } from '../lib/realtime';
@@ -157,8 +158,14 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     // A tavern here (the Salty Sloth, Talador: docs/chronicle-spec.md §2).
     const tavern = await db('taverns').where({ location_id: player.current_location_id }).first('id', 'name');
 
+    // Whether this is an island's homestead ground or its port with player
+    // shops (services/islands.ts), so the client never matches on a town's name.
+    const towns = await islandTowns();
+
     res.json({
       location: currentLocation,
+      homesteadHere: towns.homesteads.has(currentLocation.name),
+      shopsHere: towns.shops.has(currentLocation.name),
       guildHallHere,
       eventStandings,
       tavern: tavern ?? null,

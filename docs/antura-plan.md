@@ -582,17 +582,17 @@ That is 13 dishes, 2 provisions, ale, and 8 cooked fish: 24 recipes, against Tai
 
 For whoever builds it. Each of these is one island's worth of assumption.
 
-- **The farmstead is at Novita:** `FARMSTEAD_TOWN` in `services/farming.ts`, with the Novita row looked up throughout; husbandry follows it.
-- **The XP share counts within one farmstead:** `holdingRank` in `lib/holdingShare.ts` filters by `property_id`. It must count across all of a player's homesteads, fields highest-tier island first, before a second homestead ships.
-- **The field ceiling is one number:** `PLOT_MAX` 20. Past Taiar it is 10.
-- **Shops are raised in Talador only:** `SHOP_TOWN` in `services/shops.ts`; `SHOP_TIERS` holds tier 1 only.
-- **The map folder is Taiar's:** `MiniMap.tsx` builds `/images/locations/Taiar_Island/<place>.jpg`, and the exit hotspots are hard-coded in `lib/locationExits`. Both must come from the place's region.
+- ~~**The farmstead is at Novita.**~~ **Done 2026-11-19:** each island's homestead place is `islands.homestead_place`, resolved from where the player stands (`services/islands.ts`); farming and husbandry find their homestead through it.
+- ~~**The XP share counts within one farmstead.**~~ **Done 2026-11-19:** `fieldRanks` counts every field a player owns, highest-tier island (`islands.tier`) first; pens rank across every homestead. Still to do when a second homestead ships: the farm screen saying when a new island's fields push older ones down.
+- ~~**The field ceiling is one number.**~~ **Done 2026-11-19:** `islands.plot_max`, 20 on Taiar and 10 by default.
+- **Shops are raised in Talador only:** partly done 2026-11-19: a shop is raised in the player's island's port (`islands.shop_town`), and the location payload marks homestead ground and shop ports (`homesteadHere`, `shopsHere`). Still one shop a player wherever it stands (`shopFor`, 22 call sites); one an island waits for build step 9, and `SHOP_TIERS` holds tier 1 only.
+- **The map folder is Taiar's:** done 2026-11-19 for the picture, which comes from the place's region folder. The exit hotspots in `lib/locationExits` are keyed by place name, so Antura's places add their own entries with the art.
 - **Road finds are Taiar's, in code:** every entry in `services/travelEvents.ts` is keyed `'Taiar Island'`, and `gameTick.ts` falls back to that region.
-- **"Taiar Island" is written into the client** in several headings (`RightPanel.tsx`, the Manual, News, and Highscores pages).
-- **Gem drops are keyed by rock type**, not place (§4).
+- ~~**"Taiar Island" is written into the client.**~~ **Done 2026-11-19:** the map heading shows the place's island; the public pages say Talaran.
+- ~~**Gem drops are keyed by rock type.**~~ **Done 2026-11-19:** a node may name its own table (`resource_nodes.drop_source_key`, e.g. `mining:rock:granite@antura`).
 - **Smelting and sawing are tables in code:** `SMELT_RECIPES` needs Serph; `WOOD_TYPES` has the wrong levels for every wood after Lanai (CLAUDE.md §8).
 - **An animal has one feed:** `animal_species.feed_item_name`, read in about eight places in `services/husbandry.ts`.
-- **`services/unlocks.ts`** needs a branch for boats, or level-ups say nothing about them.
+- ~~**`services/unlocks.ts` needs a branch for boats.**~~ Done with the Skiff.
 - **The committed content snapshot is stale:** the merchant seed fails on a fresh database because `Ambren Scythe` is missing. Export from live before building on it.
 
 Free to fix at the 1.0 reset, and costly after: the item tiers of Hatch, Bearn, Mirrith, Craxial, Limestone, Sandstone, Marble, Basalt, and Koric; the placeholder ores `Ore 3` to `Ore 7`; the name `Tal's Hope`, which breaks the lore rule; Taiar granite's 15 s floor.

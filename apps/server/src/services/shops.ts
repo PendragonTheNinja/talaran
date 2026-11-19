@@ -1,4 +1,5 @@
 import db from '../db';
+import { shopTown } from './islands';
 import { noteDeed, SHOP_BIG_SALE_GOLD } from './chronicle';
 import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
@@ -28,6 +29,7 @@ import { buffedSeconds, skillForWork } from './buffs';
 // ── Where and what it costs ─────────────────────────────────────────────────
 
 /** Shops are raised in the market town only. Poll pending on one-per-island. */
+/** Taiar's port; each island's own is its islands row (services/islands.ts). One shop a player, wherever, for now. */
 export const SHOP_TOWN = 'Talador';
 
 export const CARPENTRY_REQ = 1;
@@ -146,7 +148,8 @@ export async function isAtOwnShop(playerId: number): Promise<boolean> {
 
 /** What the build panel needs to render before anything is started. */
 export async function getBuildInfo(playerId: number) {
-    const town = await db('locations').where({ name: SHOP_TOWN }).first();
+    // The port of the island the player stands on (services/islands.ts).
+    const town = await shopTown(db, playerId);
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     const existing = await shopFor(playerId);
 
@@ -157,7 +160,7 @@ export async function getBuildInfo(playerId: number) {
     })));
 
     return {
-        town: SHOP_TOWN,
+        town: town?.name ?? SHOP_TOWN,
         hasShop: !!existing,
         atTown: !!town && !!player && player.current_location_id === town.id,
         carpentryLevel: await skillLevel(playerId, 'Carpentry'),
@@ -170,13 +173,13 @@ export async function getBuildInfo(playerId: number) {
     };
 }
 
-export async function startEstablishShop(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
-    const town = await db('locations').where({ name: SHOP_TOWN }).first();
-    if (!town) return { ok: false, error: `${SHOP_TOWN} not found.` };
+export async function startEstablishShop(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number; town?: string }> {
+    const town = await shopTown(db, playerId);
+    if (!town) return { ok: false, error: 'There is no port on this island to raise a shop in.' };
 
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
     if (!player || player.current_location_id !== town.id) {
-        return { ok: false, error: `You must be in ${SHOP_TOWN} to raise a shop.` };
+        return { ok: false, error: `You must be in ${town.name} to raise a shop.` };
     }
     // shopFor, not shopPropertyFor. The build panel already asked shopFor, so
     // guarding on the property alone meant the two disagreed: a property row
@@ -198,13 +201,13 @@ export async function startEstablishShop(playerId: number): Promise<{ ok: boolea
     }
 
     const started = await startAction(playerId, 'shop_establish', ESTABLISH_SECONDS, town.id);
-    return { ok: true, timerSeconds: started };
+    return { ok: true, timerSeconds: started, town: town.name };
 }
 
 export async function resolveEstablishShop(playerId: number): Promise<ShopActionResult> {
     try {
-        const town = await db('locations').where({ name: SHOP_TOWN }).first();
-        if (!town) return { success: false, error: `${SHOP_TOWN} not found.` };
+        const town = await shopTown(db, playerId);
+        if (!town) return { success: false, error: 'There is no port on this island to raise a shop in.' };
         if (await shopFor(playerId)) return { success: false, error: 'You already have a shop.' };
 
         const missingTool = await missingBuildTool(playerId);
@@ -269,7 +272,7 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1});
 
-        logger.info(`Player ${playerId} raised a shop at ${SHOP_TOWN}`);
+        logger.info(`Player ${playerId} raised a shop at ${town.name}`);
         return {
             success: true,
             xp,

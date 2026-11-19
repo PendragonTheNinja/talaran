@@ -2,6 +2,7 @@ import type { Knex } from 'knex';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { holdingShare } from '../lib/holdingShare';
+import { homesteadPlace } from './islands';
 import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { notifyInventoryChanged, addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
@@ -32,6 +33,7 @@ import { buffedSeconds, skillForWork } from './buffs';
 
 const H = 3600;
 
+/** Taiar's homestead place; each island's own is its islands row (services/islands.ts). */
 export const HUSBANDRY_TOWN = 'Novita';
 const PEN_MAX = 12;                       // hard ceiling (reached around level 33)
 const COOP_CAPACITY = 6;                  // small stock
@@ -220,12 +222,13 @@ async function missingBuildTool(playerId: number, x: Ex = db): Promise<string | 
     return (await sharedMissingBuildTool(playerId, x))?.message ?? null;
 }
 
+/** The player's homestead on the island they stand on, and the place it stands (services/islands.ts). */
 async function playerProperty(playerId: number, x: Ex = db) {
-    const novita = await x('locations').where({ name: HUSBANDRY_TOWN }).first();
-    if (!novita) return { novita: null, property: null };
+    const home = await homesteadPlace(x, playerId);
+    if (!home) return { home: null, property: null };
     const property = await x('player_properties')
-        .where({ player_id: playerId, location_id: novita.id, type: 'farmstead' }).first();
-    return { novita, property };
+        .where({ player_id: playerId, location_id: home.id, type: 'farmstead' }).first();
+    return { home, property };
 }
 
 async function ownedPen(playerId: number, penId: number, x: Ex = db) {
@@ -875,19 +878,19 @@ export async function farmHead(playerId: number, x: Ex = db): Promise<number> {
  */
 export async function wardStanding(playerId: number, x: Ex = db): Promise<{ atFarm: boolean; town: string; lastEndedAt: string | null }> {
     const player = await x('players').where({ id: playerId }).select('current_location_id').first();
-    const { novita, property } = await playerProperty(playerId, x);
-    const atFarm = !!(novita && property && player?.current_location_id === novita.id);
-    if (!property) return { atFarm, town: HUSBANDRY_TOWN, lastEndedAt: null };
+    const { home, property } = await playerProperty(playerId, x);
+    const atFarm = !!(home && property && player?.current_location_id === home.id);
+    if (!property) return { atFarm, town: home?.name ?? HUSBANDRY_TOWN, lastEndedAt: null };
     const row = await x('player_pens').where({ property_id: property.id }).max({ until: 'warded_until' }).first();
     const until = row?.until ? new Date(row.until) : null;
-    return { atFarm, town: HUSBANDRY_TOWN, lastEndedAt: until && until.getTime() <= Date.now() ? until.toISOString() : null };
+    return { atFarm, town: home?.name ?? HUSBANDRY_TOWN, lastEndedAt: until && until.getTime() <= Date.now() ? until.toISOString() : null };
 }
 
 export async function wardableHead(playerId: number, x: Ex = db): Promise<{ error: string } | { head: number }> {
     const player = await x('players').where({ id: playerId }).select('current_location_id').first();
-    const { novita, property } = await playerProperty(playerId, x);
-    if (!property || !novita) return { error: 'A Larder Ward is set over your own pens, and you have no farmstead.' };
-    if (player?.current_location_id !== novita.id) return { error: `Go to your farmstead in ${HUSBANDRY_TOWN} to set a Larder Ward.` };
+    const { home, property } = await playerProperty(playerId, x);
+    if (!property || !home) return { error: 'A Larder Ward is set over your own pens, and you have no farmstead.' };
+    if (player?.current_location_id !== home.id) return { error: `Go to your farmstead in ${home.name} to set a Larder Ward.` };
     const row = await x('player_animals as a')
         .join('player_pens as p', 'p.id', 'a.pen_id')
         .where('p.property_id', property.id)
@@ -945,8 +948,8 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
     const matured: MaturedAnimal[] = [];
     await settleWards(playerId);
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    const { novita, property } = await playerProperty(playerId);
-    const atNovita = !!novita && player?.current_location_id === novita.id;
+    const { home, property } = await playerProperty(playerId);
+    const atNovita = !!home && player?.current_location_id === home.id;
 
     const husbandryLvl = await skillLevel(playerId, 'Husbandry');
     const speciesRows = await db('animal_species').where({ is_active: true }).orderBy('husbandry_level', 'asc');
@@ -966,7 +969,7 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
     }
 
     const base = {
-        atNovita, town: HUSBANDRY_TOWN, husbandryLevel: husbandryLvl,
+        atNovita, town: home?.name ?? HUSBANDRY_TOWN, husbandryLevel: husbandryLvl,
         penCap: penCapForLevel(husbandryLvl), penMax: PEN_MAX,
         coopCapacity: COOP_CAPACITY, paddockCapacity: PADDOCK_CAPACITY,
         apiaryCapacity: APIARY_CAPACITY,
@@ -1132,11 +1135,11 @@ export async function getHusbandryState(playerId: number, opts: { settleMaturity
 export async function startBuildPen(playerId: number, penType: string): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
     if (!PEN_TYPES[penType]) return { ok: false, error: 'Unknown pen type.' };
 
-    const { novita, property } = await playerProperty(playerId);
+    const { home, property } = await playerProperty(playerId);
     if (!property) return { ok: false, error: 'You need a farmstead before you can keep animals.' };
 
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    if (player?.current_location_id !== novita?.id) return { ok: false, error: `You must be at your farmstead in ${HUSBANDRY_TOWN}.` };
+    if (player?.current_location_id !== home?.id) return { ok: false, error: `You must be at your farmstead in ${home?.name ?? HUSBANDRY_TOWN}.` };
 
     const existing = await db('player_pens').where({ property_id: property.id }).count({ c: '*' }).first();
     const count = Number(existing?.c ?? 0);
@@ -1156,7 +1159,7 @@ export async function startBuildPen(playerId: number, penType: string): Promise<
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const started = await startAction(playerId, 'husbandry_build_pen', BUILD_PEN_SECONDS, penType, novita?.id ?? null);
+    const started = await startAction(playerId, 'husbandry_build_pen', BUILD_PEN_SECONDS, penType, home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -1279,9 +1282,9 @@ export async function startDemolishPen(
     if (toolProblem) return { ok: false, error: toolProblem };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
+    const { home } = await playerProperty(playerId);
     const data = occupied && isApiary(pen.pen_type) ? `${penId}:${disposition}` : String(penId);
-    const started = await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, data, novita?.id ?? null);
+    const started = await startAction(playerId, 'husbandry_demolish_pen', DEMOLISH_SECONDS, data, home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -1515,9 +1518,9 @@ export async function startFeed(playerId: number, penId: number): Promise<{ ok: 
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
+    const { home } = await playerProperty(playerId);
     const seconds = Math.max(5, animals.length * FEED_SECONDS_PER_HEAD);
-    const started = await startAction(playerId, 'husbandry_feed', seconds, String(penId), novita?.id ?? null);
+    const started = await startAction(playerId, 'husbandry_feed', seconds, String(penId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -1696,9 +1699,9 @@ export async function startFeedAll(playerId: number): Promise<{ ok: boolean; err
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
+    const { home } = await playerProperty(playerId);
     const seconds = feedRoundSeconds(head);
-    const started = await startAction(playerId, 'husbandry_feed_all', seconds, null, novita?.id ?? null);
+    const started = await startAction(playerId, 'husbandry_feed_all', seconds, null, home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -1785,9 +1788,9 @@ export async function startMuckAll(playerId: number): Promise<{ ok: boolean; err
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
+    const { home } = await playerProperty(playerId);
     const seconds = muckRoundSeconds(pens.length);
-    const started = await startAction(playerId, 'husbandry_muck_all', seconds, null, novita?.id ?? null);
+    const started = await startAction(playerId, 'husbandry_muck_all', seconds, null, home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -1880,8 +1883,8 @@ export async function startMuck(playerId: number, penId: number): Promise<{ ok: 
 
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'husbandry_muck', MUCK_SECONDS, String(penId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'husbandry_muck', MUCK_SECONDS, String(penId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -2053,8 +2056,8 @@ export async function startCollect(playerId: number, animalId: number): Promise<
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'husbandry_collect', COLLECT_SECONDS, String(animalId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'husbandry_collect', COLLECT_SECONDS, String(animalId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -2173,8 +2176,8 @@ export async function startCollectAll(playerId: number, penId: number): Promise<
     if (!plan.ok) return plan;
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'husbandry_collect_all', plan.seconds, String(penId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'husbandry_collect_all', plan.seconds, String(penId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -2186,10 +2189,10 @@ export async function startCollectAll(playerId: number, penId: number): Promise<
  * are left out, and named, rather than stopping the chain.
  */
 export async function startGatherAllPens(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number; skipped?: string[] }> {
-    const { novita, property } = await playerProperty(playerId);
-    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const { home, property } = await playerProperty(playerId);
+    if (!home || !property) return { ok: false, error: 'You have no farmstead here.' };
     const here = await db('players').where({ id: playerId }).first('current_location_id');
-    if (Number(here?.current_location_id) !== Number(novita.id)) return { ok: false, error: 'You must be at your farmstead to gather.' };
+    if (Number(here?.current_location_id) !== Number(home.id)) return { ok: false, error: 'You must be at your farmstead to gather.' };
 
     const pens = await db('player_pens').where({ property_id: property.id }).whereNotNull('species_id').orderBy('slot_index', 'asc');
     const ready: { id: number; seconds: number }[] = [];
@@ -2202,7 +2205,7 @@ export async function startGatherAllPens(playerId: number): Promise<{ ok: boolea
     if (!ready.length) return { ok: false, error: skipped[0] ?? 'Nothing is ready yet.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const started = await startAction(playerId, 'husbandry_collect_all', ready[0].seconds, ready.map(p => p.id).join(','), novita.id);
+    const started = await startAction(playerId, 'husbandry_collect_all', ready[0].seconds, ready.map(p => p.id).join(','), home.id);
     return { ok: true, timerSeconds: started, skipped };
 }
 
@@ -2363,8 +2366,8 @@ export async function startSlaughter(playerId: number, animalId: number): Promis
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'husbandry_slaughter', SLAUGHTER_SECONDS, String(animalId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'husbandry_slaughter', SLAUGHTER_SECONDS, String(animalId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -2452,9 +2455,9 @@ export async function startSlaughterAll(playerId: number, penId: number): Promis
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
+    const { home } = await playerProperty(playerId);
     const seconds = slaughterAllSeconds(grown.length);
-    const started = await startAction(playerId, 'husbandry_slaughter_all', seconds, String(penId), novita?.id ?? null);
+    const started = await startAction(playerId, 'husbandry_slaughter_all', seconds, String(penId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -2548,8 +2551,8 @@ export async function startTame(playerId: number, animalId: number): Promise<{ o
     if (!(await equippedTool(playerId, 'halter'))) return { ok: false, error: 'You need a Halter & Lead equipped.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'husbandry_tame', TAME_SECONDS, String(animalId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'husbandry_tame', TAME_SECONDS, String(animalId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 

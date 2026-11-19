@@ -123,12 +123,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const isVerdale = location?.name === 'Verdale'
   const isCaliwen = location?.name === 'Caliwen'
   const isPhoenwick = location?.name === 'Phoenwick'
-  const isNovita = location?.name === 'Novita'
+  // An island's homestead ground and its port with player shops, as the server marks them (services/islands.ts).
+  const isHomestead = !!locationData?.homesteadHere
+  const hasShops = !!locationData?.shopsHere
   const isTalador = location?.name === 'Talador'
 
   useEffect(() => {
-    if (isTalador) refreshShopBadge()
-  }, [isTalador, refreshShopBadge])
+    if (hasShops) refreshShopBadge()
+  }, [hasShops, refreshShopBadge])
 
   const [questStatus, setQuestStatus] = useState<'not_started' | 'active' | 'completed'>('not_started')
   const [showBlacksmith, setShowBlacksmith] = useState(false)
@@ -622,7 +624,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         )}
 
 
-        {isTalador && (
+        {hasShops && (
           <button className="location-action-btn" onClick={() => setShopsOpen(true)}>
             Player Shops
             {shopUnseen > 0 && <span className="location-badge">{shopUnseen > 99 ? '99+' : shopUnseen}</span>}
@@ -630,7 +632,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         )}
 
-        {isNovita && (
+        {isHomestead && (
           <button
             className={`location-action-btn ${currentAction === 'farming' ? 'active' : ''}`}
             onClick={() => onStartAction('farm_panel', 0)}

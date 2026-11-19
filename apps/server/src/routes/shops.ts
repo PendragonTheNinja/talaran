@@ -141,7 +141,7 @@ router.post('/build', requireAuth, requireTrusted, botCheckGate, async (req: Aut
     try {
         const result = await startEstablishShop(playerId);
         if (!result.ok) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
-        res.json({ message: `You begin raising a shopfront in ${SHOP_TOWN}.`, timerSeconds: result.timerSeconds });
+        res.json({ message: `You begin raising a shopfront in ${result.town ?? SHOP_TOWN}.`, timerSeconds: result.timerSeconds });
     } catch (err) {
         logger.error(`Shop build error: ${err}`);
         res.status(500).json({ error: 'Server error' });

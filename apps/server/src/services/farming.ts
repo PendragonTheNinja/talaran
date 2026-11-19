@@ -11,6 +11,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { noteDeed } from './chronicle';
 import { buffedSeconds, skillForWork } from './buffs'
 import { holdingShare, holdingRank, fieldRanks } from '../lib/holdingShare';
+import { homesteadPlace, islandHere } from './islands';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -28,10 +29,10 @@ import { holdingShare, holdingRank, fieldRanks } from '../lib/holdingShare';
 // The only town where a farmstead may be raised (see startEstablish). Exported
 // so the manual's training-path can name the town rather than guessing, and so
 // a second farming town later means changing one line.
+/** Taiar's homestead place; each island's own is its islands row (services/islands.ts). */
 export const FARMSTEAD_TOWN = 'Novita';
-const NOVITA = FARMSTEAD_TOWN;
 export const PLOT_CAPACITY = 10;          // seeds per plot
-const PLOT_MAX = 20;                      // hard ceiling (end-game)
+const PLOT_MAX = 20;                      // Taiar's ceiling; each island's is islands.plot_max
 const CARPENTRY_REQ = 1;
 // Building is joinery. Tools are held, not consumed. The mallet is the tool in
 // your hands, so it must be EQUIPPED (mainhand) like the hoe on tilling; the saw
@@ -114,9 +115,10 @@ export function activeXpForSeconds(level: number, seconds: number): number {
 }
 
 // Plots are built one at a time and capped by Farming level: 1 at level 1,
-// +1 every 3 levels, hitting the 20 ceiling around level 57.
-export function plotCapForLevel(level: number): number {
-    return Math.min(PLOT_MAX, 1 + Math.floor(level / 3));
+// +1 every 3 levels, up to the island's ceiling (islands.plot_max: Taiar's 20,
+// reached around level 57; 10 on every island after, Nathan 2026-11-15).
+export function plotCapForLevel(level: number, max: number = PLOT_MAX): number {
+    return Math.min(max, 1 + Math.floor(level / 3));
 }
 
 // Enclosing a field: fencing plus a stone border. Escalates per plot.
@@ -292,12 +294,13 @@ async function awardXp(playerId: number, skillName: string, xp: number, opts: Aw
     await awardSkillXp(playerId, skillName, xp, db, opts);
 }
 
+/** The player's homestead on the island they stand on, and the place it stands (services/islands.ts). */
 async function playerProperty(playerId: number) {
-    const novita = await db('locations').where({ name: NOVITA }).first();
-    if (!novita) return { novita: null, property: null };
+    const home = await homesteadPlace(db, playerId);
+    if (!home) return { home: null, property: null };
     const property = await db('player_properties')
-        .where({ player_id: playerId, location_id: novita.id, type: 'farmstead' }).first();
-    return { novita, property };
+        .where({ player_id: playerId, location_id: home.id, type: 'farmstead' }).first();
+    return { home, property };
 }
 
 async function ownedPlot(playerId: number, plotId: number) {
@@ -338,8 +341,8 @@ async function startAction(playerId: number, type: string, seconds: number, data
 // ── farm state ──────────────────────────────────────────────────────────────
 export async function getFarmState(playerId: number) {
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    const { novita, property } = await playerProperty(playerId);
-    const atNovita = !!novita && player?.current_location_id === novita.id;
+    const { home, property } = await playerProperty(playerId);
+    const atNovita = !!home && player?.current_location_id === home.id;
 
     const farmingLvl = await skillLevel(playerId, 'Farming');
     const hoe = await equippedTool(playerId, 'hoe');
@@ -428,7 +431,8 @@ export async function getFarmState(playerId: number) {
         };
     });
 
-    const cap = plotCapForLevel(farmingLvl);
+    const plotMax = (await islandHere(db, playerId)).plot_max;
+    const cap = plotCapForLevel(farmingLvl, plotMax);
     const nextPlotNumber = plots.length + 1;
     const nextCost = nextPlotNumber <= cap ? plotCost(nextPlotNumber) : null;
     const nextCheck = nextCost ? await hasMaterials(playerId, nextCost) : { ok: false, missing: [] };
@@ -444,7 +448,7 @@ export async function getFarmState(playerId: number) {
         crops: cropList,
         outgrownCrops,
         plotCap: cap,
-        plotMax: PLOT_MAX,
+        plotMax,
         timers: { till: TILL_SECONDS, sowPerSeed: SOW_SECONDS_PER_SEED, harvestPerSeed: HARVEST_SECONDS_PER_SEED, buildPlot: BUILD_PLOT_SECONDS, manure: MANURE_SECONDS },
         // Sent rather than repeated in the client, so the button and the server
         // can never disagree about when harvest-all unlocks.
@@ -464,10 +468,10 @@ export async function getFarmState(playerId: number) {
 
 // ── starts (validate, then create a timed action) ───────────────────────────
 export async function startEstablish(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
-    const { novita, property } = await playerProperty(playerId);
-    if (!novita) return { ok: false, error: 'Novita not found.' };
+    const { home, property } = await playerProperty(playerId);
+    if (!home) return { ok: false, error: 'There is no homestead ground on this island.' };
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be in Novita to raise a farmstead.' };
+    if (!player || player.current_location_id !== home.id) return { ok: false, error: `You must be in ${home.name} to raise a farmstead.` };
     if (property) return { ok: false, error: 'You already have a farmstead here.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
@@ -483,15 +487,15 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    const started = await startAction(playerId, 'farm_establish', ESTABLISH_SECONDS, null, novita.id);
+    const started = await startAction(playerId, 'farm_establish', ESTABLISH_SECONDS, null, home.id);
     return { ok: true, timerSeconds: started };
 }
 
 export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
-    const { novita, property } = await playerProperty(playerId);
-    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const { home, property } = await playerProperty(playerId);
+    if (!home || !property) return { ok: false, error: 'You have no farmstead here.' };
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be at your farmstead to enclose a field.' };
+    if (!player || player.current_location_id !== home.id) return { ok: false, error: 'You must be at your farmstead to enclose a field.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const missingTool = await missingBuildTool(playerId);
@@ -499,11 +503,12 @@ export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; e
 
     const plots = await db('farm_plots').where({ property_id: property.id });
     const farmingLvl = await skillLevel(playerId, 'Farming');
-    const cap = plotCapForLevel(farmingLvl);
+    const plotMax = (await islandHere(db, playerId)).plot_max;
+    const cap = plotCapForLevel(farmingLvl, plotMax);
     if (plots.length >= cap) {
         return {
             ok: false,
-            error: plots.length >= PLOT_MAX
+            error: plots.length >= plotMax
                 ? 'Your farm is as large as any in Talaran.'
                 : `You can work ${cap} fields at Farming level ${farmingLvl}. Level up to enclose more.`,
         };
@@ -516,7 +521,7 @@ export async function startBuildPlot(playerId: number): Promise<{ ok: boolean; e
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    const started = await startAction(playerId, 'farm_build_plot', BUILD_PLOT_SECONDS, null, novita.id);
+    const started = await startAction(playerId, 'farm_build_plot', BUILD_PLOT_SECONDS, null, home.id);
     return { ok: true, timerSeconds: started };
 }
 
@@ -527,8 +532,8 @@ export async function startTill(playerId: number, plotId: number): Promise<{ ok:
     if (!(await equippedTool(playerId, 'hoe'))) return { ok: false, error: 'You need a hoe equipped to till the soil.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'farm_till', TILL_SECONDS, String(plotId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'farm_till', TILL_SECONDS, String(plotId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -555,8 +560,8 @@ export async function startSow(playerId: number, plotId: number, cropId: number,
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const seconds = count * SOW_SECONDS_PER_SEED;
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'farm_sow', seconds, JSON.stringify({ p: plotId, c: cropId, n: count }), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'farm_sow', seconds, JSON.stringify({ p: plotId, c: cropId, n: count }), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -568,8 +573,8 @@ export async function startHarvest(playerId: number, plotId: number): Promise<{ 
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const seconds = await harvestSecondsFor(playerId, plot);
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'farm_harvest', seconds, String(plotId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'farm_harvest', seconds, String(plotId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -597,8 +602,8 @@ export async function startUproot(playerId: number, plotId: number): Promise<{ o
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'farm_uproot', UPROOT_SECONDS, String(plotId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'farm_uproot', UPROOT_SECONDS, String(plotId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -657,10 +662,10 @@ async function tendablePlots(propertyId: number) {
 }
 
 export async function startTend(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
-    const { novita, property } = await playerProperty(playerId);
-    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const { home, property } = await playerProperty(playerId);
+    if (!home || !property) return { ok: false, error: 'You have no farmstead here.' };
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    if (!player || player.current_location_id !== novita.id) return { ok: false, error: 'You must be at your farmstead to tend it.' };
+    if (!player || player.current_location_id !== home.id) return { ok: false, error: 'You must be at your farmstead to tend it.' };
     if ((await inventoryQty(playerId, 'Lanai Bucket')) < 1) return { ok: false, error: 'You need a bucket to carry water.' };
 
     const plots = await tendablePlots(property.id);
@@ -668,7 +673,7 @@ export async function startTend(playerId: number): Promise<{ ok: boolean; error?
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const seconds = plots.length * TEND_SECONDS_PER_PLOT;
-    const started = await startAction(playerId, 'farm_tend', seconds, null, novita.id);
+    const started = await startAction(playerId, 'farm_tend', seconds, null, home.id);
     return { ok: true, timerSeconds: started };
 }
 
@@ -720,8 +725,8 @@ export async function startManure(playerId: number, plotId: number): Promise<{ o
     if (!check.ok) return { ok: false, error: `You need ${MANURE_COST}x Manure.` };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
-    const { novita } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'farm_manure', MANURE_SECONDS, String(plotId), novita?.id ?? null);
+    const { home } = await playerProperty(playerId);
+    const started = await startAction(playerId, 'farm_manure', MANURE_SECONDS, String(plotId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -756,8 +761,8 @@ export async function resolveManure(playerId: number, plotIdRaw: string | null):
 // ── resolvers (called by the game tick when the timer completes) ────────────
 export async function resolveEstablish(playerId: number): Promise<FarmActionResult> {
     try {
-        const { novita, property } = await playerProperty(playerId);
-        if (!novita) return { success: false, error: 'Novita not found.' };
+        const { home, property } = await playerProperty(playerId);
+        if (!home) return { success: false, error: 'There is no homestead ground on this island.' };
         if (property) return { success: false, error: 'You already have a farmstead here.' };
 
         const missingTool = await missingBuildTool(playerId);
@@ -770,7 +775,7 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
             if (!took.ok) return null;
 
             const [row] = await trx('player_properties').insert({
-                player_id: playerId, location_id: novita.id, type: 'farmstead', tier: 1, plot_slots: 1,
+                player_id: playerId, location_id: home.id, type: 'farmstead', tier: 1, plot_slots: 1,
             }).returning('id');
             const id: number = typeof row === 'object' ? row.id : row;
 
@@ -788,7 +793,7 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
 
         await updateQuestObjectiveProgress(playerId, 'build', 'Farmstead', 1);
 
-        logger.info(`Player ${playerId} raised a farmstead at Novita (${propertyId})`);
+        logger.info(`Player ${playerId} raised a farmstead at ${home.name} (${propertyId})`);
         return { success: true, xp, skillName: 'Carpentry', message: 'Your farmstead stands at last. The first field is yours to work.' };
     } catch (err) {
         logger.error(`resolveEstablish error: ${err}`);
@@ -806,7 +811,7 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
 
         const plots = await db('farm_plots').where({ property_id: property.id });
         const farmingLvl = await skillLevel(playerId, 'Farming');
-        if (plots.length >= plotCapForLevel(farmingLvl)) {
+        if (plots.length >= plotCapForLevel(farmingLvl, (await islandHere(db, playerId)).plot_max)) {
             return { success: false, error: 'You cannot work another field yet.' };
         }
 
@@ -824,7 +829,7 @@ export async function resolveBuildPlot(playerId: number): Promise<FarmActionResu
         });
         if (!done) return { success: false, error: 'You no longer have the materials.' };
 
-        // The Chronicle (services/chronicle.ts): the twentieth field makes a farm.
+        // The Chronicle (services/chronicle.ts): the twentieth field makes a farm (Taiar's ceiling).
         if (plots.length + 1 === PLOT_MAX) noteDeed(db, { kind: 'field_twenty', playerId, data: { fields: PLOT_MAX } });
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
@@ -1081,11 +1086,11 @@ async function ripePlots(propertyId: number) {
 }
 
 export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
-    const { novita, property } = await playerProperty(playerId);
-    if (!novita || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const { home, property } = await playerProperty(playerId);
+    if (!home || !property) return { ok: false, error: 'You have no farmstead here.' };
 
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
-    if (!player || player.current_location_id !== novita.id) {
+    if (!player || player.current_location_id !== home.id) {
         return { ok: false, error: 'You must be at your farmstead to bring in the harvest.' };
     }
 
@@ -1101,7 +1106,7 @@ export async function startHarvestAll(playerId: number): Promise<{ ok: boolean; 
     // added, or its seconds would never have been spent.
     const seconds = await harvestSecondsFor(playerId, ripe[0]);
     const plotIds = ripe.map((p: any) => p.id).join(',');
-    const started = await startAction(playerId, 'farm_harvest_all', seconds, plotIds, novita.id);
+    const started = await startAction(playerId, 'farm_harvest_all', seconds, plotIds, home.id);
     return { ok: true, timerSeconds: started };
 }
 
