@@ -1187,6 +1187,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         <MyShopMenu
           onClose={() => { setMyShopOpen(false); refreshShopBadge() }}
           onChanged={handleGoldChanged}
+          onActionStarted={(secs) => { setMyShopOpen(false); onStartAction('shop_upgrade', secs) }}
         />
       )}
 

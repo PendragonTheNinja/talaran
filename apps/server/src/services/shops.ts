@@ -46,11 +46,41 @@ export const ESTABLISH_COST = [
 export const ESTABLISH_SECONDS = 480;
 const ESTABLISH_XP_BONUS = 1.25;   // matches the farmstead: building pays a little over
 
-// Per-tier numbers. Tier 1 is all that exists; the table is here so adding a
-// tier is data plus one row, never a schema change.
-export const SHOP_TIERS: Record<number, { storageSlots: number; sellSlots: number; buySlots: number }> = {
-    1: { storageSlots: 75, sellSlots: 12, buySlots: 6 },
+// Per-tier numbers (docs/antura-plan.md §6; Nathan, 2026-11-17). Tier 2 is
+// built outright or upgraded from tier 1, Carpentry 13 either way, in any
+// island's port. An upgrade costs the same count each tier in that tier's
+// planks, blocks, and nails; building outright costs tier 1 and the upgrades
+// together. Selling slots grow by 1.5 a tier, the rest by about 1.2.
+export interface ShopTier {
+    storageSlots: number
+    sellSlots: number
+    buySlots: number
+    carpentry: number
+    build: { cost: { itemName: string; qty: number }[]; seconds: number }
+    /** From the tier below; null for tier 1. */
+    upgrade: { cost: { itemName: string; qty: number }[]; seconds: number } | null
+}
+
+export const SHOP_TIERS: Record<number, ShopTier> = {
+    1: { storageSlots: 75, sellSlots: 12, buySlots: 6, carpentry: CARPENTRY_REQ, build: { cost: ESTABLISH_COST, seconds: ESTABLISH_SECONDS }, upgrade: null },
+    2: {
+        storageSlots: 100, sellSlots: 18, buySlots: 8, carpentry: 13,
+        build: { cost: [
+            { itemName: 'Lanai Planks', qty: 450 },
+            { itemName: 'Granite Block', qty: 450 },
+            { itemName: 'Serph Nails', qty: 900 },
+        ], seconds: 600 },
+        upgrade: { cost: [
+            { itemName: 'Lanai Planks', qty: 100 },
+            { itemName: 'Granite Block', qty: 100 },
+            { itemName: 'Serph Nails', qty: 200 },
+        ], seconds: 120 },
+    },
 };
+
+function shopTier(n: unknown): ShopTier | null {
+    return SHOP_TIERS[Math.floor(Number(n))] ?? null;
+}
 
 export const DEFAULT_SHOP_NAME = (username: string) => `${username}'s Shop`;
 
@@ -101,14 +131,14 @@ async function busy(playerId: number): Promise<boolean> {
     return !!a;
 }
 
-async function startAction(playerId: number, type: string, seconds: number, locationId: number | null) {
+async function startAction(playerId: number, type: string, seconds: number, locationId: number | null, data: string | null = null) {
     const now = new Date();
     // The provision for the skill this work pays (audit 2026-11-09).
     seconds = await buffedSeconds(playerId, skillForWork(type, 'Carpentry'), seconds);
     await db('player_actions').insert({
         player_id: playerId,
         action_type: type,
-        action_data: null,
+        action_data: data,
         location_id: locationId,
         started_at: now,
         completes_at: new Date(now.getTime() + seconds * 1000),
@@ -123,9 +153,23 @@ async function startAction(playerId: number, type: string, seconds: number, loca
 
 // ── Lookup ──────────────────────────────────────────────────────────────────
 
-/** The shop property row for a player, wherever it is. One per player for now. */
-export async function shopPropertyFor(playerId: number) {
-    return db('player_properties').where({ player_id: playerId, type: 'shop' }).first();
+/**
+ * The player's shop on the island they stand on: one per island, in its port
+ * (CLAUDE.md §8, Nathan, 2026-11-15). Managing a shop needs the player there,
+ * so "my shop" is always this island's; a shop on another island is out of
+ * reach until they sail back.
+ */
+export async function shopPropertyFor(playerId: number, x: any = db) {
+    const town = await shopTown(x, playerId);
+    if (!town) return null;
+    return x('player_properties').where({ player_id: playerId, type: 'shop', location_id: town.id }).first();
+}
+
+/** Every shopfront the player owns, on every island: trade notices count them all. */
+async function shopIdsOf(playerId: number): Promise<{ id: number; last_seen_at: Date | null }[]> {
+    return db('player_shops as s').join('player_properties as p', 'p.id', 's.property_id')
+        .where({ 'p.player_id': playerId, 'p.type': 'shop' })
+        .select('s.id', 's.last_seen_at');
 }
 
 /** The shopfront row plus its property, or null. */
@@ -158,12 +202,27 @@ export async function getBuildInfo(playerId: number) {
         need: c.qty,
         have: await inventoryQty(playerId, c.itemName),
     })));
+    const carpentry = await skillLevel(playerId, 'Carpentry');
+
+    // Every tier that can be raised outright, tier 1 first (Nathan, 2026-11-19).
+    const tiers = [];
+    for (const [n, t] of Object.entries(SHOP_TIERS)) {
+        const tierCost = await Promise.all(t.build.cost.map(async (c) => ({
+            itemName: c.itemName, need: c.qty, have: await inventoryQty(playerId, c.itemName),
+        })));
+        tiers.push({
+            tier: Number(n), storageSlots: t.storageSlots, sellSlots: t.sellSlots, buySlots: t.buySlots,
+            carpentryRequired: t.carpentry, carpentryOk: carpentry >= t.carpentry,
+            seconds: t.build.seconds, cost: tierCost, canAfford: tierCost.every((c) => c.have >= c.need),
+        });
+    }
 
     return {
+        tiers,
         town: town?.name ?? SHOP_TOWN,
         hasShop: !!existing,
         atTown: !!town && !!player && player.current_location_id === town.id,
-        carpentryLevel: await skillLevel(playerId, 'Carpentry'),
+        carpentryLevel: carpentry,
         carpentryRequired: CARPENTRY_REQ,
         seconds: ESTABLISH_SECONDS,
         cost,
@@ -173,7 +232,9 @@ export async function getBuildInfo(playerId: number) {
     };
 }
 
-export async function startEstablishShop(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number; town?: string }> {
+export async function startEstablishShop(playerId: number, tierRaw: unknown = 1): Promise<{ ok: boolean; error?: string; timerSeconds?: number; town?: string }> {
+    const t = shopTier(tierRaw ?? 1);
+    if (!t) return { ok: false, error: 'There is no shop of that kind to raise.' };
     const town = await shopTown(db, playerId);
     if (!town) return { ok: false, error: 'There is no port on this island to raise a shop in.' };
 
@@ -185,41 +246,120 @@ export async function startEstablishShop(playerId: number): Promise<{ ok: boolea
     // guarding on the property alone meant the two disagreed: a property row
     // with no shopfront behind it showed the build UI and then refused to
     // build, with no way for the player to reconcile the two.
-    if (await shopFor(playerId)) return { ok: false, error: 'You already have a shop.' };
+    if (await shopFor(playerId)) return { ok: false, error: `You already have a shop in ${town.name}.` };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const carp = await skillLevel(playerId, 'Carpentry');
-    if (carp < CARPENTRY_REQ) return { ok: false, error: `Requires Carpentry level ${CARPENTRY_REQ}.` };
+    if (carp < t.carpentry) return { ok: false, error: `Requires Carpentry level ${t.carpentry}.` };
 
     const missingTool = await missingBuildTool(playerId);
     if (missingTool) return { ok: false, error: missingTool.message };
 
-    const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
+    const matCheck = await hasMaterials(playerId, t.build.cost);
     if (!matCheck.ok) {
         const m = matCheck.missing.map((x) => `${x.need}x ${x.itemName} (have ${x.have})`).join(', ');
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    const started = await startAction(playerId, 'shop_establish', ESTABLISH_SECONDS, town.id);
+    const started = await startAction(playerId, 'shop_establish', t.build.seconds, town.id, String(Math.floor(Number(tierRaw ?? 1))));
     return { ok: true, timerSeconds: started, town: town.name };
 }
 
-export async function resolveEstablishShop(playerId: number): Promise<ShopActionResult> {
+/** The next tier up for the shop here, or null. */
+function nextShopTier(property: { tier?: number | null }): { tier: number; t: ShopTier; from: ShopTier } | null {
+    const now = Number(property.tier) || 1;
+    const t = shopTier(now + 1);
+    const from = shopTier(now);
+    return t?.upgrade && from ? { tier: now + 1, t, from } : null;
+}
+
+export async function startUpgradeShop(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const found = await shopFor(playerId);
+    if (!found) return { ok: false, error: 'You have no shop here.' };
+    if (!(await isAtOwnShop(playerId))) return { ok: false, error: 'You must be at your shop.' };
+    const next = nextShopTier(found.property);
+    if (!next) return { ok: false, error: 'Your shop is as large as shops come.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const carp = await skillLevel(playerId, 'Carpentry');
+    if (carp < next.t.carpentry) return { ok: false, error: `Requires Carpentry level ${next.t.carpentry}.` };
+    const missingTool = await missingBuildTool(playerId);
+    if (missingTool) return { ok: false, error: missingTool.message };
+    const matCheck = await hasMaterials(playerId, next.t.upgrade!.cost);
+    if (!matCheck.ok) {
+        const m = matCheck.missing.map((x) => `${x.need}x ${x.itemName} (have ${x.have})`).join(', ');
+        return { ok: false, error: `You need: ${m}.` };
+    }
+    const started = await startAction(playerId, 'shop_upgrade', next.t.upgrade!.seconds, found.property.location_id, String(next.tier));
+    return { ok: true, timerSeconds: started };
+}
+
+class ShopUpgradeAbort extends Error {}
+
+export async function resolveUpgradeShop(playerId: number, tierRaw: string | null): Promise<ShopActionResult> {
     try {
+        const t = shopTier(tierRaw);
+        const from = shopTier(Number(tierRaw) - 1);
+        if (!t?.upgrade || !from) return { success: false, error: 'There is nothing more to build on.' };
+        const found = await shopFor(playerId);
+        if (!found) return { success: false, error: 'You have no shop here.' };
+        const missingTool = await missingBuildTool(playerId);
+        if (missingTool) return { success: false, error: missingTool.message };
+        if (await skillLevel(playerId, 'Carpentry') < t.carpentry) return { success: false, error: `Requires Carpentry level ${t.carpentry}.` };
+        const upgrade = t.upgrade;
+
+        // The tier flip is the gate, so an upgrade is paid for once.
+        try {
+            await db.transaction(async (trx) => {
+                const flipped = await trx('player_properties')
+                    .where({ id: found.property.id, tier: Number(tierRaw) - 1 })
+                    .update({ tier: Number(tierRaw), storage_slots: trx.raw('COALESCE(storage_slots, ?) + ?', [from.storageSlots, t.storageSlots - from.storageSlots]) });
+                if (flipped !== 1) throw new ShopUpgradeAbort('That work is already done.');
+                await trx('player_shops').where({ id: found.shop.id }).update({
+                    sell_slots: trx.raw('sell_slots + ?', [t.sellSlots - from.sellSlots]),
+                    buy_slots: trx.raw('buy_slots + ?', [t.buySlots - from.buySlots]),
+                });
+                const took = await takeItemsWithin(trx, playerId, upgrade.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
+                if (!took.ok) throw new ShopUpgradeAbort('You no longer have the materials.');
+            });
+        } catch (e) {
+            if (e instanceof ShopUpgradeAbort) return { success: false, error: e.message };
+            throw e;
+        }
+
+        const carpLvl = await skillLevel(playerId, 'Carpentry');
+        const xp = Math.round(activeXpForSeconds(carpLvl, upgrade.seconds) * ESTABLISH_XP_BONUS);
+        await awardXp(playerId, 'Carpentry', xp);
+        await incrementStats(playerId, { total_actions_completed: 1 });
+        logger.info(`Player ${playerId} raised their shop to tier ${tierRaw}`);
+        return {
+            success: true, xp, skillName: 'Carpentry',
+            message: `The new shelving is up and the back room is bigger. Your shop sells ${t.sellSlots} things at once now, takes ${t.buySlots} offers to buy, and stores ${t.storageSlots}.`,
+        };
+    } catch (err) {
+        logger.error(`resolveUpgradeShop error: ${err}`);
+        return { success: false, error: SERVER_ERROR };
+    }
+}
+
+export async function resolveEstablishShop(playerId: number, tierRaw: string | null = null): Promise<ShopActionResult> {
+    try {
+        const tierNo = shopTier(tierRaw ?? 1) ? Math.floor(Number(tierRaw ?? 1)) : 1;
+        const tier = SHOP_TIERS[tierNo];
         const town = await shopTown(db, playerId);
         if (!town) return { success: false, error: 'There is no port on this island to raise a shop in.' };
-        if (await shopFor(playerId)) return { success: false, error: 'You already have a shop.' };
+        if (await shopFor(playerId)) return { success: false, error: `You already have a shop in ${town.name}.` };
+        if (await skillLevel(playerId, 'Carpentry') < tier.carpentry) return { success: false, error: `Requires Carpentry level ${tier.carpentry}.` };
 
         const missingTool = await missingBuildTool(playerId);
         if (missingTool) return { success: false, error: missingTool.message };
 
         // Re-checked at resolve, not just at start: the timer runs for eight
         // minutes and the materials can be traded away in that window.
-        const matCheck = await hasMaterials(playerId, ESTABLISH_COST);
+        const matCheck = await hasMaterials(playerId, tier.build.cost);
         if (!matCheck.ok) return { success: false, error: 'You no longer have the materials.' };
 
         const player = await db('players').where({ id: playerId }).select('username').first();
-        const tier = SHOP_TIERS[1];
 
         const built = await db.transaction(async (trx) => {
             // The materials are taken FIRST, locked, in the same transaction
@@ -227,7 +367,7 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
             // committed, by a helper that skipped anything missing, so timber
             // traded away at the wrong moment meant a shop for nothing.
             const took = await takeItemsWithin(trx, playerId,
-                ESTABLISH_COST.map((c) => ({ name: c.itemName, quantity: c.qty })));
+                tier.build.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
             if (!took.ok) return false;   // nothing written
 
             // A property with no shopfront is a half-built shop. Reuse it
@@ -237,19 +377,20 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
             // between a panel offering to build and a guard refusing to. Repair
             // is the only outcome that gets them moving again.
             const dangling = await trx('player_properties')
-                .where({ player_id: playerId, type: 'shop' })
+                .where({ player_id: playerId, type: 'shop', location_id: town.id })
                 .first();
 
             let propertyId: number;
             if (dangling) {
                 propertyId = dangling.id;
+                await trx('player_properties').where({ id: dangling.id }).update({ tier: tierNo, storage_slots: tier.storageSlots });
                 logger.warn(`Player ${playerId} had a shop property with no shopfront; completing it`);
             } else {
                 const [row] = await trx('player_properties').insert({
                     player_id: playerId,
                     location_id: town.id,
                     type: 'shop',
-                    tier: 1,
+                    tier: tierNo,
                     plot_slots: 0,
                     storage_slots: tier.storageSlots,
                 }).returning('id');
@@ -268,11 +409,11 @@ export async function resolveEstablishShop(playerId: number): Promise<ShopAction
         if (!built) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
-        const xp = Math.round(activeXpForSeconds(carpLvl, ESTABLISH_SECONDS) * ESTABLISH_XP_BONUS);
+        const xp = Math.round(activeXpForSeconds(carpLvl, tier.build.seconds) * ESTABLISH_XP_BONUS);
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1});
 
-        logger.info(`Player ${playerId} raised a shop at ${town.name}`);
+        logger.info(`Player ${playerId} raised a tier ${tierNo} shop at ${town.name}`);
         return {
             success: true,
             xp,
@@ -1038,8 +1179,27 @@ export async function myShop(playerId: number) {
         buyFundAvailable: available,
         storageSlots: Number(found.property.storage_slots ?? 0),
         storageUsed: Number(storedCount?.c ?? 0),
+        tier: Number(found.property.tier) || 1,
+        town: (await db('locations').where({ id: found.property.location_id }).first('name'))?.name ?? SHOP_TOWN,
+        upgrade: await upgradeOffer(playerId, found.property),
         atShop: await isAtOwnShop(playerId),
         taxRate: SALE_TAX_RATE,
+    };
+}
+
+/** What the next tier up would give and cost, for the Manage tab. */
+async function upgradeOffer(playerId: number, property: { tier?: number | null }) {
+    const next = nextShopTier(property);
+    if (!next) return null;
+    const cost = await Promise.all(next.t.upgrade!.cost.map(async (c) => ({
+        itemName: c.itemName, need: c.qty, have: await inventoryQty(playerId, c.itemName),
+    })));
+    const carpentry = await skillLevel(playerId, 'Carpentry');
+    return {
+        tier: next.tier, storageSlots: next.t.storageSlots, sellSlots: next.t.sellSlots, buySlots: next.t.buySlots,
+        carpentryRequired: next.t.carpentry, carpentryOk: carpentry >= next.t.carpentry,
+        seconds: next.t.upgrade!.seconds, cost, canAfford: cost.every((c) => c.have >= c.need),
+        missingTool: (await missingBuildTool(playerId))?.message ?? null,
     };
 }
 
@@ -1196,14 +1356,17 @@ export const NOTIFY_COOLDOWN_MS = 5 * 60 * 1000;
  * clears it.
  */
 export async function unseenTrades(playerId: number): Promise<{ count: number; gold: number } | null> {
-    const found = await shopFor(playerId);
-    if (!found) return null;
+    // Every shop the player owns, on every island: a sale in Talador is news on Antura.
+    const shops = await shopIdsOf(playerId);
+    if (!shops.length) return null;
 
-    const since = found.shop.last_seen_at ?? new Date(0);
-    const rows = await db('shop_transactions')
-        .where('shop_id', found.shop.id)
-        .where('created_at', '>', since)
-        .select('direction', 'gross', 'tax');
+    const rows: any[] = [];
+    for (const sh of shops) {
+        rows.push(...await db('shop_transactions')
+            .where('shop_id', sh.id)
+            .where('created_at', '>', sh.last_seen_at ?? new Date(0))
+            .select('direction', 'gross', 'tax'));
+    }
 
     // Net movement in the owner's favour: a sale earns, filling a buy order
     // spends. One number that answers "was I up or down while I was away".
@@ -1215,9 +1378,9 @@ export async function unseenTrades(playerId: number): Promise<{ count: number; g
 }
 
 export async function markTradesSeen(playerId: number): Promise<void> {
-    const found = await shopFor(playerId);
-    if (!found) return;
-    await db('player_shops').where({ id: found.shop.id }).update({ last_seen_at: new Date() });
+    const shops = await shopIdsOf(playerId);
+    if (!shops.length) return;
+    await db('player_shops').whereIn('id', shops.map(sh => sh.id)).update({ last_seen_at: new Date() });
 }
 
 /**

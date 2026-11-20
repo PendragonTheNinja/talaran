@@ -587,6 +587,9 @@ export default function GameLayout({
       // Raising a shopfront is Carpentry construction, so it borrows the
       // farming timer the farmstead already uses. id carries the seconds.
       setGameViewAction({ type: 'farming', id, text: 'build_shop' })
+    } else if (type === 'shop_upgrade') {
+      // Building on to a shop, on the same borrowed farming timer.
+      setGameViewAction({ type: 'farming', id, text: 'upgrade_shop' })
     } else {
       setGameViewAction({ type, id })
     }

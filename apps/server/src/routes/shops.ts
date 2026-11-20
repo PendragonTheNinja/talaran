@@ -10,7 +10,7 @@ import { getStorage, getCarried, depositItem, withdrawItem } from '../services/p
 import {
     SHOP_TOWN,
     getBuildInfo,
-    startEstablishShop,
+    startEstablishShop, startUpgradeShop,
     shopsAtLocation,
     shopFront,
     myShop,
@@ -139,7 +139,7 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
 router.post('/build', requireAuth, requireTrusted, botCheckGate, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
-        const result = await startEstablishShop(playerId);
+        const result = await startEstablishShop(playerId, req.body?.tier ?? 1);
         if (!result.ok) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
         res.json({ message: `You begin raising a shopfront in ${result.town ?? SHOP_TOWN}.`, timerSeconds: result.timerSeconds });
     } catch (err) {
@@ -149,6 +149,19 @@ router.post('/build', requireAuth, requireTrusted, botCheckGate, async (req: Aut
 });
 
 // ── Managing your own ───────────────────────────────────────────────────────
+
+// Raising the shop here a tier (docs/antura-plan.md §6): a timed Carpentry build.
+router.post('/mine/upgrade', requireAuth, requireTrusted, botCheckGate, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        const result = await startUpgradeShop(playerId);
+        if (!result.ok) { res.status(failureStatus(result.error)).json({ error: result.error }); return; }
+        res.json({ message: 'You begin building on to your shop.', timerSeconds: result.timerSeconds });
+    } catch (err) {
+        logger.error(`Shop upgrade error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
 /** Just the badge number. Cheap enough to call whenever a location panel opens. */
 router.get('/mine/unseen', requireAuth, async (req: AuthRequest, res: Response) => {

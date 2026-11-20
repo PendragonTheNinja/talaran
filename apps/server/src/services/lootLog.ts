@@ -37,6 +37,7 @@ const ACTION_LABELS: Record<string, string> = {
     farm_establish: 'Farmstead Work',
     farm_upgrade: 'Farmstead Work',
     shop_establish: 'Shop Building',
+    shop_upgrade: 'Shop Building',
     farm_build_plot: 'Farmstead Work',
     farm_till: 'Tilling',
     farm_sow: 'Sowing',

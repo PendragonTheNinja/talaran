@@ -1341,8 +1341,9 @@ export default function GameView({
       // counting down and the client comes back from a refresh believing it is
       // idle, so the player is told they are busy with nothing on screen.
       case 'shop_establish':
+      case 'shop_upgrade':
         setCurrentAction('farming')
-        setFarmKind('build_shop')
+        setFarmKind(action.action_type === 'shop_upgrade' ? 'upgrade_shop' : 'build_shop')
         setTimerMax(secondsLeft || 5)
         startCountdown(secondsLeft, action.completes_at)
         break

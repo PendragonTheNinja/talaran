@@ -10,7 +10,7 @@ import {
 import { addItemToInventory, recordItemFirstByName, takeItemsWithin } from './inventory';
 import { incrementStats } from './stats';
 import { resolveEstablish, resolveUpgrade, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestStep, resolveManure, resolveTend, resolveUproot } from './farming';
-import { resolveEstablishShop } from './shops';
+import { resolveEstablishShop, resolveUpgradeShop } from './shops';
 import {
   resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveGatherStep, resolveSlaughter, resolveSlaughterAll, resolveTame,
 } from './husbandry';
@@ -625,12 +625,15 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         });
         return;
       }
-      case 'shop_establish': {
+      case 'shop_establish':
+      case 'shop_upgrade': {
         // One-shot Carpentry build, same shape as farm_establish: clear the
         // action first, resolve it, then report.
         await db('player_actions').where({ id: action.id }).delete();
 
-        const shopResult = await resolveEstablishShop(action.player_id);
+        const shopResult = action.action_type === 'shop_upgrade'
+          ? await resolveUpgradeShop(action.player_id, action.action_data)
+          : await resolveEstablishShop(action.player_id, action.action_data);
         if (!shopResult.success) {
           pushToPlayer(action.player_id, 'action_failed', { error: shopResult.error || 'The work came to nothing.' });
           return;

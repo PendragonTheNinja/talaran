@@ -64,6 +64,17 @@ interface BuildInfo {
     canAfford: boolean
     missingTool: string | null
     tier1: { storageSlots: number; sellSlots: number; buySlots: number }
+    /** Every tier that can be raised outright, tier 1 first. */
+    tiers?: ShopTierOffer[]
+}
+
+interface ShopTierOffer {
+    tier: number
+    storageSlots: number; sellSlots: number; buySlots: number
+    carpentryRequired: number; carpentryOk: boolean
+    seconds: number
+    cost: Array<{ itemName: string; need: number; have: number }>
+    canAfford: boolean
 }
 
 interface ShopsMenuProps {
@@ -215,11 +226,11 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
         }
     }
 
-    const startBuild = async () => {
+    const startBuild = async (tier: number) => {
         setBusy(true); setError(null)
         try {
             const result = await apiFetch<{ message: string; timerSeconds: number }>(
-                '/api/shops/build', { method: 'POST' },
+                '/api/shops/build', { method: 'POST', body: JSON.stringify({ tier }) },
             )
             changedRef.current?.()
             onActionStarted?.(result.timerSeconds)
@@ -313,30 +324,38 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                             <div className="shp-build">
                                 <h3>Raise a shopfront</h3>
                                 <p className="shp-build-blurb">
-                                    A shop of your own in {build.town}: {build.tier1.storageSlots} storage slots,
-                                    {' '}{build.tier1.sellSlots} things you can sell at once, and
-                                    {' '}{build.tier1.buySlots} standing offers to buy. It trades while you are away.
+                                    A shop of your own in {build.town}. It trades while you are away.
                                 </p>
-                                <ul className="shp-cost">
-                                    {build.cost.map(c => (
-                                        <li key={c.itemName} className={c.have >= c.need ? 'is-met' : 'is-short'}>
-                                            <span>{c.itemName}</span>
-                                            <span>{fmt(c.have)} / {fmt(c.need)}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                {(build.tiers ?? []).map(t => (
+                                    <div key={t.tier} className="shp-build-tier">
+                                        <p className="shp-build-blurb">
+                                            <strong>{t.tier === 1 ? 'A shopfront' : `A tier ${t.tier} shopfront`}</strong>: {t.storageSlots} storage slots,
+                                            {' '}{t.sellSlots} things you can sell at once, and {t.buySlots} standing offers to buy.
+                                            {' '}{Math.round(t.seconds / 60)} minutes of work.
+                                        </p>
+                                        <ul className="shp-cost">
+                                            <li className={t.carpentryOk ? 'is-met' : 'is-short'}>
+                                                <span>Carpentry</span>
+                                                <span>{t.carpentryRequired}</span>
+                                            </li>
+                                            {t.cost.map(c => (
+                                                <li key={c.itemName} className={c.have >= c.need ? 'is-met' : 'is-short'}>
+                                                    <span>{c.itemName}</span>
+                                                    <span>{fmt(c.have)} / {fmt(c.need)}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <button
+                                            className="shp-act"
+                                            disabled={busy || !build.atTown || !t.canAfford || !t.carpentryOk || !!build.missingTool}
+                                            onClick={() => startBuild(t.tier)}
+                                        >
+                                            {t.tier === 1 ? 'Begin building' : `Build a tier ${t.tier} shop`}
+                                        </button>
+                                    </div>
+                                ))}
                                 {build.missingTool && <p className="shp-warn">{build.missingTool}</p>}
                                 {!build.atTown && <p className="shp-warn">You must be in {build.town} to build here.</p>}
-                                {build.carpentryLevel < build.carpentryRequired && (
-                                    <p className="shp-warn">Requires Carpentry level {build.carpentryRequired}.</p>
-                                )}
-                                <button
-                                    className="shp-act"
-                                    disabled={busy || !build.atTown || !build.canAfford || !!build.missingTool}
-                                    onClick={startBuild}
-                                >
-                                    Begin building
-                                </button>
                             </div>
                         )}
                     </>

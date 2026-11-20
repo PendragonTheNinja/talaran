@@ -99,6 +99,7 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
     farm_upgrade: { skill: 'Carpentry', tools: BUILD },
     farm_build_plot: { skill: 'Carpentry', tools: BUILD },
     shop_establish: { skill: 'Carpentry', tools: BUILD },
+    shop_upgrade: { skill: 'Carpentry', tools: BUILD },
     husbandry_build_pen: { skill: 'Carpentry', tools: BUILD },
     husbandry_demolish_pen: { skill: 'Carpentry', tools: BUILD },
     guild_build: { skill: 'Carpentry', tools: BUILD },

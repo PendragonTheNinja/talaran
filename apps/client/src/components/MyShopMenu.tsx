@@ -41,6 +41,16 @@ interface MyShop {
     storageUsed: number
     atShop: boolean
     taxRate: number
+    tier?: number
+    /** The port this shop stands in. */
+    town?: string
+    /** The next tier up, when there is one. */
+    upgrade?: {
+        tier: number; storageSlots: number; sellSlots: number; buySlots: number
+        carpentryRequired: number; carpentryOk: boolean; seconds: number
+        cost: Array<{ itemName: string; need: number; have: number }>
+        canAfford: boolean; missingTool: string | null
+    } | null
 }
 
 interface HistoryEntry {
@@ -73,6 +83,8 @@ interface StorageState {
 interface MyShopMenuProps {
     onClose: () => void
     onChanged?: () => void
+    /** Hands a started upgrade to the game view timer. */
+    onActionStarted?: (timerSeconds: number) => void
 }
 
 const fmt = (n: number) => n.toLocaleString('en-US')
@@ -83,7 +95,7 @@ function ItemIcon({ name, hover }: { name: string; hover?: Record<string, unknow
     return <img className="msh-icon" src={getItemIcon(name)} alt="" onError={() => setFailed(true)} {...hover} />
 }
 
-export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
+export default function MyShopMenu({ onClose, onChanged, onActionStarted }: MyShopMenuProps) {
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [tab, setTab] = useState<'storage' | 'manage' | 'history'>('storage')
@@ -170,6 +182,21 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
         }
     }
 
+    const startUpgrade = async () => {
+        setBusy(true); setError(null)
+        try {
+            const result = await apiFetch<{ message: string; timerSeconds: number }>('/api/shops/mine/upgrade', { method: 'POST' })
+            onActionStarted?.(result.timerSeconds)
+            onClose()
+        } catch (err) {
+            // 423: a bot check is due and its overlay is already on the way.
+            const e = err as { status?: number; message?: string }
+            if (e?.status !== 423) setError(e?.message || 'That did not work.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
     // Loaded on demand: a shop that has never been visited has nothing to show,
     // and the list can run to 200 rows.
     useEffect(() => {
@@ -223,7 +250,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                 </div>
 
                 {!shop.atShop && (
-                    <p className="msh-warn">You are away from your shop. Come back to Talador to change anything.</p>
+                    <p className="msh-warn">You are away from your shop. Come back to {shop.town ?? 'your shop'} to change anything.</p>
                 )}
 
                 <div className="msh-tabs">
@@ -266,7 +293,7 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                             </label>
                         </div>
 
-                        {!shop.atShop && <p className="msh-note">Come back to Talador to move anything.</p>}
+                        {!shop.atShop && <p className="msh-note">Come back to {shop.town ?? 'your shop'} to move anything.</p>}
 
                         <StoreSortBar sort={sort} onChange={setSort} />
 
@@ -426,6 +453,40 @@ export default function MyShopMenu({ onClose, onChanged }: MyShopMenuProps) {
                                 {shop.isOpen ? 'Close shop' : 'Open shop'}
                             </button>
                         </div>
+
+                        {/* ── Building on ───────────────────────────────── */}
+                        <p className="msh-section">Tier {shop.tier ?? 1} shop</p>
+                        {shop.upgrade ? (
+                            <div className="msh-upgrade">
+                                <p className="msh-note">
+                                    Building on raises it to tier {shop.upgrade.tier}: {shop.upgrade.sellSlots} things for sale at once,
+                                    {' '}{shop.upgrade.buySlots} offers to buy, and {shop.upgrade.storageSlots} storage slots.
+                                    {' '}{Math.round(shop.upgrade.seconds / 60)} minutes of work.
+                                </p>
+                                <ul className="shp-cost">
+                                    <li className={shop.upgrade.carpentryOk ? 'is-met' : 'is-short'}>
+                                        <span>Carpentry</span>
+                                        <span>{shop.upgrade.carpentryRequired}</span>
+                                    </li>
+                                    {shop.upgrade.cost.map(c => (
+                                        <li key={c.itemName} className={c.have >= c.need ? 'is-met' : 'is-short'}>
+                                            <span>{c.itemName}</span>
+                                            <span>{fmt(c.have)} / {fmt(c.need)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                {shop.upgrade.missingTool && <p className="shp-warn">{shop.upgrade.missingTool}</p>}
+                                <button
+                                    className="msh-act"
+                                    disabled={busy || !shop.atShop || !shop.upgrade.canAfford || !shop.upgrade.carpentryOk || !!shop.upgrade.missingTool}
+                                    onClick={startUpgrade}
+                                >
+                                    Build on to tier {shop.upgrade.tier}
+                                </button>
+                            </div>
+                        ) : (
+                            <p className="msh-note">As large as shops come, for now.</p>
+                        )}
 
                         {/* ── Listings ──────────────────────────────────── */}
                         <p className="msh-section">

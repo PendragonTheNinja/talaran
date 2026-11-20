@@ -611,3 +611,10 @@
         padding: 6px 13px;
     }
 }
+
+/* One block per tier that can be raised outright. */
+.shp-build-tier + .shp-build-tier {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border-dark);
+}
