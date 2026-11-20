@@ -16,7 +16,11 @@ import './SlipPanel.css'
 
 interface Requirement { item: string; needed: number; delivered: number; exists: boolean; held: number; stocked: number }
 /** Building for hire (docs/antura-plan.md §6b): who may work on the hull, and what it pays. */
-interface Hire { rate: number; purse: number; hands: string[]; laid: { item: string; quantity: number }[] }
+interface Hire {
+    rate: number; purse: number; hands: string[]; laid: { item: string; quantity: number }[]
+    /** Per material: still wanted across every piece left, laid here, and room for more (server stillWanted). */
+    materials: { item: string; wanted: number; laid: number; room: number }[]
+}
 interface Hull {
     locationName: string
     atSlip: boolean
@@ -232,7 +236,7 @@ export default function SlipPanel({ onClose, onStartBuild, onPutToSea }: {
                                     <p className="muted-text hall-note">
                                         {j.ownerName}'s {j.name}, on the slip at {j.hull.locationName}. Piece {j.hull.pieceNumber} of {j.hull.pieceCount}: the {j.hull.pieceName?.toLowerCase()}.
                                         {j.hull.hire.rate > 0
-                                            ? ` Pays ${fmt(j.hull.hire.rate)} gold a piece; the purse holds ${fmt(j.hull.hire.purse)}.`
+                                            ? ` Pays ${fmt(j.hull.hire.rate)} gold for each piece you set in, from a purse of ${fmt(j.hull.hire.purse)}: enough for ${fmt(Math.floor(j.hull.hire.purse / j.hull.hire.rate))} more.`
                                             : ' Unpaid: a favour.'}
                                         {` Each turn pays you ${j.xpPerTurn} Carpentry experience. Materials laid at the slip are used before your own.`}
                                     </p>
@@ -251,9 +255,10 @@ export default function SlipPanel({ onClose, onStartBuild, onPutToSea }: {
 }
 
 /**
- * The owner's side of building for hire (docs/antura-plan.md §6b): name the
- * hands who may work on the hull, set what each piece pays, keep the purse,
- * and lay materials at the slip for the hands to use.
+ * The owner's side of building for hire (docs/antura-plan.md §6b), in the
+ * order a player thinks of it: who may build, what a piece pays, the purse
+ * that pays it, and materials left for them (Nathan, 2026-11-20: the first
+ * version read as one block of controls).
  */
 function HireControls({ boat, hull, busy, onPost }: {
     boat: string
@@ -267,81 +272,87 @@ function HireControls({ boat, hull, busy, onPost }: {
     const [qty, setQty] = useState<Record<string, string>>({})
     const h = hull.hire
     const amountOf = (item: string) => Math.floor(Number(qty[item] ?? ''))
+    const piecesPaid = h.rate > 0 ? Math.floor(h.purse / h.rate) : null
 
     return (
         <div className="hall-hire">
-            <p className="tavern-section">Hands and pay</p>
+            <p className="tavern-section">Hire Carpenters</p>
             <p className="muted-text hall-note">
-                Anyone you name may work on this hull with their own mallet and saw, and the Carpentry for it.
-                Each piece they set in pays them from the purse at once; a piece the purse cannot pay for is not set.
+                Anyone with the Carpentry for this boat and a mallet and saw in hand can build it for you. You choose who, and what they are paid.
             </p>
+
+            <p className="hall-hire-step">1. Who may work on it</p>
             <div className="hall-hire-row">
-                <span className="hall-req-name">Hands</span>
-                <span className="muted-text">
-                    {h.hands.length ? h.hands.map(n => (
-                        <button key={n} className="btn hall-hire-chip" disabled={busy} title={`Stop ${n} working on it`}
-                            onClick={() => onPost('/api/boats/hands/remove', { boat, name: n }, 'That hand could not be let go.')}>
-                            {n} ✕
-                        </button>
-                    )) : 'Nobody yet.'}
-                </span>
+                {h.hands.length ? h.hands.map(n => (
+                    <button key={n} className="btn hall-hire-chip" disabled={busy} title={`Stop ${n} working on it`}
+                        onClick={() => onPost('/api/boats/hands/remove', { boat, name: n }, 'That carpenter could not be let go.')}>
+                        {n} ✕
+                    </button>
+                )) : <span className="muted-text">Nobody yet. You can always work on it yourself.</span>}
             </div>
             <div className="hall-hire-row">
                 <input className="hall-hire-input" placeholder="A carpenter's name" value={hand} maxLength={32}
                     onChange={e => setHand(e.target.value)} />
                 <button className="btn btn-gold" disabled={busy || !hand.trim()}
-                    onClick={() => { void onPost('/api/boats/hands', { boat, name: hand.trim() }, 'That carpenter could not be named.'); setHand('') }}>
-                    Name a hand
+                    onClick={() => { void onPost('/api/boats/hands', { boat, name: hand.trim() }, 'That carpenter could not be added.'); setHand('') }}>
+                    Add
                 </button>
             </div>
+
+            <p className="hall-hire-step">2. What a piece pays</p>
             <div className="hall-hire-row">
-                <span className="hall-req-name">Gold a piece</span>
                 <input className="hall-hire-input hall-hire-num" inputMode="numeric" value={rate} onChange={e => setRate(e.target.value)} />
+                <span className="muted-text">gold for each piece a carpenter sets in</span>
                 <button className="btn btn-gold" disabled={busy || String(h.rate) === rate.trim()}
                     onClick={() => onPost('/api/boats/rate', { boat, rate: Number(rate) }, 'The pay could not be set.')}>
                     Set
                 </button>
             </div>
+            <p className="muted-text hall-note">
+                {h.rate > 0 ? `Now ${fmt(h.rate)} gold a piece.` : 'Now nothing: carpenters work on it as a favour.'}
+            </p>
+
+            <p className="hall-hire-step">3. The purse</p>
+            <p className="muted-text hall-note">
+                {`It holds ${fmt(h.purse)} gold`}
+                {piecesPaid !== null ? `, enough for ${fmt(piecesPaid)} more ${piecesPaid === 1 ? 'piece' : 'pieces'}.` : '.'}
+                {' '}Each piece is paid from it the moment it goes in. When it cannot pay for the next piece, the carpenter stops.
+            </p>
             <div className="hall-hire-row">
-                <span className="hall-req-name">Purse: {fmt(h.purse)} gold</span>
                 <input className="hall-hire-input hall-hire-num" inputMode="numeric" placeholder="Gold" value={gold} onChange={e => setGold(e.target.value)} />
                 <button className="btn btn-gold" disabled={busy || !hull.atSlip || !(Number(gold) > 0)}
-                    onClick={() => { void onPost('/api/boats/purse/lay', { boat, amount: Number(gold) }, 'The gold could not be laid.'); setGold('') }}>
-                    Lay
+                    onClick={() => { void onPost('/api/boats/purse/lay', { boat, amount: Number(gold) }, 'The gold could not be put in.'); setGold('') }}>
+                    Put in
                 </button>
                 <button className="btn" disabled={busy || !hull.atSlip || !(Number(gold) > 0) || h.purse < 1}
-                    onClick={() => { void onPost('/api/boats/purse/take', { boat, amount: Number(gold) }, 'The gold could not be taken back.'); setGold('') }}>
-                    Take back
+                    onClick={() => { void onPost('/api/boats/purse/take', { boat, amount: Number(gold) }, 'The gold could not be taken out.'); setGold('') }}>
+                    Take out
                 </button>
             </div>
-            <p className="muted-text hall-note">Materials laid at the slip are used before the builder's own, and are yours to take back until they are built in. Whatever is left comes back to you when the boat is finished.</p>
-            {hull.requirements.filter(r => r.exists).map(r => {
-                const n = amountOf(r.item)
+
+            <p className="hall-hire-step">4. Materials at the slip</p>
+            <p className="muted-text hall-note">Carpenters use these before their own. Only what the boat still needs can be left here.</p>
+            {h.materials.map(m => {
+                const n = amountOf(m.item)
                 return (
-                    <div key={r.item} className="hall-hire-row">
-                        <span className="hall-req-name">{r.item}: {fmt(r.stocked)} laid</span>
-                        <input className="hall-hire-input hall-hire-num" inputMode="numeric" placeholder="How many" value={qty[r.item] ?? ''}
-                            onChange={e => setQty(q => ({ ...q, [r.item]: e.target.value }))} />
-                        <button className="btn btn-gold" disabled={busy || !hull.atSlip || !(n > 0) || n > r.held}
-                            onClick={() => { void onPost('/api/boats/stock/lay', { boat, item: r.item, quantity: n }, 'Those could not be laid.'); setQty(q => ({ ...q, [r.item]: '' })) }}>
-                            Lay
+                    <div key={m.item} className="hall-hire-row">
+                        <span className="hall-req-name">
+                            {m.item}: {fmt(m.laid)} here{m.room > 0 ? `, room for ${fmt(m.room)} more` : ', all it needs'}
+                        </span>
+                        <input className="hall-hire-input hall-hire-num" inputMode="numeric" placeholder="How many" value={qty[m.item] ?? ''}
+                            onChange={e => setQty(q => ({ ...q, [m.item]: e.target.value }))} />
+                        <button className="btn btn-gold" disabled={busy || !hull.atSlip || !(n > 0) || n > m.room}
+                            onClick={() => { void onPost('/api/boats/stock/lay', { boat, item: m.item, quantity: n }, 'Those could not be left here.'); setQty(q => ({ ...q, [m.item]: '' })) }}>
+                            Leave
                         </button>
-                        <button className="btn" disabled={busy || !hull.atSlip || !(n > 0) || n > r.stocked}
-                            onClick={() => { void onPost('/api/boats/stock/take', { boat, item: r.item, quantity: n }, 'Those could not be taken back.'); setQty(q => ({ ...q, [r.item]: '' })) }}>
+                        <button className="btn" disabled={busy || !hull.atSlip || !(n > 0) || n > m.laid}
+                            onClick={() => { void onPost('/api/boats/stock/take', { boat, item: m.item, quantity: n }, 'Those could not be taken back.'); setQty(q => ({ ...q, [m.item]: '' })) }}>
                             Take back
                         </button>
                     </div>
                 )
             })}
-            {h.laid.filter(l => !hull.requirements.some(r => r.item === l.item)).map(l => (
-                <div key={l.item} className="hall-hire-row">
-                    <span className="hall-req-name">{l.item}: {fmt(l.quantity)} laid, for a later piece</span>
-                    <button className="btn" disabled={busy || !hull.atSlip}
-                        onClick={() => onPost('/api/boats/stock/take', { boat, item: l.item, quantity: l.quantity }, 'Those could not be taken back.')}>
-                        Take back
-                    </button>
-                </div>
-            ))}
+            <p className="muted-text hall-note">Whatever is left in the purse or at the slip comes back to you when the boat is finished.</p>
         </div>
     )
 }

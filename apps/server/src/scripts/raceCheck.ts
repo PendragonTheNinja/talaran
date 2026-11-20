@@ -1660,13 +1660,28 @@ const SCENARIOS: Scenario[] = [
     {
         id: 'hire', name: 'an owner lays 4 planks at the slip five times at once, with 10 in the pack', rounds: 10,
         run: async (ctx) => {
-            const h = await hireWorld(ctx);
+            // A hull that wants 50, so the race is the pack's, not the cap's.
+            const h = await hireWorld(ctx, 50);
             await inPack(ctx, h.w.player.id, h.w.plank.id, 10);
             const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/boats/stock/lay', { boat: 'rc_skiff', item: h.w.plank.name, quantity: 4 }));
             const laid = await stockAt(ctx, h.build.id, h.w.plank.id);
             return noServerErrors(st)
                 ?? changed('planks in the pack and at the slip together', 10, (await ctx.itemTotal(h.w.plank.id)) + laid)
                 ?? changed('planks laid at the slip', 8, laid);
+        },
+    },
+    {
+        id: 'hire', name: 'an owner lays 4 planks at the slip five times at once, on a hull that wants 7 more', rounds: 10,
+        run: async (ctx) => {
+            // Laying is capped by what the hull still wants (services/boats.ts
+            // stillWanted), read under the build's lock: never more than 7 laid.
+            const h = await hireWorld(ctx, 7);
+            await inPack(ctx, h.w.player.id, h.w.plank.id, 20);
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/boats/stock/lay', { boat: 'rc_skiff', item: h.w.plank.name, quantity: 4 }));
+            const laid = await stockAt(ctx, h.build.id, h.w.plank.id);
+            return noServerErrors(st)
+                ?? (laid > 7 ? `${laid} planks laid on a hull that wants 7` : null)
+                ?? changed('planks in the pack and at the slip together', 20, (await ctx.itemTotal(h.w.plank.id)) + laid);
         },
     },
     {

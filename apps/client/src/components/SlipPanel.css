@@ -37,3 +37,10 @@
     padding: 2px 8px;
     font-size: 12px;
 }
+
+/* A numbered step of the hire controls. */
+.hall-hire-step {
+    margin: 12px 0 4px;
+    font-weight: 600;
+    color: var(--color-text-bright);
+}

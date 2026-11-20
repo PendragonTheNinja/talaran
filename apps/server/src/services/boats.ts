@@ -89,6 +89,7 @@ export async function boatState(playerId: number) {
             .map((r: any) => [r.item_id, Number(r.quantity)]))
         : new Map<number, number>();
 
+    const idOf = (name: string) => idByName.get(name) ?? -1;
     const hull = async (b: any, t: VesselType) => {
         const piece = t.pieces[b.piece_index] ?? null;
         const delivered = new Map<number, number>((await db('vessel_build_progress').where({ build_id: b.id }))
@@ -101,8 +102,13 @@ export async function boatState(playerId: number) {
         const laid = (await db('vessel_build_stock as s').join('items as i', 'i.id', 's.item_id')
             .where('s.build_id', b.id).where('s.quantity', '>', 0).select('i.name', 's.quantity'))
             .map((r: any) => ({ item: r.name, quantity: Number(r.quantity) }));
+        const wanted = await stillWanted(db, t, b);
         return {
-            hire: { rate: Number(b.pay_rate ?? 0), purse: Number(b.fund_gold ?? 0), hands, laid },
+            hire: {
+                rate: Number(b.pay_rate ?? 0), purse: Number(b.fund_gold ?? 0), hands, laid,
+                // Per material: still wanted across every piece left, and how many more may be laid.
+                materials: [...wanted].map(([item, qty]) => ({ item, wanted: qty, laid: stock.get(idOf(item)) ?? 0, room: Math.max(0, qty - (stock.get(idOf(item)) ?? 0)) })),
+            },
             locationName: b.location_name,
             atSlip: Number(b.location_id) === Number(here?.location_id),
             pieceNumber: Number(b.piece_index) + 1,
@@ -140,7 +146,7 @@ export async function boatState(playerId: number) {
             canBuild: carpentry >= t.build_level,
             xpPerTurn: buildTurnXp(t.tier),
             piecesPerTurn: Math.round(piecesAverage(BOAT_FLIPS, carpentry, rungOfTier(t.tier)) * 10) / 10,
-            hull: { ...h, hire: { rate: h.hire.rate, purse: h.hire.purse, hands: [], laid: [] } },
+            hull: { ...h, hire: { rate: h.hire.rate, purse: h.hire.purse, hands: [], laid: [], materials: [] } },
         };
     }))).filter(Boolean);
 
@@ -315,6 +321,27 @@ export async function takePurse(ownerId: number, typeKeyRaw: unknown, amountRaw:
     }
 }
 
+/**
+ * How many of each material the hull still wants, by name: what is left of
+ * the piece under way, and every later piece in full. Laying at the slip is
+ * capped by it, less what is laid there already (Nathan, 2026-11-20).
+ */
+async function stillWanted(x: any, t: VesselType, build: any): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    const done = new Map<number, number>((await x('vessel_build_progress').where({ build_id: build.id }))
+        .map((r: any) => [Number(r.item_id), Number(r.delivered)]));
+    const ids = new Map<string, number>((await x('items').whereIn('name', t.pieces.flatMap(p => p.materials.map(m => m.item))).select('id', 'name'))
+        .map((r: any) => [r.name, Number(r.id)]));
+    t.pieces.forEach((p, i) => {
+        if (i < Number(build.piece_index)) return;
+        for (const m of p.materials) {
+            const left = i === Number(build.piece_index) ? Math.max(0, m.qty - (done.get(ids.get(m.item) ?? -1) ?? 0)) : m.qty;
+            out.set(m.item, (out.get(m.item) ?? 0) + left);
+        }
+    });
+    return out;
+}
+
 /** The materials this boat uses anywhere in its build, by name. */
 function usesMaterial(t: VesselType, itemName: string): boolean {
     return t.pieces.some(p => p.materials.some(m => m.item === itemName));
@@ -333,6 +360,15 @@ export async function layStock(ownerId: number, typeKeyRaw: unknown, itemRaw: un
             if (!usesMaterial(t, itemName)) throw new BoatAbort(`No ${itemName} goes into ${article(t.name)} ${t.name}.`);
             const item = await trx('items').where({ name: itemName }).first('id');
             if (!item) throw new BoatAbort(`No one in Talaran can make ${itemName} yet.`);
+            // Never more than the hull still wants. Read under the build's lock, so two layings at once cannot both fit.
+            const wanted = (await stillWanted(trx, t, build)).get(itemName) ?? 0;
+            const laid = Number((await trx('vessel_build_stock').where({ build_id: build.id, item_id: item.id }).first('quantity'))?.quantity ?? 0);
+            const room = Math.max(0, wanted - laid);
+            if (qty > room) {
+                throw new BoatAbort(room > 0
+                    ? `The ${t.name} needs only ${room.toLocaleString('en-US')} more ${itemName} than is laid here already.`
+                    : `Enough ${itemName} is laid here already to finish the ${t.name}.`);
+            }
             const taken = await takeItemsWithin(trx, ownerId, [{ name: itemName, quantity: qty }]);
             if (!taken.ok) throw new BoatAbort(`You do not have ${qty.toLocaleString('en-US')} ${itemName}.`);
             const [row] = await trx('vessel_build_stock').insert({ build_id: build.id, item_id: item.id, quantity: qty })

@@ -803,12 +803,14 @@
    the spellbook (it shares the farm and church menus' box), the loot and
    travel logs in the scene, the gathering and market menus, shops, NPC
    dialogue, profiles, the tally board, trades, workstations, chat history,
-   the bot check, the level-up card, the welcome and the guest prompt. */
+   the bot check, the level-up card, the welcome and the guest prompt, and
+   the tavern's box, which the Salty Sloth and the slip share. */
 :root[data-theme='stonehold'] :is(
   .farm-modal, .log-panel, .fishing-modal, .foraging-modal, .mkt-modal, .msh-modal,
   .npc-dialogue, .profile-popup, .map-popup, .shp-modal, .skills-modal,
   .spellcast-card, .tally-modal, .trade-window, .workstation-panel,
-  .chat-history-modal, .bot-check, .guest-modal, .welcome-modal, .levelup-popup
+  .chat-history-modal, .bot-check, .guest-modal, .welcome-modal, .levelup-popup,
+  .tavern-modal
 ) {
   background:
     linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.42)),
@@ -854,7 +856,7 @@
 /* The rope frame is a real 14px border. On boxes sized to the screen
    (max-width: 95vw and the like) it was added outside that size, so on a
    phone the profile ran past the edge and its skill grid scrolled sideways. */
-:root[data-theme='stonehold'] :is(.profile-popup, .farm-modal, .skills-modal, .tally-modal, .npc-dialogue, .guest-modal, .welcome-modal) {
+:root[data-theme='stonehold'] :is(.profile-popup, .farm-modal, .skills-modal, .tally-modal, .npc-dialogue, .guest-modal, .welcome-modal, .tavern-modal) {
   box-sizing: border-box;
 }
 
