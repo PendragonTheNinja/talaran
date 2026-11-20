@@ -57,7 +57,7 @@ const ROD_SECONDS_PER_LEVEL = 0.5;      // 1s shaved every 2 levels
 const NET_BASE_TIMER = 150;
 const NET_MIN_TIMER = 40;
 const NET_SECONDS_PER_LEVEL = 1;        // 1s shaved every level
-const NET_MAX_SPECIES_LEVEL = 4;        // nets never reach the top of the pool
+const NET_LEVELS_OVER_RUNG = 3;         // a net hauls fish up to 3 levels over its water's rung
 const NET_MIN_CATCH = 4;
 const NET_MAX_CATCH = 6;
 const NET_XP_FACTOR = 0.34;             // see the note above resolveNetHaul
@@ -74,8 +74,37 @@ const SNAP_CHANCE_PCT = 5;
 const SALVAGE_CHANCE_PCT = 6;
 const SALVAGE_CHANCE_BAITED_PCT = 2;
 const SALVAGE_XP_FRACTION = 0.5;
-const TIER_BONUS_PER_TIER = 0.05;       // (tier - 1) x 5%: the island's own rod is the baseline
+const TIER_BONUS_PER_TIER = 0.05;       // 5% a tier over the water's: the island's own rod is the baseline
 const TIER_BONUS_CAP = 0.5;
+const TIER_PENALTY_PER_TIER = 0.4;      // a rod below the water's tier, as any tool below its work (calculateTimer)
+
+/**
+ * Each tier of water casts longer, from its own rung (docs/antura-plan.md §9;
+ * CLAUDE.md §8: a stated timer is for a player at the content's level with the
+ * tier's own tool). Taiar's waters are tier 1: 70 s at Fishing 1, as always.
+ * Antura's are tier 2: 80 s at Fishing 13, and the floors and the net rise in
+ * step. A water's tier is its island's (islands.tier).
+ */
+export const WATER_TIERS: Record<number, { rung: number; rodBase: number; rodFloor: number; netBase: number; netFloor: number }> = {
+    1: { rung: 1, rodBase: ROD_BASE_TIMER, rodFloor: ROD_MIN_TIMER, netBase: NET_BASE_TIMER, netFloor: NET_MIN_TIMER },
+    2: { rung: 13, rodBase: 80, rodFloor: 23, netBase: 171, netFloor: 46 },
+};
+
+function waterTierRow(tier: number) {
+    return WATER_TIERS[tier] ?? WATER_TIERS[Math.max(...Object.keys(WATER_TIERS).map(Number))];
+}
+
+/** The tier of a water: its island's, 1 where the island has no row. */
+export async function waterTierAt(locationId: number): Promise<number> {
+    const row = await db('locations as l').leftJoin('islands as i', 'i.name', 'l.region')
+        .where('l.id', locationId).first('i.tier');
+    return Number(row?.tier) || 1;
+}
+
+/** The highest fish level a net hauls in water of `tier`: 4 on Taiar, 16 on Antura. */
+export function netMaxSpeciesLevel(tier: number): number {
+    return waterTierRow(tier).rung + NET_LEVELS_OVER_RUNG;
+}
 
 export const BAIT_CATEGORIES = ['grain', 'cheese', 'egg', 'spawn', 'meat'] as const;
 export type BaitCategory = typeof BAIT_CATEGORIES[number];
@@ -212,21 +241,30 @@ export function calculateFishingTimer(
     playerLevel: number,
     toolTier: number,
     baited: boolean,
+    rung = 1,
+    waterTier = 1,
+    penaliseLowTool = true,
 ): number {
-    let t = base - Math.max(0, playerLevel - 1) * secondsPerLevel;
-    if (toolTier > 1) {
-        t = t * (1 - Math.min(TIER_BONUS_CAP, (toolTier - 1) * TIER_BONUS_PER_TIER));
+    let t = base - Math.max(0, playerLevel - rung) * secondsPerLevel;
+    const over = toolTier - waterTier;
+    if (over > 0) {
+        t = t * (1 - Math.min(TIER_BONUS_CAP, over * TIER_BONUS_PER_TIER));
+    } else if (over < 0 && penaliseLowTool) {
+        t = t * (1 + -over * TIER_PENALTY_PER_TIER);
     }
     if (baited) t = t * (1 - BAIT_TIMER_BONUS);
     return Math.max(floor, Math.round(t));
 }
 
-export function rodTimer(playerLevel: number, toolTier: number, baited: boolean): number {
-    return calculateFishingTimer(ROD_BASE_TIMER, ROD_MIN_TIMER, ROD_SECONDS_PER_LEVEL, playerLevel, toolTier, baited);
+export function rodTimer(playerLevel: number, toolTier: number, baited: boolean, waterTier = 1): number {
+    const w = waterTierRow(waterTier);
+    return calculateFishingTimer(w.rodBase, w.rodFloor, ROD_SECONDS_PER_LEVEL, playerLevel, toolTier, baited, w.rung, waterTier);
 }
 
-export function netTimer(playerLevel: number, toolTier: number): number {
-    return calculateFishingTimer(NET_BASE_TIMER, NET_MIN_TIMER, NET_SECONDS_PER_LEVEL, playerLevel, toolTier, false);
+/** One net for every water (§9: linen and planks, no metal), so no net is ever too low for one. */
+export function netTimer(playerLevel: number, toolTier: number, waterTier = 1): number {
+    const w = waterTierRow(waterTier);
+    return calculateFishingTimer(w.netBase, w.netFloor, NET_SECONDS_PER_LEVEL, playerLevel, toolTier, false, w.rung, waterTier, false);
 }
 
 export function cutBaitTimer(): number {
@@ -508,7 +546,8 @@ export async function canFishHere(
     if (eligible.length === 0) {
         return { allowed: false, reason: 'Nothing is biting here just now.' };
     }
-    if (mode === 'net' && !eligible.some((s) => s.required_level <= NET_MAX_SPECIES_LEVEL)) {
+    const netMax = netMaxSpeciesLevel(await waterTierAt(water));
+    if (mode === 'net' && !eligible.some((s) => s.required_level <= netMax)) {
         return { allowed: false, reason: 'The net finds nothing worth hauling in these waters.' };
     }
     return { allowed: true };
@@ -574,6 +613,7 @@ export async function getFishingOverview(playerId: number, locationIdHere: numbe
 
     const rodTier = await equippedToolTier(playerId, 'fishing_rod');
     const netTier = await equippedToolTier(playerId, 'fishing_net');
+    const waterTier = await waterTierAt(locationId);
     const knifeTier = await equippedToolTier(playerId, 'butcher_knife');
 
     // Fish currently in the pack, for the Cut Bait picker. Every fish in the
@@ -613,13 +653,14 @@ export async function getFishingOverview(playerId: number, locationIdHere: numbe
         tools: {
             hasRod: rodTier > 0,
             rodTier,
+            waterTier,
             hasNet: netTier > 0,
             hasKnife: knifeTier > 0,
         },
         timers: {
-            rod: rodTier > 0 ? rodTimer(level, rodTier, false) : rodTimer(level, 1, false),
-            rodBaited: rodTier > 0 ? rodTimer(level, rodTier, true) : rodTimer(level, 1, true),
-            net: netTier > 0 ? netTimer(level, netTier) : netTimer(level, 1),
+            rod: rodTimer(level, rodTier > 0 ? rodTier : waterTier, false, waterTier),
+            rodBaited: rodTimer(level, rodTier > 0 ? rodTier : waterTier, true, waterTier),
+            net: netTimer(level, netTier > 0 ? netTier : 1, waterTier),
         },
     };
 }
@@ -814,8 +855,9 @@ export async function processNetHaul(playerId: number, locationId: number): Prom
         const window = getTimeWindow();
         const season = getSeason();
 
+        const netMax = netMaxSpeciesLevel(await waterTierAt(locationId));
         const eligible = pool.filter(
-            (s) => s.required_level <= NET_MAX_SPECIES_LEVEL
+            (s) => s.required_level <= netMax
                 && ineligibleReason(s, level, window, season) === null,
         );
         if (eligible.length === 0) {

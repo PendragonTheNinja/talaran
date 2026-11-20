@@ -5,7 +5,7 @@ import { processWoodcuttingAction, calculateTimer } from './woodcutting';
 import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
 import {
   processFishingCast, processNetHaul, processCutBait,
-  rodTimer, netTimer, cutBaitTimer, equippedToolTier, getBaitPouch,
+  rodTimer, netTimer, cutBaitTimer, equippedToolTier, getBaitPouch, waterTierAt, waterFor,
 } from './fishing';
 import { addItemToInventory, recordItemFirstByName, takeItemsWithin } from './inventory';
 import { incrementStats } from './stats';
@@ -1408,7 +1408,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       } else if (action.action_type === 'fishing_net') {
         const tier = await equippedToolTier(action.player_id, 'fishing_net');
         canRepeat = tier > 0;
-        nextTimer = netTimer(currentLevel, tier);
+        nextTimer = netTimer(currentLevel, tier, await waterTierAt(action.location_id));
       } else {
         const tier = await equippedToolTier(action.player_id, 'fishing_rod');
         canRepeat = tier > 0;
@@ -1417,7 +1417,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const bait = action.action_data || '';
         const pouch = await getBaitPouch(action.player_id);
         const stillBaited = bait !== '' && (pouch[bait] || 0) > 0;
-        nextTimer = rodTimer(currentLevel, tier, stillBaited);
+        const waterTier = await waterTierAt((await waterFor(action.player_id, action.location_id)).water);
+        nextTimer = rodTimer(currentLevel, tier, stillBaited, waterTier);
       }
 
       if (canRepeat) {

@@ -13,7 +13,7 @@ import {
     rodTimer,
     netTimer,
     cutBaitTimer,
-    BAIT_CATEGORIES,
+    BAIT_CATEGORIES, waterTierAt, waterFor,
 } from '../services/fishing';
 import { failureStatus } from '../lib/serviceResult';
 import { buffedSeconds } from '../services/buffs';
@@ -106,11 +106,12 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
 
         const level = await playerLevelFor(playerId, 'Fishing');
         const tier = await equippedToolTier(playerId, 'fishing_rod');
+        const waterTier = await waterTierAt((await waterFor(playerId, player.current_location_id)).water);
         // The pouch is checked at resolve time, not here: the timer shown at
         // start should match the cast the player is about to get.
         const pouch = await getBaitPouch(playerId);
         const baited = bait !== '' && (pouch[bait] || 0) > 0;
-        const timerSeconds = await buffedSeconds(playerId, 'Fishing', rodTimer(level, tier, baited));
+        const timerSeconds = await buffedSeconds(playerId, 'Fishing', rodTimer(level, tier, baited, waterTier));
 
         const now = new Date();
         const inserted = await insertAction({
@@ -150,7 +151,7 @@ router.post('/net/start', requireAuth, botCheckGate, async (req: AuthRequest, re
 
         const level = await playerLevelFor(playerId, 'Fishing');
         const tier = await equippedToolTier(playerId, 'fishing_net');
-        const timerSeconds = await buffedSeconds(playerId, 'Fishing', netTimer(level, tier));
+        const timerSeconds = await buffedSeconds(playerId, 'Fishing', netTimer(level, tier, await waterTierAt(player.current_location_id)));
 
         const now = new Date();
         const inserted = await insertAction({

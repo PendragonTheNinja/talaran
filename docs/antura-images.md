@@ -85,7 +85,7 @@ Descriptions are drafts for the art and for the item rows when they are built. M
 | `Sea_Salt.png` | Sea Salt | Gray flakes scraped from a rock pool the sun has dried. A pinch goes a long way. |
 | `Samphire.png` | Samphire | Bright green fleshy stems from the salt marsh, crisp and salty, like the sea in a mouthful. |
 
-### Fishing: raw fish (7) and the rod (1)
+### Fishing: raw fish (8) and the rod (1), built 2026-11-20
 
 | File | Item | Description |
 |---|---|---|
@@ -95,18 +95,19 @@ Descriptions are drafts for the art and for the item rows when they are built. M
 | `Mackerel.png` | Mackerel | A sleek fish with tiger stripes of green and blue down its back. Oily, quick, and best eaten the day it is caught. |
 | `Pollock.png` | Pollock | A bronze-green fish of the strait, long-jawed, with a dark line down each side. |
 | `Sea_Bass.png` | Sea Bass | A silver fish with a spiny back fin, strong enough to bend a rod double. The fishermen of the strait boast about these. |
+| `Glassback.png` | Glassback | A pale fish from the deep middle of Bidewater, so clear along the back that you can see the line of its spine. It only rises after dark. (Name proposed by Claude, 2026-11-20.) |
 | `Turbot.png` | Turbot | A broad flat fish, round as a shield, both eyes on one side and freckled to match the sand. |
 | `Serph_Fishing_Rod.png` | Serph Fishing Rod | A Lanai rod with a hook of Serph and a line of doubled linen. It holds what an Ambren hook would lose. |
 
-The invented lake fish at Bidewater (level 22) is still to name (`docs/antura-plan.md` §13), so it and its cooked form are in section 3.
 
-### Cooking: cooked fish (7)
+### Cooking: cooked fish (8)
 
 | File | Item | Description |
 |---|---|---|
 | `Cooked_Tench.png` | Cooked Tench | Tench baked until the skin crisps. It tastes faintly of the lake, which some people like. |
 | `Cooked_Rudd.png` | Cooked Rudd | Rudd fried whole, the red fins gone dark and crunchy. Mind the bones. |
 | `Cooked_Zander.png` | Cooked Zander | White zander flesh in thick flakes, firm and clean-tasting. |
+| `Cooked_Glassback.png` | Cooked Glassback | Glassback poached until the clear flesh goes white as milk. Soft, sweet, and gone in three bites. |
 | `Cooked_Mackerel.png` | Cooked Mackerel | Mackerel grilled until the skin blisters, rich and oily. |
 | `Cooked_Pollock.png` | Cooked Pollock | Pollock baked in big white flakes. Plain, filling, and nobody's favourite. |
 | `Cooked_Sea_Bass.png` | Cooked Sea Bass | Sea bass with crisp silver skin and sweet white flesh underneath. |
@@ -219,7 +220,6 @@ These need art too, but each still wants a name, and some a design, before it ca
 
 | What | How many | What is known |
 |---|---|---|
-| The invented lake fish at Bidewater, and its cooked form | 2 icons | Level 22, freshwater, Antura's one invented fish (§9). |
 | Antura's islets | 8 place pictures | Eight on Taiar's pattern (§3 of `docs/islets-plan.md`); names wait on the islet maps. |
 | Antura's islet guardians | 2 portraits | Proposed: the **Finman** (a sea sorcerer of the old stories, level 19, on the sea stacks and reefs) and the **Nuckelavee** (the sea-horse demon, level 24, on the ruin). Not settled. |
 | Antura's guardian keepsakes | 1 per guardian | One each, as Taiar's three have. |

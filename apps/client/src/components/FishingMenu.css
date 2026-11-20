@@ -435,3 +435,9 @@
     gap: 5px;
     margin-bottom: var(--space-sm);
 }
+/* A rod below the water's tier casts slower (services/fishing.ts WATER_TIERS). */
+.fishing-rod-light {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--color-gold);
+}

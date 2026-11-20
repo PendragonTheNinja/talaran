@@ -324,6 +324,7 @@ Nathan: three or four fish for each water across 13 to 24. A base cast of 80 s w
 - **Mackerel is wanted** for the gooseberry dish (§11).
 - **Serph Fishing Rod:** Lanai Tool Rod, Serph Hook, and two Linen Thread, at Carpentry 15 (`docs/fishing-spec.md` already plans it).
 - **Salvage:** reuse what exists (the locked chest, amber, mussels) in the new waters. Nothing new without a use.
+- **Built 2026-11-20** (migration `20261120140000_antura_fishing`): the eight fish (the invented one named Glassback by Claude, for Nathan to change), salvage reused in both waters (`fish_species` is unique on name and water now), the Serph Fishing Rod, and `WATER_TIERS` in `services/fishing.ts`: a water's tier is its island's, a cast is 80 s at Fishing 13 on Antura, a rod a tier below the water casts 40% slower (as any tool below its work), one above 5% faster, and a net hauls up to three levels over the water's rung.
 - **The net works on Antura, for the lower fish of each water only** (Nathan, 2026-11-15). Today it hauls fish of level 4 and under (`NET_MAX_SPECIES_LEVEL` in `services/fishing.ts`), which on Antura is nothing. Proposed rule: a net hauls fish up to three levels above the water's tier rung. That is exactly today's rule on Taiar (1 plus 3), and on Antura it means the level 13 and 16 fish: Tench and Rudd, Mackerel and Pollock. The net is linen and planks with no metal in it, so there is one net for every water and no Serph net.
 
 ## 10. Combat (proposed)

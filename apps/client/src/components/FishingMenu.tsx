@@ -52,7 +52,8 @@ interface Overview {
     salvage: Array<{ name: string | null; discovered: boolean }>
     convertible: Convertible[]
     cuttable: Cuttable[]
-    tools: { hasRod: boolean; rodTier: number; hasNet: boolean; hasKnife: boolean }
+    /** waterTier: the tier of this water (its island's); a lighter rod casts slower here. */
+    tools: { hasRod: boolean; rodTier: number; waterTier?: number; hasNet: boolean; hasKnife: boolean }
     timers: { rod: number; rodBaited: number; net: number }
 }
 
@@ -218,6 +219,11 @@ export default function FishingMenu({ onClose, onStartRod, onStartNet, onStartCu
                                     🔪 {tools.hasKnife ? 'Knife' : 'No knife'}
                                 </span>
                             </div>
+                        )}
+                        {tools?.hasRod && (tools.waterTier ?? 1) > tools.rodTier && (
+                            <p className="fishing-rod-light">
+                                Your rod is light for these waters. The fish here pull harder, and every cast takes longer.
+                            </p>
                         )}
 
                         <div className="fishing-pouch">
