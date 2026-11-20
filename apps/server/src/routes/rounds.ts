@@ -1,6 +1,6 @@
 import { Router, Response } from 'express'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { roundOffer, standRound } from '../services/rounds'
+import { roundOffer, standRound, buyAle } from '../services/rounds'
 import { failureStatus } from '../lib/serviceResult'
 import { logger } from '../lib/logger'
 
@@ -19,6 +19,13 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 
 router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
     const r = await standRound(req.player!.playerId)
+    if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return }
+    res.json({ ...r, offer: await roundOffer(req.player!.playerId) })
+})
+
+// Buy Ale from the keeper here, where one sells it.
+router.post('/buy', requireAuth, async (req: AuthRequest, res: Response) => {
+    const r = await buyAle(req.player!.playerId, req.body?.quantity)
     if (!r.success) { res.status(failureStatus(r.error)).json({ error: r.error }); return }
     res.json({ ...r, offer: await roundOffer(req.player!.playerId) })
 })

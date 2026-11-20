@@ -156,7 +156,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     const eventStandings = await eventStandingsAt(player.current_location_id);
 
     // A tavern here (the Salty Sloth, Talador: docs/chronicle-spec.md §2).
-    const tavern = await db('taverns').where({ location_id: player.current_location_id }).first('id', 'name');
+    const tavern = await db('taverns').where({ location_id: player.current_location_id }).first('id', 'name', 'description', 'bard_npc_id');
 
     // Whether this is an island's homestead ground or its port with player
     // shops (services/islands.ts), so the client never matches on a town's name.

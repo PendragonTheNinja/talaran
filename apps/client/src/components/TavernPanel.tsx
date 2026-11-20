@@ -4,6 +4,7 @@ import BalladRest from './BalladRest'
 import './TavernPanel.css'
 import { backdropClose } from '../lib/backdrop'
 import ErrorLine from './ErrorLine'
+import RoundSection from './RoundSection'
 
 // The Salty Sloth (docs/chronicle-spec.md §2, step 3): Wenna's tab, with what
 // she has heard today and nobody's name in it, and the book of pages, each a
@@ -181,64 +182,6 @@ function LineText({ line, highlight, onViewProfile }: { line: Line; highlight: s
     )
 }
 
-interface RoundOffer {
-    tavern: string; present: number; need: number; ale: number; canStand: boolean
-    hours: number; magnitude: number
-    mine: { secondsLeft: number; stoodBy: string | null } | null
-}
-
-/**
- * Standing a round (server services/rounds.ts): one Ale for everyone here, at
- * least three of you, and every skill a little quicker for everyone for six
- * hours, beside any provision. Ale is for company, so alone it does nothing.
- */
-function StandARound() {
-    const [offer, setOffer] = useState<RoundOffer | null>(null)
-    const [busy, setBusy] = useState(false)
-    const [line, setLine] = useState<string | null>(null)
-    const [err, setErr] = useState<string | null>(null)
-    useEffect(() => {
-        let cancelled = false
-        apiFetch<{ offer: RoundOffer | null }>('/api/rounds')
-            .then(r => { if (!cancelled) setOffer(r.offer) })
-            .catch(() => { /* no round section is a fine fallback */ })
-        return () => { cancelled = true }
-    }, [])
-    if (!offer) return null
-    const stand = async () => {
-        setBusy(true); setErr(null)
-        try {
-            const r = await apiFetch<{ message: string; offer: RoundOffer | null }>('/api/rounds', { method: 'POST' })
-            setLine(r.message)
-            setOffer(r.offer)
-        } catch (e) {
-            setErr(e instanceof Error ? e.message : 'The round did not come.')
-        } finally {
-            setBusy(false)
-        }
-    }
-    const short = offer.present < offer.need
-    return (
-        <div className="tavern-round">
-            <p className="tavern-line">
-                {offer.present} {offer.present === 1 ? 'person' : 'people'} here.
-                {' '}A round wants at least {offer.need}, one Ale each, and everyone works {offer.magnitude}% quicker at everything for {offer.hours} hours.
-                {' '}You carry {offer.ale} Ale.
-            </p>
-            {offer.mine && (
-                <p className="tavern-named-where">
-                    You have a round in you{offer.mine.stoodBy ? ` from ${offer.mine.stoodBy}` : ''}, about {Math.ceil(offer.mine.secondsLeft / 3600)} hours left.
-                </p>
-            )}
-            <button className="btn btn-gold" disabled={busy || !offer.canStand} onClick={stand}>
-                {busy ? 'Pouring…' : short ? `Wants ${offer.need - offer.present} more` : `Stand a round (${offer.present} Ale)`}
-            </button>
-            {line && <p className="tavern-line">{line}</p>}
-            <ErrorLine message={err} className="tavern-error" />
-        </div>
-    )
-}
-
 export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDay }: {
     onClose: () => void
     selfName: string | null
@@ -320,7 +263,7 @@ export default function TavernPanel({ onClose, selfName, onViewProfile, openOnDa
                     <button className="tavern-close" onClick={onClose}>✕</button>
                 </div>
 
-                {!away && <StandARound />}
+                {!away && <RoundSection />}
 
                 {!away && (
                     <div className="tavern-tabs">

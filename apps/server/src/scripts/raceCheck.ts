@@ -742,6 +742,21 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'round', name: "buy one keeper's ale five times at once with gold for one", rounds: 10,
+        run: async (ctx) => {
+            // services/rounds.ts buyAle: debitGoldWithin locks the player and
+            // refuses short, so 30 gold buys one Ale once.
+            const w = await world(ctx);
+            await ctx.seed.row('taverns', { location_id: w.town.id, name: 'Racecheck Taproom', ale_price: 30, keeper_name: 'Racecheck Keeper' });
+            const ale = await ctx.seed.row('items', { name: 'Ale', type: 'food' });
+            await fund(ctx, w.player.id, 30);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/rounds/buy', { quantity: 1 }));
+            return changed('gold', 0, await goldOf(ctx, w.player.id))
+                ?? changed('Ale', 1, await ctx.itemTotal(ale.id))
+                ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'H3', name: 'hand in one finished quest twenty times at once', rounds: 10,
         run: async (ctx) => {
             // The completion every hand-in goes through. It must flip the quest

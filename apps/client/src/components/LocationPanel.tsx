@@ -20,6 +20,7 @@ import PortalDoors from './PortalDoors'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
 import CaskPanel from './CaskPanel'
+import TaproomPanel from './TaproomPanel'
 import { useItemTooltip } from './ItemTooltip'
 import { useWorldEvents, isMerchant } from '../lib/worldEvents'
 import './EventsPanel.css'
@@ -1173,7 +1174,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         />
       )}
 
-      {tavernOpen && (
+      {/* A tavern with no bard is a plain taproom: rounds and the keeper's ale, no Chronicle. */}
+      {tavernOpen && locationData?.tavern && !locationData.tavern.bard_npc_id && (
+        <TaproomPanel
+          name={locationData.tavern.name}
+          description={locationData.tavern.description}
+          onClose={() => setTavernOpen(false)}
+        />
+      )}
+      {tavernOpen && !(locationData?.tavern && !locationData.tavern.bard_npc_id) && (
         <TavernPanel
           onClose={() => setTavernOpen(false)}
           selfName={selfName ?? null}

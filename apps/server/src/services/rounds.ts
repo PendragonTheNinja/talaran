@@ -2,7 +2,8 @@ import db from '../db'
 import { logger } from '../lib/logger'
 import { isConnected } from '../lib/presence'
 import { pushToPlayerAfterCommit } from '../lib/realtime'
-import { takeItemsWithin, notifyInventoryChanged } from './inventory'
+import { takeItemsWithin, addItemToInventoryWithin, notifyInventoryChanged } from './inventory'
+import { getGold, debitGoldWithin } from './gold'
 import { listWords } from '../lib/listWords'
 import { SERVER_ERROR } from '../lib/serviceResult'
 
@@ -24,7 +25,7 @@ class RoundAbort extends Error {}
 /** The tavern where the player stands, or null. */
 async function tavernHere(playerId: number, x: any = db) {
     const row = await x('players as p').join('taverns as t', 't.location_id', 'p.current_location_id')
-        .where('p.id', playerId).first('t.id', 't.name', 't.location_id')
+        .where('p.id', playerId).first('t.id', 't.name', 't.location_id', 't.ale_price', 't.keeper_name')
     return row ?? null
 }
 
@@ -66,6 +67,41 @@ export async function roundOffer(playerId: number) {
         hours: ROUND_SECONDS / 3600,
         magnitude: ROUND_MAGNITUDE,
         mine: await roundBuff(playerId),
+        // The keeper's ale, where there is a keeper who sells it (taverns.ale_price).
+        keeper: tavern.ale_price ? { name: tavern.keeper_name ?? 'The keeper', price: Number(tavern.ale_price) } : null,
+        gold: await getGold(playerId),
+    }
+}
+
+/** The most Ale bought from a keeper in one go. */
+export const ALE_BUY_MAX = 50
+
+/**
+ * Buy Ale from the keeper here (Nathan, 2026-11-20): dear on purpose, so a
+ * cask in Mettlefell is the better road. The gold goes nowhere: a sink.
+ */
+export async function buyAle(playerId: number, qtyRaw: unknown): Promise<{ success: boolean; error?: string; message?: string }> {
+    const qty = Math.floor(Number(qtyRaw))
+    if (!Number.isFinite(qty) || qty < 1) return { success: false, error: 'Ask for at least one.' }
+    if (qty > ALE_BUY_MAX) return { success: false, error: `The keeper will draw no more than ${ALE_BUY_MAX} at a time.` }
+    try {
+        const r = await db.transaction(async (trx) => {
+            const tavern = await tavernHere(playerId, trx)
+            if (!tavern?.ale_price) throw new RoundAbort('Nobody here sells ale.')
+            const cost = Number(tavern.ale_price) * qty
+            const paid = await debitGoldWithin(trx, { playerId, amount: cost, reason: 'tavern_ale', refType: 'tavern', refId: Number(tavern.id) })
+            if (!paid.ok) throw new RoundAbort(`${qty} Ale is ${cost} gold. You have ${paid.balance}.`)
+            const ale = await trx('items').where({ name: ALE_ITEM }).first('id')
+            if (!ale) throw new Error('Ale item row is missing')
+            await addItemToInventoryWithin(trx, playerId, ale.id, qty)
+            return { cost, keeper: String(tavern.keeper_name ?? 'The keeper') }
+        })
+        notifyInventoryChanged(playerId)
+        return { success: true, message: `${r.keeper} draws you ${qty} Ale and takes ${r.cost} gold without a smile.` }
+    } catch (err) {
+        if (err instanceof RoundAbort) return { success: false, error: err.message }
+        logger.error(`buyAle error: ${err}`)
+        return { success: false, error: SERVER_ERROR }
     }
 }
 
