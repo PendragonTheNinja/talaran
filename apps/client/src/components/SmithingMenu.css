@@ -274,3 +274,18 @@
 
 .smithing-recipe-image.graded .grade-back-0 { left: 0; }
 .smithing-recipe-image.graded .grade-back-1 { right: 0; }
+
+/* The pinch of salt switch, in the cooking menu (CraftingMenu.tsx). */
+.salt-pinch {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--color-text-base);
+    cursor: pointer;
+}
+
+.salt-pinch input {
+    margin-top: 2px;
+}

@@ -19,6 +19,7 @@ import ChurchPanel from './ChurchPanel'
 import PortalDoors from './PortalDoors'
 import ShopsMenu from './ShopsMenu'
 import MyShopMenu from './MyShopMenu'
+import CaskPanel from './CaskPanel'
 import { useItemTooltip } from './ItemTooltip'
 import { useWorldEvents, isMerchant } from '../lib/worldEvents'
 import './EventsPanel.css'
@@ -72,6 +73,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const [forgeOpen, setForgeOpen] = useState(false)
   // Self-contained: the panel fetches its own state, so no props to thread.
   const [tallyOpen, setTallyOpen] = useState(false)
+  const [caskOpen, setCaskOpen] = useState(false)
   const [marketplaceOpen, setMarketplaceOpen] = useState(false)
   const [merchantOpen, setMerchantOpen] = useState(false)
   // The Salty Sloth (docs/chronicle-spec.md §2), from its button or from Wenna.
@@ -619,6 +621,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {showTallyLink === true && (
           <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
             Tally Board →
+          </button>
+        )}
+
+        {/* The cask (services/brewing.ts): a town fixture, Mettlefell's alone. */}
+        {locationData?.location?.has_cask && (
+          <button className="location-action-btn" onClick={() => setCaskOpen(true)}>
+            The Cask →
           </button>
         )}
 
@@ -1173,6 +1182,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       )}
 
       {tallyOpen && <TallyBoardPanel onClose={() => setTallyOpen(false)} />}
+      {caskOpen && <CaskPanel onClose={() => setCaskOpen(false)} />}
 
       {shopsOpen && (
         <ShopsMenu

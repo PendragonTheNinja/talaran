@@ -13,6 +13,14 @@ import { checkStation, parseRequiredTools } from './workstations'
 import { buffTimerBonus, timerCut } from './buffs'
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
+import { noteJewelry } from './jewelry'
+
+// The pinch of salt (docs/antura-plan.md §11; Nathan, 2026-11-20). A cook who
+// keeps salt by them (player_settings.cook_with_salt, the cooking menu's
+// switch) spends one Sea Salt a dish while they have any, for this chance of a
+// second dish. Never on a burn: the salt is spent all the same.
+export const SALT_ITEM = 'Sea Salt'
+export const SALT_DOUBLE_CHANCE = 0.10
 
 /** The player_stats counter each recipe skill's crafts add to (Cooking has its own, burns apart). */
 const RECIPE_COUNTERS: Record<string, string> = {
@@ -488,6 +496,17 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
                 if (!took) throw new RecipeAbort(`You need ${input.qty}x ${input.itemName}.`)
             }
 
+            // The pinch, after the inputs: one Sea Salt if the cook keeps salt
+            // by them and has any. None left is no refusal; the dish goes unsalted.
+            let salted = false
+            if (recipe.skill === 'Cooking') {
+                const wants = await trx('player_settings').where({ player_id: playerId }).first('cook_with_salt')
+                if (wants?.cook_with_salt) {
+                    const salt = await trx('items').where({ name: SALT_ITEM }).first('id')
+                    if (salt) salted = await removeItemFromInventoryWithin(trx, playerId, salt.id, 1)
+                }
+            }
+
             // Burn roll. Inputs are already gone by this point, which is the
             // whole cost of a burn: you keep the time and lose the fish.
             const intendedItem = await trx('items').where({ name: recipe.output_item_name }).first()
@@ -512,9 +531,13 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             const outputItem = burnt
                 ? await trx('items').where({ name: burntName }).first()
                 : graded ?? intendedItem
+            const doubled = salted && !burnt && !graded && Math.random() < SALT_DOUBLE_CHANCE
+            const madeQty = burnt ? 1 : recipe.output_qty * (doubled ? 2 : 1)
             if (outputItem) {
-                await addItemToInventoryWithin(trx, playerId, outputItem.id, burnt ? 1 : recipe.output_qty)
+                await addItemToInventoryWithin(trx, playerId, outputItem.id, madeQty)
             }
+            // A line on the result card (the jewelry channel is the card's own, after commit).
+            if (doubled) noteJewelry(trx, playerId, 'The pinch of salt brought out a second one.')
 
             // Award the byproduct, if the recipe has one.
             //
@@ -552,10 +575,10 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             }
             await incrementStats(playerId, tally, trx)
 
-            return { burnt, burntName, outputItem, byproduct, xpAwarded }
+            return { burnt, burntName, outputItem, byproduct, xpAwarded, madeQty }
         })
 
-        const { burnt, burntName, outputItem, byproduct, xpAwarded } = outcome
+        const { burnt, burntName, outputItem, byproduct, xpAwarded, madeQty } = outcome
 
         // After the commit: quest progress writes through the global connection
         // and pushes to the client. A ruined dish does not count; Geomima asked
@@ -591,7 +614,7 @@ export async function resolveRecipe(playerId: number, recipeId: number): Promise
             success: true,
             burnt,
             itemName: burnt ? burntName! : (outputItem?.name ?? recipe.output_item_name),
-            quantity: burnt ? 1 : recipe.output_qty,
+            quantity: madeQty,
             xpAwarded,
             skillName: recipe.skill,
             ingredientsRemaining: remaining,

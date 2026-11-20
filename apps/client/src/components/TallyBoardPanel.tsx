@@ -11,7 +11,7 @@ import ErrorLine from './ErrorLine'
 // scavenger penalty is a designed mechanic rather than an oversight.
 
 interface TallyEntry {
-    kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire'
+    kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire' | 'cask'
     what: string
     where: string
     island: string
@@ -115,6 +115,7 @@ const KIND_MARK: Record<TallyEntry['kind'], string> = {
     field: '❧',
     vat: '◍',
     kiln: '▲',
+    cask: '⊚',
     pen: '⌂',
     fire: '✺',
 }

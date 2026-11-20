@@ -26,6 +26,38 @@ interface CraftingMenuProps {
 
 // Station bench menu. All recipe rendering lives in RecipeList so Caliwen's
 // bench, Verdale's woodworking tab and Emberra's fletching share one UI.
+/**
+ * The pinch of salt (server services/recipes.ts): while on, each dish spends
+ * one Sea Salt, if there is any in the pack, for a one in ten chance of a
+ * second dish. Kept on the server so it holds on every device.
+ */
+function SaltPinch() {
+    const [on, setOn] = useState<boolean | null>(null)
+    useEffect(() => {
+        let cancelled = false
+        apiFetch<{ cookWithSalt?: boolean }>('/api/settings')
+            .then(s => { if (!cancelled) setOn(!!s.cookWithSalt) })
+            .catch(() => { if (!cancelled) setOn(null) })
+        return () => { cancelled = true }
+    }, [])
+    if (on === null) return null
+    const flip = async () => {
+        const next = !on
+        setOn(next)
+        try {
+            await apiFetch('/api/settings/salt-pinch', { method: 'POST', body: JSON.stringify({ cookWithSalt: next }) })
+        } catch {
+            setOn(!next)
+        }
+    }
+    return (
+        <label className="salt-pinch">
+            <input type="checkbox" checked={on} onChange={flip} />
+            <span>A pinch of salt in every dish: one Sea Salt each, while you have any, and now and then it makes two.</span>
+        </label>
+    )
+}
+
 export default function CraftingMenu({ onClose, onStartRecipe, skill, title, playerLevel, stationActive = true, groupBy = 'skill', keeperName, ownerName, stationType, station }: CraftingMenuProps) {
     /**
      * Whose bench this is, asked of the station itself.
@@ -83,6 +115,8 @@ export default function CraftingMenu({ onClose, onStartRecipe, skill, title, pla
                             : `${keeperFire.keeper} cooks at breakfast, noon, and supper, and her hearth works at full speed while her fire burns. Next lit at ${formatGameTime(new Date(keeperFire.next))}.`}
                     </p>
                 )}
+
+                {skill === 'Cooking' && <SaltPinch />}
 
                 <RecipeList
                     skill={skill}

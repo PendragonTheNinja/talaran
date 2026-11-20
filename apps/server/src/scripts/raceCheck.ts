@@ -680,6 +680,44 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'brew', name: 'fill the cask five times at once from one set of barley', rounds: 10,
+        run: async (ctx) => {
+            // services/brewing.ts startBrew: the player row is locked first and
+            // one open brew per player is a unique index, so five fills of ten
+            // batches take 30 Barley and 10 Meadowsweet once.
+            const w = await world(ctx);
+            await ctx.db('locations').where({ id: w.town.id }).update({ has_cask: true });
+            const cooking = await ctx.seed.row('skills', { name: 'Cooking' });
+            await ctx.seed.row('player_skills', { player_id: w.player.id, skill_id: cooking.id, xp: 2_000_000 });   // level 50
+            const barley = await ctx.seed.row('items', { name: 'Barley', type: 'material' });
+            const sweet = await ctx.seed.row('items', { name: 'Meadowsweet', type: 'material' });
+            await inPack(ctx, w.player.id, barley.id, 60);
+            await inPack(ctx, w.player.id, sweet.id, 20);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/brewing/start', { batches: 10 }));
+            const jobs = Number((await ctx.db('brew_jobs').where({ player_id: w.player.id }).count('* as c').first())!.c);
+            return (jobs === 1 ? null : `${jobs} brews started`)
+                ?? changed('Barley', 30, await ctx.itemTotal(barley.id))
+                ?? changed('Meadowsweet', 10, await ctx.itemTotal(sweet.id))
+                ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'brew', name: 'draw off one finished brew five times at once', rounds: 10,
+        run: async (ctx) => {
+            // collectBrew: the flip of is_collected is the gate, so 40 Ale is paid once.
+            const w = await world(ctx);
+            await ctx.db('locations').where({ id: w.town.id }).update({ has_cask: true });
+            await ctx.seed.row('skills', { name: 'Cooking' });
+            const ale = await ctx.seed.row('items', { name: 'Ale', type: 'food' });
+            await ctx.seed.row('brew_jobs', {
+                player_id: w.player.id, location_id: w.town.id, batches: 10, ale_yield: 40, xp_reward: 600,
+                ready_at: new Date(Date.now() - 60_000), is_collected: false,
+            });
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/brewing/collect', {}));
+            return changed('Ale', 40, await ctx.itemTotal(ale.id)) ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'H3', name: 'hand in one finished quest twenty times at once', rounds: 10,
         run: async (ctx) => {
             // The completion every hand-in goes through. It must flip the quest

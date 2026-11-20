@@ -99,6 +99,9 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Growing up is paid on read** (`payMaturityXp`, inside `getHusbandryState`), so it is reported: the state carries `matured`, and the Animals tab logs a line per animal. A caller that only wants a number passes `?peek=1` (`settleMaturity: false`), or the XP lands where nobody sees it.
 - **No breeding, on purpose.** Young come from the world, never the pen: Trapping and Hunting, and other sources are fine too (Nathan, 2026-11-15), such as young found on an islet (`docs/islets-plan.md`). That is what sends homestead players back out.
 
+### Brewing (`services/brewing.ts`)
+- **Ale is brewed in a cask on its own clock**, the kiln's shape: load batches, walk away, draw off after six hours. A cask is a town fixture (`locations.has_cask`, Mettlefell alone; Nathan, 2026-11-20), never built and never worn. One open brew a player (`brew_jobs_one_open`, race:check `brew`). The pinch of salt is a cooking-menu switch (`player_settings.cook_with_salt`, `SALT_DOUBLE_CHANCE` in `services/recipes.ts`).
+
 ### Liquids (`services/liquids.ts`)
 > **An open container is a bucket that has LEFT the inventory.** Every bucket is empty in the pack, sealed as `Bucket of X`, or open with units in it. Never nowhere, never counted twice.
 - `player_liquids` holds ONE open container per liquid per player. A full one seals into an item.

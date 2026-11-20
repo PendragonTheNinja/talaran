@@ -193,7 +193,7 @@ function boardMaterials(raw: unknown): { itemName: string; qty: number }[] {
 }
 
 export interface TallyEntry {
-    kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire';
+    kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire' | 'cask';
     what: string;
     where: string;
     island: string;
@@ -283,6 +283,23 @@ export async function passiveWork(playerId: number, island?: string): Promise<Ta
             status: status(k.ready_at),
             readyAt: k.ready_at ? new Date(k.ready_at).toISOString() : null,
             detail: `${k.charc_yield} Charc`,
+        });
+    }
+
+    // ── Casks ───────────────────────────────────────────────────────────────
+    const casks = await db('brew_jobs')
+        .leftJoin('locations', 'brew_jobs.location_id', 'locations.id')
+        .where({ 'brew_jobs.player_id': playerId, 'brew_jobs.is_collected': false })
+        .select('brew_jobs.ale_yield', 'brew_jobs.ready_at', 'locations.name as location_name', 'locations.region as island');
+    for (const c of casks) {
+        entries.push({
+            kind: 'cask',
+            what: 'Cask',
+            where: c.location_name || 'Unknown',
+            island: c.island || '',
+            status: status(c.ready_at),
+            readyAt: c.ready_at ? new Date(c.ready_at).toISOString() : null,
+            detail: `${c.ale_yield} Ale`,
         });
     }
 
