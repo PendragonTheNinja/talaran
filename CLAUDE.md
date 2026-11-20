@@ -78,6 +78,8 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Building a structure pays CARPENTRY**, never the skill the structure serves, and reports `skillName: 'Carpentry'`.
 - **Build-tool checks live in `services/construction.ts`. Never write a local copy.** Mallet is `mainhand_item_id`, saw is `offhand_item_id`; checking the wrong column fails silently.
 - **`propertyForPlayerHere()` excludes shops unless asked by name.** Pass a type.
+- **Tally boards are per island** (Nathan, 2026-11-19): licences (`player_tally_licences`, keyed by `locations.region`), the boards, and what a board shows are each island's own, and a board is built from its island's nails (`TALLY_COST_BY_TIER` in `services/tally.ts`); `tally_boards.materials` is what comes back on teardown. `players.tally_licences` is no longer read.
+- **Homestead tiers are storage** (`HOMESTEAD_TIERS` in `services/farming.ts`): tier 2 is built outright or upgraded (`farm_upgrade`), Carpentry 13 either way, on any island.
 
 ### Shops & marketplace
 - **A shop IS a property** (`type='shop'`), so `property_storage` works unchanged. `player_shops` adds only commerce.
@@ -382,6 +384,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 Applies to everything a player reads: item and habitat descriptions, NPC dialogue, quest text, flavor and scene text, result and error messages, button labels, manual pages, patch notes. Not to conversation with Nathan.
 
 - **NO EM DASHES. Zero.** Use a full stop, comma, colon, semicolon, or a rewritten sentence. Hyphens in compounds and ranges are fine. **Grep before shipping any player-facing text.** Old text may still contain them; Nathan clears those by hand. Don't run a sweep.
+- **American spelling** (Nathan, 2026-11-19): harbor, gray, color, favor, armor in prose. Names already given keep theirs (the Grey Wolf), and code keys and columns stay as they are (`armour`, the ship log's `grey` weather). Older text is changed by migration when touched, never by a sweep.
 - **Always the Oxford comma** (Nathan, 2026-11-13): "A, B, and C", never "A, B and C"; the same with "or". Lists the game builds go through `listWords` (`lib/listWords.ts`, a copy in the server and the client), so a list built in code gets it too. This applies to conversation with Nathan as well.
 - **Banned:** "it's not just X, it's Y", "more than just", "not merely", "a testament to", "at its core", "the heart of", "delve", "tapestry", "rich history of", "seamlessly", "unlock", "whether you're a X or a Y", corporate register (leverage, streamline, optimize, robust, utilize, facilitate), and a closing sentence that restates the paragraph.
 - **Concrete nouns** ("tannin-stained hands", not "the tanning experience"). **Specific numbers** ("nine winters", not "many years"; the Manual narrator may use period diction like "a great many").

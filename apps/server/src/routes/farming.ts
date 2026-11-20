@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { botCheckGate } from '../services/botCheck';
 import { logger } from '../lib/logger';
-import { getFarmState, startEstablish, startBuildPlot, startTill, startSow, startHarvest, startUproot, startManure, startTend, startHarvestAll } from '../services/farming';
+import { getFarmState, startEstablish, startUpgrade, startBuildPlot, startTill, startSow, startHarvest, startUproot, startManure, startTend, startHarvestAll } from '../services/farming';
 import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
@@ -19,7 +19,13 @@ router.get('/state', requireAuth, async (req: AuthRequest, res: Response) => {
 
 // All of these begin a TIMED action; the game tick resolves it.
 router.post('/establish', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
-    const r = await startEstablish(req.player!.playerId);
+    const r = await startEstablish(req.player!.playerId, req.body?.tier ?? 1);
+    if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
+    res.json({ message: 'Construction begun', timerSeconds: r.timerSeconds });
+});
+
+router.post('/upgrade', requireAuth, botCheckGate, async (req: AuthRequest, res: Response) => {
+    const r = await startUpgrade(req.player!.playerId);
     if (!r.ok) { res.status(failureStatus(r.error)).json({ error: r.error }); return; }
     res.json({ message: 'Construction begun', timerSeconds: r.timerSeconds });
 });

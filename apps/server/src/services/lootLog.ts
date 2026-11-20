@@ -35,6 +35,7 @@ const ACTION_LABELS: Record<string, string> = {
     fishing_net: 'Net Fishing',
     fishing_cut_bait: 'Cutting Bait',
     farm_establish: 'Farmstead Work',
+    farm_upgrade: 'Farmstead Work',
     shop_establish: 'Shop Building',
     farm_build_plot: 'Farmstead Work',
     farm_till: 'Tilling',

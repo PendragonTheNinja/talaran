@@ -1319,6 +1319,7 @@ export default function GameView({
         break
 
       case 'farm_establish':
+      case 'farm_upgrade':
       case 'farm_build_plot':
       case 'farm_till':
       case 'farm_sow':

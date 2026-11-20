@@ -27,6 +27,35 @@ interface Plot {
     seedCount: number; readyAt: string | null; secondsRemaining: number | null
     yieldModifier?: number; restingSecondsToNextStep?: number | null; tended?: boolean
 }
+interface TierOffer {
+    tier: number; storageSlots: number; carpentryReq: number; carpentryOk: boolean
+    cost: { itemName: string; qty: number }[]
+    canAfford: boolean; missing: { itemName: string; need: number; have: number }[]
+    seconds: number
+}
+
+/** What a build or upgrade needs, held against what is in the pack. */
+function CostRows({ offer }: { offer: TierOffer }) {
+    return (
+        <div className="farm-cost">
+            <div className={`farm-cost-row ${offer.carpentryOk ? 'ok' : 'short'}`}>
+                <span>Carpentry</span>
+                <span>{offer.carpentryReq}</span>
+            </div>
+            {offer.cost.map(c => {
+                const miss = offer.missing.find(m => m.itemName === c.itemName)
+                const have = miss ? miss.have : c.qty
+                return (
+                    <div key={c.itemName} className={`farm-cost-row ${miss ? 'short' : 'ok'}`}>
+                        <span>{c.itemName}</span>
+                        <span>{have.toLocaleString()} / {c.qty.toLocaleString()}</span>
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
 interface FarmState {
     hasFarmstead: boolean; atNovita: boolean; farmingLevel: number; hasHoe: boolean
     build?: {
@@ -34,7 +63,13 @@ interface FarmState {
         canAfford: boolean; missing: { itemName: string; need: number; have: number }[]
         plotsGranted: number; plotCapacity: number; seconds: number
     }
-    property?: { id: number; tier: number; plotSlots: number }
+    /** The homestead place on this island (Novita on Taiar, Farefield on Antura). */
+    homeName?: string | null
+    /** Every tier that can be raised outright, tier 1 first. */
+    builds?: TierOffer[]
+    property?: { id: number; tier: number; plotSlots: number; storageSlots?: number }
+    /** The next tier up, when there is one. */
+    upgrade?: (TierOffer & { missingTool: string | null }) | null
     plotCapacity?: number
     plots?: Plot[]
     crops: CropDef[]
@@ -178,29 +213,24 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                 {!loading && data && !data.hasFarmstead && data.build && (
                     <div className="farm-build">
                         <p className="farm-build-lead">
-                            You have no farmstead here. Raising one is the work of a season: timber, dressed stone, and ambren.<br></br>Come back with those, a mallet, and a saw.
+                            You have no farmstead here. Raising one is the work of a season: timber, dressed stone, and nails.<br></br>Come back with those, a mallet, and a saw.
                         </p>
-                        <div className="farm-cost">
-                            {data.build.cost.map(c => {
-                                const miss = data.build!.missing.find(m => m.itemName === c.itemName)
-                                const have = miss ? miss.have : c.qty
-                                return (
-                                    <div key={c.itemName} className={`farm-cost-row ${miss ? 'short' : 'ok'}`}>
-                                        <span>{c.itemName}</span>
-                                        <span>{have.toLocaleString()} / {c.qty.toLocaleString()}</span>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                        <p className="farm-build-grants">Grants {data.build.plotsGranted} plots · {data.build.plotCapacity} seeds each</p>
-                        {!data.atNovita && <p className="farm-note">Travel to Novita to raise your farmstead.</p>}
-                        <button
-                            className="farm-btn primary"
-                            disabled={busy || !data.build.canAfford || !data.atNovita}
-                            onClick={() => act('/api/farming/establish')}
-                        >
-                            Raise Farmstead
-                        </button>
+                        {(data.builds ?? []).map(b => (
+                            <div key={b.tier} className="farm-tier-offer">
+                                <p className="farm-build-grants">
+                                    {b.tier === 1 ? 'A farmstead' : `A tier ${b.tier} farmstead`}: storage for {b.storageSlots} kinds of thing · {data.build!.plotsGranted} field to begin, {data.build!.plotCapacity} seeds each · {fmtDuration(b.seconds)}
+                                </p>
+                                <CostRows offer={b} />
+                                <button
+                                    className="farm-btn primary"
+                                    disabled={busy || !b.canAfford || !b.carpentryOk || !data.atNovita}
+                                    onClick={() => act('/api/farming/establish', { tier: b.tier })}
+                                >
+                                    {b.tier === 1 ? 'Raise Farmstead' : `Raise a Tier ${b.tier} Farmstead`}
+                                </button>
+                            </div>
+                        ))}
+                        {!data.atNovita && <p className="farm-note">Travel to {data.homeName ?? 'the homestead ground'} to raise your farmstead.</p>}
                     </div>
                 )}
 
@@ -406,6 +436,29 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                             ))}
                         </div>
                     </>
+                )}
+                {!loading && data && data.hasFarmstead && tab === 'storage' && data.property && (
+                    <div className="farm-build farm-upgrade">
+                        <p className="farm-build-grants">
+                            Tier {data.property.tier} farmstead · storage for {data.property.storageSlots ?? 50} kinds of thing
+                        </p>
+                        {data.upgrade && (
+                            <>
+                                <p className="farm-note">
+                                    A bigger barn raises it to tier {data.upgrade.tier}, with storage for {data.upgrade.storageSlots}. {fmtDuration(data.upgrade.seconds)} of work.
+                                </p>
+                                <CostRows offer={data.upgrade} />
+                                {data.upgrade.missingTool && <p className="farm-note">Missing: {data.upgrade.missingTool}.</p>}
+                                <button
+                                    className="farm-btn primary"
+                                    disabled={busy || !data.upgrade.canAfford || !data.upgrade.carpentryOk || !!data.upgrade.missingTool || !data.atNovita}
+                                    onClick={() => act('/api/farming/upgrade')}
+                                >
+                                    Raise to Tier {data.upgrade.tier}
+                                </button>
+                            </>
+                        )}
+                    </div>
                 )}
                 {!loading && data && data.hasFarmstead && tab === 'storage' && (
                     <PropertyStorage

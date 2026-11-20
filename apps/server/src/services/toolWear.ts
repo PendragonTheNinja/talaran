@@ -96,6 +96,7 @@ export const HAND_TOOLS_BY_ACTION: Record<string, HandToolSpec> = {
     farm_harvest: { skill: 'Farming', can: ['scythe'], optional: true, tools: (_a, r) => r?.toolsUsed ?? [] },
     farm_harvest_all: { skill: 'Farming', can: ['scythe'], optional: true, tools: (_a, r) => r?.toolsUsed ?? [] },
     farm_establish: { skill: 'Carpentry', tools: BUILD },
+    farm_upgrade: { skill: 'Carpentry', tools: BUILD },
     farm_build_plot: { skill: 'Carpentry', tools: BUILD },
     shop_establish: { skill: 'Carpentry', tools: BUILD },
     husbandry_build_pen: { skill: 'Carpentry', tools: BUILD },

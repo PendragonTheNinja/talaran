@@ -190,7 +190,7 @@ export function doubledLine(source: string, what: string): string {
 
 /** The skill a farm, pen or shop action pays: building is Carpentry (CLAUDE.md §2 Property). */
 export function skillForWork(actionType: string, otherwise: string): string {
-    return /(_establish|_build_plot|_build_pen|_demolish_pen)$/.test(actionType) ? 'Carpentry' : otherwise
+    return /(_establish|_upgrade|_build_plot|_build_pen|_demolish_pen)$/.test(actionType) ? 'Carpentry' : otherwise
 }
 
 export function timerCut(seconds: number, percent: number): number {

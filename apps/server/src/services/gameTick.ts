@@ -9,7 +9,7 @@ import {
 } from './fishing';
 import { addItemToInventory, recordItemFirstByName, takeItemsWithin } from './inventory';
 import { incrementStats } from './stats';
-import { resolveEstablish, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestStep, resolveManure, resolveTend, resolveUproot } from './farming';
+import { resolveEstablish, resolveUpgrade, resolveBuildPlot, resolveTill, resolveSow, resolveHarvest, resolveHarvestStep, resolveManure, resolveTend, resolveUproot } from './farming';
 import { resolveEstablishShop } from './shops';
 import {
   resolveBuildPen, resolveDemolishPen, resolveFeed, resolveFeedAll, resolveMuck, resolveMuckAll, resolveCollect, resolveGatherStep, resolveSlaughter, resolveSlaughterAll, resolveTame,
@@ -535,6 +535,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         result = await processCutBait(action.player_id, action.action_data);
         break;
       case 'farm_establish':
+      case 'farm_upgrade':
       case 'farm_build_plot':
       case 'farm_till':
       case 'farm_sow':
@@ -552,7 +553,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
 
         let farmResult;
-        if (action.action_type === 'farm_establish') farmResult = await resolveEstablish(action.player_id);
+        if (action.action_type === 'farm_establish') farmResult = await resolveEstablish(action.player_id, action.action_data);
+        else if (action.action_type === 'farm_upgrade') farmResult = await resolveUpgrade(action.player_id, action.action_data);
         else if (action.action_type === 'farm_build_plot') farmResult = await resolveBuildPlot(action.player_id);
         else if (action.action_type === 'farm_till') farmResult = await resolveTill(action.player_id, action.action_data);
         else if (action.action_type === 'farm_sow') farmResult = await resolveSow(action.player_id, action.action_data);

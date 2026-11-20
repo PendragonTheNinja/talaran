@@ -45,8 +45,47 @@ export const FARM_ESTABLISH_COST = [
     { itemName: 'Ambren Nails', qty: 1000 },
 ];
 
+/**
+ * A homestead's tiers are for storage (docs/antura-plan.md §6, Nathan,
+ * 2026-11-17). Tier 2 can be built outright or upgraded from tier 1, and
+ * needs Carpentry 13 either way. Each upgrade costs the same count in its own
+ * tier's planks, blocks, and nails (Lanai and Granite span tiers 1 and 2, so
+ * only the nails change), and building a tier outright costs the tier 1 build
+ * and every upgrade to it together, in that tier's nails. Any island's
+ * homestead may be any tier: crops and animals are gated by their own skills.
+ */
+export interface HomesteadTier {
+    tier: number
+    storageSlots: number
+    carpentry: number
+    build: { cost: { itemName: string; qty: number }[]; seconds: number }
+    /** From the tier below; null for tier 1. */
+    upgrade: { cost: { itemName: string; qty: number }[]; seconds: number } | null
+}
+
+export const HOMESTEAD_TIERS: HomesteadTier[] = [
+    { tier: 1, storageSlots: 50, carpentry: 1, build: { cost: FARM_ESTABLISH_COST, seconds: 600 }, upgrade: null },
+    {
+        tier: 2, storageSlots: 80, carpentry: 13,
+        build: { cost: [
+            { itemName: 'Lanai Planks', qty: 750 },
+            { itemName: 'Granite Block', qty: 750 },
+            { itemName: 'Serph Nails', qty: 1500 },
+        ], seconds: 900 },
+        upgrade: { cost: [
+            { itemName: 'Lanai Planks', qty: 250 },
+            { itemName: 'Granite Block', qty: 250 },
+            { itemName: 'Serph Nails', qty: 500 },
+        ], seconds: 300 },
+    },
+];
+
+export function homesteadTier(tier: number): HomesteadTier | null {
+    return HOMESTEAD_TIERS.find(t => t.tier === tier) ?? null;
+}
+
 // ── timers (seconds) ────────────────────────────────────────────────────────
-const ESTABLISH_SECONDS = 600;            // raising a farmstead is a day's work
+const ESTABLISH_SECONDS = HOMESTEAD_TIERS[0].build.seconds;   // raising a farmstead is a day's work
 const ESTABLISH_XP_BONUS = 1.25;          // pays a little over normal carpentry
 const BUILD_PLOT_SECONDS = 180;           // fencing a field
 const TILL_SECONDS = 90;                  // rare, but real work
@@ -380,11 +419,27 @@ export async function getFarmState(playerId: number) {
     const outgrownCrops = unlockedCrops.length > 0
         && unlockedCrops.every((c) => (c.teachesPercent ?? 100) < 100);
 
+    const carpLevel = await skillLevel(playerId, 'Carpentry');
+    const missingToolName = (await missingBuildTool(playerId))?.itemName ?? null;
+
     if (!property) {
         const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
+        // Every tier that can be raised outright, so the panel can offer tier 2
+        // from the start (Nathan, 2026-11-19).
+        const builds = [];
+        for (const t of HOMESTEAD_TIERS) {
+            const check = await hasMaterials(playerId, t.build.cost);
+            builds.push({
+                tier: t.tier, storageSlots: t.storageSlots, carpentryReq: t.carpentry,
+                carpentryOk: carpLevel >= t.carpentry,
+                cost: t.build.cost, canAfford: check.ok, missing: check.missing, seconds: t.build.seconds,
+            });
+        }
         return {
             hasFarmstead: false,
             atNovita,
+            homeName: home?.name ?? null,
+            builds,
             farmingLevel: farmingLvl,
             hasHoe: !!hoe,
             build: {
@@ -396,11 +451,21 @@ export async function getFarmState(playerId: number) {
                 plotCapacity: PLOT_CAPACITY,
                 seconds: ESTABLISH_SECONDS,
                 tools: BUILD_TOOLS,
-                missingTool: (await missingBuildTool(playerId))?.itemName ?? null,
+                missingTool: missingToolName,
             },
             crops: cropList,
         };
     }
+
+    const tierNow = Number(property.tier) || 1;
+    const next = homesteadTier(tierNow + 1);
+    const upgradeCheck = next?.upgrade ? await hasMaterials(playerId, next.upgrade.cost) : null;
+    const upgrade = next?.upgrade && upgradeCheck ? {
+        tier: next.tier, storageSlots: next.storageSlots, carpentryReq: next.carpentry,
+        carpentryOk: carpLevel >= next.carpentry,
+        cost: next.upgrade.cost, canAfford: upgradeCheck.ok, missing: upgradeCheck.missing,
+        seconds: next.upgrade.seconds, missingTool: missingToolName,
+    } : null;
 
     await refreshFallow(property.id);
 
@@ -445,7 +510,9 @@ export async function getFarmState(playerId: number) {
         atNovita,
         farmingLevel: farmingLvl,
         hasHoe: !!hoe,
-        property: { id: property.id, tier: property.tier, plotSlots: property.plot_slots },
+        homeName: home?.name ?? null,
+        property: { id: property.id, tier: tierNow, plotSlots: property.plot_slots, storageSlots: Number(property.storage_slots ?? 50) },
+        upgrade,
         plotCapacity: PLOT_CAPACITY,
         plots: plotView,
         crops: cropList,
@@ -470,7 +537,9 @@ export async function getFarmState(playerId: number) {
 }
 
 // ── starts (validate, then create a timed action) ───────────────────────────
-export async function startEstablish(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+export async function startEstablish(playerId: number, tierRaw: unknown = 1): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const t = homesteadTier(Math.floor(Number(tierRaw ?? 1)) || 1);
+    if (!t) return { ok: false, error: 'There is no farmstead of that kind to raise.' };
     const { home, property } = await playerProperty(playerId);
     if (!home) return { ok: false, error: 'There is no homestead ground on this island.' };
     const player = await db('players').where({ id: playerId }).select('current_location_id').first();
@@ -479,18 +548,45 @@ export async function startEstablish(playerId: number): Promise<{ ok: boolean; e
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const carp = await skillLevel(playerId, 'Carpentry');
-    if (carp < CARPENTRY_REQ) return { ok: false, error: `Requires Carpentry level ${CARPENTRY_REQ}.` };
+    const carpNeed = Math.max(CARPENTRY_REQ, t.carpentry);
+    if (carp < carpNeed) return { ok: false, error: `Requires Carpentry level ${carpNeed}.` };
 
     const missingTool = await missingBuildTool(playerId);
     if (missingTool) return { ok: false, error: missingTool.message };
 
-    const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
+    const matCheck = await hasMaterials(playerId, t.build.cost);
     if (!matCheck.ok) {
         const m = matCheck.missing.map(x => `${x.need}x ${x.itemName} (have ${x.have})`).join(', ');
         return { ok: false, error: `You need: ${m}.` };
     }
 
-    const started = await startAction(playerId, 'farm_establish', ESTABLISH_SECONDS, null, home.id);
+    const started = await startAction(playerId, 'farm_establish', t.build.seconds, String(t.tier), home.id);
+    return { ok: true, timerSeconds: started };
+}
+
+/** Raise the farmstead here by one tier (docs/antura-plan.md §6). */
+export async function startUpgrade(playerId: number): Promise<{ ok: boolean; error?: string; timerSeconds?: number }> {
+    const { home, property } = await playerProperty(playerId);
+    if (!home || !property) return { ok: false, error: 'You have no farmstead here.' };
+    const player = await db('players').where({ id: playerId }).select('current_location_id').first();
+    if (!player || player.current_location_id !== home.id) return { ok: false, error: `You must be in ${home.name} to work on your farmstead.` };
+    const next = homesteadTier((Number(property.tier) || 1) + 1);
+    if (!next?.upgrade) return { ok: false, error: 'Your farmstead is as large as farmsteads come.' };
+    if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
+
+    const carp = await skillLevel(playerId, 'Carpentry');
+    if (carp < next.carpentry) return { ok: false, error: `Requires Carpentry level ${next.carpentry}.` };
+
+    const missingTool = await missingBuildTool(playerId);
+    if (missingTool) return { ok: false, error: missingTool.message };
+
+    const matCheck = await hasMaterials(playerId, next.upgrade.cost);
+    if (!matCheck.ok) {
+        const m = matCheck.missing.map(x => `${x.need}x ${x.itemName} (have ${x.have})`).join(', ');
+        return { ok: false, error: `You need: ${m}.` };
+    }
+
+    const started = await startAction(playerId, 'farm_upgrade', next.upgrade.seconds, String(next.tier), home.id);
     return { ok: true, timerSeconds: started };
 }
 
@@ -762,23 +858,26 @@ export async function resolveManure(playerId: number, plotIdRaw: string | null):
 }
 
 // ── resolvers (called by the game tick when the timer completes) ────────────
-export async function resolveEstablish(playerId: number): Promise<FarmActionResult> {
+export async function resolveEstablish(playerId: number, tierRaw: string | null = null): Promise<FarmActionResult> {
     try {
+        const t = homesteadTier(Math.floor(Number(tierRaw ?? 1)) || 1) ?? HOMESTEAD_TIERS[0];
         const { home, property } = await playerProperty(playerId);
         if (!home) return { success: false, error: 'There is no homestead ground on this island.' };
         if (property) return { success: false, error: 'You already have a farmstead here.' };
 
         const missingTool = await missingBuildTool(playerId);
         if (missingTool) return { success: false, error: missingTool.message };
+        if (await skillLevel(playerId, 'Carpentry') < t.carpentry) return { success: false, error: `Requires Carpentry level ${t.carpentry}.` };
 
         // The new property's id, or null when the materials were gone.
         const propertyId = await db.transaction(async (trx) => {
             const took = await takeItemsWithin(trx, playerId,
-                FARM_ESTABLISH_COST.map((c) => ({ name: c.itemName, quantity: c.qty })));
+                t.build.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
             if (!took.ok) return null;
 
             const [row] = await trx('player_properties').insert({
-                player_id: playerId, location_id: home.id, type: 'farmstead', tier: 1, plot_slots: 1,
+                player_id: playerId, location_id: home.id, type: 'farmstead', tier: t.tier, plot_slots: 1,
+                storage_slots: t.storageSlots,
             }).returning('id');
             const id: number = typeof row === 'object' ? row.id : row;
 
@@ -790,16 +889,67 @@ export async function resolveEstablish(playerId: number): Promise<FarmActionResu
         if (propertyId === null) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
-        const xp = Math.round(activeXpForSeconds(carpLvl, ESTABLISH_SECONDS) * ESTABLISH_XP_BONUS);
+        const xp = Math.round(activeXpForSeconds(carpLvl, t.build.seconds) * ESTABLISH_XP_BONUS);
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1});
 
         await updateQuestObjectiveProgress(playerId, 'build', 'Farmstead', 1);
 
-        logger.info(`Player ${playerId} raised a farmstead at ${home.name} (${propertyId})`);
-        return { success: true, xp, skillName: 'Carpentry', message: 'Your farmstead stands at last. The first field is yours to work.' };
+        logger.info(`Player ${playerId} raised a tier ${t.tier} farmstead at ${home.name} (${propertyId})`);
+        return {
+            success: true, xp, skillName: 'Carpentry',
+            message: t.tier > 1
+                ? `Your farmstead stands at last, with a barn to hold ${t.storageSlots} kinds of thing. The first field is yours to work.`
+                : 'Your farmstead stands at last. The first field is yours to work.',
+        };
     } catch (err) {
         logger.error(`resolveEstablish error: ${err}`);
+        return { success: false, error: SERVER_ERROR };
+    }
+}
+
+class UpgradeAbort extends Error {}
+
+export async function resolveUpgrade(playerId: number, tierRaw: string | null): Promise<FarmActionResult> {
+    try {
+        const next = homesteadTier(Math.floor(Number(tierRaw)) || 0);
+        if (!next?.upgrade) return { success: false, error: 'There is nothing more to build on.' };
+        const { home, property } = await playerProperty(playerId);
+        if (!home || !property) return { success: false, error: 'You have no farmstead here.' };
+        const missingTool = await missingBuildTool(playerId);
+        if (missingTool) return { success: false, error: missingTool.message };
+        if (await skillLevel(playerId, 'Carpentry') < next.carpentry) return { success: false, error: `Requires Carpentry level ${next.carpentry}.` };
+        const from = homesteadTier(next.tier - 1)!;
+        const upgrade = next.upgrade;
+
+        // The tier flip is the gate: only a farmstead still at the tier below
+        // takes the materials and grows, so it can never be paid for twice.
+        try {
+            await db.transaction(async (trx) => {
+                const flipped = await trx('player_properties')
+                    .where({ id: property.id, tier: from.tier })
+                    .update({ tier: next.tier, storage_slots: trx.raw('COALESCE(storage_slots, ?) + ?', [from.storageSlots, next.storageSlots - from.storageSlots]) });
+                if (flipped !== 1) throw new UpgradeAbort('That work is already done.');
+                const took = await takeItemsWithin(trx, playerId, upgrade.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
+                if (!took.ok) throw new UpgradeAbort('You no longer have the materials.');
+            });
+        } catch (e) {
+            if (e instanceof UpgradeAbort) return { success: false, error: e.message };
+            throw e;
+        }
+
+        const carpLvl = await skillLevel(playerId, 'Carpentry');
+        const xp = Math.round(activeXpForSeconds(carpLvl, upgrade.seconds) * ESTABLISH_XP_BONUS);
+        await awardXp(playerId, 'Carpentry', xp);
+        await incrementStats(playerId, { total_actions_completed: 1 });
+
+        logger.info(`Player ${playerId} raised their farmstead at ${home.name} to tier ${next.tier}`);
+        return {
+            success: true, xp, skillName: 'Carpentry',
+            message: `The new barn is up and roofed. Your farmstead holds ${next.storageSlots} kinds of thing now.`,
+        };
+    } catch (err) {
+        logger.error(`resolveUpgrade error: ${err}`);
         return { success: false, error: SERVER_ERROR };
     }
 }

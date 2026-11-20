@@ -6,7 +6,8 @@ Descriptions are drafts for the art and for the item rows when they are built. M
 
 - Item icons: `apps/client/public/images/items/<Name>.png`
 - Creature portraits: `apps/client/public/images/bestiary/<Name>.png`, 256×256, transparent
-- Place pictures: `apps/client/public/images/locations/<island folder>/<Place>.jpg`, 256×256. Antura's want a folder of their own (`Antura/`); the code reads `Taiar_Island/` only today (`MiniMap.tsx`, `docs/antura-plan.md` §14), which changes when Antura's places are built.
+- Minimap pictures: `apps/client/public/images/locations/<island folder>/<Place>.jpg`, 256×256, a crop of the island's map around the place, as Taiar's are, with the roads drawn leading off it (`MiniMap.tsx`; the clickable exits are `LOCATION_EXITS`, added once the crop exists). The folder is the place's `locations.region` with spaces as underscores: `Taiar_Island/`, `Antura/`. A place with no crop yet shows plain road buttons instead.
+- Scene pictures (optional, behind the scene text; Settings > Themes > Place Pictures): `apps/client/public/images/scenes/<island folder>/<Place>.webp` (`lib/scenePictures.ts`), same folder rule, apostrophes dropped. Wide rather than square, at least 1600 px across, painted with the middle third quiet, since the text sits over it. A place with no file simply shows none.
 
 ---
 
@@ -33,22 +34,22 @@ Descriptions are drafts for the art and for the item rows when they are built. M
 | `Cracked_Clay_Lamp.png` | Cracked Clay Lamp | An oil lamp of red clay with soot still in the spout. Somebody kept a light burning in the ruin, once, every night. |
 | `Ambren_Door_Key.png` | Ambren Door Key | A heavy key of Ambren, green with age. The ruin has no doors left for it to open. |
 | `String_of_Sea-Glass_Beads.png` | String of Sea-Glass Beads | Beads of green and blue glass on a rotten cord. Glass like this was not made on Taiar. |
-| `Fathom_Scale.png` | Fathom Scale | A scale wider than your hand, the colour of deep water and hard as horn. Whatever shed it was big enough to lift a boat without noticing. |
+| `Fathom_Scale.png` | Fathom Scale | A scale wider than your hand, the color of deep water and hard as horn. Whatever shed it was big enough to lift a boat without noticing. |
 
 ### Creature portraits (3): Taiar's islet guardians
 
 | File | Description |
 |---|---|
-| `Trow.png` | Squat, grey, and lumpy as the rocks it sits among, with long arms and a short temper. It sits on a hoard of other people's things: oars, net floats, a sea chest. |
+| `Trow.png` | Squat, gray, and lumpy as the rocks it sits among, with long arms and a short temper. It sits on a hoard of other people's things: oars, net floats, a sea chest. |
 | `Siren.png` | She sits on the rocks with her hair over her shoulders and sings. The song is lovely. The rocks are covered in wrecked boats. |
 | `Draugr.png` | A drowned sailor who never stopped standing his watch. Weed in his beard, salt on his coat, water running out of his sleeves, and his cargo still under his feet. |
 
-### Place pictures (8): Taiar's islets, in `Taiar_Island/`
+### Place pictures (8): Taiar's islets, scene pictures in `scenes/Taiar_Island/` (`.webp`; The Sea Stack is done)
 
 | File | Description |
 |---|---|
 | `The_Wooded_Islet.jpg` | A hump of black rock with a wood on its back, the trees leaning all one way from the wind. The landing is a shelf of shingle no wider than the Skiff. |
-| `The_Rocky_Islet.jpg` | Grey stone heaved up out of the sea in slabs, split and tilted, with thrift in the cracks. The gulls own it. |
+| `The_Rocky_Islet.jpg` | Gray stone heaved up out of the sea in slabs, split and tilted, with thrift in the cracks. The gulls own it. |
 | `The_Sandbar.jpg` | A long tongue of pale sand that comes and goes with the tide. At low water it is half a mile long; at high water it is barely there. |
 | `The_Reef.jpg` | A ring of rock just under the surface, with a lagoon inside it as still as a pond. Fish crowd the gaps in the ring. |
 | `The_Heath_Islet.jpg` | Low and round, covered in heather and gorse, with a pond in the middle that the birds drink from. Rabbits have dug it hollow. |
@@ -81,7 +82,7 @@ Descriptions are drafts for the art and for the item rows when they are built. M
 
 | File | Item | Description |
 |---|---|---|
-| `Sea_Salt.png` | Sea Salt | Grey flakes scraped from a rock pool the sun has dried. A pinch goes a long way. |
+| `Sea_Salt.png` | Sea Salt | Gray flakes scraped from a rock pool the sun has dried. A pinch goes a long way. |
 | `Samphire.png` | Samphire | Bright green fleshy stems from the salt marsh, crisp and salty, like the sea in a mouthful. |
 
 ### Fishing: raw fish (7) and the rod (1)
@@ -90,7 +91,7 @@ Descriptions are drafts for the art and for the item rows when they are built. M
 |---|---|---|
 | `Tench.png` | Tench | A thick olive-green lake fish, slimy as a wet stone, with small red eyes. It lives in the mud and likes it there. |
 | `Rudd.png` | Rudd | A golden lake fish with bright red fins. It feeds near the top and spooks at a shadow. |
-| `Zander.png` | Zander | A long grey hunter of the lake with glassy eyes and a row of teeth. It sees well in murky water, which is how it catches everything else. |
+| `Zander.png` | Zander | A long gray hunter of the lake with glassy eyes and a row of teeth. It sees well in murky water, which is how it catches everything else. |
 | `Mackerel.png` | Mackerel | A sleek fish with tiger stripes of green and blue down its back. Oily, quick, and best eaten the day it is caught. |
 | `Pollock.png` | Pollock | A bronze-green fish of the strait, long-jawed, with a dark line down each side. |
 | `Sea_Bass.png` | Sea Bass | A silver fish with a spiny back fin, strong enough to bend a rod double. The fishermen of the strait boast about these. |
@@ -137,7 +138,7 @@ The invented lake fish at Bidewater (level 22) is still to name (`docs/antura-pl
 | File | Item | Description |
 |---|---|---|
 | `Wolverine_Pelt.png` | Wolverine Pelt | A coarse dark-brown pelt with a pale band along each side. Frost will not stick to it. |
-| `Cave_Bear_Pelt.png` | Cave Bear Pelt | A huge shaggy pelt, brown going grey at the tips, heavy enough to bow your back. It smells of the den. |
+| `Cave_Bear_Pelt.png` | Cave Bear Pelt | A huge shaggy pelt, brown going gray at the tips, heavy enough to bow your back. It smells of the den. |
 | `Snallyscale.png` | Snallyscale | A scale off a snallygaster, dull green-black and hard as horn, with a ridge down the middle. They are shed, not plucked, and a good thing too. |
 | `Kelpies_Bridle.png` | Kelpie's Bridle | A bridle of rotten leather and green weed, dripping still. Whoever held it was ridden into the sea. |
 | `Snallygasters_Eye.png` | Snallygaster's Eye | The great single eye of a snallygaster, dried hard and yellow as old amber. It still seems to follow you round the room. |
@@ -176,7 +177,7 @@ The quartz pieces are live; these are their garnet twins (`docs/talar-spec.md` �
 | `Garnet_Keepers_Band.png` | Garnet Keeper's Band | A plain band of Serph with a deep red garnet sunk flush in it. |
 | `Garnet_Prospectors_Ring.png` | Garnet Prospector's Ring | A Serph ring with a red garnet set high, like a lamp on a pole. |
 | `Garnet_Seedsavers_Ring.png` | Garnet Seedsaver's Ring | A Serph ring engraved with a sheaf of grain round a small red garnet. |
-| `Garnet_Hearty_Amulet.png` | Garnet Hearty Amulet | A heavy Serph pendant with a garnet the colour of a beating heart. |
+| `Garnet_Hearty_Amulet.png` | Garnet Hearty Amulet | A heavy Serph pendant with a garnet the color of a beating heart. |
 | `Garnet_Wayfinders_Amulet.png` | Garnet Wayfinder's Amulet | A Serph pendant shaped like a compass rose, a garnet at its centre for north. |
 | `Garnet_Baitkeepers_Amulet.png` | Garnet Baitkeeper's Amulet | A Serph pendant cast as a coiled fish, with a garnet for its eye. |
 
@@ -186,18 +187,20 @@ The quartz pieces are live; these are their garnet twins (`docs/talar-spec.md` �
 |---|---|
 | `Wolverine.png` | A low, heavy, brown animal with a pale stripe down each flank and claws like hooks. Quick, fierce, and afraid of nothing its own size or any other. |
 | `Kelpie.png` | A black horse standing in the shallows, water running off its mane, weed in its tail. It looks gentle. It wants you to climb on. |
-| `Shellycoat.png` | A thin grey river spirit hung all over with shells that clatter when it moves, so you hear it before you see it. |
+| `Shellycoat.png` | A thin gray river spirit hung all over with shells that clatter when it moves, so you hear it before you see it. |
 | `Sea_Eagle.png` | A huge eagle with a white tail and a hooked yellow beak, wings wide as a door, stooping out of the sky. |
 | `Reaver.png` | A sea raider in a mail shirt and a rusted helm, a Dane axe on his shoulder and a sack of somebody else's harvest at his belt. |
 | `Snallygaster.png` | A winged, scaled beast of the headlands, part bird and part dragon, with one great eye in the middle of its brow and a beak full of teeth. |
 | `Cave_Bear.png` | An enormous bear of the high caves, bigger than any bear alive elsewhere, slow, shaggy, and impossible to stop once it gets going. |
 | `Slide-rock_Bolter.png` | A creature of the mountain slopes the size of a barn, with a little head and a huge mouth and a tail that hooks over the ridge to hold it, until it lets go and comes down the slide. |
 
-### Place pictures (8), in `Antura/`
+### Minimap pictures (8), in `locations/Antura/`
+
+Crops of Antura's map, as Taiar's places are: each 256×256, centred on the place, with its roads running off the edge toward their neighbours. They wait on the final map. The descriptions below say what each place should read as on the map, and serve as briefs for scene pictures too (`scenes/Antura/<Place>.webp`), if Nathan wants those.
 
 | File | Description |
 |---|---|
-| `Wendhaven.jpg` | The port: a harbour wall, a ferry dock and a slip, a tavern with a lantern over the door, and a museum on the hill above the quays. |
+| `Wendhaven.jpg` | The port: a harbor wall, a ferry dock and a slip, a tavern with a lantern over the door, and a museum on the hill above the quays. |
 | `Farefield.jpg` | Farmland on a broad gentle slope, hedged fields running down to the coast, and the seed ground along their margins. |
 | `Mettlefell.jpg` | The forge town, smoke going up from a dozen chimneys, the ring of hammers, and the public smithy in the square. |
 | `Underway.jpg` | The mine: a dark mouth in the hillside, spoil heaps, a winding frame, and old workings running off into the rock. |
