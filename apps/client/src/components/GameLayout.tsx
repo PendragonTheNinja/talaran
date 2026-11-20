@@ -477,6 +477,11 @@ export default function GameLayout({
     if (type === 'travel') {
       const conn = locationData?.connections.find((c: any) => c.to_location_id === id)
       if (conn) handleTravel(id as number, conn.to_location_name, conn.base_travel_time)
+    } else if (type === 'cross') {
+      // A sea crossing from the location panel: "<to id>|ferry" or "<to id>|<boat key>".
+      const [to, mode] = String(id).split('|')
+      const conn = locationData?.connections.find((c: { to_location_id: number }) => c.to_location_id === Number(to))
+      if (conn && mode) handleTravel(Number(to), conn.to_location_name, conn.base_travel_time, mode)
     } else if (type === 'voyage') {
       handleVoyage(String(id))
     } else if (type === 'kiln_load') {
@@ -932,7 +937,6 @@ export default function GameLayout({
       connections={locationData?.connections || []}
       onTravel={handleTravel}
       region={locationData?.location?.region}
-      ownBoats={locationData?.ownBoats}
     />
   )
 

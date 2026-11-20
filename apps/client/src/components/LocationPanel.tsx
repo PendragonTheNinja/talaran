@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { Fragment, useState, useEffect, useCallback } from 'react'
 import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
 import { onSocket } from '../lib/socket'
@@ -491,6 +491,25 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             The Slip →
           </button>
         )}
+
+        {/* Sea crossings from this port (routes/travel.ts): the ferry for a fare,
+            or a boat of the player's own. */}
+        {connections.filter((c: { travel_type?: string }) => c.travel_type === 'sea').map((c: { id: number; to_location_id: number; to_location_name: string; ferry_fare?: number | null }) => (
+          <Fragment key={`sea-${c.id}`}>
+            {c.ferry_fare !== null && c.ferry_fare !== undefined && (
+              <button className="location-action-btn" disabled={currentAction === 'traveling'}
+                onClick={() => onStartAction('cross', `${c.to_location_id}|ferry`)}>
+                Ferry to {c.to_location_name} ({c.ferry_fare} gold) →
+              </button>
+            )}
+            {(locationData?.ownBoats ?? []).map((b: { key: string; name: string }) => (
+              <button key={b.key} className="location-action-btn" disabled={currentAction === 'traveling'}
+                onClick={() => onStartAction('cross', `${c.to_location_id}|${b.key}`)}>
+                Sail to {c.to_location_name} in your {b.name} →
+              </button>
+            ))}
+          </Fragment>
+        ))}
 
         {/* A tavern here, from the location payload (routes/location.ts). */}
         {locationData?.tavern && (

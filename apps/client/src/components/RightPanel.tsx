@@ -77,7 +77,6 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
                   connections={connections}
                   onTravel={onTravel}
                   region={locationData?.location?.region}
-                  ownBoats={locationData?.ownBoats}
                 />
               </div>
             </div>
