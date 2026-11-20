@@ -616,4 +616,4 @@ Each step ends with Nathan testing. Steps 1 and 2 need nothing from Antura and c
 7. **Cooking:** cooked fish, the dishes, the salt pinch, ale and the round.
 8. **Combat:** Serph arms, the creatures, the rare drops. After the poll, if there is one.
 9. **Carpentry's builds:** the tier 2 shop and guild hall work.
-10. **The Cog and Antura's islets,** and garnet jewelry.
+10. **The Cog and Antura's islets,** and garnet jewelry. **The Cog built 2026-11-20** (migration `20261120230000_cog`): the spec's six pieces, Carpentry 19, Wayfaring 13, speed 0.8 to 0.55 (the crossing 298 s at Wayfaring 13, an islet leg 128 s; Wayfaring XP per second stays under walking's at every level); an island's islets now want a boat of its tier (`putToSea`). **Waiting on Nathan:** Antura's eight islets.

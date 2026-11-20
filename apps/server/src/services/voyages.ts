@@ -202,6 +202,14 @@ export async function putToSea(playerId: number, boatRaw: unknown): Promise<Ok<{
         }
         const here = await standing(playerId);
         if (!here?.has_slip) throw new VoyageAbort('You can only put to sea from a port.');
+        // An island's waters want a boat of its tier (docs/sailing-spec.md, the
+        // ladder): a Skiff explores Taiar's islets, a Cog Antura's too.
+        const waters = await db('islands').where({ name: here.region ?? '' }).first('tier');
+        const watersTier = Number(waters?.tier) || 1;
+        if (Number(vessel.tier) < watersTier) {
+            const fit = await db('vessel_types').where({ is_active: true }).where('tier', '>=', watersTier).orderBy('tier').first('name');
+            throw new VoyageAbort(`A ${vessel.name} is too small for these waters.${fit ? ` The islets off ${here.name} want a ${fit.name}.` : ''}`);
+        }
         if (await db('player_voyages').where({ player_id: playerId }).first()) throw new VoyageAbort('You are already at sea.');
         const islet = await pickIslet(here.region, null);
         if (!islet) throw new VoyageAbort('There is nowhere to sail to from here yet.');
