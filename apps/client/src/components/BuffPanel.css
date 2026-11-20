@@ -118,3 +118,10 @@
   color: var(--color-text-muted);
   margin: 2px 0 0;
 }
+
+/* A round at the tavern, beside the provision (server services/rounds.ts). */
+.buff-round {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--color-gold);
+}

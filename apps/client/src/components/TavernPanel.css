@@ -238,3 +238,15 @@ a.news-page-sidebar-item span {
   padding-left: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
+
+/* Standing a round (server services/rounds.ts), above the tabs. */
+.tavern-round {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-mid);
+    border-radius: 4px;
+}
+
+.tavern-round .btn {
+    margin-top: 6px;
+}

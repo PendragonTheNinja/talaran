@@ -1199,14 +1199,18 @@ export default function GameView({
       addLog(`Feat earned: ${feat.name}.${feat.title ? ` You may now be called ${feat.title}.` : ''}`, 'success')
       window.dispatchEvent(new CustomEvent('talaran:feat-earned'))
     }
+    // Someone stood a round at the tavern (server services/rounds.ts).
+    const onRound = (d: { message?: string }) => { if (d?.message) addLog(d.message, 'success') }
     const socket = getSocket()
     socket?.on('feat_earned', onFeat)
+    socket?.on('round_stood', onRound)
 
     window.addEventListener('talaran:notice', onNotice)
 
     window.addEventListener('talaran:rate-limited', onLimited)
     return () => {
       socket?.off('feat_earned', onFeat)
+      socket?.off('round_stood', onRound)
       window.removeEventListener('talaran:notice', onNotice)
       window.removeEventListener('talaran:rate-limited', onLimited)
     }

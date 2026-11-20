@@ -718,6 +718,30 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'round', name: 'stand one round five times at once with Ale for one', rounds: 10,
+        run: async (ctx) => {
+            // services/rounds.ts standRound: the buyer is locked first and the
+            // Ale taken all or nothing, so three Ale for three people pour once.
+            const w = await world(ctx);
+            await ctx.seed.row('taverns', { location_id: w.town.id, name: 'Racecheck Tavern' });
+            const ale = await ctx.seed.row('items', { name: 'Ale', type: 'food' });
+            const a = await ctx.seed.row('players', { username: 'Drinker A', email: 'da@racecheck.test', current_location_id: w.town.id });
+            const b = await ctx.seed.row('players', { username: 'Drinker B', email: 'db@racecheck.test', current_location_id: w.town.id });
+            const { markOnline, markOffline } = await import('../lib/presence');
+            for (const id of [w.player.id, a.id, b.id]) markOnline(id);
+            try {
+                await inPack(ctx, w.player.id, ale.id, 3);
+                const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/rounds', {}));
+                const buffs = Number((await ctx.db('player_round_buffs').count('* as c').first())!.c);
+                return changed('Ale', 0, await ctx.itemTotal(ale.id))
+                    ?? (buffs === 3 ? null : `${buffs} round buffs given`)
+                    ?? succeeded(st, 1);
+            } finally {
+                for (const id of [w.player.id, a.id, b.id]) markOffline(id);
+            }
+        },
+    },
+    {
         id: 'H3', name: 'hand in one finished quest twenty times at once', rounds: 10,
         run: async (ctx) => {
             // The completion every hand-in goes through. It must flip the quest

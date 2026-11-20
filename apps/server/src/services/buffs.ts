@@ -2,6 +2,7 @@ import db from '../db'
 import { logger } from '../lib/logger'
 import { removeItemFromInventoryWithin, notifyInventoryChanged } from './inventory'
 import { SERVER_ERROR } from '../lib/serviceResult'
+import { roundTimerBonus } from './rounds'
 
 // ── Buffs ─────────────────────────────────────────────────────────
 //
@@ -146,7 +147,10 @@ export async function applyBuffFromItem(
 /** Percent off an action timer. See EFFECTS.TIMER. */
 export async function buffTimerBonus(playerId: number, skill?: string): Promise<number> {
     const buff = await activeBuff(playerId)
-    return appliesTo(buff, EFFECTS.TIMER, skill) ? buff!.magnitude : 0
+    const own = appliesTo(buff, EFFECTS.TIMER, skill) ? buff!.magnitude : 0
+    // A round at the tavern runs beside a provision, never instead of one
+    // (services/rounds.ts), and speeds every skill.
+    return own + await roundTimerBonus(playerId)
 }
 
 /**

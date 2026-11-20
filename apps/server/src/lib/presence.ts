@@ -1,3 +1,4 @@
+import { isOnline } from './realtime';
 import type { Server } from 'socket.io';
 import db from '../db';
 import { logger } from './logger';
@@ -74,6 +75,15 @@ export async function recordSeen(playerId: number): Promise<void> {
     } catch (err) {
         logger.error(`last_seen write failed for player ${playerId}: ${err}`);
     }
+}
+
+/**
+ * Connected right now, by either signal, without an io handle: the rooms
+ * through lib/realtime, the explicit set here. For game rules that need a
+ * person present (a round at the tavern, services/rounds.ts).
+ */
+export function isConnected(playerId: number): boolean {
+    return onlineNow.has(playerId) || isOnline(playerId);
 }
 
 export function isPlayerOnline(io: Server, playerId: number): boolean {

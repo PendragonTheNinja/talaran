@@ -3,6 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { applyBuffFromItem, activeBuff } from '../services/buffs';
+import { roundBuff } from '../services/rounds';
 import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
@@ -45,7 +46,8 @@ function describeDuration(seconds: number): string {
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const buff = await activeBuff(req.player!.playerId);
-        res.json({ buff });
+        // A round at the tavern (services/rounds.ts), shown beside the provision.
+        res.json({ buff, round: await roundBuff(req.player!.playerId) });
     } catch (err) {
         logger.error(`Get buff error: ${err}`);
         res.status(500).json({ error: 'Server error' });

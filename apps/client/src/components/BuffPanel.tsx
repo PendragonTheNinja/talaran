@@ -61,6 +61,8 @@ interface BuffPanelProps {
 
 export default function BuffPanel({ onInventoryUpdate, embedded = false, onSummary }: BuffPanelProps) {
     const [buff, setBuff] = useState<ActiveBuff | null>(null)
+    // A round at the tavern (server services/rounds.ts): its own slot, beside the provision.
+    const [round, setRound] = useState<{ magnitude: number; secondsLeft: number; stoodBy: string | null } | null>(null)
     const [provisions, setProvisions] = useState<Provision[]>([])
     const [open, setOpen] = useState(false)
     const [busy, setBusy] = useState(false)
@@ -71,10 +73,11 @@ export default function BuffPanel({ onInventoryUpdate, embedded = false, onSumma
     const load = useCallback(async () => {
         try {
             const [b, p] = await Promise.all([
-                apiFetch<{ buff: ActiveBuff | null }>('/api/buffs'),
+                apiFetch<{ buff: ActiveBuff | null; round?: { magnitude: number; secondsLeft: number; stoodBy: string | null } | null }>('/api/buffs'),
                 apiFetch<{ provisions: Provision[] }>('/api/buffs/provisions'),
             ])
             setBuff(b.buff)
+            setRound(b.round ?? null)
             setProvisions(p.provisions)
         } catch {
             // A missing buff is a normal state, so a failure here is not worth
@@ -92,7 +95,10 @@ export default function BuffPanel({ onInventoryUpdate, embedded = false, onSumma
     // the panel, which in practice meant a page refresh.
     useEffect(() => {
         const reload = coalesce(() => { load() })
-        return onSocket('inventory_changed', reload)
+        const offInventory = onSocket('inventory_changed', reload)
+        // Someone stood a round: it lands in this panel without a pack change.
+        const offRound = onSocket('round_stood', reload)
+        return () => { offInventory(); offRound() }
     }, [load])
 
     /**
@@ -168,7 +174,7 @@ export default function BuffPanel({ onInventoryUpdate, embedded = false, onSumma
 
     // Nothing running and nothing to eat: stay out of the way entirely, unless
     // this is a tab, where a blank page would read as broken.
-    if (!buff && provisions.length === 0 && !embedded) return null
+    if (!buff && !round && provisions.length === 0 && !embedded) return null
 
     return (
         <div className={embedded ? 'buff-panel buff-embedded' : 'buff-panel panel-inset'}>
@@ -201,6 +207,12 @@ export default function BuffPanel({ onInventoryUpdate, embedded = false, onSumma
                 <button className="buff-empty" onClick={() => setOpen(o => !o)}>
                     Nothing in hand
                 </button>
+            )}
+
+            {round && (
+                <p className="buff-round">
+                    A round{round.stoodBy ? ` from ${round.stoodBy}` : ''}: every skill {round.magnitude}% quicker, {fmtLeft(round.secondsLeft)}.
+                </p>
             )}
 
             {open && (
