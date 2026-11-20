@@ -506,6 +506,8 @@ Settled:
 
 How Taiar's cooking is shaped, which this follows: a plain cooked fish or roast takes 30 s and heals about 10 plus 2.5 a level (10 at level 1, 30 at 9, 46 at 17); a made dish heals about five and a half times its level (56 at 10, 84 at 15, 100 at 18) and takes 45 s at level 3 rising to 110 s at 18.
 
+**Built 2026-11-20** (migration `20261120150000_antura_cooking`): the eight cooked fish, the thirteen dishes, and the two provisions below, at the timers and heals listed; XP is the band for each timer at Taiar's ratios. **Not yet:** ale in a cask and the salt pinch, which are new mechanics.
+
 ### Cooked fish
 
 | Level | Fish | Heals |
