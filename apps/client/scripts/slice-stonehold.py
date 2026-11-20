@@ -122,8 +122,35 @@ chat = Image.open(SRC / 'ChatBackground.jpg').convert('RGB')
 menu = Image.open(SRC / 'MenuBackground.jpg').convert('RGB')
 grid = Image.open(SRC / 'testscrollingbackground2.jpg').convert('RGB')
 
-# Gold filigree frame (the scene). Slice 34: the corner knots.
-save(gold_only(main.crop((0, 0, 1079, 550)), 34), 'frame-gold.webp', 90)
+def knots_over(frame: Image.Image, knots: Image.Image, box: int = 42,
+               specks: tuple = ((170, 210, 190, 250), (750, 790, 12, 50))) -> Image.Image:
+    """The scene frame with Nathan's own cut-out corner knots (2026-11-20).
+
+    gold_only keeps the knots' dark outlines, and with them a dark red halo
+    from the mockup that showed as a square over a place picture. Each corner
+    box is cleared, its two edge lines are run into it from their own
+    cross-sections just outside the box, and the clean knot goes on top.
+    Two specks of the mockup inside the frame go too."""
+    out = frame.convert('RGBA')
+    w, h = out.size
+    o, c = out.load(), out.copy().load()
+    for xs, ys, hx, vy in (((0, box), (0, box), box, box), ((w - box, w), (0, box), w - box - 1, box),
+                           ((0, box), (h - box, h), box, h - box - 1), ((w - box, w), (h - box, h), w - box - 1, h - box - 1)):
+        for x in range(*xs):
+            for y in range(*ys):
+                hp, vp = c[hx, y], c[x, vy]
+                o[x, y] = hp if hp[3] >= vp[3] else vp
+    for x0, x1, y0, y1 in specks:
+        for x in range(x0, x1):
+            for y in range(y0, y1):
+                o[x, y] = (0, 0, 0, 0)
+    out.alpha_composite(knots.convert('RGBA').crop((0, 0, w, h)))
+    return out
+
+
+# Gold filigree frame (the scene). Slice 34: the corner knots, from Nathan's cut-outs.
+save(knots_over(gold_only(main.crop((0, 0, 1079, 550)), 34), Image.open(SRC / 'Main Content Corners.webp')),
+     'frame-gold.webp', 90)
 # The same frame over stone, for the column beside the scene: the right-hand
 # box of the art, with the gold divider across its middle cut out (an edge
 # slice would smear it down the whole side).
