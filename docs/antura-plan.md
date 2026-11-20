@@ -456,6 +456,8 @@ It wears out fast: 60 sure uses, then 3% a kill, where tier 1 metal is 200 and 1
 
 Simulated 2026-11-17 (`combatSim.ts` kits, combat 8 to 12, every form): +3 power is about 4% more kills an hour, and +12 aim about 4% too (+6 was only 2%, so the charm was raised to 12); both together about 8 to 9%. The cloak's 5 armour is about 5% less damage taken. **Code, not rows:** a fight reads aim and power from the main-hand weapon alone today (`fightingNumbers` in `services/combat.ts`); armour is already summed over everything worn. Aim and power from other slots is a small change there, and `combatSim.ts` must be run with it. Antura gets its own pair from its own creatures, with the roster.
 
+**The roster, built 2026-11-20** (migration `20261120200000_antura_creatures`): the eight creatures at their four spots with every drop below except the three rare weapons, profiles tuned in `combatSim.ts roster` to 89 to 108% of the band an hour. **Still to come:** the crafted gear (the Snallyscale set, the Bearverine Mantle, the Heartstone Ring, the Kelpie's Bridle Charm) and the three rare weapons with their bad-luck trail.
+
 **Antura, every drop** (frequent drops settled 2026-11-17; the rest proposed the same day; the roster is still a placeholder). About 50 kills an hour at these levels (fights lengthen with level, `docs/combat-spec.md`).
 
 | Creature | Where | Frequent drop | Other drops | Rare |
