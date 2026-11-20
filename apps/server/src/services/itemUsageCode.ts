@@ -7,7 +7,7 @@ import { SMELT_RECIPES } from './smithing';
 import { SAW_RECIPES } from './carpentry';
 import { BEDDING, PEN_COST } from './husbandry';
 import { FARM_ESTABLISH_COST, plotCost } from './farming';
-import { BUILD_COST as TALLY_BUILD_COST } from './tally';
+import { TALLY_COST_BY_TIER } from './tally';
 import { STATION_ITEMS as TANNING_STATIONS } from './tanning';
 import { HUNT_AMMO } from './hunting';
 import type { ItemSource, ItemUse } from './itemPage';
@@ -256,7 +256,8 @@ export function codeUses(name: string): ItemUse[] {
         });
     }
 
-    const tallyQty = TALLY_BUILD_COST.find(c => eq(c.itemName, name))?.qty;
+    // Every island's board, as an item may build one on some islands and not others.
+    const tallyQty = Object.values(TALLY_COST_BY_TIER).flat().find(c => eq(c.itemName, name))?.qty;
     if (tallyQty) {
         out.push({
             kind: 'Building',

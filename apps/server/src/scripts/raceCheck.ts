@@ -2109,6 +2109,24 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'tally-licence', name: 'buy a tally licence five times at once on an island with none', rounds: 10,
+        run: async (ctx) => {
+            // services/tally.ts buyLicence: the island's licence row is made if
+            // missing, then locked, so five buys of a second board pay 250 once
+            // and leave two licences on that island.
+            const w = await world(ctx);
+            await ctx.db('locations').where({ id: w.town.id }).update({ region: 'Racecheck Isle' });
+            const wc = await ctx.seed.row('skills', { name: 'Woodcutting', is_implemented: true, type: 'gathering' });
+            await ctx.seed.row('player_skills', { player_id: w.player.id, skill_id: wc.id, xp: 2_000_000 });   // level 50, over the second board's total of 40
+            await fund(ctx, w.player.id, 1_000);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, '/tally/licence', {}));
+            const lic = await ctx.db('player_tally_licences').where({ player_id: w.player.id, island: 'Racecheck Isle' }).first();
+            return changed('gold', 750, await goldOf(ctx, w.player.id))
+                ?? changed('licences', 2, Number(lic?.licences ?? 1))
+                ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'loadout', name: 'wear two loadouts five times at once, back and forth', rounds: 10,
         run: async (ctx) => {
             // services/loadouts.ts wearLoadout: every piece goes through

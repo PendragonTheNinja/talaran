@@ -21,6 +21,10 @@ interface TallyEntry {
 }
 
 interface TallyReport {
+    /** The island the player stands on; boards, licences, and the report are its own. */
+    island: string
+    /** Boards kept on other islands, which show nothing here. */
+    elsewhere?: { island: string; count: number }[]
     hasBoard: boolean
     boardLocationName: string | null
     atBoard: boolean
@@ -30,6 +34,7 @@ interface TallyReport {
     entries: TallyEntry[]
     readyCount: number
     licence?: {
+        island: string
         boardNumber: number
         cost: number
         totalLevelRequired: number
@@ -92,7 +97,7 @@ function Licence({ report, busy, onBought }: {
         <div className="tally-licence">
             <p className="tally-licence-line">
                 Room for {licence.boardNumber === 2 ? 'a second' : `a ${ordinal(licence.boardNumber)}`} board
-                costs <span className="gold-text">{licence.cost.toLocaleString()} gold</span>
+                on {licence.island} costs <span className="gold-text">{licence.cost.toLocaleString()} gold</span>
                 {' '}and a total level of {licence.totalLevelRequired} outside combat.
             </p>
             {licence.canBuy ? (
@@ -182,10 +187,13 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                 {!report ? (
                     <p className="muted-text">Reading the board…</p>
                 ) : !report.hasBoard ? (
-                    <Raise report={report} busy={busy} onRaise={raise} />
+                    <>
+                        <Raise report={report} busy={busy} onRaise={raise} />
+                        <Elsewhere report={report} />
+                    </>
                 ) : !report.atBoard ? (
                     <div className="tally-elsewhere">
-                        <p>{report.boards.length === 1 ? 'Your tally board stands at:' : 'Your boards stand at, first raised first:'}</p>
+                        <p>{report.boards.length === 1 ? `Your tally board on ${report.island} stands at:` : `Your boards on ${report.island} stand at, first raised first:`}</p>
                         <ol className="tally-board-list">
                             {report.boards.map(b => (
                                 <li key={b.locationId}>
@@ -198,12 +206,13 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                             A board is a board. You will have to go and look at one.
                         </p>
                         <p className="muted-text tally-cap">
-                            {report.boards.length} of {report.boardCap} raised
+                            {report.boards.length} of {report.boardCap} raised on {report.island}
                             {report.build && !report.build.atCapacity
                                 ? ' — you have room for another.'
                                 : ' — raising one here would move your oldest.'}
                         </p>
                         <Licence report={report} busy={busy} onBought={load} />
+                        <Elsewhere report={report} />
                         <Raise
                             report={report}
                             busy={busy}
@@ -219,6 +228,26 @@ export default function TallyBoardPanel({ onClose }: { onClose: () => void }) {
                 )}
             </div>
         </div>
+    )
+}
+
+/**
+ * Boards on other islands. Each island keeps its own boards, licences, and
+ * report (Nathan, 2026-11-19), so a board on Taiar says nothing of Antura.
+ */
+function Elsewhere({ report }: { report: TallyReport }) {
+    const others = report.elsewhere ?? []
+    if (!others.length) return null
+    return (
+        <p className="muted-text tally-cap">
+            A board shows only the island it stands on. You also keep{' '}
+            {others.map((o, i) => (
+                <span key={o.island}>
+                    {i > 0 && (i === others.length - 1 ? (others.length > 2 ? ', and ' : ' and ') : ', ')}
+                    {o.count === 1 ? 'one' : o.count} on {o.island}
+                </span>
+            ))}.
+        </p>
     )
 }
 
@@ -373,8 +402,8 @@ function Raise({
         <div className="tally-raise">
             {!relocating && (
                 <p className="muted-text">
-                    A board of your own, and everything you have working written up in one
-                    place. You will have to stand here to read it.
+                    A board of your own, and everything you have working on {report.island}
+                    written up in one place. You will have to stand here to read it.
                 </p>
             )}
 

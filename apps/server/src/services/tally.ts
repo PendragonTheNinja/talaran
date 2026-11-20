@@ -5,6 +5,7 @@ import { getGold, debitGoldWithin } from './gold';
 import { husbandryTallyEntries } from './husbandry';
 import { takeItemsWithin, addItemToInventoryWithin } from './inventory';
 import { listWords } from '../lib/listWords';
+import { islandHere, TAIAR } from './islands';
 
 // The Tally Board (see 20260726060000_tally_board for the design rationale).
 //
@@ -53,9 +54,18 @@ export function nextBoardNumber(licences: number): number {
     return licences + 1;
 }
 
-export async function boardCapFor(playerId: number): Promise<number> {
-    const row = await db('players').where({ id: playerId }).select('tally_licences').first();
-    return Math.max(1, Number(row?.tally_licences ?? 1));
+/**
+ * Boards, licences, and what a board shows are per island (Nathan, 2026-11-19).
+ * A place with no region is counted as Taiar's, as everywhere else does.
+ */
+export function islandOfRegion(region: string | null | undefined): string {
+    return region || TAIAR.name;
+}
+
+/** How many boards the player may keep on `island`. No row is one. */
+export async function boardCapFor(playerId: number, island: string, x: any = db): Promise<number> {
+    const row = await x('player_tally_licences').where({ player_id: playerId, island }).first('licences');
+    return Math.max(1, Number(row?.licences ?? 1));
 }
 
 /**
@@ -75,6 +85,7 @@ export async function totalLevel(playerId: number): Promise<number> {
 }
 
 export interface LicenceOffer {
+    island: string;
     boardNumber: number;
     cost: number;
     totalLevelRequired: number;
@@ -84,8 +95,8 @@ export interface LicenceOffer {
     reason?: string;
 }
 
-export async function licenceOffer(playerId: number): Promise<LicenceOffer> {
-    const licences = await boardCapFor(playerId);
+export async function licenceOffer(playerId: number, island: string): Promise<LicenceOffer> {
+    const licences = await boardCapFor(playerId, island);
     const boardNumber = nextBoardNumber(licences);
     const cost = licenceCost(boardNumber);
     const need = licenceTotalLevel(boardNumber);
@@ -94,11 +105,11 @@ export async function licenceOffer(playerId: number): Promise<LicenceOffer> {
     let reason: string | undefined;
     // Combat skills are left out of this total (see totalLevel), so it is named
     // as such: a player comparing it with the Skills page saw two numbers.
-    if (have < need) reason = `A licence for a ${ordinal(boardNumber)} board wants a total level of ${need} outside combat. Yours is ${have}.`;
+    if (have < need) reason = `A licence for a ${ordinal(boardNumber)} board on ${island} wants a total level of ${need} outside combat. Yours is ${have}.`;
     else if (gold < cost) reason = `That licence costs ${cost} gold. You have ${gold}.`;
 
     return {
-        boardNumber, cost, totalLevelRequired: need,
+        island, boardNumber, cost, totalLevelRequired: need,
         totalLevel: have, gold, canBuy: !reason, reason,
     };
 }
@@ -110,11 +121,13 @@ export function ordinal(n: number): string {
 }
 
 /**
- * Buys the right to keep one more board. The licence is permanent and the
- * board still has to be built with materials afterwards.
+ * Buys the right to keep one more board on the island the player stands on.
+ * The licence is permanent and the board still has to be built with
+ * materials afterwards.
  */
 export async function buyLicence(playerId: number): Promise<{ success: boolean; error?: string; licences?: number; gold?: number }> {
-    const offer = await licenceOffer(playerId);
+    const island = (await islandHere(db, playerId)).name;
+    const offer = await licenceOffer(playerId, island);
     if (!offer.canBuy) return { success: false, error: offer.reason };
 
     // Re-checked inside the transaction: the offer above was read outside it,
@@ -123,8 +136,13 @@ export async function buyLicence(playerId: number): Promise<{ success: boolean; 
     let gold = 0;
     try {
         await db.transaction(async (trx) => {
-            const row = await trx('players').where({ id: playerId }).forUpdate().first();
-            const current = Math.max(1, Number(row?.tally_licences ?? 1));
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
+            // The first licence on an island has no row yet: make it, then lock it.
+            await trx.raw(
+                'INSERT INTO player_tally_licences (player_id, island, licences) VALUES (?, ?, 1) ON CONFLICT (player_id, island) DO NOTHING',
+                [playerId, island]);
+            const row = await trx('player_tally_licences').where({ player_id: playerId, island }).forUpdate().first('licences');
+            const current = Math.max(1, Number(row?.licences ?? 1));
             if (current !== offer.boardNumber - 1) throw new Error('RACE');
 
             const paid = await debitGoldWithin(trx, {
@@ -138,7 +156,7 @@ export async function buyLicence(playerId: number): Promise<{ success: boolean; 
 
             licences = current + 1;
             gold = paid.balance;
-            await trx('players').where({ id: playerId }).update({ tally_licences: licences });
+            await trx('player_tally_licences').where({ player_id: playerId, island }).update({ licences });
         });
     } catch (err) {
         const msg = String(err);
@@ -151,10 +169,28 @@ export async function buyLicence(playerId: number): Promise<{ success: boolean; 
 }
 
 // Modest against the farmstead's 500/500/1000. This is a noticeboard, not a barn.
-export const BUILD_COST = [
-    { itemName: 'Lanai Planks', qty: 50 },
-    { itemName: 'Ambren Nails', qty: 100 },
-];
+// Each island's board is built from that island's planks and nails (Nathan,
+// 2026-11-19), so a tier brings new ones only where it has a new wood or metal:
+// Antura keeps Lanai and nails with Serph.
+export const TALLY_COST_BY_TIER: Record<number, { itemName: string; qty: number }[]> = {
+    1: [{ itemName: 'Lanai Planks', qty: 50 }, { itemName: 'Ambren Nails', qty: 100 }],
+    2: [{ itemName: 'Lanai Planks', qty: 50 }, { itemName: 'Serph Nails', qty: 100 }],
+};
+
+/** Taiar's, and what every board raised before islands had their own was made of. */
+export const BUILD_COST = TALLY_COST_BY_TIER[1];
+
+/** What a board costs on an island of `tier`: the highest tier listed at or below it. */
+export function tallyCostForTier(tier: number): { itemName: string; qty: number }[] {
+    const tiers = Object.keys(TALLY_COST_BY_TIER).map(Number).filter(t => t <= tier).sort((a, b) => b - a);
+    return TALLY_COST_BY_TIER[tiers[0] ?? 1];
+}
+
+/** What went into a board, read from its row; older boards are Taiar's. */
+function boardMaterials(raw: unknown): { itemName: string; qty: number }[] {
+    const list = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(list) && list.length ? list : BUILD_COST;
+}
 
 export interface TallyEntry {
     kind: 'field' | 'vat' | 'kiln' | 'pen' | 'fire';
@@ -168,17 +204,21 @@ export interface TallyEntry {
 }
 
 export interface TallyReport {
+    /** The island the player stands on: the boards, licences, and report here are its own. */
+    island: string;
     hasBoard: boolean;
     /** The board being read right now, when standing at one. */
     boardLocationId: number | null;
     boardLocationName: string | null;
     atBoard: boolean;
-    /** Every board this player keeps, first raised first, for the "your boards" list. */
+    /** Every board this player keeps on this island, first raised first, for the "your boards" list. */
     boards: { locationId: number; locationName: string; island: string; here: boolean; movesNext: boolean }[];
     boardCap: number;
     licence: LicenceOffer;
     entries: TallyEntry[];
     readyCount: number;
+    /** Boards the player keeps on other islands, which show nothing here. */
+    elsewhere: { island: string; count: number }[];
     /** Present when the player has no board yet. */
     build?: {
         carpentryRequired: number;
@@ -216,8 +256,8 @@ async function carpentryLevel(playerId: number): Promise<number> {
  * Three sources, all keyed differently, which is why this lives in one place:
  * kilns and vats are per-location jobs, fields hang off a property.
  */
-export async function passiveWork(playerId: number): Promise<TallyEntry[]> {
-    const entries: TallyEntry[] = [];
+export async function passiveWork(playerId: number, island?: string): Promise<TallyEntry[]> {
+    let entries: TallyEntry[] = [];
     const now = Date.now();
 
     const status = (readyAt: Date | string | null): 'ready' | 'working' =>
@@ -336,6 +376,9 @@ export async function passiveWork(playerId: number): Promise<TallyEntry[]> {
         entries.push({ kind: 'pen', ...pen });
     }
 
+    // A board shows only its own island's work (Nathan, 2026-11-19).
+    if (island) entries = entries.filter(e => islandOfRegion(e.island) === island);
+
     // Ready first, then soonest, then idle last.
     const rank = (e: TallyEntry) => (e.status === 'ready' ? 0 : e.status === 'working' ? 1 : 2);
     entries.sort((a, b) => {
@@ -349,8 +392,10 @@ export async function passiveWork(playerId: number): Promise<TallyEntry[]> {
 
 export async function tallyReport(playerId: number): Promise<TallyReport> {
     const player = await db('players').where({ id: playerId }).first();
+    const islandRow = await islandHere(db, playerId);
+    const island = islandRow.name;
 
-    const boardRows = await db('tally_boards')
+    const allBoards = await db('tally_boards')
         .leftJoin('locations', 'tally_boards.location_id', 'locations.id')
         .where({ 'tally_boards.player_id': playerId })
         .select(
@@ -360,12 +405,18 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
         )
         // First raised first: the oldest is the one a new board would move.
         .orderBy('tally_boards.id');
+    const boardRows = allBoards.filter((b: any) => islandOfRegion(b.island) === island);
+    const elsewhere = new Map<string, number>();
+    for (const b of allBoards) {
+        const name = islandOfRegion(b.island);
+        if (name !== island) elsewhere.set(name, (elsewhere.get(name) ?? 0) + 1);
+    }
 
-    const capForOrder = await boardCapFor(playerId);
+    const capForOrder = await boardCapFor(playerId, island);
     const boards = boardRows.map((b, i) => ({
         locationId: b.location_id,
         locationName: b.location_name ?? 'Unknown',
-        island: b.island ?? '',
+        island: islandOfRegion(b.island),
         here: b.location_id === player?.current_location_id,
         movesNext: i === 0 && boardRows.length >= capForOrder,
     }));
@@ -375,32 +426,35 @@ export async function tallyReport(playerId: number): Promise<TallyReport> {
 
     // Only compute the report when it can actually be read. Standing at the board
     // is the cost that keeps this a place rather than a menu.
-    const entries = atBoard ? await passiveWork(playerId) : [];
+    const entries = atBoard ? await passiveWork(playerId, island) : [];
 
     const level = await carpentryLevel(playerId);
+    const cost = tallyCostForTier(islandRow.tier);
     const missing: { itemName: string; qty: number; have: number }[] = [];
-    for (const c of BUILD_COST) {
+    for (const c of cost) {
         const have = await inventoryQty(playerId, c.itemName);
         if (have < c.qty) missing.push({ itemName: c.itemName, qty: c.qty, have });
     }
 
-    const cap = await boardCapFor(playerId);
+    const cap = capForOrder;
     const atCapacity = boards.length >= cap;
 
     return {
+        island,
         hasBoard: boards.length > 0,
         boardLocationId: boardHere?.locationId ?? boards[0]?.locationId ?? null,
         boardLocationName: boardHere?.locationName ?? boards[0]?.locationName ?? null,
         atBoard,
         boards,
         boardCap: cap,
-        licence: await licenceOffer(playerId),
+        licence: await licenceOffer(playerId, island),
+        elsewhere: [...elsewhere].map(([name, count]) => ({ island: name, count })),
         entries,
         readyCount: entries.filter((e) => e.status === 'ready').length,
         build: {
             carpentryRequired: CARPENTRY_REQ,
             seconds: BUILD_SECONDS,
-            cost: BUILD_COST,
+            cost,
             missing,
             canBuild: level >= CARPENTRY_REQ && missing.length === 0 && !atBoard,
             // At capacity a new board displaces an old one; below it, it is simply
@@ -462,8 +516,14 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
             return { success: false, error: 'You are nowhere in particular.' };
         }
 
-        const boards = await db('tally_boards').where({ player_id: playerId }).orderBy('id', 'asc');
-        if (boards.some((b) => b.location_id === player.current_location_id)) {
+        const islandRow = await islandHere(db, playerId);
+        const island = islandRow.name;
+        const cost = tallyCostForTier(islandRow.tier);
+        const onIsland = (x: any) => x('tally_boards as tb').leftJoin('locations as l', 'l.id', 'tb.location_id')
+            .where('tb.player_id', playerId).orderBy('tb.id', 'asc').select('tb.id', 'tb.location_id', 'l.region')
+            .then((rows: any[]) => rows.filter(r => islandOfRegion(r.region) === island));
+        const boards = await onIsland(db);
+        if (boards.some((b: any) => b.location_id === player.current_location_id)) {
             return { success: false, error: 'Your tally board already stands here.' };
         }
 
@@ -472,13 +532,14 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
             return { success: false, error: `Raising a tally board wants Carpentry ${CARPENTRY_REQ}.` };
         }
 
-        // Under the cap this is a new board; at the cap the oldest one comes down
-        // to pay for it, which is the original one-board behaviour preserved.
-        const cap = await boardCapFor(playerId);
+        // Under the cap this is a new board; at the cap the oldest one on this
+        // island comes down to pay for it, which is the original one-board
+        // behaviour preserved.
+        const cap = await boardCapFor(playerId, island);
         const relocating = boards.length >= cap;
         const displaced = relocating ? boards[0] : null;
 
-        for (const c of BUILD_COST) {
+        for (const c of cost) {
             const have = await inventoryQty(playerId, c.itemName);
             if (have < c.qty) {
                 return { success: false, error: `You need ${c.qty} ${c.itemName}. You have ${have}.` };
@@ -489,22 +550,22 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
         // builds at once cannot both pass the cap or both spend the planks.
         await db.transaction(async (trx) => {
             await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id');
-            const now = await trx('tally_boards').where({ player_id: playerId }).orderBy('id', 'asc');
+            const now = await onIsland(trx);
             if (now.some((b: any) => b.location_id === player.current_location_id)) throw new Error('ALREADY_HERE');
             if (now.length !== boards.length) throw new Error('RACE');
 
-            const taken = await takeItemsWithin(trx, playerId, BUILD_COST.map(c => ({ name: c.itemName, quantity: c.qty })));
+            const taken = await takeItemsWithin(trx, playerId, cost.map(c => ({ name: c.itemName, quantity: c.qty })));
             if (!taken.ok) throw new Error(`insufficient materials`);
 
             if (displaced) {
                 await trx('tally_boards').where({ id: displaced.id }).delete();
             }
             await trx('tally_boards')
-                .insert({ player_id: playerId, location_id: player.current_location_id });
+                .insert({ player_id: playerId, location_id: player.current_location_id, materials: JSON.stringify(cost) });
         });
 
         logger.info(
-            `Player ${playerId} ${relocating ? 'moved' : 'raised'} a tally board at location ${player.current_location_id}`
+            `Player ${playerId} ${relocating ? 'moved' : 'raised'} a tally board on ${island} at location ${player.current_location_id}`
             + ` (${relocating ? boards.length : boards.length + 1}/${cap})`,
         );
         return { success: true, relocated: relocating };
@@ -526,14 +587,16 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
  */
 export async function tearDownTallyBoard(playerId: number): Promise<{ success: boolean; error?: string; message?: string }> {
     try {
+        let back: { itemName: string; qty: number }[] = BUILD_COST;
         const done = await db.transaction(async (trx) => {
             const player = await trx('players').where({ id: playerId }).forNoKeyUpdate().first('current_location_id');
             const removed = await trx('tally_boards')
                 .where({ player_id: playerId, location_id: player?.current_location_id ?? null })
                 .delete()
-                .returning('id');
+                .returning(['id', 'materials']);
             if (!removed.length) return false;
-            for (const c of BUILD_COST) {
+            back = boardMaterials(removed[0].materials);
+            for (const c of back) {
                 const item = await trx('items').where({ name: c.itemName }).first('id');
                 if (!item) throw new Error(`no item ${c.itemName}`);
                 await addItemToInventoryWithin(trx, playerId, item.id, c.qty);
@@ -544,7 +607,7 @@ export async function tearDownTallyBoard(playerId: number): Promise<{ success: b
         logger.info(`Player ${playerId} took down a tally board`);
         return {
             success: true,
-            message: `You draw the nails and stack the planks. ${listWords(BUILD_COST.map(c => `${c.qty} ${c.itemName}`))} come back to you.`,
+            message: `You draw the nails and stack the planks. ${listWords(back.map(c => `${c.qty} ${c.itemName}`))} come back to you.`,
         };
     } catch (err) {
         logger.error(`Tally board teardown error: ${err}`);
