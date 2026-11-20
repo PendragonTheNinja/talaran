@@ -944,3 +944,17 @@ html .game-view.has-picture .game-scene {
 .game-view.has-picture .scene-action-text {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.9);
 }
+
+/* Over a picture the scene is always dark, whatever the theme, so its words
+   are always light: the text tokens are set afresh inside the scene, and
+   everything there that draws from them follows. A light theme such as
+   Scriptorium otherwise draws dark brown ink on a dark sea (Nathan,
+   2026-11-20). Themes are untouched where there is no picture. */
+.game-view.has-picture .game-scene {
+  --color-text-base: #ece4d4;
+  --color-text-muted: #d9cfbb;
+  --color-text-bright: #fbf5e8;
+  --color-gold: #e3c178;
+  --color-gold-bright: #f1d99a;
+  color: var(--color-text-base);
+}
