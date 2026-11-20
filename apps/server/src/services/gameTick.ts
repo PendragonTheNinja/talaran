@@ -927,7 +927,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       const crossingLines: string[] = [];
       if (cross === 'ferry') crossingLines.push(`The ferry ties up at ${destination?.name ?? 'the quay'}, and you step ashore.`);
       if (cross === 'boat') {
-        crossingLines.push(`You bring your boat in under the harbour wall at ${destination?.name ?? 'the quay'}.`);
+        crossingLines.push(`You bring your boat in under the harbor wall at ${destination?.name ?? 'the quay'}.`);
         const broke = await db.transaction(async (trx) => {
           await trx('players').where({ id: action.player_id }).forNoKeyUpdate().first('id');
           return wearSailingPieceWithin(trx, action.player_id);

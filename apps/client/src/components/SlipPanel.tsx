@@ -237,7 +237,7 @@ export default function SlipPanel({ onClose, onStartBuild, onPutToSea }: {
                                         {j.ownerName}'s {j.name}, on the slip at {j.hull.locationName}. Piece {j.hull.pieceNumber} of {j.hull.pieceCount}: the {j.hull.pieceName?.toLowerCase()}.
                                         {j.hull.hire.rate > 0
                                             ? ` Pays ${fmt(j.hull.hire.rate)} gold for each piece you set in, from a purse of ${fmt(j.hull.hire.purse)}: enough for ${fmt(Math.floor(j.hull.hire.purse / j.hull.hire.rate))} more.`
-                                            : ' Unpaid: a favour.'}
+                                            : ' Unpaid: a favor.'}
                                         {` Each turn pays you ${j.xpPerTurn} Carpentry experience. Materials laid at the slip are used before your own.`}
                                     </p>
                                     {j.hull.atSlip && j.hull.requirements.map(r =>
@@ -309,7 +309,7 @@ function HireControls({ boat, hull, busy, onPost }: {
                 </button>
             </div>
             <p className="muted-text hall-note">
-                {h.rate > 0 ? `Now ${fmt(h.rate)} gold a piece.` : 'Now nothing: carpenters work on it as a favour.'}
+                {h.rate > 0 ? `Now ${fmt(h.rate)} gold a piece.` : 'Now nothing: carpenters work on it as a favor.'}
             </p>
 
             <p className="hall-hire-step">3. The purse</p>
