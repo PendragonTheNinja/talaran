@@ -28,21 +28,29 @@ interface SawRecipe {
     output: string;
     outputQuantity: number;
     requiredLevel: number;
+    /** XP a saw at the wood's first rung. */
     xp: number;
+    /** A wood spans two tiers (CLAUDE.md §8), so sawing it pays more from its second rung. */
+    xpSteps: { level: number; xp: number }[];
     timer: number;
 }
 
 // ── Recipe maps ───────────────────────────────────────────────────
 
-const WOOD_TYPES = [
-    { type: 'lanai', planks: 'Lanai Planks', logWord: 'Lanai', requiredLevel: 1 },
+// `secondRung`: the level the wood's second tier opens, from which a saw pays
+// the tier step more (Nathan, 2026-11-21: 31 XP for Lanai from Carpentry 13).
+// Only Lanai's is set: the later woods' levels here are known to be wrong
+// (CLAUDE.md §8, the material ladder) and are fixed with their content.
+const WOOD_TYPES: { type: string; planks: string; logWord: string; requiredLevel: number; secondRung?: number }[] = [
+    { type: 'lanai', planks: 'Lanai Planks', logWord: 'Lanai', requiredLevel: 1, secondRung: 13 },
     { type: 'hatch', planks: 'Hatch Planks', logWord: 'Hatch', requiredLevel: 13 },
     { type: 'bearn', planks: 'Bearn Planks', logWord: 'Bearn', requiredLevel: 30 },
     { type: 'mirrith', planks: 'Mirrith Planks', logWord: 'Mirrith', requiredLevel: 50 },
     { type: 'craxial', planks: 'Craxial Planks', logWord: 'Craxial', requiredLevel: 70 },
 ];
 const QUALITY_YIELD: Record<string, number> = { poor: 1, fine: 2, excellent: 3 };
-const SAW_XP = 23;        // flat per saw; quality changes plank yield, not XP
+const SAW_XP = 23;        // per saw at a wood's first tier; quality changes plank yield, not XP
+const SAW_XP_SECOND_TIER = 31;   // the tier step (×1.33), from the wood's second rung
 const SAW_BASE_TIMER = 35; // seconds (route applies 2x at the public bench)
 
 // Keyed by `${woodType}_${quality}`, e.g. 'lanai_fine'
@@ -56,6 +64,7 @@ for (const w of WOOD_TYPES) {
             outputQuantity: QUALITY_YIELD[quality],
             requiredLevel: w.requiredLevel,
             xp: SAW_XP,
+            xpSteps: w.secondRung ? [{ level: w.secondRung, xp: SAW_XP_SECOND_TIER }] : [],
             timer: SAW_BASE_TIMER,
         };
     }
@@ -108,6 +117,13 @@ async function ingredientsRemaining(playerId: number, ingredients: { name: strin
     return out;
 }
 
+/** What one saw pays a sawyer of this Carpentry level. */
+export function sawXpFor(recipe: SawRecipe, level: number): number {
+    let xp = recipe.xp;
+    for (const step of recipe.xpSteps) if (level >= step.level) xp = step.xp;
+    return xp;
+}
+
 async function itemTotal(playerId: number, name: string): Promise<number> {
     const item = await db('items').where({ name }).first();
     if (!item) return 0;
@@ -146,7 +162,8 @@ export async function sawPlanks(
 
         await updateQuestObjectiveProgress(playerId, 'saw', recipe.output, 1);
 
-        await awardXp(playerId, skillId, recipe.xp);
+        const xp = sawXpFor(recipe, level);
+        await awardXp(playerId, skillId, xp);
         await incrementStats(playerId, { total_actions_completed: 1, total_planks_sawn: 1});
 
         const [wood, quality] = sawKey.split('_');
@@ -155,7 +172,7 @@ export async function sawPlanks(
         logger.info(`Player ${playerId} sawed ${recipe.outputQuantity}x ${recipe.output}`);
         const sawRemaining = await ingredientsRemaining(playerId, recipe.ingredients);
         const sawTotal = await itemTotal(playerId, recipe.output);
-        return { success: true, itemName: recipe.output, quantity: recipe.outputQuantity, xpAwarded: recipe.xp, ingredientsRemaining: sawRemaining, outputTotal: sawTotal, drops };
+        return { success: true, itemName: recipe.output, quantity: recipe.outputQuantity, xpAwarded: xp, ingredientsRemaining: sawRemaining, outputTotal: sawTotal, drops };
     } catch (err) {
         logger.error(`Saw error: ${err}`);
         return { success: false, error: SERVER_ERROR };

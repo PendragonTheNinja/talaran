@@ -1,3 +1,4 @@
+import { loadRoadFinds } from './travelEvents';
 import db from '../db';
 import { codeSources, codeUses } from './itemUsageCode';
 import { buyPrice } from './marketplace';
@@ -730,7 +731,9 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
         });
     }
 
-    // Everything decided in code rather than in a table.
+    // Everything decided in code rather than in a table, and the road finds
+    // (rows now, read through their cache, which codeSources lists).
+    await loadRoadFinds();
     sources.push(...codeSources(name));
     uses.push(...codeUses(name));
 

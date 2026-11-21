@@ -1,4 +1,4 @@
-import { TRAVEL_EVENTS } from './travelEvents';
+import { roadFindsCached } from './travelEvents';
 import { GOLD_DROP_NAME } from './goldFinds';
 import { LIQUIDS } from './liquids';
 import { ESTABLISH_COST, SHOP_TOWN } from './shops';
@@ -59,12 +59,12 @@ export function codeSources(name: string): ItemSource[] {
 
     // Found on the road. Nothing in the manual mentioned these at all, so an
     // item that only comes from travel looked like it came from nowhere.
-    for (const e of TRAVEL_EVENTS) {
+    for (const e of roadFindsCached()) {
         if (!eq(e.itemName, name)) continue;
         out.push({
             kind: 'Travelling',
             from: 'Found on the road',
-            where: e.region === 'global' ? 'Anywhere' : e.region,
+            where: e.region === null ? 'Anywhere' : e.region,
             detail: [
                 `Roughly 1 in ${e.rarity} stretches`,
                 e.quantity > 1 ? `${e.quantity} at a time` : '',

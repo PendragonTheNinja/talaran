@@ -1,100 +1,49 @@
-// Travel find-events. Travel-type-agnostic (walking on Wayfaring now; Sailing later).
-// Adding a new find = append one entry. region 'global' = any island.
+import db from '../db'
+import { logger } from '../lib/logger'
+
+// Travel find-events: what a walker turns up on the road. The finds are rows
+// in `road_finds` (migration 20261121150000; CLAUDE.md §2, nouns are rows), so a
+// new find, its odds, or its lines are content. `region` is the island whose
+// roads turn it up, or null for any island. Read through a one-minute cache,
+// as the language filter's list is.
 
 export interface TravelEvent {
     id: string
-    region: string          // matches location.region, or 'global'
+    region: string | null   // matches location.region; null = any island
     itemName: string
     quantity: number
-    rarity: number          // 1-in-N chance per segment roll
+    rarity: number          // 1-in-N chance per minute of road
     messages: string[]      // journey-log flavor lines; one picked at random when it fires
 }
 
-export const TRAVEL_EVENTS: TravelEvent[] = [
-    {
-        id: 'daisy',
-        region: 'Taiar Island',
-        itemName: 'Daisy',
-        quantity: 1,
-        rarity: 10,
-        messages: [
-            'A scatter of daisies grew along the verge. You stooped to pick one as you passed.',
-            'A single daisy nodded in the breeze at the roadside. You plucked it without breaking stride.',
-            'You passed a sunlit patch of daisies and took one for the road.',
-            'A daisy had pushed up through a crack in the old path. You freed it and tucked it away.',
-        ],
-    },
-    {
-        id: 'taiaria',
-        region: 'Taiar Island',
-        itemName: 'Taiaria',
-        quantity: 1,
-        rarity: 25,
-        messages: [
-            'Half-hidden in the shaded grass, a Taiaria bloom caught the light. You gathered it carefully.',
-            'A Taiaria flower grew in the lee of a mossy stone. You knelt and picked it.',
-            'The pale petals of a Taiaria stood out against the green. You added it to your pack.',
-        ],
-    },
-    {
-        id: 'tals_hope',
-        region: 'Taiar Island',
-        itemName: "Tal's Hope",
-        quantity: 1,
-        rarity: 300,
-        messages: [
-            "You almost walked past it... a rare Tal's Hope, blooming alone at the roadside. A fortunate find.",
-            "A flash of unusual colour stopped you. A Tal's Hope, growing where little else dared. You gathered it gently.",
-        ],
-    },
-    {
-        // Learning Sending needs one (Talar; services/spells.ts vigils).
-        id: 'writ_of_sending',
-        region: 'Taiar Island',
-        itemName: 'Writ of Sending',
-        quantity: 1,
-        rarity: 500,
-        messages: [
-            'A letter lay folded in the grass by the milestone, its grey seal unbroken. Nobody was in sight to claim it.',
-            'Caught in a bramble at the roadside was a sealed letter, weathered but whole. You worked it free.',
-            'A carrier had dropped something here once: a folded writ, still sealed, half-sunk in the verge.',
-        ],
-    },
-    {
-        id: 'tarnished_coin',
-        region: 'Taiar Island',
-        itemName: 'Tarnished Coin',
-        quantity: 1,
-        rarity: 50,
-        messages: [
-            'Something glinted in the dirt. You dug out an old tarnished coin, dropped here who-knows-when.',
-            'Your boot turned over a tarnished coin half-buried in the mud. You pocketed it.',
-            'A dull edge of metal in the path turned out to be an old coin, worn smooth by years.',
-        ],
-    },
-    {
-        id: 'chipped_arrowhead',
-        region: 'Taiar Island',
-        itemName: 'Chipped Arrowhead',
-        quantity: 1,
-        rarity: 500,
-        messages: [
-            'Among the fallen leaves lay a chipped flint arrowhead, the remnant of some long-forgotten hunt.',
-            'You spotted a chipped arrowhead wedged between two roots. It appears someone missed their mark here, long ago.',
-        ],
-    },
-    {
-        id: 'four_leaf_clover',
-        region: 'global',
-        itemName: 'Four-Leaf Clover',
-        quantity: 1,
-        rarity: 100000,
-        messages: [
-            'You froze mid-step. There, impossibly, among countless ordinary clovers... one with four leaves. Fortune itself smiled on this road.',
-            'A patch of clover like any other... except one. Four perfect leaves. You could hardly believe your eyes.',
-        ],
-    },
-]
+const CACHE_MS = 60_000
+let cache: TravelEvent[] = []
+let loadedAt = 0
+
+/** Every active road find, fresh to within a minute. */
+export async function loadRoadFinds(): Promise<TravelEvent[]> {
+    if (Date.now() - loadedAt < CACHE_MS) return cache
+    try {
+        const rows = await db('road_finds').where({ is_active: true }).orderBy('id')
+        cache = rows.map((r: any) => ({
+            id: r.key,
+            region: r.region ?? null,
+            itemName: r.item_name,
+            quantity: Number(r.quantity) || 1,
+            rarity: Math.max(1, Number(r.rarity) || 1),
+            messages: Array.isArray(r.messages) ? r.messages : JSON.parse(r.messages || '[]'),
+        }))
+    } catch (err) {
+        logger.error(`loadRoadFinds error: ${err}`)
+    }
+    loadedAt = Date.now()
+    return cache
+}
+
+/** The finds as last loaded, for callers that cannot wait (call loadRoadFinds first). */
+export function roadFindsCached(): TravelEvent[] {
+    return cache
+}
 
 export interface RolledEvent {
     message: string
@@ -109,9 +58,9 @@ export interface RolledEvent {
  * own rarity; the RAREST success in that segment wins. Segments can yield nothing.
  * The Wayfaring level gives a small nudge to odds (effective rarity shrinks slightly w/ level).
  */
-export function rollTravelEvents(baseTime: number, region: string, level: number = 1, boost: number = 1): RolledEvent[] {
+export async function rollTravelEvents(baseTime: number, region: string, level: number = 1, boost: number = 1): Promise<RolledEvent[]> {
     const segments = Math.max(1, Math.ceil(baseTime / 60))
-    const pool = TRAVEL_EVENTS.filter(e => e.region === region || e.region === 'global')
+    const pool = (await loadRoadFinds()).filter(e => e.region === region || e.region === null)
 
     // Level nudge: up to ~15% better odds by high level, capped. Tune freely.
     // A Wayfinder's Amulet multiplies it (services/jewelry.ts).

@@ -44,6 +44,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     items:                       { label: 'Items',                 group: 'Core',       snapshot: true, editable: true },
     locations:                   { label: 'Locations',             group: 'World',      snapshot: true, editable: true },
     location_connections:        { label: 'Location Connections',  group: 'World',      snapshot: true, editable: true },
+    road_finds:                  { label: 'Road Finds',            group: 'World',      snapshot: true, editable: true },
     npcs:                        { label: 'NPCs',                  group: 'World',      snapshot: true, editable: true },
     npc_dialogues:               { label: 'NPC Dialogues',         group: 'World',      snapshot: true, editable: true },
     resource_nodes:              { label: 'Resource Nodes',        group: 'Gathering',  snapshot: true, editable: true },

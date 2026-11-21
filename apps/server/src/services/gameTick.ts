@@ -950,7 +950,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         ? seaArrival.events.filter(e => e.itemName).map(e => ({ message: e.message, itemName: e.itemName as string, quantity: e.quantity }))
         : hasMountEquipped || cross
           ? []
-          : rollTravelEvents(baseTime, destRegion, lvl, wayfinder ? 1 + wayfinder.strength : 1)
+          : await rollTravelEvents(baseTime, destRegion, lvl, wayfinder ? 1 + wayfinder.strength : 1)
 
       // Add any found items to inventory (mirrors the gathering inventory-add
       // pattern). A sea arrival's strandline is already in the pack.

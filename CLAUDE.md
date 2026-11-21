@@ -144,6 +144,8 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **Leather** (Husbandry, cattle) is the mainline, five tiers. **Buckskin** (Hunting) is one item, yield-scaled by animal size, and cuts into tier-1 strips only.
 - **Feathers:** wild pheasant = trickle, farmed chickens = volume. **Other creatures may give feathers too** (Nathan, 2026-11-15, replacing "don't spread feathers to other skills"): an eagle that is fought drops them, as the Agropelter and a Bird Nest already do. Arrows were starved of feathers once, so more sources are welcome; check the supply when adding one.
 - **Bark** (sawing byproduct) supplies tannins; five barks map to five leather tiers.
+- **Sawing pays by the wood's tier:** 23 XP a saw, 31 from the wood's second rung (Lanai at Carpentry 13; `sawXpFor` in `services/carpentry.ts`; Nathan, 2026-11-21).
+- **Walking finds are rows** (`road_finds`, read through `loadRoadFinds` in `services/travelEvents.ts`): `region` an island or null for any; a new find is a row, never code.
 - **Cryptids are the rare tier** (Squonk, 0.5% weight). `notable` and `perishable` are per-drop data flags, never inferred.
 - **The wild economy is gated on itself** (bow → hunt → hide → leather → snare). **Foraging is the only thing that breaks the circle** (plant fiber → cordage; wild flax → linen → bowstring). Therefore **every tool that can break must have a path that doesn't need that tool**: a public bench (which lends all its tools and never wears them) or a merchant shelf. Tools wear since 2026-11-08 because this held; a new tool must keep it. Sinew is fine as a drop, never as the bowstring.
 

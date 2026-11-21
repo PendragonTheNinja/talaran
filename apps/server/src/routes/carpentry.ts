@@ -5,6 +5,7 @@ import { botCheckGate } from '../services/botCheck';
 import {
     getCarpentryWorkstation, canSawHere,
     SAW_RECIPES,
+    sawXpFor,
 } from '../services/carpentry';
 import { levelFromXp } from '../services/xp';
 import { processingTimerFor } from '../services/recipes';
@@ -44,7 +45,9 @@ router.get('/recipes', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
         const level = await carpentryLevel(playerId);
-        res.json({ sawRecipes: SAW_RECIPES, level });
+        // Each recipe's XP as this sawyer would be paid it (services/carpentry.ts sawXpFor).
+        const sawRecipes = Object.fromEntries(Object.entries(SAW_RECIPES).map(([k, r]) => [k, { ...r, xp: sawXpFor(r, level) }]));
+        res.json({ sawRecipes, level });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
