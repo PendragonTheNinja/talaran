@@ -11,6 +11,7 @@
     "content:import": "ts-node src/scripts/importContent.ts",
     "values:derive": "ts-node --transpile-only src/scripts/deriveValues.ts",
     "combat:derive": "ts-node --transpile-only src/scripts/deriveCreatureXp.ts",
+    "icons:make": "ts-node --transpile-only src/scripts/makeIcons.ts",
     "items:audit": "ts-node --transpile-only src/scripts/auditItemCoverage.ts",
     "race:check": "ts-node --transpile-only src/scripts/raceCheck.ts",
     "filter:check": "ts-node --transpile-only src/scripts/filterCheck.ts",

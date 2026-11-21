@@ -27,3 +27,7 @@ apps/server/uploads/
 
 # Source art lives in art/; anything in public/ is published to the site
 apps/client/public/**/*.psd
+
+# Raw icon art waiting for pnpm icons:make (apps/server/src/scripts/makeIcons.ts): the
+# finished icons land in apps/client/public/images/items, which is what gets committed.
+design/icon-inbox/
