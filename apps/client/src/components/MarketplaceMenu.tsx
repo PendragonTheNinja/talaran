@@ -67,6 +67,8 @@ interface Quote {
 }
 
 interface MarketplaceMenuProps {
+    /** The market's name, from the location payload ("Taiar Marketplace", "Mettlefell Market"). */
+    name: string
     onClose: () => void
     onGoldChanged?: (gold: number) => void
 }
@@ -183,7 +185,7 @@ export function QtyPicker({ value, max, onChange }: { value: number; max: number
     )
 }
 
-export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceMenuProps) {
+export default function MarketplaceMenu({ name, onClose, onGoldChanged }: MarketplaceMenuProps) {
     // Item tooltips, shared with the pack.
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [merchants, setMerchants] = useState<Merchant[]>([])
@@ -236,7 +238,7 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
         // server unless an active quest is asking for it.
         apiFetch('/api/quests/visit', {
             method: 'POST',
-            body: JSON.stringify({ target: 'Taiar Marketplace' }),
+            body: JSON.stringify({ target: name }),
         }).catch(() => { })
         apiFetch<{ gold: number; merchants: Merchant[] }>('/api/marketplace')
             .then(data => {
@@ -252,7 +254,8 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
             })
             .catch(err => { if (!cancelled) { setError(err.message); setLoading(false) } })
         return () => { cancelled = true }
-    }, [])
+        // The market's name is fixed for the panel's life (it closes on travel).
+    }, [name])
 
     const loadMerchant = useCallback(async (merchantId: number, which: 'buy' | 'sell') => {
         setError(null)
@@ -377,7 +380,7 @@ export default function MarketplaceMenu({ onClose, onGoldChanged }: MarketplaceM
         <div className="mkt-overlay" {...backdropClose(onClose)}>
             <div className="mkt-modal" onClick={e => e.stopPropagation()}>
                 <div className="mkt-header">
-                    <h2>Taiar Marketplace</h2>
+                    <h2>{name}</h2>
                     <div className="mkt-header-right">
                         <span className="mkt-purse">{fmt(gold)}<span className="mkt-purse-unit">g</span></span>
                         <button className="mkt-close" onClick={onClose}>✕</button>

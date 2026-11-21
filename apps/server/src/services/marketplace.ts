@@ -181,6 +181,8 @@ const TYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
 const TOOL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     pickaxe: 'smith', axe: 'smith', hammer: 'smith', tongs: 'smith', anvil: 'smith',
     saw: 'smith', plane: 'smith', hoe: 'smith', butcher_knife: 'smith',
+    // The scythe (2026-11-12) was forged but never mapped, so the smith sold it and would not buy it back.
+    scythe: 'smith',
     foraging_knife: 'smith',
     // Cooking's irons, all forged at the anvil.
     cauldron: 'smith', skillet: 'smith', cooking_knife: 'smith', meat_cleaver: 'smith',
@@ -205,6 +207,8 @@ const MATERIAL_SUBTYPE_DOMAINS: Partial<Record<string, MerchantKey>> = {
     feather: 'leatherworker', cloth: 'leatherworker', fiber: 'leatherworker',
     bark: 'carpenter', shaft: 'carpenter', tool_rod: 'carpenter', reed: 'carpenter',
     stone: 'smith', component: 'smith',
+    // A fishing hook is forged, and was the same gap as the scythe.
+    hook: 'smith',
     herb: 'provisioner', berry: 'provisioner', flower: 'provisioner', mushroom: 'provisioner',
     fungus: 'provisioner', nut: 'provisioner', root: 'provisioner', seed: 'provisioner',
     grain: 'provisioner', produce: 'provisioner', foodstuff: 'provisioner',
@@ -300,11 +304,11 @@ export async function unmappedItems(): Promise<UnmappedItem[]> {
             .whereNotNull('value')
             .where({ is_active: true })
             .select('id', 'name', 'type', 'subtype'),
-        db('merchants').select('key', 'is_active'),
+        db('merchants').select('key', 'trade', 'is_active'),
     ]);
 
     const trading = new Set<string>(
-        merchants.filter((m: any) => m.is_active).map((m: any) => String(m.key)),
+        merchants.filter((m: any) => m.is_active).map((m: any) => String(m.trade ?? m.key)),
     );
 
     const out: UnmappedItem[] = [];
@@ -345,6 +349,7 @@ export async function validateShelves(): Promise<string[]> {
         .where('items.is_active', true)
         .select(
             'merchants.key as merchantKey',
+            'merchants.trade as merchantTrade',
             'merchants.name as merchantName',
             'items.name as itemName',
             'items.type as type',
@@ -354,7 +359,7 @@ export async function validateShelves(): Promise<string[]> {
     const problems: string[] = [];
     for (const r of rows as any[]) {
         const domain = merchantForItem(r);
-        if (domain !== r.merchantKey) {
+        if (domain !== (r.merchantTrade ?? r.merchantKey)) {
             problems.push(
                 `${r.merchantName} (${r.merchantKey}) stocks ${r.itemName}, which belongs to ${domain}. `
                 + `He sells it and will not buy it back.`,

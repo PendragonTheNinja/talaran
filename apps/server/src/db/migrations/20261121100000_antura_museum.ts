@@ -17,7 +17,7 @@ import { exhibitFor } from '../../lib/museumPlacement';
 const ISLAND = 'Antura';
 
 const ANTURA_ITEMS = [
-    'Rough Amethyst', 'Serph Ore', 'Serph Ingot', 'Serph Nails', 'Serph Hook', 'Serph Arrow',
+    'Rough Amethyst', 'Serph Ore', 'Serph Ingot', 'Serph Pickaxe', 'Serph Hatchet', 'Serph Nails', 'Serph Hook', 'Serph Arrow',
     'Serph Hoe', 'Serph Ladle', 'Serph Foraging Knife', 'Serph Butchering Knife', 'Serph Gem Chisel', "Serph Jeweller's Pliers",
     'Serph Anvil', 'Serph Cauldron', 'Serph Cooking Knife', 'Serph Flesh Hook', 'Serph Hammer', 'Serph Meat Cleaver', 'Serph Plane',
     'Serph Saw', 'Serph Tinderbox', 'Serph Tongs', 'Serph Skillet', 'Serph Scythe', 'Serph Fishing Rod',

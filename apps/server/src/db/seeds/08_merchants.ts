@@ -23,6 +23,15 @@ import type { Knex } from 'knex';
 
 interface MerchantSeed {
     key: string;
+    /** Where they stand; Talador (LOCATION) when unset. */
+    location?: string;
+    /**
+     * What they deal in (merchants.trade): the domain they buy from in
+     * services/marketplace.ts. The key when unset, as it was while every
+     * merchant stood in Talador; Antura's smith is key 'mettlefell_smith',
+     * trade 'smith'.
+     */
+    trade?: string;
     name: string;
     title: string;
     greeting: string;
@@ -168,6 +177,139 @@ const MERCHANTS: MerchantSeed[] = [
         display_order: 5,
         stock: [],
     },
+    // ── Antura (docs/antura-plan.md §2): the tool merchants in Mettlefell, the
+    // rest at the Wendhaven quay. Same trades as Talador's, so each buys what
+    // its namesake does; names are Claude's, for Nathan to change.
+    {
+        key: 'mettlefell_smith',
+        location: 'Mettlefell',
+        trade: 'smith',
+        name: 'Wystan',
+        title: 'Smith of Mettlefell',
+        greeting: 'Serph rings truer than Ambren. Bring me ore out of Underway and I will pay for it.',
+        buy_rate: 0.45,
+        buys_anything: false,
+        sells: true,
+        is_active: true,
+        display_order: 1,
+        stock: [
+            'Serph Pickaxe',
+            'Serph Hatchet',
+            'Serph Hammer',
+            'Serph Tongs',
+            'Serph Saw',
+            'Serph Plane',
+            'Serph Hoe',
+            'Serph Scythe',
+            'Serph Foraging Knife',
+            'Serph Butchering Knife',
+            'Serph Hook',
+            'Serph Tinderbox',
+            'Serph Cauldron',
+            'Serph Skillet',
+            'Serph Cooking Knife',
+            'Serph Meat Cleaver',
+            'Serph Ladle',
+            'Serph Flesh Hook',
+            'Serph Anvil',
+            'Serph Daggers',
+            'Serph Hand Axes',
+            'Serph War Hammers',
+            'Serph Spear',
+            'Serph Scimitar',
+            'Serph Mace',
+            'Serph Atgeir',
+            'Serph Greatsword',
+            'Serph Maul',
+            'Serph Bracers',
+            'Serph Boots',
+            'Serph Coif',
+            'Serph Buckler',
+            'Serph Chausses',
+            'Serph Hauberk',
+            'Serph Gauntlets',
+            'Serph Sabatons',
+            'Serph Helm',
+            'Serph Kite Shield',
+            'Serph Greaves',
+            'Serph Cuirass',
+        ],
+    },
+    {
+        key: 'mettlefell_carpenter',
+        location: 'Mettlefell',
+        trade: 'carpenter',
+        name: 'Ashby',
+        title: 'Carpenter of Mettlefell',
+        greeting: 'Lanai comes over on the ferry and leaves here as something useful.',
+        buy_rate: 0.45,
+        buys_anything: false,
+        sells: true,
+        is_active: true,
+        display_order: 2,
+        stock: [
+            'Lanai Mallet',
+            'Lanai Bucket',
+            'Lanai Sawhorse',
+            'Feed Pail',
+            'Mucking Fork',
+            'Serph Fishing Rod',
+            'Lanai Staff',
+            'Lanai Hunting Bow',
+        ],
+    },
+    {
+        key: 'wendhaven_leatherworker',
+        location: 'Wendhaven',
+        trade: 'leatherworker',
+        name: 'Maude',
+        title: 'Craftswoman of Wendhaven',
+        greeting: 'Pelts off the passes, scales off the headlands. I will work anything that does not bite back.',
+        buy_rate: 0.45,
+        buys_anything: false,
+        sells: true,
+        is_active: true,
+        display_order: 1,
+        stock: [
+            'Leather Boots',
+            'Leather Foraging Gloves',
+            'Halter & Lead',
+            'Snare',
+            'Foraging Basket',
+            'Fishing Net',
+            'Straw Skep',
+            'Granite Mortar and Pestle',
+        ],
+    },
+    {
+        // Buyer only, as Hettie is in Talador: Antura's fish, crops, and cooking.
+        key: 'wendhaven_provisioner',
+        location: 'Wendhaven',
+        trade: 'provisioner',
+        name: 'Gil',
+        title: 'Provisioner of Wendhaven',
+        greeting: 'Whatever comes off the boats or out of Farefield, I will take a look at it.',
+        buy_rate: 0.45,
+        buys_anything: false,
+        sells: false,
+        is_active: true,
+        display_order: 2,
+        stock: [],
+    },
+    {
+        key: 'wendhaven_pawnbroker',
+        location: 'Wendhaven',
+        trade: 'pawnbroker',
+        name: 'Osric',
+        title: 'Pawnbroker of Wendhaven',
+        greeting: 'Sailors sell me all sorts. You can sell me all sorts too, at a price.',
+        buy_rate: 0.35,
+        buys_anything: true,
+        sells: false,
+        is_active: true,
+        display_order: 3,
+        stock: [],
+    },
 ];
 
 // Units of a line one player may buy per day. Rolled per item per day between
@@ -176,8 +318,12 @@ const LINE_MIN_QTY = 1;
 const LINE_MAX_QTY = 3;
 
 export async function seed(knex: Knex): Promise<void> {
-    const location = await knex('locations').where({ name: LOCATION }).first();
-    if (!location) throw new Error(`Merchant seed: no location named ${LOCATION}.`);
+    const locationIds = new Map<string, number>();
+    for (const name of new Set(MERCHANTS.map(m => m.location ?? LOCATION))) {
+        const location = await knex('locations').where({ name }).first('id');
+        if (!location) throw new Error(`Merchant seed: no location named ${name}.`);
+        locationIds.set(name, location.id);
+    }
 
     // Resolve every name up front so a typo fails before anything is written.
     const wanted = new Set<string>();
@@ -199,7 +345,8 @@ export async function seed(knex: Knex): Promise<void> {
             name: m.name,
             title: m.title,
             greeting: m.greeting,
-            location_id: location.id,
+            location_id: locationIds.get(m.location ?? LOCATION)!,
+            trade: m.trade ?? m.key,
             buy_rate: m.buy_rate,
             buys_anything: m.buys_anything,
             sells: m.sells,

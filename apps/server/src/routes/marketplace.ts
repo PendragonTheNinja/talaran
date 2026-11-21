@@ -126,7 +126,7 @@ router.get('/:merchantId/sellable', requireAuth, async (req: AuthRequest, res: R
             return;
         }
 
-        const merchantKey = presence.merchant.key as MerchantKey;
+        const merchantKey = (presence.merchant.trade ?? presence.merchant.key) as MerchantKey;
         const dayKey = gameDayKey();
 
         const rows = await db('player_inventory')
@@ -217,7 +217,7 @@ router.post('/quote', requireAuth, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const rate = buyRateFor(presence.merchant.key as MerchantKey, merchantForItem(item));
+        const rate = buyRateFor((presence.merchant.trade ?? presence.merchant.key) as MerchantKey, merchantForItem(item));
         if (rate === null) {
             res.status(400).json({ error: 'That is not this merchant\'s trade.' });
             return;
@@ -267,7 +267,7 @@ router.post('/sell', requireAuth, requireTrusted, async (req: AuthRequest, res: 
             return;
         }
 
-        const rate = buyRateFor(presence.merchant.key as MerchantKey, merchantForItem(item));
+        const rate = buyRateFor((presence.merchant.trade ?? presence.merchant.key) as MerchantKey, merchantForItem(item));
         if (rate === null) {
             res.status(400).json({ error: 'That is not this merchant\'s trade.' });
             return;

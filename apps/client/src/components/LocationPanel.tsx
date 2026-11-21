@@ -129,7 +129,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // An island's homestead ground and its port with player shops, as the server marks them (services/islands.ts).
   const isHomestead = !!locationData?.homesteadHere
   const hasShops = !!locationData?.shopsHere
-  const isTalador = location?.name === 'Talador'
 
   useEffect(() => {
     if (hasShops) refreshShopBadge()
@@ -646,9 +645,10 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         )}
 
-        {isTalador && (
+        {/* Merchants here (routes/location.ts names the market). */}
+        {locationData?.marketName && (
           <button className="location-action-btn" onClick={() => setMarketplaceOpen(true)}>
-            Taiar Marketplace →
+            {locationData.marketName} →
           </button>
         )}
 
@@ -1228,6 +1228,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
       {marketplaceOpen && (
         <MarketplaceMenu
+          name={locationData?.marketName ?? 'Marketplace'}
           onClose={() => setMarketplaceOpen(false)}
           onGoldChanged={handleGoldChanged}
         />

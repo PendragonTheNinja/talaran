@@ -158,6 +158,19 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     // A tavern here (the Salty Sloth, Talador: docs/chronicle-spec.md §2).
     const tavern = await db('taverns').where({ location_id: player.current_location_id }).first('id', 'name', 'description', 'bard_npc_id');
 
+    // Merchants here, and what to call their market: an island's only market
+    // town takes the island's name ("Taiar Marketplace"); where an island has
+    // several (Antura's Mettlefell and Wendhaven), each takes its own town's.
+    let marketName: string | null = null;
+    const merchantsHere = await db('merchants').where({ location_id: player.current_location_id, is_active: true }).first('id');
+    if (merchantsHere) {
+      const towns = await db('merchants as m').join('locations as l', 'l.id', 'm.location_id')
+        .where({ 'm.is_active': true, 'l.region': currentLocation.region ?? null }).countDistinct('m.location_id as n').first();
+      marketName = Number(towns?.n ?? 0) <= 1 && currentLocation.region
+        ? `${String(currentLocation.region).replace(/ Island$/, '')} Marketplace`
+        : `${currentLocation.name} Market`;
+    }
+
     // Whether this is an island's homestead ground or its port with player
     // shops (services/islands.ts), so the client never matches on a town's name.
     const towns = await islandTowns();
@@ -175,6 +188,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       guildHallHere,
       eventStandings,
       tavern: tavern ?? null,
+      marketName,
       nodes,
       connections,
       allLocations,
