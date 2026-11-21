@@ -210,23 +210,28 @@ export async function donate(playerId: number, caseIdRaw: unknown): Promise<
  * missing, at the end of each exhibit, and never moves a case or touches a
  * donation.
  *
- * Only while there is one museum: an item belongs to the island it is found
- * on, and nothing records that until someone finds it (placeNewItem).
+ * Each item goes to its own island's museum (items.island, set by the
+ * migration that adds it; null is Taiar's, the first museum). An item whose
+ * island has no museum yet waits.
  */
 export async function fillMissingCases(): Promise<number> {
     try {
-        const museums = await db('museums').select('id', 'name');
-        if (museums.length !== 1) return 0;
-        const exhibits = await db('museum_exhibits').where({ museum_id: museums[0].id });
+        const museums = await db('museums').orderBy([{ column: 'display_order' }, { column: 'id' }]).select('id', 'name', 'island');
+        if (!museums.length) return 0;
+        const first = museums[0];
+        const exhibitsOf = new Map<number, any[]>();
+        for (const m of museums) exhibitsOf.set(m.id, await db('museum_exhibits').where({ museum_id: m.id }));
         const items = await db('items as i')
             .leftJoin('museum_cases as c', 'c.item_id', 'i.id')
             .whereNull('c.id')
             .where('i.is_active', true).where('i.value', '>', 0).whereNot('i.name', 'Gold')
             .orderBy([{ column: 'i.tier' }, { column: 'i.name' }])
-            .select('i.id', 'i.name', 'i.type', 'i.subtype');
+            .select('i.id', 'i.name', 'i.type', 'i.subtype', 'i.island');
         let added = 0;
         for (const item of items) {
-            const exhibitId = exhibitFor(item, exhibits);
+            const museum = item.island ? museums.find(m => m.island === item.island) : first;
+            if (!museum) continue;
+            const exhibitId = exhibitFor(item, exhibitsOf.get(museum.id) ?? []);
             if (exhibitId === null) continue;
             const [{ max }] = await db('museum_cases').where({ exhibit_id: exhibitId }).max('display_order as max');
             const inserted = await db('museum_cases')
@@ -235,7 +240,7 @@ export async function fillMissingCases(): Promise<number> {
                 .returning('id');
             added += inserted.length;
         }
-        if (added) logger.info(`[museum] ${added} missing case(s) added to ${museums[0].name}`);
+        if (added) logger.info(`[museum] ${added} missing case(s) added`);
         return added;
     } catch (err) {
         logger.error(`[museum] filling missing cases failed: ${err}`);
@@ -255,9 +260,11 @@ export async function placeNewItem(itemId: number, playerId: number, source?: st
         const item = await db('items').where({ id: itemId }).first();
         if (!item || !item.is_active || item.name === 'Gold') return;
         if (await db('museum_cases').where({ item_id: itemId }).first()) return;
+        // The item's own island first (items.island); else where it was found.
         const where = await db('players as p').join('locations as l', 'l.id', 'p.current_location_id')
             .where('p.id', playerId).select('l.region').first();
-        const museum = where?.region ? await db('museums').where({ island: where.region }).first() : null;
+        const island = item.island ?? where?.region ?? null;
+        const museum = island ? await db('museums').where({ island }).first() : null;
         if (!museum) return;
         const exhibits = await db('museum_exhibits').where({ museum_id: museum.id });
         const exhibitId = exhibitFor(item, exhibits);
