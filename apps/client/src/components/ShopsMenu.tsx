@@ -5,6 +5,7 @@ import './ShopsMenu.css'
 import { useItemTooltip } from './ItemTooltip'
 import { backdropClose } from '../lib/backdrop'
 import ErrorLine from './ErrorLine'
+import HireSection from './HireSection'
 
 // Player Shops (docs/marketplace-spec.md §4).
 //
@@ -86,7 +87,8 @@ interface ShopsMenuProps {
      * action row exists on the server and the player sees nothing happen, then
      * gets told they are already busy when they try again.
      */
-    onActionStarted?: (timerSeconds: number) => void
+    /** Hands a started build to the game view timer; a hired build says which action it runs as. */
+    onActionStarted?: (timerSeconds: number, actionType?: string) => void
 }
 
 const fmt = (n: number) => n.toLocaleString('en-US')
@@ -358,6 +360,9 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                                 {!build.atTown && <p className="shp-warn">You must be in {build.town} to build here.</p>}
                             </div>
                         )}
+
+                        {/* ── Hiring a carpenter, or work hired for ───────────── */}
+                        <HireSection kind="shop" onStarted={(secs, type) => { changedRef.current?.(); onActionStarted?.(secs, type); onClose() }} />
                     </>
                 )}
 

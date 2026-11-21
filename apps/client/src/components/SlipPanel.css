@@ -44,3 +44,8 @@
     font-weight: 600;
     color: var(--color-text-bright);
 }
+
+/* A material the carpenter is still short of (HireSection.tsx). */
+.hall-short {
+    color: var(--color-red-glow);
+}

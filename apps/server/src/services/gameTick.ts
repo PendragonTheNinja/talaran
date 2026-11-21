@@ -1,3 +1,4 @@
+import { hireIdOf, resolveHireBuild } from './hires';
 import { Server } from 'socket.io';
 import db from '../db';
 import { logger } from '../lib/logger';
@@ -553,7 +554,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
 
         let farmResult;
-        if (action.action_type === 'farm_establish') farmResult = await resolveEstablish(action.player_id, action.action_data);
+        // A carpenter hired by another player (services/hires.ts).
+        const farmHire = hireIdOf(action.action_data);
+        if (farmHire && (action.action_type === 'farm_establish' || action.action_type === 'farm_upgrade')) farmResult = await resolveHireBuild(action.player_id, farmHire);
+        else if (action.action_type === 'farm_establish') farmResult = await resolveEstablish(action.player_id, action.action_data);
         else if (action.action_type === 'farm_upgrade') farmResult = await resolveUpgrade(action.player_id, action.action_data);
         else if (action.action_type === 'farm_build_plot') farmResult = await resolveBuildPlot(action.player_id);
         else if (action.action_type === 'farm_till') farmResult = await resolveTill(action.player_id, action.action_data);
@@ -631,7 +635,10 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         // action first, resolve it, then report.
         await db('player_actions').where({ id: action.id }).delete();
 
-        const shopResult = action.action_type === 'shop_upgrade'
+        const shopHire = hireIdOf(action.action_data);
+        const shopResult = shopHire
+          ? await resolveHireBuild(action.player_id, shopHire)
+          : action.action_type === 'shop_upgrade'
           ? await resolveUpgradeShop(action.player_id, action.action_data)
           : await resolveEstablishShop(action.player_id, action.action_data);
         if (!shopResult.success) {

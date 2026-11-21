@@ -443,6 +443,39 @@ async function balladVerses(ctx: Ctx) {
     }
 }
 
+/**
+ * Pendragon wanting a tier 1 shop in Talador (Taiar's port, the islands
+ * fallback), and Wright, a carpenter standing there with a mallet and saw
+ * and materials for two shops in his pack. With `fee`, the hire is already made.
+ */
+async function propertyHireWorld(ctx: Ctx, fee: number | null = null) {
+    const w = await world(ctx);
+    await ctx.seed.row('skills', { name: 'Carpentry' });
+    const wright = await ctx.seed.row('players', { username: 'Wright', email: 'wright@racecheck.test', current_location_id: w.town.id });
+    const mallet = await ctx.seed.row('items', { name: 'Lanai Mallet', type: 'tool', subtype: 'mallet', slot: 'mainhand' });
+    const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand' });
+    await ctx.seed.row('player_equipment', { player_id: wright.id, mainhand_item_id: mallet.id, offhand_item_id: saw.id });
+    const planks = await ctx.seed.row('items', { name: 'Lanai Planks', type: 'material' });
+    const blocks = await ctx.seed.row('items', { name: 'Granite Block', type: 'material' });
+    const nails = await ctx.seed.row('items', { name: 'Ambren Nails', type: 'material' });
+    await inPack(ctx, wright.id, planks.id, 700);
+    await inPack(ctx, wright.id, blocks.id, 700);
+    await inPack(ctx, wright.id, nails.id, 1400);
+    const hire = fee === null ? null : await ctx.seed.row('property_hires', {
+        owner_id: w.player.id, carpenter_id: wright.id, kind: 'shop', work: 'establish', tier: 1, location_id: w.town.id, fee_gold: fee,
+    });
+    return { w, wright, planks, hire };
+}
+
+/** Shops Pendragon owns, and gold anywhere in a hire's keeping: the owner's, the carpenter's, and the fee laid. */
+async function hireTally(ctx: Ctx, h: Awaited<ReturnType<typeof propertyHireWorld>>) {
+    const shops = Number((await ctx.db('player_shops as s').join('player_properties as p', 'p.id', 's.property_id')
+        .where('p.player_id', h.w.player.id).count({ n: '*' }).first())?.n ?? 0);
+    const laid = Number((await ctx.db('property_hires').sum({ g: 'fee_gold' }).first())?.g ?? 0);
+    const gold = (await goldOf(ctx, h.w.player.id)) + (await goldOf(ctx, h.wright.id)) + laid;
+    return { shops, gold, planks: await ctx.itemTotal(h.planks.id) };
+}
+
 /** A burst where the number of successes legitimately varies: only server errors fail it. */
 function noServerErrors(statuses: number[]): string | null {
     const errors = statuses.filter((s) => s >= 500).length;
@@ -2440,6 +2473,75 @@ const SCENARIOS: Scenario[] = [
             return changed('chits', 3, Number(p?.crier_chits ?? -1))
                 ?? changed('ledger rows', 1, Number(n))
                 ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'property-hire', name: 'an owner hires a carpenter for 30 gold five times at once, with 100', rounds: 10,
+        run: async (ctx) => {
+            // services/hires.ts offerHire: one hire a place, the fee leaving
+            // the owner as it is laid, and the ledger following.
+            const h = await propertyHireWorld(ctx);
+            await fund(ctx, h.w.player.id, 100);
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/hires', { kind: 'shop', work: 'establish', tier: 1, carpenter: 'Wright', fee: 30 }));
+            const hires = Number((await ctx.db('property_hires').count({ n: '*' }).first())?.n ?? 0);
+            const t = await hireTally(ctx, h);
+            return noServerErrors(st)
+                ?? changed('hires made', 1, hires)
+                ?? changed('gold with the owner and laid as a fee together', 100, t.gold)
+                ?? changed('gold left with the owner', 70, await goldOf(ctx, h.w.player.id))
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'property-hire', name: 'an owner calls off a hire with a 100 gold fee five times at once', rounds: 10,
+        run: async (ctx) => {
+            const h = await propertyHireWorld(ctx, 100);
+            const st = await ctx.burst(h.w.player.id, 5, () => ctx.post(h.w.player.id, '/hires/cancel', { kind: 'shop' }));
+            return noServerErrors(st)
+                ?? changed('gold returned to the owner', 100, await goldOf(ctx, h.w.player.id))
+                ?? changed('gold anywhere', 100, (await hireTally(ctx, h)).gold)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'property-hire', name: 'a hired shop finishes five times at once, with materials for two', rounds: 10,
+        run: async (ctx) => {
+            // The hire row is the gate: the finish deletes it, so the fee is
+            // paid and the materials taken once. The tick claims each action
+            // once; this is the guard if two finishes ever meet.
+            const h = await propertyHireWorld(ctx, 100);
+            const { resolveHireBuild } = await import('../services/hires');
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => resolveHireBuild(h.wright.id, h.hire!.id)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error === 'Server error')).length;
+            const t = await hireTally(ctx, h);
+            return (crashed ? `${crashed} finish(es) hit a server error` : null)
+                ?? changed('shops raised', 1, t.shops)
+                ?? changed('gold paid to the carpenter', 100, await goldOf(ctx, h.wright.id))
+                ?? changed('planks left in the pack', 350, t.planks)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'property-hire', name: 'an owner calls off a hire while it finishes', rounds: 20,
+        run: async (ctx) => {
+            // Either the shop stands and the carpenter is paid, or neither,
+            // and the owner has the fee back: never both, never neither.
+            const h = await propertyHireWorld(ctx, 100);
+            await ctx.warm(h.w.player.id);
+            const { resolveHireBuild } = await import('../services/hires');
+            const [st] = await Promise.all([
+                ctx.post(h.w.player.id, '/hires/cancel', { kind: 'shop' }),
+                resolveHireBuild(h.wright.id, h.hire!.id),
+            ]);
+            const t = await hireTally(ctx, h);
+            const owner = await goldOf(ctx, h.w.player.id);
+            const paid = await goldOf(ctx, h.wright.id);
+            return noServerErrors([st])
+                ?? changed('gold anywhere', 100, t.gold)
+                ?? (t.shops === 1 && (paid !== 100 || t.planks !== 350) ? `the shop stands, but the carpenter has ${paid} gold and ${t.planks} planks` : null)
+                ?? (t.shops === 0 && (owner !== 100 || t.planks !== 700) ? `no shop, but the owner has ${owner} gold and ${t.planks} planks are left` : null)
+                ?? (t.shops > 1 ? `${t.shops} shops raised` : null)
+                ?? await ledgerProblem(ctx);
         },
     },
 ];

@@ -4,7 +4,7 @@ import { noteDeed, SHOP_BIG_SALE_GOLD } from './chronicle';
 import { logger } from '../lib/logger';
 import { levelFromXp } from './xp';
 import { incrementStats } from './stats';
-import { activeXpForSeconds } from './farming';
+import { buildXpFor } from './farming';
 import { missingBuildTool } from './construction';
 import { creditGoldWithin, debitGoldWithin, lockPlayersInOrder } from './gold';
 import { addItemToInventoryWithin, removeItemFromInventoryWithin, takeItemsWithin } from './inventory';
@@ -44,7 +44,6 @@ export const ESTABLISH_COST = [
 ];
 
 export const ESTABLISH_SECONDS = 480;
-const ESTABLISH_XP_BONUS = 1.25;   // matches the farmstead: building pays a little over
 
 // Per-tier numbers (docs/antura-plan.md §6; Nathan, 2026-11-17). Tier 2 is
 // built outright or upgraded from tier 1, Carpentry 13 either way, in any
@@ -294,7 +293,69 @@ export async function startUpgradeShop(playerId: number): Promise<{ ok: boolean;
     return { ok: true, timerSeconds: started };
 }
 
-class ShopUpgradeAbort extends Error {}
+export class ShopUpgradeAbort extends Error {}
+
+/**
+ * Put up a shop for `ownerId` in `townId`, inside the caller's transaction,
+ * which has already taken the materials. Shared by a player's own build and a
+ * hired carpenter's (services/hires.ts).
+ */
+export async function raiseShopWithin(trx: any, ownerId: number, townId: number, tierNo: number, ownerName: string): Promise<void> {
+    const tier = SHOP_TIERS[tierNo];
+    if (!tier) throw new ShopUpgradeAbort('There is no shop of that kind to raise.');
+    // A property with no shopfront is a half-built shop. Reuse it
+    // rather than inserting a second: this establish is transactional
+    // so it cannot create that state itself, but anything that removed
+    // a shopfront row leaves one behind, and the player is then stuck
+    // between a panel offering to build and a guard refusing to. Repair
+    // is the only outcome that gets them moving again.
+    const dangling = await trx('player_properties')
+        .where({ player_id: ownerId, type: 'shop', location_id: townId })
+        .first();
+
+    let propertyId: number;
+    if (dangling) {
+        propertyId = dangling.id;
+        await trx('player_properties').where({ id: dangling.id }).update({ tier: tierNo, storage_slots: tier.storageSlots });
+        logger.warn(`Player ${ownerId} had a shop property with no shopfront; completing it`);
+    } else {
+        const [row] = await trx('player_properties').insert({
+            player_id: ownerId,
+            location_id: townId,
+            type: 'shop',
+            tier: tierNo,
+            plot_slots: 0,
+            storage_slots: tier.storageSlots,
+        }).returning('id');
+        propertyId = typeof row === 'object' ? row.id : row;
+    }
+
+    await trx('player_shops').insert({
+        property_id: propertyId,
+        name: DEFAULT_SHOP_NAME(ownerName),
+        description: null,
+        sell_slots: tier.sellSlots,
+        buy_slots: tier.buySlots,
+    });
+}
+
+/**
+ * Raise a shop to `tierNo`. The tier flip is the gate, so an upgrade is paid
+ * for once; a shop no longer at the tier below throws ShopUpgradeAbort.
+ */
+export async function upgradeShopWithin(trx: any, propertyId: number, tierNo: number): Promise<void> {
+    const t = shopTier(tierNo);
+    const from = shopTier(tierNo - 1);
+    if (!t?.upgrade || !from) throw new ShopUpgradeAbort('There is nothing more to build on.');
+    const flipped = await trx('player_properties')
+        .where({ id: propertyId, tier: tierNo - 1, type: 'shop' })
+        .update({ tier: tierNo, storage_slots: trx.raw('COALESCE(storage_slots, ?) + ?', [from.storageSlots, t.storageSlots - from.storageSlots]) });
+    if (flipped !== 1) throw new ShopUpgradeAbort('That work is already done.');
+    await trx('player_shops').where({ property_id: propertyId }).update({
+        sell_slots: trx.raw('sell_slots + ?', [t.sellSlots - from.sellSlots]),
+        buy_slots: trx.raw('buy_slots + ?', [t.buySlots - from.buySlots]),
+    });
+}
 
 export async function resolveUpgradeShop(playerId: number, tierRaw: string | null): Promise<ShopActionResult> {
     try {
@@ -311,14 +372,7 @@ export async function resolveUpgradeShop(playerId: number, tierRaw: string | nul
         // The tier flip is the gate, so an upgrade is paid for once.
         try {
             await db.transaction(async (trx) => {
-                const flipped = await trx('player_properties')
-                    .where({ id: found.property.id, tier: Number(tierRaw) - 1 })
-                    .update({ tier: Number(tierRaw), storage_slots: trx.raw('COALESCE(storage_slots, ?) + ?', [from.storageSlots, t.storageSlots - from.storageSlots]) });
-                if (flipped !== 1) throw new ShopUpgradeAbort('That work is already done.');
-                await trx('player_shops').where({ id: found.shop.id }).update({
-                    sell_slots: trx.raw('sell_slots + ?', [t.sellSlots - from.sellSlots]),
-                    buy_slots: trx.raw('buy_slots + ?', [t.buySlots - from.buySlots]),
-                });
+                await upgradeShopWithin(trx, found.property.id, Number(tierRaw));
                 const took = await takeItemsWithin(trx, playerId, upgrade.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
                 if (!took.ok) throw new ShopUpgradeAbort('You no longer have the materials.');
             });
@@ -328,7 +382,7 @@ export async function resolveUpgradeShop(playerId: number, tierRaw: string | nul
         }
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
-        const xp = Math.round(activeXpForSeconds(carpLvl, upgrade.seconds) * ESTABLISH_XP_BONUS);
+        const xp = buildXpFor(carpLvl, upgrade.seconds);
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1 });
         logger.info(`Player ${playerId} raised their shop to tier ${tierRaw}`);
@@ -370,46 +424,13 @@ export async function resolveEstablishShop(playerId: number, tierRaw: string | n
                 tier.build.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
             if (!took.ok) return false;   // nothing written
 
-            // A property with no shopfront is a half-built shop. Reuse it
-            // rather than inserting a second: this establish is transactional
-            // so it cannot create that state itself, but anything that removed
-            // a shopfront row leaves one behind, and the player is then stuck
-            // between a panel offering to build and a guard refusing to. Repair
-            // is the only outcome that gets them moving again.
-            const dangling = await trx('player_properties')
-                .where({ player_id: playerId, type: 'shop', location_id: town.id })
-                .first();
-
-            let propertyId: number;
-            if (dangling) {
-                propertyId = dangling.id;
-                await trx('player_properties').where({ id: dangling.id }).update({ tier: tierNo, storage_slots: tier.storageSlots });
-                logger.warn(`Player ${playerId} had a shop property with no shopfront; completing it`);
-            } else {
-                const [row] = await trx('player_properties').insert({
-                    player_id: playerId,
-                    location_id: town.id,
-                    type: 'shop',
-                    tier: tierNo,
-                    plot_slots: 0,
-                    storage_slots: tier.storageSlots,
-                }).returning('id');
-                propertyId = typeof row === 'object' ? row.id : row;
-            }
-
-            await trx('player_shops').insert({
-                property_id: propertyId,
-                name: DEFAULT_SHOP_NAME(player?.username ?? 'A Trader'),
-                description: null,
-                sell_slots: tier.sellSlots,
-                buy_slots: tier.buySlots,
-            });
+            await raiseShopWithin(trx, playerId, town.id, tierNo, player?.username ?? 'A Trader');
             return true;
         });
         if (!built) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
-        const xp = Math.round(activeXpForSeconds(carpLvl, tier.build.seconds) * ESTABLISH_XP_BONUS);
+        const xp = buildXpFor(carpLvl, tier.build.seconds);
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1});
 

@@ -874,22 +874,12 @@ export async function resolveEstablish(playerId: number, tierRaw: string | null 
             const took = await takeItemsWithin(trx, playerId,
                 t.build.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
             if (!took.ok) return null;
-
-            const [row] = await trx('player_properties').insert({
-                player_id: playerId, location_id: home.id, type: 'farmstead', tier: t.tier, plot_slots: 1,
-                storage_slots: t.storageSlots,
-            }).returning('id');
-            const id: number = typeof row === 'object' ? row.id : row;
-
-            await trx('farm_plots').insert({
-                property_id: id, slot_index: 0, state: 'empty', soil_state: 'normal', seed_count: 0,
-            });
-            return id;
+            return raiseFarmsteadWithin(trx, playerId, home.id, t);
         });
         if (propertyId === null) return { success: false, error: 'You no longer have the materials.' };
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
-        const xp = Math.round(activeXpForSeconds(carpLvl, t.build.seconds) * ESTABLISH_XP_BONUS);
+        const xp = buildXpFor(carpLvl, t.build.seconds);
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1});
 
@@ -908,7 +898,43 @@ export async function resolveEstablish(playerId: number, tierRaw: string | null 
     }
 }
 
-class UpgradeAbort extends Error {}
+export class UpgradeAbort extends Error {}
+
+/**
+ * Put up a farmstead for `ownerId` at `homeId`, inside the caller's
+ * transaction, which has already taken the materials. Shared by a player's
+ * own build and a hired carpenter's (services/hires.ts). Returns its id.
+ */
+export async function raiseFarmsteadWithin(trx: any, ownerId: number, homeId: number, t: HomesteadTier): Promise<number> {
+    const [row] = await trx('player_properties').insert({
+        player_id: ownerId, location_id: homeId, type: 'farmstead', tier: t.tier, plot_slots: 1,
+        storage_slots: t.storageSlots,
+    }).returning('id');
+    const id: number = typeof row === 'object' ? row.id : row;
+    await trx('farm_plots').insert({
+        property_id: id, slot_index: 0, state: 'empty', soil_state: 'normal', seed_count: 0,
+    });
+    return id;
+}
+
+/**
+ * Raise a farmstead one tier, to `next`. The tier flip is the gate: only a
+ * farmstead still at the tier below grows, so the work is paid for once; any
+ * other throws UpgradeAbort and the caller's transaction rolls back.
+ */
+export async function upgradeFarmsteadWithin(trx: any, propertyId: number, next: HomesteadTier): Promise<void> {
+    const from = homesteadTier(next.tier - 1);
+    if (!from || !next.upgrade) throw new UpgradeAbort('There is nothing more to build on.');
+    const flipped = await trx('player_properties')
+        .where({ id: propertyId, tier: from.tier, type: 'farmstead' })
+        .update({ tier: next.tier, storage_slots: trx.raw('COALESCE(storage_slots, ?) + ?', [from.storageSlots, next.storageSlots - from.storageSlots]) });
+    if (flipped !== 1) throw new UpgradeAbort('That work is already done.');
+}
+
+/** What building pays a carpenter: the work's time at their own level, a little over. */
+export function buildXpFor(carpentryLevel: number, seconds: number): number {
+    return Math.round(activeXpForSeconds(carpentryLevel, seconds) * ESTABLISH_XP_BONUS);
+}
 
 export async function resolveUpgrade(playerId: number, tierRaw: string | null): Promise<FarmActionResult> {
     try {
@@ -919,17 +945,13 @@ export async function resolveUpgrade(playerId: number, tierRaw: string | null): 
         const missingTool = await missingBuildTool(playerId);
         if (missingTool) return { success: false, error: missingTool.message };
         if (await skillLevel(playerId, 'Carpentry') < next.carpentry) return { success: false, error: `Requires Carpentry level ${next.carpentry}.` };
-        const from = homesteadTier(next.tier - 1)!;
         const upgrade = next.upgrade;
 
         // The tier flip is the gate: only a farmstead still at the tier below
         // takes the materials and grows, so it can never be paid for twice.
         try {
             await db.transaction(async (trx) => {
-                const flipped = await trx('player_properties')
-                    .where({ id: property.id, tier: from.tier })
-                    .update({ tier: next.tier, storage_slots: trx.raw('COALESCE(storage_slots, ?) + ?', [from.storageSlots, next.storageSlots - from.storageSlots]) });
-                if (flipped !== 1) throw new UpgradeAbort('That work is already done.');
+                await upgradeFarmsteadWithin(trx, property.id, next);
                 const took = await takeItemsWithin(trx, playerId, upgrade.cost.map((c) => ({ name: c.itemName, quantity: c.qty })));
                 if (!took.ok) throw new UpgradeAbort('You no longer have the materials.');
             });
@@ -939,7 +961,7 @@ export async function resolveUpgrade(playerId: number, tierRaw: string | null): 
         }
 
         const carpLvl = await skillLevel(playerId, 'Carpentry');
-        const xp = Math.round(activeXpForSeconds(carpLvl, upgrade.seconds) * ESTABLISH_XP_BONUS);
+        const xp = buildXpFor(carpLvl, upgrade.seconds);
         await awardXp(playerId, 'Carpentry', xp);
         await incrementStats(playerId, { total_actions_completed: 1 });
 

@@ -4,6 +4,7 @@ import RecipeList from './RecipeList'
 import PropertyStorage from './PropertyStorage'
 import AnimalsTab from './AnimalsTab'
 import ConfirmModal from './ConfirmModal'
+import HireSection from './HireSection'
 import './FarmPanel.css'
 import ErrorLine from './ErrorLine'
 
@@ -231,6 +232,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                             </div>
                         ))}
                         {!data.atNovita && <p className="farm-note">Travel to {data.homeName ?? 'the homestead ground'} to raise your farmstead.</p>}
+                        <HireSection kind="farmstead" onStarted={(secs, type) => onActionStarted(secs, type.replace('farm_', ''))} />
                     </div>
                 )}
 
@@ -458,6 +460,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                 </button>
                             </>
                         )}
+                        <HireSection kind="farmstead" onStarted={(secs, type) => onActionStarted(secs, type.replace('farm_', ''))} />
                     </div>
                 )}
                 {!loading && data && data.hasFarmstead && tab === 'storage' && (

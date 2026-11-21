@@ -80,6 +80,7 @@ Talaran is a live browser-based medieval skilling MMO in alpha (~30 players), bu
 - **`propertyForPlayerHere()` excludes shops unless asked by name.** Pass a type.
 - **Tally boards are per island** (Nathan, 2026-11-19): licences (`player_tally_licences`, keyed by `locations.region`), the boards, and what a board shows are each island's own, and a board is built from its island's nails (`TALLY_COST_BY_TIER` in `services/tally.ts`); `tally_boards.materials` is what comes back on teardown. `players.tally_licences` is no longer read.
 - **Homestead tiers are storage** (`HOMESTEAD_TIERS` in `services/farming.ts`): tier 2 is built outright or upgraded (`farm_upgrade`), Carpentry 13 either way, on any island.
+- **A carpenter can be hired** for a homestead or shop (`services/hires.ts`, `HireSection.tsx`): the owner names them at the place and lays the fee; the carpenter runs the owner's own build action with `<tier>|hire:<id>` as its data, and the finish raises the property through the shared helpers (`raiseFarmsteadWithin`, `raiseShopWithin`, `upgradeFarmsteadWithin`, `upgradeShopWithin`), never a copy. race:check `property-hire`.
 
 ### Shops & marketplace
 - **A shop IS a property** (`type='shop'`), so `property_storage` works unchanged. `player_shops` adds only commerce.

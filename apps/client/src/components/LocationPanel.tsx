@@ -1198,7 +1198,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           onClose={() => setShopsOpen(false)}
           onChanged={handleGoldChanged}
           onManage={() => setMyShopOpen(true)}
-          onActionStarted={(secs) => { setShopsOpen(false); onStartAction('shop_build', secs) }}
+          onActionStarted={(secs, type) => { setShopsOpen(false); onStartAction(type === 'shop_upgrade' ? 'shop_upgrade' : 'shop_build', secs) }}
         />
       )}
 
