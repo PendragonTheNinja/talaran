@@ -1488,7 +1488,11 @@ export default function GameView({
 
   // Raising the guild hall (server services/guildHall.ts): set one piece of
   // `item` in every 20 seconds while the hall wants it and the pack has it.
-  const startGuildBuild = async (item: string) => {
+  // `data` is the material, or "item|hall:<id>" for a hand on another guild's hall (building for hire).
+  const startGuildBuild = async (data: string) => {
+    const m = /^(.*)\|hall:(\d+)$/.exec(data)
+    const item = m ? m[1] : data
+    const hall = m ? Number(m[2]) : undefined
     try {
       if (currentAction) await apiFetch('/api/actions/stop', { method: 'POST' })
       setLastResult(null)
@@ -1500,14 +1504,14 @@ export default function GameView({
 
       const res = await apiFetch<{ timerSeconds: number }>('/api/guild-hall/build', {
         method: 'POST',
-        body: JSON.stringify({ item }),
+        body: JSON.stringify({ item, hall }),
       })
       setCurrentAction('guild_build')
       setTimerMax(res.timerSeconds)
       startCountdown(res.timerSeconds)
     } catch (err) {
       const e = err as { status?: number; message?: string }
-      if (e.status === 423) { rememberPendingAction(() => startGuildBuild(item)); return }
+      if (e.status === 423) { rememberPendingAction(() => startGuildBuild(data)); return }
       addLog(e.message || 'The work would not start.', 'error')
     }
   }

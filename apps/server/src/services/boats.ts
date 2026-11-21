@@ -4,7 +4,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { BOAT_FLIPS, piecesAverage } from '../lib/buildRoll';
 import { rungOfTier } from '../lib/tiers';
 import { missingBuildTool } from './construction';
-import { BUILD_SECONDS, buildTurnXp, carpentryLevel, takeBuildPiecesWithin } from './builds';
+import { BUILD_SECONDS, buildTurnXp, carpentryLevel, MAX_PAY_RATE, payWageWithin, takeBuildPiecesWithin } from './builds';
 import { awardXp } from './xp';
 import { creditGoldWithin, debitGoldWithin, lockPlayersInOrder } from './gold';
 import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
@@ -214,7 +214,7 @@ export async function layKeel(playerId: number, typeKeyRaw: unknown): Promise<Ok
 // in id order (services/gold.ts), then the build, so the two never cross.
 
 /** The most a piece may pay, so a slip of a finger is not a fortune. */
-export const MAX_PAY_RATE = 10_000;
+export { MAX_PAY_RATE };
 
 function wholePositive(raw: unknown): number | null {
     const n = Math.floor(Number(raw));
@@ -544,14 +544,9 @@ export async function resolveBoatBuildCycle(playerId: number, data: unknown): Pr
 
             // The wage, from the purse, now (docs/antura-plan.md §6b).
             const wage = rate * pieces;
-            let fundLeft = fund;
-            if (wage > 0) {
-                const [paid] = await trx('vessel_builds').where({ id: build.id }).where('fund_gold', '>=', wage)
-                    .decrement('fund_gold', wage).returning('fund_gold');
-                if (!paid) throw new BoatAbort(`The purse at ${ownerName}'s slip is empty.`);
-                fundLeft = Number(paid.fund_gold);
-                await creditGoldWithin(trx, { playerId, amount: wage, reason: 'boat_wage', refType: 'vessel_build', refId: build.id });
-            }
+            const left = await payWageWithin(trx, { table: 'vessel_builds', siteId: build.id, fund, wage, playerId, reason: 'boat_wage' });
+            if (left === null) throw new BoatAbort(`The purse at ${ownerName}'s slip is empty.`);
+            const fundLeft = left;
 
             const xp = buildTurnXp(t.tier);
             await awardXp(playerId, 'Carpentry', xp, trx);

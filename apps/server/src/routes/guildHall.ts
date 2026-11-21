@@ -5,6 +5,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import {
     abandonHall, approveRequest, cancelRequest, collectRequest, denyRequest, depositGold, depositItems, foundHall,
     hallState, requestItems, startBuild, withdrawGold, withdrawItems,
+    dropHallHand, layHallPurse, layHallStock, nameHallHand, setHallPayRate, takeHallPurse, takeHallStock,
 } from '../services/guildHall';
 
 // Guild halls and storehouses (services/guildHall.ts). Every rule, presence
@@ -29,7 +30,16 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 
 router.post('/found', requireAuth, async (req: AuthRequest, res: Response) => send(res, await foundHall(req.player!.playerId)));
 router.post('/abandon', requireAuth, async (req: AuthRequest, res: Response) => send(res, await abandonHall(req.player!.playerId)));
-router.post('/build', requireAuth, async (req: AuthRequest, res: Response) => send(res, await startBuild(req.player!.playerId, req.body?.item)));
+router.post('/build', requireAuth, async (req: AuthRequest, res: Response) => send(res, await startBuild(req.player!.playerId, req.body?.item, req.body?.hall)));
+
+// Building for hire (docs/antura-plan.md §6b): the guild's controls at its hall.
+router.post('/hire/hands', requireAuth, async (req: AuthRequest, res: Response) => send(res, await nameHallHand(req.player!.playerId, req.body?.name)));
+router.post('/hire/hands/remove', requireAuth, async (req: AuthRequest, res: Response) => send(res, await dropHallHand(req.player!.playerId, req.body?.name)));
+router.post('/hire/rate', requireAuth, async (req: AuthRequest, res: Response) => send(res, await setHallPayRate(req.player!.playerId, req.body?.rate)));
+router.post('/hire/purse/lay', requireAuth, async (req: AuthRequest, res: Response) => send(res, await layHallPurse(req.player!.playerId, req.body?.amount)));
+router.post('/hire/purse/take', requireAuth, async (req: AuthRequest, res: Response) => send(res, await takeHallPurse(req.player!.playerId, req.body?.amount)));
+router.post('/hire/stock/lay', requireAuth, async (req: AuthRequest, res: Response) => send(res, await layHallStock(req.player!.playerId, req.body?.item, req.body?.quantity)));
+router.post('/hire/stock/take', requireAuth, async (req: AuthRequest, res: Response) => send(res, await takeHallStock(req.player!.playerId, req.body?.item, req.body?.quantity)));
 router.post('/deposit', requireAuth, async (req: AuthRequest, res: Response) => send(res, await depositItems(req.player!.playerId, req.body?.itemId, req.body?.quantity)));
 router.post('/withdraw', requireAuth, async (req: AuthRequest, res: Response) => send(res, await withdrawItems(req.player!.playerId, req.body?.itemId, req.body?.quantity)));
 router.post('/gold/deposit', requireAuth, async (req: AuthRequest, res: Response) => send(res, await depositGold(req.player!.playerId, req.body?.amount)));

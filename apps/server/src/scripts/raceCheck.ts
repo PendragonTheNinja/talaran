@@ -444,6 +444,32 @@ async function balladVerses(ctx: Ctx) {
 }
 
 /**
+ * Pendragon's guild hall in Talador at tier 1, its tier 2 wanting `wanted`
+ * planks, with `hands` carpenters from outside the guild named to build it,
+ * each standing there with a mallet, a saw, and `planks` in the pack.
+ */
+async function hallHireWorld(ctx: Ctx, wanted: number, hands = 0, planks = 0) {
+    const g = await guildWorld(ctx, 100);
+    await ctx.seed.row('skills', { name: 'Carpentry' });
+    await ctx.seed.row('guild_hall_tiers', { tier: 2, capacity: 200, requirements: JSON.stringify([{ item: g.w.plank.name, qty: wanted }]) });
+    const mallet = await ctx.seed.row('items', { name: 'Lanai Mallet', type: 'tool', subtype: 'mallet', slot: 'mainhand' });
+    const saw = await ctx.seed.row('items', { name: 'Ambren Saw', type: 'tool', subtype: 'saw', slot: 'offhand' });
+    const crew: { id: number }[] = [];
+    for (let i = 0; i < hands; i++) {
+        const h = await ctx.seed.row('players', { username: `Hand${i}`, email: `hand${i}@racecheck.test`, current_location_id: g.w.town.id });
+        await ctx.seed.row('player_equipment', { player_id: h.id, mainhand_item_id: mallet.id, offhand_item_id: saw.id });
+        if (planks) await inPack(ctx, h.id, g.w.plank.id, planks);
+        await ctx.seed.row('guild_hall_hands', { hall_id: g.hall.id, player_id: h.id });
+        crew.push(h);
+    }
+    return { ...g, crew };
+}
+
+async function hallPurse(ctx: Ctx, hallId: number): Promise<number> {
+    return Number((await ctx.db('guild_halls').where({ id: hallId }).first()).fund_gold);
+}
+
+/**
  * Pendragon wanting a tier 1 shop in Talador (Taiar's port, the islands
  * fallback), and Wright, a carpenter standing there with a mallet and saw
  * and materials for two shops in his pack. With `fee`, the hire is already made.
@@ -2541,6 +2567,68 @@ const SCENARIOS: Scenario[] = [
                 ?? (t.shops === 1 && (paid !== 100 || t.planks !== 350) ? `the shop stands, but the carpenter has ${paid} gold and ${t.planks} planks` : null)
                 ?? (t.shops === 0 && (owner !== 100 || t.planks !== 700) ? `no shop, but the owner has ${owner} gold and ${t.planks} planks are left` : null)
                 ?? (t.shops > 1 ? `${t.shops} shops raised` : null)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'hall-hire', name: 'a member lays 30 gold in a hall purse five times at once, with 100', rounds: 10,
+        run: async (ctx) => {
+            const g = await hallHireWorld(ctx, 50);
+            await fund(ctx, g.w.player.id, 100);
+            const st = await ctx.burst(g.w.player.id, 5, () => ctx.post(g.w.player.id, '/guild-hall/hire/purse/lay', { amount: 30 }));
+            const purse = await hallPurse(ctx, g.hall.id);
+            return noServerErrors(st)
+                ?? changed('gold with the member and in the purse together', 100, (await goldOf(ctx, g.w.player.id)) + purse)
+                ?? changed('gold in the purse', 90, purse)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'hall-hire', name: 'the leader takes 30 gold from a hall purse of 100 five times at once', rounds: 10,
+        run: async (ctx) => {
+            const g = await hallHireWorld(ctx, 50);
+            await ctx.db('guild_halls').where({ id: g.hall.id }).update({ fund_gold: 100 });
+            const st = await ctx.burst(g.w.player.id, 5, () => ctx.post(g.w.player.id, '/guild-hall/hire/purse/take', { amount: 30 }));
+            const purse = await hallPurse(ctx, g.hall.id);
+            return noServerErrors(st)
+                ?? changed('gold with the leader and in the purse together', 100, (await goldOf(ctx, g.w.player.id)) + purse)
+                ?? changed('gold taken out', 90, await goldOf(ctx, g.w.player.id))
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'hall-hire', name: 'a member lays 4 planks at a hall five times at once, on a tier that wants 7', rounds: 10,
+        run: async (ctx) => {
+            // Laying is capped by what the tier still wants, read under the hall's lock.
+            const g = await hallHireWorld(ctx, 7);
+            await inPack(ctx, g.w.player.id, g.w.plank.id, 20);
+            const st = await ctx.burst(g.w.player.id, 5, () => ctx.post(g.w.player.id, '/guild-hall/hire/stock/lay', { item: g.w.plank.name, quantity: 4 }));
+            const laid = Number((await ctx.db('guild_hall_stock').where({ hall_id: g.hall.id, item_id: g.w.plank.id }).first())?.quantity ?? 0);
+            return noServerErrors(st)
+                ?? (laid > 7 ? `${laid} planks laid on a tier that wants 7` : null)
+                ?? changed('planks in the pack and at the hall together', 20, (await ctx.itemTotal(g.w.plank.id)) + laid);
+        },
+    },
+    {
+        id: 'hall-hire', name: 'five hands each take a turn at once, paid 10 a piece from a purse of 25', rounds: 20,
+        run: async (ctx) => {
+            // services/guildHall.ts resolveBuildCycle: a hand places no more
+            // than the purse pays for, and every piece placed is paid once.
+            const g = await hallHireWorld(ctx, 50, 5, 20);
+            await ctx.db('guild_halls').where({ id: g.hall.id }).update({ pay_rate: 10, fund_gold: 25 });
+            const { resolveBuildCycle } = await import('../services/guildHall');
+            const results = await Promise.allSettled(g.crew.map(h => resolveBuildCycle(h.id, `${g.w.plank.name}|hall:${g.hall.id}`)));
+            const crashed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error === 'Server error')).length;
+            const delivered = Number((await ctx.db('guild_hall_progress').where({ hall_id: g.hall.id, item_id: g.w.plank.id }).first())?.delivered ?? 0);
+            let wages = 0;
+            for (const h of g.crew) wages += await goldOf(ctx, h.id);
+            const purse = await hallPurse(ctx, g.hall.id);
+            const built = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+            return (crashed ? `${crashed} build turn(s) hit a server error` : null)
+                ?? (built < 1 ? 'no build turn went through' : null)
+                ?? changed('gold paid out and left in the purse together', 25, wages + purse)
+                ?? changed('wages against pieces placed at 10 each', delivered * 10, wages)
+                ?? changed('planks in packs and the hall together', 100, (await ctx.itemTotal(g.w.plank.id)) + delivered)
                 ?? await ledgerProblem(ctx);
         },
     },

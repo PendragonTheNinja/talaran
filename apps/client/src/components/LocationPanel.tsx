@@ -9,6 +9,7 @@ import { minutesUntil, waitWords, useCountdownClock } from '../lib/countdown'
 import NPCDialogue from './NPCDialogue'
 import TavernPanel from './TavernPanel'
 import SlipPanel from './SlipPanel'
+import HallWorkPanel from './HallWorkPanel'
 import IsletActions from './IsletActions'
 import Badge from './Badge'
 import ConfirmModal from './ConfirmModal'
@@ -80,6 +81,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // The Salty Sloth (docs/chronicle-spec.md §2), from its button or from Wenna.
   const [tavernOpen, setTavernOpen] = useState(false)
   const [slipOpen, setSlipOpen] = useState(false)
+  const [hallWorkOpen, setHallWorkOpen] = useState(false)
   // Ground items get the same tooltip the pack does.
   const { hoverProps, tooltipEl } = useItemTooltip()
   const [shopsOpen, setShopsOpen] = useState(false)
@@ -557,6 +559,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('guild_hall_menu', 0)}
           >
             Guild Hall →
+          </button>
+        )}
+
+        {/* Another guild's hall here that named this player a hand (building for hire). */}
+        {locationData?.hallWorkHere && (
+          <button
+            className={`location-action-btn ${currentAction === 'guild_build' ? 'active' : ''}`}
+            onClick={() => setHallWorkOpen(true)}
+          >
+            Hall Work →
           </button>
         )}
 
@@ -1163,6 +1175,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           onClose={() => setActiveNpcId(null)}
           onInteraction={refreshStations}
           onOpen={(what) => { if (what === 'tavern') setTavernOpen(true) }}
+        />
+      )}
+
+      {hallWorkOpen && (
+        <HallWorkPanel
+          onClose={() => setHallWorkOpen(false)}
+          onStartBuild={(item, hallId) => onStartAction('guild_build', `${item}|hall:${hallId}`)}
         />
       )}
 

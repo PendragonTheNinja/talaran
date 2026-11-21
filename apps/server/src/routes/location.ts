@@ -150,6 +150,12 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       .join('guild_halls as h', 'h.guild_id', 'gm.guild_id')
       .where({ 'gm.player_id': playerId, 'h.location_id': player.current_location_id })
       .first('h.id'));
+    // Another guild's hall here that this player was hired to build on
+    // (services/guildHall.ts, building for hire).
+    const hallWorkHere = !!(await db('guild_hall_hands as hh')
+      .join('guild_halls as h', 'h.id', 'hh.hall_id')
+      .where({ 'hh.player_id': playerId, 'h.location_id': player.current_location_id })
+      .first('h.id'));
 
     // This place's last world event: its ten busiest players and guilds,
     // shown under the description until the next event here.
@@ -186,6 +192,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       shopsHere: towns.shops.has(currentLocation.name),
       ownBoats,
       guildHallHere,
+      hallWorkHere,
       eventStandings,
       tavern: tavern ?? null,
       marketName,

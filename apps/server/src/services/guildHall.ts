@@ -10,7 +10,7 @@ import { awardXp } from './xp';
 import { membershipOf } from './guildRanks';
 import { noteDeed } from './chronicle';
 import { HALL_FLIPS, piecesAverage } from '../lib/buildRoll';
-import { BUILD_SECONDS, buildTurnXp, carpentryLevel, takeBuildPiecesWithin } from './builds';
+import { BUILD_SECONDS, buildTurnXp, carpentryLevel, MAX_PAY_RATE, payWageWithin, takeBuildPiecesWithin } from './builds';
 
 // ── Guild halls (migration 20261102170000; Nathan, 2026-11-02) ───────────────
 //
@@ -30,6 +30,17 @@ import { BUILD_SECONDS, buildTurnXp, carpentryLevel, takeBuildPiecesWithin } fro
 //
 // Presence is enforced here, not in the route: every hall action needs the
 // player standing at their guild's hall on that island.
+//
+// Building for hire (docs/antura-plan.md §6b; migration 20261121160000): as
+// on a boat's slip, the guild names hands from outside it (guild_hall_hands),
+// pays them by the piece from a wage purse at the hall (`fund_gold`, apart
+// from the storehouse's `gold`), and lays materials there for any builder to
+// use before their own (guild_hall_stock). The leader, or a rank that may take
+// gold, names hands, sets the pay, and takes the purse back; any member may
+// add to the purse or lay materials; taking materials back wants
+// withdraw_items. A hand's action carries `<item>|hall:<id>`. Purse and stock
+// carry over from tier to tier. The wage and the stock are taken by the
+// helpers in services/builds.ts, shared with the boats.
 //
 // Locks, always in this order: the player row, then the hall row, then any
 // storage or progress row. Writes are relative and conditional; a refusal
@@ -105,10 +116,51 @@ export function announce(guildId: number) {
 
 // ── Reading ─────────────────────────────────────────────────────────────────
 
+/**
+ * Halls of other guilds this player was named to work on (docs/antura-plan.md
+ * §6b): what each tier still wants, what is laid there, and what it pays.
+ */
+async function hallHires(playerId: number, here: any) {
+    const rows = await db('guild_hall_hands as hh').join('guild_halls as h', 'h.id', 'hh.hall_id')
+        .join('guilds as g', 'g.id', 'h.guild_id').join('locations as l', 'l.id', 'h.location_id')
+        .where('hh.player_id', playerId).orderBy('h.id')
+        .select('h.*', 'g.name as guild_name', 'l.name as location_name');
+    const carpentry = await carpentryLevel(playerId);
+    const out = [];
+    for (const h of rows) {
+        const next = await tierRow(Number(h.tier) + 1);
+        const items = next?.requirements.length ? await db('items').whereIn('name', next.requirements.map(r => r.item)).select('id', 'name') : [];
+        const idOf = new Map<string, number>(items.map((i: any) => [i.name, Number(i.id)]));
+        const requirements = [];
+        for (const r of next?.requirements ?? []) {
+            const id = idOf.get(r.item);
+            requirements.push({
+                item: r.item, needed: r.qty, exists: !!id,
+                delivered: id ? Number((await db('guild_hall_progress').where({ hall_id: h.id, item_id: id }).first('delivered'))?.delivered ?? 0) : 0,
+                held: id ? Number((await db('player_inventory').where({ player_id: playerId, item_id: id }).first('quantity'))?.quantity ?? 0) : 0,
+                stocked: id ? await stockOf(db, h.id, id) : 0,
+            });
+        }
+        out.push({
+            hallId: Number(h.id), guildName: h.guild_name, locationName: h.location_name, island: h.island,
+            atHall: Number(h.location_id) === Number(here?.location_id),
+            rate: Number(h.pay_rate ?? 0), purse: Number(h.fund_gold ?? 0),
+            building: next ? {
+                tier: next.tier, buildLevel: next.buildLevel, carpentry,
+                xpPerPiece: buildTurnXp(next.tier),
+                piecesPerAction: Math.round(piecesAverage(HALL_FLIPS, carpentry, rungOfTier(next.tier)) * 10) / 10,
+                requirements,
+            } : null,
+        });
+    }
+    return out;
+}
+
 export async function hallState(playerId: number) {
     const me = await membershipOf(playerId);
-    if (!me) return { inGuild: false as const };
     const here = await whereIs(playerId);
+    const hires = await hallHires(playerId, here);
+    if (!me) return { inGuild: false as const, hires };
     const halls = await db('guild_halls as h').join('locations as l', 'l.id', 'h.location_id')
         .where('h.guild_id', me.guildId).orderBy('h.island')
         .select('h.id', 'h.island', 'h.tier', 'h.location_id', 'l.name as location_name');
@@ -131,6 +183,7 @@ export async function hallState(playerId: number) {
         // Open requests: every one for an approver, only their own for anyone else.
         // Shown wherever the player is, so an officer can answer from afar.
         requests: onIsland ? await openRequests(onIsland.id, me.can('approve_requests') ? null : playerId) : [],
+        hires,
     };
     if (!atHall || !onIsland) return base;
 
@@ -145,6 +198,9 @@ export async function hallState(playerId: number) {
         ? new Map<number, number>((await db('player_inventory').where({ player_id: playerId }).whereIn('item_id', [...idByName.values()]))
             .map((r: any) => [r.item_id, Number(r.quantity)]))
         : new Map<number, number>();
+
+    const stock = new Map<number, number>((await db('guild_hall_stock').where({ hall_id: hall.id }))
+        .map((r: any) => [Number(r.item_id), Number(r.quantity)]));
 
     const storage = await db('guild_storage as s').join('items as i', 'i.id', 's.item_id')
         .where('s.hall_id', hall.id).where('s.quantity', '>', 0)
@@ -182,9 +238,30 @@ export async function hallState(playerId: number) {
                         // A material the world cannot make yet: the tier waits for it.
                         exists: !!id,
                         held: id ? held.get(id) ?? 0 : 0,
+                        stocked: id ? stock.get(id) ?? 0 : 0,
                     };
                 }),
             } : null,
+            // Building for hire (docs/antura-plan.md §6b): hands, pay, purse, and materials laid here.
+            hire: {
+                rate: Number(hall.pay_rate ?? 0),
+                purse: Number(hall.fund_gold ?? 0),
+                hands: await db('guild_hall_hands as hh').join('players as p', 'p.id', 'hh.player_id')
+                    .where('hh.hall_id', hall.id).orderBy('hh.named_at').pluck('p.username'),
+                canManage: canHire(me),
+                canTakeStock: me.can('withdraw_items'),
+                // Per material of the tier being built: what it still wants, what is laid, and room for more.
+                materials: (nextTier?.requirements ?? []).map(r => {
+                    const id = idByName.get(r.item);
+                    const left = Math.max(0, r.qty - (id ? delivered.get(id) ?? 0 : 0));
+                    const laid = id ? stock.get(id) ?? 0 : 0;
+                    return { item: r.item, wanted: left, laid, room: Math.max(0, left - laid) };
+                }),
+                // Anything laid that this tier no longer wants, still there to take back.
+                laid: (await db('guild_hall_stock as s').join('items as i', 'i.id', 's.item_id')
+                    .where('s.hall_id', hall.id).where('s.quantity', '>', 0).select('i.name', 's.quantity'))
+                    .map((r: any) => ({ item: r.name, quantity: Number(r.quantity) })),
+            },
             storage: storage.map((r: any) => ({ ...r, quantity: Number(r.quantity) })),
             ledger: ledger.map((r: any) => ({ player: r.player_name, item: r.item_name ?? null, delta: Number(r.delta), at: r.created_at, approvedBy: r.approved_by_name ?? null })),
             builders: builders.map((b: any) => ({ name: b.username, given: Number(b.given) })),
@@ -227,6 +304,9 @@ export async function abandonHall(playerId: number): Promise<Ok<{}> | Refused> {
             if (Number(hall.gold) > 0 || (await usedRoom(hall.id, trx)) > 0) {
                 throw new HallAbort('Empty the storehouse first, gold and all. Nothing in it is thrown away.');
             }
+            if (await hireHoldsAnything(hall, trx)) {
+                throw new HallAbort('Take back the wage purse and the materials laid at the hall first. Nothing in them is thrown away.');
+            }
             await trx('guild_halls').where({ id: hall.id }).delete();
             guildId = me.guildId;
         });
@@ -239,9 +319,41 @@ export async function abandonHall(playerId: number): Promise<Ok<{}> | Refused> {
 
 // ── Building ────────────────────────────────────────────────────────────────
 
+/**
+ * The hall a builder works on: their own guild's here, or, for a hand, the
+ * hall that named them (`hallId`), with the hand standing at it.
+ */
+async function siteFor(playerId: number, hallId: number | null, x: any = db, lockHall = false) {
+    if (hallId === null) {
+        const { me, here, hall } = await hallHere(playerId, x, lockHall);
+        return { here, hall, hand: false, guildId: Number(me.guildId) };
+    }
+    const q = x('guild_halls').where({ id: hallId });
+    const hall = await (lockHall ? q.forUpdate() : q).first();
+    if (!hall || !(await x('guild_hall_hands').where({ hall_id: hallId, player_id: playerId }).first())) {
+        throw new HallAbort('Nobody has asked you to work on that hall.');
+    }
+    const here = await whereIs(playerId, x);
+    if (Number(hall.location_id) !== Number(here?.location_id)) {
+        const at = await x('locations').where({ id: hall.location_id }).first('name');
+        throw new HallAbort(`That hall is at ${at?.name ?? 'another place'}.`);
+    }
+    return { here, hall, hand: true, guildId: Number(hall.guild_id) };
+}
+
+/** The guild's name, for a hand's lines. */
+async function guildName(guildId: number, x: any = db): Promise<string> {
+    return (await x('guilds').where({ id: guildId }).first('name'))?.name ?? 'the guild';
+}
+
+/** How many of a material are laid at a hall. */
+async function stockOf(x: any, hallId: number, itemId: number): Promise<number> {
+    return Number((await x('guild_hall_stock').where({ hall_id: hallId, item_id: itemId }).first('quantity'))?.quantity ?? 0);
+}
+
 /** Re-checked at the start and on every cycle: what one more piece of `itemName` needs. */
-async function buildCheck(playerId: number, itemName: string, x: any = db) {
-    const { me, here, hall } = await hallHere(playerId, x);
+async function buildCheck(playerId: number, itemName: string, x: any = db, hallId: number | null = null) {
+    const { here, hall, hand, guildId } = await siteFor(playerId, hallId, x);
     const next = await tierRow(hall.tier + 1, x);
     if (!next) throw new HallAbort('The hall stands as high as it can be built.');
     const req = next.requirements.find(r => r.item === itemName);
@@ -255,17 +367,30 @@ async function buildCheck(playerId: number, itemName: string, x: any = db) {
     if (await carpentryLevel(playerId, x) < next.buildLevel) {
         throw new HallAbort(`Building the hall's tier ${next.tier} wants Carpentry ${next.buildLevel}.`);
     }
-    return { me, here, hall, next, req, item };
+    const rate = hand ? Number(hall.pay_rate ?? 0) : 0;
+    if (rate > 0 && Number(hall.fund_gold ?? 0) < rate) throw new HallAbort(`The purse at ${await guildName(guildId, x)}'s hall is empty.`);
+    return { here, hall, next, req, item, hand, guildId, rate };
 }
 
-export async function startBuild(playerId: number, itemNameRaw: unknown): Promise<Ok<{ timerSeconds: number }> | Refused> {
+/** A hall build action's data: the material, and the hall a hand was named for. */
+function parseBuildData(data: unknown): { itemName: string; hallId: number | null } {
+    const raw = typeof data === 'string' ? data : '';
+    const m = /^(.*)\|hall:(\d+)$/.exec(raw);
+    return m ? { itemName: m[1], hallId: Number(m[2]) } : { itemName: raw, hallId: null };
+}
+
+export async function startBuild(playerId: number, itemNameRaw: unknown, hallRaw?: unknown): Promise<Ok<{ timerSeconds: number }> | Refused> {
     try {
         const itemName = typeof itemNameRaw === 'string' ? itemNameRaw : '';
-        const { here, hall, req, item } = await buildCheck(playerId, itemName);
+        const asked = hallRaw === undefined || hallRaw === null || hallRaw === '' ? null : Math.floor(Number(hallRaw));
+        const hallId = asked && Number.isFinite(asked) && asked > 0 ? asked : null;
+        const { here, hall, req, item, hand } = await buildCheck(playerId, itemName, db, hallId);
         const progress = await db('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).first();
         if (Number(progress?.delivered ?? 0) >= req.qty) throw new HallAbort(`The hall has all the ${itemName} this tier needs.`);
         const held = await db('player_inventory').where({ player_id: playerId, item_id: item.id }).first();
-        if (!held || Number(held.quantity) < 1) throw new HallAbort(`You have no ${itemName} to give.`);
+        if (Number(held?.quantity ?? 0) + await stockOf(db, hall.id, item.id) < 1) {
+            throw new HallAbort(`You have no ${itemName}, and there is none laid at the hall.`);
+        }
         if (await db('player_actions').where({ player_id: playerId }).first()) {
             throw new HallAbort('You are already performing an action', 409);
         }
@@ -273,7 +398,7 @@ export async function startBuild(playerId: number, itemNameRaw: unknown): Promis
         await db('player_actions').insert({
             player_id: playerId,
             action_type: 'guild_build',
-            action_data: itemName,
+            action_data: hand ? `${itemName}|hall:${hall.id}` : itemName,
             location_id: here.location_id,
             started_at: now,
             completes_at: new Date(now.getTime() + BUILD_SECONDS * 1000),
@@ -299,14 +424,18 @@ export interface BuildCycleResult {
 }
 
 /** Pieces set into the hall for the tick, 1 to 3 a cycle. Every precondition is re-checked. */
-export async function resolveBuildCycle(playerId: number, itemName: string): Promise<BuildCycleResult> {
+export async function resolveBuildCycle(playerId: number, data: string): Promise<BuildCycleResult> {
     try {
         let guildId = 0;
+        const { itemName, hallId } = parseBuildData(data);
         const carpentry = await carpentryLevel(playerId);
         const outcome = await db.transaction(async (trx) => {
-            await trx('players').where({ id: playerId }).forNoKeyUpdate().first();
-            const { me, hall: unlocked, next, req, item } = await buildCheck(playerId, itemName, trx);
-            guildId = me.guildId;
+            // The player first, then the hall. A hand's wage takes this row FOR
+            // UPDATE (creditGoldWithin), so a hand takes it so from the start.
+            const me = trx('players').where({ id: playerId });
+            await (hallId !== null ? me.forUpdate() : me.forNoKeyUpdate()).first();
+            const { hall: unlocked, next, req, item, hand, rate, guildId: gid } = await buildCheck(playerId, itemName, trx, hallId);
+            guildId = gid;
             const hall = await trx('guild_halls').where({ id: unlocked.id }).forUpdate().first();
             if (!hall || hall.tier !== unlocked.tier) throw new HallAbort('The hall changed while you worked. Look again.');
 
@@ -315,11 +444,24 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
             const progress = await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).forUpdate().first();
             if (Number(progress.delivered) >= req.qty) throw new HallAbort(`The hall has all the ${itemName} this tier needs.`);
 
-            // The roll, cut to what the tier still wants and what the pack holds (services/builds.ts).
+            // The roll, cut to what the tier still wants, what is laid at the
+            // hall and in the pack, and what a hand's purse can pay for (services/builds.ts).
+            const fund = Number(hall.fund_gold ?? 0);
             const pieces = await takeBuildPiecesWithin(trx, {
                 playerId, item, wanted: req.qty, delivered: Number(progress.delivered), flips: HALL_FLIPS, carpentry, tier: next.tier,
+                stock: {
+                    held: await stockOf(trx, hall.id, item.id),
+                    take: async (n) => (await trx('guild_hall_stock').where({ hall_id: hall.id, item_id: item.id })
+                        .where('quantity', '>=', n).decrement('quantity', n)) === 1,
+                },
+                cap: rate > 0 ? Math.floor(fund / rate) : undefined,
             });
-            if (pieces < 1) throw new HallAbort(`You have no ${itemName} left to give.`);
+            if (pieces < 1) throw new HallAbort(`You have no ${itemName} left, and there is none laid at the hall.`);
+
+            // A hand's wage, from the purse, now (docs/antura-plan.md §6b).
+            const wage = rate * pieces;
+            const fundLeft = await payWageWithin(trx, { table: 'guild_halls', siteId: hall.id, fund, wage, playerId, reason: 'hall_wage' });
+            if (fundLeft === null) throw new HallAbort(`The purse at ${await guildName(guildId, trx)}'s hall is empty.`);
 
             const delivered = Number(progress.delivered) + pieces;
             await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).increment('delivered', pieces);
@@ -346,22 +488,29 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
                 noteDeed(trx, {
                     // The guild's deed: written even if the hand that finished it
                     // has opted out; the page leaves an opted-out name unsaid.
-                    kind: 'guild_hall_tier', guildId: me.guildId,
+                    kind: 'guild_hall_tier', guildId,
                     data: { tier: next.tier, place: place?.name ?? null, island: hall.island, byPlayerId: playerId },
                 });
             }
 
             const more = await trx('player_inventory').where({ player_id: playerId, item_id: item.id }).first('quantity');
+            let carryOn = !finished && delivered < req.qty && Number(more?.quantity ?? 0) + await stockOf(trx, hall.id, item.id) > 0;
+            // Told before the next turn, not after it (docs/antura-plan.md §6b).
+            const purseEmpty = carryOn && rate > 0 && fundLeft < rate;
+            if (purseEmpty) carryOn = false;
+            const whose = hand ? `${await guildName(guildId, trx)}'s hall` : 'the hall';
             return {
                 xp,
                 finished,
                 tier: next.tier,
-                carryOn: !finished && delivered < req.qty && Number(more?.quantity ?? 0) > 0,
-                message: finished
+                carryOn,
+                message: (finished
                     ? (next.tier === 1
-                        ? 'The last piece goes in. The hall stands, and its storehouse is open.'
-                        : `The last piece goes in. The hall's tier ${next.tier} is finished, and the storehouse grows.`)
-                    : `${pieces} ${item.name} set into the hall: ${delivered.toLocaleString()} of ${req.qty.toLocaleString()}.`,
+                        ? (hand ? `The last piece goes in. ${whose.charAt(0).toUpperCase() + whose.slice(1)} stands.` : 'The last piece goes in. The hall stands, and its storehouse is open.')
+                        : `The last piece goes in. The tier ${next.tier} of ${whose} is finished.`)
+                    : `${pieces} ${item.name} set into ${whose}: ${delivered.toLocaleString('en-US')} of ${req.qty.toLocaleString('en-US')}.`)
+                    + (wage > 0 ? ` You are paid ${wage.toLocaleString('en-US')} gold.` : '')
+                    + (purseEmpty ? ' The purse at the hall cannot pay for another piece, so you stop.' : ''),
             };
         });
         announce(guildId);
@@ -371,6 +520,190 @@ export async function resolveBuildCycle(playerId: number, itemName: string): Pro
         logger.error(`guildHall build cycle (player ${playerId}): ${err}`);
         return { success: false, error: SERVER_ERROR };
     }
+}
+
+// ── Building for hire: the guild's controls ────────────────────────────────
+
+/** Whole, positive, finite, or null. */
+function whole(raw: unknown): number | null {
+    const n = Math.floor(Number(raw));
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** May this member hire for the hall: name hands, set pay, take the purse back? */
+const canHire = (me: { isLeader: boolean; can: (p: string) => boolean }) => me.isLeader || me.can('withdraw_gold');
+
+/** Name someone outside the guild who may build on the hall here. */
+export async function nameHallHand(playerId: number, usernameRaw: unknown): Promise<Ok<{ name: string }> | Refused> {
+    try {
+        const username = typeof usernameRaw === 'string' ? usernameRaw.trim() : '';
+        if (!username) throw new HallAbort('Name the carpenter you want to work on it.');
+        const { me, hall } = await hallHere(playerId);
+        if (!canHire(me)) throw new HallAbort('Your rank cannot hire for the hall.', 403);
+        const hand = await db('players').whereRaw('lower(username) = lower(?)', [username]).first('id', 'username');
+        if (!hand) throw new HallAbort(`There is nobody called ${username}.`);
+        const theirs = await membershipOf(Number(hand.id));
+        if (theirs && theirs.guildId === me.guildId) throw new HallAbort(`${hand.username} is in the guild, and may build on the hall already.`);
+        await db('guild_hall_hands').insert({ hall_id: hall.id, player_id: hand.id }).onConflict(['hall_id', 'player_id']).ignore();
+        announce(me.guildId);
+        pushToPlayer(Number(hand.id), 'guild_hall_changed', {});
+        return { ok: true, name: hand.username };
+    } catch (err) {
+        return refuse(err, 'nameHallHand');
+    }
+}
+
+export async function dropHallHand(playerId: number, usernameRaw: unknown): Promise<Ok<{}> | Refused> {
+    try {
+        const username = typeof usernameRaw === 'string' ? usernameRaw.trim() : '';
+        const { me, hall } = await hallHere(playerId);
+        if (!canHire(me)) throw new HallAbort('Your rank cannot hire for the hall.', 403);
+        const hand = await db('players').whereRaw('lower(username) = lower(?)', [username]).first('id');
+        if (hand) {
+            await db('guild_hall_hands').where({ hall_id: hall.id, player_id: hand.id }).delete();
+            pushToPlayer(Number(hand.id), 'guild_hall_changed', {});
+        }
+        announce(me.guildId);
+        return { ok: true };
+    } catch (err) {
+        return refuse(err, 'dropHallHand');
+    }
+}
+
+export async function setHallPayRate(playerId: number, rateRaw: unknown): Promise<Ok<{ rate: number }> | Refused> {
+    try {
+        const rate = Math.floor(Number(rateRaw));
+        if (!Number.isFinite(rate) || rate < 0) throw new HallAbort('A piece pays a whole number of gold, or nothing.');
+        if (rate > MAX_PAY_RATE) throw new HallAbort(`A piece can pay at most ${MAX_PAY_RATE.toLocaleString('en-US')} gold.`);
+        const { me, hall } = await hallHere(playerId);
+        if (!canHire(me)) throw new HallAbort('Your rank cannot hire for the hall.', 403);
+        await db('guild_halls').where({ id: hall.id }).update({ pay_rate: rate });
+        announce(me.guildId);
+        return { ok: true, rate };
+    } catch (err) {
+        return refuse(err, 'setHallPayRate');
+    }
+}
+
+/** Gold from a member's own into the wage purse. Any member. */
+export async function layHallPurse(playerId: number, amountRaw: unknown): Promise<Ok<{ fund: number }> | Refused> {
+    try {
+        const amount = whole(amountRaw);
+        if (!amount) throw new HallAbort('Lay a whole number of gold.');
+        let guildId = 0;
+        const fund = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forUpdate().first();
+            const { me, hall } = await hallHere(playerId, trx, true);
+            guildId = me.guildId;
+            const paid = await debitGoldWithin(trx, { playerId, amount, reason: 'hall_purse_lay', refType: 'guild_hall', refId: hall.id });
+            if (!paid.ok) throw new HallAbort(`You have only ${paid.balance.toLocaleString('en-US')} gold.`);
+            const [row] = await trx('guild_halls').where({ id: hall.id }).increment('fund_gold', amount).returning('fund_gold');
+            return Number(row.fund_gold);
+        });
+        announce(guildId);
+        return { ok: true, fund };
+    } catch (err) {
+        return refuse(err, 'layHallPurse');
+    }
+}
+
+/** Gold back out of the wage purse, to whoever may hire. */
+export async function takeHallPurse(playerId: number, amountRaw: unknown): Promise<Ok<{ fund: number }> | Refused> {
+    try {
+        const amount = whole(amountRaw);
+        if (!amount) throw new HallAbort('Take a whole number of gold.');
+        let guildId = 0;
+        const fund = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forUpdate().first();
+            const { me, hall } = await hallHere(playerId, trx, true);
+            guildId = me.guildId;
+            if (!canHire(me)) throw new HallAbort('Your rank cannot take gold from the purse.', 403);
+            // Conditional and relative (CLAUDE.md §4 rule 1).
+            const [row] = await trx('guild_halls').where({ id: hall.id }).where('fund_gold', '>=', amount)
+                .decrement('fund_gold', amount).returning('fund_gold');
+            if (!row) throw new HallAbort(`The purse holds only ${Number(hall.fund_gold).toLocaleString('en-US')} gold.`);
+            await creditGoldWithin(trx, { playerId, amount, reason: 'hall_purse_take', refType: 'guild_hall', refId: hall.id });
+            return Number(row.fund_gold);
+        });
+        announce(guildId);
+        return { ok: true, fund };
+    } catch (err) {
+        return refuse(err, 'takeHallPurse');
+    }
+}
+
+/**
+ * Lay materials from a member's pack at the hall, for any builder to use.
+ * Never more than the tier being built still wants.
+ */
+export async function layHallStock(playerId: number, itemRaw: unknown, qtyRaw: unknown): Promise<Ok<{ laid: number }> | Refused> {
+    try {
+        const qty = whole(qtyRaw);
+        const itemName = typeof itemRaw === 'string' ? itemRaw : '';
+        if (!qty) throw new HallAbort('Lay a whole number of them.');
+        let guildId = 0;
+        const laid = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first();
+            const { me, hall } = await hallHere(playerId, trx, true);
+            guildId = me.guildId;
+            const next = await tierRow(hall.tier + 1, trx);
+            const req = next?.requirements.find(r => r.item === itemName);
+            if (!next || !req) throw new HallAbort(`The hall's next tier does not use ${itemName}.`);
+            const item = await trx('items').where({ name: itemName }).first('id');
+            if (!item) throw new HallAbort(`No one in Talaran can make ${itemName} yet.`);
+            // Read under the hall's lock, so two layings at once cannot both fit.
+            const delivered = Number((await trx('guild_hall_progress').where({ hall_id: hall.id, item_id: item.id }).first('delivered'))?.delivered ?? 0);
+            const room = Math.max(0, req.qty - delivered - await stockOf(trx, hall.id, item.id));
+            if (qty > room) {
+                throw new HallAbort(room > 0
+                    ? `The hall wants only ${room.toLocaleString('en-US')} more ${itemName} than is laid here already.`
+                    : `Enough ${itemName} is laid here already to finish this tier.`);
+            }
+            const taken = await takeItemsWithin(trx, playerId, [{ name: itemName, quantity: qty }]);
+            if (!taken.ok) throw new HallAbort(`You do not have ${qty.toLocaleString('en-US')} ${itemName}.`);
+            const [row] = await trx('guild_hall_stock').insert({ hall_id: hall.id, item_id: item.id, quantity: qty })
+                .onConflict(['hall_id', 'item_id']).merge({ quantity: trx.raw('guild_hall_stock.quantity + ?', [qty]) })
+                .returning('quantity');
+            return Number(row.quantity);
+        });
+        announce(guildId);
+        return { ok: true, laid };
+    } catch (err) {
+        return refuse(err, 'layHallStock');
+    }
+}
+
+/** Take laid materials back into the pack. Needs withdraw_items, as the storehouse does. */
+export async function takeHallStock(playerId: number, itemRaw: unknown, qtyRaw: unknown): Promise<Ok<{ laid: number }> | Refused> {
+    try {
+        const qty = whole(qtyRaw);
+        const itemName = typeof itemRaw === 'string' ? itemRaw : '';
+        if (!qty) throw new HallAbort('Take a whole number of them.');
+        let guildId = 0;
+        const laid = await db.transaction(async (trx) => {
+            await trx('players').where({ id: playerId }).forNoKeyUpdate().first();
+            const { me, hall } = await hallHere(playerId, trx, true);
+            guildId = me.guildId;
+            if (!me.can('withdraw_items')) throw new HallAbort('Your rank cannot take materials back from the hall.', 403);
+            const item = await trx('items').where({ name: itemName }).first('id');
+            if (!item) throw new HallAbort(`There is no ${itemName} laid here.`);
+            const [row] = await trx('guild_hall_stock').where({ hall_id: hall.id, item_id: item.id }).where('quantity', '>=', qty)
+                .decrement('quantity', qty).returning('quantity');
+            if (!row) throw new HallAbort(`There are not ${qty.toLocaleString('en-US')} ${itemName} laid here.`);
+            await addItemToInventoryWithin(trx, playerId, item.id, qty);
+            return Number(row.quantity);
+        });
+        announce(guildId);
+        return { ok: true, laid };
+    } catch (err) {
+        return refuse(err, 'takeHallStock');
+    }
+}
+
+/** True while a hall's wage purse or laid materials hold anything. */
+async function hireHoldsAnything(hall: { id: number; fund_gold?: unknown }, x: any = db): Promise<boolean> {
+    if (Number(hall.fund_gold ?? 0) > 0) return true;
+    return !!(await x('guild_hall_stock').where({ hall_id: hall.id }).where('quantity', '>', 0).first('item_id'));
 }
 
 // ── The storehouse ──────────────────────────────────────────────────────────
@@ -504,11 +837,11 @@ export async function guildStorehousesHoldAnything(guildId: number, x: any = db,
     // deposit or a gold payment takes the same hall lock, so it waits and then
     // finds the guild gone instead of landing in a hall about to be deleted
     // (disband, audit 2026-11-09, B11).
-    const q = x('guild_halls').where({ guild_id: guildId }).orderBy('id').select('id', 'gold');
+    const q = x('guild_halls').where({ guild_id: guildId }).orderBy('id').select('id', 'gold', 'fund_gold');
     const halls = await (lock ? q.forUpdate() : q);
     if (halls.some((h: any) => Number(h.gold) > 0)) return true;
     if (!halls.length) return false;
-    for (const h of halls) if ((await usedRoom(h.id, x)) > 0) return true;
+    for (const h of halls) if ((await usedRoom(h.id, x)) > 0 || (await hireHoldsAnything(h, x))) return true;
     return false;
 }
 

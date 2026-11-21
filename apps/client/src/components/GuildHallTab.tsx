@@ -9,13 +9,15 @@ import { useItemTooltip } from './ItemTooltip'
 import './PropertyStorage.css'
 import './GuildHallTab.css'
 import ErrorLine from './ErrorLine'
+import BuildHireControls, { type BuildHire, type HireOp } from './BuildHireControls'
+import BuildRequirementRow from './BuildRequirementRow'
 
 // The guild hall, as the Guild panel's Hall tab (server services/guildHall.ts).
 // Building, the storehouse and its ledger are sub-tabs here, open only while
 // the player stands at the hall. Everything allowed or refused is the
 // server's call; this only draws what it is sent.
 
-interface Requirement { item: string; needed: number; delivered: number; exists: boolean; held: number }
+interface Requirement { item: string; needed: number; delivered: number; exists: boolean; held: number; stocked?: number }
 interface StoredItem { item_id: number; name: string; type: string; subtype: string | null; quantity: number; description?: string }
 interface CarriedItem { item_id: number; name: string; type: string; subtype?: string | null; quantity: number; description?: string; synthetic?: boolean }
 interface LedgerRow { player: string; item: string | null; delta: number; at: string; approvedBy?: string | null }
@@ -46,6 +48,8 @@ interface HallState {
         storage: StoredItem[]
         ledger: LedgerRow[]
         builders: { name: string; given: number }[]
+        /** Building for hire (docs/antura-plan.md §6b): hands from outside the guild, their pay, and materials laid here. */
+        hire?: BuildHire & { canManage: boolean; canTakeStock: boolean }
     }
 }
 
@@ -213,7 +217,6 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
 
     const hall = state.hall
     const b = hall.building
-    const percent = (n: number, of: number) => `${Math.min(100, (n / Math.max(1, of)) * 100).toFixed(1)}%`
 
     return (
         <div className="hall">
@@ -250,31 +253,22 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                                     Building this tier wants Carpentry {b.buildLevel}{(b.carpentry ?? 0) < b.buildLevel ? `. You have ${b.carpentry ?? 1}.` : '.'}
                                 </p>
                             )}
-                            {b.requirements.map(r => {
-                                const done = r.delivered >= r.needed
-                                return (
-                                    <div key={r.item} className="hall-req">
-                                        <div className="inventory-slot occupied hall-req-icon" {...hoverProps({ name: r.item })}>
-                                            <img src={getItemIcon(r.item)} alt={r.item} className="inventory-item-icon" onError={e => { e.currentTarget.style.display = 'none' }} />
-                                        </div>
-                                        <div className="hall-req-body">
-                                            <span className="hall-req-name">{r.item}</span>
-                                            <div className="hall-bar"><div className="hall-bar-fill" style={{ width: percent(r.delivered, r.needed) }} /></div>
-                                            <span className="muted-text hall-req-count">
-                                                {r.delivered.toLocaleString()} of {r.needed.toLocaleString()}
-                                                {r.exists ? ` · you carry ${r.held.toLocaleString()}` : ' · no one in Talaran can make these yet'}
-                                            </span>
-                                        </div>
-                                        <button
-                                            className="btn btn-gold hall-req-btn"
-                                            disabled={busy || done || !r.exists || r.held < 1}
-                                            onClick={() => onStartBuild(r.item)}
-                                        >
-                                            {done ? 'Done' : !r.exists ? 'Not made yet' : `Add ${r.item}`}
-                                        </button>
-                                    </div>
-                                )
-                            })}
+                            {b.requirements.map(r => (
+                                <BuildRequirementRow key={r.item} r={r} site="the hall" busy={busy} blocked={null} hoverProps={hoverProps} onAdd={() => onStartBuild(r.item)} />
+                            ))}
+                            {hall.hire && (
+                                <BuildHireControls
+                                    site="hall"
+                                    hire={hall.hire}
+                                    atSite={state.atHall}
+                                    busy={busy}
+                                    canManage={hall.hire.canManage}
+                                    canTakeStock={hall.hire.canTakeStock}
+                                    intro="Members build the hall for nothing. Anyone outside the guild with the Carpentry for this tier and a mallet and saw in hand can build it too, if the guild names them, paid by the piece from a purse here."
+                                    leftover="What is left in the purse or laid here stays at the hall for the next tier."
+                                    onAct={(op: HireOp, body) => act(`/hire/${op}`, body)}
+                                />
+                            )}
                         </>
                     ) : (
                         <p className="hall-lead">The hall stands as high as it can be built, for now.</p>
