@@ -80,3 +80,4 @@
     .hall-request { flex-wrap: wrap; }
     .hall-request-actions { width: 100%; justify-content: flex-end; }
 }
+.hall-short { color: var(--color-gold); }

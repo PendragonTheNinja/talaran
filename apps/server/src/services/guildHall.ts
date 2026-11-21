@@ -53,11 +53,11 @@ function refuse(err: unknown, context: string): Refused {
 
 interface Requirement { item: string; qty: number }
 
-async function tierRow(tier: number, x: any = db): Promise<{ tier: number; capacity: number; requirements: Requirement[] } | null> {
+async function tierRow(tier: number, x: any = db): Promise<{ tier: number; capacity: number; buildLevel: number; requirements: Requirement[] } | null> {
     const row = await x('guild_hall_tiers').where({ tier }).first();
     if (!row) return null;
     const reqs = typeof row.requirements === 'string' ? JSON.parse(row.requirements) : row.requirements;
-    return { tier: row.tier, capacity: Number(row.capacity), requirements: Array.isArray(reqs) ? reqs : [] };
+    return { tier: row.tier, capacity: Number(row.capacity), buildLevel: Number(row.build_level ?? 1), requirements: Array.isArray(reqs) ? reqs : [] };
 }
 
 /** How much the storehouse holds at a finished tier (0 before the first). */
@@ -167,6 +167,8 @@ export async function hallState(playerId: number) {
             used: await usedRoom(hall.id),
             building: nextTier ? {
                 tier: nextTier.tier,
+                buildLevel: nextTier.buildLevel,
+                carpentry: await carpentryLevel(playerId),
                 capacityAfter: nextTier.capacity,
                 xpPerPiece: buildTurnXp(nextTier.tier),
                 // What one action sets in on average at this carpenter's level.
@@ -248,6 +250,11 @@ async function buildCheck(playerId: number, itemName: string, x: any = db) {
     if (!item) throw new HallAbort(`No one in Talaran can make ${itemName} yet.`);
     const tool = await missingBuildTool(playerId, x);
     if (tool) throw new HallAbort(tool.message);
+    // Each tier of the hall wants its own Carpentry (guild_hall_tiers.build_level;
+    // tier 2 at 22, docs/antura-plan.md §6), checked at the start and every cycle.
+    if (await carpentryLevel(playerId, x) < next.buildLevel) {
+        throw new HallAbort(`Building the hall's tier ${next.tier} wants Carpentry ${next.buildLevel}.`);
+    }
     return { me, here, hall, next, req, item };
 }
 

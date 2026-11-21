@@ -42,7 +42,7 @@ interface HallState {
         gold: number
         capacity: number
         used: number
-        building: { tier: number; capacityAfter: number; xpPerPiece: number; piecesPerAction?: number; requirements: Requirement[] } | null
+        building: { tier: number; buildLevel?: number; carpentry?: number; capacityAfter: number; xpPerPiece: number; piecesPerAction?: number; requirements: Requirement[] } | null
         storage: StoredItem[]
         ledger: LedgerRow[]
         builders: { name: string; given: number }[]
@@ -245,6 +245,11 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                                 Each turn pays {b.xpPerPiece} Carpentry experience.
                                 {` When it stands, the storehouse holds ${b.capacityAfter.toLocaleString()}.`}
                             </p>
+                            {b.buildLevel && b.buildLevel > 1 && (
+                                <p className={`hall-note ${(b.carpentry ?? 0) < b.buildLevel ? 'hall-short' : 'muted-text'}`}>
+                                    Building this tier wants Carpentry {b.buildLevel}{(b.carpentry ?? 0) < b.buildLevel ? `. You have ${b.carpentry ?? 1}.` : '.'}
+                                </p>
+                            )}
                             {b.requirements.map(r => {
                                 const done = r.delivered >= r.needed
                                 return (
