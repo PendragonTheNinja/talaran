@@ -155,6 +155,12 @@ const OVERRIDES: Record<string, { value: number; why: string }> = {
     "Quartz Hearty Amulet": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
     "Quartz Wayfinder's Amulet": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
     "Quartz Baitkeeper's Amulet": { value: 1460, why: 'Radiant Quartz 1,400 + 2 Ambren Ingots + setting' },
+    "Garnet Keeper's Band": { value: 4150, why: 'Radiant Garnet 4,050 + 2 Serph Ingots + setting' },
+    "Garnet Prospector's Ring": { value: 4150, why: 'Radiant Garnet 4,050 + 2 Serph Ingots + setting' },
+    "Garnet Seedsaver's Ring": { value: 4150, why: 'Radiant Garnet 4,050 + 2 Serph Ingots + setting' },
+    "Garnet Hearty Amulet": { value: 4150, why: 'Radiant Garnet 4,050 + 2 Serph Ingots + setting' },
+    "Garnet Wayfinder's Amulet": { value: 4150, why: 'Radiant Garnet 4,050 + 2 Serph Ingots + setting' },
+    "Garnet Baitkeeper's Amulet": { value: 4150, why: 'Radiant Garnet 4,050 + 2 Serph Ingots + setting' },
     // Writs are found, never made, priced by the work it takes to find one.
     // Kindling derives itself (1 in 1,500 mining swings, about 7.5 hours: 1,800).
     'Writ of Sending': { value: 1800, why: '1 in 500 road minutes on foot, about 8 hours of walking: as Kindling' },

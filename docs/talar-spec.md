@@ -223,7 +223,7 @@ A jewelry tier pairs **that tier's metal with that tier's gem**, the way weapons
 | T2 | Serph (tier 2 ore; nothing smelts it yet, not mined on Taiar) | Garnet | 20 (Nathan, 2026-10-28) | 13 | 1.5× |
 | T3+ | the tier's metal | the tier's gem | later islands | rung | +0.5× a tier (**knob**) |
 
-**T2 waits for Serph** (Nathan, 2026-10-28). Garnet is on Taiar, Serph is not: garnet jewelry comes with Serph smelting and the next island, and garnets on Taiar are for filling until then. Only quartz pieces ship now.
+**T2 waits for Serph** (Nathan, 2026-10-28). **Built 2026-11-21** with Antura (migration `20261121130000_garnet_jewelry`): the six garnet pieces, 18 recipes, priced at 4,150 in `deriveValues.ts` OVERRIDES. Garnet is on Taiar, Serph is not: garnet jewelry comes with Serph smelting and the next island, and garnets on Taiar are for filling until then. Only quartz pieces ship now.
 
 ### 8.3 The pieces
 
