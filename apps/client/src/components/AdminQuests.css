@@ -1,0 +1,88 @@
+/* The admin panel's Quests tab (AdminQuests.tsx). */
+.aq {
+    display: grid;
+    grid-template-columns: minmax(200px, 260px) 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+@media (max-width: 760px) {
+    .aq { grid-template-columns: 1fr; }
+}
+
+.aq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.aq-npc {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 6px 8px;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-mid);
+    border-radius: 4px;
+    color: var(--color-text-base);
+    text-align: left;
+    cursor: pointer;
+}
+
+.aq-npc.is-picked {
+    border-color: var(--color-gold);
+    color: var(--color-text-bright);
+}
+
+.aq-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.aq-stage {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-border-mid);
+}
+
+.aq-field { margin: 6px 0; }
+
+.aq-label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+}
+
+.aq-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-mid);
+    border-radius: 4px;
+    color: var(--color-text-bright);
+    font: inherit;
+    resize: vertical;
+}
+
+.aq-field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.aq-note {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin: 2px 0;
+}
+
+.aq-ok { font-size: 12px; color: var(--color-gold); }
+.aq-warn { font-size: 12px; color: var(--color-red-glow); }
