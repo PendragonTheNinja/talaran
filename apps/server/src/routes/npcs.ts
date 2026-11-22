@@ -6,6 +6,7 @@ import { crierHasWordFor, CRIER_ROAMS_WITH } from '../services/crierPolls';
 import { checkQuestCompletion, questStartChoices, questXpAwards, objectiveMet, missingGift, questStartRefusal } from './quests';
 import { unlockChests } from '../services/chests';
 import { acceptErrand, deliverErrand, dropErrand, errandActions, errandTalk } from '../services/errands';
+import { dailyActions, dailyTalk, handInDaily, rareLine } from '../services/dailies';
 
 const router = Router();
 
@@ -59,11 +60,14 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
         }
 
         // An errand under way speaks for itself (services/errands.ts, the Friddick Brothers).
-        const errand = forceStage ? null : await errandTalk(playerId, npc);
+        // A tutor's daily task, once their lesson is done (services/dailies.ts).
+        // Now and then an NPC adds a rare line of their own (npc_rare_lines).
+        const rare = forceStage ? null : await rareLine(npc.id);
+        const errand = forceStage ? null : (await errandTalk(playerId, npc)) ?? (await dailyTalk(playerId, npc));
         if (errand) {
             res.json({
                 npc, stage: 'errand', pendingRewards: null, questProgress: null,
-                dialogue: { npc_id: npc.id, stage_key: 'errand', text_lines: errand.lines, options: errand.options },
+                dialogue: { npc_id: npc.id, stage_key: 'errand', text_lines: rare ? [...errand.lines, rare] : errand.lines, options: errand.options },
             });
             return;
         }
@@ -125,6 +129,7 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
             pendingRewards,
             dialogue: {
                 ...dialogue,
+                text_lines: rare ? [...(dialogue.text_lines ?? []), rare] : dialogue.text_lines,
                 options: typeof dialogue.options === 'string'
                     ? JSON.parse(dialogue.options)
                     : dialogue.options,
@@ -179,6 +184,13 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
         // Geoffrey opens locks for a fee (services/chests.ts). The action was
         // checked above against what this NPC offers and where the player stands.
         // Errands (services/errands.ts): take one, hand one over, or give one up.
+        if (action === 'daily_hand_in') {
+            const done = await handInDaily(playerId, npc);
+            if (!done.ok) { res.status(done.status).json({ error: done.error }); return; }
+            res.json({ success: true, action, message: done.message });
+            return;
+        }
+
         if (action === 'errand_accept' || action === 'errand_deliver' || action === 'errand_drop') {
             const done = action === 'errand_accept' ? await acceptErrand(playerId, npc)
                 : action === 'errand_deliver' ? await deliverErrand(playerId, npc)
@@ -404,7 +416,7 @@ async function offeredActions(playerId: number, npc: any): Promise<Set<string>> 
         byStage.set(r.stage_key, Array.isArray(opts) ? opts : []);
     }
 
-    const allowed = new Set<string>(await errandActions(playerId, npc));
+    const allowed = new Set<string>([...await errandActions(playerId, npc), ...await dailyActions(playerId, npc)]);
     const seen = new Set<string>();
     const queue = [(await resolveStage(playerId, npc.id)).stage];
     while (queue.length) {
