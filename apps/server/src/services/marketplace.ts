@@ -266,6 +266,8 @@ export function buyRateFor(merchantKey: MerchantKey, itemMerchant: MerchantKey):
 const PAWN_ONLY_TYPES = new Set(['collectible', 'jewelry']);
 const PAWN_ONLY_SUBTYPES = new Set([
     'trophy', 'curio', 'gem', 'container', 'container_locked',
+    // Islet artefacts (docs/islets-plan.md): found, never made, and museum pieces.
+    'artefact',
     // Writs (Talar spells): found, never made.
     'writ',
     // Combat drops nobody makes (docs/combat-spec.md §8).

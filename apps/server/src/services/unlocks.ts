@@ -5,8 +5,10 @@
 // gathering nodes, recipes, crops, fish, foraging spots, huntable animals and
 // traps (Hunting), animals to raise, gear to wear (the skill gateSkill names:
 // Melee for weapons, Defense for armour, Wayfaring for mounts, the trade for
-// its tools), and roads that need a level. A new gated table belongs here, or
-// its level-ups say nothing about it.
+// its tools), roads that need a level, buildings by tier (homesteads, shops,
+// guild halls), the better pay for sawing a wood's second tier, and brewing
+// and its bigger casks. A new gated table belongs here, or its level-ups say
+// nothing about it.
 
 import db from '../db'
 import { gateSkill } from './equipGates'
@@ -42,6 +44,26 @@ export async function unlocksAt(skill: string, level: number): Promise<Unlock[]>
         const column = s === 'carpentry' ? 'build_level' : 'sail_level'
         const boats = await db('vessel_types').where({ [column]: level, is_active: true }).orderBy('name').select('name')
         for (const b of boats) add(s === 'carpentry' ? `Build a ${b.name}` : `Sail a ${b.name}`, null)
+    }
+    if (s === 'carpentry') {
+        // Buildings by tier (services/farming.ts, services/shops.ts, services/guildHall.ts).
+        const { HOMESTEAD_TIERS } = await import('./farming')
+        for (const t of HOMESTEAD_TIERS) if (t.tier > 1 && t.carpentry === level) add(`A tier ${t.tier} homestead`, null)
+        const { SHOP_TIERS } = await import('./shops')
+        for (const [n, t] of Object.entries(SHOP_TIERS)) if (Number(n) > 1 && t.carpentry === level) add(`A tier ${n} shop`, null)
+        const halls = await db('guild_hall_tiers').where({ build_level: level }).where('tier', '>', 1).orderBy('tier').select('tier')
+        for (const h of halls) add(`Building a guild hall's tier ${h.tier}`, null)
+        // A wood's second tier pays more to saw (services/carpentry.ts sawXpFor).
+        const { SAW_RECIPES } = await import('./carpentry')
+        for (const r of Object.values(SAW_RECIPES)) {
+            if (r.xpSteps.some(st => st.level === level)) add(`Better pay for sawing ${r.output}`, r.output)
+        }
+    }
+    if (s === 'cooking') {
+        // Ale in Mettlefell's cask, and a bigger cask every few levels (services/brewing.ts).
+        const { BREW_LEVEL, maxBatchesFor } = await import('./brewing')
+        if (level === BREW_LEVEL) add('Brewing Ale', 'Ale')
+        else if (level > BREW_LEVEL && maxBatchesFor(level) > maxBatchesFor(level - 1)) add(`A cask of ${maxBatchesFor(level)} batches`, 'Ale')
     }
     if (s === 'farming') {
         const crops = await db('crops').where({ plant_level: level, is_active: true }).orderBy('name').select('name', 'produce_item_name')
