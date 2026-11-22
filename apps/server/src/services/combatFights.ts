@@ -32,7 +32,7 @@ import { FightClock, SwingEvent, drawByWeight, engage, nextEventAt, settle } fro
 import { COMBAT_SKILLS, WornCombatItem, combatLevels, playerCombatant } from './combat'
 import { awardXp, levelFromXp, xpForLevel, xpToNextLevel } from './xp'
 import { incrementStats } from './stats'
-import { takeItemsWithin } from './inventory'
+import { addItemToInventoryWithin, takeItemsWithin } from './inventory'
 import { combatBotCheckIntervalMs, isBotCheckDue, issueBotCheck } from './botCheck'
 import { isPlayerOnline, RESTART_GRACE_MS, serverStartedAt, shouldCancelForAbsence } from '../lib/presence'
 import { DEATH_PILE_PRIVATE_MINUTES, dropEverythingWithin } from './groundItems'
@@ -178,6 +178,10 @@ interface KillReport {
     vein: { oneIn: number; ore: string; min: number; max: number } | null
     /** The first of its kind this player has killed: a new Bestiary entry. */
     firstKill: boolean
+    /** A quest foe's own drop, already in the pack (rollQuestFoe). */
+    questDrop: string | null
+    /** A named foe, said without "the". */
+    named: boolean
     /** This kill passed a Bestiary step past the first (10, 50, 250, 1,000). */
     bestiaryStep: boolean
 }
@@ -240,6 +244,10 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
     const botCheckMs = await combatBotCheckIntervalMs(trx, playerId)
     let creature = pool.find(c => c.id === fight.creature_id)
         ?? await trx('creatures').where({ id: fight.creature_id }).first()
+    let questFoe: QuestFoe | null = fight.quest_foe_id
+        ? (await trx('quest_foes').where({ id: fight.quest_foe_id }).first('id', 'name', 'drop_item_name')) ?? null
+        : null
+    creature = asFoe(creature, questFoe)
 
     let clock: FightClock = {
         enemyHp: Number(fight.enemy_hp),
@@ -385,6 +393,19 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             }
             if (broken.length) await incrementStats(playerId, { total_gear_broken: broken.length }, trx)
 
+            // A quest foe pays its own drop beside the creature's, here, so it
+            // commits with the kill.
+            let questDrop: string | null = null
+            if (questFoe) {
+                const dropItem = await trx('items').where({ name: questFoe.drop_item_name }).first('id')
+                if (dropItem) {
+                    await addItemToInventoryWithin(trx, playerId, dropItem.id, 1)
+                    questDrop = questFoe.drop_item_name
+                } else {
+                    logger.error(`quest foe ${questFoe.id}: no item named ${questFoe.drop_item_name}`)
+                }
+            }
+
             kills.push({
                 creatureKey: creature.key, creatureName: creature.name, spotKey: spot.key, xp,
                 xpAfter: await skillXps(trx, playerId),
@@ -398,6 +419,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                     : null,
                 firstKill,
                 bestiaryStep,
+                questDrop,
+                named: !!questFoe,
             })
 
             // An islet guardian (docs/islets-plan.md §6f) is one fight: its
@@ -427,7 +450,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                 end = end ?? 'fled'
                 break
             }
-            creature = next
+            questFoe = await rollQuestFoe(trx, playerId, next.id)
+            creature = asFoe(next, questFoe)
             clock = engage(creatureCombatant(creature), r.killedAt + COMBAT.ENGAGE_DELAY_SECONDS * 1000)
             levels = await combatLevels(playerId, trx)
 
@@ -475,6 +499,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
         await trx('players').where({ id: playerId }).update({ hp_missing: missing })
         await trx('combat_fights').where({ id: fight.id }).update({
             creature_id: creature.id,
+            quest_foe_id: questFoe?.id ?? null,
             enemy_hp: clock.enemyHp,
             engage_at: new Date(clock.engageAt),
             player_next_at: new Date(clock.playerNextAt),
@@ -547,6 +572,38 @@ const END_MESSAGES: Record<string, string> = {
     absent: 'You broke off the fight after a long while away.',
 }
 
+// ── Quest foes (2026-11-22, migration 20261122110000) ───────────────────────
+//
+// A named creature met only on a quest (Hrolf Ale-Debt, the Draugr with a bar
+// tab): when its creature is drawn, a player with the quest open who does not
+// yet carry its drop may meet it instead, at `quest_foes.chance_one_in`. It is
+// the same creature row under a borrowed name, so the fight, the Bestiary, and
+// every drop table are the creature's own; its kill also pays the foe's drop,
+// inside the settle's transaction. The fight row keeps `quest_foe_id`, so a
+// later settle still knows whom the player faces. Carrying the drop, or the
+// quest done, and it is never met again.
+
+interface QuestFoe { id: number; name: string; drop_item_name: string }
+
+async function rollQuestFoe(trx: any, playerId: number, creatureId: number): Promise<QuestFoe | null> {
+    const rows = await trx('quest_foes as f')
+        .join('player_quests as pq', 'pq.quest_id', 'f.quest_id')
+        .where({ 'f.creature_id': creatureId, 'f.is_active': true, 'pq.player_id': playerId, 'pq.status': 'active' })
+        .select('f.id', 'f.name', 'f.drop_item_name', 'f.chance_one_in')
+    for (const f of rows) {
+        const held = await trx('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+            .where({ 'pi.player_id': playerId, 'i.name': f.drop_item_name }).where('pi.quantity', '>', 0).first('pi.item_id')
+        if (held) continue
+        if (Math.random() * Math.max(1, Number(f.chance_one_in)) < 1) return { id: Number(f.id), name: f.name, drop_item_name: f.drop_item_name }
+    }
+    return null
+}
+
+/** The creature as the player meets it: under the foe's name when it is one. */
+function asFoe<T extends { name: string }>(creature: T, foe: QuestFoe | null): T {
+    return foe ? { ...creature, name: foe.name } : creature
+}
+
 /** Everything that waits for the commit: bot check, drops, coins, the result cards, the pushes. */
 async function afterFight(report: FightReport | null): Promise<void> {
     if (!report) return
@@ -562,6 +619,7 @@ async function afterFight(report: FightReport | null): Promise<void> {
                 ...await rollSecondaryDrops(playerId, `combat:${kill.creatureKey}`, COMBAT_SKILLS.melee),
                 ...await rollSecondaryDrops(playerId, `combat:${kill.creatureKey}@${kill.spotKey}`, COMBAT_SKILLS.melee),
             ]
+            if (kill.questDrop) drops.push({ name: kill.questDrop, quantity: 1, notable: true })
             // People carry coins, on top of the normal gold find (§8).
             if (kill.coins && Math.random() * kill.coins.oneIn < 1) {
                 const amount = kill.coins.min + Math.floor(Math.random() * (kill.coins.max - kill.coins.min + 1))
@@ -597,7 +655,7 @@ async function afterFight(report: FightReport | null): Promise<void> {
                     goldBasisXp: [kill.xp.melee],
                     drops,
                     // A break ends the fight, and the ending line names it.
-                    message: `You bring down the ${kill.creatureName}.`
+                    message: kill.named ? `You bring down ${kill.creatureName}.` : `You bring down the ${kill.creatureName}.`
                         + (kill.firstKill ? ' A new entry in your Bestiary.' : '')
                         + (kill.bestiaryStep ? ` Your Bestiary has more to tell about the ${kill.creatureName}.` : ''),
                 },
@@ -734,7 +792,9 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
                 chosen = pool.find(c => c.id === creatureId)
                 if (!chosen) throw new CombatAbort('Choose what to fight.')
             }
-            const creature = chosen ?? drawByWeight(Math.random, pool)
+            const drawn = chosen ?? drawByWeight(Math.random, pool)
+            const questFoe = await rollQuestFoe(trx, playerId, drawn.id)
+            const creature = asFoe(drawn, questFoe)
 
             const now = Date.now()
             const clock = engage(creatureCombatant(creature), now)
@@ -760,6 +820,7 @@ export async function startFight(playerId: number, spotId: number, creatureId: n
                 spot_id: spot.id,
                 chosen_creature_id: chosen?.id ?? null,
                 creature_id: creature.id,
+                quest_foe_id: questFoe?.id ?? null,
                 enemy_hp: clock.enemyHp,
                 engage_at: new Date(clock.engageAt),
                 player_next_at: new Date(clock.playerNextAt),
