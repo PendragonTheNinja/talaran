@@ -5,6 +5,7 @@ import PropertyStorage from './PropertyStorage'
 import AnimalsTab from './AnimalsTab'
 import ConfirmModal from './ConfirmModal'
 import HireSection from './HireSection'
+import { listWords } from '../lib/listWords'
 import './FarmPanel.css'
 import ErrorLine from './ErrorLine'
 
@@ -57,8 +58,19 @@ function CostRows({ offer }: { offer: TierOffer }) {
     )
 }
 
+/** The player's fields on their other homesteads, counted ahead of or behind this one's (server lib/holdingShare.ts). */
+interface FieldOrder { ahead: { island: string; fields: number }[]; behind: { island: string; fields: number }[] }
+
+/** "12 fields on Taiar Island", or several joined: "4 fields on Antura and 12 on Taiar Island". */
+function fieldsWords(list: { island: string; fields: number }[]): string {
+    return listWords(list.map((g, i) => `${g.fields}${i === 0 ? ` field${g.fields === 1 ? '' : 's'}` : ''} on ${g.island}`))
+}
+const fieldCount = (list: { fields: number }[]) => list.reduce((n, g) => n + g.fields, 0)
+
 interface FarmState {
     hasFarmstead: boolean; atNovita: boolean; farmingLevel: number; hasHoe: boolean
+    /** Fields count highest-tier island first for the experience share, across every homestead. */
+    fieldOrder?: FieldOrder
     build?: {
         carpentryReq: number; cost: { itemName: string; qty: number }[]
         canAfford: boolean; missing: { itemName: string; need: number; have: number }[]
@@ -232,6 +244,11 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                             </div>
                         ))}
                         {!data.atNovita && <p className="farm-note">Travel to {data.homeName ?? 'the homestead ground'} to raise your farmstead.</p>}
+                        {(data.fieldOrder?.behind.length ?? 0) > 0 && (
+                            <p className="farm-note">
+                                Fields on a newer island count first for experience. Its first field here moves your {fieldsWords(data.fieldOrder!.behind)} down one place each.
+                            </p>
+                        )}
                         <HireSection kind="farmstead" onStarted={(secs, type) => onActionStarted(secs, type.replace('farm_', ''))} />
                     </div>
                 )}
@@ -244,6 +261,11 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                             <span className={data.hasHoe ? 'tool-on' : 'tool-off'}>🪏 {data.hasHoe ? 'Hoe' : 'No hoe'}</span>
                             <span>Fields {data.plots?.length ?? 0} / {data.plotCap ?? 1}</span>
                         </div>
+                        {(data.fieldOrder?.ahead.length ?? 0) > 0 && (
+                            <p className="farm-note">
+                                Your {fieldsWords(data.fieldOrder!.ahead)} count first for experience, so the fields here start at place {fieldCount(data.fieldOrder!.ahead) + 1}.
+                            </p>
+                        )}
 
                         {/* Every ripe field in one go, once the farm is big enough
                             for one-by-one to be the chore. It saves clicks, not
@@ -401,6 +423,11 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                                         )
                                     })}
                                 </div>
+                                {(data.fieldOrder?.behind.length ?? 0) > 0 && (
+                                    <p className="farm-note">
+                                        It counts ahead of your {fieldsWords(data.fieldOrder!.behind)}, moving each of them down one place for experience.
+                                    </p>
+                                )}
                                 <button className="farm-btn primary" disabled={busy || !data.nextPlot.canAfford}
                                     onClick={() => act('/api/farming/build-plot')}>Enclose Field</button>
                             </div>

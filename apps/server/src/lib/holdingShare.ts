@@ -56,3 +56,33 @@ export async function holdingRank(x: any, plot: { id: number; property_id: numbe
     if (!owner) return 0;
     return (await fieldRanks(x, Number(owner.player_id))).get(Number(plot.id)) ?? 0;
 }
+
+/**
+ * The player's fields on their OTHER homesteads, split by whether they count
+ * ahead of this one's or behind (fieldRanks' order), so the farm screen can
+ * say when one island's fields push another's down (CLAUDE.md §8). `tier` is
+ * this homestead's island's; `propertyId` is null for one not yet raised,
+ * which would count after any other homestead of the same tier.
+ */
+export async function fieldsElsewhere(x: any, playerId: number, tier: number, propertyId: number | null): Promise<{
+    ahead: { island: string; fields: number }[]
+    behind: { island: string; fields: number }[]
+}> {
+    const rows = await x('farm_plots as f')
+        .join('player_properties as p', 'p.id', 'f.property_id')
+        .join('locations as l', 'l.id', 'p.location_id')
+        .leftJoin('islands as i', 'i.name', 'l.region')
+        .where('p.player_id', playerId)
+        .groupBy('p.id', 'l.region', 'i.tier')
+        .orderByRaw('coalesce(i.tier, 1) desc, p.id asc')
+        .select('p.id as property_id', 'l.region as island', x.raw('coalesce(i.tier, 1) as tier'), x.raw('count(*) as fields'));
+    const ahead: { island: string; fields: number }[] = [];
+    const behind: { island: string; fields: number }[] = [];
+    for (const r of rows) {
+        if (propertyId !== null && Number(r.property_id) === propertyId) continue;
+        const t = Number(r.tier);
+        const first = t > tier || (t === tier && (propertyId === null || Number(r.property_id) < propertyId));
+        (first ? ahead : behind).push({ island: r.island ?? 'another island', fields: Number(r.fields) });
+    }
+    return { ahead, behind };
+}

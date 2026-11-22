@@ -10,7 +10,7 @@ import { jewelryAid, noteJewelry } from './jewelry';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { noteDeed } from './chronicle';
 import { buffedSeconds, skillForWork } from './buffs'
-import { holdingShare, holdingRank, fieldRanks } from '../lib/holdingShare';
+import { holdingShare, holdingRank, fieldRanks, fieldsElsewhere } from '../lib/holdingShare';
 import { homesteadPlace, islandHere } from './islands';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
@@ -422,6 +422,12 @@ export async function getFarmState(playerId: number) {
     const carpLevel = await skillLevel(playerId, 'Carpentry');
     const missingToolName = (await missingBuildTool(playerId))?.itemName ?? null;
 
+    // This homestead's fields against the player's others, which count first
+    // by island tier (lib/holdingShare.ts), so the screen can say when one
+    // island's fields push another's down (CLAUDE.md §8).
+    const island = await islandHere(db, playerId);
+    const fieldOrder = await fieldsElsewhere(db, playerId, island.tier, property ? Number(property.id) : null);
+
     if (!property) {
         const matCheck = await hasMaterials(playerId, FARM_ESTABLISH_COST);
         // Every tier that can be raised outright, so the panel can offer tier 2
@@ -438,6 +444,7 @@ export async function getFarmState(playerId: number) {
         return {
             hasFarmstead: false,
             atNovita,
+            fieldOrder,
             homeName: home?.name ?? null,
             builds,
             farmingLevel: farmingLvl,
@@ -499,7 +506,7 @@ export async function getFarmState(playerId: number) {
         };
     });
 
-    const plotMax = (await islandHere(db, playerId)).plot_max;
+    const plotMax = island.plot_max;
     const cap = plotCapForLevel(farmingLvl, plotMax);
     const nextPlotNumber = plots.length + 1;
     const nextCost = nextPlotNumber <= cap ? plotCost(nextPlotNumber) : null;
@@ -508,6 +515,7 @@ export async function getFarmState(playerId: number) {
     return {
         hasFarmstead: true,
         atNovita,
+        fieldOrder,
         farmingLevel: farmingLvl,
         hasHoe: !!hoe,
         homeName: home?.name ?? null,
