@@ -470,6 +470,23 @@ async function hallPurse(ctx: Ctx, hallId: number): Promise<number> {
 }
 
 /**
+ * An NPC in Talador with a quest of `objectives`, its dialogue offering the
+ * start on 'intro' and the hand-in on 'ready'. `group` makes it one of a
+ * rival pair (quests.exclusive_group).
+ */
+async function questGiver(ctx: Ctx, townId: number, name: string, objectives: { type: string; target: string | null; amount: number }[], extra: Record<string, unknown> = {}) {
+    const npc = await ctx.seed.row('npcs', { name, title: 'Racecheck', location_id: townId, is_active: true });
+    const quest = await ctx.seed.row('quests', { name: `${name}'s Errand`, description: 'x', npc_name: name, location_id: townId, is_active: true, reward_gold: 100, ...extra });
+    for (const [i, o] of objectives.entries()) {
+        await ctx.seed.row('quest_objectives', { quest_id: quest.id, order: i + 1, description: 'x', type: o.type, target_item: o.target, required_amount: o.amount });
+    }
+    for (const [key, action] of [['intro', `start_quest:${quest.id}`], ['ready', `complete_talk_objective:${quest.id}`], ['progress', 'close'], ['complete', 'close'], ['rival', 'close']]) {
+        await ctx.seed.row('npc_dialogues', { npc_id: npc.id, stage_key: key, text_lines: ['x'], options: JSON.stringify([{ label: 'x', next_stage: null, action }]) });
+    }
+    return { npc, quest };
+}
+
+/**
  * Pendragon wanting a tier 1 shop in Talador (Taiar's port, the islands
  * fallback), and Wright, a carpenter standing there with a mallet and saw
  * and materials for two shops in his pack. With `fee`, the hire is already made.
@@ -2630,6 +2647,42 @@ const SCENARIOS: Scenario[] = [
                 ?? changed('wages against pieces placed at 10 each', delivered * 10, wages)
                 ?? changed('planks in packs and the hall together', 100, (await ctx.itemTotal(g.w.plank.id)) + delivered)
                 ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'quest-give', name: 'a hand-in that keeps 10 planks, pressed five times at once with 10 in the pack', rounds: 10,
+        run: async (ctx) => {
+            // routes/quests.ts checkQuestCompletion: the status flip is the
+            // gate, and the 'give' items are taken under it, so the reward is
+            // paid once and the planks taken once.
+            const w = await world(ctx);
+            const g = await questGiver(ctx, w.town.id, 'Nan', [{ type: 'give', target: w.plank.name, amount: 10 }, { type: 'talk', target: null, amount: 1 }]);
+            await inPack(ctx, w.player.id, w.plank.id, 10);
+            await ctx.seed.row('player_quests', { player_id: w.player.id, quest_id: g.quest.id, status: 'active' });
+            for (const o of await ctx.db('quest_objectives').where({ quest_id: g.quest.id })) {
+                await ctx.seed.row('player_quest_objectives', { player_id: w.player.id, objective_id: o.id, current_amount: 0, is_complete: false });
+            }
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, `/npcs/${g.npc.id}/interact`, { action: `complete_talk_objective:${g.quest.id}` }));
+            const status = (await ctx.db('player_quests').where({ player_id: w.player.id, quest_id: g.quest.id }).first()).status;
+            return noServerErrors(st)
+                ?? (status === 'completed' ? null : `the quest ended ${status}`)
+                ?? changed('gold paid', 100, await goldOf(ctx, w.player.id))
+                ?? changed('planks left', 0, await ctx.itemTotal(w.plank.id))
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
+        id: 'quest-rival', name: 'both sides of a quarrel accepted at once', rounds: 10,
+        run: async (ctx) => {
+            // routes/quests.ts questStartRefusal, with the player's row locked:
+            // two rival quests (one exclusive_group) never both start.
+            const w = await world(ctx);
+            const a = await questGiver(ctx, w.town.id, 'Wat', [{ type: 'harvest', target: 'Cabbage', amount: 3 }, { type: 'talk', target: null, amount: 1 }], { exclusive_group: 'rc_cabbage' });
+            const b = await questGiver(ctx, w.town.id, 'Ebba', [{ type: 'harvest', target: 'Cabbage', amount: 3 }, { type: 'talk', target: null, amount: 1 }], { exclusive_group: 'rc_cabbage' });
+            await ctx.warm(w.player.id);
+            const st = await Promise.all([a, b, a, b, a, b].map(g => ctx.post(w.player.id, `/npcs/${g.npc.id}/interact`, { action: `start_quest:${g.quest.id}` })));
+            const started = Number((await ctx.db('player_quests').where({ player_id: w.player.id }).count({ n: '*' }).first())?.n ?? 0);
+            return noServerErrors(st) ?? changed('quests started', 1, started);
         },
     },
 ];

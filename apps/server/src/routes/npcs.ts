@@ -3,7 +3,7 @@ import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { crierHasWordFor, CRIER_ROAMS_WITH } from '../services/crierPolls';
-import { updateQuestObjectiveProgress, checkQuestCompletion, questStartChoices, questXpAwards } from './quests';
+import { checkQuestCompletion, questStartChoices, questXpAwards, objectiveMet, missingGift, questStartRefusal } from './quests';
 import { unlockChests } from '../services/chests';
 
 const router = Router();
@@ -57,7 +57,11 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
             return;
         }
 
-        const stageKey = forceStage || await resolveStage(playerId, npcId);
+        const resolved = await resolveStage(playerId, npcId);
+        const stageKey = forceStage || resolved.stage;
+        // The stage without its quest's prefix (quests.stage_prefix): what kind of stage it is.
+        const prefix = resolved.quest?.stage_prefix ?? '';
+        const base = prefix && stageKey.startsWith(prefix) ? stageKey.slice(prefix.length) : stageKey;
         const dialogue = await db('npc_dialogues')
             .where({ npc_id: npcId, stage_key: stageKey })
             .first();
@@ -68,8 +72,8 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
         }
 
         let questProgress = null;
-        if (stageKey === 'progress') {
-            questProgress = await getQuestProgress(playerId, npcId);
+        if (base === 'progress' && resolved.quest) {
+            questProgress = await getQuestProgress(playerId, resolved.quest);
         }
 
         // On the closing stage, what the player is ABOUT to receive.
@@ -79,11 +83,10 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
         // wall of text a second time, which reads as a duplicate rather than a
         // conclusion.
         let pendingRewards = null;
-        if (stageKey === 'ready') {
-            const quest = (await db('quests')
-                .where({ location_id: npc.location_id, is_active: true }))
-                .filter((q: any) => !q.npc_name || q.npc_name === npc.name)
-                .find((q: any) => true);
+        if (base === 'ready') {
+            // The quest this conversation is closing, never simply the giver's
+            // first: a giver may have several (quests.requires_quest_id).
+            const quest = resolved.quest;
 
             if (quest) {
                 let items: Array<{ itemName: string; quantity: number }> = [];
@@ -202,7 +205,11 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
             // a failure after the insert left a started quest with no objectives
             // or no bow. Now the row is inserted-or-ignored and everything else
             // happens only if THIS request inserted it, all in one transaction.
+            let refusal: string | null = null;
             const started = await db.transaction(async (trx) => {
+                // Prerequisites and rival quests, with the player's row locked (routes/quests.ts).
+                refusal = await questStartRefusal(trx, playerId, quest);
+                if (refusal) return null;
                 const inserted = await trx('player_quests')
                     .insert({ player_id: playerId, quest_id: quest.id, status: 'active' })
                     .onConflict(['player_id', 'quest_id'])
@@ -229,6 +236,10 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 return granted;
             });
 
+            if (refusal) {
+                res.status(400).json({ error: refusal });
+                return;
+            }
             if (started === null) {
                 res.json({ success: true, action: 'next_stage' });
                 return;
@@ -250,6 +261,13 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
             const quest = await resolveActionQuest(action.replace('complete_talk_objective:', ''), npcId);
             if (!quest) {
                 res.status(404).json({ error: 'Quest not found.' });
+                return;
+            }
+
+            // What the giver keeps must be in the pack before anything is marked.
+            const short = await missingGift(playerId, quest.id);
+            if (short) {
+                res.status(400).json({ error: short });
                 return;
             }
 
@@ -275,7 +293,7 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                             const po = await db('player_quest_objectives')
                                 .where({ player_id: playerId, objective_id: prev.id })
                                 .first();
-                            return po?.is_complete || false;
+                            return objectiveMet(playerId, prev, po);
                         })
                     );
 
@@ -288,10 +306,13 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                         .where({ player_id: playerId, objective_id: obj.id })
                         .update({ current_amount: 1, is_complete: true });
 
-                    rewards = await checkQuestCompletion(playerId, quest.id);
                     break;
                 }
             }
+            // Once every talk is marked. Also when they already were and an
+            // earlier hand-in fell short at the finish, so the quest can never
+            // be left with nothing left to press.
+            rewards = await checkQuestCompletion(playerId, quest.id);
 
             logger.info(`Player ${playerId} completed talk objective for "${quest.name}"`);
             // Rewards ride back on THIS response so the dialogue can show them
@@ -364,7 +385,7 @@ async function offeredActions(playerId: number, npc: any): Promise<Set<string>> 
 
     const allowed = new Set<string>();
     const seen = new Set<string>();
-    const queue = [await resolveStage(playerId, npc.id)];
+    const queue = [(await resolveStage(playerId, npc.id)).stage];
     while (queue.length) {
         const stage = queue.shift()!;
         if (seen.has(stage)) continue;
@@ -377,80 +398,99 @@ async function offeredActions(playerId: number, npc: any): Promise<Set<string>> 
     return allowed;
 }
 
-async function resolveStage(playerId: number, npcId: number): Promise<string> {
-    // Find quests linked to this NPC
+/**
+ * Which stage of this NPC's dialogue the player is at, and the quest it
+ * belongs to.
+ *
+ * An NPC's quests are taken in id order. Each may name its own stages with
+ * `quests.stage_prefix` ("nan2:intro"), so one giver can hand out several
+ * (Nan's errands); a quest without a prefix uses the plain keys, as every
+ * quest did before (2026-11-22), and a giver of one quest reads exactly as it
+ * always has. A quest held back by `requires_quest_id` is skipped until the
+ * quest it waits on is done. A quest whose `exclusive_group` rival the player
+ * has taken is closed: its giver is at `<prefix>rival` if there is nothing
+ * else to say. When everything is done, the last quest finished picks the
+ * `complete` stage.
+ */
+async function resolveStage(playerId: number, npcId: number): Promise<{ stage: string; quest: any | null }> {
     const npc = await db('npcs').where({ id: npcId }).first();
-    const location = await db('locations').where({ id: npc.location_id }).first();
 
     // Quests belonging to THIS NPC. Scoping by location alone was wrong the
     // moment a location got a second quest-giver: Novita has both Georgic and
     // Geothro, so a player who had finished Georgic's lesson got 'complete' from
     // Geothro on first meeting him, skipping his entire quest.
     // npc_name is nullable, so a quest without one still falls back to location.
-    const quests = (await db('quests').where({ location_id: npc.location_id, is_active: true }))
+    const quests = (await db('quests').where({ location_id: npc.location_id, is_active: true }).orderBy('id'))
         .filter((q: any) => !q.npc_name || q.npc_name === npc.name);
-
-    for (const quest of quests) {
-        const playerQuest = await db('player_quests')
-            .where({ player_id: playerId, quest_id: quest.id })
-            .first();
-
-        if (!playerQuest) continue;
-
-        if (playerQuest.status === 'completed') return 'complete';
-
-        // Check objectives
-        const objectives = await db('quest_objectives')
-            .where({ quest_id: quest.id })
-            .orderBy('order', 'asc');
-
-        const playerObjectives = await db('player_quest_objectives')
-            .where({ player_id: playerId })
-            .whereIn('objective_id', objectives.map(o => o.id));
-
-        const talkObj = objectives.find(o => o.type === 'talk');
-        const nonTalkObjs = objectives.filter(o => o.type !== 'talk');
-
-        const allNonTalkComplete = nonTalkObjs.length > 0 && nonTalkObjs.every(o =>
-            playerObjectives.find(po => po.objective_id === o.id)?.is_complete
-        );
-
-        if (allNonTalkComplete && talkObj) return 'ready';
-        return 'progress';
+    const mine = new Map<number, any>((await db('player_quests').where({ player_id: playerId })
+        .whereIn('quest_id', quests.map((q: any) => q.id))).map((r: any) => [Number(r.quest_id), r]));
+    const groups = [...new Set(quests.map((q: any) => q.exclusive_group).filter(Boolean))];
+    const takenGroups = new Map<string, number>();
+    if (groups.length) {
+        for (const r of await db('player_quests as pq').join('quests as q', 'q.id', 'pq.quest_id')
+            .where('pq.player_id', playerId).whereIn('q.exclusive_group', groups).select('q.exclusive_group', 'q.id')) {
+            takenGroups.set(r.exclusive_group, Number(r.id));
+        }
     }
 
-    return 'intro';
+    const at = (q: any, key: string) => ({ stage: `${q?.stage_prefix ?? ''}${key}`, quest: q });
+    let lastDone: any = null;
+    let rival: any = null;
+    for (const quest of quests) {
+        const playerQuest = mine.get(Number(quest.id));
+        if (playerQuest?.status === 'completed') { lastDone = quest; continue; }
+
+        if (playerQuest) {
+            const objectives = await db('quest_objectives').where({ quest_id: quest.id }).orderBy('order', 'asc');
+            const playerObjectives = await db('player_quest_objectives')
+                .where({ player_id: playerId })
+                .whereIn('objective_id', objectives.map(o => o.id));
+            const talkObj = objectives.find(o => o.type === 'talk');
+            const nonTalkObjs = objectives.filter(o => o.type !== 'talk');
+            let allNonTalkComplete = nonTalkObjs.length > 0;
+            for (const o of nonTalkObjs) {
+                if (!(await objectiveMet(playerId, o, playerObjectives.find(po => po.objective_id === o.id)))) { allNonTalkComplete = false; break; }
+            }
+            return at(quest, allNonTalkComplete && talkObj ? 'ready' : 'progress');
+        }
+
+        const taken = quest.exclusive_group ? takenGroups.get(quest.exclusive_group) : undefined;
+        if (taken !== undefined && taken !== Number(quest.id)) { rival = rival ?? quest; continue; }
+        if (quest.requires_quest_id && mine.get(Number(quest.requires_quest_id))?.status !== 'completed') continue;
+        return at(quest, 'intro');
+    }
+
+    if (rival) return at(rival, 'rival');
+    if (lastDone) return at(lastDone, 'complete');
+    return { stage: 'intro', quest: null };
 }
 
-async function getQuestProgress(playerId: number, npcId: number): Promise<any> {
-    const npc = await db('npcs').where({ id: npcId }).first();
-    // Same NPC scoping as getDialogueStage — otherwise an NPC reports the
-    // objectives of whichever quest-giver at his location was inserted first.
-    const quests = (await db('quests').where({ location_id: npc.location_id, is_active: true }))
-        .filter((q: any) => !q.npc_name || q.npc_name === npc.name);
+async function getQuestProgress(playerId: number, quest: any): Promise<any> {
+    const playerQuest = await db('player_quests')
+        .where({ player_id: playerId, quest_id: quest.id, status: 'active' })
+        .first();
+    if (!playerQuest) return null;
 
-    for (const quest of quests) {
-        const playerQuest = await db('player_quests')
-            .where({ player_id: playerId, quest_id: quest.id, status: 'active' })
-            .first();
-        if (!playerQuest) continue;
+    const objectives = await db('quest_objectives').where({ quest_id: quest.id }).orderBy('order', 'asc');
+    const playerObjectives = await db('player_quest_objectives')
+        .where({ player_id: playerId })
+        .whereIn('objective_id', objectives.map(o => o.id));
 
-        const objectives = await db('quest_objectives').where({ quest_id: quest.id });
-        const playerObjectives = await db('player_quest_objectives')
-            .where({ player_id: playerId })
-            .whereIn('objective_id', objectives.map(o => o.id));
-
-        return objectives.map(obj => {
-            const po = playerObjectives.find(po => po.objective_id === obj.id);
-            return {
-                ...obj,
-                current_amount: po?.current_amount || 0,
-                is_complete: po?.is_complete || false,
-            };
+    const out = [];
+    for (const obj of objectives) {
+        const po = playerObjectives.find(po => po.objective_id === obj.id);
+        // A 'give' shows what the pack holds now, since that is what is handed over.
+        const carried = obj.type === 'give'
+            ? Number((await db('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+                .where({ 'pi.player_id': playerId, 'i.name': obj.target_item }).sum({ q: 'pi.quantity' }).first() as any)?.q ?? 0)
+            : null;
+        out.push({
+            ...obj,
+            current_amount: carried !== null ? Math.min(carried, Number(obj.required_amount)) : po?.current_amount || 0,
+            is_complete: await objectiveMet(playerId, obj, po),
         });
     }
-
-    return null;
+    return out;
 }
 
 export default router;

@@ -580,6 +580,8 @@ That is 13 dishes, 2 provisions, ale, and 8 cooked fish: 24 recipes, against Tai
 - **Woodcutting, Hunting, Husbandry:** nothing new.
 - **Wayfaring:** the roads (§2), the boats, and the islets.
 
+**Quests, built 2026-11-22** (migration `20261122100000_antura_quests`; Nathan picked them from a brainstorm): Nan's window box in Wendhaven (three errands in a row: ten Sea Thrift, three Spring Gentian, ten Samphire), the cabbage quarrel in Farefield (Wat Greening and Ebba Furrow; take one side and the other turns cold), and a complaint about the Snallygaster at the harbor desk (Aldous Penhallow; a Snallyscale for the margin, since the Eye is 1 in 750). Still to come: the Draugr's bar tab at the Gaster's Gaze (a named Draugr, Hrolf Ale-Debt, met only on the quest), the Friddick Brothers' repeatable timed errands on Taiar (Verdale, Dawncrest, and the Talar Rift; lateness tracked, with its own lines), and a daily task from each Taiar tutor (midnight server time; gold and the tutor's skill XP).
+
 ## 13. What Nathan still has to decide
 
 1. **The map:** final positions, roads, and the picture for each place. Islet pictures carry no painted names.

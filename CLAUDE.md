@@ -367,6 +367,7 @@ Carpentry → Crafting → Hunting → Husbandry → Foraging → Farming → Fi
 - **`quests.skill` is nullable.** Client renders must guard it.
 - **Quests are found by exploring the world** (decided, Nathan 2026-11-05): a player learns of a quest by finding its giver. No quest list, panel or signpost points to them.
 - **Dialogue actions carry the quest ID** (`start_quest:12`). Names are a warned fallback. `complete_talk_objective` **requires** a payload after the colon.
+- **A giver may have several quests** (2026-11-22, migration `20261122100000`): `quests.stage_prefix` names a quest's own stages (`nan2:intro`), `requires_quest_id` holds one back until another is done, and `exclusive_group` makes rivals (start one, the rest close; their givers show `<prefix>rival`). `resolveStage` in `routes/npcs.ts` returns the stage AND its quest; never pick "the giver's first quest". A `give` objective is met by what the pack holds and taken at the hand-in, under `checkQuestCompletion`'s flip (race:check `quest-give`, `quest-rival`). Quests start only from dialogue: the bare `POST /api/quests/:id/start` was removed.
 - **Quank name-drops Merrick** in `20260810180000`. Rename the smith and that line needs a migration.
 - **`items.stackable` no longer exists** (dropped `20260801040000`). Older content migrations insert it; don't copy them as templates.
 - **Prod-only data hazard:** when touching a system, verify its data exists in the repo, not just on the box (`huntable_animals` lived only in prod until canonicalized).

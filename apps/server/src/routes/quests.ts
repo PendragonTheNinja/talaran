@@ -6,7 +6,7 @@ import type { Knex } from 'knex';
 import { logger } from '../lib/logger';
 import { awardXp } from '../services/xp';
 import { creditGoldWithin } from '../services/gold';
-import { addItemToInventoryWithin, recordItemFirst } from '../services/inventory';
+import { addItemToInventoryWithin, recordItemFirst, takeItemsWithin } from '../services/inventory';
 import { pushToPlayer } from '../lib/realtime';
 import { afterCommit } from '../lib/afterCommit';
 
@@ -51,48 +51,11 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-// Start a quest
-router.post('/:id/start', requireAuth, async (req: AuthRequest, res: Response) => {
-    const playerId = req.player!.playerId;
-    const questId = parseInt(req.params.id as string);
-    try {
-        const quest = await db('quests').where({ id: questId, is_active: true }).first();
-        if (!quest) {
-            res.status(404).json({ error: 'Quest not found.' });
-            return;
-        }
-
-        const existing = await db('player_quests').where({ player_id: playerId, quest_id: questId }).first();
-        if (existing) {
-            res.status(400).json({ error: 'You have already started this quest.' });
-            return;
-        }
-
-        await db('player_quests').insert({
-            player_id: playerId,
-            quest_id: questId,
-            status: 'active',
-        });
-
-        // Initialize objective progress
-        const objectives = await db('quest_objectives').where({ quest_id: questId });
-        for (const obj of objectives) {
-            await db('player_quest_objectives').insert({
-                player_id: playerId,
-                objective_id: obj.id,
-                current_amount: 0,
-                is_complete: false,
-            });
-        }
-        await backfillQuestObjectives(playerId, questId);
-
-        logger.info(`Player ${playerId} started quest ${questId}`);
-        res.json({ success: true, message: 'Quest started!' });
-    } catch (err) {
-        logger.error(`Start quest error: ${err}`);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
+// Quests start only from their giver's dialogue (routes/npcs.ts), where
+// presence, prerequisites, and rival quests are checked. A bare
+// POST /api/quests/:id/start, which started any quest from anywhere, was
+// removed on 2026-11-22: nothing called it, and it would have let a player
+// take both sides of a quarrel (quests.exclusive_group).
 
 /**
  * Grant a quest's item list. Used for both start_items (on accept) and
@@ -130,6 +93,64 @@ export async function grantQuestItems(
     }
     return granted;
 }
+
+// ── What a quest asks, and whether it may start ─────────────────────────────
+//
+// A 'give' objective (2026-11-22) is an errand: bring something to the giver,
+// who keeps it. It is met while the pack holds enough, never by a progress
+// row, and the items are taken in the same transaction that pays the reward
+// (checkQuestCompletion), so a hand-in pays once and takes once.
+//
+// Several quests may share one giver (Nan's errands come one after another):
+// `quests.requires_quest_id` holds a quest back until another is done, and
+// `quests.stage_prefix` names its own dialogue stages (resolveStage in
+// routes/npcs.ts). `quests.exclusive_group` makes quests rivals: start one and
+// the others in its group are closed to you for good (the cabbage quarrel in
+// Farefield).
+
+/** How many of an item the player carries. */
+async function packCount(x: Knex | Knex.Transaction, playerId: number, itemName: string): Promise<number> {
+    const row = await x('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
+        .where({ 'pi.player_id': playerId, 'i.name': itemName }).sum({ q: 'pi.quantity' }).first();
+    return Number((row as any)?.q ?? 0);
+}
+
+/** Is this objective met? A 'give' by what the pack holds; any other by its progress row. */
+export async function objectiveMet(playerId: number, obj: any, po: any, x: Knex | Knex.Transaction = db): Promise<boolean> {
+    if (obj.type === 'give') return !!obj.target_item && (await packCount(x, playerId, obj.target_item)) >= Number(obj.required_amount);
+    return !!po?.is_complete;
+}
+
+/** The first 'give' this quest still wants carried, as words, or null when the pack holds them all. */
+export async function missingGift(playerId: number, questId: number): Promise<string | null> {
+    for (const obj of await db('quest_objectives').where({ quest_id: questId, type: 'give' }).orderBy('order', 'asc')) {
+        const have = await packCount(db, playerId, obj.target_item);
+        if (have < Number(obj.required_amount)) return `You need ${Number(obj.required_amount).toLocaleString('en-US')} ${obj.target_item} (you have ${have.toLocaleString('en-US')}).`;
+    }
+    return null;
+}
+
+/**
+ * Why this quest may not start for this player, or null. Checked inside the
+ * start's transaction with the player's row locked, so two starts at once
+ * (two rival quests together) cannot both pass.
+ */
+export async function questStartRefusal(trx: Knex.Transaction, playerId: number, quest: any): Promise<string | null> {
+    await trx('players').where({ id: playerId }).forUpdate().first('id');
+    if (quest.requires_quest_id) {
+        const done = await trx('player_quests').where({ player_id: playerId, quest_id: quest.requires_quest_id, status: 'completed' }).first('id');
+        if (!done) return 'There is something to finish first.';
+    }
+    if (quest.exclusive_group) {
+        const rival = await trx('player_quests as pq').join('quests as q', 'q.id', 'pq.quest_id')
+            .where({ 'pq.player_id': playerId, 'q.exclusive_group': quest.exclusive_group })
+            .whereNot('q.id', quest.id).first('q.name');
+        if (rival) return 'You have taken the other side already.';
+    }
+    return null;
+}
+
+class QuestAbort extends Error {}
 
 export interface QuestXpAward {
     skill: string;
@@ -201,12 +222,10 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
         .where({ player_id: playerId })
         .whereIn('objective_id', objectives.map(o => o.id));
 
-    const allComplete = objectives.every(obj => {
+    for (const obj of objectives) {
         const po = playerObjectives.find(po => po.objective_id === obj.id);
-        return po?.is_complete;
-    });
-
-    if (!allComplete) return null;
+        if (!(await objectiveMet(playerId, obj, po))) return null;
+    }
 
     const quest = await db('quests').where({ id: questId }).first();
 
@@ -218,13 +237,23 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
     // changed, all inside the transaction that flipped it. Every caller becomes
     // idempotent without knowing it: the second request finds nothing to flip
     // and pays nothing.
-    const outcome = await db.transaction(async (trx) => {
+    let outcome: { granted: { itemName: string; quantity: number }[]; gold: number } | null;
+    try { outcome = await db.transaction(async (trx) => {
         const flipped = await trx('player_quests')
             .where({ player_id: playerId, quest_id: questId, status: 'active' })
             .update({ status: 'completed', completed_at: new Date() });
         // Nothing written yet, so returning here commits nothing.
         if (flipped !== 1) return null;
         if (!quest) return { granted: [], gold: 0 };
+
+        // What the giver keeps ('give' objectives), taken under the flip's
+        // gate: all of it or none, and a shortfall rolls the flip back too.
+        for (const obj of objectives.filter(o => o.type === 'give')) {
+            const took = await takeItemsWithin(trx, playerId, [{ name: obj.target_item, quantity: Number(obj.required_amount) }]);
+            if (!took.ok) throw new QuestAbort(took.error);
+            await trx('player_quest_objectives').where({ player_id: playerId, objective_id: obj.id })
+                .update({ current_amount: obj.required_amount, is_complete: true });
+        }
 
         // The first on the island to finish this quest (docs/chronicle-spec.md §5).
         const before = await trx('player_quests').where({ quest_id: questId, status: 'completed' }).whereNot({ player_id: playerId }).first('player_id');
@@ -248,7 +277,10 @@ export async function checkQuestCompletion(playerId: number, questId: number): P
         }
 
         return { granted, gold };
-    });
+    }); } catch (err) {
+        if (err instanceof QuestAbort) return null;
+        throw err;
+    }
 
     if (!outcome || !quest) return null;
 
