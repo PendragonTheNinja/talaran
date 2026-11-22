@@ -14,7 +14,7 @@ Nathan and Claude designed Antura from 2026-11-14 to 17. **The design is finishe
 
 **Done and settled:** the places and their names (§2), getting there (§3, sailing spec), Mining (§4), Smithing's 44 Serph recipes and smelting (§5), Carpentry, homestead and shop tiers, and building for hire (§6, §6a, §6b), Farming and Husbandry rules (§7), Foraging (§8), the fish (§9), combat (§10): the roster, its names, levels, and weaknesses (Nathan, 2026-11-17), every drop on both islands, the rare weapons, the Snallyscale and Crabshell sets made from plates, the ratskin set, both islands' rings and charms, and the Bearverine Mantle; Cooking's 24 recipes (§11).
 
-**Waiting on Nathan alone:** the invented lake fish at Bidewater, level 22 (§9); the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
+**Waiting on Nathan alone:** the final map, roads, and place pictures; the islet maps; the ore names for tiers 4, 6, and 9.
 
 **Its own conversation, later:** the 1.0 reset (§13). Nathan, 2026-11-17: done properly, so that no player loses what they are meant to keep and everyone loses what they are not; and whether Thieving and Exploration are cut.
 
@@ -585,7 +585,7 @@ That is 13 dishes, 2 provisions, ale, and 8 cooked fish: 24 recipes, against Tai
 ## 13. What Nathan still has to decide
 
 1. **The map:** final positions, roads, and the picture for each place. Islet pictures carry no painted names.
-2. **The invented lake fish** at Bidewater, level 22 (§9). The other fish and every creature's name, level, and weakness are settled (2026-11-17).
+2. ~~**The invented lake fish** at Bidewater, level 22 (§9).~~ **Settled 2026-11-22:** it stays Glassback (Nathan). The other fish and every creature's name, level, and weakness are settled (2026-11-17).
 3. **Whether to poll players before building tier 2 combat** (§10).
 4. **What survives the 1.0 reset**, and whether Thieving and Exploration are cut: a conversation of its own (Nathan, 2026-11-17). Not Antura's question, but the reset is when the free fixes in §14 land.
 

@@ -2725,17 +2725,19 @@ const SCENARIOS: Scenario[] = [
         id: 'daily', name: 'a tutor\'s daily handed in five times at once', rounds: 10,
         run: async (ctx) => {
             // services/dailies.ts handInDaily: the day's row is the gate, so the
-            // goods go once and the pay comes once.
+            // goods go once and the pay, gold and tool, comes once.
             const w = await world(ctx);
             await ctx.seed.row('skills', { name: 'Smithing' });
             await ctx.db('items').where({ id: w.plank.id }).update({ value: 10 });
-            const npc = await ctx.seed.row('npcs', { name: 'Tutor', title: 'x', location_id: w.town.id, is_active: true, daily_skill: 'Smithing', daily_chatter: JSON.stringify(['x']) });
+            const tool = await ctx.seed.row('items', { name: 'Racecheck Hammer', type: 'tool' });
+            const npc = await ctx.seed.row('npcs', { name: 'Tutor', title: 'x', location_id: w.town.id, is_active: true, daily_skill: 'Smithing', daily_chatter: JSON.stringify(['x']), daily_tools: JSON.stringify([{ level: 1, items: [tool.name] }]) });
             await ctx.seed.row('daily_tasks', { npc_name: 'Tutor', item_name: w.plank.name, quantity: 5, ask: JSON.stringify(['x']), thanks: JSON.stringify(['x']) });
             await inPack(ctx, w.player.id, w.plank.id, 12);
             const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, `/npcs/${npc.id}/interact`, { action: 'daily_hand_in' }));
             return noServerErrors(st)
                 ?? changed('planks left', 7, await ctx.itemTotal(w.plank.id))
-                ?? changed('gold paid', 20, await goldOf(ctx, w.player.id))
+                ?? changed('gold paid', 50, await goldOf(ctx, w.player.id))
+                ?? changed('tools given', 1, await ctx.itemTotal(tool.id))
                 ?? await ledgerProblem(ctx);
         },
     },
