@@ -210,10 +210,15 @@ async function main(): Promise<void> {
     const { buildItemPage } = await import('../services/itemPage');
     const liveOrphans: string[] = [];
     const retiredOrphans: string[] = [];
+    const creatureOnly: string[] = [];
 
     for (const item of items) {
         const page = await buildItemPage(item.name);
         if (!page || page.sources.length || page.uses.length) continue;
+        // A creature's drop is the Bestiary's to tell, never the item page's
+        // (CLAUDE.md §2 Combat), so a page that only says "a creature carries
+        // this" is correct, not empty.
+        if (page.fromCreature) { creatureOnly.push(item.name); continue; }
         (item.is_active ? liveOrphans : retiredOrphans).push(item.name);
     }
 
@@ -225,6 +230,9 @@ async function main(): Promise<void> {
         for (const o of liveOrphans.sort()) console.log(`      ${o}`);
     }
 
+    if (creatureOnly.length) {
+        console.log(`\n   (${creatureOnly.length} items come only from creatures, which the Bestiary tells.)`);
+    }
     if (retiredOrphans.length) {
         console.log(`\n   (${retiredOrphans.length} inactive items are also empty, which is expected.)`);
     }

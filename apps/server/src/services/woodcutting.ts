@@ -146,6 +146,12 @@ export async function canChopHere(
   return { allowed: true, toolTier: equippedAxe.tier };
 }
 
+/** The wild hive and what it becomes (named here so item pages can say so). */
+export const WILD_HIVE_ITEM = 'Wild Hive';
+export const HIVE_SKEP_ITEM = 'Straw Skep';
+export const HIVE_BEES_ITEM = 'Skep of Bees';
+export const HIVE_COMB_ITEM = 'Honeycomb';
+
 /**
  * Turn a dropped Wild Hive into whatever the player was equipped to take.
  *
@@ -153,11 +159,11 @@ export async function canChopHere(
  * it becomes a Skep of Bees or it becomes a Honeycomb.
  */
 async function resolveWildHive(playerId: number): Promise<{ name: string; notable: boolean }> {
-    const hive = await db('items').where({ name: 'Wild Hive' }).first();
-    const skep = await db('items').where({ name: 'Straw Skep' }).first();
-    const full = await db('items').where({ name: 'Skep of Bees' }).first();
-    const comb = await db('items').where({ name: 'Honeycomb' }).first();
-    if (!hive) return { name: 'Wild Hive', notable: true };
+    const hive = await db('items').where({ name: WILD_HIVE_ITEM }).first();
+    const skep = await db('items').where({ name: HIVE_SKEP_ITEM }).first();
+    const full = await db('items').where({ name: HIVE_BEES_ITEM }).first();
+    const comb = await db('items').where({ name: HIVE_COMB_ITEM }).first();
+    if (!hive) return { name: WILD_HIVE_ITEM, notable: true };
 
     return await db.transaction(async trx => {
         // The hive is never kept, whichever way this goes.
@@ -182,14 +188,14 @@ async function resolveWildHive(playerId: number): Promise<{ name: string; notabl
                 await trx('player_inventory').where({ id: skepRow.id }).delete();
             }
             await addItemToInventoryWithin(trx, playerId, full.id, 1);
-            return { name: 'Skep of Bees', notable: true };
+            return { name: HIVE_BEES_ITEM, notable: true };
         }
 
         if (comb) {
             await addItemToInventoryWithin(trx, playerId, comb.id, 1);
-            return { name: 'Honeycomb', notable: false };
+            return { name: HIVE_COMB_ITEM, notable: false };
         }
-        return { name: 'Wild Hive', notable: true };
+        return { name: WILD_HIVE_ITEM, notable: true };
     });
 }
 
@@ -309,7 +315,7 @@ export async function processWoodcuttingAction(
     //
     // Resolved here rather than as a later "use" action so the choice sits at
     // the point it matters: the skep has to already be in your pack.
-    const hiveIndex = drops.findIndex(d => d.name === 'Wild Hive');
+    const hiveIndex = drops.findIndex(d => d.name === WILD_HIVE_ITEM);
     if (hiveIndex !== -1) {
         const resolved = await resolveWildHive(playerId);
         drops[hiveIndex] = { ...drops[hiveIndex], ...resolved };

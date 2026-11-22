@@ -407,20 +407,23 @@ export function burnChance(recipe: any, level: number): number {
     return base + (1 - base) * progress
 }
 
-/** The burnt counterpart of a cooked output, by what it was made from. */
+/**
+ * The burnt counterpart of a cooked output, by what it was made from.
+ * Provisions burn as whatever they were built from; the recipe carries no burn
+ * columns for the ones that cannot burn (infusions), so burnChance returns 0
+ * and this is never reached for them. Exported for item pages.
+ */
+export const BURNT_BY_SUBTYPE: Record<string, string> = {
+    cooked_fish: 'Burnt Fish',
+    cooked_meat: 'Burnt Meat',
+    baked: 'Burnt Pastry',
+    dish: 'Burnt Pottage',
+    provision: 'Burnt Pottage',
+}
+
 function burntNameFor(recipe: any, outputSubtype: string | null): string | null {
     if (recipe.skill !== 'Cooking') return null
-    switch (outputSubtype) {
-        case 'cooked_fish': return 'Burnt Fish'
-        case 'cooked_meat': return 'Burnt Meat'
-        case 'baked': return 'Burnt Pastry'
-        case 'dish': return 'Burnt Pottage'
-        // Provisions burn as whatever they were built from. The recipe carries
-        // no burn columns for the ones that cannot burn (infusions), so
-        // burnChance returns 0 and this is never reached for them.
-        case 'provision': return 'Burnt Pottage'
-        default: return null
-    }
+    return (outputSubtype && BURNT_BY_SUBTYPE[outputSubtype]) || null
 }
 
 /**

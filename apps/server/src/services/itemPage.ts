@@ -5,6 +5,11 @@ import { buyPrice } from './marketplace';
 import { CHARGED_PREFIXES, CUT_QUALITIES, cutGradeOf } from '../lib/gemGrades';
 import { rungOfTier } from '../lib/tiers';
 import { isFightFood } from './combatFights';
+import { DUG_CHEST_ITEM, QUANK_GIFT_ITEM, withArticleWord } from './isletFinds';
+import { PIECE_CHANCE, SEA_CHEST_ISLAND, SET_SUBTYPE } from './sailorSet';
+import { SIGHTING_ITEM, VAST_ONE_IN } from './shipLog';
+import { BURNT_BY_SUBTYPE } from './recipes';
+import { ALE_ITEM } from './rounds';
 
 // Item pages.
 //
@@ -111,8 +116,37 @@ export const COVERED_TABLES: { table: string; column: string; note?: string }[] 
     { table: 'quests', column: 'start_items' },
     {
         table: 'quest_objectives', column: 'target_item',
-        note: 'Deliberate. An objective consumes nothing; it checks that you hold something. Surfacing it as a use would read as though the quest destroys the item.',
+        note: 'A \'give\' objective keeps what it asks for and is listed as a use; every other kind only checks, and is not.',
     },
+    { table: 'islet_find_items', column: 'item_name' },
+    { table: 'strandline_finds', column: 'item_name' },
+    { table: 'daily_tasks', column: 'item_name' },
+    { table: 'quest_foes', column: 'drop_item_name' },
+    { table: 'animal_feeds', column: 'item_name' },
+    { table: 'road_finds', column: 'item_name', note: 'Read through codeSources (services/itemUsageCode.ts).' },
+    { table: 'recipes', column: 'byproduct_item_name', note: 'Read with the recipe that throws it off.' },
+    { table: 'workstation_slots', column: 'item_name', note: 'What a player has put somewhere, not a source or a use.' },
+    { table: 'pen_flowers', column: 'item_name', note: 'What a player has put somewhere, not a source or a use.' },
+    { table: 'crier_poll_options', column: 'item_name', note: 'What a player has put somewhere, not a source or a use.' },
+    { table: 'ground_item_despawns', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'death_loadouts', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'guild_hall_progress', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'guild_hall_contributions', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'guild_storage', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'guild_storage_ledger', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'guild_storage_requests', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'world_event_want_sales', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'vessel_build_progress', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'vessel_build_stock', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'property_hire_stock', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'guild_hall_stock', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'world_event_stock', column: 'item_id', note: "One visit's draw from the merchant's kinds; no item is promised." },
+    { table: 'museum_cases', column: 'item_id', note: "Every item has a case; saying so on every page would say nothing." },
+    { table: 'world_event_wants', column: 'item_id', note: "One visit's wanted lines, drawn afresh each time." },
+    { table: 'merchant_extra_goods', column: 'item_id' },
+    { table: 'chest_locks', column: 'locked_item' },
+    { table: 'container_types', column: 'item_id' },
+    { table: 'chest_locks', column: 'unlocked_item' },
     {
         table: 'player_foraging_discoveries', column: 'item_name',
         note: 'Deliberate. Per-player progress, not a property of the item. The habitat drop tables already describe where a find comes from.',
@@ -146,6 +180,23 @@ export const COVERED_CODE: string[] = [
     // Reads hunting's HUNT_AMMO to spend and recover arrows. The use is stated
     // on the arrow's page from hunting.ts, so restating it here would double it.
     'services/gameTick.ts',
+    // Their item names are exported constants the page reads (2026-11-22).
+    'services/isletFinds.ts',
+    'services/shipLog.ts',
+    // The starting kit (as guest.ts). Ale, the cask, and the wild hive are read
+    // through itemUsageCode.
+    'services/newPlayer.ts',
+    'services/rounds.ts',
+    'services/brewing.ts',
+    'services/woodcutting.ts',
+    'services/workstations.ts',
+    // Not sources or uses: Gold in museum and Chronicle bookkeeping, Ale in
+    // the level-up list, and a type name in Talar's fill picture.
+    'services/museum.ts',
+    'services/chronicle.ts',
+    'services/unlocks.ts',
+    'services/talar.ts',
+    'services/recipes.ts',
 ];
 
 /** JSONB columns arrive as objects from pg and as strings from some drivers. */
@@ -530,6 +581,14 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             ? `${d.pct}%`
             : d.oneIn > 1 ? `Around 1 in ${d.oneIn}` : 'Always';
 
+        // 'open:Sea Chest' is what a chest holds (services/containers.ts).
+        if (skill === 'open') {
+            sources.push({
+                kind: 'Opening', from: `Opening ${withArticleWord(parts.slice(1).join(':'))}`,
+                detail: [odds, range(d.minq ?? 1, d.maxq ?? 1) === '1' ? '' : range(d.minq ?? 1, d.maxq ?? 1)].filter(Boolean).join(' · '),
+            });
+            continue;
+        }
         sources.push({
             kind: skill.charAt(0).toUpperCase() + skill.slice(1),
             from: pretty ? `While working ${pretty}` : 'While working',
@@ -644,7 +703,7 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             into: `Raising ${a2.name}`,
             detail: [
                 `Level ${a2.husbandry_level}`,
-                `Kept in a ${a2.pen_type}`,
+                `Kept in ${/^[aeiou]/i.test(String(a2.pen_type)) ? 'an' : 'a'} ${a2.pen_type}`,
                 `Grown in ${seconds(a2.grow_seconds)}`,
                 grown.length ? `Then gives ${grown.join(', ')}` : '',
             ].filter(Boolean).join(' · '),
@@ -729,6 +788,104 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             detail: `Talar level ${sp.talar_level} · ${isWrit ? 'read and given up' : 'offered'} at the vigil`,
             link: SKILL_PAGE.Talar,
         });
+    }
+
+    // ── Islets, errands, dailies, and quests that keep what they ask for ──
+    // (2026-11-22: these systems arrived after the page did.)
+
+    // Landing on an islet, and the strandline a boat comes home along.
+    for (const f of await db('islet_find_items').where({ is_active: true }).whereRaw('LOWER(item_name) = LOWER(?)', [name]).select('island', 'kind', 'min_qty', 'max_qty')) {
+        sources.push({
+            kind: 'Islets', from: `Landing on an islet (${String(f.kind).replace(/_/g, ' ')})`, where: f.island || undefined,
+            detail: Number(f.max_qty) > 1 ? `${f.min_qty} to ${f.max_qty} at a time` : undefined,
+        });
+    }
+    for (const f of await db('strandline_finds').where({ is_active: true }).whereRaw('LOWER(item_name) = LOWER(?)', [name]).select('island', 'min_qty', 'max_qty')) {
+        sources.push({
+            kind: 'Islets', from: 'The strandline, coming ashore from a voyage', where: f.island || undefined,
+            detail: Number(f.max_qty) > 1 ? `${f.min_qty} to ${f.max_qty} at a time` : undefined,
+        });
+    }
+
+    // An island's relics, found ashore on its islets (services/isletFinds.ts).
+    if (item.type === 'curio' && item.subtype === 'artefact' && item.set_island) {
+        sources.push({ kind: 'Islets', from: 'Found ashore on an islet', where: item.set_island, detail: 'A relic, now and then, on landing' });
+    }
+    if (name.toLowerCase() === DUG_CHEST_ITEM.toLowerCase()) {
+        sources.push({ kind: 'Islets', from: 'Dug up on an islet', detail: 'Now and then, on landing' });
+    }
+    if (name.toLowerCase() === QUANK_GIFT_ITEM.toLowerCase()) {
+        sources.push({ kind: 'Islets', from: 'Left behind by someone met on an islet', detail: 'Once an island' });
+    }
+    // The sailor's set comes out of sea chests (services/sailorSet.ts).
+    if (item.subtype === SET_SUBTYPE && item.set_island) {
+        const keys = Object.entries(SEA_CHEST_ISLAND).filter(([, isl]) => isl === item.set_island).map(([k]) => k);
+        const chests = keys.length ? await db('container_types as c').join('items as i', 'i.id', 'c.item_id').whereIn('c.key', keys).pluck('i.name') : [];
+        for (const c of chests) {
+            sources.push({ kind: 'Opening', from: `Opening ${withArticleWord(c)}`, where: item.set_island, detail: `About 1 in ${Math.round(1 / PIECE_CHANCE)} chests hold a piece of the set` });
+        }
+    }
+    // Sold over a taproom's counter (taverns.ale_price, services/rounds.ts).
+    if (name.toLowerCase() === ALE_ITEM.toLowerCase()) {
+        for (const t of await db('taverns as t').leftJoin('locations as l', 'l.id', 't.location_id').whereNotNull('t.ale_price').select('t.name', 'l.name as where', 't.ale_price')) {
+            sources.push({ kind: 'Tavern', from: `Bought at ${t.name}`, where: t.where || undefined, detail: `${t.ale_price} gold` });
+        }
+    }
+    // Goods the travelling merchant brings on some visits (services/travellingMerchant.ts).
+    const extra = await db('merchant_extra_goods').where({ item_id: item.id, is_active: true }).first('chance_percent');
+    if (extra) {
+        sources.push({ kind: 'Merchant', from: 'The travelling merchant', detail: `On about ${extra.chance_percent}% of his visits` });
+    }
+    // What a cook gets when it burns (services/recipes.ts).
+    if (Object.values(BURNT_BY_SUBTYPE).some(b => b.toLowerCase() === name.toLowerCase())) {
+        sources.push({ kind: 'Cooking', from: 'Burning a dish at the fire', detail: 'Less often as a cook grows more skilled', link: SKILL_PAGE.Cooking });
+    }
+    // A vast thing sighted from the deck (services/shipLog.ts).
+    if (name.toLowerCase() === SIGHTING_ITEM.toLowerCase()) {
+        sources.push({ kind: 'Sailing', from: 'A rare sighting on a sea crossing', detail: `Around 1 watch in ${VAST_ONE_IN}`, link: 'systems/travel' });
+    }
+    // A chest is opened for what it holds (container_types, services/containers.ts).
+    if (await db('container_types').where({ item_id: item.id, is_active: true }).first('id')) {
+        uses.push({ kind: 'Opening', into: 'Opened for what is inside', detail: 'Coins, and now and then something more' });
+    }
+    // Geoffrey picks the locks on chests (chest_locks, services/chests.ts).
+    for (const l of await db('chest_locks').where({ is_active: true }).where(q => q.whereRaw('LOWER(locked_item) = LOWER(?)', [name]).orWhereRaw('LOWER(unlocked_item) = LOWER(?)', [name])).select('locked_item', 'unlocked_item', 'fee')) {
+        if (String(l.locked_item).toLowerCase() === name.toLowerCase()) {
+            uses.push({ kind: 'Locksmith', into: l.unlocked_item, detail: `Geoffrey picks the lock for ${l.fee} gold` });
+        } else {
+            sources.push({ kind: 'Locksmith', from: `Geoffrey picking the lock on ${withArticleWord(l.locked_item)}`, detail: `${l.fee} gold` });
+        }
+    }
+
+    // A tutor's daily task keeps what it asks for (services/dailies.ts).
+    for (const t of await db('daily_tasks').where({ is_active: true }).whereRaw('LOWER(item_name) = LOWER(?)', [name]).select('npc_name', 'quantity')) {
+        uses.push({ kind: 'Daily task', into: `${t.npc_name}'s daily task, some days`, detail: `${t.quantity} at a time, kept by ${t.npc_name}` });
+    }
+
+    // A quest that asks for something keeps it (a 'give' objective, routes/quests.ts).
+    const gives = await db('quest_objectives as o').join('quests as q', 'q.id', 'o.quest_id')
+        .where({ 'o.type': 'give', 'q.is_active': true }).whereRaw('LOWER(o.target_item) = LOWER(?)', [name])
+        .select('q.name', 'q.npc_name', 'o.required_amount');
+    for (const g of gives) {
+        uses.push({ kind: 'Quest', into: g.name, detail: `${g.npc_name ? `${g.npc_name} keeps` : 'Handed over:'} ${g.required_amount}`, link: 'reference/quests' });
+    }
+
+    // A named foe's drop, met only on its quest (services/combatFights.ts rollQuestFoe).
+    // The quest is named, never the creature: drops are the Bestiary's to tell.
+    const foeDrops = await db('quest_foes as f').join('quests as q', 'q.id', 'f.quest_id')
+        .where({ 'f.is_active': true }).whereRaw('LOWER(f.drop_item_name) = LOWER(?)', [name]).select('q.name', 'q.npc_name');
+    for (const f of foeDrops) {
+        sources.push({ kind: 'Quest', from: f.name, where: f.npc_name || undefined, detail: 'Found on the way', link: 'reference/quests' });
+    }
+
+    // Errands carry things from one NPC to another (services/errands.ts).
+    for (const e of await db('errands').where({ is_active: true }).select('name', 'legs')) {
+        const legs = (typeof e.legs === 'string' ? JSON.parse(e.legs) : e.legs) as { from: string; to: string; item: string }[];
+        for (const leg of legs ?? []) {
+            if (String(leg.item).toLowerCase() !== name.toLowerCase()) continue;
+            sources.push({ kind: 'Errand', from: e.name, where: leg.from, detail: `Handed to you to carry to ${leg.to}` });
+            uses.push({ kind: 'Errand', into: e.name, detail: `Delivered to ${leg.to}` });
+        }
     }
 
     // Everything decided in code rather than in a table, and the road finds

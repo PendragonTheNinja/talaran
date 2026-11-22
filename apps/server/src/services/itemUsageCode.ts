@@ -10,6 +10,10 @@ import { FARM_ESTABLISH_COST, plotCost } from './farming';
 import { TALLY_COST_BY_TIER } from './tally';
 import { STATION_ITEMS as TANNING_STATIONS } from './tanning';
 import { HUNT_AMMO } from './hunting';
+import { ALE_PER_BATCH, BATCH_INPUTS, BREW_LEVEL } from './brewing';
+import { HEARTH_COST, HEARTH_LOCATION } from './workstations';
+import { ALE_ITEM, ROUND_MIN_PLAYERS } from './rounds';
+import { HIVE_BEES_ITEM, HIVE_COMB_ITEM, HIVE_SKEP_ITEM } from './woodcutting';
 import type { ItemSource, ItemUse } from './itemPage';
 
 // Item sources and uses that live in code rather than in the database.
@@ -71,6 +75,23 @@ export function codeSources(name: string): ItemSource[] {
             ].filter(Boolean).join(' · '),
             link: 'systems/travel',
         });
+    }
+
+    // Brewed in a cask (services/brewing.ts).
+    if (eq(ALE_ITEM, name)) {
+        out.push({
+            kind: 'Cooking', from: 'Brewing in a cask',
+            detail: `Cooking ${BREW_LEVEL} · ${ALE_PER_BATCH} a batch · six hours in the cask`,
+            inputs: ingredientInputs(BATCH_INPUTS), link: 'skills/cooking',
+        });
+    }
+
+    // A wild hive found while chopping (services/woodcutting.ts resolveWildHive).
+    if (eq(HIVE_BEES_ITEM, name)) {
+        out.push({ kind: 'Woodcutting', from: 'A wild hive, taken whole', detail: `Needs ${HIVE_SKEP_ITEM} in the pack when the hive drops`, link: 'skills/woodcutting' });
+    }
+    if (eq(HIVE_COMB_ITEM, name)) {
+        out.push({ kind: 'Woodcutting', from: 'A wild hive, robbed of its comb', detail: `When no ${HIVE_SKEP_ITEM} is carried`, link: 'skills/woodcutting' });
     }
 
     if (eq(GOLD_DROP_NAME, name)) {
@@ -139,6 +160,24 @@ export function codeSources(name: string): ItemSource[] {
 
 export function codeUses(name: string): ItemUse[] {
     const out: ItemUse[] = [];
+
+    // Building a hearth (services/workstations.ts).
+    const hearthQty = needed(HEARTH_COST, name);
+    if (hearthQty !== null) {
+        out.push({ kind: 'Cooking', into: 'Building a hearth', detail: `At ${HEARTH_LOCATION} · needs ${hearthQty}`, link: 'skills/cooking' });
+    }
+
+    // Brewing Ale, and standing it as a round (services/brewing.ts, services/rounds.ts).
+    const brewQty = needed(BATCH_INPUTS, name);
+    if (brewQty !== null) {
+        out.push({ kind: 'Cooking', into: ALE_ITEM, detail: `Brewing in a cask · level ${BREW_LEVEL} · ${brewQty} a batch`, link: 'skills/cooking' });
+    }
+    if (eq(ALE_ITEM, name)) {
+        out.push({ kind: 'Tavern', into: 'Standing a round', detail: `One each for ${ROUND_MIN_PLAYERS} or more at a tavern: every skill a little faster for six hours` });
+    }
+    if (eq(HIVE_SKEP_ITEM, name)) {
+        out.push({ kind: 'Woodcutting', into: HIVE_BEES_ITEM, detail: 'Carried while chopping, it takes a wild hive whole', link: 'skills/woodcutting' });
+    }
 
     // Materials consumed at the forge and the bench.
     for (const [key, r] of Object.entries(SMELT_RECIPES)) {

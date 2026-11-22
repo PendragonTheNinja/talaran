@@ -6,6 +6,10 @@ import { noteDeed } from './chronicle';
 import { afterCommit } from '../lib/afterCommit';
 import { pushToPlayer } from '../lib/realtime';
 
+/** What Quank leaves behind, and what a dig turns up (named here so item pages can say so). */
+export const QUANK_GIFT_ITEM = 'Tidbit';
+export const DUG_CHEST_ITEM = 'Locked Rusty Chest';
+
 // ── What a landing finds (docs/islets-plan.md §2 and §4) ─────────────────────
 //
 // On each landing a player rolls one find from what that islet can hold
@@ -120,7 +124,7 @@ function pickByWeight<T extends { weight: unknown }>(rows: T[]): T | null {
 }
 
 /** "a" or "an" before a name, lower-case "the" names left alone. */
-function withArticleWord(name: string): string {
+export function withArticleWord(name: string): string {
     return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
 }
 
@@ -182,7 +186,7 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
             .onConflict(['player_id', 'island']).ignore().returning('island');
         if (!met.length) return nothing;
         // Before he goes, a Tidbit: half a Tiddle (Nathan, 2026-11-17).
-        const tidbit = await trx('items').where({ name: 'Tidbit' }).first('id');
+        const tidbit = await trx('items').where({ name: QUANK_GIFT_ITEM }).first('id');
         if (tidbit) await addItemToInventoryWithin(trx, playerId, tidbit.id, 1);
         // ...and the scene's end starts his quest: next time, he wants it back.
         const questStarted = await startQuankQuestWithin(trx, playerId);
@@ -209,7 +213,7 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
     if (pick.kind === 'chest') {
         // Dug up there and then: a Locked Rusty Chest for Geoffrey to open,
         // and a few loose coins from the digging. Nothing is left to work.
-        const chest = await trx('items').where({ name: 'Locked Rusty Chest' }).first('id');
+        const chest = await trx('items').where({ name: DUG_CHEST_ITEM }).first('id');
         if (!chest) return nothing;
         await addItemToInventoryWithin(trx, playerId, chest.id, 1);
         const coins = CHEST_COINS_MIN + Math.floor(Math.random() * (CHEST_COINS_MAX - CHEST_COINS_MIN + 1));
