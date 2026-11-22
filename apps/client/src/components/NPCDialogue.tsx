@@ -171,7 +171,7 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
                                     {error}
                                 </p>
                             )}
-                            {said && <p className="npc-text">{said}</p>}
+                            {said && <p className="npc-text" style={{ whiteSpace: 'pre-line' }}>{said}</p>}
 
                             {/* Dialogue text */}
                             <div className="npc-text-block">

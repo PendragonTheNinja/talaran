@@ -486,6 +486,16 @@ async function questGiver(ctx: Ctx, townId: number, name: string, objectives: { 
     return { npc, quest };
 }
 
+/** Two errand NPCs in Talador and a one-leg errand between them carrying planks. */
+async function errandWorld(ctx: Ctx) {
+    const w = await world(ctx);
+    const from = await ctx.seed.row('npcs', { name: 'Brother A', title: 'x', location_id: w.town.id, is_active: true, errand_pool: 'rc' });
+    const to = await ctx.seed.row('npcs', { name: 'Brother B', title: 'x', location_id: w.town.id, is_active: true, errand_pool: 'rc' });
+    const legs = [{ from: 'Brother A', to: 'Brother B', item: w.plank.name, offer: ['x'], waiting: ['x'], on_time: ['x'], late: ['x'], very_late: ['x'] }];
+    const errand = await ctx.seed.row('errands', { key: 'rc', pool: 'rc', name: 'x', legs: JSON.stringify(legs), reward_gold: 40, reward_xp: 0 });
+    return { w, from, to, errand };
+}
+
 /**
  * Pendragon wanting a tier 1 shop in Talador (Taiar's port, the islands
  * fallback), and Wright, a carpenter standing there with a mallet and saw
@@ -2683,6 +2693,32 @@ const SCENARIOS: Scenario[] = [
             const st = await Promise.all([a, b, a, b, a, b].map(g => ctx.post(w.player.id, `/npcs/${g.npc.id}/interact`, { action: `start_quest:${g.quest.id}` })));
             const started = Number((await ctx.db('player_quests').where({ player_id: w.player.id }).count({ n: '*' }).first())?.n ?? 0);
             return noServerErrors(st) ?? changed('quests started', 1, started);
+        },
+    },
+    {
+        id: 'errand', name: 'an errand taken five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/errands.ts acceptErrand: one open errand a player, and its item handed over once.
+            const e = await errandWorld(ctx);
+            const st = await ctx.burst(e.w.player.id, 5, () => ctx.post(e.w.player.id, `/npcs/${e.from.id}/interact`, { action: 'errand_accept' }));
+            const open = Number((await ctx.db('player_errands').count({ n: '*' }).first())?.n ?? 0);
+            return noServerErrors(st)
+                ?? changed('errands open', 1, open)
+                ?? changed('planks handed over', 1, await ctx.itemTotal(e.w.plank.id));
+        },
+    },
+    {
+        id: 'errand', name: 'an errand handed over five times at once', rounds: 10,
+        run: async (ctx) => {
+            // deliverErrand: the delete is the gate, so the item goes once and the reward pays once.
+            const e = await errandWorld(ctx);
+            await inPack(ctx, e.w.player.id, e.w.plank.id, 3);
+            await ctx.seed.row('player_errands', { player_id: e.w.player.id, errand_id: e.errand.id, leg: 0, leg_started_at: new Date(), leg_limit_seconds: 600 });
+            const st = await ctx.burst(e.w.player.id, 5, () => ctx.post(e.w.player.id, `/npcs/${e.to.id}/interact`, { action: 'errand_deliver' }));
+            return noServerErrors(st)
+                ?? changed('planks left', 2, await ctx.itemTotal(e.w.plank.id))
+                ?? changed('gold paid', 40, await goldOf(ctx, e.w.player.id))
+                ?? await ledgerProblem(ctx);
         },
     },
 ];

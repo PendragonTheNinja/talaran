@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { crierHasWordFor, CRIER_ROAMS_WITH } from '../services/crierPolls';
 import { checkQuestCompletion, questStartChoices, questXpAwards, objectiveMet, missingGift, questStartRefusal } from './quests';
 import { unlockChests } from '../services/chests';
+import { acceptErrand, deliverErrand, dropErrand, errandActions, errandTalk } from '../services/errands';
 
 const router = Router();
 
@@ -54,6 +55,16 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
         const npc = await db('npcs').where({ id: npcId, is_active: true }).first();
         if (!npc) {
             res.status(404).json({ error: 'NPC not found.' });
+            return;
+        }
+
+        // An errand under way speaks for itself (services/errands.ts, the Friddick Brothers).
+        const errand = forceStage ? null : await errandTalk(playerId, npc);
+        if (errand) {
+            res.json({
+                npc, stage: 'errand', pendingRewards: null, questProgress: null,
+                dialogue: { npc_id: npc.id, stage_key: 'errand', text_lines: errand.lines, options: errand.options },
+            });
             return;
         }
 
@@ -167,6 +178,16 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
 
         // Geoffrey opens locks for a fee (services/chests.ts). The action was
         // checked above against what this NPC offers and where the player stands.
+        // Errands (services/errands.ts): take one, hand one over, or give one up.
+        if (action === 'errand_accept' || action === 'errand_deliver' || action === 'errand_drop') {
+            const done = action === 'errand_accept' ? await acceptErrand(playerId, npc)
+                : action === 'errand_deliver' ? await deliverErrand(playerId, npc)
+                    : await dropErrand(playerId);
+            if (!done.ok) { res.status(done.status).json({ error: done.error }); return; }
+            res.json({ success: true, action, message: done.message });
+            return;
+        }
+
         if (action === 'unlock_chests') {
             const done = await unlockChests(playerId);
             if (!done.ok) { res.status(done.status).json({ error: done.error }); return; }
@@ -383,7 +404,7 @@ async function offeredActions(playerId: number, npc: any): Promise<Set<string>> 
         byStage.set(r.stage_key, Array.isArray(opts) ? opts : []);
     }
 
-    const allowed = new Set<string>();
+    const allowed = new Set<string>(await errandActions(playerId, npc));
     const seen = new Set<string>();
     const queue = [(await resolveStage(playerId, npc.id)).stage];
     while (queue.length) {

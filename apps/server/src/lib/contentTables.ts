@@ -45,6 +45,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     locations:                   { label: 'Locations',             group: 'World',      snapshot: true, editable: true },
     location_connections:        { label: 'Location Connections',  group: 'World',      snapshot: true, editable: true },
     road_finds:                  { label: 'Road Finds',            group: 'World',      snapshot: true, editable: true },
+    errands:                     { label: 'Errands',               group: 'World',      snapshot: true, editable: true },
     npcs:                        { label: 'NPCs',                  group: 'World',      snapshot: true, editable: true },
     npc_dialogues:               { label: 'NPC Dialogues',         group: 'World',      snapshot: true, editable: true },
     resource_nodes:              { label: 'Resource Nodes',        group: 'Gathering',  snapshot: true, editable: true },
@@ -74,6 +75,7 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     container_types:             { label: 'Containers',            group: 'Drops',      snapshot: true, editable: true },
     quests:                      { label: 'Quests',                group: 'Quests',     snapshot: true, editable: true },
     quest_objectives:            { label: 'Quest Objectives',      group: 'Quests',     snapshot: true, editable: true },
+    quest_foes:                  { label: 'Quest Foes',            group: 'Quests',     snapshot: true, editable: true },
 
     // ---- Feats ----
     // Authored content, so snapshotted: a new feat is a row, and adding one
