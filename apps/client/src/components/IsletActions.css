@@ -1,0 +1,11 @@
+/* Putting a name to the Harbor Council (IsletActions.tsx). */
+.islet-naming {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs, 6px);
+    margin-bottom: var(--space-sm, 8px);
+}
+.islet-naming .chat-input {
+    width: 100%;
+    box-sizing: border-box;
+}

@@ -10,6 +10,7 @@ import { endFightIfAny } from './combatFights';
 import { dropIsletFind, rollIsletFindWithin } from './isletFinds';
 import { seaSpeedFactor, wearSailingPieceWithin } from './sailorSet';
 import { closeVoyageLogWithin, landLegWithin, logLegWithin } from './shipLog';
+import { claimWithin, givenIsletNames, nameNews, namingState } from './isletNames';
 
 // ── Voyages: putting to sea, islets, and coming home ─────────────────────────
 // (docs/sailing-spec.md §6, docs/islets-plan.md; Nathan, 2026-11-15 to 17)
@@ -106,14 +107,18 @@ export async function voyageState(playerId: number) {
         (await db('player_islets_found').where({ player_id: playerId }).select('location_id', 'found_at', 'landings'))
             .map((r: any) => [Number(r.location_id), { found_at: r.found_at, landings: Number(r.landings) }]),
     );
+    const given = await givenIsletNames();
     return {
+        // Naming the islet the player stands on (services/isletNames.ts), and word back on names they put forward.
+        naming: here?.islet_kind ? await namingState(playerId) : null,
+        nameNews: await nameNews(playerId),
         onIslet: !!here?.islet_kind,
         atPort: !!here?.has_slip,
         voyage: voyage ? { boat: voyage.boat, home: voyage.home, landings: Number(voyage.landings), landingsLeft: Math.max(0, LANDINGS_PER_VOYAGE - Number(voyage.landings)) } : null,
         // The island's islet map: a name only once found; the count either way.
         islets: islets.map((l: any) => {
             const f = found.get(Number(l.id));
-            return f ? { found: true, name: l.name, kind: l.islet_kind, landings: f.landings } : { found: false, name: null, kind: null, landings: 0 };
+            return f ? { found: true, name: given.get(Number(l.id)) ?? l.name, standingName: l.name, kind: l.islet_kind, landings: f.landings } : { found: false, name: null, standingName: null, kind: null, landings: 0 };
         }),
     };
 }
@@ -330,6 +335,11 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
         } else {
             const said = await findLine(`find_${find.kind}`);
             if (said) events.push({ message: find.words ? said.replace('{find}', find.words) : said, itemName: null, quantity: 0 });
+        }
+        // An unnamed islet: the first here may put a name to the council (services/isletNames.ts).
+        if (await claimWithin(trx, playerId, place.id)) {
+            const said = (await line(island, 'unnamed', null, trx)) ?? 'Nobody has put a name to this islet yet. The Harbor Council will hear one from you, if you put it forward before you leave.';
+            events.push({ message: said, itemName: null, quantity: 0 });
         }
         // The ship's log keeps the landing beside the leg's watches, and pays a vast sighting.
         const sighting = await landLegWithin(trx, playerId, { home: false, landing: [...events] });

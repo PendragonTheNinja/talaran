@@ -6,7 +6,7 @@ import { useItemTooltip } from './ItemTooltip'
 import ErrorLine from './ErrorLine'
 import BuildHireControls from './BuildHireControls'
 import BuildRequirementRow from './BuildRequirementRow'
-import type { VoyageState } from './IsletActions'
+import { NameNewsLines, type VoyageState } from './IsletActions'
 import './TavernPanel.css'
 import './GuildHallTab.css'
 import './SlipPanel.css'
@@ -151,6 +151,7 @@ export default function SlipPanel({ onClose, onStartBuild, onPutToSea }: {
                                     Yours. Out to the islets, by chance, and home again; up to three landings before you must make port.
                                     {voyage && ` Islets found: ${voyage.islets.filter(i => i.found).length} of ${voyage.islets.length}.`}
                                 </p>
+                                {voyage && <NameNewsLines news={voyage.nameNews} onSeen={() => setVoyage({ ...voyage, nameNews: [] })} />}
                                 {voyage && voyage.islets.some(i => i.found) && (
                                     <p className="muted-text hall-note">
                                         {voyage.islets.filter(i => i.found).map(i => `${i.name} (${i.landings} landing${i.landings === 1 ? '' : 's'})`).join(', ')}

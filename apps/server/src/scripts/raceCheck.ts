@@ -2741,6 +2741,52 @@ const SCENARIOS: Scenario[] = [
                 ?? await ledgerProblem(ctx);
         },
     },
+    {
+        id: 'islet-name', name: 'five players on an unnamed islet putting names at once, and one putting five', rounds: 10,
+        run: async (ctx) => {
+            // services/isletNames.ts: the right to name is claimed by one
+            // conditional statement, and one name waits per islet (the partial
+            // unique index), so five players get one name before the council.
+            const w = await world(ctx);
+            const islet = await ctx.seed.row('locations', { name: 'Racecheck Islet', region: 'Racecheck Isle', islet_kind: 'common' });
+            const islet2 = await ctx.seed.row('locations', { name: 'Racecheck Skerry', region: 'Racecheck Isle', islet_kind: 'common' });
+            await ctx.db('players').where({ id: w.player.id }).update({ current_location_id: islet.id });
+            const others: number[] = [w.player.id];
+            for (let i = 0; i < 4; i++) {
+                const p = await ctx.seed.row('players', { username: `Sailor${i}`, email: `sailor${i}@racecheck.test`, current_location_id: islet.id });
+                others.push(p.id);
+            }
+            for (const id of others) await ctx.warm(id);
+            const st = await Promise.all(others.map((id, i) => ctx.post(id, '/voyages/name', { name: `Racecheck Rock ${'abcde'[i]}` })));
+            const many = Number((await ctx.db('islet_name_proposals').where({ location_id: islet.id }).count('id as n').first())?.n ?? 0);
+            // One player, five times, on a second islet.
+            const solo = others[1];
+            await ctx.db('players').where({ id: solo }).update({ current_location_id: islet2.id });
+            const st2 = await ctx.burst(solo, 5, (i) => ctx.post(solo, '/voyages/name', { name: `Racecheck Shoal ${'abcde'[i]}` }));
+            const one = Number((await ctx.db('islet_name_proposals').where({ location_id: islet2.id }).count('id as n').first())?.n ?? 0);
+            return noServerErrors([...st, ...st2])
+                ?? changed('names put for the first islet', 1, many)
+                ?? changed('names put for the second islet', 1, one);
+        },
+    },
+    {
+        id: 'islet-decide', name: 'a waiting islet name chosen five times at once', rounds: 10,
+        run: async (ctx) => {
+            // services/isletNames.ts decideName: only a waiting name flips, once.
+            const w = await world(ctx);
+            await ctx.db('players').where({ id: w.player.id }).update({ is_admin: true });
+            const islet = await ctx.seed.row('locations', { name: 'Racecheck Islet', region: 'Racecheck Isle', islet_kind: 'common' });
+            const sailor = await ctx.seed.row('players', { username: 'Sailor', email: 'sailor@racecheck.test', current_location_id: islet.id });
+            const prop = await ctx.seed.row('islet_name_proposals', { location_id: islet.id, player_id: sailor.id, name: 'Racecheck Rock', status: 'pending' });
+            const before = Number((await ctx.db('chat_messages').whereNull('player_id').count('id as n').first())?.n ?? 0);
+            const st = await ctx.burst(w.player.id, 5, () => ctx.post(w.player.id, `/admin/islet-names/${prop.id}/decide`, { approve: true }));
+            await new Promise((r) => setTimeout(r, 300));
+            const after = Number((await ctx.db('chat_messages').whereNull('player_id').count('id as n').first())?.n ?? 0);
+            return noServerErrors(st)
+                ?? changed('decisions accepted', 1, st.filter((x) => x === 200).length)
+                ?? changed('announcements', 1, after - before);
+        },
+    },
 ];
 
 main().catch((err) => {

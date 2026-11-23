@@ -8,6 +8,8 @@ import AdminManualEditor from './AdminManualEditor'
 import AdminChronicle from './AdminChronicle'
 import AdminCrier from './AdminCrier'
 import AdminQuests from './AdminQuests'
+import AdminIsletNames from './AdminIsletNames'
+import './AdminQuests.css'
 import LanguageFlags from './LanguageFlags'
 import { FILTER_PLACE } from '../lib/filterPlaces'
 import AdminEvents from './AdminEvents'
@@ -70,7 +72,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
-    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events' | 'chronicle' | 'polls' | 'quests'>('players')
+    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events' | 'chronicle' | 'polls' | 'quests' | 'islets'>('players')
 
     /**
      * Problem count on the Balance label.
@@ -458,6 +460,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                             >
                                 Quests
                             </button>
+                            <button
+                                className={`admin-tab ${mainTab === 'islets' ? 'active' : ''}`}
+                                onClick={() => setMainTab('islets')}
+                            >
+                                Islet Names
+                            </button>
                         </div>
                     )}
                 </div>
@@ -478,7 +486,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             mainTab === 'events' ? <AdminEvents /> :
             mainTab === 'chronicle' ? <AdminChronicle /> :
             mainTab === 'polls' ? <AdminCrier /> :
-            mainTab === 'quests' ? <AdminQuests /> : (
+            mainTab === 'quests' ? <AdminQuests /> :
+            mainTab === 'islets' ? <AdminIsletNames /> : (
             <div className={`admin-body admin-view-${view}`}>
                 {/* On a phone the player list and a player's page take turns (MobileShell.css). */}
                 {/* Sidebar */}

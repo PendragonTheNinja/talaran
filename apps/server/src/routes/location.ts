@@ -6,6 +6,7 @@ import { onlinePlayers } from '../lib/realtime';
 import { eventStandingsAt } from '../services/worldEvents';
 import { liveIsletFind } from '../services/isletFinds';
 import { waterFor } from '../services/fishing';
+import { givenNameOf } from '../services/isletNames';
 
 const router = Router();
 
@@ -186,8 +187,12 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
           .where({ 'v.player_id': playerId, 't.is_active': true }).orderBy('t.tier').select('t.key', 't.name')
       : [];
 
+    // An islet's alpha name, if the Harbor Council chose one (services/isletNames.ts).
+    // Shown beside its standing name, which stays the key everything else uses.
+    const givenName = currentLocation.islet_kind ? await givenNameOf(currentLocation.id) : null;
+
     res.json({
-      location: currentLocation,
+      location: { ...currentLocation, given_name: givenName },
       homesteadHere: towns.homesteads.has(currentLocation.name),
       shopsHere: towns.shops.has(currentLocation.name),
       ownBoats,

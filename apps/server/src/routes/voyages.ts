@@ -5,6 +5,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { botCheckGate } from '../services/botCheck';
 import { putToSea, sailHome, sailOn, voyageState } from '../services/voyages';
 import { shipLog } from '../services/shipLog';
+import { markNewsSeen, proposeName } from '../services/isletNames';
 
 // Voyages (services/voyages.ts): putting to sea, sailing on, sailing home.
 // Every rule, presence included, is the service's. Setting out is behind the
@@ -33,6 +34,18 @@ router.get('/log', requireAuth, async (req: AuthRequest, res: Response) => {
         res.json(await shipLog(req.player!.playerId));
     } catch (err) {
         logger.error(`ship log: ${err}`);
+        res.status(500).json({ error: SERVER_ERROR });
+    }
+});
+
+// Naming the islet the player stands on (services/isletNames.ts).
+router.post('/name', requireAuth, async (req: AuthRequest, res: Response) => send(res, await proposeName(req.player!.playerId, req.body?.name, req.body?.note)));
+router.post('/name-news/seen', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        await markNewsSeen(req.player!.playerId);
+        res.json({ ok: true });
+    } catch (err) {
+        logger.error(`islet name news: ${err}`);
         res.status(500).json({ error: SERVER_ERROR });
     }
 });

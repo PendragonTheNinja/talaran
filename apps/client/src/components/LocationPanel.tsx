@@ -460,8 +460,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
       {/* Location actions */}
       <div className="location-panel-section">
         <div className="panel-title" style={{ cursor: 'pointer' }} onClick={() => onLocationRefresh?.()}>
-          {locationData?.location?.name || 'Location Menu'}
+          {locationData?.location?.given_name || locationData?.location?.name || 'Location Menu'}
         </div>
+        {/* An islet's alpha name stands over its charted one (server services/isletNames.ts). */}
+        {locationData?.location?.given_name && (
+          <p className="muted-text">Charted as {locationData.location.name}</p>
+        )}
         {/* A world event on here: what it favours, and for how long. */}
         {eventsHere.map(e => (
           <div key={e.id} className="location-event">
