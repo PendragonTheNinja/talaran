@@ -124,6 +124,19 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
     return null;
 }
 
+/**
+ * May Quank turn up on this island's islets for this player? Always on the
+ * island where his quest begins (the region of the quest's place, Taiar's
+ * Ruin); anywhere else only once the player has met him on some other
+ * island's islets, so the Tidbit comes before it is asked for.
+ */
+async function quankMayAppear(x: any, playerId: number, island: string): Promise<boolean> {
+    const home = await x('quests as q').join('locations as l', 'l.id', 'q.location_id')
+        .where({ 'q.name': QUANK_QUEST }).first('l.region');
+    if (!home || home.region === island) return true;
+    return !!(await x('player_quank_met').where({ player_id: playerId }).whereNot({ island }).first('island'));
+}
+
 /** Pick a row by its weight column. */
 function pickByWeight<T extends { weight: unknown }>(rows: T[]): T | null {
     const total = rows.reduce((s, r) => s + Number(r.weight), 0);
@@ -146,9 +159,13 @@ const NEVER = new Date('2999-01-01T00:00:00Z');
  */
 export async function rollIsletFindWithin(trx: any, playerId: number, islet: { id: number; region: string }): Promise<IsletFind> {
     await clearFindWithin(trx, playerId);
-    const holds = await trx('islet_finds as f').join('islet_find_kinds as k', 'k.key', 'f.kind')
+    const rolled = await trx('islet_finds as f').join('islet_find_kinds as k', 'k.key', 'f.kind')
         .where({ 'f.location_id': islet.id, 'k.is_active': true })
         .select('f.kind', 'f.weight', 'k.amount_min', 'k.amount_max', 'k.boost');
+    // Quank is not out here at all for a player who has not met him first
+    // where his quest begins (Nathan, 2026-11-23): his share falls to the rest.
+    const quankHere = await quankMayAppear(trx, playerId, islet.region);
+    const holds = quankHere ? rolled : rolled.filter((h: any) => h.kind !== 'quank');
     const total = holds.reduce((s: number, h: any) => s + Number(h.weight), 0);
     let roll = Math.random() * total;
     let pick: any = null;
