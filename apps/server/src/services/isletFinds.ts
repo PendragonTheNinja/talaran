@@ -1,6 +1,6 @@
 import db from '../db';
 import { levelFromXp } from './xp';
-import { addItemToInventoryWithin } from './inventory';
+import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
 import { creditGoldWithin } from './gold';
 import { noteDeed } from './chronicle';
 import { afterCommit } from '../lib/afterCommit';
@@ -8,6 +8,8 @@ import { pushToPlayer } from '../lib/realtime';
 
 /** What Quank leaves behind, and what a dig turns up (named here so item pages can say so). */
 export const QUANK_GIFT_ITEM = 'Tidbit';
+/** What Quank leaves when he takes his Tidbit back (Nathan, 2026-11-23). */
+export const QUANK_RECEIPT_ITEM = "Quank's Receipt";
 export const DUG_CHEST_ITEM = 'Locked Rusty Chest';
 
 // ── What a landing finds (docs/islets-plan.md §2 and §4) ─────────────────────
@@ -20,7 +22,7 @@ export const DUG_CHEST_ITEM = 'Locked Rusty Chest';
 // islet. Each skill's own action spends it, one use at a time, through
 // isletFindHere and spendIsletFind; nothing about the skill's rules changes.
 
-export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'cache' | 'young' | 'flowers' | 'artefact' | 'quank' | 'nothing';
+export type FindKind = 'stand' | 'vein' | 'shoal' | 'patch' | 'trail' | 'chest' | 'cache' | 'young' | 'flowers' | 'nests' | 'artefact' | 'quank' | 'nothing';
 
 const CHEST_COINS_MIN = 3;
 const CHEST_COINS_MAX = 10;
@@ -35,6 +37,10 @@ export interface IsletFind {
     words?: string
     /** A quest this find started (Quank's Tidbit), named for the landing's last line. */
     questStarted?: string
+    /** A quest this find finished (Quank taking his Tidbit back). */
+    questDone?: string
+    /** Which of Quank's scenes was played: 'quank' (he gives a Tidbit), 'quank_back' (he takes it back), 'quank_owed' (he wanted it, and it was not there). */
+    scene?: 'quank' | 'quank_back' | 'quank_owed'
 }
 
 /** Started when Quank hands over his Tidbit (migration 20261117200000). */
@@ -58,13 +64,16 @@ async function skillLevel(x: any, playerId: number, skill: string): Promise<numb
 /**
  * The thing a work find is a best-of: for a stand, the island's best
  * woodcutting node the player has the level for. Null when they have the level
- * for none, and the find becomes nothing.
+ * for none, and the find becomes nothing. `island` null looks on every island:
+ * the caller's fallback when this island has none of that work at all (Antura
+ * has no trees or game of its own, so its islets' stands and trails are the
+ * best the player can work anywhere; Nathan, 2026-11-23).
  */
-async function targetFor(x: any, playerId: number, kind: FindKind, island: string): Promise<number | null> {
+async function targetFor(x: any, playerId: number, kind: FindKind, island: string | null): Promise<number | null> {
     if (kind === 'stand') {
         const level = await skillLevel(x, playerId, 'Woodcutting');
         const node = await x('resource_nodes as n').join('locations as l', 'l.id', 'n.location_id')
-            .where('l.region', island).where('n.is_active', true).whereRaw('LOWER(n.skill) = ?', ['woodcutting'])
+            .modify((q: any) => { if (island) q.where('l.region', island); }).where('n.is_active', true).whereRaw('LOWER(n.skill) = ?', ['woodcutting'])
             .where('n.required_level', '<=', level)
             .orderBy([{ column: 'n.required_level', order: 'desc' }, { column: 'n.id', order: 'asc' }])
             .first('n.id');
@@ -73,7 +82,7 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
     if (kind === 'trail') {
         const level = await skillLevel(x, playerId, 'Hunting');
         const a = await x('huntable_animals as a').join('locations as l', 'l.id', 'a.location_id')
-            .where('l.region', island).whereNull('l.islet_kind').where('a.is_active', true)
+            .modify((q: any) => { if (island) q.where('l.region', island); }).whereNull('l.islet_kind').where('a.is_active', true)
             .where('a.required_level', '<=', level)
             .orderBy([{ column: 'a.required_level', order: 'desc' }, { column: 'a.id', order: 'asc' }]).first('a.id');
         return a ? Number(a.id) : null;
@@ -81,7 +90,7 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
     if (kind === 'patch') {
         const level = await skillLevel(x, playerId, 'Foraging');
         const h = await x('foraging_habitats as h').join('locations as l', 'l.id', 'h.location_id')
-            .where('l.region', island).whereNull('l.islet_kind').where('h.is_active', true)
+            .modify((q: any) => { if (island) q.where('l.region', island); }).whereNull('l.islet_kind').where('h.is_active', true)
             .where('h.required_level', '<=', level)
             .orderBy([{ column: 'h.required_level', order: 'desc' }, { column: 'h.id', order: 'asc' }]).first('h.id');
         return h ? Number(h.id) : null;
@@ -91,7 +100,7 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
         // highest; more such fish breaks a tie.
         const level = await skillLevel(x, playerId, 'Fishing');
         const waters = await x('fish_species as f').join('locations as l', 'l.id', 'f.location_id')
-            .where('l.region', island).whereNull('l.islet_kind').where({ 'f.is_active': true, 'f.kind': 'fish' })
+            .modify((q: any) => { if (island) q.where('l.region', island); }).whereNull('l.islet_kind').where({ 'f.is_active': true, 'f.kind': 'fish' })
             .where('f.required_level', '<=', level)
             .groupBy('f.location_id')
             .select('f.location_id').max('f.required_level as top').count('f.id as n')
@@ -103,7 +112,7 @@ async function targetFor(x: any, playerId: number, kind: FindKind, island: strin
         // mainland node yields, the plain (not dense) kind.
         const level = await skillLevel(x, playerId, 'Mining');
         const subtypes = (await x('resource_nodes as n').join('locations as l', 'l.id', 'n.location_id')
-            .where('l.region', island).where('n.is_active', true).where('n.skill', 'mining').whereNotNull('n.ore_subtype')
+            .modify((q: any) => { if (island) q.where('l.region', island); }).where('n.is_active', true).where('n.skill', 'mining').whereNotNull('n.ore_subtype')
             .distinct('n.ore_subtype')).map((r: any) => r.ore_subtype);
         if (!subtypes.length) return null;
         const best = await x('items').where({ type: 'ore' }).whereNull('quality').whereIn('subtype', subtypes)
@@ -156,7 +165,7 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
     }
     const nothing: IsletFind = { kind: 'nothing', location_id: islet.id, target_id: null, remaining: 0, boost: 1 };
     if (!pick || pick.kind === 'nothing') return nothing;
-    if (pick.kind === 'young' || pick.kind === 'flowers') {
+    if (pick.kind === 'young' || pick.kind === 'flowers' || pick.kind === 'nests') {
         // Handed over there and then, from the island's list (islet_find_items).
         const rows = await trx('islet_find_items').where({ island: islet.region, kind: pick.kind, is_active: true })
             .select('item_name', 'min_qty', 'max_qty', 'weight', 'words_one', 'words_many');
@@ -185,18 +194,44 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
         const met = await trx('player_quank_met').insert({ player_id: playerId, island: islet.region })
             .onConflict(['player_id', 'island']).ignore().returning('island');
         if (!met.length) return nothing;
-        // Before he goes, a Tidbit: half a Tiddle (Nathan, 2026-11-17).
-        const tidbit = await trx('items').where({ name: QUANK_GIFT_ITEM }).first('id');
-        if (tidbit) await addItemToInventoryWithin(trx, playerId, tidbit.id, 1);
-        // ...and the scene's end starts his quest: next time, he wants it back.
-        const questStarted = await startQuankQuestWithin(trx, playerId);
+        const done = (extra: Partial<IsletFind>): IsletFind => ({ kind: 'quank', location_id: islet.id, target_id: null, remaining: 0, boost: 1, ...extra });
+        // Met before, on another island's islets: he wants his Tidbit back
+        // (Nathan, 2026-11-17 and 23). Carried, it goes back, the quest ends,
+        // and he leaves a receipt; not carried, he looks at the empty hand,
+        // and the quest waits for the next island's islets.
+        const quest = await trx('quests').where({ name: QUANK_QUEST, is_active: true }).first('id', 'name');
+        const open = quest ? await trx('player_quests').where({ player_id: playerId, quest_id: quest.id, status: 'active' }).first('id') : null;
+        let found: IsletFind;
+        if (quest && open) {
+            const took = await takeItemsWithin(trx, playerId, [{ name: QUANK_GIFT_ITEM, quantity: 1 }]);
+            if (took.ok) {
+                // Completion is the gate: the flip from active, inside the landing's transaction.
+                const flipped = await trx('player_quests').where({ player_id: playerId, quest_id: quest.id, status: 'active' })
+                    .update({ status: 'completed', completed_at: new Date() });
+                if (flipped !== 1) throw new Error('quank: his quest was finished twice at once');
+                await trx('player_quest_objectives').whereIn('objective_id', trx('quest_objectives').where({ quest_id: quest.id }).select('id'))
+                    .where({ player_id: playerId }).update({ current_amount: 1, is_complete: true });
+                const receipt = await trx('items').where({ name: QUANK_RECEIPT_ITEM }).first('id');
+                if (receipt) await addItemToInventoryWithin(trx, playerId, receipt.id, 1);
+                found = done({ target_id: receipt?.id ?? null, scene: 'quank_back', questDone: String(quest.name) });
+            } else {
+                found = done({ scene: 'quank_owed' });
+            }
+        } else {
+            // First met: before he goes, a Tidbit, half a Tiddle (Nathan, 2026-11-17)...
+            const tidbit = await trx('items').where({ name: QUANK_GIFT_ITEM }).first('id');
+            if (tidbit) await addItemToInventoryWithin(trx, playerId, tidbit.id, 1);
+            // ...and the scene's end starts his quest: next time, he wants it back.
+            const questStarted = await startQuankQuestWithin(trx, playerId);
+            found = done({ target_id: tidbit?.id ?? null, scene: 'quank', questStarted: questStarted ?? undefined });
+        }
         // Counted: his feat, and a line in Wenna's tidings, once this commits.
         noteDeed(trx, { kind: 'quank_seen', playerId, subject: 'Quank', data: { island: islet.region } });
         afterCommit(trx, async () => {
             const { evaluateFeats } = await import('./feats');
             for (const feat of await evaluateFeats(playerId)) pushToPlayer(playerId, 'feat_earned', feat);
         });
-        return { kind: 'quank', location_id: islet.id, target_id: tidbit?.id ?? null, remaining: 0, boost: 1, questStarted: questStarted ?? undefined };
+        return found;
     }
     if (pick.kind === 'cache') {
         // A guarded cache: the guardian of this islet's guardian spot
@@ -221,7 +256,7 @@ export async function rollIsletFindWithin(trx: any, playerId: number, islet: { i
         return { kind: 'chest', location_id: islet.id, target_id: chest.id, remaining: 0, boost: 1 };
     }
 
-    const target = await targetFor(trx, playerId, pick.kind, islet.region);
+    const target = (await targetFor(trx, playerId, pick.kind, islet.region)) ?? (await targetFor(trx, playerId, pick.kind, null));
     if (target === null) return nothing;
     const min = Number(pick.amount_min), max = Number(pick.amount_max);
     const amount = min + Math.floor(Math.random() * (max - min + 1));

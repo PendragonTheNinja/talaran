@@ -5,7 +5,8 @@ import { loadDurabilityTiers, wearItem } from './durability';
 // ── The sailor's set (docs/islets-plan.md §6d; Nathan, 2026-11-17) ───────────
 //
 // Eleven pieces, every slot but the mount, spread over the first three
-// islands' sea chests (items.set_island). Each worn piece takes
+// islands' sea chests (items.set_island; container_types.set_island says
+// which island's pieces a chest holds). Each worn piece takes
 // items.sea_speed_pct off a sea journey, and the whole set adds FULL_SET_BONUS.
 // Each journey wears ONE random worn piece, as combat wears a few random armour
 // pieces a kill, so eleven pieces never mean eleven rolls. A sea chest holds a
@@ -17,8 +18,6 @@ export const FULL_SET_BONUS_PCT = 5;
 export const PIECE_CHANCE = 1 / 3;
 export const LUCK_GUARANTEE = 6;
 
-/** Which island's pieces a kind of sea chest (container_types.key) holds. */
-export const SEA_CHEST_ISLAND: Record<string, string> = { sea_chest: 'Taiar Island' };
 
 const SLOT_COLUMNS = ['head', 'neck', 'back', 'chest', 'mainhand', 'offhand', 'legs', 'hands', 'feet', 'finger', 'trophy'];
 

@@ -115,8 +115,10 @@ export interface FightSwing {
     damage: number
     absorbed: number
     creature: string
-    /** The strike never came: a song stayed the hand (the Siren). */
+    /** The strike never came: a song stayed the hand (the Siren), or a water horse dragged it back. */
     hesitated?: boolean
+    /** What stayed it, in the creature's own words (server creatures.hesitate_text). */
+    hesitateText?: string
 }
 
 /** The server's push after every settle (combat_update). */
@@ -146,7 +148,7 @@ export function announceHp(hp: Hp) {
 /** One swing as a line in the fight log. */
 export function describeSwing(s: FightSwing): string {
     if (s.by === 'player') {
-        if (s.hesitated) return `The ${s.creature}'s song stays your hand, and the moment passes.`
+        if (s.hesitated) return s.hesitateText ?? `The ${s.creature}'s song stays your hand, and the moment passes.`
         return s.hit ? `You hit the ${s.creature} for ${s.damage}.` : `You miss the ${s.creature}.`
     }
     if (!s.hit) return `The ${s.creature} misses you.`

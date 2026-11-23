@@ -5,8 +5,8 @@ import { buyPrice } from './marketplace';
 import { CHARGED_PREFIXES, CUT_QUALITIES, cutGradeOf } from '../lib/gemGrades';
 import { rungOfTier } from '../lib/tiers';
 import { isFightFood } from './combatFights';
-import { DUG_CHEST_ITEM, QUANK_GIFT_ITEM, withArticleWord } from './isletFinds';
-import { PIECE_CHANCE, SEA_CHEST_ISLAND, SET_SUBTYPE } from './sailorSet';
+import { DUG_CHEST_ITEM, QUANK_GIFT_ITEM, QUANK_QUEST, QUANK_RECEIPT_ITEM, withArticleWord } from './isletFinds';
+import { PIECE_CHANCE, SET_SUBTYPE } from './sailorSet';
 import { SIGHTING_ITEM, VAST_ONE_IN } from './shipLog';
 import { BURNT_BY_SUBTYPE } from './recipes';
 import { ALE_ITEM } from './rounds';
@@ -816,11 +816,15 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
     }
     if (name.toLowerCase() === QUANK_GIFT_ITEM.toLowerCase()) {
         sources.push({ kind: 'Islets', from: 'Left behind by someone met on an islet', detail: 'Once an island' });
+        uses.push({ kind: 'Quest', into: QUANK_QUEST, detail: 'Wanted back, on another island\'s islets', link: 'reference/quests' });
+    }
+    if (name.toLowerCase() === QUANK_RECEIPT_ITEM.toLowerCase()) {
+        sources.push({ kind: 'Quest', from: QUANK_QUEST, detail: 'Given for what was given back', link: 'reference/quests' });
     }
     // The sailor's set comes out of sea chests (services/sailorSet.ts).
     if (item.subtype === SET_SUBTYPE && item.set_island) {
-        const keys = Object.entries(SEA_CHEST_ISLAND).filter(([, isl]) => isl === item.set_island).map(([k]) => k);
-        const chests = keys.length ? await db('container_types as c').join('items as i', 'i.id', 'c.item_id').whereIn('c.key', keys).pluck('i.name') : [];
+        const chests = await db('container_types as c').join('items as i', 'i.id', 'c.item_id')
+            .where({ 'c.set_island': item.set_island, 'c.is_active': true }).pluck('i.name');
         for (const c of chests) {
             sources.push({ kind: 'Opening', from: `Opening ${withArticleWord(c)}`, where: item.set_island, detail: `About 1 in ${Math.round(1 / PIECE_CHANCE)} chests hold a piece of the set` });
         }

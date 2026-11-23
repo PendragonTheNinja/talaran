@@ -5,7 +5,7 @@ import { takeItemsWithin, notifyInventoryChanged } from './inventory'
 import { awardXp } from './xp'
 import { incrementStats } from './stats'
 import { listWords } from '../lib/listWords'
-import { SEA_CHEST_ISLAND, rollSailorPieceWithin } from './sailorSet'
+import { rollSailorPieceWithin } from './sailorSet'
 
 // Opening things (migration 20261113100000_containers): a Bird Nest, a River
 // Mussel. One at a time on a short timer, through the stack, as a processing
@@ -32,6 +32,8 @@ export interface ContainerType {
     coin_min: number | null
     coin_max: number | null
     empty_text: string | null
+    /** A sea chest: the island whose sailor's set pieces it may hold. */
+    set_island: string | null
 }
 
 /** The container row for an item, if the item can be opened. */
@@ -134,8 +136,9 @@ export async function resolveOpen(playerId: number, itemIdRaw: string | null): P
             await creditGold({ playerId, amount, reason: 'container_coins', refType: 'action', refId: null })
             drops.push({ name: GOLD_DROP_NAME, quantity: amount, notable: true })
         }
-        // A sea chest may hold a piece of the sailor's set (services/sailorSet.ts).
-        const island = SEA_CHEST_ISLAND[c.key]
+        // A sea chest may hold a piece of its island's sailor's set
+        // (container_types.set_island, services/sailorSet.ts).
+        const island = c.set_island
         if (island) {
             const piece = await db.transaction(async trx => {
                 await trx('players').where({ id: playerId }).forNoKeyUpdate().first('id')

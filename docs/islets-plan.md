@@ -48,7 +48,7 @@ Mock odds of reaching each: the five common islets 16% each (80%), the two seldo
 - Because which islet a voyage reaches is chance, the first sailors out do not all name the same one.
 - ~~Naming is switched off through the alpha.~~ **Changed 2026-11-22 (Nathan): built now, as alpha names.** The first to land holds the right while they stand there; it passes on when they leave; staff choose or turn down each name (Admin > Islet Names). 1.0 clears every alpha name, and the names given after 1.0 are final. Built in `services/isletNames.ts` (CLAUDE.md §9). Not yet told in the Chronicle.
 
-Antura has its own eight on the same pattern, and its islets also carry Nathan's quest series.
+Antura has its own eight on the same pattern (built 2026-11-23, §8). No quest series on them for now (Nathan, 2026-11-23); Quank's quest ends there.
 
 ## 4. The finds, and what each one boosts
 
@@ -265,3 +265,41 @@ Nathan wants a great deal of flavour text here (2026-11-15). All of it is conten
 ## 7. What it would take to build
 
 Rows, mostly: islets as places in the island's region with no roads; a table of what each islet can hold and how often; a table of each find's amount and boost. New code: the voyage that picks an islet, the landing that rolls and remembers a player's find, and the boost applied where each skill already rolls its extras (`rollSecondaryDrops` and the skills' own find rolls). No skill's own rules change.
+
+## 8. Antura's islets (built 2026-11-23, migration `20261123100000_antura_islets`)
+
+Settled with Nathan 2026-11-23: the eight below, three new guardians of the sea, and Antura's three pieces of the sailor's set in its own chest. Reached in a Cog from Wendhaven.
+
+| Islet | Reached | Can hold |
+|---|---|---|
+| The Pine Holm | Often (16) | A stand of trees, a wild patch, young, flowers |
+| The Granite Skerry | Often | An exposed Serph vein, a guarded cache (the Blue Man) |
+| The Shingle Spit | Often | A shoal |
+| The Kelp Reef | Often | A shoal, a guarded cache (the Each-uisge) |
+| The Grass Holm | Often | A wild patch, a game trail, young, flowers |
+| The Bird Cliff | Seldom (8) | Birds' nests (a new find, `nests`: a feather source), a shoal, young, a guarded cache (the Each-uisge), an artefact |
+| The Tide-Cut Quarry | Seldom | A Serph vein, a guarded cache (the Blue Man), an artefact |
+| The Wreck | Rarely (4) | Artefacts, a guarded cache (the Nuckelavee), a buried chest |
+
+Every islet can also turn up a Locked Rusty Chest, and Quank. Antura has no trees or game of its own, so a stand or a trail there is the best the player can work on any island (`targetFor` falls back to every island when the islet's own has none of that work).
+
+**The guardians** (simulated against a one-hand fighter at the guardian's level, with its weakness; profiles are multipliers on the level's baseline, as the Taiar three):
+
+| Guardian | Level | Accuracy | Defence | Power | HP | Swing | Weak | Resists | At its level | XP multiplier |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Blue Man of the Minch | 15 | 0.95 | 1.15 | 1.1 | 2.8 | 3.8 s | crush | pierce | 103 s, 33% of health | 3 |
+| Each-uisge | 17 | 1.15 | 0.95 | 0.95 | 2.4 | 2.4 s | pierce | crush | 93 s, 46% | 2.5 |
+| Nuckelavee | 20 | 1.0 | 1.05 | 1.15 | 3.3 | 3.4 s | slash | pierce | 131 s, 52% | 3.5 |
+
+The Each-uisge drags a swing back 12% of the time, the Siren's mechanic with words of its own (`creatures.hesitate_text`, which the Siren's song now uses too). Each always drops a **Locked Antura Chest** (Geoffrey's lock, 200 gold), and its keepsake 1 in 20: the Blue Man's Conch, the Water Horse's Mane-Knot, the Drowned Rider's Spur.
+
+**The Antura Chest** holds Serph goods, planks, stone, cloth, Charc, fish, garnet now and then, a Locked Sea Chest 1 in 10, and Rough Amethyst 1 in 300; and Antura's three set pieces (the Oilskin Smock, Canvas Slops, and Boat Cloak; tier 2, worn from Wayfaring 13, `equipGates` now gates the set on Wayfaring) by the same one-in-three with a sure piece by the sixth. Which island's pieces a chest holds is `container_types.set_island`, not code.
+
+**Artefacts:** the Ship's Bell Clapper, the Figurehead's Hand, the Navigator's Bowl, and the Sealed Letter Case, in Antura's museum's From the Islets.
+
+**Quank on Antura:** one meeting, as on Taiar. A player who met him on Taiar and carries the Tidbit gives it back, which finishes "Keep an Eye Out for Quank", and is given Quank's Receipt (a keepsake, no power). One who left it at home is looked at, and the quest waits for the next island. One who never met him on Taiar is given a Tidbit, as there. Feat: Still Not Leaving the Square.
+
+**The ship's log:** Taiar's lines that name nothing of Taiar's (no Taiar, Talador, or rowing) are now every island's; a story moves or stays whole. Antura has seven lines of its own.
+
+Still open: the islet maps and pictures, and creature art for the three guardians (`/images/bestiary/Blue_Man_of_the_Minch.png`, `Each-uisge.png`, `Nuckelavee.png`). Geoffrey, in Talador, is still the only locksmith, so Antura's chests come home to Taiar to be opened.
+

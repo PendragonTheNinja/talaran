@@ -328,10 +328,12 @@ export async function arriveBySea(playerId: number, locationId: number, leg: Sea
         // This landing's own find (services/isletFinds.ts), told after the shore.
         const find = await rollIsletFindWithin(trx, playerId, { id: place.id, region: island });
         if (find.kind === 'quank') {
-            // His scene, in order; the Tidbit is already in the pack.
-            const scene = (await trx('voyage_lines').where({ island, moment: 'quank', is_active: true }).orderBy('id').pluck('text')) as string[];
+            // His scene, in order, this island's own: giving the Tidbit, taking it
+            // back, or wanting it and finding it gone. What changed hands already has.
+            const scene = (await trx('voyage_lines').where({ island, moment: find.scene ?? 'quank', is_active: true }).orderBy('id').pluck('text')) as string[];
             for (const text of scene) events.push({ message: text, itemName: null, quantity: 0 });
             if (find.questStarted) events.push({ message: `New quest: ${find.questStarted}.`, itemName: null, quantity: 0 });
+            if (find.questDone) events.push({ message: `Quest complete: ${find.questDone}.`, itemName: null, quantity: 0 });
         } else {
             const said = await findLine(`find_${find.kind}`);
             if (said) events.push({ message: find.words ? said.replace('{find}', find.words) : said, itemName: null, quantity: 0 });

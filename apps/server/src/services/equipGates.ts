@@ -29,6 +29,8 @@ const SUBTYPE_SKILL: Record<string, string> = {
     // Jewelry is worn on Talar, the skill that fills it (docs/talar-spec.md §8).
     ring: 'Talar',
     amulet: 'Talar',
+    // The sailor's set is worn on Wayfaring, the skill that sails (docs/islets-plan.md §6d).
+    sailors_set: 'Wayfaring',
 }
 
 /**

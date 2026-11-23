@@ -189,7 +189,7 @@ interface KillReport {
 interface FightReport {
     playerId: number
     locationId: number | null
-    events: (SwingEvent & { creature: string })[]
+    events: (SwingEvent & { creature: string; hesitateText?: string })[]
     kills: KillReport[]
     /** How the fight ended in this settle, if it did. */
     ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won' | null
@@ -303,7 +303,8 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             const foe = creatureCombatant(creature)
             const r = settle(Math.random, clock, max - missing, me.combatant, foe, stanceMultiplier(creature, me.damageType), until,
                 COMBAT, Number(creature.hesitate_pct ?? 0))
-            for (const e of r.events) events.push({ ...e, creature: creature.name })
+            // A stayed strike says what stayed it: the creature's own words (creatures.hesitate_text).
+            for (const e of r.events) events.push({ ...e, creature: creature.name, ...(e.hesitated && creature.hesitate_text ? { hesitateText: String(creature.hesitate_text) } : {}) })
             const inHand = worn.mainhand?.weapon_form ? worn.mainhand : null
             if (inHand) {
                 const made = r.events.filter(e => e.by === 'player' && !e.hesitated).length
