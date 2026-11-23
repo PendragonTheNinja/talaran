@@ -44,9 +44,9 @@ Mock odds of reaching each: the five common islets 16% each (80%), the two seldo
 - The name is data on the islet, with who gave it and when, shown on the islet map and told in the Chronicle. **The islet pictures must carry no painted names**, since the name does not exist until a player gives it.
 - An unnamed islet needs words of its own until then ("an islet nobody has named").
 - A name is refused, not cleaned, by the same rule as guild and shop names (`namesRefusal`), with a length limit, and no two islets alike.
-- It is permanent. Staff can rename one that slips past the filter.
+- After 1.0 it is permanent. Staff can rename one that slips past the filter.
 - Because which islet a voyage reaches is chance, the first sailors out do not all name the same one.
-- Naming is switched off through the alpha (Nathan, 2026-11-15), so testers are never asked to name something the 1.0 reset will wipe.
+- ~~Naming is switched off through the alpha.~~ **Changed 2026-11-22 (Nathan): built now, as alpha names.** The first to land holds the right while they stand there; it passes on when they leave; staff choose or turn down each name (Admin > Islet Names). 1.0 clears every alpha name, and the names given after 1.0 are final. Built in `services/isletNames.ts` (CLAUDE.md §9). Not yet told in the Chronicle.
 
 Antura has its own eight on the same pattern, and its islets also carry Nathan's quest series.
 
