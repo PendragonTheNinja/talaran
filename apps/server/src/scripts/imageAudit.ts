@@ -10,7 +10,7 @@
  *                                              catch with no portrait shows its drop instead)
  *   skills     /images/skills/<Name>Skill.png  SkillsPanel, the level-up popup
  *   badges     /images/badges/<key>.png        Badge.tsx (feats.badge_key; falls back to the glyph)
- *   minimap    /images/locations/<Island>/<Place>.jpg   MiniMap.tsx (islets have no roads, so none)
+ *   minimap    /images/locations/<Island>/<Place>.jpg   MiniMap.tsx (islets too: the minimap shows there)
  *   scenes     /images/scenes/<Island>/<Place>.webp     lib/scenePictures.ts (islets too)
  *   maps       /images/maps/<Island>.jpg        RightPanel, MobileShell
  *
@@ -66,9 +66,9 @@ async function main(): Promise<void> {
 
     const places = await db('locations').whereNotNull('region').orderBy(['region', 'name']).select('name', 'region', 'islet_kind', 'is_accessible');
     for (const p of places) {
-        if (!p.islet_kind && p.is_accessible) {
+        if (p.islet_kind || p.is_accessible) {
             // MiniMap.tsx keeps apostrophes; only spaces become underscores.
-            wants.push({ group: 'Minimap pictures', label: p.name, file: `images/locations/${folderOf(p.region)}/${p.name.replace(/ /g, '_')}.jpg`, where: p.region });
+            wants.push({ group: 'Minimap pictures', label: p.islet_kind ? `${p.name} (islet)` : p.name, file: `images/locations/${folderOf(p.region)}/${p.name.replace(/ /g, '_')}.jpg`, where: p.region });
         }
         if (p.islet_kind || p.is_accessible) {
             wants.push({ group: 'Scene pictures', label: p.islet_kind ? `${p.name} (islet)` : p.name, file: `images/scenes/${folderOf(p.region)}/${plain(p.name)}.webp`, where: p.region });
