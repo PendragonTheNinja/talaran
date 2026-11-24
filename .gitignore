@@ -31,3 +31,7 @@ apps/client/public/**/*.psd
 # Raw icon art waiting for pnpm icons:make (apps/server/src/scripts/makeIcons.ts): the
 # finished icons land in apps/client/public/images/items, which is what gets committed.
 design/icon-inbox/
+
+# Nathan's art working folders: uncut sources and trial pictures, never shipped
+**/To Cut Out/
+**/To Test/
