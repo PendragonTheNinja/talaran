@@ -562,9 +562,14 @@ export default function GameView({
         // node gone). At the Rift the countdown on screen runs to the stone
         // being full, not to each minute's pour, so only a full stone rings there.
         {
-          const d = data as unknown as { actionType?: string; result?: { itemName?: string; ended?: string } }
+          const d = data as unknown as { actionType?: string; nextCompletes?: string | null; result?: { itemName?: string; ended?: string } }
           if (d.result?.ended) ringFor('stopped')
-          else if (d.actionType !== 'talar_fill' || d.result?.itemName) ringFor('countdown')
+          else if (d.actionType !== 'talar_fill' || d.result?.itemName) {
+            ringFor('countdown')
+            // Nothing follows: a one-off job is done. A kill card carries no
+            // next time either, but the fight goes on.
+            if (!d.nextCompletes && d.actionType !== 'combat') ringFor('finished')
+          }
         }
         const jewelry = (data.result as { jewelry?: string[] } | undefined)?.jewelry ?? []
         setJewelryLines(jewelry)
@@ -917,6 +922,14 @@ export default function GameView({
           setTimerSeconds(data.timerSeconds)
           setTimerMax(data.timerSeconds)
           startCountdown(data.timerSeconds, data.nextCompletes)
+        } else {
+          // No next completion: the server has finished the action (a kiln
+          // collect, a last craft). Without this the countdown sat at 0 with
+          // Stop showing and the card hidden behind it (forum, 2026-11-24).
+          setCurrentAction(null)
+          setActiveNodeId(null)
+          setTimerSeconds(0)
+          if (timerRef.current) clearInterval(timerRef.current)
         }
       })
 

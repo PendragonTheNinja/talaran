@@ -273,11 +273,15 @@ export async function playBell(sound: BellSound = bellSound(), volume = bellVolu
  * which moments count. All are on until a player chooses, which is how the
  * bell behaved before, plus falling in a fight.
  */
-export type BellEvent = 'countdown' | 'stopped' | 'botcheck' | 'fallen' | 'arrived'
+export type BellEvent = 'countdown' | 'stopped' | 'finished' | 'botcheck' | 'fallen' | 'arrived'
 
 export const BELL_EVENTS: { id: BellEvent; label: string; hint: string }[] = [
     { id: 'countdown', label: 'Every countdown', hint: 'Each log, ore, catch, or craft' },
     { id: 'stopped', label: 'Work stops', hint: 'Out of materials, a limit reached, a vein run dry, a fight over' },
+    // A job that was only ever one countdown long ends without "stopping"
+    // (forum, 2026-11-18: Muck All Pens never rang). Its own box, so a player
+    // who rings for work stopping can have these or not (Nathan).
+    { id: 'finished', label: 'A one-off job is done', hint: 'Mucking every pen, spreading manure, collecting the kiln: nothing follows it' },
     { id: 'botcheck', label: 'Bot check', hint: 'The game asks if you are there' },
     { id: 'fallen', label: 'Fallen in a fight', hint: 'You were carried back to Talador' },
     { id: 'arrived', label: 'Journey\'s end', hint: 'You arrive somewhere' },

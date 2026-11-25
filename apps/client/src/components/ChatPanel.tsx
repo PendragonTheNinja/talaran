@@ -41,6 +41,11 @@ const CHANNELS = [
 // Channels we load/persist history for but that aren't selectable send-tabs.
 const HISTORY_CHANNELS = [...CHANNELS.map(c => c.key), 'whisper', 'server']
 
+// Spelling underlined, with fixes on right-click, where there is a mouse to
+// right-click with (Nathan, 2026-11-22). On a phone the same switch can wake
+// the keyboard's autocorrect, which is what eats the @ of a whisper.
+const SPELL_CHECK = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches
+
 function formatTime(date: Date): string {
   return formatGameTime(date)
 }
@@ -63,6 +68,9 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // One send at a time: Enter pressed twice before the first request came
+  // back sent the line twice (forum, 2026-11-22).
+  const sendingRef = useRef(false)
   const [mutedChannels, setMutedChannels] = useState<string[]>([])
   // Read by the socket handlers, which are bound once on mount and would
   // otherwise only ever see the first render's values.
@@ -362,7 +370,8 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
 
   const handleSend = async () => {
     const trimmed = input.trim()
-    if (!trimmed) return
+    if (!trimmed || sendingRef.current) return
+    sendingRef.current = true
 
     try {
       const sent = await apiFetch<{ whisperTo?: string; notice?: string | null }>('/api/chat/send', {
@@ -400,6 +409,8 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
         rawTimestamp: Date.now(),
       }
       addMessages([errorMsg], true)
+    } finally {
+      sendingRef.current = false
     }
   }
 
@@ -412,6 +423,13 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
     const found = channels.find(c => c.key === channel)
     return found ? found.label : channel
   }
+
+  // The box takes the colour its line will have, so a wrong channel shows
+  // before Enter (forum, "Wrong Chat Continues to Plague the Land"). A line
+  // that starts "Name@" is a whisper; the server has the last word on that,
+  // since only it knows the names.
+  const sendsAsWhisper = /^[A-Za-z0-9_-][A-Za-z0-9 _-]{1,31}@/.test(input)
+  const inputColor = CHANNEL_COLORS[sendsAsWhisper ? 'whisper' : activeChannel]
 
   const visibleMessages = allMessages.filter(msg => !mutedChannels.includes(msg.channel))
 
@@ -480,13 +498,14 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           id="talaran-chat-message"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.repeat) handleSend() }}
           placeholder={`[${channelLabel(activeChannel)}] Type a message...`}
+          style={{ color: inputColor, borderColor: inputColor }}
           maxLength={500}
           autoComplete="new-chat-message"
           autoCorrect="off"
           autoCapitalize="sentences"
-          spellCheck={false}
+          spellCheck={SPELL_CHECK}
           data-lpignore="true"
           data-form-type="other"
         />

@@ -4,17 +4,17 @@ I believed this for a year and a half. I was wrong in a way I find genuinely del
 
 ## Where and how to start
 
-Find a tree. Equip an axe. Swing.
+Find a tree. Equip a hatchet. Swing.
 
-Every stand of timber states the level it wants and the grade of axe it would prefer. Work within your means at first, because an axe beneath the job does not fail politely. It fails slowly, which is worse.
+Every stand of timber states the level it wants and the grade of hatchet it would prefer. Work within your means at first, because a hatchet beneath the job does not fail politely. It fails slowly, which is worse.
 
 ## Tools and gear
 
 The arithmetic is Mining's exactly, and worth knowing in both trades:
 
 - Every level you stand above what a tree requires trims half a percent off the work, up to half again at best.
-- An axe **above** the required grade speeds you further, to a ceiling of about a third at three grades over.
-- An axe **below** grade adds roughly forty percent per grade short.
+- A hatchet **above** the required grade speeds you further, to a ceiling of about a third at three grades over.
+- A hatchet **below** grade adds roughly forty percent per grade short.
 
 Note once more that these are not symmetrical. Being over-equipped is a modest luxury. Being under-equipped is a tax you pay on every single swing.
 
@@ -26,7 +26,7 @@ Timber comes out poor, fine, or excellent.
 
 Every level you stand above the tree's requirement pushes the odds: poor becomes rarer, excellent becomes commoner. The effect accumulates for thirty levels before it stops, and even then poor never vanishes entirely and excellent never quite runs away with it.
 
-I want you to appreciate how unusual this is. Stone is stone. The outcrop decided what it was long before you arrived, and the finest miner in Talaran pulls the same proportions from it as the worst. But a tree is not a fixed quantity of timber. A tree is a fixed quantity of timber *and a question about who is holding the axe*.
+I want you to appreciate how unusual this is. Stone is stone. The outcrop decided what it was long before you arrived, and the finest miner in Talaran pulls the same proportions from it as the worst. But a tree is not a fixed quantity of timber. A tree is a fixed quantity of timber *and a question about who is holding the hatchet*.
 
 The practical consequence: revisiting humble trees is not the waste it appears to be. Come back to the wood you first learned on when you are forty levels past it, and you will find it has quietly become a much better wood.
 
