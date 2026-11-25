@@ -151,6 +151,7 @@ export const COVERED_TABLES: { table: string; column: string; note?: string }[] 
     { table: 'guild_hall_contributions', column: 'item_id', note: "Player state or a log, not a source or a use." },
     { table: 'guild_storage', column: 'item_id', note: "Player state or a log, not a source or a use." },
     { table: 'guild_storage_ledger', column: 'item_id', note: "Player state or a log, not a source or a use." },
+    { table: 'property_storage_ledger', column: 'item_id', note: "Player state or a log, not a source or a use." },
     { table: 'guild_storage_requests', column: 'item_id', note: "Player state or a log, not a source or a use." },
     { table: 'world_event_want_sales', column: 'item_id', note: "Player state or a log, not a source or a use." },
     { table: 'vessel_build_progress', column: 'item_id', note: "Player state or a log, not a source or a use." },

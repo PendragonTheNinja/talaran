@@ -709,6 +709,53 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'share', name: 'owner and partner each take a shared full stack three times at once', rounds: 10,
+        run: async (ctx) => {
+            // A shared homestead (services/propertyPartners.ts): the owner's
+            // withdraw and the partner's go through different routes into the
+            // same stored stack. Exactly one may have it.
+            const w = await world(ctx);
+            const partner = await ctx.seed.row('players', { username: 'Partner', email: 'partner@racecheck.test', current_location_id: w.town.id });
+            const home = await ctx.seed.row('player_properties', { player_id: w.player.id, location_id: w.town.id, type: 'farmstead', storage_slots: 20 });
+            await ctx.seed.row('property_partners', { property_id: home.id, partner_id: partner.id });
+            await ctx.seed.row('property_storage', { property_id: home.id, item_id: w.plank.id, quantity: 100 });
+            await Promise.all([ctx.warm(w.player.id), ctx.warm(partner.id)]);
+            const st = await Promise.all([
+                ...Array.from({ length: 3 }, () => ctx.post(w.player.id, '/property/storage/withdraw', { itemId: w.plank.id, quantity: 100 })),
+                ...Array.from({ length: 3 }, () => ctx.post(partner.id, '/property/shared/withdraw', { propertyId: home.id, itemId: w.plank.id, quantity: 100 })),
+            ]);
+            const lines = await ctx.db('property_storage_ledger').where({ property_id: home.id }).count('* as n').first();
+            return changed('planks', 100, await ctx.itemTotal(w.plank.id))
+                ?? changed('ledger lines', 1, Number(lines?.n))
+                ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'share-end', name: 'a partner deposits five times while the owner takes the key back', rounds: 10,
+        run: async (ctx) => {
+            // Ending a partnership races the partner's own moves. Whatever lands,
+            // nothing is lost or made, and nothing lands after the key is gone.
+            const w = await world(ctx);
+            const partner = await ctx.seed.row('players', { username: 'Partner', email: 'partner@racecheck.test', current_location_id: w.town.id });
+            const home = await ctx.seed.row('player_properties', { player_id: w.player.id, location_id: w.town.id, type: 'farmstead', storage_slots: 20 });
+            await ctx.seed.row('property_partners', { property_id: home.id, partner_id: partner.id });
+            await inPack(ctx, partner.id, w.plank.id, 50);
+            await Promise.all([ctx.warm(w.player.id), ctx.warm(partner.id)]);
+            const st = await Promise.all([
+                ...Array.from({ length: 5 }, () => ctx.post(partner.id, '/property/shared/deposit', { propertyId: home.id, itemId: w.plank.id, quantity: 10 })),
+                ctx.post(w.player.id, '/property/share/end', { propertyId: home.id }),
+            ]);
+            const stored = Number((await ctx.db('property_storage').where({ property_id: home.id, item_id: w.plank.id }).first())?.quantity ?? 0);
+            const logged = Number((await ctx.db('property_storage_ledger').where({ property_id: home.id }).sum('delta as n'))[0].n ?? 0);
+            const still = await ctx.db('property_partners').where({ property_id: home.id }).first();
+            const errors = st.filter((x) => x >= 500).length;
+            return changed('planks', 50, await ctx.itemTotal(w.plank.id))
+                ?? changed('planks stored against the ledger', stored, logged)
+                ?? (still ? 'the partnership outlived the owner taking the key back' : null)
+                ?? (errors ? `${errors} request(s) hit a server error (statuses ${st.join(',')})` : null);
+        },
+    },
+    {
         id: 'C4', name: 'drop a full stack five times at once', rounds: 10,
         run: async (ctx) => {
             const w = await world(ctx);

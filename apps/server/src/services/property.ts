@@ -3,6 +3,7 @@ import { notifyInventoryChanged } from './inventory';
 import { logger } from '../lib/logger';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { settleWards } from './husbandry';
+import { pushToPlayer } from '../lib/realtime';
 
 // Property storage. One SLOT holds one unique item stack of any size, so 50 slots
 // means 50 different items, not 50 things. Stores are per-property: what you keep
@@ -170,6 +171,38 @@ export async function moveOutOfStorageWithin(trx: any, playerId: number, propert
     return { ok: true, quantity: qty, name: item.name }
 }
 
+// ── Shared stores (services/propertyPartners.ts) ───────────────────────────
+
+/**
+ * A move into or out of a store that is shared, written to its ledger inside
+ * the move's own transaction. Does nothing for a store with no partner, so any
+ * storage path may call it (the owner's deposit and withdraw, Sending).
+ */
+export async function noteSharedMoveWithin(trx: any, propertyId: number, playerId: number, itemId: number, delta: number): Promise<void> {
+    const shared = await trx('property_partners').where({ property_id: propertyId }).first('id');
+    if (!shared) return;
+    const who = await trx('players').where({ id: playerId }).first('username');
+    await trx('property_storage_ledger').insert({
+        property_id: propertyId, player_id: playerId, player_name: who?.username ?? 'Someone', item_id: itemId, delta,
+    });
+}
+
+/** The other half of a shared store, to tell when something moved. */
+export async function otherPartyOf(propertyId: number, playerId: number): Promise<number | null> {
+    const row = await db('property_partners as pp').join('player_properties as p', 'p.id', 'pp.property_id')
+        .where('pp.property_id', propertyId).first('p.player_id as owner', 'pp.partner_id as partner');
+    if (!row) return null;
+    if (Number(row.owner) === playerId) return Number(row.partner);
+    if (Number(row.partner) === playerId) return Number(row.owner);
+    return null;
+}
+
+/** Tell the other one a shared store changed (after commit). */
+export async function announceSharedChange(propertyId: number, playerId: number): Promise<void> {
+    const other = await otherPartyOf(propertyId, playerId).catch(() => null);
+    if (other) pushToPlayer(other, 'property_storage_changed', { propertyId });
+}
+
 export async function depositItem(playerId: number, itemId: number, qtyRaw: number, type?: string): Promise<StorageResult> {
     try {
         const property = await propertyForPlayerHere(playerId, type);
@@ -183,8 +216,13 @@ export async function depositItem(playerId: number, itemId: number, qtyRaw: numb
         // `return await`, not `return`: without the await this hands back the
         // promise before it settles, so a failure inside the transaction
         // skipped this function's catch and escaped to Express as an HTML 500.
-        const moved = await db.transaction((trx) => moveIntoStorageWithin(trx, playerId, property, itemId, qtyRaw));
+        const moved = await db.transaction(async (trx) => {
+            const r = await moveIntoStorageWithin(trx, playerId, property, itemId, qtyRaw);
+            if (r.ok) await noteSharedMoveWithin(trx, property.id, playerId, itemId, r.quantity);
+            return r;
+        });
         if (!moved.ok) return { success: false, error: moved.error };
+        await announceSharedChange(property.id, playerId);
         // The pack changed, so every panel showing it needs to know. Withdraw
         // has always said so; deposit never did, which is why the inventory
         // panel kept showing items that were already in store until something
@@ -205,8 +243,13 @@ export async function withdrawItem(playerId: number, itemId: number, qtyRaw: num
         // See depositItem: a warded trough eats before the store changes.
         if (property.type === 'farmstead') await settleWards(playerId);
 
-        const moved = await db.transaction((trx) => moveOutOfStorageWithin(trx, playerId, property, itemId, qtyRaw));
+        const moved = await db.transaction(async (trx) => {
+            const r = await moveOutOfStorageWithin(trx, playerId, property, itemId, qtyRaw);
+            if (r.ok) await noteSharedMoveWithin(trx, property.id, playerId, itemId, -r.quantity);
+            return r;
+        });
         if (!moved.ok) return { success: false, error: moved.error };
+        await announceSharedChange(property.id, playerId);
         // Outside the transaction: a socket push must not fire for work that
         // then rolls back.
         notifyInventoryChanged(playerId);

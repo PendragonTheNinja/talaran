@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useCallback } from 'react'
+import SharedStoragePanel from './SharedStoragePanel'
 import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
 import { onSocket } from '../lib/socket'
@@ -85,6 +86,11 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // Ground items get the same tooltip the pack does.
   const { hoverProps, tooltipEl } = useItemTooltip()
   const [shopsOpen, setShopsOpen] = useState(false)
+  // A homestead here whose owner gave this player a key (server services/propertyPartners.ts).
+  const [sharedOpen, setSharedOpen] = useState<{ propertyId: number; owner: string } | null>(null)
+  const sharedHere: { propertyId: number; owner: string }[] = locationData?.sharedHomesteadsHere ?? []
+  // A key given or taken back: the buttons below change.
+  useEffect(() => onSocket('property_shared', () => onLocationRefresh?.()), [onLocationRefresh])
   const [shopUnseen, setShopUnseen] = useState(0)
   const [myShopOpen, setMyShopOpen] = useState(false)
 
@@ -688,6 +694,12 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         )}
 
+        {sharedHere.map(h => (
+          <button key={h.propertyId} className="location-action-btn" onClick={() => setSharedOpen(h)}>
+            {h.owner}&apos;s Store (shared) →
+          </button>
+        ))}
+
         {/* Smithing — Emberra only */}
         {isEmberra && (
           <div className="location-submenu">
@@ -1216,6 +1228,15 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
       {tallyOpen && <TallyBoardPanel onClose={() => setTallyOpen(false)} />}
       {caskOpen && <CaskPanel onClose={() => setCaskOpen(false)} />}
+
+      {sharedOpen && (
+        <SharedStoragePanel
+          propertyId={sharedOpen.propertyId}
+          owner={sharedOpen.owner}
+          onClose={() => setSharedOpen(null)}
+          onEnded={() => onLocationRefresh?.()}
+        />
+      )}
 
       {shopsOpen && (
         <ShopsMenu

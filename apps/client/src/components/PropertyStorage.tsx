@@ -6,6 +6,8 @@ import StoreSortBar from './StoreSortBar'
 import { sortItems, useStoreSort } from '../lib/itemSort'
 import { useItemTooltip } from './ItemTooltip'
 import ErrorLine from './ErrorLine'
+import { onSocket } from '../lib/socket'
+import SharedLedger, { type LedgerLine } from './SharedLedger'
 
 interface StoredItem { itemId: number; quantity: number; name: string; type: string; subtype?: string }
 
@@ -23,9 +25,14 @@ interface CarriedItem {
 interface StorageState {
     hasProperty: boolean
     propertyType?: string
+    propertyId?: number
     slots: number
     used: number
     items: StoredItem[]
+    /** Shared stores only: whose it is, the partner being away from it, and the ledger. */
+    owner?: string
+    away?: boolean
+    ledger?: LedgerLine[]
 }
 
 interface PropertyStorageProps {
@@ -35,11 +42,20 @@ interface PropertyStorageProps {
     onStoreAmountChange: (n: number) => void
     /** bumped by the parent whenever the inventory changes, so the grid refreshes */
     refreshKey?: number
+    /**
+     * Someone else's homestead store this player holds a key to
+     * (services/propertyPartners.ts). The moves go through the shared routes,
+     * and Deposit Mode, which taps the real pack into the player's OWN store,
+     * is not offered.
+     */
+    sharedPropertyId?: number
 }
 
 export default function PropertyStorage({
-    storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, refreshKey,
+    storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, refreshKey, sharedPropertyId,
 }: PropertyStorageProps) {
+    const shared = sharedPropertyId !== undefined
+    const base = shared ? '/api/property/shared' : '/api/property/storage'
     const [data, setData] = useState<StorageState | null>(null)
     const [loading, setLoading] = useState(true)
     // Stored items get the same tooltip the pack does.
@@ -64,25 +80,27 @@ export default function PropertyStorage({
 
     const load = useCallback(() => {
         return Promise.all([
-            apiFetch<StorageState>('/api/property/storage'),
+            apiFetch<StorageState>(shared ? `/api/property/shared/storage?propertyId=${sharedPropertyId}` : '/api/property/storage'),
             apiFetch<{ inventory: CarriedItem[] }>('/api/inventory'),
         ])
             .then(([store, pack]) => {
                 setData(store)
                 setCarried(pack.inventory ?? [])
             })
-            .catch(() => setError('Could not open your store.'))
+            .catch(() => setError('Could not open the store.'))
             .finally(() => setLoading(false))
-    }, [])
+    }, [shared, sharedPropertyId])
     useEffect(() => { load() }, [load, refreshKey])
+    // The other keyholder of a shared store moved something.
+    useEffect(() => onSocket('property_storage_changed', () => { load() }), [load])
 
     async function deposit(item: CarriedItem) {
         setBusy(true); setError('')
         try {
             const qty = Math.min(storeAmount || 1, item.quantity)
-            await apiFetch('/api/property/storage/deposit', {
+            await apiFetch(`${base}/deposit`, {
                 method: 'POST',
-                body: JSON.stringify({ itemId: item.item_id, quantity: qty }),
+                body: JSON.stringify({ itemId: item.item_id, quantity: qty, propertyId: sharedPropertyId }),
             })
             await load()
             // The inventory panel hears about this from the server's
@@ -99,9 +117,9 @@ export default function PropertyStorage({
         setBusy(true); setError('')
         try {
             const qty = Math.min(storeAmount || 1, item.quantity)
-            await apiFetch('/api/property/storage/withdraw', {
+            await apiFetch(`${base}/withdraw`, {
                 method: 'POST',
-                body: JSON.stringify({ itemId: item.itemId, quantity: qty }),
+                body: JSON.stringify({ itemId: item.itemId, quantity: qty, propertyId: sharedPropertyId }),
             })
             await load()
         } catch (e: any) {
@@ -112,7 +130,13 @@ export default function PropertyStorage({
     }
 
     if (loading) return <p className="store-empty">Opening the store…</p>
-    if (!data?.hasProperty) return <p className="store-empty">You have nothing of your own here.</p>
+    if (!data?.hasProperty) {
+        return <p className="store-empty">
+            {shared
+                ? (data?.away ? `Stand at ${data.owner ?? 'their'}'s homestead to use its store.` : 'That homestead is no longer shared with you.')
+                : 'You have nothing of your own here.'}
+        </p>
+    }
 
     const full = data.used >= data.slots
 
@@ -141,7 +165,7 @@ export default function PropertyStorage({
                             }}
                         />
                     </label>
-                    <button
+                    {!shared && <button
                         className={`store-mode-btn ${storeMode ? 'active' : ''}`}
                         onClick={onToggleStoreMode}
                         title={storeMode
@@ -149,11 +173,11 @@ export default function PropertyStorage({
                             : 'Turn on Deposit Mode, then tap items in your inventory to store them'}
                     >
                         {storeMode ? 'Deposit Mode: ON' : 'Deposit Mode: OFF'}
-                    </button>
+                    </button>}
                 </div>
             </div>
 
-            {storeMode && (
+            {!shared && storeMode && (
                 <p className="store-note">Tap items in your inventory to store them. Tap items in the store to take them back.</p>
             )}
             {full && <p className="store-note">The store is full, though existing stacks can still be topped up.</p>}
@@ -212,6 +236,7 @@ export default function PropertyStorage({
                     </div>
                 ))}
             </div>
+            {shared && data.ledger && <SharedLedger lines={data.ledger} />}
             {tooltipEl}
         </div>
     )

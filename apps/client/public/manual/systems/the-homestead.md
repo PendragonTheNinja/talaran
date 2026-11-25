@@ -28,6 +28,14 @@ Not fifty items. Fifty *kinds*. A slot holding four thousand planks is one slot.
 
 This means homestead storage rewards the hoarder of few things and punishes the collector of many. A player storing bulk materials will never come close to filling it. A player storing one of everything he has ever seen will fill it in a fortnight and then write to me about it.
 
+## Sharing the store
+
+You may give **one** other player a key to your homestead's store. Stand there, open the Storage tab, and name them. From then on they can put in and take out whenever they stand at your homestead, which makes it the simplest way to trade with a partner whose work feeds yours: the miner who leaves ore, the smith who leaves ingots.
+
+They get the store and nothing else. Your fields, your pens, and the building itself stay yours. Every move either of you makes is written down where you both can read it, and either of you may end the arrangement at any moment, from anywhere. What is in the store when it ends stays in the store.
+
+Choose with care. A key is a key.
+
 ## Why you want one earlier than you think
 
 New players treat property as a late-game reward and leave it far too long. Property is infrastructure, and infrastructure pays from the day it exists.

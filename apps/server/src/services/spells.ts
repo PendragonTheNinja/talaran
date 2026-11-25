@@ -13,7 +13,7 @@ import { DEATH_PILE_PRIVATE_MINUTES, announceGroundChange } from './groundItems'
 import { afterCommit } from '../lib/afterCommit'
 import { pushToPlayer, pushToPlayerAfterCommit, pushToRoom, announcePlayersHere } from '../lib/realtime'
 import { farmHead, liftWardsWithin, wardableHead, wardFarmsteadWithin, settleWardsWithin, wardStanding } from './husbandry'
-import { moveIntoStorageWithin, moveOutOfStorageWithin } from './property'
+import { moveIntoStorageWithin, moveOutOfStorageWithin, noteSharedMoveWithin, announceSharedChange } from './property'
 import { eligibleLocations, eventsChanged } from './worldEvents'
 import { announceServer } from './records'
 import { takeItemsWithin, notifyInventoryChanged } from './inventory'
@@ -687,7 +687,9 @@ const sending: SpellEffect = {
             ? await moveOutOfStorageWithin(trx, playerId, store, itemId, quantity)
             : await moveIntoStorageWithin(trx, playerId, store, itemId, quantity)
         if (!moved.ok) throw new SpellAbort(moved.error)
-        afterCommit(trx, () => notifyInventoryChanged(playerId))
+        // A shared store keeps a ledger of both keyholders' moves (services/propertyPartners.ts).
+        await noteSharedMoveWithin(trx, store.id, playerId, itemId, fetch ? -moved.quantity : moved.quantity)
+        afterCommit(trx, () => { notifyInventoryChanged(playerId); void announceSharedChange(store.id, playerId) })
         const where = `${(PROPERTY_WORD[store.type] ?? 'store').toLowerCase()} at ${store.location}`
         return {
             message: fetch

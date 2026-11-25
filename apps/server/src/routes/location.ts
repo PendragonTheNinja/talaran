@@ -200,9 +200,18 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     // Shown beside its standing name, which stays the key everything else uses.
     const givenName = currentLocation.islet_kind ? await givenNameOf(currentLocation.id) : null;
 
+    // Homesteads here whose owner has given this player a key (services/propertyPartners.ts).
+    const sharedHomesteadsHere = await db('property_partners as pp')
+      .join('player_properties as p', 'p.id', 'pp.property_id')
+      .join('players as owner', 'owner.id', 'p.player_id')
+      .where({ 'pp.partner_id': playerId, 'p.location_id': currentLocation.id, 'p.type': 'farmstead' })
+      .orderBy('owner.username')
+      .select('p.id as propertyId', 'owner.username as owner');
+
     res.json({
       location: { ...currentLocation, given_name: givenName },
       homesteadHere: towns.homesteads.has(currentLocation.name),
+      sharedHomesteadsHere,
       shopsHere: towns.shops.has(currentLocation.name),
       ownBoats,
       guildHallHere,

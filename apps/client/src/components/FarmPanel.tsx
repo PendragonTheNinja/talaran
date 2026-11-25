@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import RecipeList from './RecipeList'
 import PropertyStorage from './PropertyStorage'
+import ShareHomestead from './ShareHomestead'
 import AnimalsTab from './AnimalsTab'
 import ConfirmModal from './ConfirmModal'
 import HireSection from './HireSection'
@@ -514,6 +515,7 @@ export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, sto
                         refreshKey={storeRefresh}
                     />
                 )}
+                {!loading && data && data.hasFarmstead && tab === 'storage' && <ShareHomestead />}
 
                 {confirmUproot && (
                     <ConfirmModal
