@@ -5,6 +5,9 @@ import { buyPrice } from './marketplace';
 import { CHARGED_PREFIXES, CUT_QUALITIES, cutGradeOf } from '../lib/gemGrades';
 import { rungOfTier } from '../lib/tiers';
 import { isFightFood } from './combatFights';
+import { COMBAT, FORMS, STANCE_MULTIPLIER, absorption, type Form } from '../lib/combatMath';
+import { aidWords, isJewelryAid } from '../lib/jewelry';
+import { gateSkill } from './equipGates';
 import { DUG_CHEST_ITEM, QUANK_GIFT_ITEM, QUANK_QUEST, QUANK_RECEIPT_ITEM, withArticleWord } from './isletFinds';
 import { PIECE_CHANCE, SET_SUBTYPE } from './sailorSet';
 import { SIGHTING_ITEM, VAST_ONE_IN } from './shipLog';
@@ -80,6 +83,20 @@ export interface ItemPage {
     fromCreature: boolean;
     /** How many different active creatures carry it. */
     creatureCount: number;
+    /**
+     * What it does when worn or eaten, in words, with what the numbers mean in
+     * a fight (forum, 2026-11-22: a ring's "+3 Power" said nothing on its page,
+     * which called it "an end in itself"). Worked out from lib/combatMath.ts,
+     * so the page says what the fight does.
+     */
+    purpose: ItemPurpose[];
+}
+
+export interface ItemPurpose {
+    kind: string;
+    text: string;
+    /** A plain explanation under it. */
+    explain?: string;
 }
 
 /**
@@ -1004,5 +1021,103 @@ export async function buildItemPage(itemName: string): Promise<ItemPage | null> 
             : null,
         fromCreature: carriers > 0,
         creatureCount: carriers,
+        purpose: purposeOf(item),
     };
 }
+
+const FORM_WORDS: Record<Form, string> = {
+    dual: 'a pair, one in each hand',
+    onehand: 'one hand, with room for a shield',
+    twohand: 'both hands',
+};
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** How often a fraction of a point comes off: "about one blow in 4". */
+function absorbWords(points: number): string {
+    if (points >= 1) return `about ${round1(points)} off every blow that lands on you`;
+    if (points <= 0) return 'nothing worth counting';
+    return `a point off about one blow in ${Math.max(2, Math.round(1 / points))} that lands on you`;
+}
+
+/** What an item does when worn in a fight, eaten, or worn for its Talar. */
+function purposeOf(item: any): ItemPurpose[] {
+    const out: ItemPurpose[] = [];
+    const aim = Number(item.aim) || 0;
+    const power = Number(item.power) || 0;
+    const armour = Number(item.armour) || 0;
+    const form = item.weapon_form as Form | null;
+    const gate = Number(item.level_required) > 1 ? gateSkill(item) : null;
+    const needs = gate ? ` Wearing it needs ${gate} ${item.level_required}.` : '';
+    const lowHit = COMBAT.BAND_LOW, highHit = COMBAT.BAND_HIGH;
+
+    if (form && FORMS[form]) {
+        const type = item.damage_type ? String(item.damage_type) : 'plain';
+        out.push({
+            kind: 'Wielded',
+            text: `Held in ${FORM_WORDS[form]}: ${type} blows, one every ${FORMS[form].swingSeconds} seconds. Aim ${aim}, power ${power}.`,
+            explain: `Power is the top of what a blow can do: your largest hit is the weapon's power and a little more for your Melee. `
+                + `A blow that lands does between ${lowHit} and ${highHit} in a hundred of that. `
+                + `Aim is set against the creature's defense: every ${COMBAT.HIT_DIVISOR} points of aim above it lands one more blow in a hundred, `
+                + `and moves each blow a point in a hundred nearer your largest hit. A creature weak to ${type} takes ${Math.round((STANCE_MULTIPLIER.weak - 1) * 100)} in a hundred more from it, and one that resists it ${Math.round((1 - STANCE_MULTIPLIER.resistant) * 100)} less.${needs}`,
+        });
+    } else if (aim || power) {
+        const parts: string[] = [];
+        if (power) parts.push(`power +${power}`);
+        if (aim) parts.push(`aim +${aim}`);
+        const said: string[] = [];
+        if (power) said.push(`+${power} power raises your largest hit by ${power}, so a blow that lands does about ${round1(power * (lowHit + highHit) / 200)} more on average, whatever weapon you hold`);
+        if (aim) said.push(`+${aim} aim lands about ${round1(aim / COMBAT.HIT_DIVISOR)} more blows in a hundred, and each a touch harder`);
+        out.push({
+            kind: 'Worn in a fight',
+            text: `${parts.join(', ').replace(/^./, (c) => c.toUpperCase())}, added to the weapon in your hand.`,
+            explain: `${said.join('; ').replace(/^./, (c) => c.toUpperCase())}.${needs}`,
+        });
+    }
+
+    if (armour) {
+        out.push({
+            kind: 'Armor',
+            text: `Armor ${armour}.`,
+            explain: `Armor does two things. It counts toward your defense, so every ${COMBAT.HIT_DIVISOR} points of it is one blow in a hundred `
+                + `that misses you, and those that land land lighter. And it takes damage off what does land: this piece alone takes ${absorbWords(absorption(armour))}. `
+                + `Every piece you wear adds to both.${form ? '' : needs}`,
+        });
+    }
+
+    if (item.jewelry_aid && isJewelryAid(item.jewelry_aid)) {
+        out.push({
+            kind: 'Worn',
+            text: `${aidWords(item.jewelry_aid, Number(item.tier) || 1).replace(/^./, (c: string) => c.toUpperCase())}.`,
+            explain: 'It draws a little Talar from you each time it helps, and does nothing once your Talar runs dry.',
+        });
+    }
+
+    if (isFightFood(item)) {
+        out.push({
+            kind: 'Eaten',
+            text: `Mends ${Number(item.heal_amount)} health.`,
+            explain: 'Eat it in a fight or out of one. Health never comes back by itself, so food is the only way to mend.',
+        });
+    }
+
+    if (item.buff_effect) {
+        const where = item.buff_skill || 'every skill';
+        const n = Number(item.buff_magnitude) || 0;
+        const mins = Math.round((Number(item.buff_seconds) || 0) / 60);
+        const lasts = mins >= 60 && mins % 60 === 0 ? `${mins / 60} hour${mins === 60 ? '' : 's'}` : `${mins} minutes`;
+        const effect = item.buff_effect === 'timer' ? `work at ${where} goes ${n}% faster`
+            : item.buff_effect === 'rare' ? `rare finds at ${where} come ${n}% more often`
+            : item.buff_effect === 'double' ? `each action at ${where} has a ${n}% chance to yield twice`
+            : item.buff_effect === 'travel' ? `journeys go ${n}% faster`
+            : `it helps at ${where}`;
+        out.push({
+            kind: 'Provision',
+            text: `Eaten before work: ${effect}, for ${lasts}.`,
+            explain: `One provision works at a time. It is no food for a fight: it mends nothing.`,
+        });
+    }
+
+    return out;
+}
+

@@ -72,6 +72,8 @@ He is at Luxmere. He has been following water for thirty years, he speaks about 
 
 Talk to him first. He is also, I am fairly sure, not telling us everything.
 
+Rods wear out, as every tool does, though a rod lasts about twice as long as a hatchet and a net longer still. When yours goes, you need not start again from flax. **Alder**, the carpenter in Talador, has rods on his shelf on some days, and Georemy, once you are a regular at Luxmere, has been known to send a pupil off with a spare.
+
 {{details:The Geographer's ledgers}}
 Every fish in both waters, what draws it, and when it runs:
 

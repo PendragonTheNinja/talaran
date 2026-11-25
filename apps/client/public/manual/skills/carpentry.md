@@ -17,13 +17,11 @@ The catch is that public benches are slow. Everything takes twice as long there 
 
 ## Setting up your own bench
 
-You need three things, all carried:
+A bench is a **Sawhorse**, set down where you mean to work, and a **Plane** set beside it. Like the smith's anvil, they then belong to the place and do not travel with you, though either can be taken out again.
 
-- A **Sawhorse**
-- A **Saw**
-- A **Plane**
+The **Saw** is different. It never goes on the bench. You hold it, at your own bench and at a public one alike, and it wears in your hand.
 
-All three are **consumed** when you set up. They become the bench. Like the smith's anvil, the bench then belongs to the place you built it and does not travel with you.
+{{data:bench-tools:carpentry}}
 
 ## The two halves of the trade
 

@@ -7,17 +7,11 @@ Note the middle item on that list. Ore alone will not do. A forge is a fire, and
 
 ## Where and how to start
 
-Smithing begins with a **workstation**.
+Smithing begins with a **workstation**: an anvil, a hammer, and tongs, each set into its place where you mean to work. Once set, they stay. They become the smithy, and you do not carry them about afterwards, though you may take any of them out again whenever you like.
 
-You need three things, and you must be carrying all of them:
+That is the difference between a tool and a *place*.
 
-- An **Anvil**
-- A **Hammer**
-- **Tongs**
-
-Take them to a location and set up. The three are **consumed** in the setting up. They become the workstation; you do not get them back, and you do not carry them about afterwards.
-
-This is not theft, whatever it feels like the first time. It is the difference between a tool and a *place*.
+{{data:bench-tools:smithing}}
 
 ## Ore and fuel
 

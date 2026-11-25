@@ -42,7 +42,9 @@ Tanning wants two pieces of equipment rather than one:
 - A **Lanai Tanning Rack**, for the scraping and the stretching.
 - A **Lanai Tanning Barrel**, for the bark-liquor soak.
 
-Both are built by Carpentry, and both are **consumed** when you set the tannery up, exactly as the smith's anvil is. The tannery then stays where you put it.
+Both are built by Carpentry, and both are set into place where you mean to tan, exactly as the smith's anvil is. The tannery then stays where you put it. Neither wears out.
+
+{{data:bench-tools:tanning}}
 
 Put it where the hides are. Hides come from hunting, hunting happens in forests, and carrying things is the hidden tax on every trade in Talaran.
 
@@ -89,6 +91,12 @@ A lapidary wants two tools to cut and a third to set:
 - **Ambren Jeweller's Pliers**, also forged, for closing a setting over a stone. Cutting does without them; setting does not.
 
 On Taiar, **Geosper** keeps a public lapidary in Caliwen and lends all three to anyone who has done his lesson. It runs at half speed, as every public bench does. Your own runs at full.
+
+{{data:bench-tools:lapidary}}
+
+Geosper keeps a spinning wheel and a loom in Caliwen as well, open to anyone, for turning fiber into thread and thread into cloth.
+
+{{data:bench-tools:textile}}
 
 ## Cutting
 

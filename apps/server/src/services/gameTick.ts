@@ -38,7 +38,7 @@ import { awardXp } from './xp';
 import { takeEventXp } from './worldEvents';
 import { takeGuildXp } from './guildCompanions';
 import { takeJewelryNotes, jewelryAid } from './jewelry';
-import { wearToolsAfter, takeToolWear, handBreakMessage } from './toolWear';
+import { wearToolsAfter, takeToolWear, handBreakMessage, whereToBuyAgain } from './toolWear';
 import { realtimeServer, pushToPlayer, announcePlayersHere } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
@@ -173,7 +173,8 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   pushToPlayer(action.player_id, 'action_complete', payload);
 
   if (handBroke) {
-    pushToPlayer(action.player_id, 'action_failed', { error: handBreakMessage(wear!.handBroken), info: true });
+    const shelf = await whereToBuyAgain(action.player_id, wear!.handBroken).catch(() => '');
+    pushToPlayer(action.player_id, 'action_failed', { error: [handBreakMessage(wear!.handBroken), shelf].filter(Boolean).join(' '), info: true });
     pushToPlayer(action.player_id, 'equipment_changed');
   }
 

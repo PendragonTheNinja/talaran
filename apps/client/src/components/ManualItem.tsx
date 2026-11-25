@@ -40,6 +40,8 @@ interface ItemPage {
     fromCreature?: boolean
     /** How many different creatures carry it. */
     creatureCount?: number
+    /** What it does worn or eaten, with what the numbers mean (server services/itemPage.ts). */
+    purpose?: { kind: string; text: string; explain?: string }[]
 }
 
 const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']
@@ -165,8 +167,11 @@ export default function ManualItem({
     // docs/economy-spec.md. It is not what any particular merchant pays, so it
     // is labelled for what it is.
     if (page.value) facts.push(['Value', `${page.value} gold`])
-    if (page.mends) facts.push(['Mends', `${page.mends} health`])
-    if (page.provision) facts.push(['Provision', provisionWords(page.provision)])
+    // What it does worn or eaten is told in full under "What it is for"; the
+    // facts keep the short form only where the server sent no purpose.
+    const purpose = page.purpose ?? []
+    if (!purpose.length && page.mends) facts.push(['Mends', `${page.mends} health`])
+    if (!purpose.length && page.provision) facts.push(['Provision', provisionWords(page.provision)])
 
     // A creature drop: the page never names the creature (the Bestiary's to
     // tell), but in the game the Bestiary can be opened, at the creature itself
@@ -281,11 +286,24 @@ export default function ManualItem({
 
             <section className="mitem-section">
                 <h2 className="mitem-section-title">What it is for</h2>
+                {purpose.length > 0 && (
+                    <ul className="mitem-list mitem-purpose">
+                        {purpose.map((p, i) => (
+                            <li key={i} className="mitem-entry">
+                                <span className="mitem-entry-kind">{p.kind}</span>
+                                <span className="mitem-entry-main">
+                                    <span className="mitem-entry-name">{p.text}</span>
+                                    {p.explain && <span className="mitem-purpose-explain">{p.explain}</span>}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
                 {page.uses.length ? (
                     <ul className="mitem-list">
                         {page.uses.map((e, i) => entryRow(e, i, 'into'))}
                     </ul>
-                ) : (
+                ) : purpose.length ? null : (
                     <p className="mitem-none">
                         Nothing takes this as a material. It is an end in itself, or it is waiting on
                         a trade that has not been built.

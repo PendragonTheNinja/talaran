@@ -221,6 +221,35 @@ export function handBreakMessage(names: string[]): string {
     return `Your ${listNames(names)} ${one ? 'breaks' : 'break'} in your hands. You will need ${one ? 'another' : 'new ones'} to carry on.`
 }
 
+/**
+ * Where a broken tool can be bought again: a merchant who stocks it, on the
+ * player's own island first, then one who always has it (forum, 2026-11-13: a new fisher whose rod
+ * broke did not know the carpenter in Talador sells them). Empty when no shelf
+ * keeps it, which the circularity rule says should never happen for a T1 tool.
+ */
+export async function whereToBuyAgain(playerId: number, names: string[]): Promise<string> {
+    if (!names.length) return ''
+    const here = await db('players as p').join('locations as l', 'l.id', 'p.current_location_id')
+        .where('p.id', playerId).first('l.region')
+    const rows = await db('merchant_stock as s')
+        .join('merchants as m', 'm.id', 's.merchant_id')
+        .join('items as i', 'i.id', 's.item_id')
+        .join('locations as l', 'l.id', 'm.location_id')
+        .whereIn('i.name', names)
+        .where({ 's.is_active': true, 'm.is_active': true, 'm.sells': true })
+        .select('i.name as item', 'm.name as merchant', 'l.name as town', 'l.region', 's.is_core')
+    const lines: string[] = []
+    for (const name of [...new Set(names)]) {
+        const sellers = rows.filter((r: any) => r.item === name)
+            .sort((a: any, b: any) => Number(b.region === here?.region) - Number(a.region === here?.region) || Number(b.is_core) - Number(a.is_core))
+        const best = sellers[0]
+        // A line not marked is_core is on the shelf only on the days the draw
+        // picks it (getStock in services/marketplace.ts), and the player is told so.
+        if (best) lines.push(`${best.merchant} in ${best.town} sells the ${name}${best.is_core ? '' : ', on the days it is on the shelf'}.`)
+    }
+    return lines.join(' ')
+}
+
 /** The sentence a broken bench tool leaves on the card. */
 export function benchBreakMessage(names: string[]): string {
     const one = names.length === 1

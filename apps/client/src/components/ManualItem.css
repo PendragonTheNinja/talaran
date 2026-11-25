@@ -297,3 +297,12 @@
     font-size: inherit;
     letter-spacing: inherit;
 }
+
+/* What a piece does worn or eaten: the line, then what it means, smaller. */
+.mitem-purpose-explain {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.9em;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+}

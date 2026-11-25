@@ -37,6 +37,10 @@ The hearth and the mortar are granite, cut by hand.
 
 The rest are forged. A smith's problem, not yours, unless you are also the smith.
 
+Each tool is set into its place at your hearth and stays there. Which of them fits where, and which wear out:
+
+{{data:bench-tools:cooking}}
+
 ## Fire needs wood
 
 A hearth is a hole full of cold stone until somebody puts fuel in it.

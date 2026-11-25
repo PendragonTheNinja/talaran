@@ -25,6 +25,8 @@ import { activeXpForSeconds } from './farming';
 import { rungOfTier } from '../lib/tiers';
 import { cutGradeOf } from '../lib/gemGrades';
 import { aidWords, isJewelryAid } from '../lib/jewelry';
+import { HAND_HELD_BENCH_TOOLS, PUBLIC_STATIONS, parseRequiredTools } from './workstations';
+import { listWords } from '../lib/listWords';
 import { spellCostWords, spellCooldownWords, spellIsLive, castXp, type SpellRow } from './spells';
 
 type QueryHandler = (param?: string) => Promise<ManualTable | null>;
@@ -116,7 +118,73 @@ export async function talarPathRows(): Promise<{ level: number; unlock: string; 
     ];
 }
 
+const STATION_WORDS: Record<string, string> = {
+    smithing: 'smithy', carpentry: 'carpentry bench', cooking: 'hearth', lapidary: 'lapidary',
+    tanning: 'tannery', textile: 'spinning and weaving bench',
+}
+
 export const extraQueries: Record<string, QueryHandler> = {
+    // What a bench is made of, slot by slot, and what fits each (forum,
+    // 2026-11-14: a skill's page said where its bench was but not what was on
+    // it). {{data:bench-tools:<station type>}}, e.g. bench-tools:cooking.
+    'bench-tools': async (param?: string) => {
+        const station = String(param ?? '').trim();
+        if (!station) return null;
+        const slots = await db('workstation_slot_types').where({ station_type: station })
+            .orderBy('display_order').select('slot', 'label', 'accepts_subtype', 'accepts_names', 'is_required', 'wears');
+        if (!slots.length) return null;
+        const names = (raw: unknown): string[] => {
+            try { const v = JSON.parse(String(raw ?? '[]')); return Array.isArray(v) ? v.map(String) : []; } catch { return []; }
+        };
+        const subtypes = slots.map((r: any) => r.accepts_subtype).filter(Boolean);
+        const named = slots.flatMap((r: any) => names(r.accepts_names));
+        const fits = await db('items').where('is_active', true)
+            .where(q => { q.whereIn('subtype', subtypes.length ? subtypes : ['']).orWhereIn('name', named.length ? named : ['']); })
+            .orderBy(['tier', 'name']).select('name', 'subtype');
+        // Tools a recipe here wants in hand rather than in a slot (the saw).
+        const heldNames = new Set<string>();
+        for (const r of await db('recipes').where({ station, is_active: true }).select('required_tools')) {
+            for (const t of parseRequiredTools(r)) if (t in HAND_HELD_BENCH_TOOLS) heldNames.add(t);
+        }
+        const where = PUBLIC_STATIONS[station];
+        const rows = (slots as any[]).map(r => {
+            const accepted = names(r.accepts_names);
+            const items = (fits as any[]).filter(i => (r.accepts_subtype && i.subtype === r.accepts_subtype) || accepted.includes(i.name)).map(i => i.name);
+            return {
+                slot: r.label,
+                fits: items.length ? listWords(items, 'or') : 'Nothing made yet',
+                needed: r.is_required ? 'Always' : 'When a recipe asks',
+                wears: r.wears ? 'Yes' : 'No',
+            };
+        });
+        for (const tool of heldNames) {
+            const items: string[] = await db('items').where({ is_active: true, subtype: HAND_HELD_BENCH_TOOLS[tool] }).orderBy(['tier', 'name']).pluck('name');
+            rows.push({
+                slot: `${tool.charAt(0).toUpperCase()}${tool.slice(1)}, held in hand`,
+                fits: items.length ? listWords(items, 'or') : 'Nothing made yet',
+                needed: 'When a recipe asks',
+                wears: 'At your own bench',
+            });
+        }
+        const benchWord = STATION_WORDS[station] ?? `${station} bench`;
+        return {
+            title: `The ${benchWord}`,
+            columns: [
+                { key: 'slot', label: 'Slot' },
+                { key: 'fits', label: 'What fits' },
+                { key: 'needed', label: 'Needed' },
+                { key: 'wears', label: 'Wears out', align: 'right' },
+            ],
+            rows,
+            note: [
+                'Set a tool into its slot where you work, and it stays there as part of your bench until you take it out again.',
+                (slots as any[]).some(r => r.wears)
+                    ? 'A tool that wears breaks in time and stays in its slot, broken, and the bench works at half speed until you fit another.' : '',
+                where ? `A public ${benchWord} stands at ${where.location}, kept by ${where.keeper}${where.quest ? ', open to you once you have done the first job asked of you there' : ''}. It lends every tool it has, wears none of them, and works at half speed.` : '',
+            ].filter(Boolean).join(' '),
+        };
+    },
+
 
     // ── Talar: the stones, the spells, the jewelry ───────────────────────────
 
