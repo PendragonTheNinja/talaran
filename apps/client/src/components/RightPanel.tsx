@@ -1,4 +1,5 @@
 import { Player } from '../types'
+import GameClock from './GameClock'
 import './RightPanel.css'
 import MiniMap from './MiniMap'
 import { useState } from 'react'
@@ -108,6 +109,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
         <div className="map-overlay" {...backdropClose(() => setShowMap(false))}>
           <div className="map-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn map-close" onClick={() => setShowMap(false)}>✕</button>
+            <GameClock />
             <img
               src={`/images/maps/${locationData?.location?.region?.replace(/ /g, '_')}.jpg`}
               alt="Island Map"

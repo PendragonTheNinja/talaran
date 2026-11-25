@@ -156,6 +156,27 @@ async function hallHires(playerId: number, here: any) {
     return out;
 }
 
+/** A look into each finished hall's storehouse, for members away from it. */
+async function storesAfar(halls: { id: number; island: string; tier: number; location_name: string }[]) {
+    if (!halls.length) return [];
+    const ids = halls.map(h => h.id);
+    const rows = await db('guild_storage as s').join('items as i', 'i.id', 's.item_id')
+        .whereIn('s.hall_id', ids).where('s.quantity', '>', 0).orderBy('i.name')
+        .select('s.hall_id', 'i.id as item_id', 'i.name', 'i.type', 'i.subtype', 'i.tier', 'i.quality', 'i.description', 's.quantity');
+    const gold = new Map<number, number>((await db('guild_halls').whereIn('id', ids).select('id', 'gold'))
+        .map((r: any) => [Number(r.id), Number(r.gold)]));
+    return Promise.all(halls.map(async h => ({
+        island: h.island,
+        locationName: h.location_name,
+        tier: h.tier,
+        gold: gold.get(h.id) ?? 0,
+        capacity: await capacityAt(h.tier),
+        used: await usedRoom(h.id),
+        storage: rows.filter((r: any) => r.hall_id === h.id)
+            .map(({ hall_id: _h, ...r }: any) => ({ ...r, quantity: Number(r.quantity) })),
+    })));
+}
+
 export async function hallState(playerId: number) {
     const me = await membershipOf(playerId);
     const here = await whereIs(playerId);
@@ -184,6 +205,11 @@ export async function hallState(playerId: number) {
         // Shown wherever the player is, so an officer can answer from afar.
         requests: onIsland ? await openRequests(onIsland.id, me.can('approve_requests') ? null : playerId) : [],
         hires,
+        // What each storehouse holds, to look at from anywhere, any member
+        // (forum, 2026-11-15: it saves a walk to see what is in stock). Looking
+        // only: putting in and taking out still want the player at the hall.
+        // The hall the player stands at sends its own, fuller, below.
+        storesAfar: await storesAfar(halls.filter((h: any) => h.tier > 0 && !(atHall && h.id === onIsland?.id))),
     };
     if (!atHall || !onIsland) return base;
 

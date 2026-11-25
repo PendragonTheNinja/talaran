@@ -81,3 +81,12 @@
     .hall-request-actions { width: 100%; justify-content: flex-end; }
 }
 .hall-short { color: var(--color-gold); }
+
+/* Storehouses looked into from afar: tiles to read, not to tap. */
+.hall-afar {
+    margin-top: var(--space-md);
+}
+
+.hall-afar-slot {
+    cursor: default;
+}

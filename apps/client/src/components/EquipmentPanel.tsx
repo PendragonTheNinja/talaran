@@ -183,6 +183,7 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                         <div
                             key={key}
                             className={`equipment-slot panel-inset ${equipped ? 'occupied' : ''}`}
+                            data-equip-slot={key}
                             title={equipped ? undefined : `${label}. Hold or right-click to choose what goes here.`}
                             {...hoverProps(equipped, 'Left-click to unequip · Hold or right-click to choose what goes here')}
                             onPointerDown={() => startHold(key, label)}
@@ -245,10 +246,6 @@ export default function EquipmentPanel({ equipmentData, onEquipmentUpdate, onInv
                     equipped={equipmentData?.[picking.key as keyof EquipmentData] ?? null}
                     busy={pickBusy}
                     onClose={() => setPicking(null)}
-                    onTakeOff={async () => {
-                        setPickBusy(true)
-                        try { await handleUnequip(picking.key) } finally { setPickBusy(false); setPicking(null) }
-                    }}
                     onEquip={async item => {
                         if (!onEquipItem) return
                         setPickBusy(true)

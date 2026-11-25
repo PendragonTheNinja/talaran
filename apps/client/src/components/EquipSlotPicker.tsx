@@ -17,20 +17,40 @@ export interface PickableItem {
  * right-clicking) the slot (Nathan and the forum, 2026-11-11). Tap an item to
  * wear it; the server still decides (level, hands, the swap). Framed like the
  * spellbook (farm-modal), so every theme already dresses it.
+ *
+ * No "Take off" here: a left-click on the slot already does that (Nathan,
+ * 2026-11-22). Right-clicking another slot while this is open opens that
+ * slot's picker at once: the backdrop hands the right-click to whatever slot
+ * lies under it (`data-equip-slot`), rather than needing a click off first.
  */
-export default function EquipSlotPicker({ label, slot, items, equipped, busy, onEquip, onTakeOff, onClose }: {
+export default function EquipSlotPicker({ label, slot, items, equipped, busy, onEquip, onClose }: {
     label: string
     slot: string
     items: PickableItem[]
     equipped: { name: string } | null
     busy: boolean
     onEquip: (item: PickableItem) => void
-    onTakeOff: () => void
     onClose: () => void
 }) {
     const fits = items.filter(i => !i.synthetic && i.slot === slot)
     return (
-        <div className="farm-overlay" {...backdropClose(onClose)}>
+        <div
+            className="farm-overlay"
+            {...backdropClose(onClose)}
+            onContextMenu={e => {
+                if (e.target !== e.currentTarget) return
+                e.preventDefault()
+                const under = document.elementsFromPoint(e.clientX, e.clientY)
+                    .find(el => el instanceof HTMLElement && el.dataset.equipSlot)
+                if (under) {
+                    under.dispatchEvent(new MouseEvent('contextmenu', {
+                        bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY,
+                    }))
+                } else {
+                    onClose()
+                }
+            }}
+        >
             <div className="farm-modal equip-picker" onClick={e => e.stopPropagation()}>
                 <div className="farm-header">
                     <h2>{label}</h2>
@@ -39,10 +59,7 @@ export default function EquipSlotPicker({ label, slot, items, equipped, busy, on
 
                 <div className="equip-picker-worn">
                     {equipped ? (
-                        <>
-                            <span>Wearing <span className="gold-text">{equipped.name}</span></span>
-                            <button className="farm-btn" disabled={busy} onClick={onTakeOff}>Take off</button>
-                        </>
+                        <span>Wearing <span className="gold-text">{equipped.name}</span></span>
                     ) : (
                         <span className="muted-text">Nothing worn here.</span>
                     )}

@@ -42,9 +42,18 @@ interface ProfileData {
     combatLevel?: number
 }
 
+interface PublicGuild {
+    guild: { name: string; tag: string; description: string | null; openApplications: boolean }
+    members: { id: number; username: string; rank: number; roleLabel: string }[]
+}
+
 interface PlayerProfileProps {
     playerId: number
     onClose: () => void
+    /** Puts "Name@" in the chat box (forum, 2026-11-23). Absent where there is no chat. */
+    onWhisper?: (username: string) => void
+    /** The viewer's own name: no Whisper button on their own profile. */
+    selfName?: string
 }
 
 const SLOTS = [
@@ -62,7 +71,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps) {
+export default function PlayerProfile({ playerId, onClose, onWhisper, selfName }: PlayerProfileProps) {
     const [hasPalettePerk, setHasPalettePerk] = useState(false)
     useEffect(() => {
         apiFetchPalettes<{ hasPerk: boolean }>('/api/palettes')
@@ -71,7 +80,18 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
     }, [])
     const [profile, setProfile] = useState<ProfileData | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'skills' | 'equipment'>('equipment')
+    const [activeTab, setActiveTab] = useState<'skills' | 'equipment' | 'guild'>('equipment')
+    // The guild behind the tag, fetched when the tag is tapped (forum, 2026-11-17).
+    const [guild, setGuild] = useState<PublicGuild | null>(null)
+    const [guildError, setGuildError] = useState('')
+    const openGuild = (tag: string) => {
+        setActiveTab('guild')
+        if (guild?.guild.tag === tag) return
+        setGuildError('')
+        apiFetch<PublicGuild>(`/api/guilds/public/${encodeURIComponent(tag)}`)
+            .then(setGuild)
+            .catch((e: { message?: string }) => setGuildError(e?.message || 'Could not load that guild.'))
+    }
     // The same skill tooltip the player's own panel uses, named for whose
     // skills these are.
     const { hoverProps, tooltipEl } = useSkillTooltip(profile?.player?.username ?? null)
@@ -106,7 +126,13 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                     {profile.player.username}
                                 </span>
                                 {profile.player.guild_tag && (
-                                    <span className="muted-text" style={{ fontSize: '16px' }}>[{profile.player.guild_tag}]</span>
+                                    <button
+                                        className="profile-guild-tag"
+                                        onClick={() => openGuild(profile.player.guild_tag!)}
+                                        title="See this guild's members"
+                                    >
+                                        [{profile.player.guild_tag}]
+                                    </button>
                                 )}
                                 <Badge
                                     badgeKey={profile.player.worn_badge}
@@ -144,10 +170,21 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                             </div>
                         </div>
 
+                        {onWhisper && profile.player.username !== selfName && (
+                            <div className="profile-actions">
+                                <button className="btn btn-gold profile-whisper-btn" onClick={() => onWhisper(profile.player.username)}>
+                                    Whisper to {profile.player.username}
+                                </button>
+                            </div>
+                        )}
+
                         {/* Tabs */}
                         <div className="profile-tabs">
                             <button className={`profile-tab ${activeTab === 'equipment' ? 'active' : ''}`} onClick={() => setActiveTab('equipment')}>Equipment</button>
                             <button className={`profile-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')}>Skills</button>
+                            {profile.player.guild_tag && (
+                                <button className={`profile-tab ${activeTab === 'guild' ? 'active' : ''}`} onClick={() => openGuild(profile.player.guild_tag!)}>Guild</button>
+                            )}
                         </div>
 
                         {/* Skills tab */}
@@ -170,6 +207,39 @@ export default function PlayerProfile({ playerId, onClose }: PlayerProfileProps)
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+
+                        {/* Guild tab: who else wears the tag */}
+                        {activeTab === 'guild' && (
+                            <div className="profile-guild">
+                                {guildError ? (
+                                    <p className="muted-text">{guildError}</p>
+                                ) : !guild ? (
+                                    <p className="muted-text">Loading...</p>
+                                ) : (
+                                    <>
+                                        <div className="profile-guild-name">
+                                            <span className="gold-text">{guild.guild.name}</span>
+                                            <span className="muted-text"> [{guild.guild.tag}]</span>
+                                        </div>
+                                        {guild.guild.description && (
+                                            <p className="profile-guild-desc">{guild.guild.description}</p>
+                                        )}
+                                        <div className="profile-guild-count muted-text">
+                                            {guild.members.length} {guild.members.length === 1 ? 'member' : 'members'}
+                                            {guild.guild.openApplications ? ' · taking applications' : ''}
+                                        </div>
+                                        <ul className="profile-guild-members">
+                                            {guild.members.map(m => (
+                                                <li key={m.id}>
+                                                    <span>{m.username}</span>
+                                                    <span className="muted-text">{m.roleLabel}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </>
+                                )}
                             </div>
                         )}
 

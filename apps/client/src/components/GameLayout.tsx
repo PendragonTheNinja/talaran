@@ -3,7 +3,7 @@ import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
 import RightPanel from './RightPanel'
-import ChatPanel from './ChatPanel'
+import ChatPanel, { CHAT_OPEN_EVENT } from './ChatPanel'
 import LocationPanel from './LocationPanel'
 import { Player } from '../types'
 import { apiFetch } from '../lib/api'
@@ -1490,6 +1490,12 @@ export default function GameLayout({
         <PlayerProfile
           playerId={profilePlayerId}
           onClose={() => setProfilePlayerId(null)}
+          selfName={player.username}
+          onWhisper={(name: string) => {
+            setChatDraft(`${name}@`)
+            setProfilePlayerId(null)
+            window.dispatchEvent(new Event(CHAT_OPEN_EVENT))
+          }}
         />
       )}
 

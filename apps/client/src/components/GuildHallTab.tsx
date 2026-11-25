@@ -38,6 +38,8 @@ interface HallState {
     isLeader: boolean
     /** Open requests: all of them for an approver, only your own otherwise. */
     requests: Request[]
+    /** Every finished storehouse but the one stood at, to look into from anywhere. */
+    storesAfar?: { island: string; locationName: string; tier: number; gold: number; capacity: number; used: number; storage: StoredItem[] }[]
     hall?: {
         tier: number
         maxTier: number
@@ -152,6 +154,32 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
     if (!state) return <p className="muted-text" style={{ fontStyle: 'italic' }}>{error || 'Walking up to the hall…'}</p>
     if (!state.inGuild) return <p className="muted-text">You are not in a guild.</p>
 
+    // Looking into a storehouse from afar (forum, 2026-11-15): its shelves as
+    // tiles, nothing to tap. Putting in and taking out happen at the hall.
+    const afar = (state.storesAfar ?? []).length > 0 && (
+        <div className="hall-afar">
+            {(state.storesAfar ?? []).map(st => (
+                <div key={st.island} className="store">
+                    <p className="guild-section-title">
+                        Storehouse at {st.locationName}{st.island !== state.island ? `, ${st.island}` : ''}
+                    </p>
+                    <p className="muted-text hall-note">
+                        {st.used.toLocaleString()} of {st.capacity.toLocaleString()} stowed, and {st.gold.toLocaleString()} gold. Go there to put in or take out.
+                    </p>
+                    <div className="store-grid panel-inset">
+                        {st.storage.length === 0 && <p className="store-empty">Nothing stowed here yet.</p>}
+                        {sortItems(st.storage, sort.mode, sort.dir, sort.filter).map(item => (
+                            <div key={item.item_id} className="inventory-slot occupied store-slot hall-afar-slot" {...hoverProps(item)}>
+                                <img src={getItemIcon(item.name)} alt={item.name} className="inventory-item-icon" onError={e => { e.currentTarget.style.display = 'none' }} />
+                                <span className="inventory-item-qty">{item.quantity.toLocaleString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+
     const others = state.halls.filter(h => h.island !== state.island)
     const elsewhere = others.length > 0 && (
         <div className="hall-elsewhere">
@@ -182,6 +210,8 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                 )}
                 <ErrorLine message={error} className="store-error" />
                 {elsewhere}
+                {afar}
+                {tooltipEl}
                 {confirm === 'found' && (
                     <ConfirmModal
                         message={`Raise your guild's hall for ${state.island} at ${state.locationName}? It can be moved later only by pulling it down and building again.`}
@@ -210,7 +240,9 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
                         {requestList(state)}
                     </>
                 )}
+                {afar}
                 {elsewhere}
+                {tooltipEl}
             </div>
         )
     }
@@ -390,6 +422,7 @@ export default function GuildHallTab({ onStartBuild, myName }: GuildHallTabProps
             )}
 
             {elsewhere}
+            {afar}
             {tooltipEl}
 
             {confirm === 'abandon' && (

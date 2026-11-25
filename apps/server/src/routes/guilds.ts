@@ -112,6 +112,35 @@ router.get('/list', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
+// A guild as anyone may see it, found by its tag: the tag on a player's
+// profile opens it (forum, 2026-11-17). Members' names and ranks only; where
+// they stand and whether they are on is for the guild's own Overview.
+router.get('/public/:tag', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const tag = String(req.params.tag ?? '').slice(0, 10);
+        const guild = await db('guilds').whereRaw('lower(tag) = lower(?)', [tag])
+            .first('id', 'name', 'tag', 'description', 'open_applications', 'leader_id');
+        if (!guild) {
+            res.status(404).json({ error: 'No guild goes by that tag.' });
+            return;
+        }
+        const members = await db('guild_members as gm')
+            .join('players as p', 'p.id', 'gm.player_id')
+            .where('gm.guild_id', guild.id)
+            .orderBy('gm.joined_at', 'asc')
+            .select('p.id', 'p.username', 'gm.role');
+        res.json({
+            guild: { name: guild.name, tag: guild.tag, description: guild.description, openApplications: guild.open_applications },
+            members: members
+                .map(m => ({ id: m.id, username: m.username, rank: rankOf(m.role), roleLabel: RANK_LABELS[m.role as Role] ?? m.role }))
+                .sort((a, b) => b.rank - a.rank),
+        });
+    } catch (err) {
+        logger.error(`Public guild error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Create a guild
 router.post('/create', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;

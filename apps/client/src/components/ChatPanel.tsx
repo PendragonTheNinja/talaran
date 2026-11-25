@@ -27,6 +27,12 @@ interface ChatPanelProps {
  */
 export const CHAT_UNSEEN_EVENT = 'talaran:chat-unseen'
 
+/**
+ * Fired when something outside chat puts a line in the box for the player
+ * (the profile's Whisper button): the phone layout opens its Chat tab on it.
+ */
+export const CHAT_OPEN_EVENT = 'talaran:chat-open'
+
 /** Fired by the phone layout when the Chat tab is opened, to jump to the newest line. */
 export const CHAT_SHOWN_EVENT = 'talaran:chat-shown'
 
@@ -237,6 +243,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
     if (draft) {
       setInput(draft)
       onDraftConsumed?.()
+      inputRef.current?.focus()
     }
   }, [draft])
 

@@ -349,3 +349,29 @@
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
 }
+/* The time in Talaran, over the map's top-left corner (GameClock.tsx). */
+.map-clock {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--color-bg-dark);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.map-clock-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.map-clock-time {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  color: var(--color-gold);
+}

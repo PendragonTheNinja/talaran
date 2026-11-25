@@ -128,13 +128,28 @@ interface FarmPanelProps {
     onHelp?: (section: string, slug: string) => void
 }
 
+type FarmTab = 'storage' | 'fields' | 'animals' | 'processing'
+const FARM_TABS: FarmTab[] = ['storage', 'fields', 'animals', 'processing']
+const FARM_TAB_KEY = 'talaran-farm-tab'
+
 export default function FarmPanel({ onClose, onActionStarted, onStartRecipe, storeMode, onToggleStoreMode, storeAmount, onStoreAmountChange, storeRefresh, onHelp }: FarmPanelProps) {
     const [data, setData] = useState<FarmState | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [busy, setBusy] = useState(false)
     const [sow, setSow] = useState<Record<number, { cropId: number; count: number }>>({})
-    const [tab, setTab] = useState<'storage' | 'fields' | 'animals' | 'processing'>('storage')
+    // Opens on the tab last used (forum, 2026-11-14: tending animals is several
+    // trips into the panel, and each one opened on Storage). Kept on this device.
+    const [tab, setTabState] = useState<FarmTab>(() => {
+        try {
+            const saved = localStorage.getItem(FARM_TAB_KEY)
+            return FARM_TABS.includes(saved as FarmTab) ? saved as FarmTab : 'storage'
+        } catch { return 'storage' }
+    })
+    const setTab = (next: FarmTab) => {
+        setTabState(next)
+        try { localStorage.setItem(FARM_TAB_KEY, next) } catch { /* private mode: this visit only */ }
+    }
     // Processing holds two trades now: crops on the Farming side, dairy on the
     // Husbandry side. Farming is the default since it is the older, larger list.
     const [processingSkill, setProcessingSkill] = useState<'Farming' | 'Husbandry'>('Farming')

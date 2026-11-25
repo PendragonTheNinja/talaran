@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import GameClock from './GameClock'
 import './MobileShell.css'
-import { CHAT_UNSEEN_EVENT, CHAT_SHOWN_EVENT } from './ChatPanel'
+import { CHAT_UNSEEN_EVENT, CHAT_SHOWN_EVENT, CHAT_OPEN_EVENT } from './ChatPanel'
 import { backdropClose } from '../lib/backdrop'
 
 type MobileView = 'action' | 'inventory' | 'skills' | 'chat' | 'map'
@@ -61,6 +62,14 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
             window.dispatchEvent(new Event(CHAT_SHOWN_EVENT))
         }
     }
+
+    // A line put in the chat box from elsewhere (the profile's Whisper button)
+    // wants the Chat tab in front, or it waits there unseen.
+    useEffect(() => {
+        const onOpen = () => openView('chat')
+        window.addEventListener(CHAT_OPEN_EVENT, onOpen)
+        return () => window.removeEventListener(CHAT_OPEN_EVENT, onOpen)
+    })
 
     const lastFocus = useRef(focusAction)
     useEffect(() => {
@@ -140,6 +149,7 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
                 <div className="map-overlay" {...backdropClose(() => setShowFullMap(false))}>
                     <div className="map-popup" onClick={e => e.stopPropagation()}>
                         <button className="modal-close-btn map-close" onClick={() => setShowFullMap(false)}>✕</button>
+                        <GameClock />
                         <img
                             src={`/images/maps/${mapRegion.replace(/ /g, '_')}.jpg`}
                             alt="Island Map"
