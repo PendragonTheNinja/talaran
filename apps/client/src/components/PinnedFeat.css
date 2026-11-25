@@ -1,0 +1,79 @@
+/* The pinned feat (PinnedFeat.tsx): a small window over the game, dragged by
+   its name and resized from its edges. What does not fit its height is cut,
+   so a short window shows the name and bar, a tall one the description too. */
+.pinned-feat {
+    z-index: 900;
+}
+
+.pinned-feat-inner {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 10px 8px;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    font-family: var(--font-body);
+    color: var(--color-text-base);
+}
+
+.pinned-feat-inner.done {
+    border-color: var(--color-gold);
+}
+
+.pinned-feat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    cursor: move;
+    touch-action: none;
+}
+
+.pinned-feat-name {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    color: var(--color-gold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pinned-feat-close {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.pinned-feat-close:hover {
+    color: var(--color-text-bright);
+}
+
+.pinned-feat-count {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.pinned-feat-pct {
+    color: var(--color-text-muted);
+}
+
+.pinned-feat-bar {
+    flex-shrink: 0;
+}
+
+.pinned-feat-desc {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--color-text-muted);
+}

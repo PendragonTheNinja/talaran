@@ -198,7 +198,10 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
  * means a double call inserts nothing the second time, so no lock is needed and
  * two requests racing cannot produce a duplicate.
  */
-export async function evaluateFeats(playerId: number): Promise<{ slug: string; name: string; title: string | null }[]> {
+/** A feat just earned, as the pop-up shows it (feat_earned). */
+export interface EarnedFeat { slug: string; name: string; description: string; title: string | null; badge: string | null; badgeKey: string | null }
+
+export async function evaluateFeats(playerId: number): Promise<EarnedFeat[]> {
     try {
         const snap = await snapshot(playerId)
         const all = await db('feats').where({ is_active: true })
@@ -207,7 +210,7 @@ export async function evaluateFeats(playerId: number): Promise<{ slug: string; n
                 .map((r: any) => r.feat_id),
         )
 
-        const fresh: { slug: string; name: string; title: string | null }[] = []
+        const fresh: EarnedFeat[] = []
         for (const feat of all as any[]) {
             if (earned.has(feat.id)) continue
             // A target of nothing is a museum with no cases yet, not a free feat.
@@ -224,7 +227,10 @@ export async function evaluateFeats(playerId: number): Promise<{ slug: string; n
             // which is how a race resolves without either side reporting a feat
             // twice.
             if (inserted.length > 0) {
-                fresh.push({ slug: feat.slug, name: feat.name, title: feat.title })
+                fresh.push({
+                    slug: feat.slug, name: feat.name, description: feat.description ?? '', title: feat.title ?? null,
+                    badge: feat.badge ?? null, badgeKey: feat.badge_key ?? null,
+                })
                 // The hard and hidden ones are told in the tidings (feats.chronicle).
                 if (feat.chronicle) noteDeed(db, { kind: 'feat_rare', playerId, subject: feat.name, data: { feat: feat.name, title: feat.title ?? null } })
             }

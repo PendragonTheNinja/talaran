@@ -958,3 +958,33 @@ html .game-view.has-picture .game-scene {
   --color-gold-bright: #f1d99a;
   color: var(--color-text-base);
 }
+
+/* A feat earned (featQueue in GameView.tsx): the level-up's frame, with what
+   the feat says and what it gave. */
+.feat-popup-badge .name-badge {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.feat-popup-desc {
+  max-width: 300px;
+  margin: 4px auto 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-base);
+}
+
+.feat-popup-gains {
+  margin: 4px auto 10px;
+  font-size: 13px;
+  color: var(--color-text-base);
+}
+
+.feat-popup-gains p {
+  margin: 2px 0;
+}
+
+.feat-popup-gains-head {
+  font-family: var(--font-heading);
+  color: var(--color-gold);
+}

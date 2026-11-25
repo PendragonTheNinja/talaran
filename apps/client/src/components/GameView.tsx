@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import Badge from './Badge'
+import PinnedFeat from './PinnedFeat'
+
 import FireIndicator from './FireIndicator'
 import { apiFetch } from '../lib/api'
 import { serverNow } from '../lib/serverClock'
@@ -19,6 +22,9 @@ import { loadActionPresentation, sceneTextFor, cancelLabelFor, type Presentation
 import FightView, { type FightLogLine } from './FightView'
 import LevelUpUnlocks from './LevelUpUnlocks'
 import { announceHp, describeSwing, fetchFightState, localizeFight, type CombatUpdate, type FightFood, type FightState, type Hp } from '../lib/combat'
+
+/** A feat just earned, as the server pushes it (feat_earned, services/feats.ts). */
+interface EarnedFeat { slug: string; name: string; description?: string; title: string | null; badge?: string | null; badgeKey?: string | null }
 
 interface Node {
   id: number
@@ -258,6 +264,10 @@ export default function GameView({
     if (!next) return q.slice(1)
     return q.some(x => x.name === next.name && x.level === next.level) ? q : [...q, next]
   })
+  // Feats earned, each a pop-up of its own in turn, after any level-up
+  // (Nathan, 2026-11-22: a feat deserves a moment, and to say what it gave).
+  const [featQueue, setFeatQueue] = useState<EarnedFeat[]>([])
+  const featShown = levelUpSkill ? null : featQueue[0] ?? null
   const [actionsCompleted, setActionsCompleted] = useState(0)
 
   // ── A fight (docs/combat-spec.md §9) ──────────────────────────────
@@ -1205,11 +1215,11 @@ export default function GameView({
       const d = (e as CustomEvent<{ message: string; type?: 'info' | 'error' | 'success'; lasting?: boolean }>).detail
       if (d?.message) addLog(d.message, d.type === 'error' || d.type === 'success' ? d.type : 'info', d.lasting ? 'lasting' : false)
     }
-    // A feat is worth a line in the log and nothing more intrusive. It is not
-    // an interruption, it is a note that something you were already doing
-    // turned out to be worth recording.
-    const onFeat = (feat: { name: string; title: string | null }) => {
+    // A feat: a line in the log, and its own pop-up once any level-up has been
+    // seen (featQueue).
+    const onFeat = (feat: EarnedFeat) => {
       addLog(`Feat earned: ${feat.name}.${feat.title ? ` You may now be called ${feat.title}.` : ''}`, 'success')
+      setFeatQueue(q => q.some(f => f.slug === feat.slug) ? q : [...q, feat])
       window.dispatchEvent(new CustomEvent('talaran:feat-earned'))
     }
     // Someone stood a round at the tavern (server services/rounds.ts).
@@ -2540,6 +2550,41 @@ export default function GameView({
           </div>
         </div>
       )}
+
+      {featShown && (
+        <div className="levelup-popup">
+          <div className="levelup-inner feat-popup">
+            <button className="levelup-close" onClick={() => setFeatQueue(q => q.slice(1))}>✕</button>
+            <div className="levelup-rays" />
+            <p className="levelup-title">Feat Earned!</p>
+            {featShown.badgeKey || featShown.badge ? (
+              <div className="levelup-icon-wrap feat-popup-badge">
+                <Badge badgeKey={featShown.badgeKey} glyph={featShown.badge} size={56} title={featShown.name} />
+              </div>
+            ) : null}
+            <p className="levelup-skill">{featShown.name}</p>
+            {featShown.description && <p className="feat-popup-desc">{featShown.description}</p>}
+            {(featShown.title || featShown.badgeKey || featShown.badge) && (
+              <div className="feat-popup-gains">
+                <p className="feat-popup-gains-head">Yours now</p>
+                {featShown.title && <p>The title <span className="gold-text">{featShown.title}</span>, to wear from the Feats panel</p>}
+                {(featShown.badgeKey || featShown.badge) && <p>Its badge, to wear beside your name</p>}
+              </div>
+            )}
+            <button
+              className="levelup-share"
+              onClick={() => {
+                onShareToChat?.(`I just earned the feat ${featShown.name}!`)
+                setFeatQueue(q => q.slice(1))
+              }}
+            >
+              Share
+            </button>
+          </div>
+        </div>
+      )}
+
+      <PinnedFeat />
 
       {/* Bot check lives at the top of the tree, not inside the scene. It used to
           render as an absolutely-positioned scene element at z-index 2, which any
