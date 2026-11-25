@@ -225,6 +225,8 @@ export async function fillMissingCases(): Promise<number> {
             .leftJoin('museum_cases as c', 'c.item_id', 'i.id')
             .whereNull('c.id')
             .where('i.is_active', true).where('i.value', '>', 0).whereNot('i.name', 'Gold')
+            // Too rare to ask a completionist for (items.museum_exempt: the Four-Leaf Clover).
+            .where((q) => q.whereNull('i.museum_exempt').orWhere('i.museum_exempt', false))
             .orderBy([{ column: 'i.tier' }, { column: 'i.name' }])
             .select('i.id', 'i.name', 'i.type', 'i.subtype', 'i.island');
         let added = 0;
@@ -258,7 +260,7 @@ export async function placeNewItem(itemId: number, playerId: number, source?: st
     try {
         if (source === 'quest') return;
         const item = await db('items').where({ id: itemId }).first();
-        if (!item || !item.is_active || item.name === 'Gold') return;
+        if (!item || !item.is_active || item.name === 'Gold' || item.museum_exempt) return;
         if (await db('museum_cases').where({ item_id: itemId }).first()) return;
         // The item's own island first (items.island); else where it was found.
         const where = await db('players as p').join('locations as l', 'l.id', 'p.current_location_id')

@@ -9,6 +9,7 @@ import { creditGoldWithin } from '../services/gold';
 import { addItemToInventoryWithin, recordItemFirst, takeItemsWithin } from '../services/inventory';
 import { pushToPlayer } from '../lib/realtime';
 import { afterCommit } from '../lib/afterCommit';
+import { errandSummary } from '../services/errands';
 
 const router = Router();
 
@@ -44,7 +45,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             };
         });
 
-        res.json({ quests: result });
+        // An errand under way (the Friddicks) shows beside the quests, though it is not one.
+        res.json({ quests: result, errand: await errandSummary(playerId) });
     } catch (err) {
         logger.error(`Get quests error: ${err}`);
         res.status(500).json({ error: 'Server error' });

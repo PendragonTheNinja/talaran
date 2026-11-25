@@ -4,6 +4,7 @@ import { SERVER_ERROR } from '../lib/serviceResult';
 import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
 import { creditGoldWithin } from './gold';
 import { awardXp } from './xp';
+import { gameDayKey } from '../lib/gameTime';
 
 // ── Errands (the Friddick Brothers; Nathan, 2026-11-22) ─────────────────────
 //
@@ -26,6 +27,11 @@ import { awardXp } from './xp';
 
 export const ERRAND_SLACK = 1.5;
 export const ERRAND_GRACE_SECONDS = 90;
+/**
+ * Pay wanders this far either side of the errand's own figures, so one
+ * errand is not every errand (Nathan, 2026-11-25): 80 gold pays 70 to 90.
+ */
+export const ERRAND_PAY_SPREAD = 0.125;
 /** Past the limit by more than the limit itself is very late. */
 const VERY_LATE_FACTOR = 1;
 
@@ -53,6 +59,25 @@ export function spokenTime(seconds: number): string {
 
 const say = (lines: string[], vars: Record<string, string>) =>
     lines.map(l => l.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`));
+
+/** A small stable hash, so the errand a brother offers is fixed, not chosen by asking again. */
+function pick(n: number, seed: string): number {
+    let h = 2166136261;
+    for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return Math.abs(h) % n;
+}
+
+/** Where an NPC stands, for telling the player where to go: "Matthew Friddick is in Dawncrest." */
+async function whereIs(x: any, name: string): Promise<string> {
+    const r = await x('npcs as n').join('locations as l', 'l.id', 'n.location_id').where('n.name', name).first('l.name');
+    return r ? `(${name} is in ${r.name}.)` : '';
+}
+
+/** A figure, wandered by ERRAND_PAY_SPREAD either side. */
+function wander(amount: number): number {
+    if (amount <= 0) return 0;
+    return Math.max(1, Math.round(amount * (1 - ERRAND_PAY_SPREAD + Math.random() * 2 * ERRAND_PAY_SPREAD)));
+}
 
 /** The shortest road between two places, in base seconds, over land (no ferry or sea). */
 async function roadSeconds(x: any, fromId: number, toId: number): Promise<number | null> {
@@ -112,6 +137,13 @@ async function carries(x: any, playerId: number, itemName: string): Promise<bool
 
 export interface ErrandTalk { lines: string[]; options: { label: string; next_stage: string | null; action: string | null }[] }
 
+/** Has this player carried for this pool before? Then a brother does not introduce himself again. */
+async function hasCarriedFor(x: any, playerId: number, pool: string): Promise<boolean> {
+    const r = await x('errand_log as g').join('errands as e', 'e.id', 'g.errand_id')
+        .where({ 'g.player_id': playerId, 'e.pool': pool }).first('g.id');
+    return !!r;
+}
+
 /**
  * The conversation an errand NPC holds with this player while an errand is
  * open (null when none is, and the NPC's own 'intro' row speaks, offering
@@ -120,7 +152,16 @@ export interface ErrandTalk { lines: string[]; options: { label: string; next_st
 export async function errandTalk(playerId: number, npc: { name: string; errand_pool: string | null }): Promise<ErrandTalk | null> {
     if (!npc.errand_pool) return null;
     const open = await openErrand(db, playerId);
-    if (!open?.leg) return null;
+    if (!open?.leg) {
+        // Met before: no introduction, only his own short greeting (npc_dialogues
+        // stage 'errand_again'); a first meeting falls through to his 'intro'.
+        if (!(await hasCarriedFor(db, playerId, npc.errand_pool))) return null;
+        const again = await db('npc_dialogues as d').join('npcs as n', 'n.id', 'd.npc_id')
+            .where({ 'n.name': npc.name, 'd.stage_key': 'errand_again' }).first('d.text_lines', 'd.options');
+        if (!again) return null;
+        const opts = typeof again.options === 'string' ? JSON.parse(again.options) : again.options;
+        return { lines: again.text_lines ?? [], options: opts ?? [] };
+    }
     const { leg, row } = open;
     const left = Number(row.leg_limit_seconds) - (Date.now() - new Date(row.leg_started_at).getTime()) / 1000;
     if (leg.to === npc.name) {
@@ -137,7 +178,7 @@ export async function errandTalk(playerId: number, npc: { name: string; errand_p
     }
     if (leg.from === npc.name) {
         return {
-            lines: [...say(leg.waiting, { to: leg.to }), left > 0 ? `(${spokenTime(left)} left to reach ${leg.to}.)` : `(You are late for ${leg.to}.)`],
+            lines: [...say(leg.waiting, { to: leg.to }), left > 0 ? `(${spokenTime(left)} left to reach ${leg.to}.)` : `(You are late for ${leg.to}.)`, await whereIs(db, leg.to)].filter(Boolean),
             options: [
                 { label: '"I\'ll go."', next_stage: null, action: 'close' },
                 { label: '"I can\'t do it after all."', next_stage: null, action: 'errand_drop' },
@@ -166,7 +207,8 @@ export async function errandActions(playerId: number, npc: { name: string; erran
 
 // ── Taking one, handing over, giving up ─────────────────────────────────────
 
-type Said = { ok: true; message: string } | { ok: false; error: string; status: number };
+/** `end`: the conversation is over; the dialogue shows what was said and a way to leave, not the NPC's greeting again. */
+type Said = { ok: true; message: string; end?: boolean } | { ok: false; error: string; status: number };
 
 function refuse(err: unknown, context: string): Said {
     if (err instanceof ErrandAbort) return { ok: false, error: err.message, status: 400 };
@@ -175,7 +217,11 @@ function refuse(err: unknown, context: string): Said {
     return { ok: false, error: SERVER_ERROR, status: 500 };
 }
 
-/** Take an errand from this NPC: one of the lines that start with them, at random. */
+/**
+ * Take an errand from this NPC: one of the lines that start with them, fixed
+ * for the player by the day and by how many legs they have carried, so
+ * turning one down and asking again offers the same one (Nathan, 2026-11-25).
+ */
 export async function acceptErrand(playerId: number, npc: { name: string; errand_pool: string | null }): Promise<Said> {
     try {
         if (!npc.errand_pool) throw new ErrandAbort('There is nothing to carry.');
@@ -184,14 +230,15 @@ export async function acceptErrand(playerId: number, npc: { name: string; errand
             if (await trx('player_errands').where({ player_id: playerId }).first('player_id')) throw new ErrandAbort('You are already carrying something for them.');
             const lines = (await trx('errands').where({ pool: npc.errand_pool, is_active: true })).map(asErrand).filter(e => e.legs[0]?.from === npc.name);
             if (!lines.length) throw new ErrandAbort('There is nothing to carry.');
-            const errand = lines[Math.floor(Math.random() * lines.length)];
+            const carried = Number((await trx('errand_log').where({ player_id: playerId }).count('id as n').first())?.n ?? 0);
+            const errand = lines[pick(lines.length, `${playerId}:${gameDayKey()}:${npc.name}:${carried}`)];
             const leg = errand.legs[0];
             const item = await trx('items').where({ name: leg.item }).first('id');
             if (!item) throw new ErrandAbort(`No one in Talaran has made ${leg.item} yet.`);
             const limit = await legLimit(trx, leg);
             await trx('player_errands').insert({ player_id: playerId, errand_id: errand.id, leg: 0, leg_started_at: new Date(), leg_limit_seconds: limit });
             await addItemToInventoryWithin(trx, playerId, item.id, 1);
-            return { ok: true as const, message: say(leg.offer, { limit: spokenTime(limit), to: leg.to }).join('\n') };
+            return { ok: true as const, message: [...say(leg.offer, { limit: spokenTime(limit), to: leg.to }), await whereIs(trx, leg.to)].filter(Boolean).join('\n') };
         });
     } catch (err) {
         return refuse(err, 'accept');
@@ -227,7 +274,7 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
                     .update({ leg: nextIndex, leg_started_at: new Date(), leg_limit_seconds: nextLimit, late_legs: late });
                 if (moved !== 1) throw new ErrandAbort('That has been handed over already.');
                 await addItemToInventoryWithin(trx, playerId, nextItem.id, 1);
-                return { ok: true as const, message: [...said, ...say(next.offer, { limit: spokenTime(nextLimit), to: next.to })].join('\n') };
+                return { ok: true as const, message: [...said, ...say(next.offer, { limit: spokenTime(nextLimit), to: next.to }), await whereIs(trx, next.to)].filter(Boolean).join('\n') };
             }
 
             // The last leg: the errand is done. The delete is the gate, so it pays once.
@@ -235,19 +282,20 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
             if (closed !== 1) throw new ErrandAbort('That has been handed over already.');
             const paid: string[] = [];
             if (late === 0) {
-                if (errand.reward_gold > 0) {
-                    await creditGoldWithin(trx, { playerId, amount: errand.reward_gold, reason: 'errand_reward', refType: 'errand', refId: errand.id });
-                    paid.push(`${errand.reward_gold.toLocaleString('en-US')} gold`);
+                const gold = wander(errand.reward_gold), xp = wander(errand.reward_xp);
+                if (gold > 0) {
+                    await creditGoldWithin(trx, { playerId, amount: gold, reason: 'errand_reward', refType: 'errand', refId: errand.id });
+                    paid.push(`${gold.toLocaleString('en-US')} gold`);
                 }
-                if (errand.reward_skill && errand.reward_xp > 0) {
-                    await awardXp(playerId, errand.reward_skill, errand.reward_xp, trx);
-                    paid.push(`${errand.reward_xp.toLocaleString('en-US')} ${errand.reward_skill} experience`);
+                if (errand.reward_skill && xp > 0) {
+                    await awardXp(playerId, errand.reward_skill, xp, trx);
+                    paid.push(`${xp.toLocaleString('en-US')} ${errand.reward_skill} experience`);
                 }
             }
             const tail = late === 0
                 ? (paid.length ? `(Errand done on time. You are paid ${paid.join(' and ')}.)` : '(Errand done on time.)')
                 : '(Errand done, but late. Nothing is paid for a late errand.)';
-            return { ok: true as const, message: [...said, tail].join('\n') };
+            return { ok: true as const, message: [...said, tail].join('\n'), end: true };
         });
     } catch (err) {
         return refuse(err, 'deliver');
@@ -265,9 +313,32 @@ export async function dropErrand(playerId: number): Promise<Said> {
                 await takeItemsWithin(trx, playerId, [{ name: open.leg.item, quantity: 1 }]);
             }
             await trx('player_errands').where({ player_id: playerId }).delete();
-            return { ok: true as const, message: 'Fine. I\'ll find someone else.' };
+            return { ok: true as const, message: 'Fine. I\'ll find someone else.', end: true };
         });
     } catch (err) {
         return refuse(err, 'drop');
     }
 }
+
+// ── The quest log (routes/quests.ts) ────────────────────────────────────────
+
+export interface ErrandSummary {
+    name: string; leg: number; legs: number
+    item: string; from: string; to: string; place: string | null
+    secondsLeft: number
+}
+
+/** The player's open errand as the Quests menu shows it, or null. */
+export async function errandSummary(playerId: number): Promise<ErrandSummary | null> {
+    const open = await openErrand(db, playerId);
+    if (!open?.leg) return null;
+    const { row, errand, leg } = open;
+    const place = await db('npcs as n').join('locations as l', 'l.id', 'n.location_id').where('n.name', leg.to).first('l.name');
+    const left = Number(row.leg_limit_seconds) - (Date.now() - new Date(row.leg_started_at).getTime()) / 1000;
+    return {
+        name: errand.name, leg: Number(row.leg) + 1, legs: errand.legs.length,
+        item: leg.item, from: leg.from, to: leg.to, place: place?.name ?? null,
+        secondsLeft: Math.round(left),
+    };
+}
+

@@ -96,7 +96,7 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
         try {
             if (option.action) {
                 // Server action — interact then reload
-                const result = await apiFetch<{ rewards?: QuestRewards | null; message?: string }>(
+                const result = await apiFetch<{ rewards?: QuestRewards | null; message?: string; end?: boolean }>(
                     `/api/npcs/${npcId}/interact`,
                     { method: 'POST', body: JSON.stringify({ action: option.action }) },
                 )
@@ -109,6 +109,13 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
                 // says to a stranger afterwards.
                 if (result?.rewards) {
                     onClose()
+                    return
+                }
+
+                // The NPC has had the last word (an errand given up or finished):
+                // show it with a way out, not their greeting all over again.
+                if (result?.end) {
+                    setData(d => d ? { ...d, dialogue: { ...d.dialogue, text_lines: [], options: [{ label: 'Leave', next_stage: null, action: 'close' }] }, questProgress: null } : d)
                     return
                 }
 
@@ -156,7 +163,7 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
                     <>
                         <div className="npc-header">
                             <div className="npc-identity">
-                                <span className="npc-avatar">{data.npc.avatar}</span>
+                                {/* No emoji beside a name (Nathan, 2026-11-25): the name and title are enough. */}
                                 <div>
                                     <p className="npc-name gold-text">{data.npc.name}</p>
                                     {data.npc.title && <p className="npc-title muted-text">{data.npc.title}</p>}

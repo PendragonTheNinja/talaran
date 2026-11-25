@@ -22,11 +22,26 @@ interface Quest {
     objectives: QuestObjective[]
 }
 
+/** An errand under way (server services/errands.ts errandSummary). */
+interface ErrandNow {
+    name: string; leg: number; legs: number
+    item: string; from: string; to: string; place: string | null
+    secondsLeft: number
+}
+
+function timeLeft(seconds: number): string {
+    if (seconds <= 0) return 'Late'
+    if (seconds < 90) return `${seconds} seconds left`
+    const m = Math.round(seconds / 60)
+    return m === 1 ? '1 minute left' : `${m} minutes left`
+}
+
 /** The tutorial group's last open/closed state, per browser. */
 const TUTORIALS_KEY = 'talaran-quests-tutorials-open'
 
 export default function QuestsView() {
     const [quests, setQuests] = useState<Quest[]>([])
+    const [errand, setErrand] = useState<ErrandNow | null>(null)
     const [loading, setLoading] = useState(true)
 
     const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -39,8 +54,8 @@ export default function QuestsView() {
         })
 
     useEffect(() => {
-        apiFetch<{ quests: Quest[] }>('/api/quests')
-            .then(d => setQuests(d.quests || []))
+        apiFetch<{ quests: Quest[]; errand?: ErrandNow | null }>('/api/quests')
+            .then(d => { setQuests(d.quests || []); setErrand(d.errand ?? null) })
             .catch(() => { })
             .finally(() => setLoading(false))
     }, [])
@@ -122,7 +137,25 @@ export default function QuestsView() {
                     )}
 
                     <h4 className="quests-section-title gold-text">Active</h4>
-                    {active.length === 0
+                    {errand && (
+                        <div className="quest-card open">
+                            <div className="quest-card-head">
+                                <span className="quest-name gold-text">{errand.name}</span>
+                                <span className="quest-skill muted-text">Errand</span>
+                            </div>
+                            <div className="quest-npc muted-text">For {errand.from}</div>
+                            <div className="quest-objectives">
+                                <div className="quest-objective">
+                                    <span>○ Take the {errand.item} to {errand.to}{errand.place ? ` in ${errand.place}` : ''}</span>
+                                    <span className="quest-objective-progress muted-text">{timeLeft(errand.secondsLeft)}</span>
+                                </div>
+                                {errand.legs > 1 && (
+                                    <p className="muted-text" style={{ fontSize: '12px', margin: '4px 0 0' }}>Part {errand.leg} of {errand.legs}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {active.length === 0 && !errand
                         ? <p className="quests-empty muted-text">No active quests.</p>
                         : active.map(renderQuest)}
 

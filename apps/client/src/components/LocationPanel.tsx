@@ -252,7 +252,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   }, [locationData, smithingStatusKey])
 
   const woodcuttingNodes = nodes.filter((n: any) => n.skill === 'woodcutting')
-  const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.name.toLowerCase().includes('rock'))
+  // Rock to swing at, as the server marks it (routes/location.ts); ore nodes only seed veins.
+  const miningNodes = nodes.filter((n: any) => n.skill === 'mining' && n.mineable)
   const huntableAnimals = locationData?.huntableAnimals || []
   const foragingHabitats = locationData?.foragingHabitats || []
   const fishSpeciesCount = locationData?.fishSpeciesCount || 0

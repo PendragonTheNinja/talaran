@@ -2715,9 +2715,14 @@ const SCENARIOS: Scenario[] = [
             await inPack(ctx, e.w.player.id, e.w.plank.id, 3);
             await ctx.seed.row('player_errands', { player_id: e.w.player.id, errand_id: e.errand.id, leg: 0, leg_started_at: new Date(), leg_limit_seconds: 600 });
             const st = await ctx.burst(e.w.player.id, 5, () => ctx.post(e.w.player.id, `/npcs/${e.to.id}/interact`, { action: 'errand_deliver' }));
+            // Pay wanders ERRAND_PAY_SPREAD either side, so count the payments
+            // (exactly one) and check the one is in range.
+            const pays = await ctx.db('gold_ledger').where({ player_id: e.w.player.id, reason: 'errand_reward' }).pluck('delta');
+            const gold = await goldOf(ctx, e.w.player.id);
             return noServerErrors(st)
                 ?? changed('planks left', 2, await ctx.itemTotal(e.w.plank.id))
-                ?? changed('gold paid', 40, await goldOf(ctx, e.w.player.id))
+                ?? changed('payments made', 1, pays.length)
+                ?? (gold >= 35 && gold <= 45 ? null : `gold paid was ${gold}, outside 35 to 45`)
                 ?? await ledgerProblem(ctx);
         },
     },

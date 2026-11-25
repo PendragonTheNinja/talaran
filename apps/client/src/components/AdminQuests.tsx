@@ -121,7 +121,7 @@ export default function AdminQuests() {
                 <input className="aq-input" placeholder="Find an NPC, a place, or a quest" value={filter} onChange={e => setFilter(e.target.value)} />
                 {shown.map(n => (
                     <button key={n.id} className={`aq-npc${n.id === pickedId ? ' is-picked' : ''}`} onClick={() => setPickedId(n.id)}>
-                        <span>{n.avatar} {n.name}</span>
+                        <span>{n.name}</span>
                         <span className="aq-note">{n.location ?? 'nowhere'}{n.quests.length ? ` · ${n.quests.length} quest${n.quests.length === 1 ? '' : 's'}` : ''}{n.errands.length ? ' · errands' : ''}{n.daily_skill ? ' · dailies' : ''}</span>
                     </button>
                 ))}
@@ -132,7 +132,7 @@ export default function AdminQuests() {
                 {npc && (
                     <>
                         <div className="admin-action-card">
-                            <p className="admin-section-title">{npc.avatar ?? '🧑'} {npc.name}</p>
+                            <p className="admin-section-title">🧑 {npc.name}</p>
                             <Field single label="Title" value={npc.title ?? ''} onSave={t => saved(() => patch('npcs', npc.id, 'title', t))} />
                         </div>
 

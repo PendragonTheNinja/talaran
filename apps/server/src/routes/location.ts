@@ -7,6 +7,7 @@ import { eventStandingsAt } from '../services/worldEvents';
 import { liveIsletFind } from '../services/isletFinds';
 import { waterFor } from '../services/fishing';
 import { givenNameOf } from '../services/isletNames';
+import { rockSubtypeFor } from '../services/mining';
 
 const router = Router();
 
@@ -31,6 +32,14 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     const nodes = await db('resource_nodes')
       .where({ location_id: player.current_location_id, is_active: true })
       .select('*');
+    // Which mining nodes are rock a player swings at (granite and the like),
+    // as against ore nodes, which only say what veins a place can open
+    // (services/mining.ts veinOresAt). The client must not guess this from a
+    // node's name: "Underway Granite" has no "rock" in it and never showed.
+    const rockTypes = new Set((await db('items').where({ type: 'rock' }).pluck('subtype')) as string[]);
+    for (const n of nodes) {
+      if (n.skill === 'mining') n.mineable = rockTypes.has(rockSubtypeFor(n) ?? '');
+    }
     // On an islet, the player's own find stands here too while it has work
     // left (services/isletFinds.ts): a stand is its node, with what is left.
     const isletFind = await liveIsletFind(playerId);
