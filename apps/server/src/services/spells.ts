@@ -168,8 +168,8 @@ export function wearLine(name: string, where: string, uses: number, rule: { guar
     return { name, where, pct, past, breakPct }
 }
 
-interface WearableRow { id: number; name: string; tier: number | null; subtype: string | null; weapon_form: string | null; armour: number | null; durability_uses: number | null; durability_break_pct: number | null }
-const WEARABLE_COLUMNS = ['id', 'name', 'tier', 'subtype', 'weapon_form', 'armour', 'durability_uses', 'durability_break_pct']
+interface WearableRow { id: number; name: string; tier: number | null; subtype: string | null; weapon_form: string | null; armour: number | null; durability_uses: number | null; durability_break_pct: number | null; durability_life_factor: number | null }
+const WEARABLE_COLUMNS = ['id', 'name', 'tier', 'subtype', 'weapon_form', 'armour', 'durability_uses', 'durability_break_pct', 'durability_life_factor']
 
 interface WearRules {
     gear: Map<number, DurabilityRule>

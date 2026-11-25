@@ -19,6 +19,8 @@ export interface WearableItem {
     tier?: number | null
     durability_uses?: number | null
     durability_break_pct?: number | null
+    /** A tool's guarantee and average life, multiplied (services/toolWear.ts). */
+    durability_life_factor?: number | string | null
 }
 
 export interface DurabilityRule {

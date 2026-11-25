@@ -149,6 +149,12 @@ export async function loadToolRules(x: Knex | Knex.Transaction): Promise<ToolRul
     }
 }
 
+/** `items.durability_life_factor`, or 1 where it is unset or nonsense. */
+export function lifeFactor(raw: unknown): number {
+    const f = Number(raw)
+    return raw !== null && raw !== undefined && Number.isFinite(f) && f > 0 ? f : 1
+}
+
 /**
  * One tool's rule for one use: the item's own override where it has one, else
  * an override row for this skill and tier, else worked out from the timer.
@@ -156,10 +162,14 @@ export async function loadToolRules(x: Knex | Knex.Transaction): Promise<ToolRul
 export function toolRule(item: WearableItem, skill: string, timerSeconds: number, rules: ToolRules): DurabilityRule {
     const tier = Number(item.tier) || 1
     const tierRule = toolTierRule(rules.tiers, tier)
-    const guaranteedUses = item.durability_uses ?? tierRule.guaranteedUses
+    // A tool dear to make lasts longer in proportion (Nathan, 2026-11-25: the
+    // fishing rod and net). The factor stretches the guarantee and the average
+    // life alike, so the break chance past the guarantee still follows the timer.
+    const factor = lifeFactor(item.durability_life_factor)
+    const guaranteedUses = item.durability_uses ?? Math.round(tierRule.guaranteedUses * factor)
     const breakChancePct = item.durability_break_pct
         ?? rules.overrides.get(`${skill}:${tier}`)
-        ?? toolBreakChancePct({ guaranteedUses, lifeHours: tierRule.lifeHours }, timerSeconds)
+        ?? toolBreakChancePct({ guaranteedUses, lifeHours: tierRule.lifeHours * factor }, timerSeconds)
     return { guaranteedUses, breakChancePct }
 }
 
@@ -287,7 +297,7 @@ export async function wearHandToolsWithSpares(playerId: number, skill: string, s
         const ids = HAND_COLUMNS.map(c => eq[c]).filter(Boolean)
         if (!ids.length) return
         const items = await trx('items').whereIn('id', ids)
-            .select('id', 'name', 'tier', 'subtype', 'level_required', 'durability_uses', 'durability_break_pct')
+            .select('id', 'name', 'tier', 'subtype', 'level_required', 'durability_uses', 'durability_break_pct', 'durability_life_factor')
         const byId = new Map(items.map((i: any) => [Number(i.id), i]))
         const rules = await loadToolRules(trx)
         const done = new Set<string>()
@@ -359,7 +369,7 @@ export async function wearBenchTools(playerId: number, recipeId: number, timerSe
         if (!live.length) return
 
         const items = await trx('items').whereIn('name', live.map((s: any) => s.item_name))
-            .select('id', 'name', 'tier', 'durability_uses', 'durability_break_pct')
+            .select('id', 'name', 'tier', 'durability_uses', 'durability_break_pct', 'durability_life_factor')
         const byName = new Map(items.map((i: any) => [i.name, i]))
         const rules = await loadToolRules(trx)
         for (const slot of live) {
