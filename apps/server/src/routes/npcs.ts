@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { pushToPlayer } from '../lib/realtime';
 import { crierHasWordFor, CRIER_ROAMS_WITH } from '../services/crierPolls';
 import { checkQuestCompletion, questStartChoices, questXpAwards, objectiveMet, missingGift, questStartRefusal } from './quests';
 import { unlockChests } from '../services/chests';
@@ -147,6 +148,10 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
     const playerId = req.player!.playerId;
     const npcId = parseInt(req.params.id as string);
     const { action } = req.body;
+    // Anything said and done with an NPC may change the quest log (a quest
+    // taken or handed in, an errand taken, passed on, or given up), so an open
+    // Quests menu reloads once the reply has gone (QuestsView.tsx).
+    res.on('finish', () => { if (res.statusCode < 400) pushToPlayer(playerId, 'quests_changed'); });
 
     try {
         const npc = await db('npcs').where({ id: npcId, is_active: true }).first();

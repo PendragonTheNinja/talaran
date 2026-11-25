@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
+import { onSocket } from '../lib/socket'
 import './QuestsPanel.css'
 
 interface QuestObjective {
@@ -31,9 +32,8 @@ interface ErrandNow {
 
 function timeLeft(seconds: number): string {
     if (seconds <= 0) return 'Late'
-    if (seconds < 90) return `${seconds} seconds left`
-    const m = Math.round(seconds / 60)
-    return m === 1 ? '1 minute left' : `${m} minutes left`
+    const m = Math.floor(seconds / 60), s = seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} left`
 }
 
 /** The tutorial group's last open/closed state, per browser. */
@@ -53,12 +53,34 @@ export default function QuestsView() {
             return next
         })
 
-    useEffect(() => {
+    // When the errand's leg runs out, by this browser's clock (counted down here, not refetched).
+    const [deadline, setDeadline] = useState<number | null>(null)
+    const [now, setNow] = useState(() => Date.now())
+
+    const load = useCallback(() => {
         apiFetch<{ quests: Quest[]; errand?: ErrandNow | null }>('/api/quests')
-            .then(d => { setQuests(d.quests || []); setErrand(d.errand ?? null) })
+            .then(d => {
+                setQuests(d.quests || [])
+                setErrand(d.errand ?? null)
+                const at = Date.now()
+                setNow(at)
+                setDeadline(d.errand ? at + d.errand.secondsLeft * 1000 : null)
+            })
             .catch(() => { })
             .finally(() => setLoading(false))
     }, [])
+    useEffect(() => { load() }, [load])
+    // Kept current without a reload: a step done, a quest taken or handed in,
+    // an errand passed on (the server's pushes).
+    useEffect(() => onSocket('quests_changed', () => load()), [load])
+    useEffect(() => onSocket('quest_progress', () => load()), [load])
+    useEffect(() => onSocket('quest_rewards', () => load()), [load])
+    // The errand's time left ticks down while the menu is open.
+    useEffect(() => {
+        if (deadline === null) return
+        const t = setInterval(() => setNow(Date.now()), 1000)
+        return () => clearInterval(t)
+    }, [deadline])
 
     // Tutorials fold away on their own, so the many quests to come are not
     // buried under ten lessons a player finished in their first week.
@@ -147,7 +169,7 @@ export default function QuestsView() {
                             <div className="quest-objectives">
                                 <div className="quest-objective">
                                     <span>○ {errand.brought ? `Bring ${errand.item}${errand.quantity > 1 ? ` ×${errand.quantity}` : ''}` : `Take the ${errand.item}`} to {errand.to}{errand.place ? ` in ${errand.place}` : ''}</span>
-                                    <span className="quest-objective-progress muted-text">{timeLeft(errand.secondsLeft)}</span>
+                                    <span className="quest-objective-progress muted-text">{timeLeft(deadline === null ? errand.secondsLeft : Math.round((deadline - now) / 1000))}</span>
                                 </div>
                                 {errand.legs > 1 && (
                                     <p className="muted-text" style={{ fontSize: '12px', margin: '4px 0 0' }}>Part {errand.leg} of {errand.legs}</p>

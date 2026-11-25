@@ -20,7 +20,8 @@ import { listWords } from '../lib/listWords';
 // over it, plus ERRAND_GRACE_SECONDS for the clicking), so it stays fair
 // if the map changes. Lateness never fails an errand: it is kept, leg by leg
 // (`errand_log`), and the one receiving says something different on time,
-// late, or very late. A late leg forfeits the reward (Nathan, 2026-11-22).
+// late, or very late. A late leg forfeits the reward (Nathan, 2026-11-22)
+// and ends the errand there, with no next leg (Nathan, 2026-11-25).
 //
 // One open errand a player (`player_errands`, keyed by player). Handing over
 // is one transaction: the player's row, then their errand row, both locked;
@@ -71,6 +72,15 @@ export function spokenTime(seconds: number): string {
     if (s < 90) return `${s} seconds`;
     const m = Math.round(s / 60);
     return m === 1 ? '1 minute' : `${m} minutes`;
+}
+
+/** Lateness to the minute and second: "4 minutes and 12 seconds", "1 minute", "40 seconds". */
+export function spokenLate(seconds: number): string {
+    const s = Math.max(0, Math.round(seconds));
+    const m = Math.floor(s / 60), r = s % 60;
+    const mins = m === 1 ? '1 minute' : `${m} minutes`, secs = r === 1 ? '1 second' : `${r} seconds`;
+    if (m === 0) return secs;
+    return r === 0 ? mins : `${mins} and ${secs}`;
 }
 
 const say = (lines: string[], vars: Record<string, string>) =>
@@ -291,11 +301,13 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
             const lateBy = Math.max(0, Math.round(taken - limit));
             await trx('errand_log').insert({ player_id: playerId, errand_id: errand.id, leg: row.leg, limit_seconds: limit, late_seconds: lateBy });
             const lines = lateBy <= 0 ? leg.on_time : lateBy <= limit * VERY_LATE_FACTOR ? leg.late : leg.very_late;
-            const said = say(lines, { late: spokenTime(lateBy), from: leg.from });
+            const said = say(lines, { late: spokenLate(lateBy), from: leg.from });
             const late = Number(row.late_legs) + (lateBy > 0 ? 1 : 0);
 
+            // A late leg ends the errand there (Nathan, 2026-11-25): being on
+            // time is the whole of it, so the next leg is never handed out.
             const nextIndex = Number(row.leg) + 1;
-            const next = errand.legs[nextIndex];
+            const next = lateBy > 0 ? undefined : errand.legs[nextIndex];
             if (next) {
                 const nextItem = await trx('items').where({ name: next.item }).first('id');
                 if (!nextItem) throw new ErrandAbort(`No one in Talaran has made ${next.item} yet.`);
@@ -339,8 +351,8 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
             const tail = late === 0
                 ? (paid.length ? `(Errand done on time. You are paid ${listWords(paid)}.)` : '(Errand done on time.)')
                 : goodsGold > 0
-                    ? `(Errand done, but late. You are paid ${goodsGold.toLocaleString('en-US')} gold for the goods, and nothing more.)`
-                    : '(Errand done, but late. Nothing is paid for a late errand.)';
+                    ? `(You were ${spokenLate(lateBy)} late, and the errand ends here. You are paid ${goodsGold.toLocaleString('en-US')} gold for the goods, and nothing more.)`
+                    : `(You were ${spokenLate(lateBy)} late, and the errand ends here. Nothing is paid.)`;
             return { ok: true as const, message: [...said, tail].join('\n'), end: true };
         });
     } catch (err) {
