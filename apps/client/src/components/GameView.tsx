@@ -95,6 +95,8 @@ interface GameViewProps {
   onTrapsChanged?: () => void
   onActionLimitChange: (limit: number | null) => void
   onInventoryUpdate: () => void
+  /** Worn gear changed from inside the game view (the fight's weapon column). */
+  onEquipmentUpdate?: () => void
   rememberPendingAction: (fn: () => void) => void
   runPendingAction: () => void
   onShareToChat?: (text: string) => void
@@ -228,6 +230,7 @@ export default function GameView({
   onTrapsChanged,
   onActionLimitChange,
   onInventoryUpdate,
+  onEquipmentUpdate,
   rememberPendingAction,
   runPendingAction,
   onShareToChat,
@@ -2376,6 +2379,7 @@ export default function GameView({
                 busy={fightBusy}
                 onEat={eatInFight}
                 onFlee={fleeFight}
+                onEquipped={onEquipmentUpdate}
               />
             </div>
           )}

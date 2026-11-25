@@ -831,6 +831,7 @@ export default function GameLayout({
       onTrapsChanged={() => setSmithingStatusKey(k => k + 1)}
       onActionLimitChange={setActionLimit}
       onInventoryUpdate={onInventoryUpdate}
+      onEquipmentUpdate={onEquipmentUpdate}
       rememberPendingAction={blockedByBotCheck}
       runPendingAction={runPendingAction}
       onShareToChat={(text: string) => setChatDraft(text)}

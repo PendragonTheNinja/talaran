@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { avatarSrc } from '../lib/avatar'
+import { apiFetch } from '../lib/api'
+import { onSocket } from '../lib/socket'
+import { coalesce } from '../lib/coalesce'
+import { itemDetail, loadItemDetails, onItemDetailsLoaded } from '../lib/itemDetails'
 import { getCreatureImage, getItemIcon } from '../lib/items'
 import { openBestiary, type FightFood, type FightState, type Hp } from '../lib/combat'
 import { useItemTooltip } from './ItemTooltip'
@@ -38,6 +42,69 @@ interface FightViewProps {
     busy: boolean
     onEat: (itemId: number) => void
     onFlee: () => void
+    /** Worn gear changed from the fight's own weapon column: the equipment panel reloads. */
+    onEquipped?: () => void
+}
+
+interface PackRow { item_id: number; name: string; quantity: number; slot?: string | null; synthetic?: boolean }
+interface WornRow { name: string; weapon_form?: string | null }
+
+/**
+ * The weapons in the pack, and the shields when one hand is free, down the
+ * right edge of the fight as the food runs down the left (forum, 2026-11-22:
+ * creatures are weak to different blows, and finding the right weapon in the
+ * pack mid-fight, on a phone, was the hard part). A tap wears it, through the
+ * equip button's own route, which plays the fight up to now with the old gear
+ * first (settleBeforeGearChange), so a swap never takes a swing back.
+ */
+function useFightGear(onEquipped?: () => void) {
+    const [pack, setPack] = useState<PackRow[]>([])
+    const [main, setMain] = useState<WornRow | null>(null)
+    const [, setDetailsGen] = useState(0)
+    const [swapping, setSwapping] = useState(false)
+    const [error, setError] = useState('')
+
+    const load = useCallback(() => {
+        Promise.all([
+            apiFetch<{ inventory: PackRow[] }>('/api/inventory'),
+            apiFetch<{ equipment: Record<string, WornRow | null> }>('/api/equipment'),
+        ]).then(([inv, eq]) => {
+            setPack((inv.inventory ?? []).filter(r => !r.synthetic))
+            setMain(eq.equipment?.mainhand ?? null)
+        }).catch(() => { })
+    }, [])
+
+    useEffect(() => { load() }, [load])
+    useEffect(() => onSocket('inventory_changed', coalesce(() => load())), [load])
+    useEffect(() => onSocket('equipment_changed', () => load()), [load])
+    useEffect(() => {
+        void loadItemDetails()
+        return onItemDetailsLoaded(() => setDetailsGen(g => g + 1))
+    }, [])
+
+    const wear = async (itemId: number) => {
+        if (swapping) return
+        setSwapping(true); setError('')
+        try {
+            await apiFetch('/api/equipment/equip', { method: 'POST', body: JSON.stringify({ itemId }) })
+            load()
+            onEquipped?.()
+        } catch (e) {
+            setError((e as { message?: string }).message || 'That would not go on.')
+        } finally {
+            setSwapping(false)
+        }
+    }
+
+    const weapons = pack.filter(r => !!itemDetail(r.name)?.weapon_form)
+        .sort((a, b) => (itemDetail(b.name)?.tier ?? 0) - (itemDetail(a.name)?.tier ?? 0) || a.name.localeCompare(b.name))
+    // A shield goes beside one hand's weapon, or bare hands; never beside a pair or a two-hander.
+    const oneHandFree = !main || main.weapon_form === 'onehand' || !main.weapon_form
+    const shields = oneHandFree
+        ? pack.filter(r => r.slot === 'offhand' && Number(itemDetail(r.name)?.armour) > 0)
+            .sort((a, b) => (itemDetail(b.name)?.armour ?? 0) - (itemDetail(a.name)?.armour ?? 0))
+        : []
+    return { weapons, shields, wear, swapping, error }
 }
 
 function Bar({ current, max, kind }: { current: number; max: number; kind: 'you' | 'foe' }) {
@@ -97,8 +164,9 @@ function Tile({ name, quantity, className, hover, onClick }: {
  * server's pushes (GameView listens). It fills the scene and never scrolls:
  * the swing log takes whatever height is left.
  */
-export default function FightView({ fight, hp, log, food, spoils, fleeLabel, busy, onEat, onFlee }: FightViewProps) {
+export default function FightView({ fight, hp, log, food, spoils, fleeLabel, busy, onEat, onFlee, onEquipped }: FightViewProps) {
     const { hoverProps, tooltipEl } = useItemTooltip()
+    const gear = useFightGear(onEquipped)
 
     // The approach is the only thing that counts down on the client, toward a
     // moment the server set, on this browser's clock (localizeFight).
@@ -166,6 +234,7 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
                 {meals.length === 0 && (
                     <span className="fight-food-empty muted-text">You carry nothing that mends.</span>
                 )}
+                {gear.error && <span className="fight-food-empty fight-gear-error">{gear.error}</span>}
 
                 <div className="fight-faceoff">
                     <div className="fight-side">
@@ -269,8 +338,36 @@ export default function FightView({ fight, hp, log, food, spoils, fleeLabel, bus
 
                 <button className="btn btn-red scene-cancel-btn fight-flee" disabled={busy} onClick={onFlee}>{fleeLabel}</button>
             </div>
-            {/* As wide as the food column, empty, so the face-off stays centred. */}
-            <div className="fight-food-side" aria-hidden="true" />
+            {/* Weapons down the right edge, as wide as the food column, so the
+                face-off stays centred; shields under them while a hand is free. */}
+            <div className="fight-food-side fight-gear-side">
+                <div className={`fight-gear-col ${gear.shields.length ? 'with-shields' : ''}`}>
+                    {gear.weapons.map(w => (
+                        <Tile
+                            key={w.item_id}
+                            name={w.name}
+                            quantity={w.quantity}
+                            className={`fight-food-slot ${gear.swapping ? 'busy' : ''}`}
+                            hover={hoverProps({ name: w.name }, 'Click to fight with this')}
+                            onClick={() => gear.wear(w.item_id)}
+                        />
+                    ))}
+                </div>
+                {gear.shields.length > 0 && (
+                    <div className="fight-shield-col" title="Shields">
+                        {gear.shields.map(sh => (
+                            <Tile
+                                key={sh.item_id}
+                                name={sh.name}
+                                quantity={sh.quantity}
+                                className={`fight-food-slot ${gear.swapping ? 'busy' : ''}`}
+                                hover={hoverProps({ name: sh.name }, 'Click to take up this shield')}
+                                onClick={() => gear.wear(sh.item_id)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
             {tooltipEl}
         </div>
     )

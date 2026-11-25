@@ -73,6 +73,50 @@
     flex-shrink: 0;
 }
 
+/* ── Weapons down the right edge (useFightGear in FightView.tsx), shields
+   under them in a short scrolling strip about a tile and a half high, while a
+   hand is free. Both stop above the bell and bot-check buttons. ── */
+.fight-gear-side {
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.fight-gear-col {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100% - 56px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-gold) var(--color-bg-deep);
+}
+
+.fight-gear-col.with-shields {
+    max-height: calc(100% - 56px - var(--food-tile) * 1.5 - var(--space-xs) - 8px);
+}
+
+.fight-shield-col {
+    flex: 0 0 auto;
+    height: calc(var(--food-tile) * 1.5);
+    margin-bottom: 56px;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-border-mid);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-gold) var(--color-bg-deep);
+}
+
+.fight-gear-error {
+    color: var(--color-red-bright);
+}
+
 /* ── The face-off: you, the countdown, the creature ── */
 .fight-faceoff {
     display: grid;
