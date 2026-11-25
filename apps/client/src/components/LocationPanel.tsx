@@ -82,6 +82,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // The Salty Sloth (docs/chronicle-spec.md §2), from its button or from Wenna.
   const [tavernOpen, setTavernOpen] = useState(false)
   const [slipOpen, setSlipOpen] = useState(false)
+  const [sailOpen, setSailOpen] = useState(false)
   const [hallWorkOpen, setHallWorkOpen] = useState(false)
   // Ground items get the same tooltip the pack does.
   const { hoverProps, tooltipEl } = useItemTooltip()
@@ -129,6 +130,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const location = locationData?.location
   const nodes = locationData?.nodes || []
   const connections = locationData?.connections || []
+  const seaRoutes: { id: number; to_location_id: number; to_location_name: string; ferry_fare?: number | null }[] =
+    connections.filter((c: { travel_type?: string }) => c.travel_type === 'sea')
 
   const isEmberra = location?.name === 'Emberra'
   const isVerdale = location?.name === 'Verdale'
@@ -497,34 +500,48 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           />
         )}
 
-        {/* A slip for boats: the location row's own flag (services/boats.ts). */}
-        {location?.has_slip && (
-          <button
-            className={`location-action-btn ${currentAction === 'vessel_build' ? 'active' : ''}`}
-            onClick={() => setSlipOpen(true)}
-          >
-            The Slip →
-          </button>
-        )}
-
-        {/* Sea crossings from this port (routes/travel.ts): the ferry for a fare,
-            or a boat of the player's own. */}
-        {connections.filter((c: { travel_type?: string }) => c.travel_type === 'sea').map((c: { id: number; to_location_id: number; to_location_name: string; ferry_fare?: number | null }) => (
-          <Fragment key={`sea-${c.id}`}>
-            {c.ferry_fare !== null && c.ferry_fare !== undefined && (
-              <button className="location-action-btn" disabled={currentAction === 'traveling'}
-                onClick={() => onStartAction('cross', `${c.to_location_id}|ferry`)}>
-                Ferry to {c.to_location_name} ({c.ferry_fare} gold) →
-              </button>
+        {/* The sea from a port, under one heading (Nathan, 2026-11-25: a port
+            had too many links): the slip for boats (services/boats.ts), and
+            the crossings (routes/travel.ts), by ferry for a fare or in a boat
+            of the player's own. */}
+        {(location?.has_slip || seaRoutes.length > 0) && (
+          <div className="location-submenu">
+            <button
+              className={`location-action-btn submenu-toggle ${sailOpen ? 'open' : ''} ${currentAction === 'vessel_build' ? 'active' : ''}`}
+              onClick={() => setSailOpen(!sailOpen)}
+            >
+              {sailOpen ? '▼' : '▶'} Sail
+            </button>
+            {sailOpen && (
+              <div className="submenu-items">
+                {location?.has_slip && (
+                  <button
+                    className={`location-action-btn sub ${currentAction === 'vessel_build' ? 'active' : ''}`}
+                    onClick={() => setSlipOpen(true)}
+                  >
+                    The Slip
+                  </button>
+                )}
+                {seaRoutes.map(c => (
+                  <Fragment key={`sea-${c.id}`}>
+                    {c.ferry_fare !== null && c.ferry_fare !== undefined && (
+                      <button className="location-action-btn sub" disabled={currentAction === 'traveling'}
+                        onClick={() => onStartAction('cross', `${c.to_location_id}|ferry`)}>
+                        Ferry to {c.to_location_name} ({c.ferry_fare} gold)
+                      </button>
+                    )}
+                    {(locationData?.ownBoats ?? []).map((b: { key: string; name: string }) => (
+                      <button key={b.key} className="location-action-btn sub" disabled={currentAction === 'traveling'}
+                        onClick={() => onStartAction('cross', `${c.to_location_id}|${b.key}`)}>
+                        Sail to {c.to_location_name} in your {b.name}
+                      </button>
+                    ))}
+                  </Fragment>
+                ))}
+              </div>
             )}
-            {(locationData?.ownBoats ?? []).map((b: { key: string; name: string }) => (
-              <button key={b.key} className="location-action-btn" disabled={currentAction === 'traveling'}
-                onClick={() => onStartAction('cross', `${c.to_location_id}|${b.key}`)}>
-                Sail to {c.to_location_name} in your {b.name} →
-              </button>
-            ))}
-          </Fragment>
-        ))}
+          </div>
+        )}
 
         {/* A tavern here, from the location payload (routes/location.ts). */}
         {locationData?.tavern && (
@@ -637,15 +654,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             {spot.name} →
           </button>
         ))}
-
-        {/* Tally board. Top level and unconditional: it reports work from
-            everywhere, so it must be reachable everywhere, and it doubles as
-            the prompt to raise one. */}
-        {showTallyLink === true && (
-          <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
-            Tally Board →
-          </button>
-        )}
 
         {/* The cask (services/brewing.ts): a town fixture, Mettlefell's alone. */}
         {locationData?.location?.has_cask && (
@@ -1050,6 +1058,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
               </div>
             )}
           </div>
+        )}
+        {/* Tally board. Top level and unconditional: it reports work from
+            everywhere, so it must be reachable everywhere, and it doubles as
+            the prompt to raise one. Always the last link (Nathan, 2026-11-25). */}
+        {showTallyLink === true && (
+          <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
+            Tally Board →
+          </button>
         )}
       </div>
 

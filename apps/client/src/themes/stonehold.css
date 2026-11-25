@@ -895,4 +895,16 @@
   border-image: url('/images/ui/stonehold/parchment.webp') 26 fill / 26px stretch;
   padding: 18px 14px;
   margin: var(--space-md) auto;
+  /* Square slots of a size of its own (Nathan, 2026-11-25). The theme's own
+     doll sizes .equipment-slot by the window's height (--sh-doll), which beat
+     the profile's 1fr columns: on a tall window the slots came out taller
+     than wide inside the 220px grid and the outlines stretched. */
+  grid-template-columns: repeat(3, 60px);
+  width: max-content;
+  max-width: none;
+}
+
+:root[data-theme='stonehold'] .profile-equipment-grid .equipment-slot {
+  width: 60px;
+  height: 60px;
 }
