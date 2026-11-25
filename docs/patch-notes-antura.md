@@ -60,7 +60,7 @@
 
 - [Content] **Antura** is tier 2, for levels 13 to 24. Its eight places are **Wendhaven** (the port), **Farefield** (farmland), **Mettlefell** (the forge town), **Underway** (the mine), **Bidewater** (a lake), **Farvick Narrows** (a strait and its tidal shore), **Yondereach** (the high passes), and **Vergehorns** (twin headlands).
 - [Feature] **The ferry** runs between **Talador and Wendhaven**: **50 gold** a crossing, **8 minutes**, open to anyone, and it pays no Wayfaring.
-- [Feature] **Your own boat makes the same crossing**, faster than the ferry, and pays Wayfaring at sea's rate. Sea crossings are buttons in the place's actions ("Ferry to Wendhaven", "Sail to Wendhaven in your Skiff"), not on the minimap.
+- [Feature] **Your own boat makes the same crossing**, faster than the ferry, and pays Wayfaring at sea's rate. At a port, the slip, the ferry, and your own boats are all under one **Sail** entry in the place's links.
 - [Content] **Antura's roads run a little longer** than Taiar's, as befits a bigger, wilder island.
 - [UI] **The map heading names the island you are on**, and the minimap shows plain road buttons for a place whose picture is not drawn yet.
 
@@ -216,6 +216,7 @@
 - [Feature] **The bell can ring when a one-off job is done**, such as mucking every pen or spreading manure. Tick it in the bell's list.
 - [Fix] **The bell's list fits on a phone**, and scrolls.
 - [UI] **NPCs no longer show an emoji** beside their names.
+- [UI] **A place's links sit closer together**, and the **Tally Board** is always the last of them.
 - [UI] **The level-up pop-up names homestead, shop, and hall tiers**, sawing, and brewing as they open.
 
 ## The Manual
