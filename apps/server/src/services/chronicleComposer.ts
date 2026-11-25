@@ -4,6 +4,7 @@ import db from '../db'
 import { logger } from '../lib/logger'
 import { gameDayKey, startOfGameDay, nextGameMidnight } from '../lib/gameTime'
 import { addDays, balladStanzas, canFill, countWord, dayTitle, nameList, renderVerse, seededUnit, Slots } from '../lib/chronicleVerse'
+import { listWords } from '../lib/listWords'
 import { STRONG_KILL_GAP, trimDeeds } from './chronicle'
 import { announceServer } from './records'
 import { pushToPlayer } from '../lib/realtime'
@@ -128,6 +129,9 @@ interface Deed {
     score: number
     /** A find commoner than COMMON_FIND_ONE_IN: the item, so only one of it is told a page. */
     commonFind?: string
+    /** A find_many deed: everyone it names (playerId is null on it), and their names, in step. */
+    playerIds?: number[]
+    playerNames?: string[]
 }
 
 /** The game-day window of a day key: from its midnight to the next. */
@@ -138,6 +142,15 @@ function dayWindow(dayKey: string): { start: Date; end: Date } {
 }
 
 const DROP_KINDS = new Set(['drop_rare', 'cryptid', 'world_first_item', 'trophy'])
+/**
+ * Finds told together when several people made the same one in a day (forum,
+ * 2026-11-20: two lines about two Rough Quartz at Grundagr read as a repeat).
+ * One find_many line names them all, at one place or several.
+ */
+const GROUPED_FINDS = new Set(['drop_rare', 'cryptid', 'trophy'])
+const FIND_MANY = 'find_many'
+/** Names a grouped line lists before "and N others". */
+const FIND_MANY_NAMES = 5
 /**
  * A find commoner than one in this many is told only when nothing better
  * fills the page, and once a page for each item, whoever found it (Nathan,
@@ -320,9 +333,47 @@ async function readDay(dayKey: string, settings: ChronicleSettings, names: boole
     }
     deeds.sort((a, b) => b.score - a.score || a.id - b.id)
 
+    // The same find by several people becomes one line naming them all
+    // (GROUPED_FINDS), worth a little more than its best part alone. The
+    // common-find rule below then has nothing left to trim for that item.
+    const grouped: Deed[] = []
+    const manyKind = kinds.get(FIND_MANY)
+    if (manyKind?.enabled) {
+        const byItem = new Map<string, Deed[]>()
+        for (const d of deeds) {
+            if (!GROUPED_FINDS.has(d.kind) || !d.playerId || !d.slots.item) continue
+            const key = String(d.slots.item)
+            byItem.set(key, [...(byItem.get(key) ?? []), d])
+        }
+        for (const [item, list] of byItem) {
+            const finders = [...new Map(list.map(d => [d.playerId!, d])).values()]
+            if (finders.length < 2) continue
+            const places = [...new Set(finders.map(d => d.slots.place).filter(Boolean).map(String))]
+            const best = finders.reduce((a, b) => (b.score > a.score ? b : a))
+            const deed: Deed = {
+                id: best.id, kind: FIND_MANY, section: manyKind.section, playerId: null, guildId: null,
+                subject: item, data: { item, finders: finders.length }, n: finders.length,
+                slots: {
+                    players: names ? nameList(finders.map(d => String(d.slots.player)), FIND_MANY_NAMES) : null,
+                    item,
+                    place: places.length === 1 ? places[0] : null,
+                    places: places.length > 1 ? listWords(places) : null,
+                    n: countWord(finders.length),
+                    date,
+                },
+                score: best.score * (1 + 0.25 * (finders.length - 1)),
+                playerIds: finders.map(d => d.playerId!),
+                playerNames: finders.map(d => String(d.slots.player ?? '')),
+            }
+            grouped.push(deed)
+            for (const d of list) d.score = -1
+        }
+    }
+    const merged = [...deeds.filter(d => d.score >= 0), ...grouped].sort((a, b) => b.score - a.score || a.id - b.id)
+
     // One line a page for each common find: the best-scored finder of it.
     const commonTold = new Set<string>()
-    const kept = deeds.filter(d => {
+    const kept = merged.filter(d => {
         if (!d.commonFind) return true
         if (commonTold.has(d.commonFind)) return false
         commonTold.add(d.commonFind)
@@ -416,11 +467,12 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
         const cap = kinds.get(d.kind)?.max_per_page
         if (cap !== null && cap !== undefined && (perKind.get(d.kind) ?? 0) >= cap) return false
         const l = line(section, d.kind, d.slots, `deed:${d.id}`, d.n, {
-            playerIds: d.playerId ? [d.playerId] : [],
+            playerIds: d.playerIds ?? (d.playerId ? [d.playerId] : []),
             guildIds: d.guildId ? [d.guildId] : [],
         })
         if (!l) return false
         told.add(d.id)
+        for (const id of d.playerIds ?? []) namedPlayers.add(id)
         if (d.playerId) namedPlayers.add(d.playerId)
         if (d.guildId) namedGuilds.add(d.guildId)
         perKind.set(d.kind, (perKind.get(d.kind) ?? 0) + 1)
@@ -472,11 +524,19 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
 
     // The long roll (§3): everyone else who did something worth noting, best first.
     const rollIds: number[] = []
+    const nameOf = new Map<number, string>()
     for (const d of deeds) {
-        if (d.playerId && !namedPlayers.has(d.playerId) && !rollIds.includes(d.playerId) && d.slots.player) rollIds.push(d.playerId)
+        // A grouped find that did not make the page still has its finders in the roll.
+        const who = d.playerIds
+            ? d.playerIds.map((id, i) => [id, d.playerNames?.[i] ?? ''] as const)
+            : d.playerId && d.slots.player ? [[d.playerId, String(d.slots.player)] as const] : []
+        for (const [id, name] of who) {
+            if (!name || namedPlayers.has(id) || rollIds.includes(id)) continue
+            rollIds.push(id)
+            nameOf.set(id, name)
+        }
     }
     if (rollIds.length) {
-        const nameOf = new Map(deeds.filter(d => d.playerId).map(d => [d.playerId!, String(d.slots.player)]))
         line('roll', 'roll', { names: nameList(rollIds.map(id => nameOf.get(id)!), s.roll_max), date }, 'roll', rollIds.length, { rollPlayerIds: rollIds })
     }
 
@@ -500,7 +560,7 @@ export async function composePage(dayKey: string, settings?: ChronicleSettings):
     const headline = lines.find(l => l.section === 'headline')?.text ?? null
     const scored: ScoredDeed[] = deeds.map(d => ({
         id: d.id, kind: d.kind, section: d.section,
-        player: d.slots.player ? String(d.slots.player) : null,
+        player: d.slots.player ? String(d.slots.player) : d.slots.players ? String(d.slots.players) : null,
         guild: d.slots.guild ? String(d.slots.guild) : null,
         subject: d.subject, score: Math.round(d.score * 10) / 10, told: told.has(d.id),
     }))
