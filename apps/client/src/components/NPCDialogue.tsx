@@ -96,7 +96,7 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
         try {
             if (option.action) {
                 // Server action — interact then reload
-                const result = await apiFetch<{ rewards?: QuestRewards | null; message?: string; end?: boolean }>(
+                const result = await apiFetch<{ rewards?: QuestRewards | null; message?: string; end?: boolean; options?: DialogueOption[] | null }>(
                     `/api/npcs/${npcId}/interact`,
                     { method: 'POST', body: JSON.stringify({ action: option.action }) },
                 )
@@ -112,10 +112,12 @@ export default function NPCDialogue({ npcId, onClose, onInteraction, onOpen }: N
                     return
                 }
 
-                // The NPC has had the last word (an errand given up or finished):
-                // show it with a way out, not their greeting all over again.
-                if (result?.end) {
-                    setData(d => d ? { ...d, dialogue: { ...d.dialogue, text_lines: [], options: [{ label: 'Leave', next_stage: null, action: 'close' }] }, questProgress: null } : d)
+                // The reply comes with its own answers (an errand taken: go, or
+                // not after all), or is the last word (an errand given up or
+                // finished): show it with those, not what the NPC says next time.
+                if (result?.options?.length || result?.end) {
+                    const options = result.options?.length ? result.options : [{ label: 'Leave', next_stage: null, action: 'close' }]
+                    setData(d => d ? { ...d, dialogue: { ...d.dialogue, text_lines: [], options }, questProgress: null } : d)
                     return
                 }
 

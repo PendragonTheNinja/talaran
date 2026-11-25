@@ -207,8 +207,20 @@ export async function errandActions(playerId: number, npc: { name: string; erran
 
 // ── Taking one, handing over, giving up ─────────────────────────────────────
 
-/** `end`: the conversation is over; the dialogue shows what was said and a way to leave, not the NPC's greeting again. */
-type Said = { ok: true; message: string; end?: boolean } | { ok: false; error: string; status: number };
+type Option = { label: string; next_stage: string | null; action: string | null };
+/**
+ * `options`: what the player may answer to what was just said. The dialogue
+ * shows the reply with these buttons and nothing else, rather than reloading
+ * into what the NPC says next time (which repeated the offer's waiting lines
+ * under it). `end` is the plain case: one Leave button.
+ */
+type Said = { ok: true; message: string; end?: boolean; options?: Option[] } | { ok: false; error: string; status: number };
+
+/** The answers to a leg just handed over: off you go, or not after all. */
+const ON_YOUR_WAY: Option[] = [
+    { label: '"I\'ll go."', next_stage: null, action: 'close' },
+    { label: '"I can\'t do it after all."', next_stage: null, action: 'errand_drop' },
+];
 
 function refuse(err: unknown, context: string): Said {
     if (err instanceof ErrandAbort) return { ok: false, error: err.message, status: 400 };
@@ -238,7 +250,7 @@ export async function acceptErrand(playerId: number, npc: { name: string; errand
             const limit = await legLimit(trx, leg);
             await trx('player_errands').insert({ player_id: playerId, errand_id: errand.id, leg: 0, leg_started_at: new Date(), leg_limit_seconds: limit });
             await addItemToInventoryWithin(trx, playerId, item.id, 1);
-            return { ok: true as const, message: [...say(leg.offer, { limit: spokenTime(limit), to: leg.to }), await whereIs(trx, leg.to)].filter(Boolean).join('\n') };
+            return { ok: true as const, message: [...say(leg.offer, { limit: spokenTime(limit), to: leg.to }), await whereIs(trx, leg.to)].filter(Boolean).join('\n'), options: ON_YOUR_WAY };
         });
     } catch (err) {
         return refuse(err, 'accept');
@@ -274,7 +286,7 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
                     .update({ leg: nextIndex, leg_started_at: new Date(), leg_limit_seconds: nextLimit, late_legs: late });
                 if (moved !== 1) throw new ErrandAbort('That has been handed over already.');
                 await addItemToInventoryWithin(trx, playerId, nextItem.id, 1);
-                return { ok: true as const, message: [...said, ...say(next.offer, { limit: spokenTime(nextLimit), to: next.to }), await whereIs(trx, next.to)].filter(Boolean).join('\n') };
+                return { ok: true as const, message: [...said, ...say(next.offer, { limit: spokenTime(nextLimit), to: next.to }), await whereIs(trx, next.to)].filter(Boolean).join('\n'), options: ON_YOUR_WAY };
             }
 
             // The last leg: the errand is done. The delete is the gate, so it pays once.

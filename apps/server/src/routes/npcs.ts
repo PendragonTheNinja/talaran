@@ -196,7 +196,7 @@ router.post('/:id/interact', requireAuth, async (req: AuthRequest, res: Response
                 : action === 'errand_deliver' ? await deliverErrand(playerId, npc)
                     : await dropErrand(playerId);
             if (!done.ok) { res.status(done.status).json({ error: done.error }); return; }
-            res.json({ success: true, action, message: done.message, end: done.end ?? false });
+            res.json({ success: true, action, message: done.message, end: done.end ?? false, options: done.options ?? null });
             return;
         }
 
