@@ -400,8 +400,9 @@ function seededRandom(seed: string): () => number {
  * Lines on a merchant's shelf each day (Nathan, 2026-10-13): drawn by date from
  * everything they carry, each with its own daily units (merchant_stock min_qty
  * to max_qty, 1 to 3 from the seed). A line marked is_core is on the shelf
- * every day and takes one of the 8; none is marked today, and it is there for
- * when tools can break.
+ * every day ON TOP of the 8, with the same 1 to 3 units: the tools a gathering
+ * skill cannot start without, so nobody is locked out of one for want of a
+ * trading partner (Nathan, 2026-11-25; `always` in seeds/08_merchants.ts).
  */
 export const DAILY_LINES = 8;
 
@@ -418,9 +419,9 @@ export interface StockLine {
 }
 
 /**
- * Today's shelf for one merchant, for one player: DAILY_LINES lines, every
- * is_core line first and the rest drawn by date from everything else they
- * carry, so the shelf is the same all day and for everyone.
+ * Today's shelf for one merchant, for one player: every is_core line first,
+ * then DAILY_LINES drawn by date from everything else they carry, so the
+ * shelf is the same all day and for everyone.
  */
 export async function getStock(merchantId: number, playerId: number, now: Date = new Date()): Promise<StockLine[]> {
     const dayKey = gameDayKey(now);
@@ -455,7 +456,7 @@ export async function getStock(merchantId: number, playerId: number, now: Date =
         const j = Math.floor(rand() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    const rotating = shuffled.slice(0, Math.max(0, DAILY_LINES - core.length));
+    const rotating = shuffled.slice(0, DAILY_LINES);
 
     const selected = [...core, ...rotating];
     if (selected.length === 0) return [];

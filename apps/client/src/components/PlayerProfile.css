@@ -58,6 +58,7 @@
 .profile-actions {
     display: flex;
     justify-content: center;
+    gap: 8px;
     padding: 0 16px 10px;
 }
 

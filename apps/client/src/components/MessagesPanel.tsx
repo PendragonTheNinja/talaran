@@ -28,12 +28,14 @@ interface MessagesPanelProps {
     onClose: () => void
     onUnreadChange: (count: number) => void
     closing?: boolean
+    /** Open straight onto a new message to this player (a profile's Message button). */
+    writeTo?: string | null
 }
 
-export default function MessagesPanel({ onClose, onUnreadChange, closing }: MessagesPanelProps) {
+export default function MessagesPanel({ onClose, onUnreadChange, closing, writeTo }: MessagesPanelProps) {
     const [messages, setMessages] = useState<MessageSummary[]>([])
     const [selected, setSelected] = useState<MessageFull | null>(null)
-    const [view, setView] = useState<'inbox' | 'compose' | 'read'>('inbox')
+    const [view, setView] = useState<'inbox' | 'compose' | 'read'>(writeTo ? 'compose' : 'inbox')
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
@@ -42,7 +44,7 @@ export default function MessagesPanel({ onClose, onUnreadChange, closing }: Mess
     const [sentMessages, setSentMessages] = useState<any[]>([])
 
     // Compose form
-    const [composeTo, setComposeTo] = useState('')
+    const [composeTo, setComposeTo] = useState(writeTo ?? '')
     const [composeSubject, setComposeSubject] = useState('')
     const [replyToId, setReplyToId] = useState<number | null>(null)
     // The body is a draft (lib/drafts.ts), one per message being answered and

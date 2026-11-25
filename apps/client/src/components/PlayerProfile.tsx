@@ -52,6 +52,8 @@ interface PlayerProfileProps {
     onClose: () => void
     /** Puts "Name@" in the chat box (forum, 2026-11-23). Absent where there is no chat. */
     onWhisper?: (username: string) => void
+    /** Opens Messages on a new letter to them (Nathan, 2026-11-25). */
+    onMessage?: (username: string) => void
     /** The viewer's own name: no Whisper button on their own profile. */
     selfName?: string
 }
@@ -71,7 +73,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function PlayerProfile({ playerId, onClose, onWhisper, selfName }: PlayerProfileProps) {
+export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage, selfName }: PlayerProfileProps) {
     const [hasPalettePerk, setHasPalettePerk] = useState(false)
     useEffect(() => {
         apiFetchPalettes<{ hasPerk: boolean }>('/api/palettes')
@@ -170,11 +172,18 @@ export default function PlayerProfile({ playerId, onClose, onWhisper, selfName }
                             </div>
                         </div>
 
-                        {onWhisper && profile.player.username !== selfName && (
+                        {(onWhisper || onMessage) && profile.player.username !== selfName && (
                             <div className="profile-actions">
-                                <button className="btn btn-gold profile-whisper-btn" onClick={() => onWhisper(profile.player.username)}>
-                                    Whisper to {profile.player.username}
-                                </button>
+                                {onWhisper && (
+                                    <button className="btn btn-gold profile-whisper-btn" onClick={() => onWhisper(profile.player.username)}>
+                                        Whisper
+                                    </button>
+                                )}
+                                {onMessage && (
+                                    <button className="btn btn-gold profile-whisper-btn" onClick={() => onMessage(profile.player.username)}>
+                                        Message
+                                    </button>
+                                )}
                             </div>
                         )}
 

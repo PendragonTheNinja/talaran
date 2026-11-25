@@ -648,6 +648,8 @@ export default function GameLayout({
   const [guildClosing, setGuildClosing] = useState(false)
 
   const [showMessages, setShowMessages] = useState(false)
+  // A profile's Message button opens the panel on a new message to them.
+  const [messageTo, setMessageTo] = useState<string | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
   // New replies on threads this player started (routes/forum.ts): read on
   // load, every 30 seconds, and whenever the server says it changed.
@@ -1393,9 +1395,11 @@ export default function GameLayout({
 
       {showMessages && (
         <MessagesPanel
-          onClose={() => closePanel(setMessagesClosing, setShowMessages)}
+          key={messageTo ?? 'inbox'}
+          onClose={() => { setMessageTo(null); closePanel(setMessagesClosing, setShowMessages) }}
           onUnreadChange={setUnreadMessages}
           closing={messagesClosing}
+          writeTo={messageTo}
         />
       )}
 
@@ -1492,6 +1496,14 @@ export default function GameLayout({
           playerId={profilePlayerId}
           onClose={() => setProfilePlayerId(null)}
           selfName={player.username}
+          onMessage={(name: string) => {
+            setProfilePlayerId(null)
+            // Already open: the new key remounts it on the letter. Closing it
+            // first would let closePanel's timer shut it again after reopening.
+            if (!showMessages) closeAllPanels()
+            setMessageTo(name)
+            setShowMessages(true)
+          }}
           onWhisper={(name: string) => {
             setChatDraft(`${name}@`)
             setProfilePlayerId(null)

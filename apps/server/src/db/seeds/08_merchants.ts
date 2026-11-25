@@ -47,8 +47,11 @@ interface MerchantSeed {
      */
     stock: string[];
     /**
-     * On the shelf every day, on top of the daily draw's share of the 8.
-     * Empty for now: the breakage safety net, kept for when tools can break.
+     * On the shelf every day, on top of the daily draw's 8, with the same 1 to
+     * 3 units a player: the tools a gathering skill cannot start without
+     * (Nathan, 2026-11-25), since tools break and a player alone must never be
+     * locked out of a trade for want of someone to buy from. Taiar's T1 only;
+     * a lower-tier tool still works higher-tier work, slower.
      */
     always?: string[];
 }
@@ -68,17 +71,19 @@ const MERCHANTS: MerchantSeed[] = [
         sells: true,
         is_active: true,
         display_order: 1,
-        stock: [
+        always: [
             'Ambren Pickaxe',
             'Ambren Hatchet',
+            'Ambren Foraging Knife',
+            'Ambren Hoe',
+            'Ambren Butchering Knife',
+        ],
+        stock: [
             'Ambren Hammer',
             'Ambren Tongs',
             'Ambren Saw',
             'Ambren Plane',
-            'Ambren Hoe',
             'Ambren Scythe',
-            'Ambren Foraging Knife',
-            'Ambren Butchering Knife',
             'Ambren Hook',
             'Ambren Tinderbox',
             'Ambren Cauldron',
@@ -109,16 +114,18 @@ const MERCHANTS: MerchantSeed[] = [
         sells: true,
         is_active: true,
         display_order: 2,
+        always: [
+            'Ambren Fishing Rod',
+            // Made at the carpenter's bench, so his to sell (Nathan, 2026-11-07).
+            'Lanai Hunting Bow',
+            'Feed Pail',
+            'Mucking Fork',
+        ],
         stock: [
             'Lanai Mallet',
             'Lanai Bucket',
             'Lanai Sawhorse',
-            'Feed Pail',
-            'Mucking Fork',
-            'Ambren Fishing Rod',
             'Lanai Staff',
-            // Made at the carpenter's bench, so his to sell (Nathan, 2026-11-07).
-            'Lanai Hunting Bow',
         ],
     },
     {
@@ -131,11 +138,13 @@ const MERCHANTS: MerchantSeed[] = [
         sells: true,
         is_active: true,
         display_order: 3,
+        always: [
+            'Snare',
+        ],
         stock: [
             'Leather Boots',
             'Leather Foraging Gloves',
             'Halter & Lead',
-            'Snare',
             'Foraging Basket',
             'Fishing Net',
             'Straw Skep',
