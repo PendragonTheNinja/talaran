@@ -59,7 +59,7 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
             return;
         }
 
-        // An errand under way speaks for itself (services/errands.ts, the Friddick Brothers).
+        // An errand under way speaks for itself (services/errands.ts, the Friddik Brothers).
         // A tutor's daily task, once their lesson is done (services/dailies.ts).
         // Now and then an NPC adds a rare line of their own (npc_rare_lines).
         const rare = forceStage ? null : await rareLine(npc.id);

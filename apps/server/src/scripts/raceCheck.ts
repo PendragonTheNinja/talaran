@@ -2727,6 +2727,28 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'errand-bring', name: 'goods brought for an errand handed over five times at once', rounds: 10,
+        run: async (ctx) => {
+            // deliverErrand with a brought leg (Leg.supply): the six planks go
+            // once, and the goods and the pay are each paid once.
+            const e = await errandWorld(ctx);
+            await ctx.db('items').where({ id: e.w.plank.id }).update({ value: 5 });
+            const legs = [{ from: 'Brother A', to: 'Brother B', item: e.w.plank.name, supply: 6, offer: ['x'], waiting: ['x'], on_time: ['x'], late: ['x'], very_late: ['x'] }];
+            await ctx.db('errands').where({ id: e.errand.id }).update({ legs: JSON.stringify(legs) });
+            await inPack(ctx, e.w.player.id, e.w.plank.id, 14);
+            await ctx.seed.row('player_errands', { player_id: e.w.player.id, errand_id: e.errand.id, leg: 0, leg_started_at: new Date(), leg_limit_seconds: 600 });
+            const st = await ctx.burst(e.w.player.id, 5, () => ctx.post(e.w.player.id, `/npcs/${e.to.id}/interact`, { action: 'errand_deliver' }));
+            const goodsPaid = await ctx.db('gold_ledger').where({ player_id: e.w.player.id, reason: 'errand_goods' }).pluck('delta');
+            const pays = await ctx.db('gold_ledger').where({ player_id: e.w.player.id, reason: 'errand_reward' }).pluck('delta');
+            return noServerErrors(st)
+                ?? changed('planks left', 8, await ctx.itemTotal(e.w.plank.id))
+                ?? changed('goods payments', 1, goodsPaid.length)
+                ?? changed('goods paid', 30, Number(goodsPaid[0] ?? 0))
+                ?? changed('payments made', 1, pays.length)
+                ?? await ledgerProblem(ctx);
+        },
+    },
+    {
         id: 'daily', name: 'a tutor\'s daily handed in five times at once', rounds: 10,
         run: async (ctx) => {
             // services/dailies.ts handInDaily: the day's row is the gate, so the

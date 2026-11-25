@@ -179,7 +179,7 @@ export async function handInDaily(playerId: number, npc: any): Promise<{ ok: tru
 //
 // Any NPC may have lines that turn up only now and then (`npc_rare_lines`,
 // 1 in `chance_one_in` each time the player opens a conversation), added
-// after what the NPC would have said. The Friddicks' first: a faint hint of
+// after what the NPC would have said. The Friddiks' first: a faint hint of
 // the brothers who went through a door and never came out the other side.
 
 export async function rareLine(npcId: number): Promise<string | null> {

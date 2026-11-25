@@ -45,7 +45,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             };
         });
 
-        // An errand under way (the Friddicks) shows beside the quests, though it is not one.
+        // An errand under way (the Friddiks) shows beside the quests, though it is not one.
         res.json({ quests: result, errand: await errandSummary(playerId) });
     } catch (err) {
         logger.error(`Get quests error: ${err}`);

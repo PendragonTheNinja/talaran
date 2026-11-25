@@ -25,7 +25,7 @@ interface Quest {
 /** An errand under way (server services/errands.ts errandSummary). */
 interface ErrandNow {
     name: string; leg: number; legs: number
-    item: string; from: string; to: string; place: string | null
+    item: string; quantity: number; brought: boolean; from: string; to: string; place: string | null
     secondsLeft: number
 }
 
@@ -146,7 +146,7 @@ export default function QuestsView() {
                             <div className="quest-npc muted-text">For {errand.from}</div>
                             <div className="quest-objectives">
                                 <div className="quest-objective">
-                                    <span>○ Take the {errand.item} to {errand.to}{errand.place ? ` in ${errand.place}` : ''}</span>
+                                    <span>○ {errand.brought ? `Bring ${errand.item}${errand.quantity > 1 ? ` ×${errand.quantity}` : ''}` : `Take the ${errand.item}`} to {errand.to}{errand.place ? ` in ${errand.place}` : ''}</span>
                                     <span className="quest-objective-progress muted-text">{timeLeft(errand.secondsLeft)}</span>
                                 </div>
                                 {errand.legs > 1 && (

@@ -5,8 +5,9 @@ import { addItemToInventoryWithin, takeItemsWithin } from './inventory';
 import { creditGoldWithin } from './gold';
 import { awardXp } from './xp';
 import { gameDayKey } from '../lib/gameTime';
+import { listWords } from '../lib/listWords';
 
-// ── Errands (the Friddick Brothers; Nathan, 2026-11-22) ─────────────────────
+// ── Errands (the Friddik Brothers; Nathan, 2026-11-22) ─────────────────────
 //
 // Repeatable timed deliveries between NPCs who will not go themselves. An
 // errand (`errands`) is a line of one or more legs: each leg hands the player
@@ -37,9 +38,24 @@ const VERY_LATE_FACTOR = 1;
 
 interface Leg {
     from: string; to: string; item: string
+    /**
+     * Brought, not handed over (Nathan, 2026-11-25): the player supplies this
+     * many of an everyday item (eggs, feathers) from their own pack, and the
+     * one receiving keeps them. Nothing is given out, so nothing can be kept
+     * by giving the errand up; the goods are paid for at their value.
+     */
+    supply?: number
     offer: string[]; waiting: string[]
     on_time: string[]; late: string[]; very_late: string[]
 }
+
+/** Extra time on a leg whose goods the player must fetch first. */
+export const SUPPLY_FETCH_SECONDS = 900;
+
+/** How many of the leg's item the receiver wants. */
+const wanted = (leg: Leg) => Math.max(1, Math.floor(Number(leg.supply ?? 1)));
+/** "Egg ×6", or just "Matthew's Pie" for one. */
+const goods = (leg: Leg) => wanted(leg) > 1 ? `${leg.item} ×${wanted(leg)}` : leg.item;
 interface Errand { id: number; key: string; name: string; pool: string; legs: Leg[]; reward_gold: number; reward_skill: string | null; reward_xp: number }
 
 class ErrandAbort extends Error {}
@@ -67,7 +83,7 @@ function pick(n: number, seed: string): number {
     return Math.abs(h) % n;
 }
 
-/** Where an NPC stands, for telling the player where to go: "Matthew Friddick is in Dawncrest." */
+/** Where an NPC stands, for telling the player where to go: "Matthew Friddik is in Dawncrest." */
 async function whereIs(x: any, name: string): Promise<string> {
     const r = await x('npcs as n').join('locations as l', 'l.id', 'n.location_id').where('n.name', name).first('l.name');
     return r ? `(${name} is in ${r.name}.)` : '';
@@ -114,7 +130,7 @@ async function npcPlace(x: any, name: string): Promise<number> {
 /** The time allowed for a leg, in seconds. */
 async function legLimit(x: any, leg: Leg): Promise<number> {
     const road = await roadSeconds(x, await npcPlace(x, leg.from), await npcPlace(x, leg.to));
-    return Math.round((road ?? 600) * ERRAND_SLACK + ERRAND_GRACE_SECONDS);
+    return Math.round((road ?? 600) * ERRAND_SLACK + ERRAND_GRACE_SECONDS + (leg.supply ? SUPPLY_FETCH_SECONDS : 0));
 }
 
 async function openErrand(x: any, playerId: number, lock = false) {
@@ -127,10 +143,10 @@ async function openErrand(x: any, playerId: number, lock = false) {
     return { row, errand: e, leg: e.legs[Number(row.leg)] as Leg | undefined };
 }
 
-async function carries(x: any, playerId: number, itemName: string): Promise<boolean> {
+async function carries(x: any, playerId: number, itemName: string, quantity = 1): Promise<boolean> {
     const r = await x('player_inventory as pi').join('items as i', 'i.id', 'pi.item_id')
-        .where({ 'pi.player_id': playerId, 'i.name': itemName }).where('pi.quantity', '>', 0).first('pi.item_id');
-    return !!r;
+        .where({ 'pi.player_id': playerId, 'i.name': itemName }).sum({ q: 'pi.quantity' }).first();
+    return Number(r?.q ?? 0) >= quantity;
 }
 
 // ── What an errand NPC says and offers ──────────────────────────────────────
@@ -165,13 +181,15 @@ export async function errandTalk(playerId: number, npc: { name: string; errand_p
     const { leg, row } = open;
     const left = Number(row.leg_limit_seconds) - (Date.now() - new Date(row.leg_started_at).getTime()) / 1000;
     if (leg.to === npc.name) {
-        const has = await carries(db, playerId, leg.item);
+        const has = await carries(db, playerId, leg.item, wanted(leg));
         // Brothers say each other's first names.
         const sender = leg.from.split(' ')[0];
         return {
-            lines: has ? [`${sender} sent you? Let's see it.`] : [`${sender} said something was coming. You haven't got it.`],
+            lines: has
+                ? [leg.supply ? `${sender} sent you? Let's see what you've brought.` : `${sender} sent you? Let's see it.`]
+                : [leg.supply ? `${sender} said you'd be bringing something. You haven't got it all.` : `${sender} said something was coming. You haven't got it.`],
             options: [
-                ...(has ? [{ label: `Hand over the ${leg.item}`, next_stage: null, action: 'errand_deliver' }] : []),
+                ...(has ? [{ label: leg.supply ? `Hand over ${goods(leg)}` : `Hand over the ${leg.item}`, next_stage: null, action: 'errand_deliver' }] : []),
                 { label: 'Leave', next_stage: null, action: 'close' },
             ],
         };
@@ -200,7 +218,7 @@ export async function errandActions(playerId: number, npc: { name: string; erran
         return lines.some(e => e.legs[0]?.from === npc.name) ? ['errand_accept'] : [];
     }
     if (!open.leg) return ['errand_drop'];
-    if (open.leg.to === npc.name && await carries(db, playerId, open.leg.item)) return ['errand_deliver'];
+    if (open.leg.to === npc.name && await carries(db, playerId, open.leg.item, wanted(open.leg))) return ['errand_deliver'];
     if (open.leg.from === npc.name) return ['errand_drop'];
     return [];
 }
@@ -249,8 +267,8 @@ export async function acceptErrand(playerId: number, npc: { name: string; errand
             if (!item) throw new ErrandAbort(`No one in Talaran has made ${leg.item} yet.`);
             const limit = await legLimit(trx, leg);
             await trx('player_errands').insert({ player_id: playerId, errand_id: errand.id, leg: 0, leg_started_at: new Date(), leg_limit_seconds: limit });
-            await addItemToInventoryWithin(trx, playerId, item.id, 1);
-            return { ok: true as const, message: [...say(leg.offer, { limit: spokenTime(limit), to: leg.to }), await whereIs(trx, leg.to)].filter(Boolean).join('\n'), options: ON_YOUR_WAY };
+            if (!leg.supply) await addItemToInventoryWithin(trx, playerId, item.id, 1);
+            return { ok: true as const, message: [...say(leg.offer, { limit: spokenTime(limit), to: leg.to, qty: String(wanted(leg)) }), await whereIs(trx, leg.to)].filter(Boolean).join('\n'), options: ON_YOUR_WAY };
         });
     } catch (err) {
         return refuse(err, 'accept');
@@ -265,8 +283,8 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
             const open = await openErrand(trx, playerId, true);
             if (!open?.leg || open.leg.to !== npc.name) throw new ErrandAbort(`You have nothing for ${npc.name}.`);
             const { row, errand, leg } = open;
-            const took = await takeItemsWithin(trx, playerId, [{ name: leg.item, quantity: 1 }]);
-            if (!took.ok) throw new ErrandAbort(`You haven't got the ${leg.item}.`);
+            const took = await takeItemsWithin(trx, playerId, [{ name: leg.item, quantity: wanted(leg) }]);
+            if (!took.ok) throw new ErrandAbort(leg.supply ? `You need ${goods(leg)}.` : `You haven't got the ${leg.item}.`);
 
             const limit = Number(row.leg_limit_seconds);
             const taken = (Date.now() - new Date(row.leg_started_at).getTime()) / 1000;
@@ -285,7 +303,7 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
                 const moved = await trx('player_errands').where({ player_id: playerId, leg: row.leg })
                     .update({ leg: nextIndex, leg_started_at: new Date(), leg_limit_seconds: nextLimit, late_legs: late });
                 if (moved !== 1) throw new ErrandAbort('That has been handed over already.');
-                await addItemToInventoryWithin(trx, playerId, nextItem.id, 1);
+                if (!next.supply) await addItemToInventoryWithin(trx, playerId, nextItem.id, 1);
                 return { ok: true as const, message: [...said, ...say(next.offer, { limit: spokenTime(nextLimit), to: next.to }), await whereIs(trx, next.to)].filter(Boolean).join('\n'), options: ON_YOUR_WAY };
             }
 
@@ -293,20 +311,36 @@ export async function deliverErrand(playerId: number, npc: { name: string }): Pr
             const closed = await trx('player_errands').where({ player_id: playerId, leg: row.leg }).delete();
             if (closed !== 1) throw new ErrandAbort('That has been handed over already.');
             const paid: string[] = [];
+            // Goods the player brought are paid for whether or not they were late:
+            // they were handed over either way. Full value, as a tutor's daily pays.
+            let goodsGold = 0;
+            for (const l of errand.legs.filter(x => x.supply)) {
+                const v = Number((await trx('items').where({ name: l.item }).first('value'))?.value ?? 0);
+                goodsGold += v * wanted(l);
+            }
+            if (goodsGold > 0) {
+                await creditGoldWithin(trx, { playerId, amount: goodsGold, reason: 'errand_goods', refType: 'errand', refId: errand.id });
+            }
             if (late === 0) {
                 const gold = wander(errand.reward_gold), xp = wander(errand.reward_xp);
                 if (gold > 0) {
                     await creditGoldWithin(trx, { playerId, amount: gold, reason: 'errand_reward', refType: 'errand', refId: errand.id });
-                    paid.push(`${gold.toLocaleString('en-US')} gold`);
                 }
+                // One gold figure: the pay and the goods together, the goods' share named.
+                const total = gold + goodsGold;
+                if (total > 0) paid.push(goodsGold > 0
+                    ? `${total.toLocaleString('en-US')} gold (${goodsGold.toLocaleString('en-US')} of it for the goods)`
+                    : `${total.toLocaleString('en-US')} gold`);
                 if (errand.reward_skill && xp > 0) {
                     await awardXp(playerId, errand.reward_skill, xp, trx);
                     paid.push(`${xp.toLocaleString('en-US')} ${errand.reward_skill} experience`);
                 }
             }
             const tail = late === 0
-                ? (paid.length ? `(Errand done on time. You are paid ${paid.join(' and ')}.)` : '(Errand done on time.)')
-                : '(Errand done, but late. Nothing is paid for a late errand.)';
+                ? (paid.length ? `(Errand done on time. You are paid ${listWords(paid)}.)` : '(Errand done on time.)')
+                : goodsGold > 0
+                    ? `(Errand done, but late. You are paid ${goodsGold.toLocaleString('en-US')} gold for the goods, and nothing more.)`
+                    : '(Errand done, but late. Nothing is paid for a late errand.)';
             return { ok: true as const, message: [...said, tail].join('\n'), end: true };
         });
     } catch (err) {
@@ -321,7 +355,8 @@ export async function dropErrand(playerId: number): Promise<Said> {
             await trx('players').where({ id: playerId }).forUpdate().first('id');
             const open = await openErrand(trx, playerId, true);
             if (!open) throw new ErrandAbort('You are not carrying anything for anyone.');
-            if (open.leg && await carries(trx, playerId, open.leg.item)) {
+            // A handed-over item goes back; goods the player brought are theirs to keep.
+            if (open.leg && !open.leg.supply && await carries(trx, playerId, open.leg.item)) {
                 await takeItemsWithin(trx, playerId, [{ name: open.leg.item, quantity: 1 }]);
             }
             await trx('player_errands').where({ player_id: playerId }).delete();
@@ -336,7 +371,7 @@ export async function dropErrand(playerId: number): Promise<Said> {
 
 export interface ErrandSummary {
     name: string; leg: number; legs: number
-    item: string; from: string; to: string; place: string | null
+    item: string; quantity: number; brought: boolean; from: string; to: string; place: string | null
     secondsLeft: number
 }
 
@@ -349,7 +384,7 @@ export async function errandSummary(playerId: number): Promise<ErrandSummary | n
     const left = Number(row.leg_limit_seconds) - (Date.now() - new Date(row.leg_started_at).getTime()) / 1000;
     return {
         name: errand.name, leg: Number(row.leg) + 1, legs: errand.legs.length,
-        item: leg.item, from: leg.from, to: leg.to, place: place?.name ?? null,
+        item: leg.item, quantity: wanted(leg), brought: !!leg.supply, from: leg.from, to: leg.to, place: place?.name ?? null,
         secondsLeft: Math.round(left),
     };
 }
