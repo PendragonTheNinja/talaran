@@ -4,7 +4,7 @@ It is the plainest trade in Talaran. It has no tools, no workshop, and no techni
 
 ## Where and how to start
 
-You cannot practise Constitution on purpose. It rises from fighting: on Taiar, start where Melee starts, at **The Docks** in Talador.
+You cannot practise Constitution on purpose. It rises from fighting: on Taiar, start where Melee starts, at **The Docks** in Talador, and on Antura, wherever the Melee page sends you from 13.
 
 Every kill pays Defense and Constitution between them. **What got past your armour goes to Constitution.** The more blows you take and live through, the more it climbs. It is the one trade in which being hit is progress, which is a comfort, and not a large one.
 
@@ -30,7 +30,8 @@ If your health runs out, you fall. The [Combat](/manual/systems/combat) page say
 
 ## Connections
 
-- **Fishing** and **Cooking** are this skill's real teachers. A fighter's reach is exactly as long as his food.
+- **Fishing** and **Cooking** are this skill's real teachers. A fighter's reach is exactly as long as his food. Antura's dishes mend the most yet; its Shore Pie is the best of them.
+- **Talar** helps here too: a Hearty Amulet makes every meal eaten in a fight mend more.
 - **Defense** decides how much reaches Constitution in the first place.
 - **Melee** decides how long you must stand there.
 
