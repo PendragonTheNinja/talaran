@@ -9,6 +9,7 @@ import { extraQueries, talarPathRows } from '../services/manualQueries';
 import { buildItemPage } from '../services/itemPage';
 import { buildSpellPage, spellIndexRows } from '../services/spellPage';
 import { searchManual } from '../services/manualSearch';
+import { gateSkill } from '../services/equipGates';
 
 // The Manual's dynamic data blocks (docs/manual-spec.md §4).
 //
@@ -108,12 +109,12 @@ const RECIPE_TOWNS: Record<string, string> = {
     smithing: 'Emberra',
     carpentry: 'Verdale',
     crafting: 'Caliwen',
-    farming: FARMSTEAD_TOWN,
+    farming: 'Your homestead',
     // Churning and pressing happen at the farmstead, the same as tilling.
     // Missing this line is why Churn Butter and Press Cheese both read
     // "Where: Unknown" — exactly the failure the note below warns about, one
     // skill later.
-    husbandry: FARMSTEAD_TOWN,
+    husbandry: 'Your homestead',
     cooking: 'Phoenwick',
 };
 
@@ -180,6 +181,98 @@ function recipeWhere(skill: string, station: string | null, requiredTools: strin
         if (tools.length === 0) return `${town} or a campfire`;
     }
     return town;
+}
+
+interface PathRow { level: number; unlock: string; island: string; where: string; iconName: string | null; details: string }
+
+/**
+ * Training-path rows for the level gates that live in tables of their own
+ * (the same ones services/unlocks.ts names for the level-up pop-up).
+ */
+async function otherPathRows(s: string): Promise<PathRow[]> {
+    const rows: PathRow[] = [];
+    if (s === 'foraging') {
+        const habitats = await db('foraging_habitats as h').leftJoin('locations as l', 'l.id', 'h.location_id')
+            .where('h.is_active', true)
+            .select('h.name', 'h.required_level', 'h.base_timer', 'l.name as where', 'l.region as island');
+        for (const h of habitats) {
+            rows.push({ level: h.required_level, unlock: h.name, island: h.island || '', where: h.where || 'Unknown',
+                iconName: null, details: `Search · ${fmtSeconds(h.base_timer)}` });
+        }
+    }
+    if (s === 'hunting') {
+        const animals = await db('huntable_animals as a').leftJoin('locations as l', 'l.id', 'a.location_id')
+            .where('a.is_active', true)
+            .select('a.name', 'a.required_level', 'a.base_timer', 'a.base_catch_chance', 'a.xp_success', 'l.name as where', 'l.region as island');
+        for (const a of animals) {
+            rows.push({ level: a.required_level, unlock: a.name, island: a.island || '', where: a.where || 'Unknown',
+                iconName: null, details: `Hunt · ${fmtSeconds(a.base_timer)} · ${a.base_catch_chance}% to start · ${a.xp_success} XP` });
+        }
+        const traps = await db('trap_types').where({ is_active: true }).select('name', 'item_name', 'required_level');
+        for (const t of traps) {
+            rows.push({ level: t.required_level, unlock: t.name, island: '', where: 'Any trapping ground',
+                iconName: t.item_name, details: 'Set and leave' });
+        }
+    }
+    if (s === 'husbandry') {
+        const species = await db('animal_species').where({ is_active: true })
+            .select('name', 'husbandry_level', 'baby_item_name', 'pen_type');
+        for (const a of species) {
+            rows.push({ level: a.husbandry_level, unlock: a.name, island: '', where: 'Your homestead',
+                iconName: a.baby_item_name, details: `Raise · ${a.pen_type}` });
+        }
+    }
+    if (s === 'carpentry' || s === 'wayfaring') {
+        const column = s === 'carpentry' ? 'build_level' : 'sail_level';
+        const boats = await db('vessel_types').where({ is_active: true }).select('name', 'tier', column);
+        for (const b of boats) {
+            rows.push({ level: b[column], unlock: s === 'carpentry' ? `Build a ${b.name}` : `Sail a ${b.name}`,
+                island: '', where: s === 'carpentry' ? 'A slip' : 'At sea', iconName: null, details: `Tier ${b.tier} boat` });
+        }
+    }
+    if (s === 'carpentry') {
+        const { HOMESTEAD_TIERS } = await import('../services/farming');
+        for (const t of HOMESTEAD_TIERS) {
+            if (t.tier > 1) rows.push({ level: t.carpentry, unlock: `A tier ${t.tier} homestead`, island: '', where: 'Your homestead', iconName: null, details: 'Build or raise' });
+        }
+        for (const [n, t] of Object.entries(SHOP_TIERS)) {
+            if (Number(n) > 1) rows.push({ level: t.carpentry, unlock: `A tier ${n} shop`, island: '', where: 'A port', iconName: null, details: 'Build or raise' });
+        }
+        const halls = await db('guild_hall_tiers').where('tier', '>', 1).select('tier', 'build_level');
+        for (const h of halls) rows.push({ level: h.build_level, unlock: `A guild hall's tier ${h.tier}`, island: '', where: 'Your guild hall', iconName: null, details: 'Built with your guild' });
+    }
+    if (s === 'cooking') {
+        const { BREW_LEVEL, BREW_SECONDS, maxBatchesFor } = await import('../services/brewing');
+        rows.push({ level: BREW_LEVEL, unlock: 'Brewing Ale', island: '', where: 'The cask at Mettlefell', iconName: 'Ale',
+            details: `${maxBatchesFor(BREW_LEVEL)} batches a cask · ${fmtSeconds(BREW_SECONDS)}` });
+        for (let lv = BREW_LEVEL + 1; lv <= 100; lv++) {
+            if (maxBatchesFor(lv) > maxBatchesFor(lv - 1)) {
+                rows.push({ level: lv, unlock: `A cask of ${maxBatchesFor(lv)} batches`, island: '', where: 'The cask at Mettlefell', iconName: 'Ale', details: 'More Ale a brew' });
+            }
+        }
+    }
+    // Gear this skill gates (services/equipGates.ts): Wayfaring's mounts, a
+    // trade's own tools. Melee and Defense have tables of their own.
+    if (s !== 'melee' && s !== 'defense' && s !== 'constitution') {
+        const gear = await db('items').where({ is_active: true }).where('level_required', '>', 0)
+            .select('name', 'level_required', 'weapon_form', 'armour', 'subtype', 'aim', 'power', 'type');
+        // A tool this skill also makes is already a recipe row.
+        const made = new Set((await db('recipes').whereRaw('LOWER(skill) = ?', [s]).pluck('output_item_name')) as string[]);
+        for (const g of gear) {
+            if ((gateSkill(g) ?? '').toLowerCase() !== s || made.has(g.name)) continue;
+            rows.push({ level: g.level_required, unlock: g.name, island: '', where: g.type === 'mount' ? 'Ridden' : 'Worn or held',
+                iconName: g.name, details: g.type === 'mount' ? 'A mount' : g.subtype === 'sailors_set' ? 'A sea journey 1% shorter' : 'A tool of the trade' });
+        }
+    }
+    const roads = await db('location_connections as c')
+        .join('locations as a', 'a.id', 'c.from_location_id')
+        .join('locations as b', 'b.id', 'c.to_location_id')
+        .whereRaw('LOWER(c.required_skill) = ?', [s])
+        .select('a.name as from', 'b.name as to', 'a.region as island', 'c.required_level as level');
+    for (const r of roads) {
+        rows.push({ level: r.level, unlock: `The road to ${r.to}`, island: r.island || '', where: r.from, iconName: null, details: 'Travel' });
+    }
+    return rows;
 }
 
 // ── registry ────────────────────────────────────────────────────────────────
@@ -269,6 +362,7 @@ const registry: Record<string, QueryHandler> = {
                     'fish_species.min_weight_cw',
                     'fish_species.max_weight_cw',
                     'fish_species.xp',
+                    'fish_species.kind',
                     'locations.name as location_name',
                     'locations.region as island',
                 )
@@ -278,8 +372,21 @@ const registry: Record<string, QueryHandler> = {
         // nodes or recipes (services/manualQueries.ts).
         const talar = skill.toLowerCase() === 'talar' ? await talarPathRows() : [];
 
+        // The rest of the level gates services/unlocks.ts lists, which are
+        // neither nodes nor recipes: habitats, quarry, traps, animals to raise,
+        // boats, buildings, gear, and roads. Without these the Foraging,
+        // Hunting, and Wayfaring tables were empty.
+        const other = await otherPathRows(skill.toLowerCase());
+
+        // Each island's homestead ground (the islands table), where its crops
+        // are sown; Antura's crops read "Novita" before this.
+        const homesteadOf = new Map<string, string>(
+            (await db('islands').select('name', 'homestead_place'))
+                .map((i: { name: string; homestead_place: string }) => [i.name, i.homestead_place]));
+
         const rows = [
             ...talar,
+            ...other,
             ...fish.map((f) => {
                 const notes = [`${f.xp} XP`];
                 if (f.bait_category) notes.push(`takes ${f.bait_category}`);
@@ -291,7 +398,12 @@ const registry: Record<string, QueryHandler> = {
                         ? `${String(f.seasons).replace(/,/g, ' and ')} only`
                         : `favours ${String(f.seasons).replace(/,/g, ' and ')}`);
                 }
-                notes.push(`${(Number(f.min_weight_cw) / 100).toFixed(2)} to ${(Number(f.max_weight_cw) / 100).toFixed(2)} lb`);
+                // Salvage (fish_species.kind) is not weighed.
+                if (f.kind === 'fish') {
+                    notes.push(`${(Number(f.min_weight_cw) / 100).toFixed(2)} to ${(Number(f.max_weight_cw) / 100).toFixed(2)} lb`);
+                } else {
+                    notes.push('salvage');
+                }
                 return {
                     level: f.required_level,
                     unlock: f.name,
@@ -336,7 +448,7 @@ const registry: Record<string, QueryHandler> = {
                     // grows_anywhere crops ignore the island lock, so they belong
                     // to no island in particular.
                     island: c.grows_anywhere ? '' : (c.region || ''),
-                    where: FARMSTEAD_TOWN,
+                    where: homesteadOf.get(c.region) ?? FARMSTEAD_TOWN,
                     iconName: c.produce_item_name,
                     details: notes.join(' · '),
                 };
