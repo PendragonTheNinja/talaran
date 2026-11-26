@@ -99,9 +99,9 @@ export const LOCATION_EXITS: Record<string, ExitZone[]> = {
   ],
   'Farvick Narrows': [
     { connectionName: 'Vergehorns', x: 62, y: 0, w: 28, h: 20 },
-    { connectionName: 'Wendhaven', x: 35, y: 80, w: 25, h: 20 },
+    { connectionName: 'Wendhaven', x: 12, y: 78, w: 28, h: 22 },
   ],
   'Vergehorns': [
-    { connectionName: 'Farvick Narrows', x: 5, y: 78, w: 30, h: 22 },
+    { connectionName: 'Farvick Narrows', x: 0, y: 70, w: 30, h: 30 },
   ],
 }
