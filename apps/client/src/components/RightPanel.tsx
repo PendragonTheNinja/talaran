@@ -1,4 +1,5 @@
 import { Player } from '../types'
+import ZoomableMap from './ZoomableMap'
 import GameClock from './GameClock'
 import './RightPanel.css'
 import MiniMap from './MiniMap'
@@ -110,11 +111,7 @@ export default function RightPanel({ player, playerData, currentLocationId, loca
           <div className="map-popup" onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn map-close" onClick={() => setShowMap(false)}>✕</button>
             <GameClock />
-            <img
-              src={`/images/maps/${locationData?.location?.region?.replace(/ /g, '_')}.jpg`}
-              alt="Island Map"
-              className="map-image"
-            />
+            <ZoomableMap src={`/images/maps/${locationData?.location?.region?.replace(/ /g, '_')}.jpg`} alt="Island Map" />
           </div>
         </div>
       )}

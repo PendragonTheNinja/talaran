@@ -35,7 +35,7 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
     // Which mining nodes are rock a player swings at (granite and the like),
     // as against ore nodes, which only say what veins a place can open
     // (services/mining.ts veinOresAt). The client must not guess this from a
-    // node's name: "Underway Granite" has no "rock" in it and never showed.
+    // node's name: "Underway Granite" (now "Granite") had no "rock" in it and never showed.
     const rockTypes = new Set((await db('items').where({ type: 'rock' }).pluck('subtype')) as string[]);
     for (const n of nodes) {
       if (n.skill === 'mining') n.mineable = rockTypes.has(rockSubtypeFor(n) ?? '');

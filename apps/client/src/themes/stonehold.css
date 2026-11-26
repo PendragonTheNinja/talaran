@@ -876,6 +876,11 @@
   max-height: none;
 }
 
+:root[data-theme='stonehold'] .map-popup .map-zoom {
+  border: none;
+  border-radius: 0;
+}
+
 :root[data-theme='stonehold'] .map-popup .map-image {
   display: block;
   max-width: calc(90vw - 28px);

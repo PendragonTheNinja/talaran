@@ -97,7 +97,7 @@
 
 ## Mining and Smithing
 
-- [Content] **Underway Granite**, from **Mining 13**: a 30-second swing, with its own gem odds. **Garnet** is Antura's common gem, Quartz still turns up, and **Rough Amethyst** is the rare one.
+- [Content] **Granite at Underway**, from **Mining 13**: a 30-second swing, with its own gem odds. **Garnet** is Antura's common gem, Quartz still turns up, and **Rough Amethyst** is the rare one.
 - [Content] **Serph Ore**, from **Mining 13** at Underway, and **Serph veins**, a little rarer for the time spent than Ambren's.
 - [Content] **Serph smelting**: Serph smelts alone, with **2 Charc** a bar. Charc stays a Taiar fuel for now.
 - [Content] **44 Serph recipes** from **Smithing 13 to 24**, the twin of every Ambren recipe: every tool, every weapon, every armor piece, nails, hooks, and **Serph Arrows**.
@@ -214,6 +214,7 @@
 
 - [UI] **Place pictures** can sit behind the scene's words, darkened for reading. They arrive as the art does; the Sea Stack is the first. Turn them off in **Settings > Themes**.
 - [UI] **Skill progress is a thin gold line** on the edge of each skill icon, the same on every screen. **Stonehold** shows skill icons in full color.
+- [Feature] **Zoom the island map.** Scroll or pinch to zoom, drag to look about, double-click or double-tap to look closer, or use the buttons in its corner.
 - [UI] **Talaran time on the island map**, so you know when Geomima's fires are lit.
 - [UI] **The homestead opens on the tab you last used.**
 - [UI] **The equipment picker**: Take off is gone (a left-click on the slot does that), and right-clicking another slot while the picker is open opens that slot at once.

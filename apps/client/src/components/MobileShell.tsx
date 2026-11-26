@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ZoomableMap from './ZoomableMap'
 import GameClock from './GameClock'
 import './MobileShell.css'
 import { CHAT_UNSEEN_EVENT, CHAT_SHOWN_EVENT, CHAT_OPEN_EVENT } from './ChatPanel'
@@ -150,11 +151,7 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
                     <div className="map-popup" onClick={e => e.stopPropagation()}>
                         <button className="modal-close-btn map-close" onClick={() => setShowFullMap(false)}>✕</button>
                         <GameClock />
-                        <img
-                            src={`/images/maps/${mapRegion.replace(/ /g, '_')}.jpg`}
-                            alt="Island Map"
-                            className="map-image"
-                        />
+                        <ZoomableMap src={`/images/maps/${mapRegion.replace(/ /g, '_')}.jpg`} alt="Island Map" />
                     </div>
                 </div>
             )}
