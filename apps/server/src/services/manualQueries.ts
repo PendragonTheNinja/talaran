@@ -480,9 +480,10 @@ export const extraQueries: Record<string, QueryHandler> = {
                 level: r.husbandry_level,
                 pen: r.pen_type,
                 // Everything it eats (animal_feeds), a head's worth of each.
-                feed: r.feeds ?? `${r.feed_qty} x ${r.feed_item_name}`,
+                // Bees feed themselves (a NULL feed item, on purpose).
+                feed: r.feeds ?? (r.feed_item_name ? `${r.feed_qty} ${r.feed_item_name}` : 'Nothing; it feeds itself'),
                 feedItem: r.feed_item_name,
-                grow: seconds(r.grow_seconds),
+                grow: Number(r.grow_seconds) > 0 ? seconds(r.grow_seconds) : 'Comes grown',
                 elder: r.elder_seconds ? seconds(r.elder_seconds) : 'Never',
             })),
             note: 'Clocks only run on a pen that is fed and mucked out. Neglect one and the animals simply stop, quietly and without complaint.',

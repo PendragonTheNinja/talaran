@@ -8,7 +8,7 @@ An animal is a **standing relationship with something that eats**. You do not fi
 
 ## Where and how to start
 
-Husbandry begins where Farming begins, at **Novita**, at your own **farmstead**, because you cannot keep animals on ground that isn't yours.
+Husbandry begins where Farming begins, at your own **farmstead**, because you cannot keep animals on ground that isn't yours. On Taiar that is **Novita**; on Antura, **Farefield**. Each island's homestead keeps its own pens.
 
 Speak to **Geothro**. Georgic sends him the ones who have taken to the soil, which is his polite way of saying he inherits Georgic's students. He has two chicks spare and will hand them over along with a pail and a fork, which is the entire trade in miniature: something to feed, something to feed it with, and something to clean up after it.
 
@@ -21,9 +21,9 @@ Animals live in pens, and pens are joinery, the same fencing and nails your fiel
 
 **One pen keeps one kind of animal.** A paddock given over to cattle is a cattle paddock until the last one leaves it. This is not fussiness on my part. Put a pig in with your cows and see how long the arrangement lasts.
 
-Your **Husbandry level** decides how many pens you may keep. One to begin with, another every three levels, to a ceiling of twelve. Your Farming level does the same for fields, and the two counts do not interfere.
+Your **Husbandry level** decides how many pens you may keep. One to begin with, another every three levels, to a ceiling of twelve. Your Farming level does the same for fields, and the two counts do not interfere. The ceiling of twelve holds on every island's homestead, Antura's included, though Antura's fields stop at ten.
 
-Your pens are ranked by what their grown animals give. The pen whose milk, eggs, or honey teaches the most comes first and teaches you all of it; the next teaches a little less, and so on, as fields do, and the pens list says how much. You never have to arrange them. Young animals give nothing yet, so a pen of them waits at the back until they grow. The work of feeding, mucking, and collecting is paid in full in every pen, and no animal gives a drop less for being in the twelfth.
+Your pens are ranked by what their grown animals give. The pen whose milk, eggs, or honey teaches the most comes first and teaches you all of it; the next teaches a little less, and so on, as fields do, and the pens list says how much. You never have to arrange them. Young animals give nothing yet, so a pen of them waits at the back until they grow. The work of feeding, mucking, and collecting is paid in full in every pen, and no animal gives a drop less for being in the twelfth. The ranking runs across **every pen you own, on every island**, so a second homestead's pens take their places among the first's rather than starting fresh.
 
 ## The wheel
 
@@ -46,6 +46,14 @@ It does not sicken. It does not waste. It stops. Growing stops, laying stops, th
 Neglect costs you the time you were away and nothing more. I have known players who found this unsatisfying, wanting a farm that punishes them properly. I would gently suggest that a game which kills your named cow because you had a difficult week is not teaching you husbandry. It is teaching you not to have a cow.
 
 **Mucking out** works the same way, only on the calendar rather than on feeding: a pen wants clearing about once a day, and a fouled pen halts exactly as a hungry one does. The muck itself is not waste. Barrow it over to your fields and it is next year's harvest.
+
+## What they eat
+
+An animal eats what it would really eat, and most will eat several things. Grain, barley, peas, and beans go at the usual measure. Roots, greens, and nuts are bulkier and lighter, and go at **twice** the measure. A cow will take grain or barley, or twice as much turnip or beet; a pig will eat very nearly anything, hazelnuts included, which tells you everything about pigs.
+
+Choose a pen's feed by hand in the Animals tab, or let **Feed All** and the **Larder Ward** choose for you, in which case they use the cheapest feed you hold. The whole list for each animal is in the ledger at the foot of this page.
+
+This is the quiet reason Antura's farmers keep animals: barley, beans, beet, and cabbage all grow there, and every one of them is fodder.
 
 ## Young, adult, elder
 
@@ -81,11 +89,15 @@ The **rouncey** is an honest all-purpose animal you may raise from your first da
 - **Halter & Lead**, hands. To bring a grown horse in.
 - **A Butcher Knife**, mainhand. For the last job.
 
+The pail and the fork are always on **Alder's** shelf in Talador, a few each day, so a broken one never ends the trade.
+
 ## Where young animals come from
 
 There is no breeding. This is the constraint the whole skill is built around, and it is what sends you back out into the world.
 
 **Snares** take small things alive: a nesting hen, and with some luck a wild sow with a piglet at foot. **Hunting** turns up the larger young: a calf strayed from a drove, or a foal standing beside something you were tracking for entirely different reasons.
+
+**The islets** are the third road, for anyone with a boat. Some landings turn up young animals on the shore: chicks, calves, piglets, and now and then a foal, left by whoever farmed out there once, or simply born there and never told. Sailing and the Islets has the rest of that.
 
 I find there is something fitting in that. The tame animals of Talaran all begin as wild ones, and the stockman's craft is not making animals. It is bringing them in, and then getting up in the morning.
 
