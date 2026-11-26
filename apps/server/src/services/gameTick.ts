@@ -984,6 +984,19 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         }
       }
 
+      // Journeys in the loot log (forum, 2026-11-26: nothing from sailing showed
+      // there). The log is written from emitActionComplete, which a journey
+      // never reaches, so it is recorded here: Wayfaring, the strandline, a
+      // Fathom Scale, and road finds on foot.
+      await recordLoot(action.player_id, 'traveling', action.location_id ?? null, {
+        drops: rolledEvents.map(e => ({ name: e.itemName, quantity: e.quantity })),
+        skillName,
+        xpAwarded: travelXp,
+        label: sea ? `Sailing to ${destination?.name ?? 'sea'}`
+          : cross ? `Crossing to ${destination?.name ?? 'port'}`
+          : `${hasMountEquipped ? 'Riding' : 'Walking'} on ${destRegion || 'the road'}`,
+      });
+
       pushToPlayer(action.player_id, 'travel_complete', {
         result: {
           itemName: null,

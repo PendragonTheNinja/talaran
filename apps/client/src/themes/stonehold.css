@@ -810,7 +810,7 @@
   .npc-dialogue, .profile-popup, .map-popup, .shp-modal, .skills-modal,
   .spellcast-card, .tally-modal, .trade-window, .workstation-panel,
   .chat-history-modal, .bot-check, .guest-modal, .welcome-modal, .levelup-popup,
-  .tavern-modal
+  .tavern-modal, .bell-events-popover
 ) {
   background:
     linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.42)),
@@ -823,9 +823,10 @@
 }
 
 /* Small things that float: tooltips, right-click menus, the sort drawer, the
-   bell's list of what rings it, the passing lines in the scene.
+   passing lines in the scene. (The bell's list is a pop-up of its own size,
+   framed with the others above: Nathan, 2026-11-26.)
    A rope frame would swamp them, so stone with a fine gilt line. */
-:root[data-theme='stonehold'] :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover, .bell-events-popover, .scene-log-entry) {
+:root[data-theme='stonehold'] :is(.item-tooltip, .skill-tooltip, .context-menu, .sort-popover, .scene-log-entry) {
   background:
     linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
     var(--sh-stone) repeat;
@@ -856,7 +857,7 @@
 /* The rope frame is a real 14px border. On boxes sized to the screen
    (max-width: 95vw and the like) it was added outside that size, so on a
    phone the profile ran past the edge and its skill grid scrolled sideways. */
-:root[data-theme='stonehold'] :is(.profile-popup, .farm-modal, .skills-modal, .tally-modal, .npc-dialogue, .guest-modal, .welcome-modal, .tavern-modal) {
+:root[data-theme='stonehold'] :is(.profile-popup, .farm-modal, .skills-modal, .tally-modal, .npc-dialogue, .guest-modal, .welcome-modal, .tavern-modal, .bell-events-popover) {
   box-sizing: border-box;
 }
 

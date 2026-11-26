@@ -1,0 +1,68 @@
+/* Pop-ups open and close with the loot log's motion (lib/popupMotion.ts, which
+   names the overlays and plays the closing). The overlay fades; the box inside
+   it scales up from just under its size, as .log-panel does. */
+
+@keyframes popup-in {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes popup-out {
+    from { opacity: 1; transform: scale(1) translateY(0); }
+    to { opacity: 0; transform: scale(0.94) translateY(6px); }
+}
+
+@keyframes popup-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popup-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+:is(.farm-overlay, .modal-overlay, .profile-overlay, .map-overlay, .npc-overlay,
+    .trade-overlay, .tavern-overlay, .tally-overlay, .workstation-overlay,
+    .foraging-overlay, .fishing-overlay, .mkt-overlay, .shp-overlay, .msh-overlay,
+    .chat-history-overlay, .skills-modal-overlay, .botcheck-overlay) {
+    animation: popup-fade-in 170ms ease-out;
+}
+
+:is(.farm-overlay, .modal-overlay, .profile-overlay, .map-overlay, .npc-overlay,
+    .trade-overlay, .tavern-overlay, .tally-overlay, .workstation-overlay,
+    .foraging-overlay, .fishing-overlay, .mkt-overlay, .shp-overlay, .msh-overlay,
+    .chat-history-overlay, .skills-modal-overlay, .botcheck-overlay) > :first-child {
+    animation: popup-in 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A small pop-over has no backdrop: the box itself scales in. */
+.bell-events-popover {
+    transform-origin: bottom right;
+    animation: popup-in 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The copy left behind for the closing (lib/popupMotion.ts). `forwards` holds
+   the last frame so it cannot flash back before it is removed. */
+.popup-leaving {
+    animation: popup-fade-out 130ms ease-in forwards !important;
+    pointer-events: none !important;
+}
+
+.popup-leaving > :first-child {
+    animation: popup-out 130ms ease-in forwards !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :is(.farm-overlay, .modal-overlay, .profile-overlay, .map-overlay, .npc-overlay,
+        .trade-overlay, .tavern-overlay, .tally-overlay, .workstation-overlay,
+        .foraging-overlay, .fishing-overlay, .mkt-overlay, .shp-overlay, .msh-overlay,
+        .chat-history-overlay, .skills-modal-overlay, .botcheck-overlay),
+    :is(.farm-overlay, .modal-overlay, .profile-overlay, .map-overlay, .npc-overlay,
+        .trade-overlay, .tavern-overlay, .tally-overlay, .workstation-overlay,
+        .foraging-overlay, .fishing-overlay, .mkt-overlay, .shp-overlay, .msh-overlay,
+        .chat-history-overlay, .skills-modal-overlay, .botcheck-overlay) > :first-child,
+    .bell-events-popover {
+        animation: none;
+    }
+}

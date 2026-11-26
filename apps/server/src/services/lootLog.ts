@@ -75,6 +75,12 @@ export interface LootAward {
     /** Some results report one item outside `drops`. */
     itemName?: string | null;
     quantity?: number;
+    /**
+     * The source's name when the action type and place cannot give it: a
+     * journey is grouped by where it went ("Sailing to The Reef", "Walking on
+     * Taiar Island"), not by the square it finished on.
+     */
+    label?: string;
 }
 
 /** "Fishing at Luxmere". Falls back to the bare verb where there is no location. */
@@ -136,7 +142,7 @@ export async function recordLoot(
         // An action that produced nothing still counts as an action: a run of
         // failed hunts or snapped lines is information, and hiding it would make
         // the per-action rates lie.
-        const label = await buildSourceLabel(playerId, actionType, locationId, xpAwards[0]?.skill);
+        const label = award.label ?? await buildSourceLabel(playerId, actionType, locationId, xpAwards[0]?.skill);
         const now = new Date();
 
         await db.transaction(async (trx) => {

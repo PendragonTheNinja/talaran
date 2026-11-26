@@ -219,6 +219,9 @@
 - [UI] **The equipment picker**: Take off is gone (a left-click on the slot does that), and right-clicking another slot while the picker is open opens that slot at once.
 - [Feature] **The bell can ring when a one-off job is done**, such as mucking every pen or spreading manure. Tick it in the bell's list.
 - [Fix] **The bell's list fits on a phone**, and scrolls.
+- [UI] **Pop-ups open and close with a quick fade and scale**, as the loot log always has: menus, the equipment picker, profiles, the map, and the rest.
+- [UI] **The travel log and the ship's log show the newest first**, at the top, where they open.
+- [Fix] **Journeys now show in the loot log**: Wayfaring, what the tide leaves on an islet's shore, and road finds, grouped by where you went.
 - [UI] **NPCs no longer show an emoji** beside their names.
 - [UI] **A place's links sit closer together** and lose their arrows, and the **Tally Board** is always the last of them.
 - [UI] **The level-up pop-up names homestead, shop, and hall tiers**, sawing, and brewing as they open.

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 
 // The ship's log (services/shipLog.ts on the server): the sailor's own record
@@ -58,10 +58,6 @@ export default function ShipLog({ refreshKey }: ShipLogProps) {
         return () => clearInterval(t)
     }, [underWay])
 
-    const bodyRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight
-    }, [voyages])
 
     const time = (ts: string) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     const day = (ts: string) => {
@@ -72,13 +68,14 @@ export default function ShipLog({ refreshKey }: ShipLogProps) {
     if (!loaded) return <div className="travel-log-body" />
 
     return (
-        <div className="travel-log-body" ref={bodyRef}>
+        <div className="travel-log-body">
             {voyages.length === 0 ? (
                 <p className="travel-log-empty">No voyages yet. Put to sea from a port, and the log will keep the watches.</p>
             ) : (
-                // Oldest at the top, as a logbook reads; the newest is at the bottom, in view.
-                [...voyages].reverse().map((v, idx, arr) => (
-                    <div key={v.id} className={`travel-log-entry ship-log-voyage ${idx === arr.length - 1 ? 'most-recent' : ''}`}>
+                // Newest voyage at the top (Nathan, 2026-11-26); within a voyage the
+                // legs and watches still read in order, as a logbook does.
+                voyages.map((v, idx) => (
+                    <div key={v.id} className={`travel-log-entry ship-log-voyage ${idx === 0 ? 'most-recent' : ''}`}>
                         <div className="travel-log-entry-head">
                             <span className="travel-log-route">The {v.boat}, from {v.home}</span>
                             <span className="travel-log-time">{day(v.startedAt)}</span>

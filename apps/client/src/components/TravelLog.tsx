@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 
 // Travel log ENTRIES only. The launcher button, panel frame and close button
@@ -45,20 +45,16 @@ export default function TravelLog({ refreshKey }: TravelLogProps) {
             d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     }
 
-    const bodyRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        if (bodyRef.current) {
-            bodyRef.current.scrollTop = bodyRef.current.scrollHeight
-        }
-    }, [log])
 
     return (
-        <div className="travel-log-body" ref={bodyRef}>
+        <div className="travel-log-body">
             {log.length === 0 ? (
                 <p className="travel-log-empty">No journeys recorded yet. Set out and see what you find.</p>
             ) : (
-                [...log].reverse().map((entry, idx, arr) => (
-                    <div key={entry.id} className={`travel-log-entry ${idx === arr.length - 1 ? 'most-recent' : ''}`}>
+                // Newest at the top (Nathan, 2026-11-26): the server sends them newest
+                // first, and a list that had to be scrolled to its end opened at its start.
+                log.map((entry, idx) => (
+                    <div key={entry.id} className={`travel-log-entry ${idx === 0 ? 'most-recent' : ''}`}>
                         <div className="travel-log-entry-head">
                             <span className="travel-log-route">{entry.from} → {entry.to}</span>
                             <span className="travel-log-time">{fmt(entry.timestamp)}</span>

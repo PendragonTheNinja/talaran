@@ -272,6 +272,9 @@ export default function GameView({
   const [featQueue, setFeatQueue] = useState<EarnedFeat[]>([])
   const featShown = levelUpSkill ? null : featQueue[0] ?? null
   const [actionsCompleted, setActionsCompleted] = useState(0)
+  // Journeys finished, for the loot log only (they are no action, so they must
+  // not count against an action limit).
+  const [journeysEnded, setJourneysEnded] = useState(0)
 
   // ── A fight (docs/combat-spec.md §9) ──────────────────────────────
   // Everything here is the server's: services/combatFights.ts pushes every
@@ -948,6 +951,7 @@ export default function GameView({
 
       on('travel_complete', (data: { result: any }) => {
         ringFor('arrived')
+        setJourneysEnded(n => n + 1)
         setJewelryLines(Array.isArray(data?.result?.jewelry) ? data.result.jewelry : [])
         setToolLines([])
         if (data?.result) {
@@ -2513,7 +2517,7 @@ export default function GameView({
             onOpen={() => setTravelLogOpen(true)}
             onClose={() => setTravelLogOpen(false)}
             travelRefreshKey={travelLogKey}
-            lootRefreshKey={actionsCompleted}
+            lootRefreshKey={actionsCompleted + journeysEnded}
             forceTravelTab={travelFindKey}
           />
 
