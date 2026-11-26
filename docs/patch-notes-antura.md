@@ -43,7 +43,7 @@
 
 - [Feature] **Feats now pop up when earned**, and you can pin one to your screen to watch it fill.
 - [Feature] **Swap weapons and shields mid-fight** from a new column in the fight view.
-- [Balance] **Rare weapons last more than twice as long** before they can break.
+- [Balance] **Rare weapons drop more often and last more than twice as long**, and Hodags are commoner in the Deep Wood.
 - [Feature] **Whisper and Message buttons** on a player's profile, and a guild's member list from its tag.
 - [UI] **Place pictures behind the scene**, as the art arrives, and a slimmer progress ring on skill icons.
 - [Feature] **The chat box takes the color of the channel** you are about to send to.
