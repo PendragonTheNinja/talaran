@@ -47,7 +47,7 @@
 - [Feature] **Whisper and Message buttons** on a player's profile, and a guild's member list from its tag.
 - [UI] **A slimmer progress ring on skill icons.**
 - [Feature] **The chat box takes the color of the channel** you are about to send to.
-- [Content] **The Manual explains gear and food properly**, and every bench page lists what goes on the bench.
+- [Content] **The Manual covers Antura** on every skill page, with new pages for **Wayfaring**, **Sailing & the Islets**, and **Antura** itself. It also explains gear and food properly, and every bench page lists what goes on the bench.
 - [Fix] **A long list of fixes**, from forum reports.
 
 ---
@@ -236,7 +236,11 @@
 - [Fix] **Smithing, Carpentry, and Tanning** no longer say your tools are used up when you set up a bench; they stay in it until you take them out.
 - [Fix] **Woodcutting** says hatchet, not axe.
 - [Content] **Item pages** for everything new: islet relics, the sailor's set, chests and their locks, errands, dailies, quest items, brewing, and rounds.
-- [Content] **The Homestead page** explains sharing a store.
+- [Content] **The Homestead page** explains sharing a store, the second tier, and a homestead on each island.
+- [Content] **Three new pages**: **Wayfaring**, which now has a skill page of its own; **Sailing & the Islets**, for everything about boats, voyages, landings, guardians, chests, and the sailor's set; and **Antura**, a guide to the island and its eight places.
+- [Content] **Every skill page covers Antura**: its places, its tier 2 work, Serph tools, what the islets hold for that trade, and where to buy a tool that broke. Carpentry has a new **Boats** tab, Crafting new **Sewing** and **Camp Work** tabs, and Cooking explains salt, brewing, and standing a round.
+- [Content] **The systems pages** cover the ferry and sea crossings, quest chains and rival quests, tutors' daily tasks, the Friddik brothers' errands, Antura's markets, tier 2 shops, hiring builders, and falling far from home.
+- [Fix] **The level-by-level tables** now list Foraging's habitats, Hunting's quarry and traps, Wayfaring's mounts and boats, animals to raise, buildings, and brewing; they were empty or partial before. Antura's crops say Farefield, not Novita, and the building and shop tables show both islands and both tiers.
 
 ---
 
