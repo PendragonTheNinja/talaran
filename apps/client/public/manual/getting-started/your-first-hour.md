@@ -26,7 +26,7 @@ The people who teach the trades do not advertise. There is no board in the squar
 
 They will not chase you. They will not wave. They will simply stand there, indefinitely, knowing something you don't.
 
-On Taiar, Geonsen at Eld Grove will teach you to hunt, and Georgic at Novita will teach you to farm. There are others, and there will be others still on islands neither of us has seen yet. Speak to anyone standing still, and mind that some of them are more patient than they look.
+On Taiar, Geonsen at Eld Grove will teach you to hunt, and Georgic at Novita will teach you to farm. There are others, all of them on Taiar, which is where beginners are. Speak to anyone standing still, and mind that some of them are more patient than they look.
 
 ## Where to go from here
 

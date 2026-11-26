@@ -50,6 +50,19 @@ One wrinkle. Riding pays at a lower rate than walking, so the same road earns ra
 
 Walkers see more, too. A rider passes the odd thing in the verge at a trot. A walker stops and picks it up.
 
+## Crossing the water
+
+Between islands there are no roads, and your boots and your horse are no use at all. There are two ways across.
+
+- **The ferry**, from Talador to Wendhaven and back: fifty gold, eight minutes, anyone may take it, and it pays nothing. You are luggage with opinions.
+- **Your own boat.** A Skiff or a Cog makes the same crossing, and pays Wayfaring at about a rider's rate. Like a horse, a boat has a pace it starts at and a pace it can be coaxed down to, and your Wayfaring closes the gap. A Cog at Wayfaring 13 crosses in about five minutes.
+
+Nothing is found at sea on a crossing. Gear for the road does nothing on the water either. The pieces of the **sailor's set** are what help there: each one worn takes a percent off every sea journey. The pages on Wayfaring and on Sailing and the Islets have the rest, and the islets themselves.
+
+## Antura's roads
+
+Antura is a bigger and wilder island than Taiar, and its roads run a little longer to match. Everything above applies to them unchanged. Its roads have their own finds for the walker, too: sea thrift, spring gentian, meadowsweet for the brewer, feathers along the shore, and things rarer than those.
+
 ## What I would actually do
 
 Ride when you need to be somewhere. Walk when you don't.

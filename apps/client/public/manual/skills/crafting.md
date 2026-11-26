@@ -23,7 +23,7 @@ Each discipline has its own tempo and its own equipment. What they share is a le
 
 There are four, each with a tab of its own: **Tanning**, the **Lapidary**, **Sewing**, which makes armor and cloaks out of whatever a creature left behind, and the **Camp Work**, the small useful things that need no bench at all. On Taiar, all of it is done in **Caliwen**. Antura has no craftworks of its own, so its crafters come home to Caliwen to work, which is a long way to carry a Snallygaster's scales and you will do it anyway.
 
-## Level does more than unlock recipes
+## Level does more than open recipes
 
 Worth knowing early: in several disciplines, your Crafting level governs *capacity* rather than just access. Tanning is the clearest case, where levels buy you more vats running at once rather than faster vats.
 

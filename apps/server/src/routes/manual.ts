@@ -529,24 +529,27 @@ const registry: Record<string, QueryHandler> = {
     // Read from services/shops.ts rather than restated here, so the Manual
     // cannot quietly disagree with the game about what a shop costs.
     'shop-cost': async () => {
-        const tier = SHOP_TIERS[1];
+        // One shop on each island, in its port (islands.shop_town), by tier.
+        const ports = ((await db('islands').orderBy('display_order').pluck('shop_town')) as string[]).filter(Boolean);
+        const mins = (sec: number) => `${Math.round(sec / 60)} minutes`;
+        const costWords = (cost: { itemName: string; qty: number }[]) => cost.map(c => `${c.qty.toLocaleString('en-US')} ${c.itemName}`).join(', ');
+        const tiers = Object.entries(SHOP_TIERS).map(([n, t]) => ({ n: Number(n), t })).sort((a, b) => a.n - b.n);
         return {
-            title: `Raising a shop in ${SHOP_TOWN}`,
+            title: 'Raising a shop',
             columns: [
-                { key: 'what', label: 'Requirement' },
-                { key: 'detail', label: '' },
+                { key: 'what', label: 'Tier' },
+                { key: 'level', label: 'Carpentry', align: 'right' },
+                { key: 'cost', label: 'Costs' },
+                { key: 'time', label: 'Time', align: 'right' },
+                { key: 'holds', label: 'Holds' },
             ],
-            rows: [
-                ...ESTABLISH_COST.map((c) => ({ what: c.itemName, detail: `${c.qty.toLocaleString()}` })),
-                { what: 'Carpentry', detail: `level ${CARPENTRY_REQ}` },
-                { what: 'Tools', detail: 'mallet and saw, both equipped' },
-                { what: 'Time', detail: `${Math.round(ESTABLISH_SECONDS / 60)} minutes` },
-                { what: 'Storage', detail: `${tier.storageSlots} slots` },
-                { what: 'Selling slots', detail: `${tier.sellSlots}` },
-                { what: 'Buying slots', detail: `${tier.buySlots}` },
-                { what: 'Tithe on sales', detail: `${Math.round(SALE_TAX_RATE * 100)}%` },
-            ],
-            note: 'One shop per player. It trades while you are away.',
+            rows: tiers.flatMap(({ n, t }) => {
+                const holds = `${t.storageSlots} in store, ${t.sellSlots} for sale, ${t.buySlots} to buy`;
+                const rows = [{ what: n === 1 ? 'Tier 1' : `Tier ${n}, built outright`, level: t.carpentry, cost: costWords(t.build.cost), time: mins(t.build.seconds), holds }];
+                if (t.upgrade) rows.push({ what: `Raised to tier ${n}`, level: t.carpentry, cost: costWords(t.upgrade.cost), time: mins(t.upgrade.seconds), holds });
+                return rows;
+            }),
+            note: `One shop per player on each island, raised in its port (${ports.join(' or ')}), with a mallet and saw equipped. It trades while you are away, and ${Math.round(SALE_TAX_RATE * 100)}% of every sale is a tithe that leaves the world.`,
         };
     },
 

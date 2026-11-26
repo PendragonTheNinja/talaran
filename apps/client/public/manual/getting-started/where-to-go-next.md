@@ -36,8 +36,8 @@ Then choose, if you still want to. Many people find they no longer need to.
 
 ## One more thing, for later
 
-Taiar Island is where all of us begin, and at present it is the whole of the map. It will not always be.
+Taiar Island is where all of us begin, but it is no longer the whole of the map. Across the strait from Talador lies **[Antura](/manual/systems/antura)**, the second island, for those of 13 and up, with its own places, its own work, and longer roads. The ferry will take you for fifty gold whenever you are ready, and a boat of your own will take you for nothing, once you have built one and learned to sail it.
 
-I mention this only so you will hold your plans loosely. The trades you learn here are world rules and will travel with you. The places in this manual, the towns and groves and outcrops, are Taiar's own, and one day they will be the first chapter rather than the only one.
+There is no hurry. Antura is not a reward for leaving Taiar; it is somewhere to go once Taiar has taught you what it can. The trades you learn here are world rules and travel with you. The places in this manual, the towns and groves and outcrops, belong to whichever island they stand on, and I name it.
 
-I intend to be insufferable about having written the first chapter.
+I intend to be insufferable about having written the first chapter. I am already insufferable about the second.
