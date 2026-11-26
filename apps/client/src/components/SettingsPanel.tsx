@@ -17,7 +17,7 @@ import ChatMessageLine from './ChatMessageLine'
 import BellSetting from './BellSetting'
 import NotificationSetting from './NotificationSetting'
 import { CHAT_SIZES, currentChatSize, setChatSize, type ChatSizeId } from '../lib/chatSize'
-import { scenePicturesOn, setScenePictures } from '../lib/scenePictures'
+import { SCENE_PICTURES_ENABLED, scenePicturesOn, setScenePictures } from '../lib/scenePictures'
 import { CHAT_START_CHOICES, chatStartChoice, setChatStartChoice, type ChatStartId } from '../lib/chatChannel'
 import ErrorLine from './ErrorLine'
 
@@ -489,6 +489,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                                 <button className="btn" onClick={() => openSupport('themes')}>See themes</button>
                             </p>
                         )}
+                        {SCENE_PICTURES_ENABLED && (<>
                         <h4 className="settings-section-title settings-section-gap">Place Pictures</h4>
                         <p className="muted-text" style={{ fontSize: '14px', marginBottom: '12px' }}>
                             A picture of where you stand behind the scene, where a place has one. Saved on this device only.
@@ -506,6 +507,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                                 </button>
                             ))}
                         </div>
+                        </>)}
                         <PaletteEditor
                             hasPerk={hasPalettePerk}
                             perkPrice={store?.items.find(i => i.key === 'perk:custom_palette')?.effectivePrice ?? 1500}

@@ -45,7 +45,7 @@
 - [Feature] **Swap weapons and shields mid-fight** from a new column in the fight view.
 - [Balance] **Rare weapons drop more often and last more than twice as long**, and Hodags are commoner in the Deep Wood.
 - [Feature] **Whisper and Message buttons** on a player's profile, and a guild's member list from its tag.
-- [UI] **Place pictures behind the scene**, as the art arrives, and a slimmer progress ring on skill icons.
+- [UI] **A slimmer progress ring on skill icons.**
 - [Feature] **The chat box takes the color of the channel** you are about to send to.
 - [Content] **The Manual explains gear and food properly**, and every bench page lists what goes on the bench.
 - [Fix] **A long list of fixes**, from forum reports.
@@ -212,7 +212,6 @@
 
 ## Interface
 
-- [UI] **Place pictures** can sit behind the scene's words, darkened for reading. They arrive as the art does; the Sea Stack is the first. Turn them off in **Settings > Themes**.
 - [UI] **Skill progress is a thin gold line** on the edge of each skill icon, the same on every screen. **Stonehold** shows skill icons in full color.
 - [Feature] **Zoom the island map.** Scroll or pinch to zoom, drag to look about, double-click or double-tap to look closer, or use the buttons in its corner.
 - [UI] **Talaran time on the island map**, so you know when Geomima's fires are lit.

@@ -8,10 +8,18 @@
  * may want them off while a desk keeps them.
  */
 
+/**
+ * Off for now (Nathan, 2026-11-26): no place pictures are shown and the
+ * setting is hidden, so nobody sees them. Set true to bring them back; the
+ * pictures in images/scenes stay where they are.
+ */
+export const SCENE_PICTURES_ENABLED = false
+
 const STORAGE_KEY = 'talaran-scene-pictures'
 export const SCENE_PICTURES_EVENT = 'talaran:scene-pictures'
 
 export function scenePicturesOn(): boolean {
+    if (!SCENE_PICTURES_ENABLED) return false
     try {
         return localStorage.getItem(STORAGE_KEY) !== 'off'
     } catch { return true }

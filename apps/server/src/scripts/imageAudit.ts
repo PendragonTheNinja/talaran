@@ -27,6 +27,9 @@ const OVERRIDES: Record<string, string> = JSON.parse(
     fs.readFileSync(path.join(__dirname, '..', '..', '..', 'client', 'src', 'lib', 'iconOverrides.json'), 'utf8'),
 );
 
+/** Matches SCENE_PICTURES_ENABLED in apps/client/src/lib/scenePictures.ts. */
+const SCENE_PICTURES_WANTED = false;
+
 const plain = (s: string) => s.replace(/ /g, '_').replace(/'/g, '');
 const folderOf = (region: string | null) => (region || 'Taiar Island').replace(/ /g, '_');
 
@@ -70,7 +73,9 @@ async function main(): Promise<void> {
             // MiniMap.tsx keeps apostrophes; only spaces become underscores.
             wants.push({ group: 'Minimap pictures', label: p.islet_kind ? `${p.name} (islet)` : p.name, file: `images/locations/${folderOf(p.region)}/${p.name.replace(/ /g, '_')}.jpg`, where: p.region });
         }
-        if (p.islet_kind || p.is_accessible) {
+        // Scene pictures are off for now (Nathan, 2026-11-26; SCENE_PICTURES_ENABLED
+        // in the client's lib/scenePictures.ts), so none is wanted.
+        if (SCENE_PICTURES_WANTED && (p.islet_kind || p.is_accessible)) {
             wants.push({ group: 'Scene pictures', label: p.islet_kind ? `${p.name} (islet)` : p.name, file: `images/scenes/${folderOf(p.region)}/${plain(p.name)}.webp`, where: p.region });
         }
     }
