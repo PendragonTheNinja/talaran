@@ -103,6 +103,11 @@
           "blurb": "How much of you there is."
         },
         {
+          "slug": "wayfaring",
+          "title": "Wayfaring",
+          "blurb": "The road, the saddle, and the sea, and the trade that shortens all three."
+        },
+        {
           "slug": "talar",
           "title": "Talar",
           "blurb": "The light under the Rift, and what a person can do with it."
@@ -126,7 +131,17 @@
         {
           "slug": "travel-and-mounts",
           "title": "Travel & Mounts",
-          "blurb": "A hundred kilometres of Taiar, and how to make it cheaper."
+          "blurb": "A hundred kilometers of Taiar, a strait to Antura, and how to make both cheaper."
+        },
+        {
+          "slug": "sailing-and-the-islets",
+          "title": "Sailing & the Islets",
+          "blurb": "A boat, eight islets to an island, and whatever is waiting on them."
+        },
+        {
+          "slug": "antura",
+          "title": "Antura",
+          "blurb": "The second island, for those who have outgrown the first."
         },
         {
           "slug": "quests-and-npcs",

@@ -366,6 +366,39 @@ export const extraQueries: Record<string, QueryHandler> = {
         };
     },
 
+    // The islets a voyage lands on, by island, with how often (locations.
+    // islet_kind and islet_weight). What each holds is left to be found.
+    'islets': async () => {
+        const rows = await db('locations as l').leftJoin('islands as i', 'i.name', 'l.region')
+            .whereNotNull('l.islet_kind')
+            .orderBy([{ column: 'i.display_order' }, { column: 'l.islet_weight', order: 'desc' }, { column: 'l.id' }])
+            .select('l.name', 'l.region', 'l.islet_kind', 'l.islet_weight', 'i.tier');
+        if (!rows.length) return null;
+        const totals = new Map<string, number>();
+        for (const r of rows) totals.set(r.region, (totals.get(r.region) ?? 0) + Number(r.islet_weight || 0));
+        const boats = await db('vessel_types').where({ is_active: true }).orderBy('tier').select('name', 'tier');
+        const boatFor = (tier: number) => boats.find((b: any) => Number(b.tier) >= tier)?.name ?? '';
+        const HOW: Record<string, string> = { common: 'Often', seldom: 'Seldom', rare: 'Rarely' };
+        return {
+            title: 'The islets',
+            columns: [
+                { key: 'islet', label: 'Islet' },
+                { key: 'island', label: 'Off' },
+                { key: 'how', label: 'Reached' },
+                { key: 'share', label: 'Landings', align: 'right' },
+                { key: 'boat', label: 'Boat' },
+            ],
+            rows: rows.map((r: any) => ({
+                islet: r.name,
+                island: r.region,
+                how: HOW[r.islet_kind] ?? r.islet_kind,
+                share: `${Math.round(100 * Number(r.islet_weight || 0) / (totals.get(r.region) || 1))}%`,
+                boat: boatFor(Number(r.tier) || 1),
+            })),
+            note: 'Where a voyage lands is chance, weighted as shown, and never the islet you are leaving. What is on each is for you to find.',
+        };
+    },
+
     // ── Foraging ────────────────────────────────────────────────────────────
     // The habitat's whole drop table, weights resolved to percentages.
     //
