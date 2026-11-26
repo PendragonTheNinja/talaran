@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, cloneElement, lazy, Suspense } from 'react'
+import { islandMapSrc } from '../lib/islandMap'
 import TopNav from './TopNav'
 import LeftPanel from './LeftPanel'
 import GameView from './GameView'
@@ -946,7 +947,7 @@ export default function GameLayout({
     />
   )
 
-  const mapRegion = locationData?.location?.region || ''
+  const mapSrc = islandMapSrc(locationData?.location?.region, !!locationData?.location?.islet_kind)
 
   const mobileMenuItems = [
     { label: 'Messages', onClick: () => { closeAllPanels(); setShowMessages(true) }, badge: unreadMessages },
@@ -1578,7 +1579,7 @@ export default function GameLayout({
           skillsPanel={skillsPanelEl}
           chatPanel={chatPanelEl}
           miniMap={miniMapEl}
-          mapRegion={mapRegion}
+          mapSrc={mapSrc}
           focusAction={focusAction}
         />
         <div className="mobile-modals">{sharedModals}</div>

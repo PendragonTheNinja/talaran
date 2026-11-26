@@ -12,7 +12,7 @@
  *   badges     /images/badges/<key>.png        Badge.tsx (feats.badge_key; falls back to the glyph)
  *   minimap    /images/locations/<Island>/<Place>.jpg   MiniMap.tsx (islets too: the minimap shows there)
  *   scenes     /images/scenes/<Island>/<Place>.webp     lib/scenePictures.ts (islets too)
- *   maps       /images/maps/<Island>.jpg        RightPanel, MobileShell
+ *   maps       /images/maps/<Island>.jpg, and <Island>_Islets.jpg for an island with islets (lib/islandMap.ts)
  *
  * Read-only. Lists what is missing, then what is on disk that nothing asks for
  * (a misspelled filename usually shows up in both lists).
@@ -81,6 +81,11 @@ async function main(): Promise<void> {
     }
     for (const region of [...new Set(places.map((p: any) => p.region as string))].sort()) {
         wants.push({ group: 'Island maps', label: region, file: `images/maps/${folderOf(region)}.jpg` });
+        // An island with islets has an islet chart too (client lib/islandMap.ts).
+        if (places.some((p: any) => p.region === region && p.islet_kind)) {
+            const chart = `${(region || 'Taiar Island').replace(/ Island$/, '').replace(/ /g, '_')}_Islets.jpg`;
+            wants.push({ group: 'Island maps', label: `${region} islets`, file: `images/maps/${chart}` });
+        }
     }
 
     // What is missing, by group and island.

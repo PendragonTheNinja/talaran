@@ -16,7 +16,8 @@ interface MobileShellProps {
     skillsPanel: React.ReactNode
     chatPanel: React.ReactNode
     miniMap: React.ReactNode
-    mapRegion: string
+    /** The full map for where the player stands (lib/islandMap.ts). */
+    mapSrc: string
     /** Increments when something starts that the player should be watching. */
     focusAction?: number
 }
@@ -29,7 +30,7 @@ const NAV: { key: MobileView; label: string; icon: string }[] = [
     { key: 'map', label: 'Map', icon: '🗺️' },
 ]
 
-export default function MobileShell({ menuItems, actionScene, locationPanel, inventoryPanel, equipmentPanel, skillsPanel, chatPanel, miniMap, mapRegion, focusAction = 0 }: MobileShellProps) {
+export default function MobileShell({ menuItems, actionScene, locationPanel, inventoryPanel, equipmentPanel, skillsPanel, chatPanel, miniMap, mapSrc, focusAction = 0 }: MobileShellProps) {
     const menuWaiting = menuItems.reduce((n, item) => n + (item.badge ?? 0), 0)
     const [view, setView] = useState<MobileView>('action')
     const [showFullMap, setShowFullMap] = useState(false)
@@ -151,7 +152,7 @@ export default function MobileShell({ menuItems, actionScene, locationPanel, inv
                     <div className="map-popup" onClick={e => e.stopPropagation()}>
                         <button className="modal-close-btn map-close" onClick={() => setShowFullMap(false)}>✕</button>
                         <GameClock />
-                        <ZoomableMap src={`/images/maps/${mapRegion.replace(/ /g, '_')}.jpg`} alt="Island Map" />
+                        <ZoomableMap src={mapSrc} alt="Island Map" />
                     </div>
                 </div>
             )}

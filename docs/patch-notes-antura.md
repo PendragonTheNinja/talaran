@@ -213,6 +213,7 @@
 ## Interface
 
 - [UI] **Skill progress is a thin gold line** on the edge of each skill icon, the same on every screen. **Stonehold** shows skill icons in full color.
+- [Feature] **The islets have charts of their own.** On an islet, the island map shows that island's islets.
 - [Feature] **Zoom the island map.** Scroll or pinch to zoom, drag to look about, double-click or double-tap to look closer, or use the buttons in its corner.
 - [UI] **Talaran time on the island map**, so you know when Geomima's fires are lit.
 - [UI] **The homestead opens on the tab you last used.**
