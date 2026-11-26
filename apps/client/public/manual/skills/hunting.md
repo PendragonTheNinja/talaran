@@ -51,6 +51,18 @@ This is the mechanic that separates hunters who prosper from hunters who go brok
 
 So a miss costs you the time *and* the better part of your ammunition. This is the real price of hunting above your station. Not the failure itself, which is only a story, but the arrows scattered across a forest floor to no purpose.
 
+## The arrow matters as much as the bow
+
+You do not choose which arrow to loose. **A hunt always shoots the best arrow you are carrying**, and the animal judges you by it.
+
+- An arrow **a tier below** the animal takes **ten points** off your chance. An Ambren arrow is an insult to a Ground Sloth, and the Sloth responds accordingly.
+- An arrow **a tier above** the animal adds **three**. Serph arrows into a deer are generous, and only slightly useful.
+- An arrow of the animal's own tier is simply what the numbers above assume.
+
+When your arrows are too weak for the quarry, the hunt will tell you so before you have wasted the walk. **Serph Arrows** are made at the forge in Emberra, from a Serph ingot, five Lanai shafts, and two feathers, like their Ambren elders.
+
+Note the asymmetry again, as I seem fated to on every page. Arriving under-armed costs a great deal; arriving over-armed buys very little. Carry the arrow the animal deserves, and keep the cheaper ones for the cheaper animals.
+
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb:
 
