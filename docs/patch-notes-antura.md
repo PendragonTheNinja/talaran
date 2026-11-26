@@ -32,6 +32,7 @@
 - [Feature] **Hire a carpenter** to build your homestead, your shop, your boat, or your guild's hall for you.
 - [Feature] **Share your homestead's store** with one other player you trust.
 - [Feature] **Every island has its own homestead ground and its own shop**, and its own tally board.
+- [Feature] **Set up your own smithy and lapidary on Antura**, close to the ore and the stones.
 
 ## Around Taiar
 
@@ -62,7 +63,8 @@
 - [Content] **Antura** is tier 2, for levels 13 to 24. Its eight places are **Wendhaven** (the port), **Farefield** (farmland), **Mettlefell** (the forge town), **Underway** (the mine), **Bidewater** (a lake), **Farvick Narrows** (a strait and its tidal shore), **Yondereach** (the high passes), and **Vergehorns** (twin headlands).
 - [Feature] **The ferry** runs between **Talador and Wendhaven**: **50 gold** a crossing, **8 minutes**, open to anyone, and it pays no Wayfaring.
 - [Feature] **Your own boat makes the same crossing**, faster than the ferry, and pays Wayfaring at sea's rate. At a port, the slip, the ferry, and your own boats are all under one **Sail** entry in the place's links.
-- [Content] **Antura's roads run a little longer** than Taiar's, as befits a bigger, wilder island.
+- [Content] **Antura's roads follow its map**, timed at the same rate as Taiar's, a little longer where they climb. The longest is **Farvick Narrows to Vergehorns**, about **4 minutes** on foot at the start, the longest road in Talaran by far.
+- [Feature] **Benches of your own on Antura**: a **smithy** (forge and kiln) in **Mettlefell** and a **lapidary** in **Wendhaven**, so Serph and garnet can be worked where they are mined. There are no public benches on Antura; bring your own tools.
 - [UI] **The map heading names the island you are on**, and the minimap shows plain road buttons for a place whose picture is not drawn yet.
 
 ## Boats
