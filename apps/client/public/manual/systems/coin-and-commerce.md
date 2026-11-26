@@ -34,9 +34,15 @@ So: the merchants are dear, and worth it more often than pride will let you admi
 
 What the merchants are *not* is a way to get rich. You cannot buy at 175% and sell back at 45%. There is no loop there, no clever ordering of purchases that turns a profit, and looking for one is time you could spend swinging a pick.
 
+### Antura's markets
+
+Antura has two. The **Mettlefell Market** keeps **Wystan**, the smith, who sells every Serph tool, weapon, and piece of armor there is, and **Ashby**, the carpenter. The **Wendhaven Market** keeps **Maude**, the craftswoman; **Gil**, the provisioner, who buys and never sells; and **Osric**, the pawnbroker, who is Corvin's equal in every respect that matters and some that do not. The same walls hold on both islands: dear to buy, cheap to sell.
+
 ### Why they run out
 
 No merchant will sell you an unlimited number of anything. Each has a daily allowance, and it is **per person**, so nobody is racing you for it and nobody in a kinder timezone got there first.
+
+There is one exception, and it is a kindness. **The gathering tools are always on the shelf**: a few each day, every day, on top of whatever else is stocked. **Merrick** keeps the Ambren Pickaxe, Hatchet, Foraging Knife, Hoe, and Butchering Knife; **Alder** keeps the Ambren Fishing Rod, the Lanai Hunting Bow, the Feed Pail, and the Mucking Fork; **Tessa** keeps Snares. Nobody is locked out of a trade because a handle broke on a quiet day. A broken tool will even tell you who sells another.
 
 Selling works the same way in reverse. Sell a merchant a modest quantity of something and he pays the full rate. Keep going and his enthusiasm visibly declines: the rate steps down, and down again, and stays low until the day turns over at midnight. He has only so much use for two hundred rabbit pelts, and he would like you to understand that.
 
@@ -48,17 +54,17 @@ The panel will always show you the arithmetic before you agree to anything. If a
 
 Everything above describes the floor and the ceiling. **Players live in between.**
 
-A shop is a building you raise yourself, in Talador, with Carpentry. Once it stands it trades **whether you are online or not**, which is the entire point of it.
+A shop is a building you raise yourself, with Carpentry, in an island's port: **Talador** on Taiar and **Wendhaven** on Antura. You may keep one on each, and each is managed in its own port. Once it stands it trades **whether you are online or not**, which is the entire point of it.
 
 ### Raising one
 
 {{data:shop-cost}}
 
-You will need a mallet equipped and a saw equipped, the same as any other structure. Carpentry level one is enough; this is not a building that asks for mastery, only for materials.
+You will need a mallet equipped and a saw equipped, the same as any other structure. Carpentry level one is enough; this is not a building that asks for mastery, only for materials. **Tier 2**, from Carpentry 13, is built outright or raised from tier 1, and wants Serph nails. Or hire a carpenter to raise it for you; the Carpentry page explains how.
 
 ### What you get
 
-A shop of the first tier holds **seventy five storage slots**, offers **twelve things for sale** at once, and can post **six standing offers to buy**.
+A shop of the first tier holds **seventy-five storage slots**, offers **twelve things for sale** at once, and can post **six standing offers to buy**. The second tier holds a hundred, with eighteen for sale and eight to buy.
 
 Storage behaves exactly as your homestead's does: one slot holds one kind of item in any quantity. Twelve selling slots means twelve *kinds* of thing on the shelf, not twelve objects, and you may pile four thousand planks into one of them if the mood takes you.
 

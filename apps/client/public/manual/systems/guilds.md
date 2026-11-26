@@ -50,11 +50,13 @@ One part in a hundred is a courtesy, not a reason to do anything. On a short job
 
 A guild may raise one hall on each island, wherever its Leader chooses to lay the foundations. The Leader stands on the spot and says so. That is the whole ceremony.
 
-Then everyone builds it. Each piece is a short spell of work with a **mallet and saw** in hand, one plank or block or fistful of nails set into the walls, and it pays **Carpentry**, as any building does. Bring the materials, start the work, and it carries on piece by piece until you stop or run out. A hall is meant to take a guild, not a person. The figures are large on purpose.
+Then everyone builds it. Each turn is a short spell of work with a **mallet and saw** in hand, setting one to three planks or blocks or fistfuls of nails into the walls, three more often the better the carpenter, and it pays **Carpentry**, as any building does. Bring the materials, start the work, and it carries on piece by piece until you stop or run out. A hall is meant to take a guild, not a person. The figures are large on purpose.
 
 {{data:guild-hall-tiers}}
 
-A finished tier opens the storehouse, or makes it larger.
+A finished tier opens the storehouse, or makes it larger. The second tier asks for **Carpentry 22** of whoever builds it.
+
+A guild short of carpenters can **hire hands** by the piece: name them, set a wage for each piece set, and lay a purse at the hall. The purse is its own, kept apart from the storehouse's gold, and what is left over when the work is done comes back to it.
 
 If the hall is in the wrong place, the Leader can pull it down and raise it elsewhere, from nothing. Only once the storehouse is empty, gold and all. Nothing inside a hall is ever thrown away.
 
@@ -64,7 +66,7 @@ The storehouse counts its room by the item, not by the stack. Three hundred bloc
 
 Any member may put things in, and gold as well, of which it holds as much as you like. Taking things out is a matter of rank. Every coming and going is written in the **ledger**, with a name and a time, which settles more arguments than it causes.
 
-You must be standing in the hall to use it.
+You must be standing in the hall to put things in or take them out. **Looking** is another matter: the Hall tab shows what is in each of your guild's storehouses from anywhere, so you can find out what the guild has before you walk all the way there to discover it has none.
 
 ### Asking for things
 

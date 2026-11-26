@@ -12,7 +12,9 @@ There are two waters on Taiar, and they are not the same trade wearing different
 
 **Dawncrest** is the sea, and it is saltwater, and it has moods. Eleven fish, three of which appear only within a single stretch of the day, three of which vanish for whole seasons. It rewards knowing things.
 
-Stand at either one, equip a rod, and cast. That is the whole of the beginning. Each cast draws one fish from everything you are currently eligible for, weighted, and eligibility is three questions asked at once: are you skilled enough, is it the right hour, is it the right season.
+**Antura** has two more, both from **Fishing 13**, and the same pair of characters again. **Bidewater** is the lake: tench, rudd, zander, and the **Glassback**, which rises only after dark and is the reason Antura's anglers look tired. **Farvick Narrows** is the strait: mackerel, pollock, sea bass, and turbot, a cold, generous water with a tide in it.
+
+Stand at any of them, equip a rod, and cast. That is the whole of the beginning. Each cast draws one fish from everything you are currently eligible for, weighted, and eligibility is three questions asked at once: are you skilled enough, is it the right hour, is it the right season.
 
 As with foraging, **you do not see what a water holds until you have pulled it out yourself.** Question marks until then. I will not pretend this is not the reason I have stood at Dawncrest at four in the morning.
 
@@ -54,6 +56,12 @@ The roll leans toward the middle, so most fish are unremarkable and the extremes
 
 I keep a smallest Tiddle. It is a fourteenth of a pound. I am not going to explain myself.
 
+## Salvage, and the chests
+
+Not everything that comes up is a fish. Every water gives back a little of what fell into it: amber, river mussels, bog-sunk Lanai, frogspawn, and at the sea a **Locked Rusty Chest** now and then. Salvage is not weighed, and nobody keeps records of the smallest mussel, except me.
+
+A locked chest is taken to **Geoffrey** in **Emberra**, who picks the lock for a fee. Opening it after that is your own short job, and pays **Fishing**, because it was the water that gave it to you. The sea chests left by the islets' guardians are opened the same way.
+
 ## When the line breaks
 
 Sometimes something takes the hook that you are simply not ready for, and it leaves with your bait and your dignity.
@@ -62,9 +70,10 @@ This can only happen where there is genuinely a bigger fish in that water than y
 
 ## What it feeds
 
-- **Cooking** is the answer, and it is coming. Raw fish are not food yet.
+- **Cooking** is the answer. Raw fish are not food; cooked over any fire, they are, and every fish in Talaran has its dish.
 - **Crafting** takes a small share of the experience when you cut bait.
-- **Carpentry and Smithing** build the trade rather than take from it: the rod is a Lanai rod, an Ambren hook, and two lengths of linen line, assembled at a bench in Verdale. The net is knotted linen on a plank frame.
+- **Carpentry and Smithing** build the trade rather than take from it: the rod is a Lanai rod, an Ambren hook, and two lengths of linen line, assembled at a bench in Verdale. The **Serph rod**, from Carpentry 15, is the same with a Serph hook, and the proper rod for Antura's waters. The net is knotted linen on a plank frame.
+- **The islets** keep shoals. A landing may put you over forty casts of the best water on that island, bigger and better fish, and no bait spent at all.
 
 ## Georemy
 
@@ -72,7 +81,7 @@ He is at Luxmere. He has been following water for thirty years, he speaks about 
 
 Talk to him first. He is also, I am fairly sure, not telling us everything.
 
-Rods wear out, as every tool does, though a rod lasts about twice as long as a hatchet and a net longer still. When yours goes, you need not start again from flax. **Alder**, the carpenter in Talador, always keeps a rod or two on his shelf, and Georemy, once you are a regular at Luxmere, has been known to send a pupil off with a spare.
+Rods wear out, as every tool does, though a rod lasts about twice as long as a hatchet and a net about six times as long. When yours goes, you need not start again from flax. **Alder**, the carpenter in Talador, always keeps a rod or two on his shelf, and Georemy, once you are a regular at Luxmere, has been known to send a pupil off with a spare.
 
 {{details:The Geographer's ledgers}}
 Every fish in both waters, what draws it, and when it runs:

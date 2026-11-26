@@ -28,6 +28,20 @@ The **middle** is wherever you are and whatever you may do there. Work appears w
 
 Note the difference between the first two, because it will matter more as Talaran grows. World chat is the whole world. Region chat is the ground beneath your feet.
 
+The chat box takes the color of the channel it will send to, so a whisper meant for one person looks different before you press Enter, which has saved more than one reputation.
+
+## The right-hand side
+
+Your **skills** and the **minimap** of where you stand sit on the right. The minimap's marked edges are the roads out of the place. Among the place's own links, at a port, every way onto the water is gathered under one **Sail**.
+
+The **island map** opens from there. Scroll or pinch to zoom, drag to look about, and double-click or double-tap to look closer. On an islet it shows that island's islets instead. It also shows the hour in Talaran, which matters to anglers and to anyone who wants Geomima's fires lit.
+
+## The buttons in the corners
+
+- **The loot log** keeps what your work has brought in, grouped by job, and your journeys with it. **The travel log** and the **ship's log** keep your roads and voyages, newest first.
+- **The bell** rings when a job stops, if you ask it to, and its arrow opens a list of what it should ring for, one-off jobs included.
+- **A pinned feat** keeps a small window of its progress on screen while you work. Drag it by its name; pull any edge to resize it.
+
 ## The panels along the top
 
 The row across the top opens the larger rooms: your messages, the forum, your guild, the highscores, the news, and this manual. They open over the world rather than taking you away from it, and any of them shuts with the same gesture that opened it.

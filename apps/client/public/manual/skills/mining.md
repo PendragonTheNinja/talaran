@@ -8,6 +8,8 @@ But here is the thing every newcomer misses, so lean in. **The rock is not the p
 
 Find a stone outcrop. Equip a pickaxe. That is genuinely the entire entrance examination.
 
+On Taiar there are two mines, and you want both. **Origrund**'s granite opens onto **Ambren** veins, **Grundagr**'s onto **Burgh**, and Ambren is only smelted with Burgh beside it. On **Antura**, **Underway**'s granite asks for **Mining 13** and opens onto **Serph**, which smelts alone.
+
 Every outcrop states plainly what level it expects of you and what grade of pickaxe it would prefer. Work within your means at first. An outcrop above your station will not refuse you outright. It will simply take its time, at your expense, and say nothing.
 
 ## Rock first, ore second
@@ -24,6 +26,12 @@ So when you find one, *work it*. Do not go and put your affairs in order. Do not
 
 I have lost more good ambren to tidiness than to any rival I ever had.
 
+## Gems, which fall out while you are not looking
+
+Granite holds stones as well as seams, and a rough gem turns up now and then in the ordinary run of swings. Taiar's granite gives mostly **quartz**. Underway's gives mostly **garnet**, quartz still, and very rarely, something like one stone in a thousand, a rough **amethyst**, which belongs to a tier nobody has yet reached and is kept by people who like to be ready.
+
+Rough gems are cut at a lapidary, Geosper's in Caliwen or your own there or in Wendhaven, and filled with light at the Rift, and both of those are Crafting's and Talar's business. Yours is only to notice them in your pack and not sell them to the first person who asks.
+
 ## Dense ore
 
 Once you are well past what an ore demands, fifteen levels clear of it, you will begin occasionally pulling **dense** ore instead of the ordinary sort. The chance climbs steadily from there, and once you stand forty-five levels above the requirement it stops being a chance at all. Every piece comes out dense.
@@ -39,11 +47,16 @@ Grade matters in both directions, and the arithmetic is worth committing to memo
 
 Read those two figures again and note that they are not symmetrical. The lesson is therefore not "always carry the finest pickaxe." The lesson is **never work an outcrop with a pickaxe beneath it.** The penalty for arriving under-equipped dwarfs the reward for arriving over-equipped, which is true of a great many things besides mining.
 
+Underway's granite is slower than Taiar's, thirty seconds a swing against twenty, and pays for it. Its Serph veins come a little rarer for the time spent than Ambren's do. Take a Serph pickaxe; an Ambren one will work Underway, and will remind you of the forty percent on every swing.
+
+**Merrick** in Talador always has an Ambren pickaxe or two on his shelf. **Wystan** in Mettlefell sells Serph ones. Nobody is ever locked out of the trade by a broken handle.
+
 ## Connections
 
 - **Smithing** is where the ore goes. Mining and Smithing are effectively one long trade wearing two hats, and raising Mining alone means selling raw metal to someone who read further than you did.
 - **Crafting** wants the gemstones that mining turns up in passing.
 - **Carpentry** and **Farming** both eat granite by the cartload, every fence and every farmstead border. On Taiar this makes a miner permanently welcome in Novita.
+- **The islets** hold the best veins of all. An islet may hold an exposed seam, twenty-five to forty ore that is yours alone, with dense ore and gems likelier than anywhere on the mainland.
 - **Woodcutting** is Mining's twin: same rhythm, same tool logic, different substance. Whichever you learn first teaches you the other for free.
 
 {{details:The Geographer's ledgers}}

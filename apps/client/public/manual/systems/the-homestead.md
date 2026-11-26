@@ -8,7 +8,7 @@ A **workstation** is a tool that has become a place. The smith's anvil, the tann
 
 A **homestead** is a place that holds other things. It does no job at all by itself. It is ground with your name on it, and what happens on that ground is up to you.
 
-On Taiar, the farmstead at **Novita** is the homestead you will meet first. It is not the only shape property will take, and it will not be the only island where you may hold some.
+On Taiar, the farmstead at **Novita** is the homestead you will meet first. On **Antura** the homestead ground is **Farefield**. You may keep one on each island, and they are separate places: each has its own fields, pens, and store, and nothing in one can be reached from the other except by carrying it across the water.
 
 ## What it costs
 
@@ -27,6 +27,10 @@ Now attend, because the arithmetic here is better than it sounds. **One slot hol
 Not fifty items. Fifty *kinds*. A slot holding four thousand planks is one slot. A slot holding a single trophy is also one slot, and I would gently suggest you have made a poor decision.
 
 This means homestead storage rewards the hoarder of few things and punishes the collector of many. A player storing bulk materials will never come close to filling it. A player storing one of everything he has ever seen will fill it in a fortnight and then write to me about it.
+
+## The second tier
+
+From **Carpentry 13**, a homestead can be made bigger. A tier 2 homestead holds **eighty** kinds of thing instead of fifty. Build it outright on fresh ground, or raise the one you have for a good deal less; either way it wants Serph nails. Both prices are in the Carpentry ledger. And if your Carpentry is not up to it, hire someone whose is: name them at your homestead, lay their fee, and let them get on with it.
 
 ## Sharing the store
 
@@ -48,4 +52,4 @@ Build early. Build badly if you must. The planks will still be there.
 
 - **Carpentry** builds it, and is paid handsomely for doing so.
 - **Mining** and **Woodcutting** supply the materials.
-- **Farming** happens on it, and on Taiar is the reason most people build one at all.
+- **Farming** happens on it, and on Taiar is the reason most people build one at all. Antura's homestead holds ten fields, not twenty.

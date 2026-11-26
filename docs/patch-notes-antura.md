@@ -32,6 +32,7 @@
 - [Feature] **Hire a carpenter** to build your homestead, your shop, your boat, or your guild's hall for you.
 - [Feature] **Share your homestead's store** with one other player you trust.
 - [Feature] **Every island has its own homestead ground and its own shop**, and its own tally board.
+- [Feature] **Set up your own smithy and lapidary on Antura**, close to the ore and the stones.
 
 ## Around Taiar
 
@@ -47,7 +48,7 @@
 - [Feature] **Whisper and Message buttons** on a player's profile, and a guild's member list from its tag.
 - [UI] **A slimmer progress ring on skill icons.**
 - [Feature] **The chat box takes the color of the channel** you are about to send to.
-- [Content] **The Manual explains gear and food properly**, and every bench page lists what goes on the bench.
+- [Content] **The Manual covers Antura** on every skill page, with new pages for **Wayfaring**, **Sailing & the Islets**, and **Antura** itself. It also explains gear and food properly, and every bench page lists what goes on the bench.
 - [Fix] **A long list of fixes**, from forum reports.
 
 ---
@@ -62,7 +63,8 @@
 - [Content] **Antura** is tier 2, for levels 13 to 24. Its eight places are **Wendhaven** (the port), **Farefield** (farmland), **Mettlefell** (the forge town), **Underway** (the mine), **Bidewater** (a lake), **Farvick Narrows** (a strait and its tidal shore), **Yondereach** (the high passes), and **Vergehorns** (twin headlands).
 - [Feature] **The ferry** runs between **Talador and Wendhaven**: **50 gold** a crossing, **8 minutes**, open to anyone, and it pays no Wayfaring.
 - [Feature] **Your own boat makes the same crossing**, faster than the ferry, and pays Wayfaring at sea's rate. At a port, the slip, the ferry, and your own boats are all under one **Sail** entry in the place's links.
-- [Content] **Antura's roads run a little longer** than Taiar's, as befits a bigger, wilder island.
+- [Content] **Antura's roads follow its map**, timed at the same rate as Taiar's, a little longer where they climb. The longest is **Farvick Narrows to Vergehorns**, about **4 minutes** on foot at the start, the longest road in Talaran by far.
+- [Feature] **Benches of your own on Antura**: a **smithy** (forge and kiln) in **Mettlefell** and a **lapidary** in **Wendhaven**, so Serph and garnet can be worked where they are mined. There are no public benches on Antura; bring your own tools.
 - [UI] **The map heading names the island you are on**, and the minimap shows plain road buttons for a place whose picture is not drawn yet.
 
 ## Boats
@@ -236,7 +238,11 @@
 - [Fix] **Smithing, Carpentry, and Tanning** no longer say your tools are used up when you set up a bench; they stay in it until you take them out.
 - [Fix] **Woodcutting** says hatchet, not axe.
 - [Content] **Item pages** for everything new: islet relics, the sailor's set, chests and their locks, errands, dailies, quest items, brewing, and rounds.
-- [Content] **The Homestead page** explains sharing a store.
+- [Content] **The Homestead page** explains sharing a store, the second tier, and a homestead on each island.
+- [Content] **Three new pages**: **Wayfaring**, which now has a skill page of its own; **Sailing & the Islets**, for everything about boats, voyages, landings, guardians, chests, and the sailor's set; and **Antura**, a guide to the island and its eight places.
+- [Content] **Every skill page covers Antura**: its places, its tier 2 work, Serph tools, what the islets hold for that trade, and where to buy a tool that broke. Carpentry has a new **Boats** tab, Crafting new **Sewing** and **Camp Work** tabs, and Cooking explains salt, brewing, and standing a round.
+- [Content] **The systems pages** cover the ferry and sea crossings, quest chains and rival quests, tutors' daily tasks, the Friddik brothers' errands, Antura's markets, tier 2 shops, hiring builders, and falling far from home.
+- [Fix] **The level-by-level tables** now list Foraging's habitats, Hunting's quarry and traps, Wayfaring's mounts and boats, animals to raise, buildings, and brewing; they were empty or partial before. Antura's crops say Farefield, not Novita, and the building and shop tables show both islands and both tiers.
 
 ---
 

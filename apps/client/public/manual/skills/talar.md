@@ -18,6 +18,8 @@ On Taiar, everything begins at the **Talar Rift**, in the island's far north-eas
 
 That is your first stone and most of your first level, and it costs you nothing but the walk.
 
+**Antura has no Rift and no church.** Whatever the light is, it rises on Taiar, and every stone in Talaran is filled there and every spell learned there. An Antura miner with a pack of garnets has a ferry to catch.
+
 ## The reservoir
 
 The light you take in sits inside you, in a reservoir. Three things about it, and all three matter:
@@ -41,6 +43,8 @@ Rough stones turn up in the work of other trades. On Taiar:
 - **Miners** find quartz and, more rarely, garnet, both in Granite and in Ambren and Burgh ore.
 - **Fighters** find them now and then in the creatures they kill. Which ones, the Bestiary will tell you once you have killed enough.
 
+On **Antura**, Underway's granite gives **garnet** as its common stone, quartz still, and very rarely a rough **amethyst**, which is a stone of the third tier and waits for a hand that can fill it. A lucky walker on Antura's roads may even find a **Lit Garnet** lying at the verge, already full, which nobody has ever satisfactorily explained.
+
 A rough stone is no use to the light. It must be cut first, at a lapidary. That is Crafting's work, done at Geosper's bench in Caliwen or at your own, and it is described on the Crafting page.
 
 ## Filling
@@ -51,6 +55,8 @@ Two things worth knowing:
 
 - **Leaving costs you nothing.** Stop, walk off, come back next week: the stone keeps what it had taken.
 - **A better cut holds more.** A Polished stone holds half again what a Cut one does and fills a little faster; a Flawless one holds three times as much. That is why a good cutter is worth knowing.
+
+**A stone is filled from the first level of its tier**: quartz from your first day, garnet from **Talar 13**. A garnet holds a great deal more than a quartz, and takes longer about it.
 
 When a stone is full it glows and goes into your pack as a charged stone: **Lit**, **Bright**, or **Radiant**, after the cut it began as. Charged stones can be kept, traded, or taken in.
 
@@ -95,6 +101,8 @@ A piece is never idle and never free. It draws a little Talar from you **for eve
 When your reservoir runs dry, the piece goes quiet. It does no harm and runs no debt. It simply waits for you to fill a stone.
 
 When a piece does something worth noticing, it says so.
+
+**Two tiers of the same six.** The first set is quartz in Ambren, worn from your first day. The second is **garnet in Serph**, set at **Crafting 20** for the rings and **22** for the amulets, worn from **Talar 13**: the Garnet Keeper's Band, Prospector's Ring, and Seedsaver's Ring; the Garnet Hearty Amulet, Wayfinder's Amulet, and Baitkeeper's Amulet. Each helps with the same thing as its quartz twin, and helps more.
 
 {{data:jewelry}}
 

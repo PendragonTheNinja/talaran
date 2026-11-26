@@ -163,13 +163,16 @@ function townOrComplain(skill: string): string {
  * fallback. A station-less recipe is done anywhere, which is worth saying
  * rather than leaving blank.
  */
-function recipeWhere(skill: string, station: string | null, requiredTools: string | null): string {
+function recipeWhere(skill: string, station: string | null, requiredTools: string | null, benchTowns: Map<string, string[]> = new Map()): string {
     // A station-less recipe still belongs to its skill's town. Cut Granite Block
     // names no bench and is Caliwen work all the same, so the skill map is the
     // right answer here rather than "Anywhere".
     if (!station) return townOrComplain(skill);
 
-    const town = STATION_TOWNS[String(station).toLowerCase()] ?? recipeTown(skill);
+    // Every town that allows this bench (locations.bench_types), so Serph
+    // work reads "Emberra or Mettlefell"; the fixed map is the fallback.
+    const listed = benchTowns.get(String(station).toLowerCase());
+    const town = (listed?.length ? listed.join(' or ') : null) ?? STATION_TOWNS[String(station).toLowerCase()] ?? recipeTown(skill);
     if (!town) return townOrComplain(skill);
 
     // A cooking recipe that names no tool needs only a fire, and a campfire is
@@ -378,6 +381,11 @@ const registry: Record<string, QueryHandler> = {
         // Hunting, and Wayfaring tables were empty.
         const other = await otherPathRows(skill.toLowerCase());
 
+        const benchTowns = new Map<string, string[]>();
+        for (const l of await db('locations').whereRaw("bench_types <> '{}'").orderBy('id').select('name', 'bench_types')) {
+            for (const t of (l.bench_types as string[]) ?? []) benchTowns.set(t, [...(benchTowns.get(t) ?? []), l.name]);
+        }
+
         // Each island's homestead ground (the islands table), where its crops
         // are sown; Antura's crops read "Novita" before this.
         const homesteadOf = new Map<string, string>(
@@ -467,7 +475,7 @@ const registry: Record<string, QueryHandler> = {
                 level: r.required_level,
                 unlock: r.name,
                 island: '',
-                where: recipeWhere(skill, r.station, r.required_tools),
+                where: recipeWhere(skill, r.station, r.required_tools, benchTowns),
                 iconName: r.output_item_name,
                 details:
                     `Make ${r.output_qty > 1 ? `${r.output_qty}× ` : ''}${r.output_item_name}`
@@ -529,24 +537,27 @@ const registry: Record<string, QueryHandler> = {
     // Read from services/shops.ts rather than restated here, so the Manual
     // cannot quietly disagree with the game about what a shop costs.
     'shop-cost': async () => {
-        const tier = SHOP_TIERS[1];
+        // One shop on each island, in its port (islands.shop_town), by tier.
+        const ports = ((await db('islands').orderBy('display_order').pluck('shop_town')) as string[]).filter(Boolean);
+        const mins = (sec: number) => `${Math.round(sec / 60)} minutes`;
+        const costWords = (cost: { itemName: string; qty: number }[]) => cost.map(c => `${c.qty.toLocaleString('en-US')} ${c.itemName}`).join(', ');
+        const tiers = Object.entries(SHOP_TIERS).map(([n, t]) => ({ n: Number(n), t })).sort((a, b) => a.n - b.n);
         return {
-            title: `Raising a shop in ${SHOP_TOWN}`,
+            title: 'Raising a shop',
             columns: [
-                { key: 'what', label: 'Requirement' },
-                { key: 'detail', label: '' },
+                { key: 'what', label: 'Tier' },
+                { key: 'level', label: 'Carpentry', align: 'right' },
+                { key: 'cost', label: 'Costs' },
+                { key: 'time', label: 'Time', align: 'right' },
+                { key: 'holds', label: 'Holds' },
             ],
-            rows: [
-                ...ESTABLISH_COST.map((c) => ({ what: c.itemName, detail: `${c.qty.toLocaleString()}` })),
-                { what: 'Carpentry', detail: `level ${CARPENTRY_REQ}` },
-                { what: 'Tools', detail: 'mallet and saw, both equipped' },
-                { what: 'Time', detail: `${Math.round(ESTABLISH_SECONDS / 60)} minutes` },
-                { what: 'Storage', detail: `${tier.storageSlots} slots` },
-                { what: 'Selling slots', detail: `${tier.sellSlots}` },
-                { what: 'Buying slots', detail: `${tier.buySlots}` },
-                { what: 'Tithe on sales', detail: `${Math.round(SALE_TAX_RATE * 100)}%` },
-            ],
-            note: 'One shop per player. It trades while you are away.',
+            rows: tiers.flatMap(({ n, t }) => {
+                const holds = `${t.storageSlots} in store, ${t.sellSlots} for sale, ${t.buySlots} to buy`;
+                const rows = [{ what: n === 1 ? 'Tier 1' : `Tier ${n}, built outright`, level: t.carpentry, cost: costWords(t.build.cost), time: mins(t.build.seconds), holds }];
+                if (t.upgrade) rows.push({ what: `Raised to tier ${n}`, level: t.carpentry, cost: costWords(t.upgrade.cost), time: mins(t.upgrade.seconds), holds });
+                return rows;
+            }),
+            note: `One shop per player on each island, raised in its port (${ports.join(' or ')}), with a mallet and saw equipped. It trades while you are away, and ${Math.round(SALE_TAX_RATE * 100)}% of every sale is a tithe that leaves the world.`,
         };
     },
 

@@ -6,6 +6,8 @@ I believed this for a year and a half. I was wrong in a way I find genuinely del
 
 Find a tree. Equip a hatchet. Swing.
 
+On Taiar, the **Lanai** trees at **Lanaivale** take anyone from their first day. The **Deep Lanai** at **Eld Grove** wants **Woodcutting 13** and is the island's tier 2 wood, older, slower to fell, and better for it. Antura grows no timber you cannot already cut on Taiar. Wood, unlike rock, keeps two tiers to a kind, and Lanai is both of them.
+
 Every stand of timber states the level it wants and the grade of hatchet it would prefer. Work within your means at first, because a hatchet beneath the job does not fail politely. It fails slowly, which is worse.
 
 ## Tools and gear
@@ -17,6 +19,10 @@ The arithmetic is Mining's exactly, and worth knowing in both trades:
 - A hatchet **below** grade adds roughly forty percent per grade short.
 
 Note once more that these are not symmetrical. Being over-equipped is a modest luxury. Being under-equipped is a tax you pay on every single swing.
+
+Deep Lanai is worked at its stated pace with a **Serph hatchet**. An Ambren one still fells it, at about seven swings for every five. Merrick in Talador always has an Ambren hatchet; Wystan in Mettlefell sells the Serph.
+
+**Carry a skep while you chop.** A wild hive turns up in a hollow trunk now and then, and with a skep in your pack it comes home with you as a colony. Without one you rob a comb and leave the bees. Husbandry has the whole of that story.
 
 ## Here is the interesting part
 
@@ -35,6 +41,7 @@ The practical consequence: revisiting humble trees is not the waste it appears t
 - **Carpentry** is where every log goes. Woodcutting alone is a supply trade, and there is honest money in supply, but the value multiplies the moment you work your own timber.
 - **Hunting** needs arrow shafts, which need timber, which needs you.
 - **Farming** needs fence panels, which need planks, which need logs.
+- **The islets** reach stands nobody else has touched: an islet may hold forty chops of the best tree you have the level for, with good timber three times as likely as ashore.
 - **Mining** is Woodcutting's twin. Learn either and you have most of the other for free, which is the single best trade-in-training bargain in Talaran.
 
 If you take up only one gathering trade, take Woodcutting. More things are made of wood here than of anything else, and quality actually rewards your attention.

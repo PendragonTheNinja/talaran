@@ -52,6 +52,8 @@ interface LocationData {
   } | null
   nodes: Node[]
   connections: Connection[]
+  /** The benches a player may set up here (locations.bench_types). */
+  benches?: { type: string; public: boolean }[]
 }
 
 interface ActionResult {
@@ -2447,7 +2449,7 @@ export default function GameView({
             </div>
           )}
 
-          {((currentAction && PROCESSING_ACTIONS.includes(currentAction)) || (!currentAction && PROCESSING_LOCATIONS.includes(locationData?.location?.name))) && (
+          {((currentAction && PROCESSING_ACTIONS.includes(currentAction)) || (!currentAction && (PROCESSING_LOCATIONS.includes(locationData?.location?.name) || (locationData?.benches?.length ?? 0) > 0))) && (
             <div className="action-limit-bar">
               <div className="action-limit-controls">
                 <label className="muted-text" style={{ fontSize: '12px' }}>Action Limit:</label>
