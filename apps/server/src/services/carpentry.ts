@@ -94,7 +94,8 @@ export async function canSawHere(
     const { locationHasPublicStation } = await import('./workstations');
     const publicHere = await locationHasPublicStation(playerId, locationId, 'carpentry');
     if (!workstation && !publicHere) {
-        return { allowed: false, hasAccess: false, error: 'Speak to the carpenter to gain the use of his workshop.' };
+        const { noBenchWords } = await import('./smithing');
+        return { allowed: false, hasAccess: false, error: await noBenchWords(locationId, 'carpentry', 'workshop', 'a sawhorse and a plane at your bench') };
     }
     if (workstation && (await equippedBuildTool(playerId, BUILD_SAW.subtype))) {
         return { allowed: true, hasAccess: true, usingBench: false };

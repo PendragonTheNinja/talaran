@@ -274,7 +274,21 @@ export async function canSmithHere(
     return { allowed: true, usingBlacksmith: true };
   }
 
-  return { allowed: false, error: 'Speak to Geoffrey the blacksmith to gain access to the forge.' };
+  return { allowed: false, error: await noBenchWords(locationId, 'smithing', 'smithy', 'an anvil, a hammer, and tongs in Your Tool Rack') };
+}
+
+/**
+ * Why there is nowhere to work here. At the keeper's own town, speak to the
+ * keeper; anywhere else (Antura's Mettlefell has no public smithy), set up your
+ * own, or go to the keeper's. It read "Speak to Geoffrey" in Mettlefell, where
+ * Geoffrey is not (2026-11-26).
+ */
+export async function noBenchWords(locationId: number, stationType: string, label: string, setUp: string): Promise<string> {
+  const { PUBLIC_STATIONS } = await import('./workstations');
+  const owner = PUBLIC_STATIONS[stationType];
+  const here = await db('locations').where({ id: locationId }).first('name');
+  if (owner && here?.name === owner.location) return `Speak to ${owner.keeper} for the use of the ${label} here.`;
+  return `You need your own ${label} here first: ${setUp}.${owner ? ` Or use ${owner.keeper}'s in ${owner.location}.` : ''}`;
 }
 
 export async function smeltIngots(
