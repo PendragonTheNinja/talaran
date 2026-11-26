@@ -497,6 +497,11 @@ export async function shouldShowLocationLink(playerId: number): Promise<boolean>
     const player = await db('players').where({ id: playerId }).first();
     if (!player?.current_location_id) return true;
 
+    // Never on an islet: a landing is brief and nobody can walk back to a board
+    // there (Nathan, 2026-11-26). buildTallyBoard refuses one there too.
+    const at = await db('locations').where({ id: player.current_location_id }).first('islet_kind');
+    if (at?.islet_kind) return false;
+
     const settings = await db('player_settings').where({ player_id: playerId }).first();
     if (!settings?.hide_tally_when_built) return true;
 
@@ -531,6 +536,12 @@ export async function buildTallyBoard(playerId: number): Promise<BuildResult> {
         const player = await db('players').where({ id: playerId }).first();
         if (!player?.current_location_id) {
             return { success: false, error: 'You are nowhere in particular.' };
+        }
+        // Never on an islet (Nathan, 2026-11-26): a landing is brief, and
+        // nobody can walk back to a board left there.
+        const site = await db('locations').where({ id: player.current_location_id }).first('islet_kind');
+        if (site?.islet_kind) {
+            return { success: false, error: 'There is nowhere on an islet to raise a tally board. Build it ashore.' };
         }
 
         const islandRow = await islandHere(db, playerId);
