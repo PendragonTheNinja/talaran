@@ -69,4 +69,39 @@ export const LOCATION_EXITS: Record<string, ExitZone[]> = {
     { connectionName: 'Grundagr', x: 30, y: 80, w: 25, h: 25 },
     { connectionName: 'Novita', x: 0, y: 70, w: 25, h: 25 },
   ],
+
+  // Antura (Nathan's map and roads, 2026-11-26). Each box sits where the road
+  // leaves the picture, or over the neighbour where it shows.
+  'Wendhaven': [
+    { connectionName: 'Farefield', x: 3, y: 18, w: 30, h: 22 },
+    { connectionName: 'Farvick Narrows', x: 52, y: 0, w: 24, h: 20 },
+  ],
+  'Farefield': [
+    { connectionName: 'Underway', x: 0, y: 20, w: 26, h: 20 },
+    { connectionName: 'Mettlefell', x: 0, y: 52, w: 20, h: 18 },
+    { connectionName: 'Wendhaven', x: 72, y: 58, w: 28, h: 20 },
+  ],
+  'Mettlefell': [
+    { connectionName: 'Bidewater', x: 30, y: 0, w: 22, h: 20 },
+    { connectionName: 'Underway', x: 68, y: 10, w: 30, h: 22 },
+    { connectionName: 'Farefield', x: 78, y: 38, w: 22, h: 20 },
+  ],
+  'Underway': [
+    { connectionName: 'Mettlefell', x: 0, y: 64, w: 28, h: 24 },
+    { connectionName: 'Farefield', x: 76, y: 46, w: 24, h: 22 },
+  ],
+  'Bidewater': [
+    { connectionName: 'Yondereach', x: 40, y: 0, w: 30, h: 20 },
+    { connectionName: 'Mettlefell', x: 30, y: 80, w: 25, h: 20 },
+  ],
+  'Yondereach': [
+    { connectionName: 'Bidewater', x: 40, y: 80, w: 30, h: 20 },
+  ],
+  'Farvick Narrows': [
+    { connectionName: 'Vergehorns', x: 62, y: 0, w: 28, h: 20 },
+    { connectionName: 'Wendhaven', x: 12, y: 78, w: 28, h: 22 },
+  ],
+  'Vergehorns': [
+    { connectionName: 'Farvick Narrows', x: 0, y: 70, w: 30, h: 30 },
+  ],
 }
