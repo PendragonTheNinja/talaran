@@ -30,7 +30,7 @@ I have lost more good ambren to tidiness than to any rival I ever had.
 
 Granite holds stones as well as seams, and a rough gem turns up now and then in the ordinary run of swings. Taiar's granite gives mostly **quartz**. Underway's gives mostly **garnet**, quartz still, and very rarely, something like one stone in a thousand, a rough **amethyst**, which belongs to a tier nobody has yet reached and is kept by people who like to be ready.
 
-Rough gems are cut at the lapidary in Caliwen and filled with light at the Rift, and both of those are Crafting's and Talar's business. Yours is only to notice them in your pack and not sell them to the first person who asks.
+Rough gems are cut at a lapidary, Geosper's in Caliwen or your own there or in Wendhaven, and filled with light at the Rift, and both of those are Crafting's and Talar's business. Yours is only to notice them in your pack and not sell them to the first person who asks.
 
 ## Dense ore
 

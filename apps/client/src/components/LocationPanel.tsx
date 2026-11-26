@@ -133,10 +133,19 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const seaRoutes: { id: number; to_location_id: number; to_location_name: string; ferry_fare?: number | null }[] =
     connections.filter((c: { travel_type?: string }) => c.travel_type === 'sea')
 
-  const isEmberra = location?.name === 'Emberra'
-  const isVerdale = location?.name === 'Verdale'
-  const isCaliwen = location?.name === 'Caliwen'
-  const isPhoenwick = location?.name === 'Phoenwick'
+  // The benches a player may set up here, and which a keeper lends, from the
+  // place's own row (locations.bench_types), never a town name: Antura's
+  // smithy at Mettlefell and lapidary at Wendhaven came this way.
+  const benches: { type: string; public: boolean }[] = locationData?.benches ?? []
+  const benchHere = (type: string) => benches.some(b => b.type === type)
+  const lentHere = (type: string) => benches.some(b => b.type === type && b.public)
+  const isEmberra = benchHere('smithing')
+  const isVerdale = benchHere('carpentry')
+  // The craftworks proper (tannery, wheel and loom, the crafting bench) stand
+  // where tanning does; a lapidary may stand alone.
+  const isCaliwen = benchHere('tanning')
+  const hasLapidary = benchHere('lapidary')
+  const isPhoenwick = benchHere('cooking')
   // An island's homestead ground and its port with player shops, as the server marks them (services/islands.ts).
   const isHomestead = !!locationData?.homesteadHere
   const hasShops = !!locationData?.shopsHere
@@ -370,7 +379,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         if (q) setCookQuestStatus(q.status)
       }).catch(() => {})
     }
-    if (isCaliwen) {
+    if (isCaliwen || hasLapidary) {
       apiFetch<{ exists: boolean; isActive: boolean }>('/api/workstations/lapidary').then(setLapidaryStation).catch(() => setLapidaryStation(null))
       apiFetch<{ exists: boolean; slots?: { filled: unknown[] }[] }>('/api/workstations/textile').then(setTextileStation).catch(() => setTextileStation(null))
       apiFetch<{ quests?: { name: string; status: string }[] }>('/api/quests').then(data => {
@@ -775,7 +784,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   >
                     Work the Forge
                     {!smithingStatus?.workstation?.is_active && (
-                      <span className="station-tag warn">(smith's forge)</span>
+                      <span className="station-tag warn">{lentHere('smithing') ? "(smith's forge)" : '(set up your tool rack)'}</span>
                     )}
                   </button>
                 ) : (
@@ -922,17 +931,18 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </div>
         )}
 
-        {/* Crafting — Caliwen only */}
-        {isCaliwen && (
+        {/* Crafting: the craftworks where tanning stands, or a lapidary alone. */}
+        {(isCaliwen || hasLapidary) && (
           <div className="location-submenu">
             <button
               className={`location-action-btn submenu-toggle ${craftworksOpen ? 'open' : ''}`}
               onClick={() => setCraftworksOpen(!craftworksOpen)}
             >
-              {craftworksOpen ? '▼' : '▶'} Craftworks
+              {craftworksOpen ? '▼' : '▶'} {isCaliwen ? 'Craftworks' : 'Lapidary'}
             </button>
             {craftworksOpen && (
               <div className="submenu-items">
+                {isCaliwen && (<>
 
                 {/* The tannery's tools (rack and barrel), like every other
                     bench's: what is in, what is missing. Above the vats. */}
@@ -1018,9 +1028,11 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   )}
                 </button>
 
+                </>)}
+
                 {/* Lapidary: gems are cut here, and later set into jewelry.
                     Gated on Geosper's quest like the other keepers' benches. */}
-                {lapidaryUnlocked ? (
+                {hasLapidary && (lapidaryUnlocked ? (
                   <>
                     <button
                       className="location-action-btn sub"
@@ -1031,15 +1043,17 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                         <span className="station-tag warn">(incomplete)</span>
                       )}
                     </button>
-                    <button
-                      className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
-                      onClick={() => onStartAction('lapidary_menu', 0)}
-                    >
-                      Lapidary
-                      {!lapidaryStation?.isActive && (
-                        <span className="station-tag warn">(Geosper's wheel)</span>
-                      )}
-                    </button>
+                    {(lentHere('lapidary') || lapidaryStation?.isActive) && (
+                      <button
+                        className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
+                        onClick={() => onStartAction('lapidary_menu', 0)}
+                      >
+                        Lapidary
+                        {!lapidaryStation?.isActive && (
+                          <span className="station-tag warn">(Geosper's wheel)</span>
+                        )}
+                      </button>
+                    )}
                   </>
                 ) : (
                   <>
@@ -1052,7 +1066,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                       <span className="station-tag locked">(locked)</span>
                     </button>
                   </>
-                )}
+                ))}
 
               </div>
             )}

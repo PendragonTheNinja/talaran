@@ -286,6 +286,9 @@ export async function socketTool(
         if (!def) return { success: false, error: 'That station has no such slot.' }
 
         const existing = await getWorkstation(playerId, locationId, stationType)
+        if (!existing && !(await benchAllowedAt(locationId, stationType))) {
+            return { success: false, error: 'There is nowhere here to set up a bench like that.' }
+        }
         if (isTemporary(existing)) {
             return { success: false, error: 'There is nowhere on a campfire to set that.' }
         }
@@ -1020,6 +1023,23 @@ export async function checkStation(playerId: number, recipe: any, spend = true):
  * it". Kept as one function so a second island can add public benches by
  * adding rows rather than by editing this.
  */
+/**
+ * Whether a player may set up a bench of this type at this place: the town's
+ * own list (locations.bench_types, migration 20261126160000), never a town
+ * name in code. A bench already standing keeps working wherever it is.
+ */
+export async function benchAllowedAt(locationId: number, stationType: string, x: any = db): Promise<boolean> {
+    const row = await x('locations').where({ id: locationId }).first('bench_types')
+    const types: string[] = Array.isArray(row?.bench_types) ? row.bench_types : []
+    return types.includes(stationType)
+}
+
+/** The bench types a place allows, and which of them a keeper lends there. */
+export async function benchesAt(location: { name: string; bench_types?: string[] | null }): Promise<{ type: string; public: boolean }[]> {
+    const types = Array.isArray(location.bench_types) ? location.bench_types : []
+    return types.map(type => ({ type, public: PUBLIC_STATIONS[type]?.location === location.name }))
+}
+
 export const PUBLIC_STATIONS: Record<string, { location: string; quest: string; keeper: string }> = {
     smithing: { location: 'Emberra', quest: "The Blacksmith's Bargain", keeper: 'Geoffrey' },
     carpentry: { location: 'Verdale', quest: "The Carpenter's Commission", keeper: 'Geossica' },

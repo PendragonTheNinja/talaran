@@ -11,7 +11,7 @@ Smithing begins with a **workstation**: an anvil, a hammer, and tongs, each set 
 
 That is the difference between a tool and a *place*.
 
-On Taiar the forge town is **Emberra**. **Geoffrey** keeps a public smithy there, which lends its own tools, wears none of them, and runs at half speed, once you have done his bargain for him. Your own smithy goes up in Emberra too. Antura has no public smithy, and nowhere yet to set up your own, so **every bar and blade, Serph included, is still made in Emberra.** Mettlefell's smiths sell what they make. They do not lend their fire.
+On Taiar the forge town is **Emberra**. **Geoffrey** keeps a public smithy there, which lends its own tools, wears none of them, and runs at half speed, once you have done his bargain for him. Your own smithy goes up in Emberra too, or on Antura in **Mettlefell**, the forge town, kiln and all. Mettlefell has no public smithy. Its smiths sell what they make and do not lend their fire, so there you work at your own or not at all. Serph can be smelted and forged a short walk from Underway, which is the whole argument for setting one up.
 
 {{data:bench-tools:smithing}}
 

@@ -21,7 +21,7 @@ This makes Crafting unusual in one important way: **it is almost never the first
 
 Each discipline has its own tempo and its own equipment. What they share is a level, so raising Crafting anywhere raises it everywhere.
 
-There are four, each with a tab of its own: **Tanning**, the **Lapidary**, **Sewing**, which makes armor and cloaks out of whatever a creature left behind, and the **Camp Work**, the small useful things that need no bench at all. On Taiar, all of it is done in **Caliwen**. Antura has no craftworks of its own, so its crafters come home to Caliwen to work, which is a long way to carry a Snallygaster's scales and you will do it anyway.
+There are four, each with a tab of its own: **Tanning**, the **Lapidary**, **Sewing**, which makes armor and cloaks out of whatever a creature left behind, and the **Camp Work**, the small useful things that need no bench at all. On Taiar, all of it is done in **Caliwen**. Antura has a lapidary and nothing more: you may set up your own in **Wendhaven**, so its garnets can be cut where they are mined. Tanning, the wheel and loom, and the sewing are Caliwen's alone, which is a long way to carry a Snallygaster's scales, and you will do it anyway.
 
 ## Level does more than open recipes
 
@@ -90,7 +90,7 @@ A lapidary wants two tools to cut and a third to set:
 - An **Ambren Gem Chisel**, forged by Smithing, for splitting a stone along its grain.
 - **Ambren Jeweller's Pliers**, also forged, for closing a setting over a stone. Cutting does without them; setting does not.
 
-On Taiar, **Geosper** keeps a public lapidary in Caliwen and lends all three to anyone who has done his lesson. It runs at half speed, as every public bench does. Your own runs at full.
+On Taiar, **Geosper** keeps a public lapidary in Caliwen and lends all three to anyone who has done his lesson. It runs at half speed, as every public bench does. Your own runs at full, and may be set up in **Caliwen** or in **Wendhaven** on Antura. Wendhaven has no public wheel: there, it is your own or nothing.
 
 {{data:bench-tools:lapidary}}
 

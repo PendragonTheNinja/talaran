@@ -8,6 +8,7 @@ import { liveIsletFind } from '../services/isletFinds';
 import { waterFor } from '../services/fishing';
 import { givenNameOf } from '../services/isletNames';
 import { rockSubtypeFor } from '../services/mining';
+import { benchesAt } from '../services/workstations';
 
 const router = Router();
 
@@ -213,6 +214,9 @@ router.get('/current', requireAuth, async (req: AuthRequest, res: Response) => {
       homesteadHere: towns.homesteads.has(currentLocation.name),
       sharedHomesteadsHere,
       shopsHere: towns.shops.has(currentLocation.name),
+      // The benches a player may set up here, and which a keeper lends
+      // (locations.bench_types; services/workstations.ts benchesAt).
+      benches: await benchesAt(currentLocation),
       ownBoats,
       guildHallHere,
       hallWorkHere,

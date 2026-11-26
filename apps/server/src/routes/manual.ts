@@ -163,13 +163,16 @@ function townOrComplain(skill: string): string {
  * fallback. A station-less recipe is done anywhere, which is worth saying
  * rather than leaving blank.
  */
-function recipeWhere(skill: string, station: string | null, requiredTools: string | null): string {
+function recipeWhere(skill: string, station: string | null, requiredTools: string | null, benchTowns: Map<string, string[]> = new Map()): string {
     // A station-less recipe still belongs to its skill's town. Cut Granite Block
     // names no bench and is Caliwen work all the same, so the skill map is the
     // right answer here rather than "Anywhere".
     if (!station) return townOrComplain(skill);
 
-    const town = STATION_TOWNS[String(station).toLowerCase()] ?? recipeTown(skill);
+    // Every town that allows this bench (locations.bench_types), so Serph
+    // work reads "Emberra or Mettlefell"; the fixed map is the fallback.
+    const listed = benchTowns.get(String(station).toLowerCase());
+    const town = (listed?.length ? listed.join(' or ') : null) ?? STATION_TOWNS[String(station).toLowerCase()] ?? recipeTown(skill);
     if (!town) return townOrComplain(skill);
 
     // A cooking recipe that names no tool needs only a fire, and a campfire is
@@ -378,6 +381,11 @@ const registry: Record<string, QueryHandler> = {
         // Hunting, and Wayfaring tables were empty.
         const other = await otherPathRows(skill.toLowerCase());
 
+        const benchTowns = new Map<string, string[]>();
+        for (const l of await db('locations').whereRaw("bench_types <> '{}'").orderBy('id').select('name', 'bench_types')) {
+            for (const t of (l.bench_types as string[]) ?? []) benchTowns.set(t, [...(benchTowns.get(t) ?? []), l.name]);
+        }
+
         // Each island's homestead ground (the islands table), where its crops
         // are sown; Antura's crops read "Novita" before this.
         const homesteadOf = new Map<string, string>(
@@ -467,7 +475,7 @@ const registry: Record<string, QueryHandler> = {
                 level: r.required_level,
                 unlock: r.name,
                 island: '',
-                where: recipeWhere(skill, r.station, r.required_tools),
+                where: recipeWhere(skill, r.station, r.required_tools, benchTowns),
                 iconName: r.output_item_name,
                 details:
                     `Make ${r.output_qty > 1 ? `${r.output_qty}× ` : ''}${r.output_item_name}`
