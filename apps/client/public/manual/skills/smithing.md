@@ -11,6 +11,8 @@ Smithing begins with a **workstation**: an anvil, a hammer, and tongs, each set 
 
 That is the difference between a tool and a *place*.
 
+On Taiar the forge town is **Emberra**. **Geoffrey** keeps a public smithy there, which lends its own tools, wears none of them, and runs at half speed, once you have done his bargain for him. Your own smithy goes up in Emberra too. Antura has no public smithy, and nowhere yet to set up your own, so **every bar and blade, Serph included, is still made in Emberra.** Mettlefell's smiths sell what they make. They do not lend their fire.
+
 {{data:bench-tools:smithing}}
 
 ## Ore and fuel
@@ -22,6 +24,20 @@ I labour the point because it is the commonest way a new smith stalls: a full pa
 ## Climbing
 
 The trade rises in tiers, and each tier wants ore of a matching grade, so Smithing and Mining climb in lockstep. A smith who has outpaced his miner is a smith standing beside a cold forge with excellent technique.
+
+**Ambren** is tier 1 and wants a partner: one Ambren ore, one Burgh ore, and two Charc make two bars. **Serph** is tier 2, from **Smithing 13**, and smelts alone: one Serph ore and two Charc make one bar. Charc is still the fuel. Antura grows no kiln wood of its own, so its smiths carry Taiar's charcoal over, as they will until the next wood.
+
+From 13 to 24 there is a Serph twin of every Ambren recipe: every tool, every weapon, every piece of armor, the nails, the hooks, and the arrowheads. The Ambren work is not wasted; it is simply the cheaper half of the trade now.
+
+## Your tools and the work
+
+The tools in your smithy have a tier, and the work does too.
+
+- Work **of your tools' own tier** goes at its stated pace.
+- Work **a tier above** them takes about a third longer, and two tiers above longer again. More than that and the smithy refuses: your tools are far too crude.
+- Work **a tier below** them goes about an eighth faster.
+
+So a smith with Ambren tools can forge Serph, slowly, and the first thing a sensible smith forges in Serph is a Serph hammer.
 
 {{tab:The Kiln}}
 
@@ -75,13 +91,15 @@ It costs you nothing but the logs and a moment's thought, it runs while you are 
 
 Nothing need be held. Smithing is bench work and the bench does the holding. What matters is having the workstation, and having ore and Charc to hand.
 
+Every tool here can break, and none of them strands you. Geoffrey's bench lends its own, and **Merrick** in Talador keeps Ambren tools on his shelf. **Wystan** in Mettlefell sells every Serph tool, arm, and piece of armor there is.
+
 ## Connections
 
 Smithing sits at the middle of nearly everything, which is why it is worth the setup cost.
 
 - **Mining** feeds it entirely. These two are one trade wearing two hats.
 - **Woodcutting** feeds the kiln, and log quality decides your fuel yield. 
-- **Hunting** needs arrowheads. Every arrow in Talaran passes through a forge.
+- **Hunting** needs arrows, and a hunt shoots the best one carried, so a Serph arrow is a real improvement on Antura's quarry. Every arrow in Talaran passes through a forge.
 - **Carpentry** needs nails, and needs them by the thousand. A single farmstead wants a thousand of them.
 - **Crafting**, **Farming**, and **Husbandry** all want tools and fittings that begin here.
 

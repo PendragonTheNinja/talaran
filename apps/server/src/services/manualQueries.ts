@@ -13,9 +13,9 @@
 
 import db from '../db';
 import { PEN_COST } from './husbandry';
-import { FARM_ESTABLISH_COST, plotCost } from './farming';
-import { ESTABLISH_COST as SHOP_COST, SHOP_TOWN, CARPENTRY_REQ as SHOP_CARPENTRY_REQ } from './shops';
-import { BUILD_COST as TALLY_COST, CARPENTRY_REQ as TALLY_CARPENTRY_REQ } from './tally';
+import { FARM_ESTABLISH_COST, plotCost, HOMESTEAD_TIERS } from './farming';
+import { ESTABLISH_COST as SHOP_COST, SHOP_TIERS, CARPENTRY_REQ as SHOP_CARPENTRY_REQ } from './shops';
+import { tallyCostForTier, CARPENTRY_REQ as TALLY_CARPENTRY_REQ } from './tally';
 import type { ManualTable } from '../routes/manual';
 import { FORMS, STANCE_MULTIPLIER, TYPE_AIM, COMBAT, maxHp, unarmedWeapon, UNARMED, type Form } from '../lib/combatMath';
 import { RUNGS } from '../lib/tiers';
@@ -295,9 +295,26 @@ export const extraQueries: Record<string, QueryHandler> = {
             rows.push({ what, level, where, cost: cost.join(', ') });
         };
 
-        scaling('Tally board', `Carpentry ${TALLY_CARPENTRY_REQ}`, 'Anywhere you may build', TALLY_COST, null);
-        scaling('Shop', `Carpentry ${SHOP_CARPENTRY_REQ}`, SHOP_TOWN, SHOP_COST, null);
-        scaling('Homestead', 'Carpentry 1', 'Your own land', FARM_ESTABLISH_COST, null);
+        // Every island has its own shop, homestead, and tally boards (the
+        // islands table), so "where" names each island's place.
+        const islands = await db('islands').orderBy('display_order').select('name', 'tier', 'homestead_place', 'shop_town');
+        for (const isl of islands) {
+            scaling(`Tally board (${isl.name})`, `Carpentry ${TALLY_CARPENTRY_REQ}`, `Anywhere on ${isl.name} but its islets`, tallyCostForTier(Number(isl.tier)), null);
+        }
+        const ports = islands.map((i: any) => i.shop_town).join(' or ');
+        const grounds = islands.map((i: any) => i.homestead_place).join(' or ');
+        scaling('Shop', `Carpentry ${SHOP_CARPENTRY_REQ}`, ports, SHOP_COST, null);
+        for (const [n, t] of Object.entries(SHOP_TIERS)) {
+            if (Number(n) < 2) continue;
+            scaling(`Shop, tier ${n}, built outright`, `Carpentry ${t.carpentry}`, ports, t.build.cost, null);
+            if (t.upgrade) scaling(`Shop, raised to tier ${n}`, `Carpentry ${t.carpentry}`, ports, t.upgrade.cost, null);
+        }
+        scaling('Homestead', 'Carpentry 1', grounds, FARM_ESTABLISH_COST, null);
+        for (const t of HOMESTEAD_TIERS) {
+            if (t.tier < 2) continue;
+            scaling(`Homestead, tier ${t.tier}, built outright`, `Carpentry ${t.carpentry}`, grounds, t.build.cost, null);
+            if (t.upgrade) scaling(`Homestead, raised to tier ${t.tier}`, `Carpentry ${t.carpentry}`, grounds, t.upgrade.cost, null);
+        }
         scaling('Farm plot', 'Carpentry 1', 'On your homestead', plotCost(1), plotCost(2));
         // Raising a pen is carpentry and pays Carpentry, whatever the animals in
         // it are worth later. Husbandry decides how MANY you may own, not
@@ -315,6 +332,37 @@ export const extraQueries: Record<string, QueryHandler> = {
             ],
             rows,
             note: 'Every structure here is carpentry and pays Carpentry, whatever trade uses it afterwards. A figure marked with a plus is what each further one costs on top of the last, so the second coop is dearer than the first and the tenth is dearer again. Pens are the exception to the level column: anyone may build one, but you may only keep one pen for every three levels of Husbandry, to a ceiling of twelve. Nothing here is refundable, and nothing here moves once built.',
+        };
+    },
+
+    // Boats (docs/sailing-spec.md): built in pieces on a slip, Carpentry to
+    // build and Wayfaring to sail, read from vessel_types.
+    'boats': async () => {
+        const boats = await db('vessel_types').where({ is_active: true }).orderBy('tier').select('*');
+        if (!boats.length) return null;
+        const slips = (await db('locations').where({ has_slip: true }).orderBy('id').pluck('name')) as string[];
+        const rows: Record<string, string | number>[] = [];
+        for (const b of boats) {
+            const pieces = typeof b.pieces === 'string' ? JSON.parse(b.pieces) : (b.pieces || []);
+            for (const [i, p] of pieces.entries()) {
+                rows.push({
+                    boat: i === 0 ? `${b.name} (tier ${b.tier})` : '',
+                    asks: i === 0 ? `Carpentry ${b.build_level} to build, Wayfaring ${b.sail_level} to sail` : '',
+                    piece: p.name,
+                    cost: (p.materials || []).map((m: any) => `${m.qty} x ${m.item}`).join(', '),
+                });
+            }
+        }
+        return {
+            title: 'Boats, piece by piece',
+            columns: [
+                { key: 'boat', label: 'Boat' },
+                { key: 'asks', label: 'Asks' },
+                { key: 'piece', label: 'Piece' },
+                { key: 'cost', label: 'Costs' },
+            ],
+            rows,
+            note: `A keel is laid on a slip (${slips.join(', ')}), and the pieces are raised in order. Each building turn sets one to five of a piece's materials, more often five the better the carpenter, and pays Carpentry.`,
         };
     },
 
