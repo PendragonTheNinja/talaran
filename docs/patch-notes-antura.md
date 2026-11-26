@@ -156,9 +156,9 @@
 - [Content] **The Bearverine Mantle**, a tier 2 cloak of Cave Bear and Wolverine pelts: **armor 7**, sewn at **Crafting 20**, worn from **Defense 20**.
 - [Content] **The Heartstone Ring**: **+4 power**, set at **Crafting 18**, worn from **Melee 18**.
 - [Content] **The Kelpie's Bridle Charm**: **+14 aim**, made at **Crafting 20**, worn from **Melee 20**.
-- [Content] **Three rare weapons**: **Eagle Talons** (a pair, pierce, aim 185, power 61, Melee 19), the **Reaver's Dane Axe** (two-handed, slash, aim 175, power 103, Melee 20), and the **Dripstone Cudgel** (one-handed, crush, aim 165, power 60, Melee 22).
+- [Content] **Three rare weapons**: **Eagle Talons** (a pair, pierce, aim 185, power 61, Melee 19), the **Reaver's Dane Axe** (two-handed, slash, aim 175, power 103, Melee 20), and the **Dripstone Cudgel** (one-handed, crush, aim 165, power 60, Melee 22). The Cudgel drops 1 kill in **750**, the other two 1 in **1,000**, each certain by twice that.
 - [Balance] **The Hodag Horn** is raised to **81 power**, to stand level with the Serph Atgeir.
-- [Balance] **Rare weapons last far longer.** The Hodag Horn, Wrecker's Cutlass, and Gouger's Legbone now take **5,000** uses before they can break, up from 2,000, and after that break only **0.1%** of the time, down from 0.2%. Antura's three take **6,250** uses, then **0.17%**. What you have already used counts toward the new number.
+- [Balance] **Rare weapons last far longer.** The Hodag Horn, Wrecker's Cutlass, and Gouger's Legbone now take **5,000** uses before they can break, up from 2,000, and after that break only **0.1%** of the time, down from 0.2%. Antura's three take **6,250** uses, then **0.1%**. What you have already used counts toward the new number.
 - [Balance] **The Gouger's Legbone drops more often**, **1 in 750** kills instead of 1 in 1,000, and the **Wrecker's Cutlass 1 in 1,000** instead of 1 in 1,250. The point at which one is certain moves with them.
 - [Feature] **Swap weapons mid-fight.** The weapons in your pack run down the right of the fight view, with your shields beneath them while you hold a one-handed weapon. Tap one to take it up; the fight is played up to that moment with what you held before.
 - [Balance] **The Agropelter drops Lanai Bark**, 1 to 2, about every other kill.
