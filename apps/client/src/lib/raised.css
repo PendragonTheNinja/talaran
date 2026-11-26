@@ -1,0 +1,90 @@
+/* Raised buttons (Nathan, 2026-11-26): a button stands on a solid lip a few
+   pixels deep, with a soft shadow under it and a faint light along its top
+   edge, and presses down onto the lip when clicked. The lip is a darkened
+   shade of the button's own edge color (--raise-edge), so it suits every
+   theme, and a button that changes its edge (the bell's modes) changes its
+   lip with it. Image-drawn buttons (Stonehold's gold and red) are left as their
+   art draws them.
+
+   --raise   how far the button stands up
+   --raise-edge  the color the lip is made from */
+
+:root :is(.log-panel-icon, .botcheck-fab, .bell-stack, .scene-cancel-btn, .btn, .farm-btn, .trap-btn, .loot-btn) {
+    --raise: 3px;
+    --raise-edge: var(--color-border-gold);
+    --raise-lip: color-mix(in srgb, var(--raise-edge) 55%, #000);
+    transform: translateY(calc(-1 * var(--raise)));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 var(--raise) 0 var(--raise-lip),
+        0 calc(var(--raise) + 2px) calc(var(--raise) + 6px) rgba(0, 0, 0, 0.5);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+/* The corner buttons stand a little taller. */
+:root :is(.log-panel-icon, .botcheck-fab, .bell-stack) {
+    --raise: 5px;
+}
+
+/* A square button's face catches a little light at the top. */
+:root :is(.log-panel-icon, .botcheck-fab, .bell-fab, .bell-events-toggle) {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 60%);
+}
+
+:root .farm-btn { --raise-edge: var(--color-border-mid); }
+:root :is(.btn-gold, .farm-btn.primary) { --raise-edge: var(--color-gold-dim); }
+:root :is(.btn-red, .scene-cancel-btn) { --raise-edge: var(--color-red-dark); }
+
+/* Hover lifts a touch; pressing sets it down on its lip. */
+:root :is(.log-panel-icon, .botcheck-fab, .btn, .scene-cancel-btn, .farm-btn, .trap-btn, .loot-btn):hover:not(:disabled),
+:root .bell-stack:hover {
+    transform: translateY(calc(-1 * var(--raise) - 1px));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 calc(var(--raise) + 1px) 0 var(--raise-lip),
+        0 calc(var(--raise) + 4px) calc(var(--raise) + 8px) rgba(0, 0, 0, 0.5);
+}
+
+:root :is(.log-panel-icon, .botcheck-fab, .btn, .scene-cancel-btn, .farm-btn, .trap-btn, .loot-btn):active:not(:disabled),
+:root .bell-stack:has(button:active) {
+    transform: translateY(0);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 1px 0 var(--raise-lip),
+        0 2px 3px rgba(0, 0, 0, 0.45);
+}
+
+/* A disabled button lies flat: there is nothing to press. */
+:root :is(.btn, .scene-cancel-btn, .farm-btn, .trap-btn, .loot-btn):disabled {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Stonehold draws its gold and red buttons from art, which has its own lip.
+   They get a lip and shadow under them all the same (Nathan, 2026-11-26),
+   cast by the art's own outline (a box shadow would follow the rectangle round
+   the carved ends): dark bronze, since black is lost on the stone. */
+:root[data-theme='stonehold'] :is(.btn-gold, .btn-red):not(.top-nav-btn),
+:root[data-theme='stonehold'] :is(.btn-gold, .btn-red):not(.top-nav-btn):hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: none;
+    filter: drop-shadow(0 3px 0 #3d2610) drop-shadow(0 5px 6px rgba(0, 0, 0, 0.75));
+}
+
+:root[data-theme='stonehold'] :is(.btn-gold, .btn-red):not(.top-nav-btn):active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: none;
+    filter: drop-shadow(0 1px 0 #3d2610) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
+}
+
+/* A disabled one keeps the theme's own grey-out (themes/stonehold.css). */
+:root[data-theme='stonehold'] :is(.btn-gold, .btn-red):not(.top-nav-btn):disabled {
+    transform: none;
+    filter: grayscale(0.7) brightness(0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root :is(.log-panel-icon, .botcheck-fab, .bell-stack, .scene-cancel-btn, .btn, .farm-btn, .trap-btn, .loot-btn) {
+        transition: none;
+    }
+}

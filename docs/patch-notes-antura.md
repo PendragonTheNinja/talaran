@@ -219,6 +219,8 @@
 - [UI] **The equipment picker**: Take off is gone (a left-click on the slot does that), and right-clicking another slot while the picker is open opens that slot at once.
 - [Feature] **The bell can ring when a one-off job is done**, such as mucking every pen or spreading manure. Tick it in the bell's list.
 - [Fix] **The bell's list fits on a phone**, and scrolls.
+- [UI] **Buttons stand up off the page** on a solid lip, with a shadow under them, and press down when clicked: the corner buttons, the Stop button, and the buttons in menus, Stonehold's drawn ones included.
+- [UI] **The bell's arrow is now the top of the bell**, one piece with it, and flips when its list is open.
 - [UI] **Pop-ups open and close with a quick fade and scale**, as the loot log always has: menus, the equipment picker, profiles, the map, and the rest.
 - [UI] **The travel log and the ship's log show the newest first**, at the top, where they open.
 - [Fix] **Journeys now show in the loot log**: Wayfaring, what the tide leaves on an islet's shore, and road finds, grouped by where you went.

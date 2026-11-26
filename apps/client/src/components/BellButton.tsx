@@ -63,6 +63,18 @@ export default function BellButton() {
 
     return (
         <>
+            {/* The arrow is the top of the bell, not a tab beside it (Nathan,
+                2026-11-26): one column, raised and pressed together. */}
+            <div className={`bell-stack bell-${mode}`}>
+            <button
+                className={`bell-events-toggle ${picking ? 'open' : ''}`}
+                onClick={() => setPicking(p => !p)}
+                aria-expanded={picking}
+                aria-label="Choose what rings the bell"
+                title="Choose what rings the bell"
+            >
+                <span className="bell-events-chevron" aria-hidden="true" />
+            </button>
             <button
                 className={`bell-fab bell-${mode}`}
                 onPointerDown={press}
@@ -86,15 +98,7 @@ export default function BellButton() {
                 {mode === 'always' && <span className="bell-mark" aria-hidden="true">∞</span>}
                 {mode === 'once' && <span className="bell-mark" aria-hidden="true">1</span>}
             </button>
-            <button
-                className={`bell-events-toggle ${picking ? 'open' : ''}`}
-                onClick={() => setPicking(p => !p)}
-                aria-expanded={picking}
-                aria-label="Choose what rings the bell"
-                title="Choose what rings the bell"
-            >
-                <span aria-hidden="true">{picking ? '▾' : '▴'}</span>
-            </button>
+            </div>
             {picking && (
                 <div className="bell-events-popover" ref={pickerRef}>
                     <div className="bell-events-title">Ring the bell for</div>

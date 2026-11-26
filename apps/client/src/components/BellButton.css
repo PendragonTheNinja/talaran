@@ -61,38 +61,86 @@
     color: var(--color-text-bright);
 }
 
-/* The arrow above the bell: opens the list of what rings it (BellEventsPicker).
-   A tab on the bell's top edge, so it reads as part of the bell. */
-.bell-events-toggle {
+/* The arrow above the bell opens the list of what rings it
+   (BellEventsPicker). It is the bell's own top (Nathan, 2026-11-26): the two
+   share a column (.bell-stack), one width and one border, with a seam
+   between, and are raised and pressed together (lib/raised.css). */
+.bell-stack {
     position: absolute;
-    bottom: 52px;
-    right: 66px;
+    bottom: 12px;
+    right: 60px;
     z-index: 24;
-    width: 28px;
-    height: 15px;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    --raise-edge: var(--color-border-mid);
+}
+
+.bell-stack.bell-once { --raise-edge: #d9a520; }
+.bell-stack.bell-always { --raise-edge: #4caf50; }
+
+.bell-stack .bell-fab {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    border-top-width: 0;
+    border-radius: 0 0 8px 8px;
+}
+
+/* The stack lifts and presses as one; the bell alone no longer moves. */
+.bell-stack .bell-fab:hover,
+.bell-stack .bell-fab:active {
+    transform: none;
+}
+
+.bell-events-toggle {
+    width: 100%;
+    height: 16px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
-    line-height: 1;
-    color: var(--color-text-muted);
-    background: var(--color-bg-raised);
-    border: 1px solid var(--color-border-mid);
-    border-bottom: none;
-    border-radius: 6px 6px 0 0;
+    background-color: var(--color-bg-raised);
+    border: 2px solid var(--color-border-mid);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+    border-radius: 8px 8px 0 0;
     cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
 }
+
+.bell-stack.bell-once .bell-events-toggle { border-color: #d9a520; border-bottom-color: rgba(0, 0, 0, 0.45); }
+.bell-stack.bell-always .bell-events-toggle { border-color: #4caf50; border-bottom-color: rgba(0, 0, 0, 0.45); }
 
 .bell-events-toggle:hover,
 .bell-events-toggle.open {
-    color: var(--color-gold);
-    background: var(--color-bg-hover);
+    background-color: var(--color-bg-hover);
+}
+
+/* A small drawn chevron: up to open the list, down while it is open. */
+.bell-events-chevron {
+    width: 7px;
+    height: 7px;
+    margin-top: 3px;
+    border-left: 2px solid var(--color-text-muted);
+    border-top: 2px solid var(--color-text-muted);
+    transform: rotate(45deg);
+    transition: transform 0.15s, border-color 0.15s, margin 0.15s;
+}
+
+.bell-events-toggle:hover .bell-events-chevron,
+.bell-events-toggle.open .bell-events-chevron {
+    border-color: var(--color-gold);
+}
+
+.bell-events-toggle.open .bell-events-chevron {
+    transform: rotate(225deg);
+    margin-top: -3px;
 }
 
 .bell-events-popover {
     position: absolute;
-    bottom: 72px;
+    bottom: 84px;
     right: 12px;
     z-index: 30;
     width: min(280px, calc(100vw - 24px));
