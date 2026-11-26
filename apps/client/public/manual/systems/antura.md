@@ -12,7 +12,7 @@ At a port, the ferry, the slip, and your own boats are all under one **Sail** in
 ## The places
 
 - **Wendhaven**, the port. The ferry and the slip; **Antura's shop ground**; room for **your own lapidary**; the **Antura Museum**; the **Gaster's Gaze**, a taproom kept by **Odda Fenn**; and **Maude** the craftswoman, **Gil** the provisioner, who only buys, and **Osric** the pawnbroker. Nan keeps a window box here, and the harbormaster's clerk keeps a great many papers.
-- **Farefield**, the farmland. **Antura's homestead ground**, ten fields at most; the **Seed Ground**, for foragers of 13; and two neighbors with a great deal to say about cabbages.
+- **Farefield**, the farmland. **Antura's homestead ground**, ten fields at most; room for **your own hearth**; the **Seed Ground**, for foragers of 13; and two neighbors with a great deal to say about cabbages.
 - **Mettlefell**, the forge town. Room for **your own smithy**, forge and kiln. **Wystan** the smith sells every Serph tool, weapon, and piece of armor; **Ashby** the carpenter sells his own work. The cookhouse keeps **the cask**, the only place in Talaran where Ale is brewed. The **Burners' Yard** is the gentlest fighting on the island.
 - **Underway**, the mine. **Granite** from Mining 13, with garnet in it, and **Serph** veins.
 - **Bidewater**, the lake. Tench, rudd, zander, and the Glassback, which comes up only at night.
@@ -24,9 +24,9 @@ At a port, the ferry, the slip, and your own boats are all under one **Sail** in
 
 **It has** its own homestead, shop, and tally boards, each built of its own island's nails; its own museum; its own crops, which grow nowhere else; its own fish, foes, and finds on the road; and eight islets off its coast, which want a Cog.
 
-**It does not have** a Rift or a church, so every stone is still filled and every spell still learned on Taiar. It has no public benches, nobody to lend you tools, and only two benches of your own: a **smithy in Mettlefell** and a **lapidary in Wendhaven**, so Serph and garnet can be worked where they are mined. Every workbench, tannery, wheel, loom, and hearth is still on Taiar, so Antura's hides, fish, and cooking go home to be worked. And it grows no timber or kiln wood Taiar does not, so Lanai planks and Charc cross the strait the other way.
+**It does not have** a Rift or a church, so every stone is still filled and every spell still learned on Taiar. It has no public benches, nobody to lend you tools, and three benches of your own: a **smithy in Mettlefell**, a **lapidary in Wendhaven**, and a **hearth at Farefield**, so Serph, garnet, and Antura's food can be worked where they are found. Every workbench, tannery, wheel, and loom is still on Taiar, so Antura's timber work and hides go home to be worked. And it grows no timber or kiln wood Taiar does not, so Lanai planks and Charc cross the strait the other way.
 
-Much of Antura's work therefore runs in a loop. Mine and smith there, cut your garnets there, and fight; take the rest home to Taiar to make; sail back with what you made. A Cog and a decent Wayfaring are worth having for that alone.
+Much of Antura's work therefore runs in a loop. Mine and smith there, cut your garnets, cook, and fight there; take the rest home to Taiar to make; sail back with what you made. A Cog and a decent Wayfaring are worth having for that alone.
 
 ## Owning things on two islands
 

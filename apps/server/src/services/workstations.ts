@@ -121,6 +121,12 @@ export const HEARTH_COST: { itemName: string; qty: number }[] = [
 export const HEARTH_BUILD_SECONDS = 300
 export const HEARTH_LOCATION = 'Phoenwick'
 
+/** Every place a hearth may be built, in words ("Phoenwick or Farefield"). */
+export async function hearthPlaces(): Promise<string> {
+    const names = (await db('locations').whereRaw("'cooking' = ANY(bench_types)").orderBy('id').pluck('name')) as string[]
+    return names.length ? names.join(' or ') : HEARTH_LOCATION
+}
+
 /** Every log in the pack that could feed a fire, worst wood first. */
 async function burnableLogs(playerId: number, trx?: any) {
     return (trx ?? db)('player_inventory as pi')
@@ -498,9 +504,10 @@ export async function startBuildHearth(
         const player = await db('players').where({ id: playerId }).first()
         if (!player) return { ok: false, error: SERVER_ERROR }
 
-        const location = await db('locations').where({ id: player.current_location_id }).first()
-        if (location?.name !== HEARTH_LOCATION) {
-            return { ok: false, error: `A hearth of your own is built at ${HEARTH_LOCATION}.` }
+        // Wherever the place allows a cookhouse (locations.bench_types):
+        // Phoenwick on Taiar, Farefield on Antura.
+        if (!(await benchAllowedAt(player.current_location_id, 'cooking'))) {
+            return { ok: false, error: `A hearth of your own is built at ${await hearthPlaces()}.` }
         }
 
         const existing = await getWorkstation(playerId, player.current_location_id, 'cooking')

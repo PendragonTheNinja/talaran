@@ -11,7 +11,7 @@ import { TALLY_COST_BY_TIER } from './tally';
 import { STATION_ITEMS as TANNING_STATIONS } from './tanning';
 import { HUNT_AMMO } from './hunting';
 import { ALE_PER_BATCH, BATCH_INPUTS, BREW_LEVEL } from './brewing';
-import { HEARTH_COST, HEARTH_LOCATION } from './workstations';
+import { HEARTH_COST } from './workstations';
 import { ALE_ITEM, ROUND_MIN_PLAYERS } from './rounds';
 import { HIVE_BEES_ITEM, HIVE_COMB_ITEM, HIVE_SKEP_ITEM } from './woodcutting';
 import type { ItemSource, ItemUse } from './itemPage';
@@ -164,7 +164,7 @@ export function codeUses(name: string): ItemUse[] {
     // Building a hearth (services/workstations.ts).
     const hearthQty = needed(HEARTH_COST, name);
     if (hearthQty !== null) {
-        out.push({ kind: 'Cooking', into: 'Building a hearth', detail: `At ${HEARTH_LOCATION} · needs ${hearthQty}`, link: 'skills/cooking' });
+        out.push({ kind: 'Cooking', into: 'Building a hearth', detail: `At a cookhouse town · needs ${hearthQty}`, link: 'skills/cooking' });
     }
 
     // Brewing Ale, and standing it as a round (services/brewing.ts, services/rounds.ts).

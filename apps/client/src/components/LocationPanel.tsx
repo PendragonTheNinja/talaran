@@ -814,7 +814,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </button>
         )}
 
-        {/* Cooking — Phoenwick only. Gated on Geomima's quest the same way the
+        {/* Cooking: wherever a hearth may stand (Phoenwick, Farefield). Gated on Geomima's quest the same way the
             forge and workshop are gated on theirs: her hearth is a favour, not
             a public amenity. */}
         {isPhoenwick && (
@@ -855,7 +855,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   </button>
                 )}
 
-                {cookUnlocked ? (
+                {/* Cook at your own hearth, or Geomima's where she keeps one;
+                    Farefield has no hearth but your own. */}
+                {cookUnlocked && !hasHearth && !lentHere('cooking') ? null : cookUnlocked ? (
                   <button
                     className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
                     onClick={() => onStartAction('cooking_menu', 0)}

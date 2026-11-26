@@ -14,7 +14,7 @@ She will not simply let you use it. Ask her about the work and she will set you 
 - **Your own hearth**, once built, runs at full speed
 - **A campfire** runs between the two and burns out in half an hour
 
-Every hearth in Talaran is on Taiar: Geomima's, and your own, which also goes up in Phoenwick. Antura has no cookhouse to borrow. Its fish and meat go on a campfire where you stand, and its dishes come home to Phoenwick with you. A Serph cauldron or skillet is the proper tool for Antura's dishes; the Ambren ones still cook them, more slowly, as every tool a tier too low does.
+On Taiar your own hearth goes up in Phoenwick, beside Geomima's. On **Antura** it goes up at **Farefield**, among the fields, where the barley, beans, and cabbage are already to hand. There is nobody at Farefield to lend you a hearth: build your own, or roast on a campfire where you stand. A Serph cauldron or skillet is the proper tool for Antura's dishes; the Ambren ones still cook them, more slowly, as every tool a tier too low does.
 
 Cooking a thing raw into a thing cooked needs no equipment at all. That is the whole of the beginning: stand at a fire, put a fish on it, take the fish off before it turns black (you will fail this part often at first).
 

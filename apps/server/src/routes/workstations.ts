@@ -12,7 +12,7 @@ import {
     startBuildHearth,
     HEARTH_COST,
     HEARTH_BUILD_SECONDS,
-    HEARTH_LOCATION,
+    hearthPlaces,
 } from '../services/workstations';
 import { BUILD_MALLET } from '../services/construction';
 import { failureStatus } from '../lib/serviceResult';
@@ -68,7 +68,7 @@ router.get('/hearth/cost', requireAuth, async (_req: AuthRequest, res: Response)
     res.json({
         cost: HEARTH_COST,
         seconds: HEARTH_BUILD_SECONDS,
-        location: HEARTH_LOCATION,
+        location: await hearthPlaces(),
         // Named here so the prompt can say it up front. Being refused after
         // confirming is a worse experience than being told before.
         tool: BUILD_MALLET.itemName,
