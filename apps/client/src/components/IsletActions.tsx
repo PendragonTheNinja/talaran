@@ -122,10 +122,10 @@ export default function IsletActions({ locationId, busy, onVoyage }: {
                 </p>
             )}
             <button className="location-action-btn" disabled={busy || !v || v.landingsLeft < 1} onClick={() => onVoyage('on')}>
-                Sail On →
+                Sail On
             </button>
             <button className="location-action-btn" disabled={busy || !v} onClick={() => onVoyage('home')}>
-                Sail Home →
+                Sail Home
             </button>
         </>
     )

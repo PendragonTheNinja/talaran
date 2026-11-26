@@ -487,7 +487,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         ))}
         {merchantHere && (
           <button className="location-action-btn" onClick={() => setMerchantOpen(true)}>
-            The Travelling Merchant →
+            The Travelling Merchant
           </button>
         )}
 
@@ -546,7 +546,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
         {/* A tavern here, from the location payload (routes/location.ts). */}
         {locationData?.tavern && (
           <button className="location-action-btn" onClick={() => setTavernOpen(true)}>
-            {locationData.tavern.name} →
+            {locationData.tavern.name}
           </button>
         )}
 
@@ -586,7 +586,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'guild_build' ? 'active' : ''}`}
             onClick={() => onStartAction('guild_hall_menu', 0)}
           >
-            Guild Hall →
+            Guild Hall
           </button>
         )}
 
@@ -596,7 +596,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'guild_build' ? 'active' : ''}`}
             onClick={() => setHallWorkOpen(true)}
           >
-            Hall Work →
+            Hall Work
           </button>
         )}
 
@@ -607,7 +607,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'talar_fill' ? 'active' : ''}`}
             onClick={() => onStartAction('talar_fill_menu', 0)}
           >
-            Fill a Gem →
+            Fill a Gem
           </button>
         )}
 
@@ -616,7 +616,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn`}
             onClick={() => onStartAction('hunting_menu', 0)}
           >
-            Hunting Grounds →
+            Hunting Grounds
             {trapsCaught > 0 && (
               <span className="gold-text"> ({trapsCaught} caught!)</span>
             )}
@@ -628,7 +628,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'foraging' ? 'active' : ''}`}
             onClick={() => onStartAction('foraging_menu', 0)}
           >
-            {location?.islet_kind ? 'Forage the Wild Patch' : 'Forage the Forest'} →
+            {location?.islet_kind ? 'Forage the Wild Patch' : 'Forage the Forest'}
           </button>
         )}
 
@@ -639,7 +639,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           >
             {/* Named for what is actually out there. Anywhere not listed keeps
                 the generic label. */}
-            {location?.islet_kind ? 'Fish the Shoal' : WATER_LABELS[locationData?.location?.name ?? ''] ?? 'Fish the Water'} →
+            {location?.islet_kind ? 'Fish the Shoal' : WATER_LABELS[locationData?.location?.name ?? ''] ?? 'Fish the Water'}
           </button>
         )}
 
@@ -651,20 +651,20 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'combat' ? 'active' : ''}`}
             onClick={() => onStartAction('fight_menu', spot.id)}
           >
-            {spot.name} →
+            {spot.name}
           </button>
         ))}
 
         {/* The cask (services/brewing.ts): a town fixture, Mettlefell's alone. */}
         {locationData?.location?.has_cask && (
           <button className="location-action-btn" onClick={() => setCaskOpen(true)}>
-            The Cask →
+            The Cask
           </button>
         )}
 
         {museum && (
           <button className="location-action-btn" onClick={() => setMuseumOpen(true)}>
-            {museum.name} →
+            {museum.name}
           </button>
         )}
 
@@ -672,14 +672,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
 
         {church && (
           <button className="location-action-btn" onClick={() => setChurchOpen(true)}>
-            {church.name} →
+            {church.name}
           </button>
         )}
 
         {/* Merchants here (routes/location.ts names the market). */}
         {locationData?.marketName && (
           <button className="location-action-btn" onClick={() => setMarketplaceOpen(true)}>
-            {locationData.marketName} →
+            {locationData.marketName}
           </button>
         )}
 
@@ -688,7 +688,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           <button className="location-action-btn" onClick={() => setShopsOpen(true)}>
             Player Shops
             {shopUnseen > 0 && <span className="location-badge">{shopUnseen > 99 ? '99+' : shopUnseen}</span>}
-            {' →'}
           </button>
         )}
 
@@ -698,13 +697,13 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             onClick={() => onStartAction('farm_panel', 0)}
           >
             {/* Straight to it: a Farmstead drop-down held this one button (Nathan, 2026-11-13). */}
-            Your Homestead →
+            Your Homestead
           </button>
         )}
 
         {sharedHere.map(h => (
           <button key={h.propertyId} className="location-action-btn" onClick={() => setSharedOpen(h)}>
-            {h.owner}&apos;s Store (shared) →
+            {h.owner}&apos;s Store (shared)
           </button>
         ))}
 
@@ -774,14 +773,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     className={`location-action-btn sub ${(currentAction === 'smelting' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('forge_menu', 0)}
                   >
-                    Work the Forge →
+                    Work the Forge
                     {!smithingStatus?.workstation?.is_active && (
                       <span className="station-tag warn">(smith's forge)</span>
                     )}
                   </button>
                 ) : (
                   <button className="location-action-btn sub locked" onClick={locked('Geoffrey')}>
-                    Work the Forge →
+                    Work the Forge
                     <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
@@ -799,7 +798,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             className={`location-action-btn ${currentAction === 'crafting' ? 'active' : ''}`}
             onClick={() => onStartAction('campfire_menu', 0)}
           >
-            Your Campfire →
+            Your Campfire
             <span className="station-tag warn">
               ({Math.floor(fireLeft / 60)}m {String(fireLeft % 60).padStart(2, '0')}s)
             </span>
@@ -852,7 +851,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
                     onClick={() => onStartAction('cooking_menu', 0)}
                   >
-                    Cook →
+                    Cook
                     {/* No hearth of your own means you are on hers, whatever
                         stray workstation row may exist. */}
                     {!hasHearth && (
@@ -861,7 +860,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   </button>
                 ) : (
                   <button className="location-action-btn sub locked" onClick={locked('Geomima')}>
-                    Cook →
+                    Cook
                     <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
@@ -906,14 +905,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     className={`location-action-btn sub ${(currentAction === 'sawing' || currentAction === 'crafting') ? 'active' : ''}`}
                     onClick={() => onStartAction('carpentry_menu', 0)}
                   >
-                    Carpentry Workshop →
+                    Carpentry Workshop
                     {!carpentryStatus?.workstation?.is_active && (
                       <span className="station-tag warn">(carpenter's bench)</span>
                     )}
                   </button>
                 ) : (
                   <button className="location-action-btn sub locked" onClick={locked('Geossica')}>
-                    Carpentry Workshop →
+                    Carpentry Workshop
                     <span className="station-tag locked">(locked)</span>
                   </button>
                 )}
@@ -995,7 +994,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
                   onClick={() => onStartAction('crafting_menu', 0)}
                 >
-                  Crafting Bench →
+                  Crafting Bench
                 </button>
 
                 {/* Spinning and weaving (migration 20261103140000): your own
@@ -1013,7 +1012,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
                   onClick={() => onStartAction('textile_menu', 0)}
                 >
-                  Spinning and Weaving →
+                  Spinning and Weaving
                   {!textileStation?.slots?.some(s => s.filled.length > 0) && (
                     <span className="station-tag warn">(public wheel)</span>
                   )}
@@ -1036,7 +1035,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                       className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
                       onClick={() => onStartAction('lapidary_menu', 0)}
                     >
-                      Lapidary →
+                      Lapidary
                       {!lapidaryStation?.isActive && (
                         <span className="station-tag warn">(Geosper's wheel)</span>
                       )}
@@ -1049,7 +1048,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                       <span className="station-tag locked">(locked)</span>
                     </button>
                     <button className="location-action-btn sub locked" onClick={locked('Geosper')}>
-                      Lapidary →
+                      Lapidary
                       <span className="station-tag locked">(locked)</span>
                     </button>
                   </>
@@ -1064,7 +1063,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             the prompt to raise one. Always the last link (Nathan, 2026-11-25). */}
         {showTallyLink === true && (
           <button className="location-action-btn" onClick={() => setTallyOpen(true)}>
-            Tally Board →
+            Tally Board
           </button>
         )}
       </div>

@@ -55,7 +55,7 @@ export default function PortalDoors({ locationId }: { locationId: number | undef
                 return (
                     <button key={d.id} className="location-action-btn portal-door" disabled={busy} onClick={() => step(d)}
                         title={`Opened by ${d.mine ? 'you' : d.caster}. Closes in about ${mins} minute${mins === 1 ? '' : 's'}.`}>
-                        Doorway to {d.destination} →
+                        Doorway to {d.destination}
                         <span className="portal-door-meta">{d.mine ? 'yours' : d.caster} · {mins} min</span>
                     </button>
                 )

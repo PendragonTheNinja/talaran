@@ -43,6 +43,7 @@
 
 - [Feature] **Feats now pop up when earned**, and you can pin one to your screen to watch it fill.
 - [Feature] **Swap weapons and shields mid-fight** from a new column in the fight view.
+- [Balance] **Rare weapons last more than twice as long** before they can break.
 - [Feature] **Whisper and Message buttons** on a player's profile, and a guild's member list from its tag.
 - [UI] **Place pictures behind the scene**, as the art arrives, and a slimmer progress ring on skill icons.
 - [Feature] **The chat box takes the color of the channel** you are about to send to.
@@ -157,6 +158,7 @@
 - [Content] **The Kelpie's Bridle Charm**: **+14 aim**, made at **Crafting 20**, worn from **Melee 20**.
 - [Content] **Three rare weapons**: **Eagle Talons** (a pair, pierce, aim 185, power 61, Melee 19), the **Reaver's Dane Axe** (two-handed, slash, aim 175, power 103, Melee 20), and the **Dripstone Cudgel** (one-handed, crush, aim 165, power 60, Melee 22).
 - [Balance] **The Hodag Horn** is raised to **81 power**, to stand level with the Serph Atgeir.
+- [Balance] **Rare weapons last far longer.** The Hodag Horn, Wrecker's Cutlass, and Gouger's Legbone now take **5,000** uses before they can break, up from 2,000. Antura's three take **6,250**, with a smaller chance to break after. What you have already used counts toward the new number.
 - [Feature] **Swap weapons mid-fight.** The weapons in your pack run down the right of the fight view, with your shields beneath them while you hold a one-handed weapon. Tap one to take it up; the fight is played up to that moment with what you held before.
 - [Balance] **The Agropelter drops Lanai Bark**, 1 to 2, about every other kill.
 
@@ -216,7 +218,7 @@
 - [Feature] **The bell can ring when a one-off job is done**, such as mucking every pen or spreading manure. Tick it in the bell's list.
 - [Fix] **The bell's list fits on a phone**, and scrolls.
 - [UI] **NPCs no longer show an emoji** beside their names.
-- [UI] **A place's links sit closer together**, and the **Tally Board** is always the last of them.
+- [UI] **A place's links sit closer together** and lose their arrows, and the **Tally Board** is always the last of them.
 - [UI] **The level-up pop-up names homestead, shop, and hall tiers**, sawing, and brewing as they open.
 
 ## The Manual
