@@ -116,7 +116,7 @@ Once a stone has been filled at the Rift, a crafter can set it in metal as a rin
 
 What each piece does is on the Talar page, since the light is what makes them work.
 
-A few pieces want no light at all, only a part of something that was killed for it: the **Knuckle Ring** and the **Jackalope Charm** on Taiar, the **Heartstone Ring** and the **Kelpie's Bridle Charm** on Antura. They lend aim or power to a fighter, worn in a ring or charm slot, and the Melee page explains what those words mean.
+A few pieces want no light at all, only a part of something that was killed for it: the **Knuckle Ring** and the **Jackalope Charm** on Taiar, the **Heartstone Ring** and the **Kelpie's Bridle Charm** on Antura. They lend aim or power to a fighter, worn on a finger or at the neck, and the Melee page explains what those words mean.
 
 {{tab:Sewing}}
 

@@ -14,6 +14,8 @@ She will not simply let you use it. Ask her about the work and she will set you 
 - **Your own hearth**, once built, runs at full speed
 - **A campfire** runs between the two and burns out in half an hour
 
+Every hearth in Talaran is on Taiar: Geomima's, and your own, which also goes up in Phoenwick. Antura has no cookhouse to borrow. Its fish and meat go on a campfire where you stand, and its dishes come home to Phoenwick with you. A Serph cauldron or skillet is the proper tool for Antura's dishes; the Ambren ones still cook them, more slowly, as every tool a tier too low does.
+
 Cooking a thing raw into a thing cooked needs no equipment at all. That is the whole of the beginning: stand at a fire, put a fish on it, take the fish off before it turns black (you will fail this part often at first).
 
 ## What a hearth is made of
@@ -65,8 +67,6 @@ The chance falls as you improve and it never quite reaches nothing, so a burnt f
 
 The reason a five-ingredient pie burns less than a plain fish is worth a moment. That pie is four skills' work sat in a dish. If it burned as readily as a tiddle it would be five times the punishment for the same lapse of attention, and nobody would ever make one.
 
-{{data:training-path:Cooking}}
-
 ## Three kinds of cooking
 
 **Plain cooking** turns one raw thing into one cooked thing. They need no tools other than a burning hearth. This is your bulk. 
@@ -75,7 +75,7 @@ The reason a five-ingredient pie burns less than a plain fish is worth a moment.
 
 **Provisions** are the odd ones out. These are appreciated by the skills that **aren't** combat.
 
-- **Plain cooking**: one raw thing to one cooked thing, no tools, 26 of them
+- **Plain cooking**: one raw thing to one cooked thing, no tools, any fire
 - **Composite dishes**: several ingredients into one better one, most of the levels
 - **Provisions**: eaten for the effect, not the meal
 
@@ -89,6 +89,30 @@ Small effects, long durations, and **only one at a time**. A second off every Mi
 - Eating another **replaces** what you had, including another of the same dish
 
 Most of them favour a single trade, and are named for the people who ate them. A ploughman's lunch is bread and cheese and a raw onion. A miner's pasty has a crust thick enough to hold in a filthy hand and throw away after.
+
+Two of the provisions belong to Antura and to trades that had none: **Crafter's Pottage**, from **Cooking 20**, for Crafting, and **Cook's Supper**, from **21**, for Cooking itself, which I consider a cook looking after his own.
+
+## A pinch of salt
+
+The cooking menu has a switch for salt. With it on, every dish you make spends one **Sea Salt** from your pack, and has a **one in ten** chance of coming out as two. With none in the pack it simply cooks unsalted, and says nothing.
+
+A burnt dish still takes its pinch and does not double. Salt is not a cure for inattention. Salt is found on Antura's Tidal Shore, at Farvick Narrows, by a forager of 19 or better, and nowhere else.
+
+## Ale, which is for company
+
+From **Cooking 20**, a cook may brew. There is one cask in Talaran fit for it, in **Mettlefell**, and you do not build it or carry it; it is the town's.
+
+1. **Load the cask.** Each batch takes **3 Barley and 1 Meadowsweet** and gives **4 Ale**. A cask takes ten batches at Cooking 20, and more as you climb, to twenty-five.
+2. **Walk away for six hours.** It brews on its own clock, wherever you are.
+3. **Draw it off.** Every batch pays Cooking when it is drawn.
+
+One brew at a time. The cask does not mind whose barley it is, but it will only keep one brew of yours going.
+
+Now the curious part. **Ale alone does nothing.** Drink it by yourself and you are simply a person who has had an ale. Take it to a tavern, the **Salty Sloth** in Talador or the **Gaster's Gaze** in Wendhaven, where at least **three** of you are gathered, and **stand a round**: one Ale for everyone there, yourself included. Everyone present gets **every skill one percent faster for six hours**.
+
+That buff has a slot of its own, beside your provision, so the two run together. A second round restarts the six hours rather than doubling them. And **Odda Fenn** at the Gaster's Gaze will sell you Ale over the bar, at a price designed to make you go and brew your own.
+
+I have always held that a drink shared is the only kind worth having. Talaran, it turns out, agrees with me, and has made it a rule.
 
 ## What I would actually do
 
@@ -104,6 +128,16 @@ And keep a provision going. Any provision. The worst one you own is worth more t
 - Cook plainly for a long stretch before reaching for a cauldron.
 - Forge the cauldron first, the mortar second.
 - Never leave the provision slot empty, if you can help it.
+
+{{details:The Geographer's ledgers}}
+Everything the trade opens as you climb, and where to make it:
+
+{{data:training-path:Cooking}}
+
+And every dish that mends you in a fight, with how much:
+
+{{data:fight-food}}
+{{/details}}
 
 ---
 
