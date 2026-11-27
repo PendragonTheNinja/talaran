@@ -21,7 +21,7 @@ It is the combat version of a skill event. A skill event is "this place pays mor
 - **Not the Rift.** The Rift is a seam downward, where the light comes up. A tear is a seam *sideways*, into somewhere else. Nothing an invader says or carries names what lies under the Rift (CLAUDE.md §2 Talar). The light may draw them; that is as far as the text goes.
 - **Not a Portal.** "Portal" is the Talar spell (`services/spells.ts`). Player-facing text says **tear**; code says `invasion`.
 - **Every invasion comes from one realm.** A realm is a row: its name, a line of what is seen through the tear, its roster, and its drops. Realms come back; regulars learn their creatures, and the Bestiary fills over many invasions.
-- **Two realms to start:** **the Bronze Shore** (Greek myth, without the gods) and **Annwn** (the Otherworld of the Welsh tales). Both are public domain. Each has creatures across 1 to 24, so staff may send either to either island (§7).
+- **Two realms to start:** **the Bronze Shore** (Greek myth, without the gods) and **Annwn** (the Otherworld of the Welsh tales). Both are public domain. Twelve creatures between them, one every two levels from 2 to 24 (§7).
 - **The Laranists have opinions.** Georome gets a few rare lines (`npc_rare_lines`) about tears: wrong about what they are, as Laranists are about everything, but in an interesting way.
 - **Sources:** public-domain myth and literature, and worlds of Talaran's own. Never a renamed creature from a work under copyright. A licensed guest creature, with written permission and credit, is the one exception (**OPEN**: Nathan to ask Syrnia's owner).
 
@@ -51,7 +51,7 @@ It is the combat version of a skill event. A skill event is "this place pays mor
 ### The fighting spot
 
 - **Invaders are ordinary `creatures` rows** with a `realm_id` (nullable; null is native). So the Bestiary, `drop_table_entries` (`combat:<creature>`), `combat:derive`, the sim's `roster`, and Exploration's first-find records all work unchanged. `bestiary_all` **does not** count invaders (they come and go; a completionist could not finish without staff); they get feats of their own (§6).
-- **When a tear opens, it creates a `fighting_spots` row** at its place (`kind: 'chosen'`, a new nullable `world_event_id`), with the roster that fits the island (§7) in `fighting_spot_creatures`. **Chosen, not drawn**: a roster spans a band, and a combat 3 player must be able to pick the level 2 creature and leave the level 12 one to someone else. When the tear closes, the spot is set `is_active: false`, never deleted (a fight row points at it).
+- **When a tear opens, it creates a `fighting_spots` row** at its place (`kind: 'chosen'`, a new nullable `world_event_id`), with the creatures that fit the island and the realms sent (§7) in `fighting_spot_creatures`. **Chosen, not drawn**: a roster spans a band, and a combat 3 player must be able to pick the level 2 creature and leave the level 12 one to someone else. When the tear closes, the spot is set `is_active: false`, never deleted (a fight row points at it).
 - **Starting a fight already refuses an inactive spot.** A fight *in progress* when the tear closes finishes the creature it is on, is paid, then ends, as a weapon break ends one. No half-paid kills.
 
 ### Taking from the horde
@@ -95,7 +95,19 @@ A level-matched kill on Taiar takes about 40 to 60 seconds plus the 10 second en
 
 ### Per kill
 
-XP (§3) and the creature's own drops, under every combat rule already locked (CLAUDE.md §2): **no meat**, one common drop of the creature's own (a feather, a pelt, a scrap of bronze, coin from a person), a trophy now and then, no whole armour pieces.
+XP (§3) and the creature's drops, under every combat rule already locked (CLAUDE.md §2): **no meat**, no whole armour pieces.
+
+**Invaders drop more, and better, than natives** (Nathan, 2026-11-27): tears are treats staff send now and then, not a place to farm, so a kill there should feel like it. Against a native of the same level:
+
+| | Natives today | Invaders |
+|---|---|---|
+| Its own common drop | about 1 kill in 4 to 6 | **about 1 in 2** |
+| A useful good for another skill (ore, feathers, logs, hides, seeds) | rarely, and only some creatures | **every creature, about 1 in 4**, by the creature's character |
+| Coin | some creatures, 1 in 4 | every creature that carries any, 1 in 3, and more of it |
+| Trophy | about 1 in 300 or rarer | about 1 in 150 |
+| Rare gear (below) | rare weapons 1 in 750 to 1,000 | **1 in 150**, certain by 300 |
+
+The "useful good" is chosen by the creature's character, so a tear helps the whole economy, not only fighters: the Afanc fells Lanai, the Myrmex digs Ambren Ore, the Stymphalian Bird sheds Feathers. **SIM** the totals: a 300-kill horde should bring a crowd a good evening's haul, not a week's supply of anything. Feathers are the one place to be generous (arrows have always wanted them).
 
 ### The rare drop: gear for another skill, better than its tier
 
@@ -104,7 +116,7 @@ Nathan's rule (2026-11-27): **some invaders drop gear that beats its tier, mostl
 It is the rare weapons' rule (`docs/combat-spec.md` §10) carried into other skills:
 
 - **As good as the next tier's made piece**, worn or used from the dropping creature's level in the skill it serves (a hatchet gates on Woodcutting, boots on Wayfaring; through `gateSkill` in `services/equipGates.ts`, which needs a branch for each new kind), and **far more durable** than the made one (`items.durability_*`).
-- **Rare,** at about the rare weapons' odds, with the same bad luck protection, and **one rare drop per creature at most**. They trade, which is how a non-fighter gets one: a gatherer buys boots off a fighter.
+- **Rare, but reachable in a tear:** 1 in 150 with bad luck protection at 300 kills (counted from `player_creature_kills`, so it carries across tears), and **one rare drop per creature at most**. A tear of 300 kills over six creatures is about 50 kills each, so a crowd sees one now and then, and a regular gets theirs over a few tears. They trade, which is how a non-fighter gets one: a gatherer buys boots off a fighter.
 - **Never the only way.** Each is a better version of something a player can already make or buy, so the circularity rule holds (CLAUDE.md §2): nothing essential sits behind a tear that only staff open.
 - **Each uses a speed hook that already exists, or names the one it needs:**
 
@@ -124,68 +136,64 @@ To everyone with at least the tear's minimum kills:
 - **Tear-glass:** one untradeable item, the shard a tear leaves behind. What it does is still **OPEN** (a museum case, a feat counter, a crafting input). Untradeable so alts cannot farm and sell it. Until it has a use, the closing reward is the Chronicle line and the feats.
 - **No gold.** Gold enters through attention (CLAUDE.md §8), and the kills already find coin.
 - **The Chronicle:** deed kinds `invasion_held` and `invasion_lost` (`chronicle_deed_kinds` rows, `noteDeed`, ten verses each), naming the place, the realm, and the player with the most kills.
-- **Feats** (category Combat): *Held the Line* (your first held tear), *Hold Ten*, *Hold Fifty*; *Both Shores* (a kill from every realm).
+- **Feats** (category Combat): *Held the Line* (your first held tear), *Hold Ten*, *Hold Fifty*; *Between Worlds* (a kill of every invader).
 - **Never Talers, never a Taler-bought advantage.** Paying and free players stand side by side at a tear.
 
 ---
 
 ## 7. The roster, levels 1 to 24
 
-Each realm has eight creatures, four per island band. When a tear opens, the spot takes the four that fit its island. Each damage type is the weakness of at least one creature in every four, so whatever a player carries is useful against something. Profiles are hints for `combatSim.ts`, in the existing rosters' words. Rare drops follow §6 and are first ideas.
+**Twelve creatures, one every two levels** (Nathan, 2026-11-27): six from each realm, alternating, three of each per island band. A tear on Taiar fields the six from 2 to 12; a tear on Antura the six from 14 to 24. Staff may send one realm alone (three creatures) or both through one tear (all six of the band). Across each band, every damage type is the weakness of two creatures. Profiles are hints for `combatSim.ts`, in the existing rosters' words.
 
 None repeats a creature already in Talaran.
 
-### The Bronze Shore (Greek myth: Herodotus, Pausanias, Apollonius, Ovid, and Plutarch)
+**The Bronze Shore** (Greek myth: Herodotus, Pausanias, Apollonius, Ovid, and Plutarch): labors and voyages, without the gods. Bronze, sun, salt, and the smell of a forge.
+**Annwn** (the Welsh Otherworld: the Mabinogion and Welsh folklore): a hall where it is always evening, white hounds with red ears, lakes that are not the depth they look.
 
-Labors and voyages, without the gods. Bronze, sun, salt, and the smell of a forge.
+### On Taiar (2 to 12)
 
-**On Taiar (1 to 12)**
-
-| Creature | Lvl | Character | Weak / resists | Common | Rare (§6) |
+| Lvl | Creature | Realm | Character | Weak / resists | Rare gear (§6) |
 |---|---|---|---|---|---|
-| Myrmex | 3 | a dog-sized ant that digs for gold; tough shell, poor aim | crush / slash | gold dust | **Myrmex Mandible Pick**: works as a T2 pick |
-| Spartos | 7 | a soldier grown from a sown dragon's tooth; no fear, no flesh | crush / pierce | a dragon's tooth | none (a trophy, a Sown Man's helm-crest) |
-| Stymphalian Bird | 10 | bronze-beaked, it sheds its feathers like darts | crush / slash | Feathers, and a Bronze Feather | none (feathers are its gift: arrows always want them) |
-| Khalkotauros | 12 | a bronze-hoofed bull that breathes a forge's heat; slow, heavy | pierce / crush | a bronze hoof | **Bull's-breath Bellows**: a smithy bench tool, faster smelting |
+| 2 | Myrmex | Bronze Shore | a dog-sized ant that digs for gold; tough shell, poor aim | crush / slash | **Myrmex Mandible Pick**: works as a T2 pick |
+| 4 | Pwca | Annwn | a shape-shifting goblin that walks travelers off the road at night | slash / pierce | **Pwca's Blackthorn**: a walking staff faster than the Lanai Staff |
+| 6 | Spartos | Bronze Shore | a soldier grown from a sown dragon's tooth; no fear, no flesh | crush / pierce | none |
+| 8 | Gwyllgi | Annwn | the Dog of Darkness, a shadow mastiff with red eyes; quick, it harries | pierce / – | none |
+| 10 | Stymphalian Bird | Bronze Shore | bronze-beaked, it sheds its feathers like darts | pierce / slash | none (feathers are its gift) |
+| 12 | Afanc | Annwn | a lake beast like a huge beaver; drags people under, gnaws trees | slash / crush | **Afanc-tooth Hatchet**: works as a T2 hatchet |
 
-**On Antura (13 to 24)**
+### On Antura (14 to 24)
 
-| Creature | Lvl | Character | Weak / resists | Common | Rare (§6) |
+| Lvl | Creature | Realm | Character | Weak / resists | Rare gear (§6) |
 |---|---|---|---|---|---|
-| Harpy | 14 | a snatcher, a woman's face on a filthy bird; takes food from your hand | slash / crush | Harpy feathers | none |
-| Teumessian Fox | 16 | the fox fated never to be caught; very hard to hit, light | pierce / slash | a russet brush | **Teumessian Boots**: walk faster than any made boots of the tier |
-| Empusa | 19 | a thing with one bronze leg and one of a donkey; a person's shape, so coin | slash / pierce | coin, a bronze greave-scrap | none |
-| Crommyonian Sow | 22 | a wild sow the size of a cart that killed half a country | pierce / crush | sow bristles | **Sow's Snout Hoe** (if farming has a tool hook; **OPEN**) |
+| 14 | Khalkotauros | Bronze Shore | a bronze-hoofed bull that breathes a forge's heat; slow, heavy | pierce / crush | **Bull's-breath Bellows**: a smithy bench tool, faster smelting |
+| 16 | Cŵn Annwn | Annwn | white hounds with red ears, hunting in a pack; accurate | slash / crush | none |
+| 18 | Teumessian Fox | Bronze Shore | the fox fated never to be caught; very hard to hit, light | crush / pierce | **Teumessian Boots**: walk faster than any made boots of the tier |
+| 20 | Gwiber | Annwn | a winged serpent of the Welsh hills; quick, venomous | slash / pierce | none (or the Gwiber-scale Gloves, if foraging gets a glove hook) |
+| 22 | Crommyonian Sow | Bronze Shore | a wild sow the size of a cart that laid waste to a country | pierce / crush | none (or a hoe, if farming gets a tool hook) |
+| 24 | Huntsman of Annwn | Annwn | one of the Otherworld king's riders (the king never comes), horn at his belt; a person, so coin | crush / pierce | **Huntsman's Bow**: a hunting bow that works as the next tier's |
 
-Held back for later tiers: Talos the bronze giant, the Nemean Lion (a hide no blade cuts, a true boss), the Hydra.
+Six of the twelve carry rare gear, three per island, three per realm.
 
-### Annwn (the Welsh Otherworld: the Mabinogion, Welsh folklore)
+### What each drops (§6 rates)
 
-A hall where it is always evening, white hounds with red ears, lakes that are not the depth they look.
+| Creature | Its own (frequent) | For another skill (generous) |
+|---|---|---|
+| Myrmex | gold dust (sells; a crafting curio) | Ambren Ore |
+| Pwca | a lantern-wick | Feathers (owls it rode off on) |
+| Spartos | a dragon's tooth | coin, Rough Quartz |
+| Gwyllgi | a black pelt | Leather Strips |
+| Stymphalian Bird | Bronze Feather | Feathers, plenty |
+| Afanc | Afanc hide | Lanai Logs it felled |
+| Khalkotauros | a bronze hoof | Serph Ore, Charc |
+| Cŵn Annwn | a red ear-tuft, always warm | a buckskin |
+| Teumessian Fox | a russet brush | wild seeds it buried |
+| Gwiber | Gwiber scale | Rough Garnet now and then |
+| Crommyonian Sow | sow bristles | truffles, roots |
+| Huntsman of Annwn | his horn (trophy) | coin, arrows, a Lit Garnet very rarely |
 
-**On Taiar (1 to 12)**
+First ideas; every item must already exist or have a use before it ships (CLAUDE.md §8: nothing added without a real use).
 
-| Creature | Lvl | Character | Weak / resists | Common | Rare (§6) |
-|---|---|---|---|---|---|
-| Ellyll | 2 | a fairy no bigger than a hand, in a foxglove cap; quick and fragile | slash / – | fairy butter (the yellow stuff on gorse; a curio) | none |
-| Pwca | 5 | a shape-shifting goblin that walks travelers off the road at night | pierce / crush | a lantern-wick | **Pwca's Blackthorn**: a walking staff faster than the Lanai Staff |
-| Gwyllgi | 9 | the Dog of Darkness, a mastiff of a shadow with red eyes | pierce / – | a black pelt | none |
-| Afanc | 12 | a lake beast like a huge beaver; drags people under, gnaws trees | crush / slash | Afanc hide | **Afanc-tooth Hatchet**: works as a T2 hatchet |
-
-**On Antura (13 to 24)**
-
-| Creature | Lvl | Character | Weak / resists | Common | Rare (§6) |
-|---|---|---|---|---|---|
-| Cŵn Annwn | 15 | white hounds with red ears, hunting in a pack; accurate | slash / crush | a red ear-tuft, always warm | none |
-| Gwrach y Rhibyn | 18 | the hag of the mist, wings of leather, a shriek before she strikes (`hesitate_text`, as the Siren) | crush / pierce | a strip of mist-gray cloth | none |
-| Gwiber | 21 | a winged serpent of the Welsh hills; quick, venomous | pierce / slash | Gwiber scale | **Gwiber-scale Gloves**: foraging gloves that work as the next tier's (needs a glove hook; **OPEN**) |
-| Huntsman of Annwn | 24 | one of the Otherworld king's riders (the king himself never comes), horn at his belt; a person, so coin | crush / pierce | coin | **Huntsman's Bow**: a hunting bow that works as the next tier's |
-
-Held back: the Twrch Trwyth, a king turned boar with a comb and shears between its ears, the first group boss once group fights exist.
-
-### Supply check
-
-Five creatures of sixteen carry a rare drop for another skill, which is the scale Nathan described ("some"). At rare-weapon odds and a few hundred kills a tear, a tear yields a handful of them server-wide at most. That is the point: they should be talked about.
+Held back for later tiers: Talos the bronze giant, the Nemean Lion, and the Hydra; the Twrch Trwyth (a king turned boar, the first group boss once group fights exist); the Ellyll, the Harpy, the Empusa, and Gwrach y Rhibyn, kept as spares.
 
 ---
 
@@ -194,6 +202,7 @@ Five creatures of sixteen carry a rare drop for another skill, which is the scal
 - **Every invader goes through `combatSim.ts roster`** against the ±15% XP-an-hour guardrail at its level (`docs/combat-spec.md` §8). `pnpm combat:derive` writes `xp_per_kill`. No hand-set XP.
 - **Invaders are slightly tougher than natives of their level,** not easier: 90 to 100% of the grunt's XP an hour before the +25%.
 - **XP budget:** a tear's extra XP is bounded by its horde (300 kills × 25% of a kill). At Taiar's levels that is about 2,000 XP across a crowd. **SIM** before shipping.
+- **values:derive:** invader drops are generous on purpose, so check their gold value per kill against a native's; a tear must not become the best gold an hour in the game by a wide margin.
 - **values:derive:** rare drops with no made source need prices from the made piece they beat (`OVERRIDES`), or the pawnbroker and the museum cannot place them.
 
 ---
@@ -207,7 +216,7 @@ The same rows carry the system to 100. A realm has a roster per island band, so 
 ## 10. Open questions for Nathan
 
 1. **Tear-glass:** what it does, or drop it and let the Chronicle and feats be the closing reward.
-2. **Which rare drops.** §7 names five; keep, swap, or add. For each that needs a hook a skill lacks (farming tools, foraging gloves), build the hook or drop the item.
+2. **Which rare drops.** §7 names six; keep, swap, or add. For each that needs a hook a skill lacks (farming tools, foraging gloves), build the hook or drop the item.
 3. **Tier-2 walking gear** does not exist yet, so the Teumessian Boots and Pwca's Blackthorn set the bar. Is "about 1.5× the made piece of its tier" right? (Blackthorn 0.045 against the Lanai Staff's 0.03; on Antura, boots 0.08 against Leather Boots' 0.05.)
 4. **Which staff may send a tear:** admins only, or a new `mod_permissions` entry.
 5. **Syrnia guest creature,** if permission comes.
