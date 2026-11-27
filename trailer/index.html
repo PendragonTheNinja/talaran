@@ -542,6 +542,85 @@ function render(t) {
   g.restore()
 }
 window.render = render
+
+// ---- YouTube thumbnails (thumbs.js renders these at 1920x1080, saved at 1280x720) ----
+// Few words, big shapes, high contrast: they are read at the size of a stamp.
+function bigWord(str, x, y, size, opts = {}) {
+  // a heavy dark outline under the gold, so it reads over anything
+  g.save(); g.font = `700 ${size}px Garamond`; g.textAlign = opts.align || 'center'; g.textBaseline = 'middle'
+  if ('letterSpacing' in g) g.letterSpacing = (opts.spacing ?? 4) + 'px'
+  g.lineJoin = 'round'; g.lineWidth = size * .12; g.strokeStyle = 'rgba(0,0,0,.95)'; g.strokeText(str, x, y)
+  g.restore()
+  goldText(str, x, y, size, { weight: 700, spacing: opts.spacing ?? 4, glow: .8, align: opts.align, color: opts.color })
+}
+function ribbon(str, x, y, size = 64) {
+  g.save(); g.font = `700 ${size}px Garamond`; if ('letterSpacing' in g) g.letterSpacing = '3px'
+  const w = g.measureText(str).width + size * 1.4, h = size * 1.5
+  g.translate(x, y)
+  const gr = g.createLinearGradient(0, -h / 2, 0, h / 2); gr.addColorStop(0, '#a3231a'); gr.addColorStop(1, '#5e0f0b')
+  g.fillStyle = gr; g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = 30; g.fillRect(-w / 2, -h / 2, w, h)
+  g.restore()
+  goldFrame(x - (g.measureText(str).width + size * 1.4) / 2 - 6, y - size * .75 - 6, 0, 0, 0)
+  g.save(); g.strokeStyle = '#e4c06a'; g.lineWidth = 4
+  g.font = `700 ${size}px Garamond`; if ('letterSpacing' in g) g.letterSpacing = '3px'
+  const w2 = g.measureText(str).width + size * 1.4
+  g.strokeRect(x - w2 / 2 + 8, y - size * .75 + 8, w2 - 16, size * 1.5 - 16); g.restore()
+  goldText(str, x, y + 2, size, { weight: 700, spacing: 3, glow: .3, color: '#faf6ec' })
+}
+const THUMBS = [
+  // 1. The game itself: a framed, tilted screen and the name
+  () => {
+    stoneBackdrop(0, .55); embers(3, 90)
+    const lg = g.createRadialGradient(1350, 540, 0, 1350, 540, 900); lg.addColorStop(0, 'rgba(201,140,60,.35)'); lg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = lg; g.fillRect(0, 0, W, H)
+    const im = images['shot:hunt']
+    g.save(); g.translate(1400, 590); g.rotate(-.06)
+    const w = 1100, h = w * 9 / 16
+    g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 80; g.fillStyle = '#000'; g.fillRect(-w / 2, -h / 2, w, h); g.shadowBlur = 0
+    g.drawImage(im, -w / 2, -h / 2, w, h); goldFrame(-w / 2 - 18, -h / 2 - 18, w + 36, h + 36)
+    g.restore()
+    const fade = g.createLinearGradient(0, 0, 900, 0); fade.addColorStop(0, 'rgba(0,0,0,.95)'); fade.addColorStop(.75, 'rgba(0,0,0,.6)'); fade.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = fade; g.fillRect(0, 0, 900, H)
+    bigWord('Talaran', 70, 400, 220, { align: 'left', spacing: 6 })
+    bigWord('FREE MMO', 80, 640, 120, { align: 'left', spacing: 6, color: '#faf6ec' })
+    bigWord('in your browser', 84, 760, 76, { align: 'left', spacing: 2 })
+    ribbon('1.0 · DEC 11', 1500, 140, 70)
+    vignette(.6)
+  },
+  // 2. A monster, close and lit red
+  () => {
+    g.fillStyle = '#070405'; g.fillRect(0, 0, W, H)
+    g.save(); g.globalAlpha = .75; cover(images['ui:red'], 0, 0, W, H, 1.1); g.restore()
+    embers(5, 80, [255, 120, 60], 1, 1)
+    const im = images['beast:Snallygaster']
+    if (im) { g.save(); g.translate(1300, 600); g.scale(4.6, 4.6); g.shadowColor = 'rgba(255,90,40,.7)'; g.shadowBlur = 60; g.drawImage(im, -128, -128, 256, 256); g.restore() }
+    const fade = g.createLinearGradient(0, 0, 1000, 0); fade.addColorStop(0, 'rgba(0,0,0,.9)'); fade.addColorStop(.7, 'rgba(0,0,0,.5)'); fade.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = fade; g.fillRect(0, 0, 1000, H)
+    bigWord('Talaran', 70, 330, 230, { align: 'left', spacing: 8 })
+    bigWord('A NEW', 80, 560, 110, { align: 'left', spacing: 6, color: '#faf6ec' })
+    bigWord('MEDIEVAL MMO', 80, 680, 110, { align: 'left', spacing: 4, color: '#faf6ec' })
+    ribbon('FREE · DEC 11', 360, 900, 64)
+    vignette(.5)
+  },
+  // 3. The tear, and what comes through it
+  () => {
+    g.fillStyle = '#060306'; g.fillRect(0, 0, W, H)
+    g.save(); g.globalAlpha = .5; cover(images['ui:red'], 0, 0, W, H, 1.1); g.restore()
+    drawTear(W / 2, 330, 2000, 1, 2)
+    const fg = g.createRadialGradient(W / 2, 700, 50, W / 2, 700, 1000); fg.addColorStop(0, 'rgba(160,70,220,.6)'); fg.addColorStop(1, 'rgba(0,0,0,0)')
+    g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = fg; g.fillRect(0, 0, W, H); g.restore()
+    TEAR_SHAPES.forEach((k, j) => {
+      const c = shadows[k]; if (!c) return
+      const sc = j === 1 ? 2.9 : 2.3
+      g.save(); g.translate(W / 2 + (j - 1) * 620, 760 + (j === 1 ? -20 : 40)); g.scale(sc, sc)
+      g.shadowColor = 'rgba(200,80,255,.9)'; g.shadowBlur = 40; g.drawImage(c, -128, -128, 256, 256); g.restore()
+    })
+    embers(4, 90, [200, 80, 255], 1, 1)
+    bigWord('Talaran 1.0', W / 2, 150, 200, { spacing: 8 })
+    ribbon('DECEMBER 11', W / 2, 1000, 60)
+    vignette(.6)
+  },
+]
+window.thumb = n => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none'; THUMBS[n](); g.restore() }
 window.DURATION = DURATION
 
 window.ready = loadAll().then(() => {
