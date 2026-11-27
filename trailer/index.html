@@ -18,51 +18,68 @@
 <div id="play" hidden>Click to play</div>
 <audio id="music" src="music-cut.mp3" preload="auto"></audio>
 <script>
-// Talaran launch trailer, first cut (2026-11-27).
-// Everything is drawn by render(t), a pure function of the time in seconds, so
-// the same page plays live (open it in a browser) and renders frame by frame
-// (render.js). Music: "Celtic Impulse", Kevin MacLeod (incompetech.com), CC BY 4.0,
-// cut to 76 s on its own bar lines (music-cut.mp3, see README.md).
+// Talaran launch trailer, second cut (2026-11-27).
+// render(t) is a pure function of the time in seconds, so the page plays live
+// (open it in a browser) and renders frame by frame (render.js). Game screens are
+// real captures in the Stonehold theme (shots/, made by shoot.js; README.md).
+// Music: "Celtic Impulse", Kevin MacLeod (incompetech.com), CC BY 4.0, cut on its
+// own bar lines to 71 s (music-cut.mp3; README.md).
 
 const W = 1920, H = 1080
 const cv = document.getElementById('c')
 const g = cv.getContext('2d')
+const DURATION = 70
 
 // ---- Beat grid: 144 BPM, first downbeat at 0.03 s ----------------------------
 const BEAT = 0.41650, PHASE = 0.03, BAR = BEAT * 4
 const bar = n => PHASE + n * BAR
-const beatPulse = t => { const k = Math.floor((t - PHASE) / BEAT); const since = t - (PHASE + k * BEAT); return Math.exp(-since * 7) }
-const barPulse = t => { const k = Math.floor((t - PHASE) / BAR); const since = t - (PHASE + k * BAR); return Math.exp(-since * 5) }
+const beatPulse = t => { const k = Math.floor((t - PHASE) / BEAT); return Math.exp(-(t - (PHASE + k * BEAT)) * 7) }
+const barPulse = t => { const k = Math.floor((t - PHASE) / BAR); return Math.exp(-(t - (PHASE + k * BAR)) * 5) }
 
-// ---- Assets -------------------------------------------------------------------
+// ---- What is shown ----------------------------------------------------------------
 const IMG = '../apps/client/public/images/'
-const SKILLS = [
-  ['Woodcutting', 'Fell the Lanai', ['Ambren_Hatchet', 'Fine_Lanai_Log']],
-  ['Mining', 'Break the granite', ['Ambren_Pickaxe', 'Ambren_Ore']],
-  ['Fishing', 'Read the water', ['Ambren_Fishing_Rod', 'Garfish']],
-  ['Foraging', 'Know the hedgerow', ['Chanterelle_Mushroom', 'Blackberries']],
-  ['Hunting', 'Follow the tracks', ['Lanai_Hunting_Bow', 'Deerhide']],
-  ['Carpentry', 'Square the plank', ['Lanai_Planks', 'Lanai_Tool_Rod']],
-  ['Smithing', 'Work the forge', ['Ambren_Ingot', 'Ambren_Boots']],
-  ['Cooking', 'Feed the island', ['Fish_Pie', 'Herb_Bannock']],
-  ['Crafting', 'Cut and stitch', ['Cut_Garnet', 'Leather_Boots']],
-  ['Farming', 'Turn the soil', ['Cabbage', 'Carrot']],
-  ['Husbandry', 'Mind the herd', ['Bucket_of_Milk', 'Egg']],
-  ['Talar', 'Fill the stone with light', ['Lit_Garnet', 'Lit_Quartz']],
-  ['Wayfaring', 'Walk every road', ['Sea_Boots', 'Navigators_Bowl']],
-  ['Melee', 'Strike', ['Ambren_Greatsword']],
-  ['Defense', 'Stand', ['Ambren_Kite_Shield']],
-  ['Constitution', 'Endure', ['Beef_and_Root_Stew']],
+// Real captures: [file, crop x, y, w, h] in the 1920x1080 screen.
+const SHOTS = {
+  main: ['main', 0, 0, 1920, 1080],
+  together: ['main', 330, 560, 1290, 500],
+  wood: ['wood-done', 430, 200, 1060, 420],
+  mine: ['mine', 430, 200, 1060, 420],
+  fish: ['fish', 430, 200, 1060, 420],
+  forage: ['forage', 430, 200, 1060, 420],
+  fight: ['fight', 540, 70, 860, 500],
+  quank: ['quank', 700, 320, 540, 460],
+  museum: ['museum', 540, 280, 870, 525],
+  sloth: ['sloth', 610, 320, 710, 440],
+  shops: ['shops', 600, 120, 750, 520],
+  highscores: ['highscores', 1130, 80, 786, 760],
+  islandmap: ['islandmap', 480, 68, 960, 960],
+  gear: ['main', 20, 20, 290, 640],
+}
+const SKILL_FLASH = [
+  ['Woodcutting', 'shot', 'wood'], ['Mining', 'shot', 'mine'], ['Fishing', 'shot', 'fish'], ['Foraging', 'shot', 'forage'],
+  ['Hunting', 'card', ['Lanai_Hunting_Bow', 'Deerhide', 'Ambren_Arrow']], ['Melee', 'shot', 'fight'],
 ]
-const WORLD = [
-  ['Build a homestead.', ['Cabbage', 'Carrot', 'Barley_Seeds', 'Egg', 'Bucket_of_Milk', 'Cowhide']],
-  ['Keep a shop.', ['Gold', 'Lanai_Planks', 'Ambren_Ingot', 'Fish_Pie', 'Leather', 'Cut_Quartz']],
-  ['Fill the museum.', ['Agropelter_Knuckle', 'Kelpies_Bridle', 'Flawless_Garnet', 'Radiant_Quartz', 'Crabshell_Helm', 'Heartstone_Ring']],
-  ['Earn a line in the Chronicle.', ['Magpies_Ring', 'Garnet_Wayfinders_Amulet', 'Knuckle_Ring', 'Matthews_Pie', 'Elderberry_Cordial', 'Even_More_Strongly_Worded_Reply']],
+const CRAFTS = [
+  ['Smithing', ['Ambren_Ingot', 'Ambren_Helm', 'Ambren_Pickaxe']],
+  ['Carpentry', ['Lanai_Planks', 'Lanai_Tool_Rod', 'Lanai_Hunting_Bow']],
+  ['Cooking', ['Fish_Pie', 'Herb_Bannock', 'Morel_Omelette']],
+  ['Crafting', ['Cut_Garnet', 'Leather_Boots', 'Garnet_Keepers_Band']],
+  ['Farming', ['Carrot', 'Barley_Seeds', 'Cabbage_Seeds']],
+  ['Husbandry', ['Bucket_of_Milk', 'Egg', 'Cowhide']],
+  ['Talar', ['Lit_Garnet', 'Lit_Quartz', 'Radiant_Quartz']],
+  ['Wayfaring', ['Sea_Boots', 'Navigators_Bowl', 'Leather_Boots']],
 ]
-const CREATURES = ['Dock_Rat', 'Grey_Wolf', 'Boar', 'Hodag', 'Kelpie', 'Wolverine', 'Trow', 'Draugr', 'Snallygaster', 'Each-uisge', 'Nuckelavee', 'Slide-rock_Bolter']
-const CREATURE_NAMES = { 'Dock_Rat': 'Dock Rat', 'Grey_Wolf': 'Grey Wolf', 'Slide-rock_Bolter': 'Slide-rock Bolter' }
-const SILHOUETTES = ['Cave_Bear', 'Reaver', 'Siren', 'Ground_Sloth', 'Sea_Eagle', 'Wrecker']
+const ALL_SKILLS = ['Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting', 'Carpentry', 'Smithing', 'Cooking', 'Crafting', 'Farming', 'Husbandry', 'Talar', 'Wayfaring', 'Melee', 'Defense', 'Constitution']
+// Creatures fought (never the hunted, and not the Trow or Draugr: Nathan, 2026-11-27).
+const BEASTS_A = ['Dock_Rat', 'Shore_Crab', 'Jackalope', 'Grey_Wolf', 'Kelpie', 'Hodag', 'Nuckelavee', 'Snallygaster']
+const BEASTS_B = ['Wrecker', 'Sidehill_Gouger', 'Siren', 'Wolverine', 'Each-uisge', 'Reaver', 'Cave_Bear', 'Slide-rock_Bolter']
+const NAMES = { 'Dock_Rat': 'Dock Rat', 'Shore_Crab': 'Shore Crab', 'Grey_Wolf': 'Grey Wolf', 'Sidehill_Gouger': 'Sidehill Gouger', 'Cave_Bear': 'Cave Bear', 'Slide-rock_Bolter': 'Slide-rock Bolter' }
+// What comes through the tear: stand-ins until the invaders are drawn. Swap in
+// their names (images/bestiary/<Name>.png) and the silhouettes follow.
+const TEAR_SHAPES = ['Cave_Bear', 'Sea_Eagle', 'Siren', 'Wolverine', 'Reaver']
+// Ports on the island maps (fractions of the 1080 map), and the way out of each harbor.
+const ROUTE_TAIAR = [[.604, .571], [.64, .61], [.66, .66], [.70, .74], [.82, .80], [.96, .82]]
+const ROUTE_ANTURA = [[.02, .86], [.25, .92], [.55, .93], [.76, .86], [.74, .74], [.68, .68], [.60, .652]]
 
 const images = {}
 function load(key, src) {
@@ -70,21 +87,33 @@ function load(key, src) {
 }
 async function loadAll() {
   const jobs = []
-  const ui = ['stone', 'red', 'frame-gold', 'frame-stone', 'slot', 'parchment', 'button', 'bricks', 'orb-red', 'orb-purple']
-  for (const u of ui) jobs.push(load('ui:' + u, IMG + 'ui/stonehold/' + u + '.webp'))
-  for (const [name, , items] of SKILLS) {
-    jobs.push(load('skill:' + name, IMG + 'skills/' + name + 'Skill.png'))
-    for (const it of items) jobs.push(load('item:' + it, IMG + 'items/' + it + '.png'))
-  }
-  for (const [, items] of WORLD) for (const it of items) jobs.push(load('item:' + it, IMG + 'items/' + it + '.png'))
-  for (const c of [...CREATURES, ...SILHOUETTES]) jobs.push(load('beast:' + c, IMG + 'bestiary/' + c + '.png'))
+  for (const u of ['stone', 'red', 'frame-gold', 'frame-stone', 'slot', 'parchment', 'bricks']) jobs.push(load('ui:' + u, IMG + 'ui/stonehold/' + u + '.webp'))
+  for (const s of ALL_SKILLS) jobs.push(load('skill:' + s, IMG + 'skills/' + s + 'Skill.png'))
+  const items = new Set(['Lanai_Hunting_Bow', 'Deerhide', 'Ambren_Arrow', 'Gold'])
+  for (const [, its] of CRAFTS) its.forEach(i => items.add(i))
+  for (const it of items) jobs.push(load('item:' + it, IMG + 'items/' + it + '.png'))
+  for (const c of [...BEASTS_A, ...BEASTS_B, ...TEAR_SHAPES]) jobs.push(load('beast:' + c, IMG + 'bestiary/' + c + '.png'))
+  for (const f of new Set(Object.values(SHOTS).map(s => s[0]))) jobs.push(load('shot:' + f, 'shots/' + f + '.jpg'))
   jobs.push(load('map:taiar', IMG + 'maps/Taiar_Island.jpg'))
   jobs.push(load('map:antura', IMG + 'maps/Antura.jpg'))
+  jobs.push(load('map:taiarIslets', IMG + 'maps/Taiar_Islets.jpg'))
+  jobs.push(load('map:anturaIslets', IMG + 'maps/Antura_Islets.jpg'))
   await Promise.all(jobs)
-  await document.fonts.load('600 80px Garamond'); await document.fonts.load('700 80px Garamond'); await document.fonts.load('italic 400 40px Garamond'); await document.fonts.load('500 40px Garamond')
+  for (const f of ['600 80px Garamond', '700 80px Garamond', 'italic 400 40px Garamond', '500 40px Garamond']) await document.fonts.load(f)
   makeSilhouettes(); makeSoftMaps()
 }
 
+// Black cut-outs for what comes through the tear.
+const shadows = {}
+function makeSilhouettes() {
+  for (const k of TEAR_SHAPES) {
+    const im = images['beast:' + k]; if (!im) continue
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0)
+    x.globalCompositeOperation = 'source-in'; x.fillStyle = '#060307'; x.fillRect(0, 0, c.width, c.height)
+    shadows[k] = c
+  }
+}
 // The maps with their square edges melted into the sea around them.
 const soft = {}; let SEA = '#0b2440'
 function makeSoftMaps() {
@@ -94,22 +123,10 @@ function makeSoftMaps() {
     const x = c.getContext('2d'); x.drawImage(im, 0, 0)
     if (k === 'taiar') { const d = x.getImageData(4, 4, 1, 1).data; SEA = `rgb(${d[0]},${d[1]},${d[2]})` }
     x.globalCompositeOperation = 'destination-in'
-    const gr = x.createRadialGradient(c.width / 2, c.height / 2, c.width * .3, c.width / 2, c.height / 2, c.width * .5)
+    const gr = x.createRadialGradient(c.width / 2, c.height / 2, c.width * .32, c.width / 2, c.height / 2, c.width * .5)
     gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)')
     x.fillStyle = gr; x.fillRect(0, 0, c.width, c.height)
     soft[k] = c
-  }
-}
-
-// Black cut-outs of creatures, for what comes through the tear (no art yet).
-const shadows = {}
-function makeSilhouettes() {
-  for (const k of SILHOUETTES) {
-    const im = images['beast:' + k]; if (!im) continue
-    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height
-    const x = c.getContext('2d'); x.drawImage(im, 0, 0)
-    x.globalCompositeOperation = 'source-in'; x.fillStyle = '#050304'; x.fillRect(0, 0, c.width, c.height)
-    shadows[k] = c
   }
 }
 
@@ -117,12 +134,12 @@ function makeSilhouettes() {
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v))
 const lerp = (a, b, u) => a + (b - a) * u
 const easeOut = u => 1 - Math.pow(1 - clamp(u), 3)
-const easeIn = u => Math.pow(clamp(u), 3)
 const easeInOut = u => { u = clamp(u); return u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2 }
 const backOut = u => { u = clamp(u); const c = 1.70158; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2) }
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 } }
-// fade in over a, hold, fade out over b, inside [s, e]
-const window_ = (t, s, e, a = .25, b = .25) => clamp((t - s) / a) * clamp((e - t) / b)
+const win = (t, s, e, a = .25, b = .25) => clamp((t - s) / a) * clamp((e - t) / b)
+// which slice of a run of equal parts t is in, and how far into it
+const slice = (t, start, len, n) => { const i = clamp(Math.floor((t - start) / len), 0, n - 1); return [i, t - (start + i * len)] }
 
 function tile(im, alpha = 1, scale = 1, ox = 0, oy = 0) {
   if (!im) return
@@ -137,10 +154,9 @@ function cover(im, x, y, w, h, zoom = 1, fx = .5, fy = .5) {
   const iw = im.width * s, ih = im.height * s
   g.drawImage(im, x + (w - iw) * fx, y + (h - ih) * fy, iw, ih)
 }
-// CSS border-image, the stonehold way: slice px from the source, drawn at width b.
-function nineSlice(im, x, y, w, h, slice, b, fill = false) {
+function nineSlice(im, x, y, w, h, s, b, fill = false) {
   if (!im) return
-  const sw = im.width, sh = im.height, s = slice
+  const sw = im.width, sh = im.height
   const P = (sx, sy, sW, sH, dx, dy, dW, dH) => { if (sW > 0 && sH > 0 && dW > 0 && dH > 0) g.drawImage(im, sx, sy, sW, sH, dx, dy, dW, dH) }
   P(0, 0, s, s, x, y, b, b); P(sw - s, 0, s, s, x + w - b, y, b, b)
   P(0, sh - s, s, s, x, y + h - b, b, b); P(sw - s, sh - s, s, s, x + w - b, y + h - b, b, b)
@@ -149,28 +165,23 @@ function nineSlice(im, x, y, w, h, slice, b, fill = false) {
   if (fill) P(s, s, sw - 2 * s, sh - 2 * s, x + b, y + b, w - 2 * b, h - 2 * b)
 }
 function goldFrame(x, y, w, h, alpha = 1) { g.save(); g.globalAlpha = alpha; nineSlice(images['ui:frame-gold'], x, y, w, h, 34, 34); g.restore() }
-
 function goldText(str, x, y, size, opts = {}) {
   const { weight = 600, align = 'center', alpha = 1, spacing = 0, italic = false, glow = .5, color } = opts
-  g.save()
-  g.globalAlpha = alpha
+  if (alpha <= 0) return
+  g.save(); g.globalAlpha = alpha
   g.font = `${italic ? 'italic ' : ''}${weight} ${size}px Garamond`
   g.textAlign = align; g.textBaseline = 'middle'
   if ('letterSpacing' in g) g.letterSpacing = spacing + 'px'
-  if (color) { g.fillStyle = color } else {
-    const gr = g.createLinearGradient(0, y - size * .55, 0, y + size * .5)
-    gr.addColorStop(0, '#f5dc94'); gr.addColorStop(.45, '#e4c06a'); gr.addColorStop(.55, '#c9a14a'); gr.addColorStop(1, '#8a6a2c')
-    g.fillStyle = gr
-  }
-  g.shadowColor = `rgba(0,0,0,.9)`; g.shadowBlur = size * .15; g.shadowOffsetY = size * .04
+  if (color) g.fillStyle = color
+  else { const gr = g.createLinearGradient(0, y - size * .55, 0, y + size * .5); gr.addColorStop(0, '#f5dc94'); gr.addColorStop(.45, '#e4c06a'); gr.addColorStop(.55, '#c9a14a'); gr.addColorStop(1, '#8a6a2c'); g.fillStyle = gr }
+  g.shadowColor = 'rgba(0,0,0,.95)'; g.shadowBlur = size * .18; g.shadowOffsetY = size * .04
   g.fillText(str, x, y)
   if (glow > 0) { g.shadowColor = `rgba(228,192,106,${glow * .6})`; g.shadowBlur = size * .5; g.shadowOffsetY = 0; g.globalAlpha = alpha * glow * .5; g.fillText(str, x, y) }
   g.restore()
 }
 function plainText(str, x, y, size, opts = {}) { goldText(str, x, y, size, { glow: 0, color: '#cfc6b4', weight: 500, ...opts }) }
-
 function vignette(strength = .85) {
-  const gr = g.createRadialGradient(W / 2, H / 2, H * .25, W / 2, H / 2, H * .95)
+  const gr = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H * .95)
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(0,0,0,${strength})`)
   g.fillStyle = gr; g.fillRect(0, 0, W, H)
 }
@@ -179,14 +190,12 @@ function stoneBackdrop(t, dark = .55) {
   tile(images['ui:stone'], 1, 1.6, -t * 6, t * 2)
   g.fillStyle = `rgba(0,0,0,${dark})`; g.fillRect(0, 0, W, H)
 }
-// Embers rising, deterministic in t.
 function embers(t, n = 70, color = [228, 150, 60], speed = 1, alpha = 1) {
   const r = rng(7)
   g.save(); g.globalCompositeOperation = 'lighter'
   for (let i = 0; i < n; i++) {
     const x0 = r() * W, sp = (40 + r() * 110) * speed, ph = r() * 50, sz = 1 + r() * 3.2, sway = 20 + r() * 50, f = .3 + r() * 1.2
-    const life = (t + ph) * sp
-    const y = H + 40 - (life % (H + 120))
+    const y = H + 40 - (((t + ph) * sp) % (H + 120))
     const x = x0 + Math.sin((t + ph) * f) * sway
     const a = alpha * clamp(y / H) * (.4 + .6 * Math.abs(Math.sin((t + ph) * 2.3)))
     const gr = g.createRadialGradient(x, y, 0, x, y, sz * 4)
@@ -196,323 +205,348 @@ function embers(t, n = 70, color = [228, 150, 60], speed = 1, alpha = 1) {
   g.restore()
 }
 function item(name, x, y, size, alpha = 1, rot = 0) {
-  const im = images['item:' + name]; if (!im) return
+  const im = images['item:' + name]; if (!im || alpha <= 0) return
   g.save(); g.globalAlpha = alpha; g.translate(x, y); g.rotate(rot)
   g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = size * .15; g.shadowOffsetY = size * .05
   g.drawImage(im, -size / 2, -size / 2, size, size); g.restore()
 }
-function slotTile(x, y, s, alpha = 1) {
-  g.save(); g.globalAlpha = alpha
-  const im = images['ui:slot']; if (im) g.drawImage(im, x - s / 2, y - s / 2, s, s)
+function slotTile(x, y, s, alpha = 1) { const im = images['ui:slot']; if (!im) return; g.save(); g.globalAlpha = alpha; g.drawImage(im, x - s / 2, y - s / 2, s, s); g.restore() }
+function skillIcon(name, x, y, s, alpha = 1) { const im = images['skill:' + name]; if (!im) return; g.save(); g.globalAlpha = alpha; g.drawImage(im, x - s / 2, y - s / 2, s, s); g.restore() }
+function flash(a, color = '255,240,200') { if (a <= 0) return; g.fillStyle = `rgba(${color},${clamp(a)})`; g.fillRect(0, 0, W, H) }
+function shake(t, since, amount) { const k = amount * Math.exp(-since * 9); g.translate(Math.sin(t * 97) * k, Math.cos(t * 83) * k) }
+
+// A real game screen. 'full' fills the frame with the crop; 'panel' sets the crop
+// in a gold frame over the whole screen, blurred and dimmed.
+function shot(key, lt, opts = {}) {
+  const [file, cx, cy, cw, ch] = SHOTS[key]
+  const im = images['shot:' + file]; if (!im) return
+  const { mode = 'full', zoom = .06, dir = 1, len = BAR } = opts
+  const z = 1 + zoom * easeOut(lt / (len * 1.4))
+  g.fillStyle = '#080808'; g.fillRect(0, 0, W, H)
+  if (mode === 'full') {
+    const s = Math.max(W / cw, H / ch) * z
+    const iw = cw * s, ih = ch * s
+    g.drawImage(im, cx, cy, cw, ch, (W - iw) / 2 + dir * zoom * 200 * easeOut(lt / len), (H - ih) / 2, iw, ih)
+    vignette(.7)
+  } else {
+    g.save(); g.filter = 'blur(10px) brightness(.35)'; cover(im, -40, -40, W + 80, H + 80, 1.02 + zoom * easeOut(lt / len)); g.restore()
+    const maxW = 1560, maxH = 860
+    const s = Math.min(maxW / cw, maxH / ch) * (1 + zoom * .5 * easeOut(lt / len))
+    const iw = cw * s, ih = ch * s, x = (W - iw) / 2, y = (H - ih) / 2 + 20
+    g.save(); g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 60; g.fillStyle = '#000'; g.fillRect(x, y, iw, ih); g.restore()
+    g.drawImage(im, cx, cy, cw, ch, x, y, iw, ih)
+    goldFrame(x - 16, y - 16, iw + 32, ih + 32)
+    vignette(.55)
+  }
+}
+// A caption plate, lower left: skill icon in a slot, a name, and a line.
+function plate(name, line, lt, icon) {
+  const a = clamp(lt / .12), slide = 60 * (1 - easeOut(lt / .25))
+  g.save(); g.globalAlpha = a; g.translate(-slide, 0)
+  const gr = g.createLinearGradient(0, 0, 900, 0); gr.addColorStop(0, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)')
+  g.fillStyle = gr; g.fillRect(0, H - 230, 900, 170)
+  if (icon) { slotTile(150, H - 145, 120); skillIcon(icon, 150, H - 145, 92) }
+  g.restore()
+  goldText(name, (icon ? 240 : 90) - slide, H - (line ? 165 : 145), 74, { align: 'left', weight: 700, spacing: 2, alpha: a })
+  if (line) plainText(line, (icon ? 242 : 92) - slide, H - 105, 34, { align: 'left', italic: true, weight: 400, alpha: a })
+}
+// A big centered word on a downbeat.
+function slam(word, t, start, len) {
+  const lt = t - start; if (lt < 0 || lt > len) return
+  const band = g.createLinearGradient(0, 0, 0, 300); band.addColorStop(0, 'rgba(0,0,0,.9)'); band.addColorStop(1, 'rgba(0,0,0,0)')
+  g.fillStyle = band; g.fillRect(0, 0, W, 300)
+  const sc = lerp(1.4, 1, easeOut(lt / .25))
+  g.save(); g.translate(W / 2, 140); g.scale(sc, sc)
+  goldText(word, 0, 0, 150, { weight: 700, spacing: 10, alpha: clamp(lt / .06), glow: .9 })
   g.restore()
 }
-function flash(a, color = '255,240,200') { if (a <= 0) return; g.fillStyle = `rgba(${color},${clamp(a)})`; g.fillRect(0, 0, W, H) }
+// A crafted-thing card: skill icon, then its goods popping in on the beat.
+function craftCard(name, items, lt, t) {
+  stoneBackdrop(t, .62)
+  const lg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 800)
+  lg.addColorStop(0, 'rgba(201,140,60,.22)'); lg.addColorStop(1, 'rgba(0,0,0,0)')
+  g.fillStyle = lg; g.fillRect(0, 0, W, H)
+  embers(t, 40, [228, 150, 60], 1.5, .6)
+  const p = backOut(lt / .2)
+  slotTile(W / 2, H / 2 - 80, 250 * p); skillIcon(name, W / 2, H / 2 - 80, 190 * p)
+  items.forEach((it, k) => {
+    const q = backOut((lt - .05 - k * .05) / .2)
+    const x = W / 2 + (k - 1) * 330 * (k === 1 ? 0 : 1) + (k === 1 ? 0 : 0)
+    const xx = k === 0 ? W / 2 - 330 : k === 1 ? W / 2 + 330 : W / 2
+    const yy = k === 2 ? H / 2 + 230 : H / 2 - 60
+    if (k < 2) item(it, xx, yy, 170 * clamp(q, 0, 1.3), clamp(q * 3))
+  })
+  goldText(name, W / 2, H / 2 + 120, 96, { weight: 700, spacing: 4, alpha: clamp(lt / .08) })
+  vignette(.85)
+  flash(.12 * Math.exp(-lt * 12), '228,192,106')
+}
+function creature(k, lt, side) {
+  const im = images['beast:' + k]
+  g.save(); shake(lt * 50, lt, 16)
+  g.fillStyle = '#070405'; g.fillRect(-40, -40, W + 80, H + 80)
+  g.save(); g.globalAlpha = .5; cover(images['ui:red'], 0, 0, W, H, 1.1); g.restore()
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, W, H)
+  const p = backOut(lt / .16)
+  if (im) { g.save(); g.translate(W / 2 + side * 220, H / 2 + 40); g.scale(p * 3.1, p * 3.1); g.shadowColor = 'rgba(255,80,40,.5)'; g.shadowBlur = 40; g.drawImage(im, -128, -128, 256, 256); g.restore() }
+  goldText(NAMES[k] || k.replace(/_/g, ' '), W / 2 - side * 470, H / 2 + 20, 96, { weight: 700, spacing: 3, alpha: clamp(lt / .05) })
+  g.restore()
+  vignette(.85)
+  flash(.3 * Math.exp(-lt * 14), '255,140,100')
+}
 
-// ---- Scenes -------------------------------------------------------------------
-// Bars: 0-3 title, 4-7 Taiar, 8-15 skills, 16-18 the count, 19-22 the world,
-// 23-25 setting out, 26-27 the tear, 28-33 what lives here, 34-37 through the
-// tear, 38+ the end card.
+// ---- Scenes ---------------------------------------------------------------------
+// Bars: 0-1 title, 2-3 the game, 4-9 skill flashes, 10-12 sixteen skills,
+// 13-18 the world, 19-22 setting out, 23-32 Gather, Craft, Fight, Trade,
+// Explore, 33-34 the tear, 35+ the end card.
 
 function sceneTitle(t) {
   stoneBackdrop(t, .7)
-  const u = (t - bar(0)) / (bar(4) - bar(0))
-  // a slow push in on the light
-  const lg = g.createRadialGradient(W / 2, H / 2 + 20, 0, W / 2, H / 2, 700 + 200 * u)
-  lg.addColorStop(0, `rgba(201,140,60,${.28 + .1 * beatPulse(t)})`); lg.addColorStop(1, 'rgba(0,0,0,0)')
+  const lg = g.createRadialGradient(W / 2, H / 2 + 20, 0, W / 2, H / 2, 800)
+  lg.addColorStop(0, `rgba(201,140,60,${.3 + .12 * beatPulse(t)})`); lg.addColorStop(1, 'rgba(0,0,0,0)')
   g.fillStyle = lg; g.fillRect(0, 0, W, H)
   embers(t, 90)
-  const a = easeOut((t - bar(0)) / 1.2)
-  const scale = lerp(1.25, 1, easeOut((t - bar(0)) / 2.5))
-  g.save(); g.translate(W / 2, H / 2 - 30); g.scale(scale, scale)
-  goldText('Talaran', 0, 0, 230, { weight: 700, spacing: 18, alpha: a, glow: .6 + .4 * barPulse(t) })
+  const sc = lerp(1.3, 1, easeOut(t / 1.2))
+  g.save(); g.translate(W / 2, H / 2 - 20); g.scale(sc, sc)
+  goldText('Talaran', 0, 0, 240, { weight: 700, spacing: 18, alpha: clamp(t / .25), glow: .6 + .4 * barPulse(t) })
   g.restore()
-  const lineA = easeOut((t - bar(1)) / .8)
-  g.save(); g.globalAlpha = lineA
-  const lw = 520 * lineA
+  const lw = 520 * easeOut((t - bar(1)) / .5)
   const gr = g.createLinearGradient(W / 2 - lw, 0, W / 2 + lw, 0)
   gr.addColorStop(0, 'rgba(201,161,74,0)'); gr.addColorStop(.5, 'rgba(228,192,106,1)'); gr.addColorStop(1, 'rgba(201,161,74,0)')
-  g.fillStyle = gr; g.fillRect(W / 2 - lw, H / 2 + 105, lw * 2, 2); g.restore()
-  plainText('A medieval skilling world, in your browser', W / 2, H / 2 + 160, 44, { italic: true, weight: 400, alpha: easeOut((t - bar(2)) / 1) })
+  g.fillStyle = gr; g.fillRect(W / 2 - lw, H / 2 + 110, lw * 2, 2)
   vignette(.9)
-  flash(.5 * Math.exp(-(t - bar(0)) * 3))
+  flash(.6 * Math.exp(-t * 4))
 }
 
-function sceneTaiar(t) {
-  const s = bar(4), e = bar(8)
-  const u = (t - s) / (e - s)
-  g.fillStyle = '#05080c'; g.fillRect(0, 0, W, H)
-  // the island map, drifting
-  g.save()
-  const z = lerp(1.05, 1.35, easeInOut(u))
-  cover(images['map:taiar'], 0, 0, W, H, z, lerp(.35, .6, u), lerp(.6, .4, u))
-  g.restore()
-  g.fillStyle = 'rgba(5,6,8,.35)'; g.fillRect(0, 0, W, H)
-  vignette(.95)
-  { const bg = g.createLinearGradient(0, H / 2 - 160, 0, H / 2 + 140); bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(.3, 'rgba(0,0,0,.65)'); bg.addColorStop(.7, 'rgba(0,0,0,.65)'); bg.addColorStop(1, 'rgba(0,0,0,0)'); g.save(); g.globalAlpha = window_(t, s, e, .4, .3); g.fillStyle = bg; g.fillRect(0, H / 2 - 160, W, 300); g.restore() }
-  goldText('Begin on Taiar Island', W / 2, H / 2 - 40, 110, { weight: 700, spacing: 6, alpha: window_(t, s + .1, e, .5, .3) })
-  plainText('Twelve towns and wild places. A boat, when you are ready for it.', W / 2, H / 2 + 50, 40, { italic: true, weight: 400, alpha: window_(t, bar(5), e, .6, .3) })
-  goldFrame(70, 70, W - 140, H - 140, .9)
+function sceneGame(t) {
+  const s = bar(2), lt = t - s
+  // the whole game, pulling back to show all of it
+  const im = images['shot:main']
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H)
+  const z = lerp(1.35, 1.0, easeOut(lt / (BAR * 1.6)))
+  g.save(); g.translate(W / 2, H / 2); g.scale(z, z); g.drawImage(im, -W / 2, -H / 2, W, H); g.restore()
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, W, H)
+  const band = g.createLinearGradient(0, H - 260, 0, H); band.addColorStop(0, 'rgba(0,0,0,0)'); band.addColorStop(1, 'rgba(0,0,0,.9)')
+  g.fillStyle = band; g.fillRect(0, H - 260, W, 260)
+  goldText('A medieval skilling world, in your browser', W / 2, H - 110, 64, { weight: 700, spacing: 2, alpha: win(t, s + .2, bar(4), .3, .15) })
+  flash(.4 * Math.exp(-lt * 6))
 }
 
-function sceneSkills(t) {
-  stoneBackdrop(t, .62)
-  embers(t, 40, [228, 150, 60], 1.3, .7)
-  const start = bar(8), half = BAR / 2
-  const i = clamp(Math.floor((t - start) / half), 0, SKILLS.length - 1)
-  const lt = t - (start + i * half)
-  const [name, line, items] = SKILLS[i]
-  // the frame stays, the content snaps
-  const fx = W / 2 - 520, fy = H / 2 - 300, fw = 1040, fh = 600
-  g.save(); g.globalAlpha = .9; nineSlice(images['ui:frame-stone'], fx, fy, fw, fh, 20, 20, false); g.restore()
-  g.fillStyle = 'rgba(10,10,10,.55)'; g.fillRect(fx + 20, fy + 20, fw - 40, fh - 40)
-  goldFrame(fx - 14, fy - 14, fw + 28, fh + 28)
-  const pop = backOut(lt / .28)
-  const sk = images['skill:' + name]
-  // items orbiting behind the icon
-  items.forEach((it, k) => {
-    const ang = -Math.PI / 2 + (k === 0 ? -0.9 : 0.9) + lt * .5 * (k ? 1 : -1)
-    item(it, W / 2 + Math.cos(ang) * 300 * pop, H / 2 - 70 + Math.sin(ang) * 120 * pop + 60, 150, .9 * clamp(lt / .2), (k ? .2 : -.2))
-  })
-  slotTile(W / 2, H / 2 - 70, 230 * pop)
-  if (sk) { g.save(); g.translate(W / 2, H / 2 - 70); g.scale(pop, pop); g.shadowColor = 'rgba(228,192,106,.6)'; g.shadowBlur = 40; g.drawImage(sk, -90, -90, 180, 180); g.restore() }
-  goldText(name, W / 2, H / 2 + 125, 92, { weight: 700, spacing: 4, alpha: clamp(lt / .12) })
-  plainText(line, W / 2, H / 2 + 200, 40, { italic: true, weight: 400, alpha: clamp((lt - .08) / .15) })
-  // a tally of the sixteen
-  for (let k = 0; k < SKILLS.length; k++) {
-    const x = W / 2 + (k - 7.5) * 46, y = H - 110
-    g.fillStyle = k <= i ? (k === i ? '#f5dc94' : '#c9a14a') : '#333'
-    g.beginPath(); g.arc(x, y, k === i ? 8 : 5, 0, Math.PI * 2); g.fill()
+function sceneSkillFlashes(t) {
+  const s = bar(4), half = BAR / 2
+  if (t < bar(7)) {
+    const [i, lt] = slice(t, s, half, SKILL_FLASH.length)
+    const [name, kind, what] = SKILL_FLASH[i]
+    if (kind === 'shot') shot(what, lt, { len: half, dir: i % 2 ? -1 : 1, zoom: .08 })
+    else craftCard(name, what, lt, t)
+    plate(name, null, lt, name)
+    flash(.15 * Math.exp(-lt * 14))
+  } else if (t < bar(8)) {
+    // a bar of monsters, two to a beat
+    const [i, lt] = slice(t, bar(7), BEAT / 2, 8)
+    creature(BEASTS_A[i], lt, i % 2 ? 1 : -1)
+  } else {
+    const [i, lt] = slice(t, bar(8), BEAT, CRAFTS.length)
+    craftCard(CRAFTS[i][0], CRAFTS[i][1], lt, t)
   }
-  vignette(.8)
-  flash(.08 * Math.exp(-lt * 10), '228,192,106')
 }
 
-function sceneCount(t) {
+function sceneSixteen(t) {
+  const s = bar(10), u = (t - s) / (bar(13) - s)
   stoneBackdrop(t, .7)
   embers(t, 60)
-  // every skill icon in a ring, closing in
-  const s = bar(16), u = (t - s) / (bar(19) - s)
-  const R = lerp(1000, 560, easeOut(u * 1.6))
-  SKILLS.forEach(([name], k) => {
-    const ang = k / SKILLS.length * Math.PI * 2 + t * .25
+  const R = lerp(1000, 560, easeOut(u * 1.8))
+  ALL_SKILLS.forEach((name, k) => {
+    const ang = k / ALL_SKILLS.length * Math.PI * 2 + t * .35
     const x = W / 2 + Math.cos(ang) * R * 1.25, y = H / 2 + Math.sin(ang) * R * .62
-    slotTile(x, y, 110, .9)
-    const im = images['skill:' + name]; if (im) g.drawImage(im, x - 40, y - 40, 80, 80)
+    slotTile(x, y, 118, .95); skillIcon(name, x, y, 86)
   })
-  goldText('Sixteen skills', W / 2, H / 2 - 50, 130, { weight: 700, spacing: 6, alpha: easeOut((t - s) / .4) })
-  plainText('No classes. No energy bar. Level one to a hundred, your way.', W / 2, H / 2 + 50, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(17)) / .5) })
+  goldText('Sixteen skills', W / 2, H / 2 - 50, 140, { weight: 700, spacing: 6, alpha: easeOut((t - s) / .3) })
+  plainText('No classes. No energy bar. Level one to a hundred, your way.', W / 2, H / 2 + 55, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
   vignette(.9)
-  flash(.35 * Math.exp(-(t - s) * 4))
+  flash(.35 * Math.exp(-(t - s) * 5))
 }
 
+const WORLD = [
+  ['together', 'full', 'Play alongside everyone else', 'One world, one chat, a town square full of people'],
+  ['quank', 'panel', 'Meet the island\'s folk', 'Quests are found, never listed'],
+  ['shops', 'panel', 'Raise a shop', 'Sell to other players while you are away'],
+  ['museum', 'panel', 'Fill the museum', 'Every find has a case waiting for it'],
+  ['sloth', 'panel', 'Stand a round at the Salty Sloth', 'And read the day\'s Chronicle'],
+  ['highscores', 'panel', 'Climb the highscores', 'Every skill, all time and this week'],
+]
 function sceneWorld(t) {
-  // the break: calmer, parchment and items
-  g.fillStyle = '#0c0b09'; g.fillRect(0, 0, W, H)
-  tile(images['ui:bricks'], .35, 1.8, t * 4, 0)
-  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 0, W, H)
-  embers(t, 30, [228, 170, 90], .6, .6)
-  const s = bar(19)
-  const i = clamp(Math.floor((t - s) / BAR), 0, WORLD.length - 1)
-  const lt = t - (s + i * BAR)
-  const [title, items] = WORLD[i]
-  const a = clamp(lt / .3) * clamp((BAR - lt) / .25)
-  // parchment card
-  const cw = 1200, ch = 520, cx = W / 2 - cw / 2, cy = H / 2 - ch / 2 + 10
-  g.save(); g.globalAlpha = a
-  nineSlice(images['ui:parchment'], cx, cy, cw, ch, 26, 26, true)
-  g.restore()
-  goldFrame(cx - 12, cy - 12, cw + 24, ch + 24, a)
-  goldText(title, W / 2, cy + 110, 76, { weight: 700, color: '#3a2a14', glow: 0, alpha: a })
-  items.forEach((it, k) => {
-    const d = k * .07
-    const p = backOut((lt - d) / .35)
-    const x = W / 2 + (k - 2.5) * 175, y = cy + 320
-    slotTile(x, y, 150 * clamp(p), a)
-    item(it, x, y - 4 * Math.sin(t * 3 + k), 118 * clamp(p, 0, 1.2), a)
-  })
-  vignette(.85)
+  const [i, lt] = slice(t, bar(13), BAR, WORLD.length)
+  const [key, mode, title, line] = WORLD[i]
+  shot(key, lt, { mode, dir: i % 2 ? -1 : 1 })
+  plate(title, line, lt)
+  flash(.18 * Math.exp(-lt * 10))
 }
 
+function catmull(pts, u) {
+  const n = pts.length - 1, f = clamp(u) * n, i = Math.min(Math.floor(f), n - 1), q = f - i
+  const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, n)]
+  const c = (a, b, c2, d) => .5 * ((2 * b) + (-a + c2) * q + (2 * a - 5 * b + 4 * c2 - d) * q * q + (-a + 3 * b - 3 * c2 + d) * q * q * q)
+  return [c(p0[0], p1[0], p2[0], p3[0]), c(p0[1], p1[1], p2[1], p3[1])]
+}
 function sceneSail(t) {
-  const s = bar(23), e = bar(26)
-  const u = (t - s) / (e - s)
+  if (t < bar(20)) {
+    const lt = t - bar(19)
+    shot('islandmap', lt, { mode: 'panel', zoom: .05 })
+    plate('Then set out', null, lt)
+    return
+  }
+  const s = bar(20), e = bar(23), u = (t - s) / (e - s)
   g.fillStyle = SEA; g.fillRect(0, 0, W, H)
-  // two maps side by side, the camera travels from one to the other
-  const mw = 1080, gap = 80
-  const camX = lerp(0, mw + gap, easeInOut(u))
-  const z = 0.95
-  g.save(); g.translate(W / 2 - mw / 2 * z - camX * z + 200, H / 2 - mw / 2 * z); g.scale(z, z)
+  const mw = 1080, gap = 260, ax = mw + gap
+  // the whole route in world space: out of Talador's harbor, across, into Wendhaven's
+  const route = [...ROUTE_TAIAR.map(([x, y]) => [x * mw, y * mw]), ...ROUTE_ANTURA.map(([x, y]) => [ax + x * mw, y * mw])]
+  const travel = easeInOut(clamp((u - .05) / .85))
+  const [bx, by] = catmull(route, travel)
+  const z = .9
+  g.save(); g.translate(W / 2 - bx * z, H / 2 - by * z + 60); g.scale(z, z)
   if (soft.taiar) g.drawImage(soft.taiar, 0, 0, mw, mw)
-  if (soft.antura) g.drawImage(soft.antura, mw + gap, 0, mw, mw)
-  // the crossing: a dotted route drawn as we go
-  g.strokeStyle = 'rgba(245,220,148,.95)'; g.lineWidth = 6; g.setLineDash([2, 18]); g.lineCap = 'round'
+  if (soft.antura) g.drawImage(soft.antura, ax, 0, mw, mw)
+  g.strokeStyle = 'rgba(245,220,148,.95)'; g.lineWidth = 7; g.setLineDash([2, 20]); g.lineCap = 'round'
   g.beginPath()
-  const x0 = mw * .72, y0 = mw * .3, x1 = mw + gap + mw * .3, y1 = mw * .62
-  const steps = 60, upto = Math.floor(steps * clamp((u - .1) / .7))
-  for (let k = 0; k <= upto; k++) { const q = k / steps; const x = lerp(x0, x1, q), y = lerp(y0, y1, q) - Math.sin(q * Math.PI) * 220; k ? g.lineTo(x, y) : g.moveTo(x, y) }
+  for (let k = 0; k <= 200; k++) { const q = k / 200 * travel; const [x, y] = catmull(route, q); k ? g.lineTo(x, y) : g.moveTo(x, y) }
   g.stroke(); g.setLineDash([])
+  // the boat: a lantern-gold point with a glow
+  const gr = g.createRadialGradient(bx, by, 0, bx, by, 40); gr.addColorStop(0, 'rgba(255,230,160,1)'); gr.addColorStop(1, 'rgba(255,200,100,0)')
+  g.fillStyle = gr; g.fillRect(bx - 40, by - 40, 80, 80)
+  // ports
+  for (const [px, py, label] of [[ROUTE_TAIAR[0][0] * mw, ROUTE_TAIAR[0][1] * mw, 'Talador'], [ax + ROUTE_ANTURA.at(-1)[0] * mw, ROUTE_ANTURA.at(-1)[1] * mw, 'Wendhaven']]) {
+    g.beginPath(); g.arc(px, py, 12, 0, Math.PI * 2); g.fillStyle = '#f5dc94'; g.fill()
+  }
   g.restore()
-  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, W, H)
   vignette(.95)
-  goldText('Then set out.', W / 2, 150, 96, { weight: 700, spacing: 4, alpha: window_(t, s, e, .5, .3) })
-  plainText('Sail to Antura and the islets beyond.', W / 2, H - 140, 42, { italic: true, weight: 400, alpha: window_(t, bar(24), e, .5, .3) })
-  // the pickup into the drop: the light goes wrong
-  const wrong = clamp((t - bar(25)) / BAR)
-  g.fillStyle = `rgba(40,0,10,${wrong * .6})`; g.fillRect(0, 0, W, H)
+  goldText(u < .5 ? 'From Talador' : 'To Wendhaven, on Antura', W / 2, 140, 84, { weight: 700, spacing: 4, alpha: u < .5 ? win(u, 0, .5, .08, .06) : win(u, .5, 1, .06, .1) })
 }
 
-// The tear: a jagged rift across the sky, purple and red.
+const BEATS_GATHER = ['wood', 'mine', 'fish', 'forage']
+const BEATS_TRADE = [['shops', 'panel'], ['together', 'full'], ['highscores', 'panel'], ['museum', 'panel']]
+function sceneRush(t) {
+  const half = BAR / 2
+  if (t < bar(25)) {
+    const [i, lt] = slice(t, bar(23), half, 4)
+    shot(BEATS_GATHER[i], lt, { len: half, dir: i % 2 ? -1 : 1, zoom: .1 })
+    slam('Gather.', t, bar(23), BAR * 2)
+  } else if (t < bar(27)) {
+    const [i, lt] = slice(t, bar(25), half, 4)
+    craftCard(CRAFTS[[0, 1, 2, 3][i]][0], CRAFTS[i][1], lt, t)
+    slam('Craft.', t, bar(25), BAR * 2)
+  } else if (t < bar(29)) {
+    const [i, lt] = slice(t, bar(27), BEAT, 8)
+    if (i === 0) shot('fight', lt, { len: BEAT, zoom: .1 })
+    else creature(BEASTS_B[i - 1], lt, i % 2 ? 1 : -1)
+    slam('Fight.', t, bar(27), BAR * 2)
+  } else if (t < bar(31)) {
+    const [i, lt] = slice(t, bar(29), half, 4)
+    shot(BEATS_TRADE[i][0], lt, { mode: BEATS_TRADE[i][1], len: half, zoom: .06 })
+    slam('Trade.', t, bar(29), BAR * 2)
+  } else {
+    // Explore: the island and islet maps, half a bar each
+    const [i, lt] = slice(t, bar(31), half, 4)
+    const im = images[['map:taiar', 'map:taiarIslets', 'map:antura', 'map:anturaIslets'][i]]
+    g.fillStyle = SEA; g.fillRect(0, 0, W, H)
+    if (im) cover(im, 0, 0, W, H, 1.05 + .12 * easeOut(lt / half), i % 2 ? .3 : .7, .45)
+    vignette(.85)
+    plainText(['Taiar Island', 'Its islets', 'Antura', 'And beyond'][i], W / 2, H - 110, 46, { italic: true, weight: 400, alpha: clamp(lt / .1), color: '#ece4d0' })
+    slam('Explore.', t, bar(31), BAR * 2)
+    flash(.15 * Math.exp(-lt * 12))
+  }
+}
+
+// The tear: a glowing slit across a dark sky.
 const TEAR = (() => { const r = rng(42); const pts = []; let y = 0, v = 0; for (let k = 0; k <= 48; k++) { v = v * .6 + (r() - .5) * .018; y = y * .92 + v; pts.push([k / 48, y + Math.sin(k / 48 * Math.PI * 1.2) * .035]) } return pts })()
 function drawTear(cx, cy, len, open, t) {
   if (open <= 0) return
-  g.save(); g.translate(cx, cy); g.rotate(-.18)
-  const L = len * clamp(open * 1.6)
-  const wid = 10 + 95 * easeOut(open)
-  const path = (wscale) => {
+  g.save(); g.translate(cx, cy); g.rotate(-.12)
+  const L = len * clamp(open * 1.6), wid = 10 + 95 * easeOut(open)
+  const path = ws => {
     g.beginPath()
-    TEAR.forEach(([x, y], k) => { const px = (x - .5) * L, py = y * len; const w = Math.pow(Math.sin(x * Math.PI), 1.6) * wid * wscale * (1 + .1 * Math.sin(t * 5 + k * .7)); k ? g.lineTo(px, py - w) : g.moveTo(px, py - w) })
-    for (let k = TEAR.length - 1; k >= 0; k--) { const [x, y] = TEAR[k]; const px = (x - .5) * L, py = y * len; const w = Math.pow(Math.sin(x * Math.PI), 1.6) * wid * wscale * (1 + .1 * Math.cos(t * 4 + k * .9)); g.lineTo(px, py + w) }
+    TEAR.forEach(([x, y], k) => { const px = (x - .5) * L, py = y * len, w = Math.pow(Math.sin(x * Math.PI), 1.6) * wid * ws * (1 + .1 * Math.sin(t * 5 + k * .7)); k ? g.lineTo(px, py - w) : g.moveTo(px, py - w) })
+    for (let k = TEAR.length - 1; k >= 0; k--) { const [x, y] = TEAR[k]; const px = (x - .5) * L, py = y * len, w = Math.pow(Math.sin(x * Math.PI), 1.6) * wid * ws * (1 + .1 * Math.cos(t * 4 + k * .9)); g.lineTo(px, py + w) }
     g.closePath()
   }
   g.globalCompositeOperation = 'lighter'
-  g.shadowColor = 'rgba(170,60,255,1)'; g.shadowBlur = 120
-  path(2.2); g.fillStyle = 'rgba(90,20,160,.30)'; g.fill()
-  g.shadowColor = 'rgba(255,70,40,1)'; g.shadowBlur = 50
-  path(1.15); g.fillStyle = 'rgba(230,90,60,.5)'; g.fill()
+  g.shadowColor = 'rgba(170,60,255,1)'; g.shadowBlur = 120; path(2.2); g.fillStyle = 'rgba(90,20,160,.30)'; g.fill()
+  g.shadowColor = 'rgba(255,70,40,1)'; g.shadowBlur = 50; path(1.15); g.fillStyle = 'rgba(230,90,60,.5)'; g.fill()
   path(.95); g.fillStyle = 'rgba(255,220,200,.55)'; g.fill()
   g.globalCompositeOperation = 'source-over'; g.shadowBlur = 0
   path(.7); const gr = g.createLinearGradient(0, -wid, 0, wid); gr.addColorStop(0, '#12001c'); gr.addColorStop(.5, '#000'); gr.addColorStop(1, '#1c0006'); g.fillStyle = gr; g.fill()
-  // stars on the other side
-  g.save(); path(.7); g.clip()
-  const r = rng(3); for (let k = 0; k < 60; k++) { const x = (r() - .5) * L, y = (r() - .5) * wid * 1.4; g.fillStyle = `rgba(255,220,255,${.3 + .7 * Math.abs(Math.sin(t * 3 + k))})`; g.fillRect(x, y, 2, 2) }
-  g.restore()
   g.restore()
 }
-function skyBackdrop(t, red = 1) {
-  g.fillStyle = '#060306'; g.fillRect(0, 0, W, H)
-  g.save(); g.globalAlpha = .55 * red; cover(images['ui:red'], 0, 0, W, H, 1.1 + .03 * Math.sin(t * .5)); g.restore()
-  g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H)
-}
-
-function sceneTearOpens(t) {
-  const s = bar(26)
-  const shake = 14 * Math.exp(-(t - s) * 3) + 4 * beatPulse(t)
-  g.save(); g.translate((Math.sin(t * 91) * shake), (Math.cos(t * 77) * shake))
-  skyBackdrop(t)
-  drawTear(W / 2, H / 2 - 40, 1500, (t - s) / (BAR * 2), t)
-  embers(t, 80, [200, 80, 255], 1.6, .9)
-  g.restore()
-  vignette(.9)
-  goldText('The sky is tearing.', W / 2, H - 170, 96, { weight: 700, spacing: 4, alpha: window_(t, s + .3, bar(28), .4, .2), color: '#f2e2c8' })
-  flash(.9 * Math.exp(-(t - s) * 4), '255,230,255')
-}
-
-function sceneCreatures(t) {
-  const s = bar(28), half = BAR / 2
-  const i = clamp(Math.floor((t - s) / half), 0, CREATURES.length - 1)
-  const lt = t - (s + i * half)
-  const shake = 18 * Math.exp(-lt * 9)
-  g.save(); g.translate(Math.sin(t * 97) * shake, Math.cos(t * 83) * shake)
-  skyBackdrop(t, .8)
-  drawTear(W / 2, 170, 1700, 1, t)
-  const k = CREATURES[i], im = images['beast:' + k]
-  const p = backOut(lt / .25)
-  if (im) {
-    g.save(); g.translate(W / 2 + (i % 2 ? 1 : -1) * 260, H / 2 + 90); g.scale(p * 2.6, p * 2.6)
-    g.shadowColor = 'rgba(255,60,40,.6)'; g.shadowBlur = 50
-    g.drawImage(im, -128, -128, 256, 256); g.restore()
-  }
-  const nx = W / 2 + (i % 2 ? -1 : 1) * 420
-  goldText(CREATURE_NAMES[k] || k.replace(/_/g, ' '), nx, H / 2 + 40, 84, { weight: 700, spacing: 3, alpha: clamp(lt / .1) })
-  embers(t, 50, [255, 110, 60], 1.4, .8)
-  g.restore()
-  vignette(.85)
-  goldText('Fight what walks the islands', W / 2, H - 90, 46, { weight: 600, italic: false, alpha: .85, glow: .3 })
-  flash(.35 * Math.exp(-lt * 12), '255,120,90')
-}
-
-function sceneThrough(t) {
-  const s = bar(34), e = bar(38)
-  const u = (t - s) / (e - s)
-  skyBackdrop(t, 1)
-  drawTear(W / 2, H / 2 - 120, 1800, 1 + .2 * barPulse(t), t)
-  { const fg = g.createRadialGradient(W / 2, H / 2 + 120, 50, W / 2, H / 2 + 120, 1000); fg.addColorStop(0, `rgba(150,60,200,${.55 + .2 * barPulse(t)})`); fg.addColorStop(.6, 'rgba(90,20,120,.25)'); fg.addColorStop(1, 'rgba(0,0,0,0)'); g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = fg; g.fillRect(0, 0, W, H); g.restore() }
-  // shapes coming through, black against the light
-  SILHOUETTES.forEach((k, j) => {
+function sceneTear(t) {
+  const s = bar(33), lt = t - s, u = lt / (BAR * 2)
+  g.save(); shake(t, lt, 14)
+  g.fillStyle = '#060306'; g.fillRect(-40, -40, W + 80, H + 80)
+  g.save(); g.globalAlpha = .45; cover(images['ui:red'], 0, 0, W, H, 1.1); g.restore()
+  g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(0, 0, W, H)
+  drawTear(W / 2, H / 2 - 140, 1700, lt / (BAR * .7), t)
+  const fg = g.createRadialGradient(W / 2, H / 2 + 120, 50, W / 2, H / 2 + 120, 900)
+  fg.addColorStop(0, `rgba(150,60,200,${.5 * clamp(lt / BAR)})`); fg.addColorStop(1, 'rgba(0,0,0,0)')
+  g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = fg; g.fillRect(0, 0, W, H); g.restore()
+  // three shapes step through, on the second bar's beats
+  TEAR_SHAPES.slice(0, 3).forEach((k, j) => {
     const c = shadows[k]; if (!c) return
-    const d = j * BAR * .5
-    const q = clamp((t - s - d) / (BAR * 1.6))
-    if (q <= 0) return
-    const x = W / 2 + (j - 2.5) * 300 + Math.sin(j * 7) * 40
-    const y = lerp(H / 2 - 120, H / 2 + 220 + (j % 2) * 60, easeOut(q))
-    const sc = lerp(.3, 1.6, easeOut(q))
+    const q = clamp((t - bar(34) - j * BEAT) / (BEAT * 2.5)); if (q <= 0) return
+    const x = W / 2 + (j - 1) * 420, y = lerp(H / 2 - 120, H / 2 + 200, easeOut(q)), sc = lerp(.4, 1.7, easeOut(q))
     g.save(); g.globalAlpha = clamp(q * 3); g.translate(x, y); g.scale(sc, sc)
-    g.shadowColor = 'rgba(200,60,255,.9)'; g.shadowBlur = 40
-    g.drawImage(c, -128, -128, 256, 256)
-    // eyes
-    g.shadowColor = 'rgba(255,40,30,1)'; g.shadowBlur = 20; g.fillStyle = '#ff5a3c'
-    g.fillRect(-30, -50, 6, 4); g.fillRect(-12, -52, 6, 4)
-    g.restore()
+    g.shadowColor = 'rgba(200,80,255,.9)'; g.shadowBlur = 40; g.drawImage(c, -128, -128, 256, 256); g.restore()
   })
-  embers(t, 90, [200, 80, 255], 2, 1)
+  embers(t, 80, [200, 80, 255], 2, .9)
+  g.restore()
   vignette(.9)
-  goldText('The Bronze Shore. Annwn.', W / 2, 150, 84, { weight: 700, spacing: 4, alpha: window_(t, s, bar(36), .3, .3), color: '#f2e2c8' })
-  goldText('Stand at the tear. Hold the line.', W / 2, 150, 84, { weight: 700, spacing: 4, alpha: window_(t, bar(36), e, .3, .15) })
-  flash(.5 * Math.exp(-(t - s) * 5), '230,200,255')
+  goldText('Something is coming through.', W / 2, H - 120, 76, { weight: 700, spacing: 3, alpha: win(t, s + .3, bar(35), .3, .12), color: '#f2e2c8' })
+  flash(.8 * Math.exp(-lt * 5), '235,210,255')
 }
 
 function sceneEnd(t) {
-  const s = bar(38)
+  const s = bar(35)
   stoneBackdrop(t, .72)
   const lg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 900)
   lg.addColorStop(0, `rgba(201,140,60,${.3 + .15 * barPulse(t)})`); lg.addColorStop(1, 'rgba(0,0,0,0)')
   g.fillStyle = lg; g.fillRect(0, 0, W, H)
   embers(t, 110)
-  const fw = 1300, fh = 640
-  const fa = easeOut((t - s) / .6)
+  const fw = 1300, fh = 640, fa = easeOut((t - s) / .5)
   g.save(); g.globalAlpha = fa * .8; g.fillStyle = 'rgba(8,8,8,.7)'; g.fillRect(W / 2 - fw / 2 + 20, H / 2 - fh / 2 + 20, fw - 40, fh - 40); g.restore()
   goldFrame(W / 2 - fw / 2, H / 2 - fh / 2, fw, fh, fa)
-  const sc = lerp(1.15, 1, easeOut((t - s) / 1.5))
+  const sc = lerp(1.15, 1, easeOut((t - s) / 1.2))
   g.save(); g.translate(W / 2, H / 2 - 110); g.scale(sc, sc)
   goldText('Talaran', 0, 0, 200, { weight: 700, spacing: 16, alpha: fa, glow: .6 + .4 * barPulse(t) })
   g.restore()
-  goldText('Version 1.0', W / 2, H / 2 + 30, 64, { weight: 600, spacing: 10, alpha: easeOut((t - bar(39)) / .4) })
-  plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(40)) / .5) })
-  goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(41) - .1) / .5), glow: 1 })
+  goldText('Version 1.0', W / 2, H / 2 + 30, 64, { weight: 600, spacing: 10, alpha: easeOut((t - bar(36)) / .4) })
+  plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(37)) / .4) })
+  goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(38)) / .4), glow: 1 })
   vignette(.9)
   flash(.6 * Math.exp(-(t - s) * 3))
-  // credit and fade to black
-  plainText('Music: "Celtic Impulse" by Kevin MacLeod (incompetech.com), CC BY 4.0', W / 2, H - 50, 22, { alpha: .55 * easeOut((t - bar(42)) / 1), weight: 500 })
-  const out = clamp((t - (DURATION - 2)) / 2)
+  plainText('Music: "Celtic Impulse" by Kevin MacLeod (incompetech.com), CC BY 4.0', W / 2, H - 50, 22, { alpha: .55 * easeOut((t - bar(39)) / 1), weight: 500 })
+  const out = clamp((t - (DURATION - 2.2)) / 2)
   if (out > 0) { g.fillStyle = `rgba(0,0,0,${out})`; g.fillRect(0, 0, W, H) }
 }
 
 const SCENES = [
-  [0, bar(4), sceneTitle],
-  [bar(4), bar(8), sceneTaiar],
-  [bar(8), bar(16), sceneSkills],
-  [bar(16), bar(19), sceneCount],
-  [bar(19), bar(23), sceneWorld],
-  [bar(23), bar(26), sceneSail],
-  [bar(26), bar(28), sceneTearOpens],
-  [bar(28), bar(34), sceneCreatures],
-  [bar(34), bar(38), sceneThrough],
-  [bar(38), 999, sceneEnd],
+  [0, bar(2), sceneTitle],
+  [bar(2), bar(4), sceneGame],
+  [bar(4), bar(10), sceneSkillFlashes],
+  [bar(10), bar(13), sceneSixteen],
+  [bar(13), bar(19), sceneWorld],
+  [bar(19), bar(23), sceneSail],
+  [bar(23), bar(33), sceneRush],
+  [bar(33), bar(35), sceneTear],
+  [bar(35), 999, sceneEnd],
 ]
-const DURATION = 76
 
 function render(t) {
   g.save()
-  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.shadowBlur = 0
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.shadowBlur = 0; g.filter = 'none'
   const sc = SCENES.find(([s, e]) => t >= s && t < e) || SCENES[SCENES.length - 1]
   sc[2](t)
-  // a hard cut gets one frame of black at each scene start for punch
   g.restore()
 }
 window.render = render
 window.DURATION = DURATION
 
-// ---- Live preview -------------------------------------------------------------
 window.ready = loadAll().then(() => {
   render(0)
   if (new URLSearchParams(location.search).has('render')) return
