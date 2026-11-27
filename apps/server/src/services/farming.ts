@@ -12,6 +12,8 @@ import { noteDeed } from './chronicle';
 import { buffedSeconds, skillForWork } from './buffs'
 import { holdingShare, holdingRank, fieldRanks, fieldsElsewhere } from '../lib/holdingShare';
 import { homesteadPlace, islandHere } from './islands';
+import { tierOfLevel, workingTier } from '../lib/tiers';
+import { toolTierSpeedFactor } from '../lib/actionTimers';
 
 // Farming M1 (docs/homestead-farming-spec.md). A player builds a farmstead at
 // Novita, encloses fields, then works them: till → sow → (passive grow) → harvest.
@@ -322,10 +324,18 @@ async function scytheFor(playerId: number, plot: any): Promise<any | null> {
     return equippedTool(playerId, 'scythe');
 }
 
-/** How long one field takes to bring in, by hand or with a scythe. */
+/**
+ * How long one field takes to bring in, by hand or with a scythe. A scythe
+ * above the crop's tier is quicker still (Nathan, 2026-11-27; the gathering
+ * tools' rule, against the tier of the crop's planting level).
+ */
 async function harvestSecondsFor(playerId: number, plot: any): Promise<number> {
     const byHand = Math.max(1, plot.seed_count) * HARVEST_SECONDS_PER_SEED;
-    return (await scytheFor(playerId, plot)) ? Math.max(1, Math.round(byHand * SCYTHE_TIMER_SHARE)) : byHand;
+    const scythe = await scytheFor(playerId, plot);
+    if (!scythe) return byHand;
+    const crop = await db('crops').where({ id: plot.crop_id }).first('plant_level');
+    const faster = toolTierSpeedFactor(workingTier(scythe), tierOfLevel(Number(crop?.plant_level) || 1));
+    return Math.max(1, Math.round(byHand * SCYTHE_TIMER_SHARE * faster));
 }
 
 // Thin local name over the shared writer in services/xp.ts.
@@ -636,11 +646,16 @@ export async function startTill(playerId: number, plotId: number): Promise<{ ok:
     const plot = await ownedPlot(playerId, plotId);
     if (!plot) return { ok: false, error: 'That is not your plot.' };
     if (plot.state !== 'empty') return { ok: false, error: 'That plot is already worked.' };
-    if (!(await equippedTool(playerId, 'hoe'))) return { ok: false, error: 'You need a hoe equipped to till the soil.' };
+    const hoe = await equippedTool(playerId, 'hoe');
+    if (!hoe) return { ok: false, error: 'You need a hoe equipped to till the soil.' };
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
+    // A hoe above the island's tier is quicker (the gathering tools' rule):
+    // tilling has no crop yet, so the ground's own tier is the island's.
+    const ground = (await islandHere(db, playerId)).tier;
+    const seconds = Math.round(TILL_SECONDS * toolTierSpeedFactor(workingTier(hoe), ground));
     const { home } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'farm_till', TILL_SECONDS, String(plotId), home?.id ?? null);
+    const started = await startAction(playerId, 'farm_till', seconds, String(plotId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 

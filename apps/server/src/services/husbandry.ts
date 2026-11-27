@@ -3,6 +3,8 @@ import db from '../db';
 import { logger } from '../lib/logger';
 import { holdingShare } from '../lib/holdingShare';
 import { homesteadPlace } from './islands';
+import { tierOfLevel, workingTier } from '../lib/tiers';
+import { toolTierSpeedFactor } from '../lib/actionTimers';
 import { levelFromXp, levelTaper } from './xp';
 import { incrementStats } from './stats';
 import { notifyInventoryChanged, addItemToInventoryWithin, removeItemFromInventoryWithin } from './inventory';
@@ -2480,13 +2482,15 @@ export async function startSlaughter(playerId: number, animalId: number): Promis
 
     const fresh = await accrue(animal, pen);
     if (stageOf(fresh, species) === 'juvenile') return { ok: false, error: `${fresh.name} is not grown yet.` };
-    if (!(await equippedTool(playerId, 'butcher_knife'))) {
+    const knife = await equippedTool(playerId, 'butcher_knife');
+    if (!knife) {
         return { ok: false, error: 'You need an Ambren Butchering Knife equipped.' };
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { home } = await playerProperty(playerId);
-    const started = await startAction(playerId, 'husbandry_slaughter', SLAUGHTER_SECONDS, String(animalId), home?.id ?? null);
+    const seconds = Math.round(SLAUGHTER_SECONDS * knifeFactor(knife, species));
+    const started = await startAction(playerId, 'husbandry_slaughter', seconds, String(animalId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
 }
 
@@ -2569,15 +2573,25 @@ export async function startSlaughterAll(playerId: number, penId: number): Promis
     const grown = animals.filter((a) => stageOf(a, species) !== 'juvenile');
     if (!grown.length) return { ok: false, error: 'None of them are grown yet.' };
 
-    if (!(await equippedTool(playerId, 'butcher_knife'))) {
+    const knife = await equippedTool(playerId, 'butcher_knife');
+    if (!knife) {
         return { ok: false, error: 'You need an Ambren Butchering Knife equipped.' };
     }
     if (await busy(playerId)) return { ok: false, error: 'You are already performing an action.' };
 
     const { home } = await playerProperty(playerId);
-    const seconds = slaughterAllSeconds(grown.length);
+    const seconds = Math.round(slaughterAllSeconds(grown.length) * knifeFactor(knife, species));
     const started = await startAction(playerId, 'husbandry_slaughter_all', seconds, String(penId), home?.id ?? null);
     return { ok: true, timerSeconds: started };
+}
+
+/**
+ * A butchering knife above the animal's tier is quicker (Nathan, 2026-11-27):
+ * the gathering tools' rule, against the tier of the species' Husbandry level.
+ * The XP for the work is unchanged, as for every tool.
+ */
+function knifeFactor(knife: any, species: any): number {
+    return toolTierSpeedFactor(workingTier(knife), tierOfLevel(Number(species?.husbandry_level) || 1))
 }
 
 function slaughterAllSeconds(count: number): number {
