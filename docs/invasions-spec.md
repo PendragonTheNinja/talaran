@@ -46,7 +46,7 @@ It is the combat version of a skill event. A skill event is "this place pays mor
 - **A new kind, `invasion`, in `world_events`.** It gets what the other kinds have: the countdown, the Events panel, the admin Events tab (extend, refill, end now), and history. `pool_total` / `pool_left` is the horde, counted in kills.
 - **Staff send it; nothing else does.** The scheduler never picks `invasion` (as it never picks the merchant on its own). **Who may:** admins, and any moderator with a new permission, **`can_run_events`** (added to `STAFF_PERMISSIONS` in `lib/staffPermissions.ts`; Nathan, 2026-11-27, for an event moderator to come). It covers sending a tear and extending, refilling, or ending a live one; whether it later covers skill events and the merchant is Nathan's call. The admin Events tab gets a **Send a tear** card: realm, place, horde size, length, the XP bonus, the minimum kills to place in the top three, an optional warning lead time, and optionally a later opening time. The realm's own warning and opening lines fill in and can be rewritten before sending.
 - **A tear sent for later** is a `world_events` row with `starts_at` in the future and a `warned_at`/`opened_at` pair, picked up by a database-driven sweep like the Crier's polls (`announced_open_at`), so a restart loses nothing. Never a bare `setTimeout` (CLAUDE.md §4 rule 15).
-- **Where:** any place staff choose, except islets, roads, and the sea. **At most one live tear per island** (refused at send, like a second skill event for the same skill and place). The places with no fighting of their own make the best stage (Verdale, Lanaivale, Luxmere, Talador's square; Wendhaven, Farefield, Underway, Bidewater), but nothing forbids a tear at Eld Grove.
+- **Where:** any place staff choose, except islets, roads, and the sea. **At most one live tear per place** (Nathan, 2026-11-27: an event runs several at once, each at a place staff choose, on any island; refused at send). The places with no fighting of their own make the best stage (Verdale, Lanaivale, Luxmere, Talador's square; Wendhaven, Farefield, Underway, Bidewater), but nothing forbids a tear at Eld Grove.
 - **The realm's island fit is checked at send:** the card shows the roster's levels and warns (does not refuse) when they are far from the island's band.
 
 ### The fighting spot
@@ -224,7 +224,7 @@ The drops' value a kill, in multiples of the creature's XP a kill ÷ 5 (a native
 
 **A tear's whole haul** (300 kills, about 50 of each of six): on Taiar about 50 Ambren Ore, 110 Feathers, 90 Bones, 50 Fine Lanai Logs, two or three gems, two trophies, and on average one or two pieces of rare gear (seven a tear would be a lucky night; none is possible). On Antura, 50 Serph Ore, 75 Barley, two or three garnets. A good evening's haul for a crowd, and no week's supply of anything.
 
-**Held back for later tiers:** Talos the bronze giant, the Nemean Lion, and the Hydra; the Twrch Trwyth (a king turned boar, the first group boss once group fights exist); the Ellyll, the Harpy, the Empusa, and Gwrach y Rhibyn, kept as spares.
+**Held back for later tiers:** Talos the bronze giant, the Nemean Lion, and the Hydra; the Twrch Trwyth (a king turned boar, a hard single fight at a later tier); the Ellyll, the Harpy, the Empusa, and Gwrach y Rhibyn, kept as spares.
 
 ---
 
@@ -241,7 +241,7 @@ The drops' value a kill, in multiples of the creature's XP a kill ÷ 5 (a native
 
 ## 9. Later tiers
 
-The same rows carry the system to 100. A realm has a roster per island band, so the Bronze Shore can come back at T5 with Talos. Leaders grow into **bosses** once group fights exist (`docs/combat-spec.md` §9, "Bosses, later": rejoinable, not ended by one disconnect). Near 100 is where stranger worlds belong: Talaran's own, and cosmic horror (Lovecraft's earlier stories are public domain in the UK and EU, and in the US only for works published before 1931; check each one). Parked realms from the first draft, for later: Carroll's Wabe, Baum's desert edge, and two of Talaran's own, the Glasswold and the Drowned Bell.
+The same rows carry the system to 100. A realm has a roster per island band, so the Bronze Shore can come back at T5 with Talos. **No group fights, ever** (Nathan, 2026-11-27): every fight stays one player against one creature, and a later realm's leader is a hard single fight, not a boss for a party. Near 100 is where stranger worlds belong: Talaran's own, and cosmic horror (Lovecraft's earlier stories are public domain in the UK and EU, and in the US only for works published before 1931; check each one). Parked realms from the first draft, for later: Carroll's Wabe, Baum's desert edge, and two of Talaran's own, the Glasswold and the Drowned Bell.
 
 ---
 
@@ -269,7 +269,7 @@ Each step ships and is proven on its own.
 
 **Increment 1 (2026-11-27), server only.**
 - Migrations `20261127120000_invasions` (schema) and `20261127130000_invasion_realms` (the two realms, the twelve creatures with the §7 profiles and XP, their goods, coin, and trophies; each island's trophies named on its Spoils of the Fight). Both run up, up again, down, up on a scratch database built from the baseline and the 2026-11-23 snapshot.
-- `services/invasions.ts`: `sendTear` (one tear an island, sent or open; the roster is the realms' creatures whose level's tier is the island's), `invasionSweep` (warn, open, close on time, retry unpaid; from the world-events scheduler), `closeTear`, `closeHeldWithin`, `finishTear` (top three, gated on `invasion_rewards`), `takeFromHordeWithin` (one conditional statement a kill). A tear's spot is made when it is sent, inactive, with its roster, and switched on when it opens.
+- `services/invasions.ts`: `sendTear` (one tear a place, sent or open, since 2026-11-27; several at once at different places, on any island; the roster is the realms' creatures whose level's tier is the island's), `invasionSweep` (warn, open, close on time, retry unpaid; from the world-events scheduler), `closeTear`, `closeHeldWithin`, `finishTear` (top three, gated on `invasion_rewards`), `takeFromHordeWithin` (one conditional statement a kill). A tear's spot is made when it is sent, inactive, with its roster, and switched on when it opens.
 - `services/combatFights.ts`: a kill at a tear's spot takes from the horde in the settle, the tear's bonus raises the kill before the split (`eventBonus: false` on the three awards), the kill card says how much of the horde is driven back, and the fight ends after the kill that finds the tear closed (`ended: 'closed'`).
 - Staff routes on `/api/admin/events`: `GET /tears`, `POST /tears/send`, `POST /tears/:id/end`, for admins and `can_run_events` moderators. The admin tab's End on a tear goes through `closeTear`.
 - `listEvents` hides a tear until its warning or its opening; `endExpiredEvents` leaves tears to the sweep. `bestiary_all` counts Talaran's own creatures only. A tear's spot and its creatures are left out of content snapshots (`snapshotWhere` in `lib/contentTables.ts`).

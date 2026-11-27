@@ -184,7 +184,7 @@ function SendCard({ data, post }: { data: Overview; post: Post }) {
             </div>
             {confirm && (
                 <ConfirmModal
-                    message={`Send a tear to ${place?.name ?? 'that place'}${Number(opensIn) > 0 ? `, opening in ${opensIn} minutes` : ', opening now'}? Only one tear may be sent or open on an island at a time.`}
+                    message={`Send a tear to ${place?.name ?? 'that place'}${Number(opensIn) > 0 ? `, opening in ${opensIn} minutes` : ', opening now'}? Only one tear may be sent or open over a place at a time.`}
                     confirmLabel="Send It"
                     onConfirm={send}
                     onCancel={() => setConfirm(false)}

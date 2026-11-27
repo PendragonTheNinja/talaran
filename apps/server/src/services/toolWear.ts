@@ -284,6 +284,18 @@ export async function wearToolsAfter(action: any, result: any): Promise<void> {
             }
             return
         }
+        // Smelting at the player's own smithy wears the hammer and tongs that
+        // speed it (Nathan, 2026-11-27); a public forge lends its own.
+        if (action.action_type === 'smelting') {
+            if (action.using_blacksmith) return
+            const { SMELTING_TOOL_SLOTS } = await import('./recipes')
+            const broken = await wearStationSlots(action.player_id, 'smithing', SMELTING_TOOL_SLOTS, 'Smithing', timer, true)
+            if (broken.length) {
+                const one = broken.length === 1
+                note(action.id, { notes: [`Your ${listNames(broken)} ${one ? 'gives' : 'give'} out. The ore still melts, only slower, until you fit ${one ? 'a new one' : 'new ones'}.`] })
+            }
+            return
+        }
         const spec = HAND_TOOLS_BY_ACTION[action.action_type]
         if (!spec) return
         const subtypes = typeof spec.tools === 'function' ? await spec.tools(action, result) : spec.tools
@@ -376,6 +388,20 @@ export async function wearBenchTools(playerId: number, recipeId: number, timerSe
     // Held tools (the saw) wear in hand (wearToolsAfter), never as a slot.
     const needed = parseRequiredTools(recipe).filter(t => t !== 'hearth' && !(t in HAND_HELD_BENCH_TOOLS))
     if (!needed.length) return []
+    return wearStationSlots(playerId, recipe.station, needed, recipe.skill, timerSeconds, false)
+}
+
+/**
+ * One use of the tools in these slots of the player's own station where they
+ * stand, by the tool-wear rule; a break leaves the tool in its slot, broken.
+ * Every slot must be filled, or nothing wears. With `allSound`, every one must
+ * also be sound: smelting's hammer and tongs work only as a pair (its speed,
+ * processingToolTier in services/recipes.ts), so a pair with one broken is not
+ * in use and neither wears.
+ */
+async function wearStationSlots(
+    playerId: number, stationType: string, needed: string[], skill: string, timerSeconds: number, allSound: boolean,
+): Promise<string[]> {
     const player = await db('players').where({ id: playerId }).first('current_location_id')
     if (!player) return []
 
@@ -383,16 +409,17 @@ export async function wearBenchTools(playerId: number, recipeId: number, timerSe
     await db.transaction(async trx => {
         // Station, then its slots: socketTool's order.
         const station = await trx('workstations')
-            .where({ player_id: playerId, location_id: player.current_location_id, type: recipe.station })
+            .where({ player_id: playerId, location_id: player.current_location_id, type: stationType })
             .forUpdate().first()
         if (!station || station.expires_at) return
         const slots = await trx('workstation_slots')
             .where({ workstation_id: station.id }).whereIn('slot', needed).forUpdate()
         const filled = new Set(slots.map((s: any) => s.slot))
         if (!needed.every(slot => filled.has(slot))) return
+        if (allSound && slots.some((s: any) => s.broken_at)) return
 
         const wearing = new Set((await trx('workstation_slot_types')
-            .where({ station_type: recipe.station, wears: true }).whereIn('slot', needed)
+            .where({ station_type: stationType, wears: true }).whereIn('slot', needed)
             .select('slot')).map((r: any) => r.slot))
         const live = slots.filter((s: any) => !s.broken_at && wearing.has(s.slot))
         if (!live.length) return
@@ -404,7 +431,7 @@ export async function wearBenchTools(playerId: number, recipeId: number, timerSe
         for (const slot of live) {
             const item = byName.get(slot.item_name)
             if (!item) continue
-            if (!(await wearItemByRule(trx, playerId, item, toolRule(item, recipe.skill, timerSeconds, rules), Math.random))) continue
+            if (!(await wearItemByRule(trx, playerId, item, toolRule(item, skill, timerSeconds, rules), Math.random))) continue
             await trx('workstation_slots').where({ id: slot.id }).update({ broken_at: trx.fn.now() })
             broken.push(item.name)
         }

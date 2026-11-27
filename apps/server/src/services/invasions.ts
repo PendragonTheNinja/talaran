@@ -17,7 +17,8 @@ import { EVENTS_CHANGED } from './worldEvents'
 // spot belongs to a tear (combatFights.ts takes one from the horde a kill).
 //
 //   send     staff only (admins, or a moderator with can_run_events). Opens now
-//            or later, with an optional warning before.
+//            or later, with an optional warning before. One tear a place;
+//            several may run at once at different places, on any island.
 //   sweep    every scheduler tick: warns, opens, and closes on time, each by a
 //            conditional update so it happens once. Database-driven, so a
 //            restart loses nothing (CLAUDE.md §4 rule 15).
@@ -129,13 +130,13 @@ export async function sendTear(staffId: number, req: SendTearRequest): Promise<S
 
         const opensAt = new Date(Date.now() + opensIn * 60_000)
         const eventId = await db.transaction(async (trx) => {
-            // One tear an island at a time, sent or open. The settings row
-            // serializes two staff sending at once.
+            // One tear a place at a time, sent or open (Nathan, 2026-11-27): an
+            // event may run several at once, each at a place of its own, on any
+            // island. The settings row serializes two staff sending at once.
             await trx('world_event_settings').where({ id: 1 }).forUpdate().first()
-            const busy = await trx('world_events as e').join('locations as l', 'l.id', 'e.location_id')
-                .where({ 'e.kind': INVASION_KIND }).whereNull('e.ended_at')
-                .where('l.region', location.region).first('e.id')
-            if (busy) throw new Refusal(`A tear is already sent or open on ${location.region ?? 'that island'}.`)
+            const busy = await trx('world_events').where({ kind: INVASION_KIND, location_id: location.id })
+                .whereNull('ended_at').first('id')
+            if (busy) throw new Refusal(`A tear is already sent or open over ${location.name}.`)
 
             const [event] = await trx('world_events').insert({
                 name, kind: INVASION_KIND, skill: null, location_id: location.id,
