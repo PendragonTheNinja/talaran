@@ -1,6 +1,24 @@
 # Taler perks: ideas
 
-*Brainstorm, 2026-11-27. Nothing here is decided or built. For Nathan to cut down.*
+*Brainstorm, 2026-11-27, with Nathan's answers the same day.*
+
+## Decided and built (2026-11-27)
+
+| Idea | Decision | Built |
+|---|---|---|
+| Supporter badges | Yes: $5, $20, $50, $100, $1,000 given in all | `services/supporter.ts`, migration `20261127160000` (glyphs until art) |
+| Supporter titles | Yes | four titles in `services/store.ts` STORE_TITLES, 300 each |
+| Name change | Yes, with one free for everyone | `services/nameChange.ts`, migration `20261127170000`, Settings > Profile, admin undo |
+| Name color | Yes | perk:name_color, eight colors, chat and Players Here |
+| Gifting | Yes | `giftItem`, a Give button on every store card |
+| Patrons plaque | Yes, as a museum plaque of the top ten (rank and name, never amounts; opt-out) | museum Patrons tab |
+| Seasonal themes | Yes: Christmas first | Yuletide, sold through December |
+| Avatar frames, chat emotes, shop sign and awning, bell packs | Yes | waiting on art and sounds |
+| Profile backdrop | Not now | |
+| Boat livery, mount trappings, map styles, guild banner | Later | |
+| Homestead sign, gilded plaque | Unsure | |
+| Lanterns, the toast | No | |
+
 
 ## What is on sale today
 
