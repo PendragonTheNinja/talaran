@@ -29,6 +29,10 @@ Every journey over land pays Wayfaring, on foot or mounted, and every level take
 
 **Ridden:** a mount goes in its own slot, and while you ride, your boots are only boots. Gear for the road on foot does nothing in the saddle.
 
+All of it, and where it comes from:
+
+{{data:tools:Wayfaring}}
+
 ## Errands
 
 The **Friddik brothers** send timed errands between each other, a letter here, a parcel there, and now and then something everyday you must bring yourself. Each leg pays about forty gold and seventy-five Wayfaring on top of the walk. A leg has a limit, worked out from the roads at a new walker's pace, and a late leg ends the errand there. The Quests & People page has the rest.

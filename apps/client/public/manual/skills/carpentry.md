@@ -25,6 +25,10 @@ The **Saw** is different. It never goes on the bench. At your own bench you hold
 
 {{data:bench-tools:carpentry}}
 
+The tools you hold rather than set down, the saw and the mallet:
+
+{{data:tools:Carpentry}}
+
 ## The two halves of the trade
 
 Carpentry divides cleanly, and it is worth knowing which half you are doing.

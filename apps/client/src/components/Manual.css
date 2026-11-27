@@ -697,6 +697,14 @@
     .manual {
         flex-direction: column;
         gap: var(--space-lg, 16px);
+        /* Stacked, the nav and the page take the screen's width. Left at
+           flex-start, the page shrank to fit its widest unbreakable piece
+           and ran off a phone's right edge (forum, 2026-11-27). */
+        align-items: stretch;
+    }
+
+    .manual-body {
+        width: 100%;
     }
 
     .manual-nav {

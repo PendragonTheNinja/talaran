@@ -51,6 +51,10 @@ Underway's granite is slower than Taiar's, thirty seconds a swing against twenty
 
 **Merrick** in Talador always has an Ambren pickaxe or two on his shelf. **Wystan** in Mettlefell sells Serph ones. Nobody is ever locked out of the trade by a broken handle.
 
+Every pickaxe, its tier, and where to get one:
+
+{{data:tools:Mining}}
+
 ## Connections
 
 - **Smithing** is where the ore goes. Mining and Smithing are effectively one long trade wearing two hats, and raising Mining alone means selling raw metal to someone who read further than you did.

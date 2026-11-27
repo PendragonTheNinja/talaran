@@ -31,6 +31,10 @@ A Serph knife is the better blade from Foraging 13. **Merrick** in Talador alway
 
 Notice that these occupy three different places on your person. Knife in hand, gloves on hands, basket in the other hand. **All three can be worn at once**, and all three should be. They are a set, not a choosing. A forager missing one of the three leaves a third of the trade lying on the ground.
 
+Every piece of the set, by tier:
+
+{{data:tools:Foraging}}
+
 ## What it feeds
 
 - **Cooking** takes the herbs and the edible finds, and foraging is the cheapest larder in Talaran. Antura's salt is what turns one dish into two.

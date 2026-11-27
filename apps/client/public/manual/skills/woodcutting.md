@@ -24,6 +24,10 @@ Deep Lanai is worked at its stated pace with a **Serph hatchet**. An Ambren one 
 
 **Carry a skep while you chop.** A wild hive turns up in a hollow trunk now and then, and with a skep in your pack it comes home with you as a colony. Without one you rob a comb and leave the bees. Husbandry has the whole of that story.
 
+Every hatchet, its tier, and where to get one:
+
+{{data:tools:Woodcutting}}
+
 ## Here is the interesting part
 
 Timber comes out poor, fine, or excellent.

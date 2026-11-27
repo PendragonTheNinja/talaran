@@ -68,6 +68,12 @@ Sometimes something takes the hook that you are simply not ready for, and it lea
 
 This can only happen where there is genuinely a bigger fish in that water than you can yet land. It costs you the bait, it gives you nothing, and it is the water telling you that it has more in it than you have seen. Come back better.
 
+## Tools and gear
+
+A rod in your hands to cast, a net in your hands to net, and a butchering knife to cut bait. None of them does anything from your pack. Every one, by tier:
+
+{{data:tools:Fishing}}
+
 ## What it feeds
 
 - **Cooking** is the answer. Raw fish are not food; cooked over any fire, they are, and every fish in Talaran has its dish.

@@ -33,6 +33,10 @@ Between step four and step five you should be somewhere else entirely. That is n
 - **Saw, carried.** It need only be in your pack when you build.
 - **Bucket, carried.** It need only be in your pack when you tend.
 
+Every tool, by tier:
+
+{{data:tools:Farming}}
+
 ## Soil, and the great argument about it
 
 Soil sits in one of three conditions, depleted, ordinary, or rich, and it governs **how much you harvest and nothing else whatsoever**.

@@ -399,6 +399,114 @@ export const extraQueries: Record<string, QueryHandler> = {
         };
     },
 
+    // A skill's hand tools, every tier (forum, 2026-11-27: the Mining and
+    // Woodcutting pages named no pickaxe or hatchet). Which tools a skill's
+    // work uses is HAND_TOOLS_BY_ACTION in services/toolWear.ts, the same map
+    // that wears them, plus the few carried tools nothing wears; who may hold
+    // one is equipGates; who makes it is its recipe; who sells it is the
+    // merchants' own stock. Bench tools have bench-tools.
+    'tools': async (param?: string) => {
+        const skill = (param || '').trim();
+        if (!skill) return null;
+        const { HAND_TOOLS_BY_ACTION } = await import('./toolWear');
+        const { gateSkill } = await import('./equipGates');
+        const USE: Record<string, string> = {
+            woodcutting: 'Chopping', mining_rock: 'Mining', mining_vein: 'Mining', fishing_rod: 'Casting',
+            fishing_net: 'Netting', fishing_cut_bait: 'Cutting bait', hunting: 'Hunting', foraging: 'Foraging',
+            sawing: 'Sawing', farm_till: 'Tilling', farm_harvest: 'Cutting grain and flax', farm_harvest_all: 'Cutting grain and flax',
+            farm_establish: 'Building', farm_upgrade: 'Building', farm_build_plot: 'Building', shop_establish: 'Building',
+            shop_upgrade: 'Building', husbandry_build_pen: 'Building', husbandry_demolish_pen: 'Building',
+            guild_build: 'Building', vessel_build: 'Building', cooking_build_hearth: 'Building a hearth',
+            husbandry_feed: 'Feeding', husbandry_feed_all: 'Feeding', husbandry_muck: 'Mucking out', husbandry_muck_all: 'Mucking out',
+            husbandry_slaughter: 'Butchering', husbandry_slaughter_all: 'Butchering', husbandry_tame: 'Haltering a horse',
+            husbandry_collect: 'Milking', husbandry_collect_all: 'Milking',
+        };
+        // Carried, and never worn down: a bucket holds milk and waters a field,
+        // a tinderbox lights a fire.
+        const CARRIED: Record<string, [string, string][]> = {
+            cooking: [['tinderbox', 'Lighting a fire']],
+            farming: [['bucket', 'Tending (carried)']],
+            husbandry: [['bucket', 'Carrying milk (carried)']],
+        };
+        const uses = new Map<string, Set<string>>();
+        const note = (sub: string, use: string) => { if (!uses.has(sub)) uses.set(sub, new Set()); uses.get(sub)!.add(use); };
+        for (const [action, spec] of Object.entries(HAND_TOOLS_BY_ACTION)) {
+            if (spec.skill.toLowerCase() !== skill.toLowerCase()) continue;
+            const subs = Array.isArray(spec.tools) ? spec.tools : (spec.can ?? []);
+            for (const sub of subs) note(sub, USE[action] ?? action);
+        }
+        for (const [sub, use] of CARRIED[skill.toLowerCase()] ?? []) note(sub, use);
+
+        // Wayfaring wears its gear rather than working with it: a staff and
+        // boots on foot (items.agility_reduction, services/travel.ts), the
+        // sailor's set at sea (items.sea_speed_pct), and the mounts. Forum,
+        // 2026-11-27: the page listed none of the walking gear.
+        const wayfaring = skill.toLowerCase() === 'wayfaring';
+        const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
+        const useOf = (i: any): string => {
+            if (wayfaring) {
+                if (i.type === 'mount') return 'Riding';
+                if (Number(i.agility_reduction) > 0) return `On foot, ${pct(Number(i.agility_reduction))} quicker`;
+                if (Number(i.sea_speed_pct) > 0) return `At sea, ${Number(i.sea_speed_pct)}% quicker`;
+            }
+            return listWords([...(uses.get(i.subtype) ?? [])]);
+        };
+        if (!uses.size && !wayfaring) return null;
+
+        const items = await db('items').where({ is_active: true })
+            .where(q => {
+                if (uses.size) q.whereIn('subtype', [...uses.keys()]);
+                if (wayfaring) q.orWhere('agility_reduction', '>', 0).orWhere('sea_speed_pct', '>', 0).orWhere('type', 'mount');
+            })
+            .whereNot('name', 'like', 'Admin%')
+            .orderBy([{ column: 'tier' }, { column: 'name' }])
+            .select('name', 'type', 'subtype', 'tier', 'level_required', 'weapon_form', 'armour', 'aim', 'power', 'agility_reduction', 'sea_speed_pct');
+        if (!items.length) return null;
+        // Where gear no recipe makes comes from: mounts are raised (Husbandry),
+        // the sailor's set comes out of the islets' sea chests.
+        const raised = new Map<string, number>(
+            (await db('animal_species').where({ is_active: true }).whereNotNull('mount_item_name').select('mount_item_name', 'husbandry_level'))
+                .map((a: any) => [a.mount_item_name, Number(a.husbandry_level)]));
+        const elsewhere = (i: any): string | null =>
+            raised.has(i.name) ? `Raised, Husbandry ${raised.get(i.name)}`
+            : i.subtype === 'sailors_set' ? 'Found in sea chests'
+            : i.type === 'mount' ? 'Given to new arrivals'
+            : null;
+        const recipes = await db('recipes').where({ is_active: true }).whereIn('output_item_name', items.map((i: any) => i.name))
+            .select('output_item_name', 'skill', 'required_level');
+        const sold = await db('merchant_stock as s').join('merchants as m', 'm.id', 's.merchant_id').join('items as i', 'i.id', 's.item_id')
+            .where({ 's.is_active': true, 'm.sells': true }).whereIn('i.name', items.map((i: any) => i.name))
+            .select('i.name', 'm.name as merchant', 's.is_core');
+        return {
+            title: wayfaring ? "Wayfaring's gear" : `${skill}'s tools`,
+            columns: [
+                { key: 'tool', label: wayfaring ? 'Gear' : 'Tool', icon: 'tool' },
+                { key: 'use', label: wayfaring ? 'Helps' : 'For' },
+                { key: 'tier', label: 'Tier', align: 'right' },
+                { key: 'wield', label: 'Used from' },
+                { key: 'made', label: 'Made by' },
+                { key: 'sold', label: 'Sold by' },
+            ],
+            rows: items.map((i: any) => {
+                const gate = gateSkill(i);
+                const r = recipes.find((x: any) => x.output_item_name === i.name);
+                const sellers = sold.filter((x: any) => x.name === i.name)
+                    .map((x: any) => x.is_core ? `${x.merchant}, every day` : x.merchant);
+                return {
+                    tool: i.name,
+                    use: useOf(i),
+                    tier: Number(i.tier) || 1,
+                    wield: gate && Number(i.level_required) > 1 ? `${gate} ${i.level_required}` : 'Any level',
+                    made: r ? `${r.skill} ${r.required_level}` : (elsewhere(i) ?? 'Not made'),
+                    sold: sellers.length ? listWords(sellers) : (elsewhere(i) ? 'Not sold' : 'Nobody'),
+                };
+            }),
+            note: wayfaring
+                ? 'Gear for the road works only on foot, and its shares add together; the sailor\'s set works only at sea, one share for each piece worn. Riding, your boots are only boots.'
+                : 'A tool below the work\'s own tier still does it, more slowly; one above it works a little faster. Tools wear with use and break in time, and every one of them is made by a trade or sold on a shelf, so nobody is ever shut out for want of one.',
+        };
+    },
+
     // ── Foraging ────────────────────────────────────────────────────────────
     // The habitat's whole drop table, weights resolved to percentages.
     //

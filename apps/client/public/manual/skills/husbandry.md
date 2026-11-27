@@ -91,6 +91,10 @@ The **rouncey** is an honest all-purpose animal you may raise from your first da
 
 The pail and the fork are always on **Alder's** shelf in Talador, a few each day, so a broken one never ends the trade.
 
+Every one of them, by tier:
+
+{{data:tools:Husbandry}}
+
 ## Where young animals come from
 
 There is no breeding. This is the constraint the whole skill is built around, and it is what sends you back out into the world.

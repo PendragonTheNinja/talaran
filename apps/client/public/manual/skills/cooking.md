@@ -43,6 +43,10 @@ Each tool is set into its place at your hearth and stays there. Which of them fi
 
 {{data:bench-tools:cooking}}
 
+And the one tool you hold yourself, the tinderbox, which lights both a hearth and a campfire:
+
+{{data:tools:Cooking}}
+
 ## Fire needs wood
 
 A hearth is a hole full of cold stone until somebody puts fuel in it.

@@ -63,6 +63,12 @@ When your arrows are too weak for the quarry, the hunt will tell you so before y
 
 Note the asymmetry again, as I seem fated to on every page. Arriving under-armed costs a great deal; arriving over-armed buys very little. Carry the arrow the animal deserves, and keep the cheaper ones for the cheaper animals.
 
+## Tools and gear
+
+A bow in your hands, and arrows in your pack. The bow is the only tool; the arrows are what the hunt spends.
+
+{{data:tools:Hunting}}
+
 {{details:The Geographer's ledgers}}
 Everything the trade opens as you climb:
 
