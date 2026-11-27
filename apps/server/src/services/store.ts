@@ -21,7 +21,20 @@ export interface StoreItem {
                                  // partial owners complete the set at the bundle rate
     onSale?: SaleWindow;        // seasonal: sold only inside this window each year.
                                  // What was bought is kept for good; only buying ends.
+    /**
+     * Bought as often as wanted, each one used up (a name change): applied by
+     * CONSUMABLES inside the purchase's transaction instead of an unlock row.
+     */
+    consumable?: boolean;
 }
+
+/** What buying a consumable does, inside the purchase's transaction. */
+const CONSUMABLES: Record<string, (trx: any, playerId: number) => Promise<void>> = {
+    // One name change, used in Settings > Profile (services/nameChange.ts).
+    'token:name_change': async (trx, playerId) => {
+        await trx('players').where({ id: playerId }).increment('name_change_tokens', 1);
+    },
+};
 
 /**
  * A yearly sale window, both days inclusive, as 'MM-DD' in UTC (one clock for
@@ -183,6 +196,16 @@ export function ownedStoreTitles(unlocks: string[]): string[] {
     return STORE_TITLES.filter(t => unlocks.includes(t.key)).map(t => t.title)
 }
 
+STORE_ITEMS.push({
+    key: 'token:name_change',
+    name: 'Name Change',
+    description: 'Go by a new name. Everyone has one change for free; this is one more. Your old name shows on your profile for a month, and a change waits a month after the last.',
+    price: 500,
+    grants: [],
+    available: true,
+    consumable: true,
+})
+
 export async function getUnlocks(playerId: number): Promise<string[]> {
     const rows = await db('player_unlocks').where({ player_id: playerId }).pluck('unlock_key');
     return rows.map(String);
@@ -213,6 +236,14 @@ export async function purchaseItem(playerId: number, itemKey: string, now: Date 
         if (!player) return { error: 'Player not found.' as const };
 
         const owned: string[] = (await trx('player_unlocks').where({ player_id: playerId }).pluck('unlock_key')).map(String);
+        if (item.consumable) {
+            const apply = CONSUMABLES[item.key];
+            if (!apply) return { error: 'That item is not available.' as const };
+            const paid = await spendTalersWithin(trx, { playerId, amount: item.price, reason: 'consumable', refType: 'store_item' });
+            if (!paid) return { error: 'Not enough Talers.' as const };
+            await apply(trx, playerId);
+            return { granted: [item.key] };
+        }
         const missing = item.grants.filter(g => !owned.includes(g));
         if (missing.length === 0) return { error: 'You already own this.' as const };
 

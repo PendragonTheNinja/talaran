@@ -330,7 +330,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                         <p className="support-pitch">
                             Perks are yours for good once bought, on every device you play from.
                         </p>
-                        {store?.items.filter(i => i.key.startsWith('perk:') || i.key.startsWith('title:')).map(p => (
+                        {store?.items.filter(i => i.key.startsWith('perk:') || i.key.startsWith('title:') || i.key.startsWith('token:')).map(p => (
                             <div key={p.key} className={`settings-theme-card support-perk-card ${p.owned ? '' : 'locked'}`}>
                                 <span className="settings-theme-name">
                                     {p.name}

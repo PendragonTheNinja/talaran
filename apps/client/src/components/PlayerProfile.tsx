@@ -30,6 +30,8 @@ interface ProfileData {
         worn_title: string | null
         worn_badge: string | null
         badge_glyph: string | null
+        /** The name they went by until lately, for a month after a change. */
+        formerly?: string | null
         forum_post_count: number
         created_at: string
         avatar_url?: string | null
@@ -131,6 +133,10 @@ export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage,
                                 <span className="gold-text" style={{ fontSize: '22px', fontFamily: 'var(--font-heading)' }}>
                                     {profile.player.username}
                                 </span>
+                                {/* A name changed lately (server services/nameChange.ts). */}
+                                {profile.player.formerly && (
+                                    <span className="muted-text" style={{ fontSize: '13px' }}>formerly {profile.player.formerly}</span>
+                                )}
                                 {profile.player.guild_tag && (
                                     <button
                                         className="profile-guild-tag"

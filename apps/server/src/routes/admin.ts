@@ -1,5 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../db';
+import { nameHistory, revertNameChange } from '../services/nameChange';
+import { failureStatus } from '../lib/serviceResult';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { REPEAT_WARNINGS_PER_WEEK } from '../services/wordFilter';
@@ -191,7 +193,10 @@ router.get('/players/:id', requireAuth, async (req: AuthRequest, res: Response) 
             filterWarnings = { recent, week: Number(week?.n ?? 0), total: Number(total?.n ?? 0) };
         }
 
-        res.json({ player, warnings, mutes, modPerms, filterWarnings });
+        // Every name this player has gone by (services/nameChange.ts).
+        const nameChanges = await nameHistory(targetId);
+
+        res.json({ player, warnings, mutes, modPerms, filterWarnings, nameChanges });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -765,6 +770,32 @@ router.post('/unban', requireAuth, async (req: AuthRequest, res: Response) => {
         logger.info(`${staff.username} unbanned ${targetId} (${type})`);
         res.json({ success: true });
     } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Put a player's last name change back (services/nameChange.ts), for a name
+// that should not have passed or a player passing for someone else.
+router.post('/name-revert', requireAuth, async (req: AuthRequest, res: Response) => {
+    const staffId = req.player!.playerId;
+    const targetId = Math.floor(Number(req.body?.targetId));
+    try {
+        if (!await hasPermission(staffId, 'can_moderate_chat')) {
+            res.status(403).json({ error: 'No permission.' });
+            return;
+        }
+        if (!Number.isFinite(targetId) || targetId <= 0) {
+            res.status(400).json({ error: 'Bad request.' });
+            return;
+        }
+        const result = await revertNameChange(staffId, targetId);
+        if (!result.ok) {
+            res.status(failureStatus(result.error)).json({ error: result.error });
+            return;
+        }
+        res.json({ success: true, name: result.name });
+    } catch (err) {
+        logger.error(`name-revert error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

@@ -1839,6 +1839,32 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'name', name: 'change one name five ways at once, with only the free change to spend', rounds: 10,
+        run: async (ctx) => {
+            // The free change is spent once: the player row is locked before the
+            // history is read. Unlocked, every request saw no change yet and all
+            // five went through, the last name written winning.
+            const w = await world(ctx);
+            const st = await ctx.burst(w.player.id, 5, (i) => ctx.post(w.player.id, '/player/name-change', { name: `Renamed ${i}` }));
+            const changes = await ctx.db('player_name_changes').where({ player_id: w.player.id });
+            return succeeded(st, 1) ?? changed('name changes recorded', 1, changes.length);
+        },
+    },
+    {
+        id: 'name', name: 'change one name five ways at once, with one bought change left', rounds: 10,
+        run: async (ctx) => {
+            // The free change long spent (past the month's wait) and one bought:
+            // exactly one change goes through, and the token is spent once.
+            const w = await world(ctx);
+            await ctx.db('players').where({ id: w.player.id }).update({ name_change_tokens: 1 });
+            await ctx.seed.row('player_name_changes', { player_id: w.player.id, old_name: 'Old', new_name: 'Pendragon', paid_with: 'free', changed_at: new Date(Date.now() - 40 * 86_400_000) });
+            const st = await ctx.burst(w.player.id, 5, (i) => ctx.post(w.player.id, '/player/name-change', { name: `Renamed ${i}` }));
+            const tokens = Number((await ctx.db('players').where({ id: w.player.id }).first('name_change_tokens')).name_change_tokens);
+            const changes = await ctx.db('player_name_changes').where({ player_id: w.player.id, paid_with: 'token' });
+            return changed('tokens left', 0, tokens) ?? changed('bought changes recorded', 1, changes.length) ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'guild', name: 'five members deposit at once, racing for the last three places in their storehouse', rounds: 10,
         run: async (ctx) => {
             // Room is counted in items: 7 of 10 taken, 3 places left. Five

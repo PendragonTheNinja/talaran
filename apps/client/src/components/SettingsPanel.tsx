@@ -13,6 +13,7 @@ import PaletteGallery from './PaletteGallery'
 import CombatAwaySetting from './CombatAwaySetting'
 import CombatBotCheckSetting from './CombatBotCheckSetting'
 import AvatarSetting from './AvatarSetting'
+import NameChangeSetting from './NameChangeSetting'
 import ChatMessageLine from './ChatMessageLine'
 import BellSetting from './BellSetting'
 import NotificationSetting from './NotificationSetting'
@@ -529,6 +530,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                     <div className="settings-section">
                         <h4 className="settings-section-title">Profile</h4>
                         <AvatarSetting />
+                        <NameChangeSetting />
                     </div>
                 )}
 

@@ -9,6 +9,9 @@ import { onlinePlayers } from '../lib/realtime';
 import { combatStanding } from '../services/combat';
 import { unlocksAt } from '../services/unlocks';
 import { getTalarState } from '../services/talar';
+import { changeName, formerName, nameChangeState } from '../services/nameChange';
+import { requireTrusted } from '../lib/trust';
+import { failureStatus } from '../lib/serviceResult';
 
 const router = Router();
 
@@ -114,7 +117,11 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+});
 
+// These were registered INSIDE the /me handler until 2026-11-27 (its closing
+// brace sat at the end of the file): they did not exist until someone loaded
+// /me, and every /me call registered them all again.
   router.post('/welcome-seen', requireAuth, async (req: AuthRequest, res: Response) => {
     const playerId = req.player!.playerId;
     try {
@@ -140,6 +147,25 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       logger.error(`Unlocks error (${skill} ${level}): ${err}`);
       res.status(500).json({ error: 'Server error' });
     }
+  });
+
+  // Changing one's own name (services/nameChange.ts): one free, more from the store.
+  router.get('/name-change', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      res.json(await nameChangeState(req.player!.playerId));
+    } catch (err) {
+      logger.error(`name-change state error: ${err}`);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.post('/name-change', requireAuth, requireTrusted, async (req: AuthRequest, res: Response) => {
+    const result = await changeName(req.player!.playerId, req.body?.name);
+    if (!result.ok) {
+      res.status(failureStatus(result.error)).json({ error: result.error });
+      return;
+    }
+    res.json({ success: true, name: result.name });
   });
 
   router.get('/:id/profile', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -181,6 +207,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         ? await db('feats').where({ badge_key: player.worn_badge }).first()
         : null;
       player.badge_glyph = badge?.badge ?? null;
+      // A name changed lately: the old one shows for a month (services/nameChange.ts).
+      player.formerly = await formerName(targetId);
 
       const skills = await db('player_skills')
         .where({ player_id: targetId })
@@ -255,6 +283,5 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       res.status(500).json({ error: 'Server error' });
     }
   });
-});
 
 export default router;

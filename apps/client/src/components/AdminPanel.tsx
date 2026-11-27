@@ -107,6 +107,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
     // The language filter's automatic warnings (only sent to staff who moderate chat).
     const [filterWarnings, setFilterWarnings] = useState<{ recent: { id: number; place: string; text: string; matched: string; created_at: string }[]; week: number; total: number } | null>(null)
     const [mutes, setMutes] = useState<Mute[]>([])
+    // Every name the player has gone by (server services/nameChange.ts).
+    const [nameChanges, setNameChanges] = useState<{ id: number; old_name: string; new_name: string; paid_with: string; changed_at: string; reverted_at: string | null; reverted_by: string | null }[]>([])
     const [modPerms, setModPerms] = useState<ModPerms | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
@@ -180,7 +182,8 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
 
     const loadPlayer = async (playerId: number) => {
         try {
-            const data = await apiFetch<{ player: PlayerInfo; warnings: Warning[]; mutes: Mute[]; modPerms: ModPerms | null; filterWarnings?: { recent: { id: number; place: string; text: string; matched: string; created_at: string }[]; week: number; total: number } | null }>(`/api/admin/players/${playerId}`)
+            const data = await apiFetch<{ player: PlayerInfo; warnings: Warning[]; mutes: Mute[]; modPerms: ModPerms | null; filterWarnings?: { recent: { id: number; place: string; text: string; matched: string; created_at: string }[]; week: number; total: number } | null; nameChanges?: typeof nameChanges }>(`/api/admin/players/${playerId}`)
+            setNameChanges(data.nameChanges ?? [])
             setSelectedPlayer(data.player)
             setWarnings(data.warnings)
             setFilterWarnings(data.filterWarnings ?? null)
@@ -941,6 +944,30 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Names: every change, and putting the last one back. */}
+                            {nameChanges.length > 0 && (
+                                <div className="admin-section" style={{ marginTop: '16px' }}>
+                                    <p className="admin-section-title">🪪 Name Changes</p>
+                                    {nameChanges.map(c => (
+                                        <div key={c.id} className="admin-history-item">
+                                            <span className="muted-text" style={{ fontSize: '12px' }}>{formatDate(c.changed_at)} · {c.paid_with === 'free' ? 'free change' : 'bought change'}</span>
+                                            <span style={{ fontSize: '14px' }}>{c.old_name} → {c.new_name}</span>
+                                            {c.reverted_at && <span className="muted-text" style={{ fontSize: '12px' }}>Put back {formatDate(c.reverted_at)}{c.reverted_by ? ` by ${c.reverted_by}` : ''}</span>}
+                                        </div>
+                                    ))}
+                                    {nameChanges.some(c => !c.reverted_at) && (
+                                        <button className="btn" style={{ fontSize: '13px', marginTop: '8px' }} onClick={async () => {
+                                            if (!selectedPlayer) return
+                                            try {
+                                                const r = await apiFetch<{ name: string }>('/api/admin/name-revert', { method: 'POST', body: JSON.stringify({ targetId: selectedPlayer.id }) })
+                                                setSuccess(`Name put back to ${r.name}.`)
+                                                loadPlayer(selectedPlayer.id)
+                                            } catch (err: any) { setError(err.message) }
+                                        }}>Put the last name back</button>
+                                    )}
                                 </div>
                             )}
 

@@ -28,7 +28,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
                 // Seasonal items: when this year's sale closes (null outside it).
                 seasonal: !!i.onSale,
                 saleEndsAt: i.onSale ? saleEndsAt(i.onSale, now)?.toISOString() ?? null : null,
-                owned: i.grants.every(g => unlocks.includes(g)),
+                owned: !i.consumable && i.grants.every(g => unlocks.includes(g)),
             })),
         });
     } catch (err) {
