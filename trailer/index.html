@@ -454,7 +454,7 @@ function drawTear(cx, cy, len, open, t) {
   path(.7); const gr = g.createLinearGradient(0, -wid, 0, wid); gr.addColorStop(0, '#12001c'); gr.addColorStop(.5, '#000'); gr.addColorStop(1, '#1c0006'); g.fillStyle = gr; g.fill()
   g.restore()
 }
-// A first look at Invasions, the next update, on the music's drop.
+// Invasions, on the music's drop (the last update before 1.0).
 function sceneTear(t) {
   const s0 = bar(23), lt = t - s0
   g.save(); shake(t, lt, 16)
@@ -485,7 +485,6 @@ function sceneTear(t) {
     g.save(); g.translate(W / 2, H / 2 - 30); g.scale(sc, sc)
     goldText('Invasions', 0, 0, 190, { weight: 700, spacing: 14, alpha: clamp(nameIn / .08), glow: 1 })
     g.restore()
-    plainText('Coming soon, in the first update after launch', W / 2, H / 2 + 90, 46, { italic: true, weight: 400, alpha: clamp((t - bar(26)) / .25), color: '#ece4d0' })
   }
   flash(.85 * Math.exp(-lt * 5), '235,210,255')
   if (nameIn > 0) flash(.5 * Math.exp(-nameIn * 7), '235,210,255')
@@ -505,7 +504,7 @@ function sceneEnd(t) {
   g.save(); g.translate(W / 2, H / 2 - 110); g.scale(sc, sc)
   goldText('Talaran', 0, 0, 200, { weight: 700, spacing: 16, alpha: fa, glow: .6 + .4 * barPulse(t) })
   g.restore()
-  goldText('Version 1.0 launches December 11', W / 2, H / 2 + 30, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
+  goldText('Version 1.0 launches December 11th, 2026', W / 2, H / 2 + 30, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
   plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(29)) / .4) })
   goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(30)) / .4), glow: 1 })
   vignette(.9)
