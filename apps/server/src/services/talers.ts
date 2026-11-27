@@ -1,5 +1,5 @@
 import db from '../db';
-import { syncSupporter } from './supporter';
+import { syncSupporter, thankSupporter } from './supporter';
 import { logger } from '../lib/logger';
 
 // Taler economy core (docs/support-spec.md §5-6).
@@ -72,8 +72,10 @@ export async function creditPurchase(params: {
     const balance = await getTalerBalance(playerId);
     if (!duplicate) {
         logger.info(`[talers] credited ${talers} to player ${playerId} (paddle ${paddleTransactionId}), balance ${balance}`);
-        // Supporter badges by what they have given in all (services/supporter.ts).
+        // Supporter badges by what they have given in all, and a thank-you in
+        // chat, by name or anonymously (services/supporter.ts).
         await syncSupporter(playerId);
+        await thankSupporter(playerId);
     }
     return { duplicate, balance };
 }

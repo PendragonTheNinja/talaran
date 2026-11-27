@@ -87,3 +87,24 @@ export async function topPatrons(limit = PATRONS_SHOWN): Promise<{ rank: number;
         LIMIT ?`, [limit])
     return rows.map((r: any, i: number) => ({ rank: i + 1, name: r.name }))
 }
+
+/**
+ * A thank-you in chat for a purchase (Nathan, 2026-11-27): one of the
+ * announcement_lines for the key, naming the buyer, or nobody when they
+ * support anonymously (player_settings.hide_from_patrons).
+ */
+export async function thankSupporter(playerId: number): Promise<void> {
+    try {
+        const player = await db('players as p').leftJoin('player_settings as s', 's.player_id', 'p.id')
+            .where('p.id', playerId).first('p.username', 's.hide_from_patrons')
+        if (!player) return
+        const key = player.hide_from_patrons ? 'supporter_thanks_anonymous' : 'supporter_thanks'
+        const lines = await db('announcement_lines').where({ key, enabled: true }).pluck('text')
+        if (!lines.length) return
+        const line = String(lines[Math.floor(Math.random() * lines.length)]).replace(/\{player\}/g, player.username)
+        const { announceServer } = await import('./records')
+        await announceServer(line)
+    } catch (err) {
+        logger.error(`[supporter] thanks for player ${playerId} failed: ${err}`)
+    }
+}

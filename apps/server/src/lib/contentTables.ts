@@ -68,6 +68,8 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     animal_feeds:                { label: 'Animal Feeds',          group: 'Husbandry',  snapshot: true, editable: true },
     crops:                       { label: 'Crops',                 group: 'Farming',    snapshot: true, editable: true },
     // ---- Combat (docs/combat-spec.md §8) ----
+    // Lines the server says in chat, by key, one picked at random (the supporter's thank-you).
+    announcement_lines:          { label: 'Announcement Lines',    group: 'Content',    snapshot: true, editable: true },
     // The worlds a tear opens onto (docs/invasions-spec.md); their creatures are creatures rows.
     realms:                      { label: 'Realms',                group: 'Combat',     snapshot: true, editable: true },
     // Creatures, the places to fight them and which creature lives where.

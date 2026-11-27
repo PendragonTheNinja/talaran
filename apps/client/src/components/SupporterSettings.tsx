@@ -4,8 +4,9 @@ import './SettingsPanel.css'
 
 /**
  * Supporter choices in Settings > Profile: the name color (perk:name_color;
- * server services/store.ts NAME_COLORS) and whether to appear on the museums'
- * Patrons plaque (player_settings.hide_from_patrons; services/supporter.ts).
+ * server services/store.ts NAME_COLORS) and whether to support anonymously
+ * (player_settings.hide_from_patrons; services/supporter.ts): off the Patrons
+ * plaque, and an unnamed thank-you in chat.
  */
 
 const LABELS: Record<string, string> = {
@@ -65,11 +66,12 @@ export default function SupporterSettings() {
                 </>
             )}
             <label className="settings-toggle" style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center', cursor: 'pointer' }}>
-                <input type="checkbox" checked={!hidden} onChange={togglePatrons} />
+                <input type="checkbox" checked={hidden} onChange={togglePatrons} />
                 <span>
-                    <span className="settings-toggle-label">Show me on the Patrons plaque</span>
+                    <span className="settings-toggle-label">Support anonymously</span>
                     <span className="muted-text" style={{ fontSize: '13px', display: 'block' }}>
-                        Each museum keeps a plaque of the ten who have given most to Talaran, by name and place, never by how much.
+                        When you buy Talers, chat thanks you by name, and each museum keeps a plaque of the ten who have given most
+                        (by name and place, never by how much). Tick this and chat thanks an anonymous friend instead, and the plaque leaves you off.
                     </span>
                 </span>
             </label>
