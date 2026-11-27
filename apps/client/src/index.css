@@ -610,6 +610,60 @@ body {
     radial-gradient(ellipse at center, var(--color-bg-mid) 0%, var(--color-bg-deepest) 100%);
 }
 
+/* YULETIDE: Christmas (Nathan, 2026-11-27). Pine-dark green, holly red,
+   candle gold, and snow-white text. Sold through December (services/store.ts
+   onSale); worn all year once bought. Green where Mosswood is moss: this one
+   is fir at night, with the red doing the work Mosswood gives to amber. */
+:root[data-theme='yuletide'] {
+  --color-bg-deepest: #0a100d;
+  --color-bg-deep: #0e1611;
+  --color-bg-dark: #121c16;
+  --color-bg-mid: #17231c;
+  --color-bg-panel: #1c2a22;
+  --color-bg-raised: #233429;
+  --color-bg-hover: #2c4033;
+
+  --color-gold-dim: #9c7a2e;
+  --color-gold: #d4a640;
+  --color-gold-bright: #e8c25e;
+  --color-gold-shine: #f8de8a;
+
+  --color-red-dark: #5a1018;
+  --color-red: #8a1a24;
+  --color-red-bright: #b8262f;
+  --color-red-glow: #e0434a;
+
+  --color-text-dim: #5f7266;
+  --color-text-muted: #8aa093;
+  --color-text-base: #d6dccf;
+  --color-text-bright: #f2ece0;
+  --color-text-white: #fbf8f1;
+
+  --color-border-dark: #1f2f25;
+  --color-border-mid: #33503d;
+  --color-border-gold: #6d5a26;
+  --color-border-bright: #d4a640;
+
+  --color-health: #c8343e;
+  --color-mana: #4f8fd0;
+  --color-xp: #7cb342;
+
+  --shadow-sm: 0 1px 3px rgba(2, 8, 4, 0.6);
+  --shadow-md: 0 2px 8px rgba(2, 8, 4, 0.75);
+  --shadow-lg: 0 4px 16px rgba(2, 8, 4, 0.9);
+  --shadow-gold: 0 0 10px rgba(212, 166, 64, 0.4);
+  --shadow-red: 0 0 10px rgba(184, 38, 47, 0.45);
+}
+
+/* Candlelight low in the scene and a cold light from above, as through a
+   frosted window, under the usual vignette. */
+:root[data-theme='yuletide'] .game-scene {
+  background:
+    radial-gradient(ellipse at 50% 115%, rgba(212, 166, 64, 0.12), transparent 60%),
+    radial-gradient(ellipse at 50% -20%, rgba(220, 235, 245, 0.06), transparent 55%),
+    radial-gradient(ellipse at center, var(--color-bg-mid) 0%, var(--color-bg-deepest) 100%);
+}
+
 /* A custom palette on a light page (lib/palette.ts sets data-tone) gets the
    light theme's chat inks too, or its chat is neon on paper. */
 :root[data-tone='light'] {

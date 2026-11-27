@@ -115,6 +115,17 @@ export const STORE_ITEMS: StoreItem[] = [
         onSale: { from: '10-24', until: '10-31' },
     },
     {
+        // Christmas (Nathan, 2026-11-27). Sold through December, like
+        // Hallowtide in October; kept for good once bought.
+        key: 'theme:yuletide',
+        name: 'Yuletide',
+        description: 'Holly red and pine green by candlelight, with snow on the sill.',
+        price: 300,
+        grants: ['theme:yuletide'],
+        available: true,
+        onSale: { from: '12-01', until: '12-31' },
+    },
+    {
         key: 'bundle:themes',
         name: 'Theme Bundle',
         description: 'All three premium themes together — Moonveil, Mosswood, and Forgeheart.',
@@ -143,6 +154,34 @@ export const STORE_ITEMS: StoreItem[] = [
         available: true,
     },
 ];
+
+/**
+ * Supporter titles (docs/taler-perks-ideas.md): worn like a feat's title,
+ * bought rather than earned. The unlock key is what is owned; the words are
+ * what is worn (players.worn_title), checked against this list by wearTitle.
+ */
+export const STORE_TITLES: { key: string; title: string; blurb: string }[] = [
+    { key: 'title:the-generous', title: 'the Generous', blurb: 'For those who give, and say little about it.' },
+    { key: 'title:the-lamplighter', title: 'the Lamplighter', blurb: 'For those who keep a light burning for the rest.' },
+    { key: 'title:the-openhanded', title: 'the Openhanded', blurb: 'For a full purse held with an open palm.' },
+    { key: 'title:the-steadfast', title: 'the Steadfast', blurb: 'For those who stayed, through the alpha and after.' },
+]
+
+for (const t of STORE_TITLES) {
+    STORE_ITEMS.push({
+        key: t.key,
+        name: `Title: ${t.title}`,
+        description: `${t.blurb} Worn beside your name like a feat's title, chosen in your Feats.`,
+        price: 300,
+        grants: [t.key],
+        available: true,
+    })
+}
+
+/** The supporter titles this player owns, as worn words. */
+export function ownedStoreTitles(unlocks: string[]): string[] {
+    return STORE_TITLES.filter(t => unlocks.includes(t.key)).map(t => t.title)
+}
 
 export async function getUnlocks(playerId: number): Promise<string[]> {
     const rows = await db('player_unlocks').where({ player_id: playerId }).pluck('unlock_key');

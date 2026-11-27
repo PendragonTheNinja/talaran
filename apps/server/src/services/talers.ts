@@ -1,4 +1,5 @@
 import db from '../db';
+import { syncSupporter } from './supporter';
 import { logger } from '../lib/logger';
 
 // Taler economy core (docs/support-spec.md §5-6).
@@ -71,6 +72,8 @@ export async function creditPurchase(params: {
     const balance = await getTalerBalance(playerId);
     if (!duplicate) {
         logger.info(`[talers] credited ${talers} to player ${playerId} (paddle ${paddleTransactionId}), balance ${balance}`);
+        // Supporter badges by what they have given in all (services/supporter.ts).
+        await syncSupporter(playerId);
     }
     return { duplicate, balance };
 }
@@ -183,6 +186,8 @@ export async function applyPaddleAdjustment(params: {
 
     if (result.outcome === 'applied' && result.talers !== 0) {
         logger.info(`[talers] paddle ${action} ${paddleAdjustmentId} moved ${result.talers} for player ${result.playerId}, balance ${result.balance}`);
+        // A refund may take a supporter badge back; a reversal gives it again.
+        if (result.playerId) await syncSupporter(result.playerId);
         if ((result.balance ?? 0) < 0) {
             logger.error(`[talers] player ${result.playerId} is ${-(result.balance ?? 0)} Talers in debt after paddle ${action} ${paddleAdjustmentId} (transaction ${paddleTransactionId}); spending is blocked until it is covered`);
         }

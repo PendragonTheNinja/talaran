@@ -1,5 +1,7 @@
 import db from '../db'
 import { noteDeed } from './chronicle'
+import { SUPPORTER_CATEGORY, syncSupporter } from './supporter'
+import { getUnlocks, ownedStoreTitles } from './store'
 import { logger } from '../lib/logger'
 import { levelFromXp } from './xp'
 import { SERVER_ERROR } from '../lib/serviceResult'
@@ -240,6 +242,8 @@ export async function evaluateFeats(playerId: number): Promise<EarnedFeat[]> {
         const fresh: EarnedFeat[] = []
         for (const feat of all as any[]) {
             if (earned.has(feat.id)) continue
+            // Supporter badges are thanks, given by services/supporter.ts, never earned here.
+            if (feat.category === SUPPORTER_CATEGORY) continue
             // A target of nothing is a museum with no cases yet, not a free feat.
             const target = targetOf(feat, snap)
             if (target <= 0 || measure(feat, snap) < target) continue
@@ -289,6 +293,8 @@ export async function listFeats(playerId: number): Promise<{
     wornBadge: string | null
 }> {
     await evaluateFeats(playerId)
+    // Supporter badges, for anyone who gave before they existed (services/supporter.ts).
+    await syncSupporter(playerId)
 
     const snap = await snapshot(playerId)
     const all = await db('feats').where({ is_active: true }).orderBy('display_order')
@@ -298,9 +304,15 @@ export async function listFeats(playerId: number): Promise<{
     )
 
     const feats: FeatRow[] = []
+    const supporterBadges: { key: string; glyph: string | null }[] = []
     for (const feat of all as any[]) {
         const earnedAt = mine.get(feat.id) ?? null
         if (feat.is_hidden && !earnedAt) continue
+        // Supporter badges are worn, not listed: thanks, not achievements.
+        if (feat.category === SUPPORTER_CATEGORY) {
+            if (earnedAt && feat.badge_key) supporterBadges.push({ key: feat.badge_key, glyph: feat.badge ?? null })
+            continue
+        }
 
         feats.push({
             slug: feat.slug,
@@ -320,10 +332,15 @@ export async function listFeats(playerId: number): Promise<{
     }
 
     const player = await db('players').where({ id: playerId }).first()
-    const titles = feats.filter(f => f.earnedAt && f.title).map(f => f.title as string)
-    const badges = feats
-        .filter(f => f.earnedAt && f.badgeKey)
-        .map(f => ({ key: f.badgeKey as string, glyph: f.badge }))
+    // Earned titles, then the supporter titles bought in the store.
+    const titles = [
+        ...feats.filter(f => f.earnedAt && f.title).map(f => f.title as string),
+        ...ownedStoreTitles(await getUnlocks(playerId)),
+    ]
+    const badges = [
+        ...feats.filter(f => f.earnedAt && f.badgeKey).map(f => ({ key: f.badgeKey as string, glyph: f.badge })),
+        ...supporterBadges,
+    ]
 
     return {
         feats,
@@ -397,6 +414,8 @@ export async function wearTitle(playerId: number, title: string | null): Promise
             .where('pf.player_id', playerId)
             .where('f.title', title)
             .first()
+            // Or a supporter title bought in the store (services/store.ts STORE_TITLES).
+            ?? (ownedStoreTitles(await getUnlocks(playerId)).includes(title) ? true : null)
         if (!owns) return { ok: false, error: 'You have not earned that title.' }
 
         await db('players').where({ id: playerId }).update({ worn_title: title })

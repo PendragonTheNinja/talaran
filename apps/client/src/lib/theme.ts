@@ -7,7 +7,7 @@ import { applyPaletteTokens, clearPaletteTokens, initPaletteFromStorage, type Pa
 // is just setting data-theme on <html>. Premium themes and custom palettes
 // (Phase C) build on this same mechanism.
 
-export type ThemeId = 'tavern' | 'scriptorium' | 'stonehold' | 'moonveil' | 'mosswood' | 'forgeheart' | 'hallowtide'
+export type ThemeId = 'tavern' | 'scriptorium' | 'stonehold' | 'moonveil' | 'mosswood' | 'forgeheart' | 'hallowtide' | 'yuletide'
 
 export interface ThemeMeta {
     id: ThemeId
@@ -68,6 +68,14 @@ export const THEMES: ThemeMeta[] = [
         name: 'Hallowtide',
         description: 'Pumpkin lanterns and bone-white candles in the last nights of October.',
         swatches: ['#0e0a12', '#261b2e', '#ece0c8', '#e07a1f'],
+        premium: true,
+        seasonal: true,
+    },
+    {
+        id: 'yuletide',
+        name: 'Yuletide',
+        description: 'Holly red and pine green by candlelight, with snow on the sill.',
+        swatches: ['#0a100d', '#1c2a22', '#f2ece0', '#d4a640'],
         premium: true,
         seasonal: true,
     },

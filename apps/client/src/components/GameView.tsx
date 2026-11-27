@@ -1239,10 +1239,15 @@ export default function GameView({
       const placed = d.place === 1 ? 'brought down more than anyone' : `brought down the ${d.place === 2 ? 'second' : 'third'} most`
       addLog(`The tear${where} ${d.held ? 'was held' : 'has closed'}. You ${placed}, ${d.kills.toLocaleString()} in all, and are paid ${d.gold.toLocaleString()} gold for it.`, 'success', 'lasting')
     }
+    // A supporter badge, given for what they have given (server services/supporter.ts).
+    const onSupporterBadge = (d: { name: string }) => {
+      addLog(`Thank you for supporting Talaran. You may now wear the ${d.name} badge; choose it in your Feats.`, 'success', 'lasting')
+    }
     const socket = getSocket()
     socket?.on('feat_earned', onFeat)
     socket?.on('round_stood', onRound)
     socket?.on('invasion_reward', onTearReward)
+    socket?.on('supporter_badge', onSupporterBadge)
 
     window.addEventListener('talaran:notice', onNotice)
 
@@ -1251,6 +1256,7 @@ export default function GameView({
       socket?.off('feat_earned', onFeat)
       socket?.off('round_stood', onRound)
       socket?.off('invasion_reward', onTearReward)
+      socket?.off('supporter_badge', onSupporterBadge)
       window.removeEventListener('talaran:notice', onNotice)
       window.removeEventListener('talaran:rate-limited', onLimited)
     }
