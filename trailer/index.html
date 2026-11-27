@@ -81,9 +81,9 @@ const ALL_SKILLS = ['Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting', '
 const BEASTS_A = ['Dock_Rat', 'Shore_Crab', 'Jackalope', 'Grey_Wolf', 'Kelpie', 'Hodag', 'Nuckelavee', 'Snallygaster']
 const BEASTS_B = ['Wrecker', 'Sidehill_Gouger', 'Siren', 'Wolverine', 'Each-uisge', 'Reaver', 'Cave_Bear', 'Slide-rock_Bolter']
 const NAMES = { 'Dock_Rat': 'Dock Rat', 'Shore_Crab': 'Shore Crab', 'Grey_Wolf': 'Grey Wolf', 'Sidehill_Gouger': 'Sidehill Gouger', 'Cave_Bear': 'Cave Bear', 'Slide-rock_Bolter': 'Slide-rock Bolter' }
-// What comes through the tear: stand-ins until the invaders are drawn. Swap in
-// their names (images/bestiary/<Name>.png) and the silhouettes follow.
-const TEAR_SHAPES = ['Cave_Bear', 'Sea_Eagle', 'Siren', 'Wolverine', 'Reaver']
+// What comes through the tear: three of the invaders (Nathan's art, cut out of its
+// black background into art/<Name>.png), shown only as silhouettes.
+const TEAR_SHAPES = ['Afanc', 'Gwiber', 'Myrmex']
 // Ports on the island maps (fractions of the 1080 map), and the way out of each harbor.
 const ROUTE_TAIAR = [[.604, .571], [.639, .611], [.667, .662], [.741, .676], [.889, .653], [1.0, .64]]
 const ROUTE_ANTURA = [[.0, .86], [.25, .92], [.55, .93], [.70, .86], [.67, .75], [.64, .68], [.60, .652]]
@@ -98,7 +98,8 @@ async function loadAll() {
   for (const s of ALL_SKILLS) jobs.push(load('skill:' + s, IMG + 'skills/' + s + 'Skill.png'))
   const items = new Set()
   for (const it of items) jobs.push(load('item:' + it, IMG + 'items/' + it + '.png'))
-  for (const c of [...BEASTS_A, ...BEASTS_B, ...TEAR_SHAPES]) jobs.push(load('beast:' + c, IMG + 'bestiary/' + c + '.png'))
+  for (const c of [...BEASTS_A, ...BEASTS_B]) jobs.push(load('beast:' + c, IMG + 'bestiary/' + c + '.png'))
+  for (const c of TEAR_SHAPES) jobs.push(load('beast:' + c, 'art/' + c + '.png'))
   for (const f of new Set(Object.values(SHOTS).map(s => s[0]))) jobs.push(load('shot:' + f, 'shots/' + f + '.jpg'))
   jobs.push(load('map:taiar', IMG + 'maps/Taiar_Island.jpg'))
   jobs.push(load('map:antura', IMG + 'maps/Antura.jpg'))
@@ -468,7 +469,7 @@ function sceneTear(t) {
   TEAR_SHAPES.slice(0, 3).forEach((k, j) => {
     const c = shadows[k]; if (!c) return
     const q = clamp((t - bar(24) - j * BEAT) / (BEAT * 2.5)); if (q <= 0) return
-    const x = W / 2 + (j - 1) * (V ? 330 : 520), y = lerp(H / 2 - 150, H / 2 + 310, easeOut(q)), sc = lerp(.4, 1.2, easeOut(q))
+    const x = W / 2 + (j - 1) * (V ? 330 : 520), y = lerp(H / 2 - 150, H / 2 + 310, easeOut(q)), sc = lerp(.4, V ? 1.1 : 1.35, easeOut(q))
     g.save(); g.globalAlpha = clamp(q * 3); g.translate(x, y); g.scale(sc, sc)
     g.shadowColor = 'rgba(200,80,255,.9)'; g.shadowBlur = 40; g.drawImage(c, -128, -128, 256, 256); g.restore()
   })
