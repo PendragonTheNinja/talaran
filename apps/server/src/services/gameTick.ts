@@ -1106,8 +1106,8 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
       // ── Auto-restart unless out of arrows or the animal was disabled ──
       if (!outOfArrows && animal.is_active) {
         const playerLevel = currentLevel;
-        const { calculateHuntTimer } = await import('./hunting');
-        const nextTimer = calculateHuntTimer(animal.base_timer, animal.min_timer, playerLevel, animal.required_level);
+        const { calculateHuntTimer, equippedBowTier } = await import('./hunting');
+        const nextTimer = calculateHuntTimer(animal.base_timer, animal.min_timer, playerLevel, animal.required_level, await equippedBowTier(action.player_id));
         const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 
         await db('player_actions').where({ id: action.id }).update({

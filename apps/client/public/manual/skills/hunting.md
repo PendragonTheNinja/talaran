@@ -35,9 +35,9 @@ Read that table with one thing in mind: the odds column is the *worst* number yo
 
 ## The arithmetic of a shot
 
-Your chance of a clean kill improves half a percent for every level you stand above what the animal demands, and a better bow adds three percent per grade above the humblest.
+Your chance of a clean kill improves half a percent for every level you stand above what the animal demands. The arrow moves it further, as below. The bow does not: a bow is about pace.
 
-**The ceiling is ninety-five percent.** It is never certain. It will never be certain. However magnificent your bow, however far past the requirement you climb, one hunt in twenty walks away from you.
+**The ceiling is ninety-five percent.** It is never certain. It will never be certain. However fine your arrows, however far past the requirement you climb, one hunt in twenty walks away from you.
 
 I want to defend this, because newcomers find it maddening and I find it the best thing about the trade. A hunt you cannot lose is not a hunt. It is a transaction with a deer.
 
@@ -51,7 +51,11 @@ This is the mechanic that separates hunters who prosper from hunters who go brok
 
 So a miss costs you the time *and* the better part of your ammunition. This is the real price of hunting above your station. Not the failure itself, which is only a story, but the arrows scattered across a forest floor to no purpose.
 
-## The arrow matters as much as the bow
+## The bow sets the pace
+
+A bow a grade above the animal you are after makes every hunt a tenth quicker, and a grade more takes off another tenth, up to three tenths in all. A bow of the animal's own grade, or below it, hunts at the usual pace. It never makes a kill likelier. That is the arrow's work.
+
+## The arrow decides the kill
 
 You do not choose which arrow to loose. **A hunt always shoots the best arrow you are carrying**, and the animal judges you by it.
 

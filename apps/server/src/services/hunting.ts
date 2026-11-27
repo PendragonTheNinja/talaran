@@ -3,7 +3,7 @@ import db from '../db'
 /** The first ammunition, and still what a hunt names when nothing better is carried. */
 export const HUNT_AMMO = 'Ambren Arrow';
 import { levelFromXp } from './xp'
-import { levelTimerFactor } from '../lib/actionTimers'
+import { levelTimerFactor, toolTierSpeedFactor } from '../lib/actionTimers'
 import { standsAt } from '../lib/whereabouts'
 import { doubleYield } from './buffs'
 import { noteJewelry } from './jewelry'
@@ -38,9 +38,9 @@ export function arrowCatchShift(arrowTier: number, requiredLevel: number): numbe
 // ── Tuning constants ──────────────────────────────────────────────
 const CATCH_PER_LEVEL = 0.5           // +0.5% catch chance per level over req
 const CATCH_CAP = 95                  // max catch %
-const BOW_TIER_CATCH_BONUS = 3        // +3% catch per bow tier above 1
 // An arrow against the animal's tier (Nathan, 2026-11-17): a weaker point lowers
-// the catch, never lengthens the hunt; a better one helps as a better bow does.
+// the catch, never lengthens the hunt; a better one helps it. Arrows are for
+// the catch, bows for the pace (Nathan, 2026-11-27).
 const ARROW_TIER_CATCH_PENALTY = 10   // -10% catch per tier the arrow is below the animal
 const ARROW_TIER_CATCH_BONUS = 3      // +3% catch per tier the arrow is above it
 const RECOVERY_BASE = 0.80            // 80% arrow recovery on success at req level
@@ -88,17 +88,29 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
     return { allowed: true, bowTier: workingTier(bow) }
 }
 
-/** Hunt timer with level reduction (mirrors mining). */
-export function calculateHuntTimer(baseTimer: number, minTimer: number, playerLevel: number, requiredLevel: number): number {
-    return Math.max(minTimer, Math.round(baseTimer * levelTimerFactor(playerLevel, requiredLevel)))
+/**
+ * Hunt timer: levels over the animal, then the bow (Nathan, 2026-11-27): a
+ * bow above the animal's tier makes the hunt quicker, by the gathering tools'
+ * rule (toolTierSpeedFactor). The arrow decides the catch, the bow the pace.
+ */
+export function calculateHuntTimer(baseTimer: number, minTimer: number, playerLevel: number, requiredLevel: number, bowTier = 1): number {
+    const bow = toolTierSpeedFactor(bowTier, animalTier(requiredLevel))
+    return Math.max(minTimer, Math.round(baseTimer * levelTimerFactor(playerLevel, requiredLevel) * bow))
 }
 
-/** Catch chance %: base + level-over scaling + bow tier, capped. */
-export function calculateCatchChance(baseCatch: number, playerLevel: number, requiredLevel: number, bowTier: number): number {
+/** The equipped bow's working tier, or 1 with none (a hunt with no bow is refused before this matters). */
+export async function equippedBowTier(playerId: number): Promise<number> {
+    const equipment = await db('player_equipment').where({ player_id: playerId }).first()
+    const bow = equipment?.mainhand_item_id
+        ? await db('items').where({ id: equipment.mainhand_item_id, subtype: 'bow' }).first()
+        : null
+    return bow ? workingTier(bow) : 1
+}
+
+/** Catch chance %: base + level-over scaling, capped. The arrow's tier shifts it (arrowCatchShift); the bow no longer does. */
+export function calculateCatchChance(baseCatch: number, playerLevel: number, requiredLevel: number): number {
     const levelsOver = Math.max(0, playerLevel - requiredLevel)
-    const fromLevel = levelsOver * CATCH_PER_LEVEL
-    const fromBow = Math.max(0, bowTier - 1) * BOW_TIER_CATCH_BONUS
-    return Math.min(CATCH_CAP, baseCatch + fromLevel + fromBow)
+    return Math.min(CATCH_CAP, baseCatch + levelsOver * CATCH_PER_LEVEL)
 }
 
 /** The names of a drop table's notable entries (trophies). */
@@ -210,7 +222,6 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     if (!bow) {
         return { success: false, xp: 0, drops: [], arrowRecovered: true, noBow: true, animalName: animal.name }
     }
-    const bowTier = workingTier(bow)
 
     // A game trail on an islet: the hunt comes off the trail first, in one
     // conditional statement, so two hunts never share its last one; a miss is
@@ -223,7 +234,7 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     const arrow = await bestArrow(db, playerId)
     if (!arrow) return { success: false, xp: 0, drops: [], arrowRecovered: true, animalName: animal.name }
     const shift = arrowCatchShift(arrow.tier, animal.required_level)
-    const baseCatch = Math.max(1, Math.min(CATCH_CAP, calculateCatchChance(animal.base_catch_chance, level, animal.required_level, bowTier) + shift))
+    const baseCatch = Math.max(1, Math.min(CATCH_CAP, calculateCatchChance(animal.base_catch_chance, level, animal.required_level) + shift))
     const catchChance = boost > 1 ? Math.min(CATCH_CAP, 100 - (100 - baseCatch) / boost) : baseCatch
     const success = Math.random() * 100 < catchChance
 

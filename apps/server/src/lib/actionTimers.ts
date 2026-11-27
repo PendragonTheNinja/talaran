@@ -40,3 +40,17 @@ export function processingTimer(
 ): number {
     return floorTimer(baseSeconds * levelTimerFactor(playerLevel, requiredLevel) * multiplier, baseSeconds)
 }
+
+/**
+ * A tool above the work's tier (Nathan, 2026-11-27: every tool, the bow
+ * included): 10% off a tier over, at most 30%, the gathering rule
+ * calculateTimer has always used. 1 for a tool at or below the work's tier;
+ * what a tool below it costs is each skill's own (calculateTimer's penalty,
+ * bench recipes' tierMultiplier), so this only ever helps.
+ */
+export const TOOL_TIER_SPEED = 0.10
+export const TOOL_TIER_SPEED_CAP = 0.30
+export function toolTierSpeedFactor(toolTier: number, workTier: number): number {
+    const over = toolTier - workTier
+    return over > 0 ? 1 - Math.min(TOOL_TIER_SPEED_CAP, over * TOOL_TIER_SPEED) : 1
+}

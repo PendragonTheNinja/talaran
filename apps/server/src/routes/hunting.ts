@@ -39,7 +39,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             return
         }
 
-        const { allowed, reason } = await canHunt(playerId, animalId)
+        const { allowed, reason, bowTier } = await canHunt(playerId, animalId)
         if (!allowed) {
             res.status(403).json({ error: reason })
             return
@@ -51,7 +51,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
             .where({ player_id: playerId, skill_id: huntingSkill.id }).first()
         const playerLevel = levelFromXp(playerSkill?.xp ? parseInt(playerSkill.xp) : 0)
 
-        const timerSeconds = calculateHuntTimer(animal.base_timer, animal.min_timer, playerLevel, animal.required_level)
+        const timerSeconds = calculateHuntTimer(animal.base_timer, animal.min_timer, playerLevel, animal.required_level, bowTier ?? 1)
         const now = new Date()
         const completesAt = new Date(now.getTime() + timerSeconds * 1000)
 

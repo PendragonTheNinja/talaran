@@ -7,7 +7,7 @@ import { addItemToInventory, addItemToInventoryWithin } from './inventory';
 import { timerCut } from './buffs';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
-import { levelTimerFactor } from '../lib/actionTimers';
+import { levelTimerFactor, toolTierSpeedFactor } from '../lib/actionTimers';
 import { workingTier } from '../lib/tiers';
 import { standsAt } from '../lib/whereabouts';
 import { isletFindHere, spendIsletFind } from './isletFinds';
@@ -57,8 +57,7 @@ export function calculateTimer(
   if (tierDifference < 0) {
     timer = timer * (1 + Math.abs(tierDifference) * TOOL_TIER_PENALTY)
   } else if (tierDifference > 0) {
-    const bonusPercent = Math.min(0.30, tierDifference * 0.10)
-    timer = timer * (1 - bonusPercent)
+    timer = timer * toolTierSpeedFactor(playerToolTier, requiredToolTier)
   }
 
   const rounded = Math.round(timer)
