@@ -43,7 +43,7 @@ It is the combat version of a skill event. A skill event is "this place pays mor
 ### The event
 
 - **A new kind, `invasion`, in `world_events`.** It gets what the other kinds have: the countdown, the Events panel, the admin Events tab (extend, refill, end now), and history. `pool_total` / `pool_left` is the horde, counted in kills.
-- **Staff send it; nothing else does.** The scheduler never picks `invasion` (as it never picks the merchant on its own). The admin Events tab gets a **Send a tear** card: realm, place, horde size, length, the XP bonus, the minimum kills for the closing reward, an optional warning lead time, and optionally a later opening time. The realm's own warning and opening lines fill in and can be rewritten before sending.
+- **Staff send it; nothing else does.** The scheduler never picks `invasion` (as it never picks the merchant on its own). **Who may:** admins, and any moderator with a new permission, **`can_run_events`** (added to `STAFF_PERMISSIONS` in `lib/staffPermissions.ts`; Nathan, 2026-11-27, for an event moderator to come). It covers sending a tear and extending, refilling, or ending a live one; whether it later covers skill events and the merchant is Nathan's call. The admin Events tab gets a **Send a tear** card: realm, place, horde size, length, the XP bonus, the minimum kills for the closing reward, an optional warning lead time, and optionally a later opening time. The realm's own warning and opening lines fill in and can be rewritten before sending.
 - **A tear sent for later** is a `world_events` row with `starts_at` in the future and a `warned_at`/`opened_at` pair, picked up by a database-driven sweep like the Crier's polls (`announced_open_at`), so a restart loses nothing. Never a bare `setTimeout` (CLAUDE.md §4 rule 15).
 - **Where:** any place staff choose, except islets, roads, and the sea. **At most one live tear per island** (refused at send, like a second skill event for the same skill and place). The places with no fighting of their own make the best stage (Verdale, Lanaivale, Luxmere, Talador's square; Wendhaven, Farefield, Underway, Bidewater), but nothing forbids a tear at Eld Grove.
 - **The realm's island fit is checked at send:** the card shows the roster's levels and warns (does not refuse) when they are far from the island's band.
@@ -125,9 +125,10 @@ It is the rare weapons' rule (`docs/combat-spec.md` §10) carried into other ski
   | Walking staff, boots | `items.agility_reduction`, read by `services/travel.ts` (Lanai Staff 0.03, Leather Boots 0.05) | a number only |
   | Gathering tool (hatchet, pick) | the tool's `items.tier` against the node's `required_tool_tier` (`calculateTimer`, `services/woodcutting.ts`) | **a new column, `works_as_tier`**: `items.tier` is derived from where an item is first had (CLAUDE.md §8), so a level 10 creature's hatchet is tier 1 by rule and must not be changed by hand; `calculateTimer` reads `works_as_tier ?? tier` |
   | Bench tool (bellows, plane) | the station multiplier in `processingTimer` (`lib/actionTimers.ts`: "a better tool under 1") | a slot item with its multiplier, as better bench tools already carry |
-  | Hunting, fishing, foraging aids | per skill; not every skill has a gear hook | **OPEN** per item: build the hook in that skill, or drop the idea |
+  | Foraging gloves | gloves today only open the prickly rows (`requiresGloves`, `services/foraging.ts`); they do not touch the timer | **a new column, `forage_speed_pct`**, read in `calculateForageTimer` after the knife; null on every made glove, so nothing else changes. The Gwiber-scale Gloves carry **0.02** (Nathan, 2026-11-27: gloves help speed "very slightly") and open the prickly rows like any gloves |
+  | Hunting aids (the bow) | the bow's tier, as a gathering tool | `works_as_tier`, as above |
 
-- **Numbers** (**SIM**, and **OPEN** where no next tier exists to measure against): the Lanai Staff's next tier and tier-2 walking boots are not designed yet, so the drop's value is set first and the made T2 piece fitted around it later.
+- **Numbers** (Nathan, 2026-11-27): where no made piece of the next tier exists yet, the drop is **about 1.5× the made piece of its own tier**, and the made next-tier piece is fitted around it later. **Pwca's Blackthorn 0.045** (the Lanai Staff is 0.03); **Teumessian Boots 0.08** (Leather Boots are 0.05). The rest are **SIM**.
 
 ### On holding the place
 
@@ -168,11 +169,11 @@ None repeats a creature already in Talaran.
 | 14 | Khalkotauros | Bronze Shore | a bronze-hoofed bull that breathes a forge's heat; slow, heavy | pierce / crush | **Bull's-breath Bellows**: a smithy bench tool, faster smelting |
 | 16 | Cŵn Annwn | Annwn | white hounds with red ears, hunting in a pack; accurate | slash / crush | none |
 | 18 | Teumessian Fox | Bronze Shore | the fox fated never to be caught; very hard to hit, light | crush / pierce | **Teumessian Boots**: walk faster than any made boots of the tier |
-| 20 | Gwiber | Annwn | a winged serpent of the Welsh hills; quick, venomous | slash / pierce | none (or the Gwiber-scale Gloves, if foraging gets a glove hook) |
-| 22 | Crommyonian Sow | Bronze Shore | a wild sow the size of a cart that laid waste to a country | pierce / crush | none (or a hoe, if farming gets a tool hook) |
+| 20 | Gwiber | Annwn | a winged serpent of the Welsh hills; quick, venomous | slash / pierce | **Gwiber-scale Gloves**: foraging gloves, 2% quicker foraging |
+| 22 | Crommyonian Sow | Bronze Shore | a wild sow the size of a cart that laid waste to a country | pierce / crush | none |
 | 24 | Huntsman of Annwn | Annwn | one of the Otherworld king's riders (the king never comes), horn at his belt; a person, so coin | crush / pierce | **Huntsman's Bow**: a hunting bow that works as the next tier's |
 
-Six of the twelve carry rare gear, three per island, three per realm.
+Seven of the twelve carry rare gear: three on Taiar, four on Antura.
 
 ### What each drops (§6 rates)
 
@@ -216,20 +217,17 @@ The same rows carry the system to 100. A realm has a roster per island band, so 
 ## 10. Open questions for Nathan
 
 1. **Tear-glass:** what it does, or drop it and let the Chronicle and feats be the closing reward.
-2. **Which rare drops.** §7 names six; keep, swap, or add. For each that needs a hook a skill lacks (farming tools, foraging gloves), build the hook or drop the item.
-3. **Tier-2 walking gear** does not exist yet, so the Teumessian Boots and Pwca's Blackthorn set the bar. Is "about 1.5× the made piece of its tier" right? (Blackthorn 0.045 against the Lanai Staff's 0.03; on Antura, boots 0.08 against Leather Boots' 0.05.)
-4. **Which staff may send a tear:** admins only, or a new `mod_permissions` entry.
-5. **Syrnia guest creature,** if permission comes.
+2. **Syrnia guest creature,** if permission comes.
 
 ---
 
 ## 11. Build order
 
-1. **Schema:** `realms`, `creatures.realm_id`, `fighting_spots.world_event_id`, `world_events.starts_at`/`warned_at`/`opened_at`/`min_kills`, `items.works_as_tier`. Fresh-database safe (`hasContent`).
+1. **Schema:** `realms`, `creatures.realm_id`, `fighting_spots.world_event_id`, `world_events.starts_at`/`warned_at`/`opened_at`/`min_kills`, `items.works_as_tier`, `items.forage_speed_pct`, the `can_run_events` permission. Fresh-database safe (`hasContent`).
 2. **The kind:** Send a tear (admin), the sweep that warns and opens, the spot created and retired, held and lost, announcements, the Events panel.
 3. **The fight hooks:** the pool take in settle, the tear's XP bonus, fights ending when it closes, `world_event_shares` counts. race:check `invasion`.
 4. **Rewards:** closing notice, Chronicle deed kinds, feats.
-5. **Gear hooks:** `works_as_tier` in `calculateTimer`, and any other hook §10 Q2 keeps.
+5. **Gear hooks:** `works_as_tier` in `calculateTimer` (and the hunting bow's check), `forage_speed_pct` in `calculateForageTimer`.
 6. **Content:** the Bronze Shore and Annwn, each a migration: realm, creatures, drops, rare gear, items with `island`, warning and opening lines. combatSim, combat:derive, values:derive.
 7. **Manual page** (how tears work, never what drops: that is the Bestiary's), patch notes.
 
