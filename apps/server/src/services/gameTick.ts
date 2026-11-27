@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import db from '../db';
 import { logger } from '../lib/logger';
 import { processWoodcuttingAction, calculateTimer } from './woodcutting';
-import { processForagingAction, calculateForageTimer, bestToolTier } from './foraging';
+import { processForagingAction, calculateForageTimer, bestToolTier, gloveSpeedAt } from './foraging';
 import {
   processFishingCast, processNetHaul, processCutBait,
   rodTimer, netTimer, cutBaitTimer, equippedToolTier, getBaitPouch, waterTierAt, waterFor,
@@ -1312,6 +1312,7 @@ async function processCompletedAction(io: Server, action: any): Promise<void> {
         const nextTimer = calculateForageTimer(
           habitat.base_timer, habitat.min_timer, currentLevel, habitat.required_level, knifeTier,
           await buffTimerBonus(action.player_id, 'Foraging'),
+          await gloveSpeedAt(action.player_id, habitat),
         );
         const nextCompletion = new Date(now.getTime() + nextTimer * 1000);
 

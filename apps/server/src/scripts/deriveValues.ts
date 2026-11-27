@@ -344,7 +344,11 @@ async function main(): Promise<void> {
     // names its exceptions: a Wolf Pelt is a hide like any hunter's, but only
     // a wolf gives it, so nothing else would ever price it. The same for the
     // pelts and plates of the drop pass (docs/antura-plan.md §10, 2026-11-17).
-    const COMBAT_ONLY_ITEMS = new Set(['Wolf Pelt', 'Ratskin', 'Jackalope Pelt', 'Crabshell Plate', 'Shellback Plate']);
+    const COMBAT_ONLY_ITEMS = new Set(['Wolf Pelt', 'Ratskin', 'Jackalope Pelt', 'Crabshell Plate', 'Shellback Plate',
+        // The invaders' rare gear (docs/invasions-spec.md §6): tools and walking
+        // gear, of kinds other skills make, that only a tear's creature gives.
+        'Myrmex Mandible Pick', "Pwca's Blackthorn", 'Afanc-tooth Hatchet', 'Forgefire Hammer',
+        'Teumessian Boots', 'Gwiber-scale Gloves', "Huntsman's Bow"]);
     const subtypeByName = new Map(items.map((i) => [i.name, i.subtype]));
     const combatProposals: [string, Derived][] = [];
     const creaturesByKey = new Map((await readTable('creatures')).map((c: any) => [String(c.key), c]));

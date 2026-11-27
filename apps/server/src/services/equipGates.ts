@@ -31,6 +31,12 @@ const SUBTYPE_SKILL: Record<string, string> = {
     amulet: 'Talar',
     // The sailor's set is worn on Wayfaring, the skill that sails (docs/islets-plan.md §6d).
     sailors_set: 'Wayfaring',
+    // Walking gear is worn on Wayfaring, the skill it serves: the Lanai Staff
+    // and Leather Boots ask level 1, the invaders' staff and boots more
+    // (docs/invasions-spec.md §6). Boots with armour points are Defense's,
+    // decided before the subtype is read.
+    staff: 'Wayfaring',
+    boots: 'Wayfaring',
 }
 
 /**

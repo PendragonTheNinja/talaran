@@ -16,3 +16,14 @@ export function tierOfLevel(level: number): number {
 export function rungOfTier(tier: number): number {
     return RUNGS[Math.min(RUNGS.length, Math.max(1, tier)) - 1]
 }
+
+/**
+ * The tier a tool works at: `items.works_as_tier` where an item is better
+ * than the tier it is had at (an invader's rare gear, docs/invasions-spec.md
+ * §6), else its own tier. `items.tier` is derived from where an item is first
+ * had and is never raised by hand (CLAUDE.md §8), so speed and what a tool may
+ * work read this, never the column alone.
+ */
+export function workingTier(item: { tier?: unknown; works_as_tier?: unknown } | null | undefined): number {
+    return Number(item?.works_as_tier ?? item?.tier) || 1
+}

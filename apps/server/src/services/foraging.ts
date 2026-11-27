@@ -77,9 +77,13 @@ function weightedPick(entries: ForageDropEntry[]): ForageDropEntry {
  */
 export function calculateForageTimer(
     base: number, min: number, playerLevel: number, requiredLevel: number, knifeTier: number, buffPercent = 0,
+    gloveSpeed = 0,
 ): number {
     const knife = knifeTier > 0 ? 1 - Math.min(0.5, knifeTier * 0.05) : 1;
-    const t = Math.round(base * levelTimerFactor(playerLevel, requiredLevel) * knife);
+    // Gloves that help a little (items.forage_speed_pct; the Gwiber-scale
+    // Gloves, docs/invasions-spec.md §6), after the knife.
+    const gloves = 1 - Math.min(0.5, Math.max(0, gloveSpeed));
+    const t = Math.round(base * levelTimerFactor(playerLevel, requiredLevel) * knife * gloves);
     return Math.max(min, t - timerCut(t, buffPercent));
 }
 
@@ -99,6 +103,20 @@ export async function bestToolTier(playerId: number, subtype: string): Promise<n
     if (!itemId) return 0;
     const item = await db('items').where({ id: itemId, subtype }).first();
     return item?.tier ? Number(item.tier) : 0;
+}
+
+/**
+ * How much the worn gloves speed a pick at this habitat: their
+ * items.forage_speed_pct, but only where the habitat has something that needs
+ * gloves, the same places they wear (services/toolWear.ts). 0 otherwise.
+ */
+export async function gloveSpeedAt(playerId: number, habitat: { drop_table?: unknown } | null | undefined): Promise<number> {
+    if (!habitat || !parseTable(habitat.drop_table).some(e => e.requiresGloves)) return 0;
+    const equipment = await db('player_equipment').where({ player_id: playerId }).first();
+    const itemId = equipment?.[TOOL_SLOT_COLUMN.foraging_gloves];
+    if (!itemId) return 0;
+    const gloves = await db('items').where({ id: itemId, subtype: 'foraging_gloves' }).first('forage_speed_pct');
+    return Number(gloves?.forage_speed_pct) || 0;
 }
 
 async function playerLevelFor(playerId: number, skillName: string): Promise<number> {

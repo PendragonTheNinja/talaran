@@ -8,6 +8,7 @@ import { timerCut } from './buffs';
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
 import { levelTimerFactor } from '../lib/actionTimers';
+import { workingTier } from '../lib/tiers';
 import { standsAt } from '../lib/whereabouts';
 import { isletFindHere, spendIsletFind } from './isletFinds';
 import { doubleYield, doubledLine } from './buffs';
@@ -138,12 +139,12 @@ export async function canChopHere(
     return { allowed: false, reason: 'You need a hatchet equipped to chop trees' };
   }
 
-  const tierDifference = node.required_tool_tier - equippedAxe.tier;
+  const tierDifference = node.required_tool_tier - workingTier(equippedAxe);
   if (tierDifference > MAX_TIER_DIFFERENCE) {
     return { allowed: false, reason: 'Your hatchet is not sharp enough to cut these trees' };
   }
 
-  return { allowed: true, toolTier: equippedAxe.tier };
+  return { allowed: true, toolTier: workingTier(equippedAxe) };
 }
 
 /** The wild hive and what it becomes (named here so item pages can say so). */

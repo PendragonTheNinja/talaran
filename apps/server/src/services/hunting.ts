@@ -8,7 +8,7 @@ import { standsAt } from '../lib/whereabouts'
 import { doubleYield } from './buffs'
 import { noteJewelry } from './jewelry'
 import { isletFindHere, spendIsletFind } from './isletFinds'
-import { tierOfLevel } from '../lib/tiers'
+import { tierOfLevel, workingTier } from '../lib/tiers'
 
 /**
  * The arrow a hunt shoots: the best carried (ammunition of subtype 'arrow', the
@@ -85,7 +85,7 @@ export async function canHunt(playerId: number, animalId: number): Promise<{
         return { allowed: false, reason: 'You have no arrows.' }
     }
 
-    return { allowed: true, bowTier: bow.tier }
+    return { allowed: true, bowTier: workingTier(bow) }
 }
 
 /** Hunt timer with level reduction (mirrors mining). */
@@ -210,7 +210,7 @@ export async function resolveHunt(playerId: number, animalId: number): Promise<{
     if (!bow) {
         return { success: false, xp: 0, drops: [], arrowRecovered: true, noBow: true, animalName: animal.name }
     }
-    const bowTier = bow.tier ?? 1
+    const bowTier = workingTier(bow)
 
     // A game trail on an islet: the hunt comes off the trail first, in one
     // conditional statement, so two hunts never share its last one; a miss is

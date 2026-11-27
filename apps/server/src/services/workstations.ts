@@ -174,7 +174,9 @@ export async function getSocketed(workstationId: number): Promise<SocketedTool[]
             'ws.slot',
             'ws.slot_index',
             'ws.item_name',
-            db.raw('COALESCE(i.tier, 1) as tier'),
+            // The tier it works at (lib/tiers.ts workingTier): an invader's
+            // rare bench tool works above the tier it is had at.
+            db.raw('COALESCE(i.works_as_tier, i.tier, 1) as tier'),
             db.raw('(ws.broken_at IS NOT NULL) as broken'),
         )
 }

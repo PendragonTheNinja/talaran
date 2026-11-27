@@ -8,6 +8,7 @@ import {
     canForageHere,
     calculateForageTimer,
     bestToolTier,
+    gloveSpeedAt,
 } from '../services/foraging';
 import { levelFromXp } from '../services/xp';
 import { buffTimerBonus } from '../services/buffs';
@@ -52,6 +53,7 @@ router.post('/start', requireAuth, botCheckGate, async (req: AuthRequest, res: R
         const timerSeconds = calculateForageTimer(
             habitat.base_timer, habitat.min_timer, playerLevel, habitat.required_level, knifeTier,
             await buffTimerBonus(playerId, 'Foraging'),
+            await gloveSpeedAt(playerId, habitat),
         );
 
         const now = new Date();

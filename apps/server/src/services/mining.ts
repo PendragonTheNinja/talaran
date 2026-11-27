@@ -1,6 +1,7 @@
 import db from '../db';
 import { levelFromXp } from './xp';
 import { logger } from '../lib/logger';
+import { workingTier } from '../lib/tiers';
 import { incrementStats } from './stats';
 import { rollSecondaryDrops } from './drops';
 import { awardXp } from './xp';
@@ -99,12 +100,12 @@ export async function canMineHere(
     return { allowed: false, reason: 'You need a pickaxe equipped to mine here.' };
   }
 
-  const tierDifference = node.required_tool_tier - equippedPickaxe.tier;
+  const tierDifference = node.required_tool_tier - workingTier(equippedPickaxe);
   if (tierDifference > MAX_TIER_DIFFERENCE) {
     return { allowed: false, reason: 'Your pickaxe is not strong enough to mine here' };
   }
 
-  return { allowed: true, toolTier: equippedPickaxe.tier };
+  return { allowed: true, toolTier: workingTier(equippedPickaxe) };
 }
 
 export async function canMineVein(
