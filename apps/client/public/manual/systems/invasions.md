@@ -1,4 +1,4 @@
-Now and then the sky over a town splits, and things that belong somewhere else come through. Folk call it a tear. The Laranists at the Rift have a great deal to say about why, and most of it is wrong in interesting ways.
+Now and then the sky over a town splits, and things that belong somewhere else come through. Folk call the split a tear, and what comes out of it an invasion. The Laranists at the Rift have a great deal to say about why, and most of it is wrong in interesting ways.
 
 A tear is not the Rift. The Rift goes down, to where the light comes from. A tear goes sideways, into another world entirely, and that world does not much care for ours.
 

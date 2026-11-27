@@ -424,7 +424,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                     {!isAdmin && runsEvents && (
                         <div className="admin-tabs">
                             <button className={`admin-tab ${mainTab === 'players' ? 'active' : ''}`} onClick={() => setMainTab('players')}>Players</button>
-                            <button className={`admin-tab ${mainTab === 'tears' ? 'active' : ''}`} onClick={() => setMainTab('tears')}>Tears</button>
+                            <button className={`admin-tab ${mainTab === 'tears' ? 'active' : ''}`} onClick={() => setMainTab('tears')}>Invasions</button>
                         </div>
                     )}
                     {isAdmin && (

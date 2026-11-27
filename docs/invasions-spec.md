@@ -282,7 +282,7 @@ Each step ships and is proven on its own.
 - **One tear a place, not an island** (Nathan): an event may run several at once, each at a place staff choose, on any island.
 - **Rare gear** (migration `20261127140000_invasion_rare_gear`): the seven pieces at 1 in 150, five times a made tool's life (`durability_life_factor` 5), priced by `values:derive` as combat-only (810 to 1,650). `items.works_as_tier` (`workingTier` in `lib/tiers.ts`) is read by the hatchet and pick (`calculateTimer`), the bow (catch chance) and bench slots (`getSocketed`, so bench recipes and smelting); `items.forage_speed_pct` by `gloveSpeedAt` in `services/foraging.ts`, only where the habitat needs gloves. Staff and boots are worn on Wayfaring (`services/equipGates.ts`). The Forgefire Hammer works as tier 3, but a bench goes at its weakest tool's speed (Nathan, 2026-11-27), so until tier 3 tongs and anvils exist it is a Serph hammer that lasts five times as long.
 - **Chronicle and feats** (migration `20261127150000_invasion_chronicle_feats`): deed kinds `invasion_held` (the top killer, `{n}` their kills) and `invasion_lost` (nobody), ten verses each and three of Wenna's apiece, a `{realm}` slot in the composer; feats Held the Line, Ten Tears Mended, The Mender (title, badge), Top of the Tally, and Between Worlds (`tears_held`, `tears_first`, `invaders_all` in `services/feats.ts`), checked for everyone who placed when a tear is paid.
-- **Manual:** Systems > Tears (`systems/tears.md`).
+- **Manual:** Systems > Invasions (`systems/invasions.md`; renamed from Tears, Nathan 2026-11-27).
 
 **Art wanted** (`pnpm images:audit`): the twelve creatures in `images/bestiary/` (`Cŵn_Annwn.png` keeps the ŵ), and in `images/items/` the twelve trophies and the seven pieces of gear.
 
