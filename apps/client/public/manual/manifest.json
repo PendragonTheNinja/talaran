@@ -172,6 +172,11 @@
           "slug": "bestiary",
           "title": "The Bestiary",
           "blurb": "The book you write by killing things."
+        },
+        {
+          "slug": "tears",
+          "title": "Tears",
+          "blurb": "When the sky splits over a town, and what comes through it."
         }
       ]
     },

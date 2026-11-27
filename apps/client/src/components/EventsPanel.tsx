@@ -115,6 +115,9 @@ function LiveEvent({ event: e, now }: { event: WorldEvent; now: number }) {
             <div className="ev-pool-label">
                 {e.poolLeft.toLocaleString()} of {e.poolTotal.toLocaleString()} {isMerchant(e) ? 'goods unsold' : isTear(e) ? 'of the horde still to drive back' : 'actions left'}
             </div>
+            {isTear(e) && e.minKills ? (
+                <div className="ev-pool-label">The three who bring down the most are paid when it closes, from {e.minKills} kills.</div>
+            ) : null}
         </div>
     )
 }
