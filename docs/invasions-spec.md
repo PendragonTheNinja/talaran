@@ -1,8 +1,8 @@
 # Invasions: design
 
-*Second draft, 2026-11-27, with Nathan's answers to the first. Nothing here is built. It extends the world-events system (`docs/WORLD-EVENTS-AND-MUSEUMS.md`, "Invasions, later") and the fight engine (`docs/combat-spec.md`). Where this conflicts with either, they win until Nathan decides otherwise. **OPEN** marks what waits on Nathan; **SIM** marks what `scripts/combatSim.ts` settles before any content is seeded.*
+*Third draft, 2026-11-27; the roster and drop shape are approved. Nothing here is built. It extends the world-events system (`docs/WORLD-EVENTS-AND-MUSEUMS.md`, "Invasions, later") and the fight engine (`docs/combat-spec.md`). Where this conflicts with either, they win until Nathan decides otherwise. **OPEN** marks what waits on Nathan; **SIM** marks what `scripts/combatSim.ts` settles before any content is seeded.*
 
-**Decided (Nathan, 2026-11-27):** they are called **tears**. **Staff send every invasion**; there is no automatic schedule. Gatherers at the place **are not affected**. The realms are **Greek myth and the Welsh Otherworld**. An invader's best drops are **gear for other skills, better than its tier** (§6).
+**Decided (Nathan, 2026-11-27):** they are called **tears**. **Staff send every invasion**; there is no automatic schedule. Gatherers at the place **are not affected**. The realms are **Greek myth and the Welsh Otherworld**, twelve creatures between them (§7, roster approved). Invaders drop more and better than natives, and their rare gear has **no bad luck protection** (§6). An invader's best drops are **gear for other skills, better than its tier** (§6).
 
 ---
 
@@ -105,7 +105,7 @@ XP (§3) and the creature's drops, under every combat rule already locked (CLAUD
 | A useful good for another skill (ore, feathers, logs, hides, seeds) | rarely, and only some creatures | **every creature, about 1 in 4**, by the creature's character |
 | Coin | some creatures, 1 in 4 | every creature that carries any, 1 in 3, and more of it |
 | Trophy | about 1 in 300 or rarer | about 1 in 150 |
-| Rare gear (below) | rare weapons 1 in 750 to 1,000 | **1 in 150**, certain by 300 |
+| Rare gear (below) | rare weapons 1 in 750 to 1,000 | **1 in 150**, no bad luck protection |
 
 The "useful good" is chosen by the creature's character, so a tear helps the whole economy, not only fighters: the Afanc fells Lanai, the Myrmex digs Ambren Ore, the Stymphalian Bird sheds Feathers. **SIM** the totals: a 300-kill horde should bring a crowd a good evening's haul, not a week's supply of anything. Feathers are the one place to be generous (arrows have always wanted them).
 
@@ -116,7 +116,7 @@ Nathan's rule (2026-11-27): **some invaders drop gear that beats its tier, mostl
 It is the rare weapons' rule (`docs/combat-spec.md` §10) carried into other skills:
 
 - **As good as the next tier's made piece**, worn or used from the dropping creature's level in the skill it serves (a hatchet gates on Woodcutting, boots on Wayfaring; through `gateSkill` in `services/equipGates.ts`, which needs a branch for each new kind), and **far more durable** than the made one (`items.durability_*`).
-- **Rare, but reachable in a tear:** 1 in 150 with bad luck protection at 300 kills (counted from `player_creature_kills`, so it carries across tears), and **one rare drop per creature at most**. A tear of 300 kills over six creatures is about 50 kills each, so a crowd sees one now and then, and a regular gets theirs over a few tears. They trade, which is how a non-fighter gets one: a gatherer buys boots off a fighter.
+- **Rare, but reachable in a tear:** 1 in 150, and **one rare drop per creature at most**. **No bad luck protection** (Nathan, 2026-11-27): a tear is a treat, and its rare drop is luck, not a counter worked off. A tear of 300 kills over six creatures is about 50 kills each, so a crowd sees one now and then, and nobody is owed one. They trade, which is how a non-fighter gets one: a gatherer buys boots off a fighter.
 - **Never the only way.** Each is a better version of something a player can already make or buy, so the circularity rule holds (CLAUDE.md §2): nothing essential sits behind a tear that only staff open.
 - **Each uses a speed hook that already exists, or names the one it needs:**
 
