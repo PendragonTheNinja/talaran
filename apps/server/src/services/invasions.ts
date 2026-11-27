@@ -7,6 +7,7 @@ import { SERVER_ERROR } from '../lib/serviceResult'
 import { tierOfLevel } from '../lib/tiers'
 import { announceServer } from './records'
 import { creditGoldWithin, lockPlayersInOrder } from './gold'
+import { noteDeed } from './chronicle'
 import { EVENTS_CHANGED } from './worldEvents'
 
 // Invasions (docs/invasions-spec.md). Staff open a tear at a place; creatures
@@ -311,6 +312,26 @@ export async function finishTear(eventId: number): Promise<void> {
         }
         for (const p of paid) {
             pushToPlayer(p.playerId, 'invasion_reward', { place: p.place, gold: p.gold, kills: p.kills, location: event.place, held })
+        }
+
+        // The Chronicle (chronicle_deed_kinds invasion_held, invasion_lost): a
+        // held tear names whoever killed most; a lost one names nobody. Staff
+        // closing an empty tear is not news.
+        const realmName = event.realm_id ? (await db('realms').where({ id: event.realm_id }).first('name'))?.name ?? null : null
+        if (held && top.length) {
+            noteDeed(db, { kind: 'invasion_held', playerId: top[0].playerId, subject: event.place ?? null,
+                data: { place: event.place, realm: realmName, kills: top[0].kills, fighters: count } })
+        } else if (!held && count > 0) {
+            noteDeed(db, { kind: 'invasion_lost', subject: event.place ?? null, data: { place: event.place, realm: realmName, fighters: count } })
+        }
+
+        // Feats (tears_held, tears_first): everyone who placed, now the tear is
+        // closed and its rewards are in.
+        const placed = await db('world_event_participation').where({ event_id: eventId })
+            .where('actions', '>=', Math.max(1, Number(event.min_kills ?? TEAR_DEFAULTS.minKills))).pluck('player_id')
+        const { evaluateFeats } = await import('./feats')
+        for (const playerId of placed) {
+            for (const feat of await evaluateFeats(Number(playerId))) pushToPlayer(Number(playerId), 'feat_earned', feat)
         }
         pushToAll(EVENTS_CHANGED, {})
         logger.info(`[invasions] tear ${eventId} ${held ? 'held' : `closed (${event.end_reason})`}; paid ${paid.map(p => `${p.playerId}:${p.gold}`).join(', ') || 'nobody'}`)

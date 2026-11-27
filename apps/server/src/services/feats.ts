@@ -115,6 +115,20 @@ async function snapshot(playerId: number) {
     // not finish without them: 'bestiary_all' counts Talaran's own creatures
     // (docs/invasions-spec.md §3). They count for 'bestiary_one' like any kill.
     const nativeKills = killRows.filter(r => r.realm_id == null).map(r => Number(r.kills ?? 0))
+    // Invaders (docs/invasions-spec.md §6): 'invaders_all' asks for one of
+    // every invader in the world today.
+    const invaderKills = killRows.filter(r => r.realm_id != null).map(r => Number(r.kills ?? 0))
+
+    // Tears: 'tears_held', the held tears this player placed in (at least the
+    // tear's minimum kills), and 'tears_first', the tears they topped.
+    const heldRow = await db('world_event_participation as p')
+        .join('world_events as e', 'e.id', 'p.event_id')
+        .where({ 'p.player_id': playerId, 'e.kind': 'invasion', 'e.end_reason': 'pool' })
+        .whereRaw('p.actions >= coalesce(e.min_kills, 5)')
+        .count({ n: '*' }).first()
+    const tearsHeld = Number(heldRow?.n ?? 0)
+    const firstRow = await db('invasion_rewards').where({ player_id: playerId, place: 1 }).count({ n: '*' }).first()
+    const tearsFirst = Number(firstRow?.n ?? 0)
 
     // Days this player had a line of their own in Wenna's tidings (the long
     // roll does not count, and a struck line is unsaid): 'chronicle_days'.
@@ -129,7 +143,7 @@ async function snapshot(playerId: number) {
     // The islands whose islets this player has met Quank among: 'quank_met'.
     const quankIslands = new Set<string>(await db('player_quank_met').where({ player_id: playerId }).pluck('island'))
 
-    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, nativeKills, chronicleDays, quankIslands }
+    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, nativeKills, invaderKills, tearsHeld, tearsFirst, chronicleDays, quankIslands }
 }
 
 /**
@@ -146,6 +160,8 @@ function targetOf(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number
     // Every creature in the world today: a new creature raises it. Earned
     // feats are never taken back (player_feats rows stay).
     if (feat.criterion_kind === 'bestiary_all') return snap.nativeKills.length
+    // Every invader in the world today, as bestiary_all counts the natives.
+    if (feat.criterion_kind === 'invaders_all') return snap.invaderKills.length
     return Number(feat.criterion_value)
 }
 
@@ -184,6 +200,13 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
             const bar = Number(feat.criterion_target) || 1
             return snap.nativeKills.filter(k => k >= bar).length
         }
+        // Tears (docs/invasions-spec.md §6).
+        case 'invaders_all':
+            return snap.invaderKills.filter(k => k >= (Number(feat.criterion_target) || 1)).length
+        case 'tears_held':
+            return snap.tearsHeld
+        case 'tears_first':
+            return snap.tearsFirst
         // Distinct days named in a page's own lines (services/chronicleComposer.ts).
         case 'chronicle_days':
             return snap.chronicleDays
