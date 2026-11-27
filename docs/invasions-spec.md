@@ -1,6 +1,6 @@
 # Invasions: design
 
-*Fourth draft, 2026-11-27: the roster is simulated and its drops are set; nothing is open. **Built so far (2026-11-27):** steps 1 to 3 on the server, the realms and creatures of step 6, and the top-three gold of step 4; see §12. Nothing here is built. It extends the world-events system (`docs/WORLD-EVENTS-AND-MUSEUMS.md`, "Invasions, later") and the fight engine (`docs/combat-spec.md`). Where this conflicts with either, they win until Nathan decides otherwise. **OPEN** marks what waits on Nathan; **SIM** marks what `scripts/combatSim.ts` settles before any content is seeded.*
+*Fourth draft, 2026-11-27: the roster is simulated and its drops are set; nothing is open. **Built (2026-11-27):** every step but the patch notes and the art; see §12. Nothing here is built. It extends the world-events system (`docs/WORLD-EVENTS-AND-MUSEUMS.md`, "Invasions, later") and the fight engine (`docs/combat-spec.md`). Where this conflicts with either, they win until Nathan decides otherwise. **OPEN** marks what waits on Nathan; **SIM** marks what `scripts/combatSim.ts` settles before any content is seeded.*
 
 **Decided (Nathan, 2026-11-27):** they are called **tears**. **Staff send every invasion**; there is no automatic schedule. Gatherers at the place **are not affected**. The realms are **Greek myth and the Welsh Otherworld**, twelve creatures between them (§7, roster approved). Invaders drop more and better than natives, and their rare gear has **no bad luck protection** (§6). An invader's best drops are **gear for other skills, better than its tier** (§6).
 
@@ -278,5 +278,13 @@ Each step ships and is proven on its own.
 
 **Increment 2 (2026-11-27), client.** `AdminTears.tsx`: Send a Tear (realms with their creatures by tier, place, horde, length, bonus, kills to place, opening time, warning, a per-player cap, the lines) and a card per tear (state, horde, standings, who was paid, Close It); inside the admin Events tab, and a Tears tab of its own for a moderator with `can_run_events` (tick box in Mod Permissions). The Events panel and the location panel show a tear (a coming one says only where and when; `listEvents` sends no realm for it); the location re-reads on `tear_changed`; the top three get a lasting log line and their purse re-read on `invasion_reward`. Checked in a browser against the scratch database.
 
-**Still to build:** the Chronicle deed kinds and their verses, the feats, the seven pieces of rare gear and their hooks (the Forgefire Hammer now rides the smelting tool rule, commit `0a55398`), creature art, the Manual page, and patch notes.
+**Increment 3 (2026-11-27).**
+- **One tear a place, not an island** (Nathan): an event may run several at once, each at a place staff choose, on any island.
+- **Rare gear** (migration `20261127140000_invasion_rare_gear`): the seven pieces at 1 in 150, five times a made tool's life (`durability_life_factor` 5), priced by `values:derive` as combat-only (810 to 1,650). `items.works_as_tier` (`workingTier` in `lib/tiers.ts`) is read by the hatchet and pick (`calculateTimer`), the bow (catch chance) and bench slots (`getSocketed`, so bench recipes and smelting); `items.forage_speed_pct` by `gloveSpeedAt` in `services/foraging.ts`, only where the habitat needs gloves. Staff and boots are worn on Wayfaring (`services/equipGates.ts`). The Forgefire Hammer works as tier 3, but a bench goes at its weakest tool's speed (Nathan, 2026-11-27), so until tier 3 tongs and anvils exist it is a Serph hammer that lasts five times as long.
+- **Chronicle and feats** (migration `20261127150000_invasion_chronicle_feats`): deed kinds `invasion_held` (the top killer, `{n}` their kills) and `invasion_lost` (nobody), ten verses each and three of Wenna's apiece, a `{realm}` slot in the composer; feats Held the Line, Ten Tears Mended, The Mender (title, badge), Top of the Tally, and Between Worlds (`tears_held`, `tears_first`, `invaders_all` in `services/feats.ts`), checked for everyone who placed when a tear is paid.
+- **Manual:** Systems > Tears (`systems/tears.md`).
+
+**Art wanted** (`pnpm images:audit`): the twelve creatures in `images/bestiary/` (`Cŵn_Annwn.png` keeps the ŵ), and in `images/items/` the twelve trophies and the seven pieces of gear.
+
+**Still to build:** patch notes, when Nathan says.
 
