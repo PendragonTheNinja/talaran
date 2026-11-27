@@ -68,6 +68,19 @@
   transition: background 0.1s;
 }
 
+/* A name, a tag, and a Trade button do not fit a phone's narrow column: let
+   the row wrap so the button drops under the name instead of being cut off
+   (forum, 2026-11-27). The button never shrinks. */
+.location-player {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.location-trade-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .location-player:hover {
   background: var(--color-bg-hover);
 }

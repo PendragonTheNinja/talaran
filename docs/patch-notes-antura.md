@@ -64,7 +64,7 @@
 - [Feature] **The ferry** runs between **Talador and Wendhaven**: **50 gold** a crossing, **8 minutes**, open to anyone, and it pays no Wayfaring.
 - [Feature] **Your own boat makes the same crossing**, faster than the ferry, and pays Wayfaring at sea's rate. At a port, the slip, the ferry, and your own boats are all under one **Sail** entry in the place's links.
 - [Content] **Antura's roads follow its map**, timed at the same rate as Taiar's, a little longer where they climb. The longest is **Farvick Narrows to Vergehorns**, about **4 minutes** on foot at the start, the longest road in Talaran by far.
-- [Feature] **Benches of your own on Antura**: a **smithy** (forge and kiln) in **Mettlefell**, a **lapidary** in **Wendhaven**, and a **hearth** at **Farefield**, so Serph, garnet, and Antura's food can be worked where they are found. There are no public benches on Antura; bring your own tools.
+- [Feature] **Benches of your own on Antura**: a **smithy** (forge and kiln) in **Mettlefell**, a **workbench** in **Wendhaven** (your own lapidary, and a **Crafting Bench** for sewing and camp work), and a **hearth** at **Farefield**, so Serph, garnet, the Snallyscale set, and Antura's food can be made where they are found. There are no public benches on Antura; bring your own tools.
 - [UI] **The map heading names the island you are on**, and every place on Antura has its own picture, with its roads marked on it.
 
 ## Boats

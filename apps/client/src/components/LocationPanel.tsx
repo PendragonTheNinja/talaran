@@ -145,6 +145,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   // where tanning does; a lapidary may stand alone.
   const isCaliwen = benchHere('tanning')
   const hasLapidary = benchHere('lapidary')
+  // The Crafting Bench: Crafting's benchless work (sewing, cordage, nets).
+  const hasCraftBench = benchHere('crafting')
   const isPhoenwick = benchHere('cooking')
   // An island's homestead ground and its port with player shops, as the server marks them (services/islands.ts).
   const isHomestead = !!locationData?.homesteadHere
@@ -933,14 +935,14 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           </div>
         )}
 
-        {/* Crafting: the craftworks where tanning stands, or a lapidary alone. */}
-        {(isCaliwen || hasLapidary) && (
+        {/* Crafting: the craftworks where tanning stands, or a workbench (lapidary, Crafting Bench) elsewhere. */}
+        {(isCaliwen || hasLapidary || hasCraftBench) && (
           <div className="location-submenu">
             <button
               className={`location-action-btn submenu-toggle ${craftworksOpen ? 'open' : ''}`}
               onClick={() => setCraftworksOpen(!craftworksOpen)}
             >
-              {craftworksOpen ? '▼' : '▶'} {isCaliwen ? 'Craftworks' : 'Lapidary'}
+              {craftworksOpen ? '▼' : '▶'} {isCaliwen ? 'Craftworks' : 'Workbench'}
             </button>
             {craftworksOpen && (
               <div className="submenu-items">
@@ -1001,13 +1003,6 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   </>
                 )}
 
-                {/* Bench */}
-                <button
-                  className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
-                  onClick={() => onStartAction('crafting_menu', 0)}
-                >
-                  Crafting Bench
-                </button>
 
                 {/* Spinning and weaving (migration 20261103140000): your own
                     wheel and loom, or the public pair here at half speed. */}
@@ -1031,6 +1026,16 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                 </button>
 
                 </>)}
+
+                {/* The Crafting Bench (bench type 'crafting'): Caliwen's, and Wendhaven's. */}
+                {hasCraftBench && (
+                  <button
+                    className={`location-action-btn sub ${currentAction === 'crafting' ? 'active' : ''}`}
+                    onClick={() => onStartAction('crafting_menu', 0)}
+                  >
+                    Crafting Bench
+                  </button>
+                )}
 
                 {/* Lapidary: gems are cut here, and later set into jewelry.
                     Gated on Geosper's quest like the other keepers' benches. */}
@@ -1133,9 +1138,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                   clickable name so it does not read as part of the profile
                   link. */}
               {p.guild_tag && <span className="location-guild-tag">[{p.guild_tag}]</span>}
-              {locationData?.location?.name === 'Talador' && p.id !== currentPlayerId && (
+              {locationData?.tradeHere && p.id !== currentPlayerId && (
                 <button
-                  className="btn"
+                  className="btn location-trade-btn"
                   style={{ fontSize: '11px', padding: '2px 6px' }}
                   onClick={() => onRequestTrade?.(p.id)}
                 >

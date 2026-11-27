@@ -167,7 +167,12 @@ function recipeWhere(skill: string, station: string | null, requiredTools: strin
     // A station-less recipe still belongs to its skill's town. Cut Granite Block
     // names no bench and is Caliwen work all the same, so the skill map is the
     // right answer here rather than "Anywhere".
-    if (!station) return townOrComplain(skill);
+    if (!station) {
+        // A skill's benchless work, where a bench of the skill's own name
+        // stands (Crafting: Caliwen or Wendhaven).
+        const towns = benchTowns.get(skill.toLowerCase());
+        return towns?.length ? towns.join(' or ') : townOrComplain(skill);
+    }
 
     // Every town that allows this bench (locations.bench_types), so Serph
     // work reads "Emberra or Mettlefell"; the fixed map is the fallback.

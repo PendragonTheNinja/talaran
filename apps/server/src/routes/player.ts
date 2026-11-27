@@ -237,7 +237,19 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         ...(isSelf ? { deaths: Number(stats?.total_combat_deaths ?? 0) } : {}),
       };
 
-      res.json({ player, skills: skillsWithLevels, equipment, totalLevel, totalXp, combatLevel, combat });
+      // A Trade button on the profile when you both stand in the same port
+      // (Nathan, 2026-11-27): the Players Here button is squeezed out of a
+      // phone's narrow column. Says only what Players Here already shows.
+      let canTrade = false;
+      if (!isSelf) {
+        const both = await db('players').whereIn('id', [targetId, req.player!.playerId]).select('id', 'current_location_id');
+        const here = both.find((p: { id: number }) => p.id === req.player!.playerId)?.current_location_id;
+        const there = both.find((p: { id: number }) => p.id === targetId)?.current_location_id;
+        const { isTradingPlace } = await import('../services/islands');
+        canTrade = !!here && here === there && (await isTradingPlace(here));
+      }
+
+      res.json({ player, skills: skillsWithLevels, equipment, totalLevel, totalXp, combatLevel, combat, canTrade });
     } catch (err) {
       logger.error(`Profile error: ${err}`);
       res.status(500).json({ error: 'Server error' });

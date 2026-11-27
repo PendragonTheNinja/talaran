@@ -66,9 +66,16 @@ router.get('/:id/dialogue', requireAuth, async (req: AuthRequest, res: Response)
         const rare = forceStage ? null : await rareLine(npc.id);
         const errand = forceStage ? null : (await errandTalk(playerId, npc)) ?? (await dailyTalk(playerId, npc));
         if (errand) {
+            // The NPC's standing services ride along (Geoffrey's locks, a
+            // tavern's book), before "Leave": a daily task hid Geoffrey's
+            // "open a locked chest" from everyone past his lesson (2026-11-27).
+            const services = await standingServices(playerId, npc.id);
+            const options = [...errand.options];
+            const leaveAt = options.findIndex((o: any) => o?.action === 'close');
+            options.splice(leaveAt >= 0 ? leaveAt : options.length, 0, ...services.filter(sv => !options.some((o: any) => o?.action === sv.action)));
             res.json({
                 npc, stage: 'errand', pendingRewards: null, questProgress: null,
-                dialogue: { npc_id: npc.id, stage_key: 'errand', text_lines: rare ? [...errand.lines, rare] : errand.lines, options: errand.options },
+                dialogue: { npc_id: npc.id, stage_key: 'errand', text_lines: rare ? [...errand.lines, rare] : errand.lines, options },
             });
             return;
         }
@@ -413,6 +420,22 @@ async function resolveActionQuest(payload: string, npcId: number) {
  * The client's own `?stage=` override on the dialogue GET is display only; it
  * never widens what this function accepts.
  */
+/**
+ * The options on this NPC's current stage that are a service rather than a
+ * step in a quest or the talk itself: anything with an action that is not
+ * closing, starting a quest, or handing one in (unlock_chests, open:<panel>).
+ * offeredActions already accepts them, since they are on the resolved stage.
+ */
+async function standingServices(playerId: number, npcId: number): Promise<{ label: string; action: string; next_stage: null }[]> {
+    const { stage } = await resolveStage(playerId, npcId);
+    const row = await db('npc_dialogues').where({ npc_id: npcId, stage_key: stage }).first('options');
+    const opts = typeof row?.options === 'string' ? JSON.parse(row.options) : (row?.options || []);
+    const QUEST_STEP = /^(close|start_quest|complete_talk_objective|complete_quest|give|daily_|errand_)/;
+    return (Array.isArray(opts) ? opts : [])
+        .filter((o: any) => o?.action && !QUEST_STEP.test(String(o.action)))
+        .map((o: any) => ({ label: String(o.label), action: String(o.action), next_stage: null }));
+}
+
 async function offeredActions(playerId: number, npc: any): Promise<Set<string>> {
     const rows = await db('npc_dialogues').where({ npc_id: npc.id });
     const byStage = new Map<string, any[]>();

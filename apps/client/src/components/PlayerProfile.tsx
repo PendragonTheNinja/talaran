@@ -40,6 +40,8 @@ interface ProfileData {
     totalXp: number
     /** From the server; never worked out here. */
     combatLevel?: number
+    /** You both stand in the same port (routes/player.ts), so a trade may be asked for. */
+    canTrade?: boolean
 }
 
 interface PublicGuild {
@@ -56,6 +58,8 @@ interface PlayerProfileProps {
     onMessage?: (username: string) => void
     /** The viewer's own name: no Whisper button on their own profile. */
     selfName?: string
+    /** Asks them to trade; shown only when the server says you both stand in a port. */
+    onTrade?: (playerId: number) => void
 }
 
 const SLOTS = [
@@ -73,7 +77,7 @@ const SLOTS = [
     { key: 'trophy', label: 'Trophy' },
 ]
 
-export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage, selfName }: PlayerProfileProps) {
+export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage, selfName, onTrade }: PlayerProfileProps) {
     const [hasPalettePerk, setHasPalettePerk] = useState(false)
     useEffect(() => {
         apiFetchPalettes<{ hasPerk: boolean }>('/api/palettes')
@@ -182,6 +186,11 @@ export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage,
                                 {onMessage && (
                                     <button className="btn btn-gold profile-whisper-btn" onClick={() => onMessage(profile.player.username)}>
                                         Message
+                                    </button>
+                                )}
+                                {onTrade && profile.canTrade && (
+                                    <button className="btn btn-gold profile-whisper-btn" onClick={() => onTrade(profile.player.id)}>
+                                        Trade
                                     </button>
                                 )}
                             </div>

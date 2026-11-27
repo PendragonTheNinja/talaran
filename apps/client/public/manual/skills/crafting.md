@@ -21,7 +21,7 @@ This makes Crafting unusual in one important way: **it is almost never the first
 
 Each discipline has its own tempo and its own equipment. What they share is a level, so raising Crafting anywhere raises it everywhere.
 
-There are four, each with a tab of its own: **Tanning**, the **Lapidary**, **Sewing**, which makes armor and cloaks out of whatever a creature left behind, and the **Camp Work**, the small useful things that need no bench at all. On Taiar, all of it is done in **Caliwen**. Antura has a lapidary and nothing more: you may set up your own in **Wendhaven**, so its garnets can be cut where they are mined. Tanning, the wheel and loom, and the sewing are Caliwen's alone, which is a long way to carry a Snallygaster's scales, and you will do it anyway.
+There are four, each with a tab of its own: **Tanning**, the **Lapidary**, **Sewing**, which makes armor and cloaks out of whatever a creature left behind, and the **Camp Work**, the small useful things that need no bench at all. On Taiar, all of it is done in **Caliwen**. Antura has a **workbench** in **Wendhaven**: a lapidary of your own, so its garnets can be cut where they are mined, and a **Crafting Bench**, where the sewing and the camp work are done, so the Snallyscale set and the Bearverine Mantle are made on the island that gives them. Tanning and the wheel and loom are Caliwen's alone.
 
 ## Level does more than open recipes
 

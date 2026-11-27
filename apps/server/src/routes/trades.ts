@@ -6,10 +6,10 @@ import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { getGold, lockPlayersInOrder, transferGoldWithin } from '../services/gold';
 import { pushToPlayer } from '../lib/realtime';
+import { isTradingPlace, tradingPlaces } from '../services/islands';
 
 const router = Router();
 
-const TRADING_POST_LOCATION = 'Talador';
 
 /** How long a trade request waits for an answer before it lapses. */
 const TRADE_REQUEST_SECONDS = 120;
@@ -77,9 +77,9 @@ router.post('/request', requireAuth, requireTrusted, async (req: AuthRequest, re
         const location = await db('locations').where({ id: player.current_location_id }).first();
         logger.info(`Trade request: player ${playerId} at ${location.name}, target ${targetPlayerId}`)
 
-        if (location.name !== TRADING_POST_LOCATION) {
-            logger.info(`Trade rejected: not at trading post`)
-            res.status(400).json({ error: 'You can only trade at the Trading Post in Talador.' });
+        if (!(await isTradingPlace(player.current_location_id))) {
+            logger.info(`Trade rejected: not at a port`)
+            res.status(400).json({ error: `You can only trade in a port: ${await tradingPlaces()}.` });
             return;
         }
 

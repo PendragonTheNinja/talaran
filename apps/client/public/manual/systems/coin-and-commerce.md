@@ -50,6 +50,12 @@ Talaran's day runs on Eastern time, in case you are the sort who plans around it
 
 The panel will always show you the arithmetic before you agree to anything. If a sale crosses one of those steps you will see exactly where, and exactly what the whole lot fetches, before a single item leaves your pack. A merchant who paid you less than the screen promised would be a merchant nobody trusted twice.
 
+## Trading hand to hand
+
+The plainest market of all is two people standing in the same place. **In a port**, Talador on Taiar or Wendhaven on Antura, you may ask anyone standing there with you to trade: from the Trade beside their name among the players here, or from the Trade on their profile. Each of you lays out goods and gold, both of you agree, and the lot changes hands at once, or not at all.
+
+Nothing is taken off the top and nobody sets the price but the two of you. It is also the one kind of trade in which you can look the other party in the eye, which I recommend, briefly, before you agree.
+
 ## Player shops
 
 Everything above describes the floor and the ceiling. **Players live in between.**

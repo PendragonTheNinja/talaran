@@ -64,3 +64,19 @@ export async function islandTowns(x: any = db): Promise<{ homesteads: Set<string
     if (!shops.size) shops.add(TAIAR.shop_town);
     return { homesteads, shops };
 }
+
+/**
+ * Whether players may trade at this place: every island's port, where its
+ * shops stand (islands.shop_town), Talador and Wendhaven today. Trading was
+ * Talador's alone by name until Antura (Nathan, 2026-11-27).
+ */
+export async function isTradingPlace(locationId: number, x: any = db): Promise<boolean> {
+    const loc = await x('locations').where({ id: locationId }).first('name');
+    if (!loc) return false;
+    return (await islandTowns(x)).shops.has(loc.name);
+}
+
+/** The trading ports in words, for a refusal ("Talador or Wendhaven"). */
+export async function tradingPlaces(x: any = db): Promise<string> {
+    return [...(await islandTowns(x)).shops].join(' or ');
+}

@@ -843,6 +843,19 @@ export default function GameLayout({
     />
   )
 
+  // Asks another player to trade: from Players Here, or from their profile.
+  const requestTrade = async (targetPlayerId: number) => {
+    try {
+      await apiFetch('/api/trades/request', {
+        method: 'POST',
+        body: JSON.stringify({ targetPlayerId }),
+      })
+      onNotify?.('Trade request sent! Waiting for response...')
+    } catch (err: any) {
+      onNotify?.(`Trade failed: ${err.message}`)
+    }
+  }
+
   const locationPanelEl = (
     <LocationPanel
       locationData={locationData}
@@ -864,17 +877,7 @@ export default function GameLayout({
         onLocationDataUpdate()
       }}
       onViewProfile={(id: number) => setProfilePlayerId(id)}
-      onRequestTrade={async (targetPlayerId) => {
-        try {
-          await apiFetch('/api/trades/request', {
-            method: 'POST',
-            body: JSON.stringify({ targetPlayerId }),
-          })
-          onNotify?.('Trade request sent! Waiting for response...')
-        } catch (err: any) {
-          onNotify?.(`Trade failed: ${err.message}`)
-        }
-      }}
+      onRequestTrade={requestTrade}
       currentPlayerId={player.id}
       selfName={player.username}
       smithingStatusKey={smithingStatusKey}
@@ -1509,6 +1512,10 @@ export default function GameLayout({
             setChatDraft(`${name}@`)
             setProfilePlayerId(null)
             window.dispatchEvent(new Event(CHAT_OPEN_EVENT))
+          }}
+          onTrade={(id: number) => {
+            setProfilePlayerId(null)
+            requestTrade(id)
           }}
         />
       )}
