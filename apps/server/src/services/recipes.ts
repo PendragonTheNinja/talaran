@@ -9,7 +9,8 @@ import { rollGrade } from '../lib/gemGrades'
 import { logger } from '../lib/logger'
 import { incrementStats } from './stats'
 import { updateQuestObjectiveProgress } from '../routes/quests'
-import { checkStation, parseRequiredTools } from './workstations'
+import { checkStation, getSocketed, getWorkstation, parseRequiredTools, tierMultiplier } from './workstations'
+import { tierOfLevel } from '../lib/tiers'
 import { buffTimerBonus, timerCut } from './buffs'
 import { awardXp } from './xp';
 import { SERVER_ERROR } from '../lib/serviceResult';
@@ -166,9 +167,15 @@ export async function stationMultiplier(playerId: number, recipe: any): Promise<
 
 /**
  * The timer for a processing action outside the recipes table (smelting,
- * sawing): levels over it, then the public bench's x2, held to the floor.
- * The start routes and the tick's repeat both call this, so the second lap
- * runs as fast as the first.
+ * sawing): levels over it, then the public bench's x2, or a better tool's
+ * speed at the player's own bench, held to the floor. The start routes and
+ * the tick's repeat both call this, so the second lap runs as fast as the
+ * first.
+ *
+ * A tool above the work's tier speeds it, as at every bench (Nathan,
+ * 2026-11-27): tierMultiplier, the bench recipes' own rate, read from the
+ * tools processingToolTier names. Never slower: neither job has ever needed
+ * them, so a tool below the work, or none, leaves the timer as it was.
  */
 export async function processingTimerFor(
     playerId: number,
@@ -177,8 +184,46 @@ export async function processingTimerFor(
     usingPublicBench: boolean,
 ): Promise<number> {
     const level = await playerSkillLevel(playerId, skillName)
-    return processingTimer(recipe.timer, level, recipe.requiredLevel, usingPublicBench ? 2 : 1)
+    let multiplier = usingPublicBench ? 2 : 1
+    if (!usingPublicBench) {
+        const toolTier = await processingToolTier(playerId, skillName)
+        if (toolTier !== null) multiplier = Math.min(1, tierMultiplier(toolTier, tierOfLevel(recipe.requiredLevel)) ?? 1)
+    }
+    return processingTimer(recipe.timer, level, recipe.requiredLevel, multiplier)
 }
+
+/**
+ * The tier of the tools a processing job uses at the player's own bench, or
+ * null when it uses none. Smelting: the smithy's hammer and tongs, the lower
+ * of the two, both fitted and sound (Nathan, 2026-11-27: they serve smelting
+ * as well as smithing). Optional, so a public forge, Geoffrey's, still
+ * smelts without them. Sawing: the saw in hand.
+ */
+async function processingToolTier(playerId: number, skillName: string): Promise<number | null> {
+    if (skillName === 'Smithing') {
+        const player = await db('players').where({ id: playerId }).first('current_location_id')
+        if (!player) return null
+        const station = await getWorkstation(playerId, player.current_location_id, 'smithing')
+        if (!station) return null
+        const socketed = await getSocketed(station.id)
+        const tiers: number[] = []
+        for (const slot of SMELTING_TOOL_SLOTS) {
+            const tool = socketed.find(s => s.slot === slot && !s.broken)
+            if (!tool) return null
+            tiers.push(Number(tool.tier) || 1)
+        }
+        return Math.min(...tiers)
+    }
+    if (skillName === 'Carpentry') {
+        const { equippedBuildTool, BUILD_SAW } = await import('./construction')
+        const saw = await equippedBuildTool(playerId, BUILD_SAW.subtype)
+        return saw ? Number(saw.tier) || 1 : null
+    }
+    return null
+}
+
+/** The smithy's slots whose tools also speed smelting. */
+export const SMELTING_TOOL_SLOTS = ['hammer', 'tongs']
 
 /** Effective timer for a recipe: levels over it, station and tool tier, buffs, the floor. */
 export async function recipeTimerFor(playerId: number, recipe: any): Promise<number> {
