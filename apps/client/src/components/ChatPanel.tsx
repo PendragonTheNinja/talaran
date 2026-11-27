@@ -180,6 +180,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
             // field by field, so anything not copied here is simply lost.
             badgeKey: m.badgeKey ?? null,
             badge: m.badge ?? null,
+            nameColor: m.nameColor ?? null,
             message: m.message,
             timestamp: formatTime(new Date(m.sent_at)),
             rawTimestamp: new Date(m.sent_at).getTime(),
@@ -263,6 +264,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           guildTag: data.guildTag || data.guild_tag || null,
           badgeKey: data.badgeKey ?? null,
           badge: data.badge ?? null,
+          nameColor: data.nameColor ?? null,
           message: data.message,
           timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),

@@ -1243,11 +1243,17 @@ export default function GameView({
     const onSupporterBadge = (d: { name: string }) => {
       addLog(`Thank you for supporting Talaran. You may now wear the ${d.name} badge; choose it in your Feats.`, 'success', 'lasting')
     }
+    // A gift from the store (server services/store.ts giftItem).
+    const onStoreGift = (d: { from: string; item: string }) => {
+      addLog(`${d.from} has given you ${d.item}. It is in the Support panel.`, 'success', 'lasting')
+      window.dispatchEvent(new CustomEvent('talaran:store-changed'))
+    }
     const socket = getSocket()
     socket?.on('feat_earned', onFeat)
     socket?.on('round_stood', onRound)
     socket?.on('invasion_reward', onTearReward)
     socket?.on('supporter_badge', onSupporterBadge)
+    socket?.on('store_gift', onStoreGift)
 
     window.addEventListener('talaran:notice', onNotice)
 
@@ -1257,6 +1263,7 @@ export default function GameView({
       socket?.off('round_stood', onRound)
       socket?.off('invasion_reward', onTearReward)
       socket?.off('supporter_badge', onSupporterBadge)
+      socket?.off('store_gift', onStoreGift)
       window.removeEventListener('talaran:notice', onNotice)
       window.removeEventListener('talaran:rate-limited', onLimited)
     }

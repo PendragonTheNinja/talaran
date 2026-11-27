@@ -266,7 +266,7 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
       // glyph joined in as the fallback for art that does not exist yet.
       .select('players.id', 'players.username', 'players.guild_tag',
               'players.worn_badge as badge_key', 'bf.badge as badge',
-              'players.worn_title as title');
+              'players.worn_title as title', 'players.name_color');
 
     res.json({ players });
   } catch (err) {

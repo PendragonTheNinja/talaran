@@ -1,3 +1,4 @@
+import { topPatrons } from '../services/supporter';
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
@@ -25,6 +26,16 @@ router.post('/donate', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // One museum, as this player sees it. Registered last: /:id matches anything.
+// The Patrons plaque: the ten who have given most to Talaran (services/supporter.ts).
+router.get('/patrons', requireAuth, async (_req: AuthRequest, res: Response) => {
+    try {
+        res.json({ patrons: await topPatrons() });
+    } catch (err) {
+        logger.error(`Patrons error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
         const state = await museumState(req.player!.playerId, Math.floor(Number(req.params.id)));

@@ -1865,6 +1865,22 @@ const SCENARIOS: Scenario[] = [
         },
     },
     {
+        id: 'gift', name: 'five gifts at once to five players, with Talers for one', rounds: 10,
+        run: async (ctx) => {
+            // The giver's row is locked (with the recipient's, in id order)
+            // before the balance is read, so the Talers are spent once. Unlocked,
+            // every gift saw 300 and every one went through.
+            const w = await world(ctx);
+            await ctx.seed.row('taler_ledger', { player_id: w.player.id, delta: 300, reason: 'racecheck_seed' });
+            const friends = [];
+            for (let i = 0; i < 5; i++) friends.push(await ctx.seed.row('players', { username: `Friend ${i}`, email: `friend${i}@racecheck.test`, current_location_id: w.town.id }));
+            const st = await ctx.burst(w.player.id, 5, (i) => ctx.post(w.player.id, '/store/gift', { key: 'theme:moonveil', to: `Friend ${i}` }));
+            const balance = Number((await ctx.db('taler_ledger').where({ player_id: w.player.id }).sum('delta as n'))[0].n);
+            const gifts = await ctx.db('store_gifts').where({ from_player_id: w.player.id });
+            return changed('Talers left', 0, balance) ?? changed('gifts given', 1, gifts.length) ?? succeeded(st, 1);
+        },
+    },
+    {
         id: 'guild', name: 'five members deposit at once, racing for the last three places in their storehouse', rounds: 10,
         run: async (ctx) => {
             // Room is counted in items: 7 of 10 taken, 3 places left. Five

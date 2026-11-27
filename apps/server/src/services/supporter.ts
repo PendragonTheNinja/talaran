@@ -62,3 +62,28 @@ export async function syncSupporter(playerId: number, announce = true): Promise<
         return []
     }
 }
+
+/** How many names the museums' Patrons plaque holds (Nathan, 2026-11-27). */
+export const PATRONS_SHOWN = 10
+
+/**
+ * The Patrons plaque: those who have given most, in order, by name and place
+ * only, never by how much. Anyone may leave themselves off it
+ * (player_settings.hide_from_patrons, Settings > Profile).
+ */
+export async function topPatrons(limit = PATRONS_SHOWN): Promise<{ rank: number; name: string }[]> {
+    const { rows } = await db.raw(`
+        SELECT pl.username AS name,
+               sum(p.usd_cents * greatest(0, p.talers + coalesce(a.moved, 0))::numeric / nullif(p.talers, 0)) AS cents,
+               min(p.created_at) AS first_at
+        FROM taler_purchases p
+        JOIN players pl ON pl.id = p.player_id
+        LEFT JOIN player_settings s ON s.player_id = p.player_id
+        LEFT JOIN (SELECT purchase_id, sum(talers) AS moved FROM taler_adjustments GROUP BY purchase_id) a ON a.purchase_id = p.id
+        WHERE coalesce(s.hide_from_patrons, false) = false
+        GROUP BY pl.id, pl.username
+        HAVING sum(p.usd_cents * greatest(0, p.talers + coalesce(a.moved, 0))::numeric / nullif(p.talers, 0)) > 0
+        ORDER BY cents DESC, first_at ASC
+        LIMIT ?`, [limit])
+    return rows.map((r: any, i: number) => ({ rank: i + 1, name: r.name }))
+}

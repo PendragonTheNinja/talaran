@@ -942,3 +942,37 @@ body {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
+
+/* Name colors (perk:name_color; server services/store.ts NAME_COLORS). A
+   supporter's name in chat and Players Here. Chosen to read on every dark
+   theme; a light page (Scriptorium, or a light custom palette) inks them
+   darker. None is the default gold, and none passes for staff. */
+:root {
+  --name-ember: #e8794a;
+  --name-holly: #e0505a;
+  --name-sea: #4fb3c8;
+  --name-heather: #b48ad8;
+  --name-frost: #a9d4ec;
+  --name-moss: #8fc46a;
+  --name-rose: #e88fb4;
+  --name-amber: #f0b04a;
+}
+:root[data-theme='scriptorium'],
+:root[data-tone='light'] {
+  --name-ember: #a8431a;
+  --name-holly: #9e1c28;
+  --name-sea: #1d6f82;
+  --name-heather: #6a3e94;
+  --name-frost: #2c6688;
+  --name-moss: #3f6e1f;
+  --name-rose: #a3305f;
+  --name-amber: #8a5a0a;
+}
+.gold-text.name-color-ember { color: var(--name-ember); }
+.gold-text.name-color-holly { color: var(--name-holly); }
+.gold-text.name-color-sea { color: var(--name-sea); }
+.gold-text.name-color-heather { color: var(--name-heather); }
+.gold-text.name-color-frost { color: var(--name-frost); }
+.gold-text.name-color-moss { color: var(--name-moss); }
+.gold-text.name-color-rose { color: var(--name-rose); }
+.gold-text.name-color-amber { color: var(--name-amber); }

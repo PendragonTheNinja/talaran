@@ -67,12 +67,23 @@ function CaseIcon({ c, hover }: { c: MuseumCase; hover: Record<string, unknown> 
     )
 }
 
+/** The Patrons plaque's tab, beside the exhibits (whose tabs are their ids). */
+const PATRONS_TAB = -1
+
 export default function MuseumPanel({ museumId, onClose }: { museumId: number; onClose: () => void }) {
     const { hoverProps, tooltipEl } = useItemTooltip()
     const [museum, setMuseum] = useState<Museum | null>(null)
     const [tab, setTab] = useState<number | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
+    // The Patrons plaque (server services/supporter.ts topPatrons), on a tab of its own.
+    const [patrons, setPatrons] = useState<{ rank: number; name: string }[] | null>(null)
+    useEffect(() => {
+        if (tab !== PATRONS_TAB || patrons) return
+        apiFetch<{ patrons: { rank: number; name: string }[] }>('/api/museum/patrons')
+            .then(d => setPatrons(d.patrons))
+            .catch(() => setPatrons([]))
+    }, [tab, patrons])
     const [giving, setGiving] = useState<MuseumCase | null>(null)
 
     const load = useCallback(() => {
@@ -145,7 +156,27 @@ export default function MuseumPanel({ museumId, onClose }: { museumId: number; o
                                 </button>
                             )
                         })}
+                        <button className={`farm-tab ${tab === PATRONS_TAB ? 'active' : ''}`} onClick={() => { setTab(PATRONS_TAB); setNotice(null) }}>
+                            Patrons
+                        </button>
                     </div>
+                )}
+
+                {tab === PATRONS_TAB && (
+                    <>
+                        <p className="farm-build-lead">
+                            A brass plaque by the door, polished more often than the cases. It names the ten who have given most to keep Talaran going.
+                        </p>
+                        {!patrons ? <p className="farm-empty">Reading the plaque…</p>
+                            : patrons.length === 0 ? <p className="farm-note">The plaque is still bare.</p>
+                            : (
+                                <ol className="museum-patrons">
+                                    {patrons.map(p => (
+                                        <li key={p.rank}><span className="tabular-num muted-text">{p.rank}.</span> <span className="gold-text">{p.name}</span></li>
+                                    ))}
+                                </ol>
+                            )}
+                    </>
                 )}
 
                 {exhibit && (

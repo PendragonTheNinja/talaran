@@ -53,6 +53,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             showItemAnimation: settings?.show_item_animation ?? true,
             hideTallyWhenBuilt: settings?.hide_tally_when_built ?? false,
             cookWithSalt: settings?.cook_with_salt ?? false,
+            hideFromPatrons: settings?.hide_from_patrons ?? false,
             manualReferenceMode: settings?.manual_reference_mode ?? false,
             combatContinueOffline: settings?.combat_continue_offline ?? false,
             combatAwayRules: COMBAT_AWAY_RULES,
@@ -341,6 +342,21 @@ router.post('/item-animation', requireAuth, async (req: AuthRequest, res: Respon
         // GET falls back to `?? true` when the column is missing, so the toggle
         // renders fine and only the write fails.
         logger.error(`Update item animation setting error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Leave oneself off the museums' Patrons plaque (services/supporter.ts topPatrons).
+router.post('/patrons-plaque', requireAuth, async (req: AuthRequest, res: Response) => {
+    const playerId = req.player!.playerId;
+    try {
+        await db('player_settings')
+            .insert({ player_id: playerId, hide_from_patrons: !!req.body?.hide })
+            .onConflict(['player_id'])
+            .merge(['hide_from_patrons']);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Update patrons plaque setting error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

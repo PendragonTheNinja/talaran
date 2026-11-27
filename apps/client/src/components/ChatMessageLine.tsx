@@ -16,6 +16,8 @@ export interface ChatMessage {
     guildTag: string | null
     badge?: string | null
     badgeKey?: string | null
+    /** A supporter's name color (server services/store.ts NAME_COLORS), or none. */
+    nameColor?: string | null
     message: string
     timestamp: string      // display format HH:MM
     rawTimestamp: number   // unix ms for sorting
@@ -196,7 +198,7 @@ export default function ChatMessageLine({ msg, onOpenForum, onPlayerClick }: Cha
             </span>
             {' '}
             <span
-                className="chat-player gold-text"
+                className={`chat-player gold-text${msg.nameColor ? ` name-color-${msg.nameColor}` : ''}`}
                 onClick={() => onPlayerClick?.(msg.playerName)}
                 style={{ cursor: onPlayerClick ? 'pointer' : 'default' }}
             >

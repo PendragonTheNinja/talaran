@@ -64,6 +64,10 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
     const [tab, setTab] = useState<SupportTab>(initialTab ?? 'talers')
     const { store, buy: buyItem, item, owns } = useTalerStore()
     const [confirmBuy, setConfirmBuy] = useState<{ key: string; name: string; price: number } | null>(null)
+    // Buying something for someone else (server services/store.ts giftItem).
+    const [giftFor, setGiftFor] = useState<{ key: string; name: string; price: number } | null>(null)
+    const [giftTo, setGiftTo] = useState('')
+    const [notice, setNotice] = useState<string | null>(null)
     const [previewing, setPreviewing] = useState<ThemeId | null>(null)
     const [balance, setBalance] = useState<number | null>(null)
     const [history, setHistory] = useState<LedgerEntry[]>([])
@@ -102,6 +106,25 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
         applyTheme(id)
         setPreviewing(null)
         try { await saveTheme(id) } catch { setError('Theme applied but could not be saved. It may reset on another device.') }
+    }
+
+    /** Give a store item to another player, after the confirmation. */
+    const give = async () => {
+        if (!giftFor) return
+        const what = giftFor
+        setGiftFor(null)
+        setError(null)
+        setNotice(null)
+        try {
+            const res = await apiFetch<{ balance: number; to: string }>('/api/store/gift', { method: 'POST', body: JSON.stringify({ key: what.key, to: giftTo.trim() }) })
+            setBalance(res.balance)
+            setNotice(`${what.name} is on its way to ${res.to}.`)
+            setGiftTo('')
+            loadBalance().catch(() => { })
+        } catch (err) {
+            const message = (err as { message?: string }).message
+            setError(message === 'Not enough Talers.' ? 'Not enough Talers. You can buy more on the Talers tab.' : message || 'The gift did not go.')
+        }
     }
 
     /** Buy a theme or perk with Talers, after the confirmation. */
@@ -194,6 +217,7 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                 </div>
 
                 <ErrorLine message={error} className="guild-error" />
+                {notice && <p className="guild-success">{notice}</p>}
 
                 {tab === 'talers' && (
                     <>
@@ -297,6 +321,9 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                                                     <button className="btn btn-gold" onClick={() => setConfirmBuy({ key: `theme:${t.id}`, name: t.name, price })}>Buy</button>
                                                 </>
                                             )}
+                                            {(!t.seasonal || saleLastDay) && (
+                                                <button className="btn" onClick={() => setGiftFor({ key: `theme:${t.id}`, name: t.name, price })}>Give</button>
+                                            )}
                                         </span>
                                     </div>
                                 )
@@ -348,6 +375,9 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                                     ) : (
                                         <button className="btn btn-gold" onClick={() => setConfirmBuy({ key: p.key, name: p.name, price: p.effectivePrice })}>Buy</button>
                                     )}
+                                    {p.available && (
+                                        <button className="btn" onClick={() => setGiftFor({ key: p.key, name: p.name, price: p.price })}>Give</button>
+                                    )}
                                 </span>
                             </div>
                         ))}
@@ -355,6 +385,16 @@ export default function SupportPanel({ playerId, onClose, closing, isGuest, init
                     </>
                 )}
             </div>
+            {giftFor && (
+                <ConfirmModal
+                    message={`Give ${giftFor.name} to another player for ${giftFor.price.toLocaleString()} Talers? They are told it came from you.`}
+                    confirmLabel="Give"
+                    onConfirm={give}
+                    onCancel={() => setGiftFor(null)}
+                >
+                    <input className="chat-input" value={giftTo} maxLength={32} placeholder="Their name" onChange={e => setGiftTo(e.target.value)} autoFocus />
+                </ConfirmModal>
+            )}
             {confirmBuy && (
                 <ConfirmModal
                     message={`Buy ${confirmBuy.name} for ${confirmBuy.price.toLocaleString()} Talers?`}

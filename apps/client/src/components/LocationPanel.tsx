@@ -48,6 +48,8 @@ interface PlayerAtLocation {
   guild_tag?: string | null
   badge_key?: string | null
   badge?: string | null
+  /** A supporter's name color (server services/store.ts NAME_COLORS), or none. */
+  name_color?: string | null
   combat_level?: number
   onRequestTrade?: (playerId: number) => void
 }
@@ -1127,7 +1129,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
           playersHere.map(p => (
             <div key={p.id} className="location-player">
               <span
-                className="location-player-name gold-text"
+                className={`location-player-name gold-text${p.name_color ? ` name-color-${p.name_color}` : ''}`}
                 style={{ cursor: 'pointer' }}
                 onClick={() => onViewProfile?.(p.id)}
               >

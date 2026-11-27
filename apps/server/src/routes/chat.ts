@@ -115,18 +115,21 @@ router.get('/history/:channel', chatReadLimit, requireAuth, async (req: AuthRequ
     // on it. A stored badge would freeze whatever the player wore that day, and
     // chat_messages has no column for one anyway. One lookup per distinct
     // sender, not per message.
-    const senders = [...new Set(messages.map((m: any) => m.player_name).filter(Boolean))];
+    // By the sender's id, not the name on the line: a name changed since
+    // (services/nameChange.ts) would otherwise lose its badge on old lines.
+    const senders = [...new Set(messages.map((m: any) => m.player_id).filter(Boolean))];
     const worn = senders.length
         ? await db('players as p')
             .leftJoin('feats as bf', 'bf.badge_key', 'p.worn_badge')
-            .whereIn('p.username', senders)
-            .select('p.username', 'p.worn_badge as badgeKey', 'bf.badge as badge')
+            .whereIn('p.id', senders)
+            .select('p.id', 'p.worn_badge as badgeKey', 'bf.badge as badge', 'p.name_color as nameColor')
         : [];
-    const byName = new Map(worn.map((w: any) => [w.username, w]));
+    const byId = new Map(worn.map((w: any) => [Number(w.id), w]));
     for (const m of messages as any[]) {
-        const w = byName.get(m.player_name);
+        const w = byId.get(Number(m.player_id));
         m.badgeKey = w?.badgeKey ?? null;
         m.badge = w?.badge ?? null;
+        m.nameColor = w?.nameColor ?? null;
     }
 
     res.json({ messages, resetAt: nextGameMidnight().toISOString() });
@@ -395,6 +398,8 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       guildTag: player.guild_tag || null,
       badgeKey: player.worn_badge || null,
       badge: await badgeGlyph(player.worn_badge || null),
+      // A supporter's name color (services/store.ts NAME_COLORS), or none.
+      nameColor: player.name_color || null,
       message: processedMessage,
       timestamp,
       sentAt: now.toISOString(),

@@ -1,5 +1,6 @@
 import db from '../db';
 import { logger } from '../lib/logger';
+import { pushToPlayer } from '../lib/realtime';
 import { getTalerBalance, spendTalersWithin } from './talers';
 
 // Cosmetic store (docs/support-spec.md §4). Catalog is code, not DB — theme
@@ -197,6 +198,15 @@ export function ownedStoreTitles(unlocks: string[]): string[] {
 }
 
 STORE_ITEMS.push({
+    key: 'perk:name_color',
+    name: 'Name Color',
+    description: 'Your name in a color of your choosing, in chat and among the folk standing about: ember, holly, sea, heather, frost, moss, rose, or amber.',
+    price: 400,
+    grants: ['perk:name_color'],
+    available: true,
+})
+
+STORE_ITEMS.push({
     key: 'token:name_change',
     name: 'Name Change',
     description: 'Go by a new name. Everyone has one change for free; this is one more. Your old name shows on your profile for a month, and a change waits a month after the last.',
@@ -216,6 +226,41 @@ export function hasUnlock(unlocks: string[], key: string): boolean {
 }
 
 /**
+ * One purchase inside a transaction that has locked both rows: the payer's
+ * Talers, the recipient's unlocks (the same player, or a friend for a gift).
+ * Refuses, by throwing nothing and returning an error, before anything is
+ * written; returns the talers paid and what was granted.
+ */
+async function buyWithin(trx: any, payerId: number, recipientId: number, item: StoreItem, gift: boolean):
+    Promise<{ error: string } | { granted: string[]; paid: number }> {
+    const owned: string[] = (await trx('player_unlocks').where({ player_id: recipientId }).pluck('unlock_key')).map(String);
+    if (item.consumable) {
+        const apply = CONSUMABLES[item.key];
+        if (!apply) return { error: 'That item is not available.' };
+        const paid = await spendTalersWithin(trx, { playerId: payerId, amount: item.price, reason: gift ? 'gift' : 'consumable', refType: 'store_item' });
+        if (!paid) return { error: 'Not enough Talers.' };
+        await apply(trx, recipientId);
+        return { granted: [item.key], paid: item.price };
+    }
+    const missing = item.grants.filter(g => !owned.includes(g));
+    if (missing.length === 0) return { error: gift ? 'They already own that.' : 'You already own this.' };
+    const price = effectivePrice(item, owned);
+    const paid = await spendTalersWithin(trx, { playerId: payerId, amount: price, reason: gift ? 'gift' : 'unlock', refType: 'store_item' });
+    if (!paid) return { error: 'Not enough Talers.' };
+    for (const key of missing) {
+        await trx('player_unlocks').insert({ player_id: recipientId, unlock_key: key });
+    }
+    return { granted: missing, paid: price };
+}
+
+function sellable(itemKey: string, now: Date): { item: StoreItem } | { error: string } {
+    const item = STORE_ITEMS.find(i => i.key === itemKey);
+    if (!item || !item.available) return { error: 'That item is not available.' };
+    if (!onSaleNow(item, now)) return { error: 'That is not on sale right now.' };
+    return { item };
+}
+
+/**
  * Purchase a store item: one transaction covering the balance check, the
  * debit, and every granted unlock. Refuses if everything is already owned.
  */
@@ -223,47 +268,66 @@ export async function purchaseItem(playerId: number, itemKey: string, now: Date 
     { ok: true; balance: number; granted: string[] } |
     { ok: false; error: string; balance: number }
 > {
-    const item = STORE_ITEMS.find(i => i.key === itemKey);
-    if (!item || !item.available) {
-        return { ok: false, error: 'That item is not available.', balance: await getTalerBalance(playerId) };
-    }
-    if (!onSaleNow(item, now)) {
-        return { ok: false, error: 'That is not on sale right now.', balance: await getTalerBalance(playerId) };
-    }
+    const found = sellable(itemKey, now);
+    if ('error' in found) return { ok: false, error: found.error, balance: await getTalerBalance(playerId) };
 
-    const result: { error?: string; granted?: string[] } = await db.transaction(async (trx) => {
+    const result = await db.transaction(async (trx) => {
         const player = await trx('players').where({ id: playerId }).forUpdate().first();
-        if (!player) return { error: 'Player not found.' as const };
-
-        const owned: string[] = (await trx('player_unlocks').where({ player_id: playerId }).pluck('unlock_key')).map(String);
-        if (item.consumable) {
-            const apply = CONSUMABLES[item.key];
-            if (!apply) return { error: 'That item is not available.' as const };
-            const paid = await spendTalersWithin(trx, { playerId, amount: item.price, reason: 'consumable', refType: 'store_item' });
-            if (!paid) return { error: 'Not enough Talers.' as const };
-            await apply(trx, playerId);
-            return { granted: [item.key] };
-        }
-        const missing = item.grants.filter(g => !owned.includes(g));
-        if (missing.length === 0) return { error: 'You already own this.' as const };
-
-        const paid = await spendTalersWithin(trx, {
-            playerId,
-            amount: effectivePrice(item, owned),
-            reason: 'unlock',
-            refType: 'store_item',
-        });
-        if (!paid) return { error: 'Not enough Talers.' as const };
-
-        for (const key of missing) {
-            await trx('player_unlocks').insert({ player_id: playerId, unlock_key: key });
-        }
-        return { granted: missing };
+        if (!player) return { error: 'Player not found.' };
+        return buyWithin(trx, playerId, playerId, found.item, false);
     });
 
     const balance = await getTalerBalance(playerId);
-    if (result.error) return { ok: false, error: result.error, balance };
-    const granted = result.granted ?? [];
-    logger.info(`[store] player ${playerId} bought ${itemKey}, granted: ${granted.join(', ')}`);
-    return { ok: true, balance, granted };
+    if ('error' in result) return { ok: false, error: result.error, balance };
+    logger.info(`[store] player ${playerId} bought ${itemKey}, granted: ${result.granted.join(', ')}`);
+    return { ok: true, balance, granted: result.granted };
+}
+
+/**
+ * Buy a store item for someone else (docs/taler-perks-ideas.md; Nathan,
+ * 2026-11-27). Never Talers or gold, and nothing a gift grants can be traded
+ * on. Both players are locked in ascending id order, as two players' gold
+ * always is (services/gold.ts lockPlayersInOrder), so two gifts crossing
+ * cannot deadlock. The recipient is told when it commits.
+ */
+export async function giftItem(fromId: number, toName: unknown, itemKey: string, now: Date = new Date()): Promise<
+    { ok: true; balance: number; to: string } | { ok: false; error: string; balance: number }
+> {
+    const balance = async () => getTalerBalance(fromId);
+    const found = sellable(itemKey, now);
+    if ('error' in found) return { ok: false, error: found.error, balance: await balance() };
+    if (typeof toName !== 'string' || !toName.trim()) return { ok: false, error: 'Name who it is for.', balance: await balance() };
+    const to = await db('players').whereRaw('LOWER(username) = LOWER(?)', [toName.trim()]).first('id', 'username', 'is_guest');
+    if (!to) return { ok: false, error: 'Nobody goes by that name.', balance: await balance() };
+    if (to.id === fromId) return { ok: false, error: 'Buy it for yourself from the store as usual.', balance: await balance() };
+    if (to.is_guest) return { ok: false, error: 'They have not claimed their account yet.', balance: await balance() };
+
+    const result = await db.transaction(async (trx) => {
+        for (const id of [fromId, to.id].sort((a, b) => a - b)) await trx('players').where({ id }).forUpdate().first('id');
+        const bought = await buyWithin(trx, fromId, to.id, found.item, true);
+        if ('error' in bought) return bought;
+        await trx('store_gifts').insert({ from_player_id: fromId, to_player_id: to.id, item_key: itemKey, talers: bought.paid });
+        return bought;
+    });
+    if ('error' in result) return { ok: false, error: result.error, balance: await balance() };
+
+    const giver = await db('players').where({ id: fromId }).first('username');
+    pushToPlayer(to.id, 'store_gift', { from: giver?.username ?? 'Someone', item: found.item.name });
+    logger.info(`[store] player ${fromId} gave ${itemKey} to player ${to.id}`);
+    return { ok: true, balance: await balance(), to: to.username };
+}
+
+/**
+ * Name colors (perk:name_color): a short list chosen to read on every theme,
+ * dark and light (index.css .name-color-*). None of them is the gold a name
+ * is by default, and none passes for staff.
+ */
+export const NAME_COLORS = ['ember', 'holly', 'sea', 'heather', 'frost', 'moss', 'rose', 'amber'] as const
+
+/** Choose a name color, or none. Only for the perk's owners, and only from the list. */
+export async function setNameColor(playerId: number, color: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (color !== null && !(NAME_COLORS as readonly string[]).includes(String(color))) return { ok: false, error: 'Choose one of the colors.' };
+    if (color !== null && !hasUnlock(await getUnlocks(playerId), 'perk:name_color')) return { ok: false, error: 'Name colors are a supporter perk.' };
+    await db('players').where({ id: playerId }).update({ name_color: color });
+    return { ok: true };
 }

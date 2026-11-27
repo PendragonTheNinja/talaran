@@ -95,3 +95,18 @@
     grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
   }
 }
+
+/* The Patrons plaque: ten names on brass, in order. */
+.museum-patrons {
+  list-style: none;
+  margin: var(--space-md) auto;
+  padding: var(--space-md) var(--space-lg);
+  max-width: 360px;
+  border: 1px solid var(--color-border-gold);
+  border-radius: 4px;
+  background: var(--color-bg-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 16px;
+}
