@@ -276,5 +276,7 @@ Each step ships and is proven on its own.
 - race:check `invasion` (two scenarios: five kills on a horde of two; five payments of one tear's top three), each shown to fail against a read-then-write take and an ungated payment.
 - `combatSim.ts roster` on the seeded rows: every invader 87 to 101%, as §7. `values:derive` prices the trophies at 810 (Ant-gold Nugget) to 1,650 (Horn of Annwn).
 
-**Still to build:** the Send a tear card and the tear on the location panel and Events panel (client), the `invasion_reward` notice, the moderator tick box, the Chronicle deed kinds and their verses, the feats, the seven pieces of rare gear and their hooks, the Manual page, and patch notes.
+**Increment 2 (2026-11-27), client.** `AdminTears.tsx`: Send a Tear (realms with their creatures by tier, place, horde, length, bonus, kills to place, opening time, warning, a per-player cap, the lines) and a card per tear (state, horde, standings, who was paid, Close It); inside the admin Events tab, and a Tears tab of its own for a moderator with `can_run_events` (tick box in Mod Permissions). The Events panel and the location panel show a tear (a coming one says only where and when; `listEvents` sends no realm for it); the location re-reads on `tear_changed`; the top three get a lasting log line and their purse re-read on `invasion_reward`. Checked in a browser against the scratch database.
+
+**Still to build:** the Chronicle deed kinds and their verses, the feats, the seven pieces of rare gear and their hooks (the Forgefire Hammer now rides the smelting tool rule, commit `0a55398`), creature art, the Manual page, and patch notes.
 
