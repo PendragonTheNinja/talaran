@@ -6,6 +6,8 @@
 
 **Alternate title to test:** A Free Medieval MMO That Runs in Your Browser | Talaran 1.0 Trailer
 
+**Third title to test:** One Person Built This Entire Medieval MMO (And It's Free)
+
 **Description:**
 
 Talaran 1.0 launches December 11th, 2026. A free medieval skilling MMO that runs in your browser, with no download. Play now at https://talaran.net
