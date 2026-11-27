@@ -18,17 +18,17 @@
 <div id="play" hidden>Click to play</div>
 <audio id="music" src="music-cut.mp3" preload="auto"></audio>
 <script>
-// Talaran launch trailer, second cut (2026-11-27).
+// Talaran launch trailer, third cut (2026-11-27).
 // render(t) is a pure function of the time in seconds, so the page plays live
 // (open it in a browser) and renders frame by frame (render.js). Game screens are
 // real captures in the Stonehold theme (shots/, made by shoot.js; README.md).
 // Music: "Celtic Impulse", Kevin MacLeod (incompetech.com), CC BY 4.0, cut on its
-// own bar lines to 71 s (music-cut.mp3; README.md).
+// own bar lines to 56 s (music-cut.mp3; README.md).
 
 const W = 1920, H = 1080
 const cv = document.getElementById('c')
 const g = cv.getContext('2d')
-const DURATION = 70
+const DURATION = 55.5
 
 // ---- Beat grid: 144 BPM, first downbeat at 0.03 s ----------------------------
 const BEAT = 0.41650, PHASE = 0.03, BAR = BEAT * 4
@@ -41,12 +41,12 @@ const IMG = '../apps/client/public/images/'
 // Real captures: [file, crop x, y, w, h] in the 1920x1080 screen.
 const SHOTS = {
   main: ['main', 0, 0, 1920, 1080],
-  together: ['main', 330, 560, 1290, 500],
+  together: ['main', 330, 776, 1265, 210],
   wood: ['wood-done', 330, 170, 1050, 520],
   mine: ['mine', 330, 170, 1050, 520],
   fish: ['fish', 330, 170, 1050, 520],
   forage: ['forage', 330, 170, 1050, 520],
-  fight: ['fight', 540, 70, 860, 500],
+  fight: ['fight', 420, 80, 840, 472],
   quank: ['quank', 700, 320, 540, 460],
   museum: ['museum', 540, 280, 870, 525],
   sloth: ['sloth', 610, 320, 710, 440],
@@ -78,8 +78,8 @@ const NAMES = { 'Dock_Rat': 'Dock Rat', 'Shore_Crab': 'Shore Crab', 'Grey_Wolf':
 // their names (images/bestiary/<Name>.png) and the silhouettes follow.
 const TEAR_SHAPES = ['Cave_Bear', 'Sea_Eagle', 'Siren', 'Wolverine', 'Reaver']
 // Ports on the island maps (fractions of the 1080 map), and the way out of each harbor.
-const ROUTE_TAIAR = [[.604, .571], [.64, .61], [.66, .66], [.70, .74], [.82, .80], [.96, .82]]
-const ROUTE_ANTURA = [[.02, .86], [.25, .92], [.55, .93], [.76, .86], [.74, .74], [.68, .68], [.60, .652]]
+const ROUTE_TAIAR = [[.604, .571], [.639, .611], [.667, .662], [.741, .676], [.889, .653], [1.0, .64]]
+const ROUTE_ANTURA = [[.0, .86], [.25, .92], [.55, .93], [.70, .86], [.67, .75], [.64, .68], [.60, .652]]
 
 const images = {}
 function load(key, src) {
@@ -250,16 +250,6 @@ function plate(name, line, lt, icon) {
   goldText(name, (icon ? 240 : 90) - slide, H - (line ? 165 : 145), 74, { align: 'left', weight: 700, spacing: 2, alpha: a })
   if (line) plainText(line, (icon ? 242 : 92) - slide, H - 105, 34, { align: 'left', italic: true, weight: 400, alpha: a })
 }
-// A big centered word on a downbeat.
-function slam(word, t, start, len) {
-  const lt = t - start; if (lt < 0 || lt > len) return
-  const band = g.createLinearGradient(0, 0, 0, 300); band.addColorStop(0, 'rgba(0,0,0,.9)'); band.addColorStop(1, 'rgba(0,0,0,0)')
-  g.fillStyle = band; g.fillRect(0, 0, W, 300)
-  const sc = lerp(1.4, 1, easeOut(lt / .25))
-  g.save(); g.translate(W / 2, 140); g.scale(sc, sc)
-  goldText(word, 0, 0, 150, { weight: 700, spacing: 10, alpha: clamp(lt / .06), glow: .9 })
-  g.restore()
-}
 // A crafted-thing card: skill icon, then its goods popping in on the beat.
 function craftCard(name, items, lt, t) {
   stoneBackdrop(t, .62)
@@ -296,8 +286,8 @@ function creature(k, lt, side) {
 
 // ---- Scenes ---------------------------------------------------------------------
 // Bars: 0-1 title, 2-3 the game, 4-9 skill flashes, 10-12 sixteen skills,
-// 13-18 the world, 19-22 setting out, 23-32 Gather, Craft, Fight, Trade,
-// Explore, 33-34 the tear, 35+ the end card.
+// 13-18 the world, 19-22 setting out, 23-26 Invasions (the next update), 27+
+// the end card with the launch date.
 
 function sceneTitle(t) {
   stoneBackdrop(t, .7)
@@ -336,7 +326,7 @@ function sceneSkillFlashes(t) {
   if (t < bar(7)) {
     const [i, lt] = slice(t, s, half, SKILL_FLASH.length)
     const [name, kind, what] = SKILL_FLASH[i]
-    if (kind === 'shot') shot(what, lt, { len: half, dir: i % 2 ? -1 : 1, zoom: .08 })
+    if (kind === 'shot') shot(what, lt, { len: half, dir: 0, zoom: .05 })
     else craftCard(name, what, lt, t)
     plate(name, null, lt, name)
     flash(.15 * Math.exp(-lt * 14))
@@ -361,13 +351,13 @@ function sceneSixteen(t) {
     slotTile(x, y, 118, .95); skillIcon(name, x, y, 86)
   })
   goldText('Sixteen skills', W / 2, H / 2 - 50, 140, { weight: 700, spacing: 6, alpha: easeOut((t - s) / .3) })
-  plainText('No classes. No energy bar. Level one to a hundred, your way.', W / 2, H / 2 + 55, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
+  plainText('Train any of them, all of them, from level one to a hundred.', W / 2, H / 2 + 55, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
   vignette(.9)
   flash(.35 * Math.exp(-(t - s) * 5))
 }
 
 const WORLD = [
-  ['together', 'full', 'Play alongside everyone else', 'One world, one chat, a town square full of people'],
+  ['together', 'panel', 'Play alongside everyone else', 'One world, one chat, a town square full of people'],
   ['quank', 'panel', 'Meet the island\'s folk', 'Quests are found, never listed'],
   ['shops', 'panel', 'Raise a shop', 'Sell to other players while you are away'],
   ['museum', 'panel', 'Fill the museum', 'Every find has a case waiting for it'],
@@ -388,72 +378,60 @@ function catmull(pts, u) {
   const c = (a, b, c2, d) => .5 * ((2 * b) + (-a + c2) * q + (2 * a - 5 * b + 4 * c2 - d) * q * q + (-a + 3 * b - 3 * c2 + d) * q * q * q)
   return [c(p0[0], p1[0], p2[0], p3[0]), c(p0[1], p1[1], p2[1], p3[1])]
 }
+// The island map in the game's own window lifts out of it onto the open sea,
+// then the camera finds Talador and follows the crossing into Wendhaven.
+const LIFT = .45
 function sceneSail(t) {
-  if (t < bar(20)) {
+  const t0 = bar(20)
+  if (t < t0 - LIFT) {
     const lt = t - bar(19)
     shot('islandmap', lt, { mode: 'panel', zoom: .05 })
     plate('Then set out', null, lt)
     return
   }
-  const s = bar(20), e = bar(23), u = (t - s) / (e - s)
-  g.fillStyle = SEA; g.fillRect(0, 0, W, H)
   const mw = 1080, gap = 260, ax = mw + gap
-  // the whole route in world space: out of Talador's harbor, across, into Wendhaven's
   const route = [...ROUTE_TAIAR.map(([x, y]) => [x * mw, y * mw]), ...ROUTE_ANTURA.map(([x, y]) => [ax + x * mw, y * mw])]
-  const travel = easeInOut(clamp((u - .05) / .85))
+  // panel ends at 0.896 * (1 + .025) of 960 crop pixels on screen
+  const z0 = 0.896 * 1.025 * 960 / mw, zSail = .95
+  const find = easeInOut((t - (t0 + .5)) / .9)          // from the map's middle to Talador
+  const travel = easeInOut(clamp((t - (t0 + 1.2)) / (bar(23) - t0 - 1.5)))
   const [bx, by] = catmull(route, travel)
-  const z = .9
-  g.save(); g.translate(W / 2 - bx * z, H / 2 - by * z + 60); g.scale(z, z)
+  const camx = lerp(mw / 2, bx, find), camy = lerp(mw / 2, by, find), z = lerp(z0, zSail, find)
+  g.fillStyle = SEA; g.fillRect(0, 0, W, H)
+  g.save(); g.translate(W / 2 - camx * z, H / 2 + 20 - camy * z); g.scale(z, z)
   if (soft.taiar) g.drawImage(soft.taiar, 0, 0, mw, mw)
   if (soft.antura) g.drawImage(soft.antura, ax, 0, mw, mw)
-  g.strokeStyle = 'rgba(245,220,148,.95)'; g.lineWidth = 7; g.setLineDash([2, 20]); g.lineCap = 'round'
-  g.beginPath()
-  for (let k = 0; k <= 200; k++) { const q = k / 200 * travel; const [x, y] = catmull(route, q); k ? g.lineTo(x, y) : g.moveTo(x, y) }
-  g.stroke(); g.setLineDash([])
-  // the boat: a lantern-gold point with a glow
-  const gr = g.createRadialGradient(bx, by, 0, bx, by, 40); gr.addColorStop(0, 'rgba(255,230,160,1)'); gr.addColorStop(1, 'rgba(255,200,100,0)')
-  g.fillStyle = gr; g.fillRect(bx - 40, by - 40, 80, 80)
-  // ports
-  for (const [px, py, label] of [[ROUTE_TAIAR[0][0] * mw, ROUTE_TAIAR[0][1] * mw, 'Talador'], [ax + ROUTE_ANTURA.at(-1)[0] * mw, ROUTE_ANTURA.at(-1)[1] * mw, 'Wendhaven']]) {
-    g.beginPath(); g.arc(px, py, 12, 0, Math.PI * 2); g.fillStyle = '#f5dc94'; g.fill()
+  if (travel > 0) {
+    g.strokeStyle = 'rgba(245,220,148,.95)'; g.lineWidth = 7 / z * .9; g.setLineDash([2, 20]); g.lineCap = 'round'
+    g.beginPath()
+    for (let k = 0; k <= 240; k++) { const [x, y] = catmull(route, k / 240 * travel); k ? g.lineTo(x, y) : g.moveTo(x, y) }
+    g.stroke(); g.setLineDash([])
+  }
+  const shipA = clamp((t - (t0 + .9)) / .3)
+  if (shipA > 0) {
+    const gr = g.createRadialGradient(bx, by, 0, bx, by, 42); gr.addColorStop(0, `rgba(255,230,160,${shipA})`); gr.addColorStop(1, 'rgba(255,200,100,0)')
+    g.fillStyle = gr; g.fillRect(bx - 42, by - 42, 84, 84)
+  }
+  for (const [px, py] of [[ROUTE_TAIAR[0][0] * mw, ROUTE_TAIAR[0][1] * mw], [ax + ROUTE_ANTURA.at(-1)[0] * mw, ROUTE_ANTURA.at(-1)[1] * mw]]) {
+    g.beginPath(); g.arc(px, py, 12, 0, Math.PI * 2); g.fillStyle = `rgba(245,220,148,${shipA})`; g.fill()
   }
   g.restore()
-  vignette(.95)
-  goldText(u < .5 ? 'From Talador' : 'To Wendhaven, on Antura', W / 2, 140, 84, { weight: 700, spacing: 4, alpha: u < .5 ? win(u, 0, .5, .08, .06) : win(u, .5, 1, .06, .1) })
-}
-
-const BEATS_GATHER = ['wood', 'mine', 'fish', 'forage']
-const BEATS_TRADE = [['shops', 'panel'], ['together', 'full'], ['highscores', 'panel'], ['museum', 'panel']]
-function sceneRush(t) {
-  const half = BAR / 2
-  if (t < bar(25)) {
-    const [i, lt] = slice(t, bar(23), half, 4)
-    shot(BEATS_GATHER[i], lt, { len: half, dir: i % 2 ? -1 : 1, zoom: .1 })
-    slam('Gather.', t, bar(23), BAR * 2)
-  } else if (t < bar(27)) {
-    const [i, lt] = slice(t, bar(25), half, 4)
-    craftCard(CRAFTS[[0, 1, 2, 3][i]][0], CRAFTS[i][1], lt, t)
-    slam('Craft.', t, bar(25), BAR * 2)
-  } else if (t < bar(29)) {
-    const [i, lt] = slice(t, bar(27), BEAT, 8)
-    if (i === 0) shot('fight', lt, { len: BEAT, zoom: .1 })
-    else creature(BEASTS_B[i - 1], lt, i % 2 ? 1 : -1)
-    slam('Fight.', t, bar(27), BAR * 2)
-  } else if (t < bar(31)) {
-    const [i, lt] = slice(t, bar(29), half, 4)
-    shot(BEATS_TRADE[i][0], lt, { mode: BEATS_TRADE[i][1], len: half, zoom: .06 })
-    slam('Trade.', t, bar(29), BAR * 2)
-  } else {
-    // Explore: the island and islet maps, half a bar each
-    const [i, lt] = slice(t, bar(31), half, 4)
-    const im = images[['map:taiar', 'map:taiarIslets', 'map:antura', 'map:anturaIslets'][i]]
-    g.fillStyle = SEA; g.fillRect(0, 0, W, H)
-    if (im) cover(im, 0, 0, W, H, 1.05 + .12 * easeOut(lt / half), i % 2 ? .3 : .7, .45)
-    vignette(.85)
-    plainText(['Taiar Island', 'Its islets', 'Antura', 'And beyond'][i], W / 2, H - 110, 46, { italic: true, weight: 400, alpha: clamp(lt / .1), color: '#ece4d0' })
-    slam('Explore.', t, bar(31), BAR * 2)
-    flash(.15 * Math.exp(-lt * 12))
+  vignette(.95 * clamp((t - t0) / .6))
+  // the lift: the game window around the map dissolves in a sweep of gold
+  const lift = clamp((t - (t0 - LIFT)) / (LIFT * 2))
+  if (lift < 1) {
+    g.save(); g.globalAlpha = 1 - easeInOut(lift)
+    shot('islandmap', BAR - LIFT + (t - (t0 - LIFT)), { mode: 'panel', zoom: .05 })
+    g.restore()
+    const sx = lerp(-400, W + 400, easeInOut(lift))
+    const sweep = g.createLinearGradient(sx - 300, 0, sx + 300, 0)
+    sweep.addColorStop(0, 'rgba(245,220,148,0)'); sweep.addColorStop(.5, `rgba(245,220,148,${.55 * (1 - lift)})`); sweep.addColorStop(1, 'rgba(245,220,148,0)')
+    g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = sweep; g.fillRect(0, 0, W, H); g.restore()
   }
+  flash(.35 * Math.exp(-Math.max(0, t - t0) * 6) * (t >= t0 ? 1 : 0))
+  const u = travel
+  goldText('From Talador', W / 2, 140, 84, { weight: 700, spacing: 4, alpha: win(t, t0 + .9, t0 + .9 + (bar(23) - t0) * .45, .3, .2) })
+  goldText('To Wendhaven, on Antura', W / 2, 140, 84, { weight: 700, spacing: 4, alpha: u > .5 ? win(u, .55, 1.05, .08, .05) : 0 })
 }
 
 // The tear: a glowing slit across a dark sky.
@@ -476,33 +454,45 @@ function drawTear(cx, cy, len, open, t) {
   path(.7); const gr = g.createLinearGradient(0, -wid, 0, wid); gr.addColorStop(0, '#12001c'); gr.addColorStop(.5, '#000'); gr.addColorStop(1, '#1c0006'); g.fillStyle = gr; g.fill()
   g.restore()
 }
+// A first look at Invasions, the next update, on the music's drop.
 function sceneTear(t) {
-  const s = bar(33), lt = t - s, u = lt / (BAR * 2)
-  g.save(); shake(t, lt, 14)
+  const s0 = bar(23), lt = t - s0
+  g.save(); shake(t, lt, 16)
   g.fillStyle = '#060306'; g.fillRect(-40, -40, W + 80, H + 80)
   g.save(); g.globalAlpha = .45; cover(images['ui:red'], 0, 0, W, H, 1.1); g.restore()
   g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(0, 0, W, H)
-  drawTear(W / 2, H / 2 - 140, 1700, lt / (BAR * .7), t)
+  drawTear(W / 2, H / 2 - 170, 1700, lt / (BAR * .7), t)
   const fg = g.createRadialGradient(W / 2, H / 2 + 120, 50, W / 2, H / 2 + 120, 900)
   fg.addColorStop(0, `rgba(150,60,200,${.5 * clamp(lt / BAR)})`); fg.addColorStop(1, 'rgba(0,0,0,0)')
   g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = fg; g.fillRect(0, 0, W, H); g.restore()
-  // three shapes step through, on the second bar's beats
   TEAR_SHAPES.slice(0, 3).forEach((k, j) => {
     const c = shadows[k]; if (!c) return
-    const q = clamp((t - bar(34) - j * BEAT) / (BEAT * 2.5)); if (q <= 0) return
-    const x = W / 2 + (j - 1) * 420, y = lerp(H / 2 - 120, H / 2 + 200, easeOut(q)), sc = lerp(.4, 1.7, easeOut(q))
+    const q = clamp((t - bar(24) - j * BEAT) / (BEAT * 2.5)); if (q <= 0) return
+    const x = W / 2 + (j - 1) * 520, y = lerp(H / 2 - 150, H / 2 + 310, easeOut(q)), sc = lerp(.4, 1.2, easeOut(q))
     g.save(); g.globalAlpha = clamp(q * 3); g.translate(x, y); g.scale(sc, sc)
     g.shadowColor = 'rgba(200,80,255,.9)'; g.shadowBlur = 40; g.drawImage(c, -128, -128, 256, 256); g.restore()
   })
   embers(t, 80, [200, 80, 255], 2, .9)
   g.restore()
   vignette(.9)
-  goldText('Something is coming through.', W / 2, H - 120, 76, { weight: 700, spacing: 3, alpha: win(t, s + .3, bar(35), .3, .12), color: '#f2e2c8' })
-  flash(.8 * Math.exp(-lt * 5), '235,210,255')
+  goldText('The sky over Talaran is tearing.', W / 2, 130, 70, { weight: 700, spacing: 3, alpha: win(t, s0 + .25, bar(25), .3, .15), color: '#f2e2c8' })
+  // the name, then what it is
+  const nameIn = t - bar(25)
+  if (nameIn > 0) {
+    const band = g.createLinearGradient(0, H / 2 - 250, 0, H / 2 + 250); band.addColorStop(0, 'rgba(0,0,0,0)'); band.addColorStop(.5, 'rgba(0,0,0,.6)'); band.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = band; g.fillRect(0, H / 2 - 250, W, 500)
+    const sc = lerp(1.3, 1, easeOut(nameIn / .3))
+    g.save(); g.translate(W / 2, H / 2 - 30); g.scale(sc, sc)
+    goldText('Invasions', 0, 0, 190, { weight: 700, spacing: 14, alpha: clamp(nameIn / .08), glow: 1 })
+    g.restore()
+    plainText('Coming soon, in the first update after launch', W / 2, H / 2 + 90, 46, { italic: true, weight: 400, alpha: clamp((t - bar(26)) / .25), color: '#ece4d0' })
+  }
+  flash(.85 * Math.exp(-lt * 5), '235,210,255')
+  if (nameIn > 0) flash(.5 * Math.exp(-nameIn * 7), '235,210,255')
 }
 
 function sceneEnd(t) {
-  const s = bar(35)
+  const s = bar(27)
   stoneBackdrop(t, .72)
   const lg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 900)
   lg.addColorStop(0, `rgba(201,140,60,${.3 + .15 * barPulse(t)})`); lg.addColorStop(1, 'rgba(0,0,0,0)')
@@ -515,12 +505,12 @@ function sceneEnd(t) {
   g.save(); g.translate(W / 2, H / 2 - 110); g.scale(sc, sc)
   goldText('Talaran', 0, 0, 200, { weight: 700, spacing: 16, alpha: fa, glow: .6 + .4 * barPulse(t) })
   g.restore()
-  goldText('Version 1.0', W / 2, H / 2 + 30, 64, { weight: 600, spacing: 10, alpha: easeOut((t - bar(36)) / .4) })
-  plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(37)) / .4) })
-  goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(38)) / .4), glow: 1 })
+  goldText('Version 1.0 launches December 11', W / 2, H / 2 + 30, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
+  plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(29)) / .4) })
+  goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(30)) / .4), glow: 1 })
   vignette(.9)
   flash(.6 * Math.exp(-(t - s) * 3))
-  plainText('Music: "Celtic Impulse" by Kevin MacLeod (incompetech.com), CC BY 4.0', W / 2, H - 50, 22, { alpha: .55 * easeOut((t - bar(39)) / 1), weight: 500 })
+  plainText('Music: "Celtic Impulse" by Kevin MacLeod (incompetech.com), CC BY 4.0', W / 2, H - 50, 22, { alpha: .55 * easeOut((t - bar(31)) / 1), weight: 500 })
   const out = clamp((t - (DURATION - 2.2)) / 2)
   if (out > 0) { g.fillStyle = `rgba(0,0,0,${out})`; g.fillRect(0, 0, W, H) }
 }
@@ -532,9 +522,8 @@ const SCENES = [
   [bar(10), bar(13), sceneSixteen],
   [bar(13), bar(19), sceneWorld],
   [bar(19), bar(23), sceneSail],
-  [bar(23), bar(33), sceneRush],
-  [bar(33), bar(35), sceneTear],
-  [bar(35), 999, sceneEnd],
+  [bar(23), bar(27), sceneTear],
+  [bar(27), 999, sceneEnd],
 ]
 
 function render(t) {
