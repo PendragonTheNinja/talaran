@@ -1,6 +1,7 @@
 // Renders the trailer frame by frame to MP4 with the cut music.
 //   node trailer/render.js                 -> trailer/out/talaran-trailer.mp4
-//   node trailer/render.js --stills 1,14,40 -> trailer/out/still-<t>.png (for checking)
+//   node trailer/render.js --stills 1,14,40 -> trailer/out/still-<t>.jpg (for checking)
+//   add --vertical for the 9:16 social cut (talaran-trailer-9x16.mp4)
 // Run from the repo root; it serves the repo on a local port so the page can read
 // the game's images.
 const { chromium } = require('playwright')
@@ -12,6 +13,8 @@ const path = require('path')
 const ROOT = path.resolve(__dirname, '..')
 const OUT = path.join(__dirname, 'out')
 const FPS = Number(process.env.FPS || 30)
+const VERTICAL = process.argv.includes('--vertical')
+const [VW, VH] = VERTICAL ? [1080, 1920] : [1920, 1080]
 const TYPES = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ttf': 'font/ttf', '.mp3': 'audio/mpeg', '.js': 'text/javascript' }
 
 function serve() {
@@ -30,9 +33,9 @@ async function main() {
     const server = await serve()
     const port = server.address().port
     const browser = await chromium.launch()
-    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } })
+    const page = await browser.newPage({ viewport: { width: VW, height: VH } })
     page.on('console', m => { if (m.type() === 'warning' || m.type() === 'error') console.log('page:', m.text()) })
-    await page.goto(`http://localhost:${port}/trailer/index.html?render`)
+    await page.goto(`http://localhost:${port}/trailer/index.html?render${VERTICAL ? '&vertical' : ''}`)
     await page.evaluate(() => window.ready)
     const grab = t => page.evaluate(t => { window.render(t); return document.getElementById('c').toDataURL('image/jpeg', 0.93) }, t)
 
@@ -40,12 +43,12 @@ async function main() {
     if (si > 0) {
         for (const t of process.argv[si + 1].split(',').map(Number)) {
             const url = await grab(t)
-            fs.writeFileSync(path.join(OUT, `still-${t}.jpg`), Buffer.from(url.split(',')[1], 'base64'))
+            fs.writeFileSync(path.join(OUT, `still-${VERTICAL ? 'v' : ''}${t}.jpg`), Buffer.from(url.split(',')[1], 'base64'))
         }
     } else {
         const duration = await page.evaluate(() => window.DURATION)
         const frames = Math.round(duration * FPS)
-        const file = path.join(OUT, 'talaran-trailer.mp4')
+        const file = path.join(OUT, VERTICAL ? 'talaran-trailer-9x16.mp4' : 'talaran-trailer.mp4')
         const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
             '-i', path.join(__dirname, 'music-cut.mp3'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
             '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', file], { stdio: ['pipe', 'inherit', 'inherit'] })

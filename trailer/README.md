@@ -3,7 +3,7 @@
 A 56-second trailer drawn entirely in code (`index.html`), in the Stonehold look, from the game's own art, cut to the bars of the music.
 
 - **Preview:** serve the repo root (`npx serve .` or `python3 -m http.server`) and open `/trailer/index.html`; click to play. `?t=40` starts at 40 s.
-- **Render:** `node trailer/render.js` from the repo root writes `trailer/out/talaran-trailer.mp4` (1920x1080, 30 fps, about 3.5 minutes). `--stills 3,20,45` writes single frames for checking.
+- **Render:** `node trailer/render.js` from the repo root writes `trailer/out/talaran-trailer.mp4`; add `--vertical` for the 9:16 social cut, `talaran-trailer-9x16.mp4` (preview it with `?vertical`) (1920x1080, 30 fps, about 3.5 minutes). `--stills 3,20,45` writes single frames for checking.
 - **Music:** "Celtic Impulse" by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0. The credit is on the end card; put it in the video description too. `music-cut.mp3` is the track cut on its own bar lines (144 BPM, first downbeat 0.03 s): 0 to 31.68 s, then 76.67 to 89.99 s, then 143.31 s to the end, made with the ffmpeg line below.
 
 ```

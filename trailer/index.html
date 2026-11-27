@@ -25,8 +25,12 @@
 // Music: "Celtic Impulse", Kevin MacLeod (incompetech.com), CC BY 4.0, cut on its
 // own bar lines to 56 s (music-cut.mp3; README.md).
 
-const W = 1920, H = 1080
+// ?vertical renders the 9:16 social cut from the same scenes.
+const V = new URLSearchParams(location.search).has('vertical')
+const W = V ? 1080 : 1920, H = V ? 1920 : 1080
 const cv = document.getElementById('c')
+cv.width = W; cv.height = H
+if (V) cv.style.cssText = 'width:auto;height:100vh;max-width:none;aspect-ratio:9/16'
 const g = cv.getContext('2d')
 const DURATION = 55.5
 
@@ -39,6 +43,11 @@ const barPulse = t => { const k = Math.floor((t - PHASE) / BAR); return Math.exp
 // ---- What is shown ----------------------------------------------------------------
 const IMG = '../apps/client/public/images/'
 // Real captures: [file, crop x, y, w, h] in the 1920x1080 screen.
+const SHOTS_V = {
+  wood: ['wood-done', 590, 240, 540, 370], mine: ['mine', 590, 240, 540, 370], fish: ['fish', 590, 240, 540, 370],
+  forage: ['forage', 590, 240, 540, 370], hunt: ['hunt', 600, 250, 520, 340], fight: ['fight', 560, 80, 620, 500],
+  together: ['main', 330, 776, 760, 210],
+}
 const SHOTS = {
   main: ['main', 0, 0, 1920, 1080],
   together: ['main', 330, 776, 1265, 210],
@@ -46,6 +55,11 @@ const SHOTS = {
   mine: ['mine', 330, 170, 1050, 520],
   fish: ['fish', 330, 170, 1050, 520],
   forage: ['forage', 330, 170, 1050, 520],
+  hunt: ['hunt', 330, 170, 1050, 520],
+  smith: ['smith-bench', 586, 86, 754, 500],
+  carp: ['carp-bench', 594, 86, 756, 560],
+  cook: ['cook-bench', 586, 86, 754, 560],
+  lap: ['lap-bench', 594, 160, 756, 560],
   fight: ['fight', 420, 80, 840, 472],
   quank: ['quank', 700, 320, 540, 460],
   museum: ['museum', 540, 280, 870, 525],
@@ -55,19 +69,12 @@ const SHOTS = {
   islandmap: ['islandmap', 480, 68, 960, 960],
   gear: ['main', 20, 20, 290, 640],
 }
-const SKILL_FLASH = [
-  ['Woodcutting', 'shot', 'wood'], ['Mining', 'shot', 'mine'], ['Fishing', 'shot', 'fish'], ['Foraging', 'shot', 'forage'],
-  ['Hunting', 'card', ['Lanai_Hunting_Bow', 'Deerhide', 'Ambren_Arrow']], ['Melee', 'shot', 'fight'],
-]
-const CRAFTS = [
-  ['Smithing', ['Ambren_Ingot', 'Ambren_Helm', 'Ambren_Pickaxe']],
-  ['Carpentry', ['Lanai_Planks', 'Lanai_Tool_Rod', 'Lanai_Hunting_Bow']],
-  ['Cooking', ['Fish_Pie', 'Herb_Bannock', 'Morel_Omelette']],
-  ['Crafting', ['Cut_Garnet', 'Leather_Boots', 'Garnet_Keepers_Band']],
-  ['Farming', ['Carrot', 'Barley_Seeds', 'Cabbage_Seeds']],
-  ['Husbandry', ['Bucket_of_Milk', 'Egg', 'Cowhide']],
-  ['Talar', ['Lit_Garnet', 'Lit_Quartz', 'Radiant_Quartz']],
-  ['Wayfaring', ['Sea_Boots', 'Navigators_Bowl', 'Leather_Boots']],
+const SKILL_FLASH = [['Woodcutting', 'wood'], ['Mining', 'mine'], ['Fishing', 'fish'], ['Foraging', 'forage'], ['Hunting', 'hunt'], ['Melee', 'fight']]
+const BENCHES = [
+  ['Smithing', 'smith', 'At the forge'],
+  ['Carpentry', 'carp', 'At the workshop'],
+  ['Cooking', 'cook', 'Over the fire'],
+  ['Crafting', 'lap', 'At the lapidary'],
 ]
 const ALL_SKILLS = ['Woodcutting', 'Mining', 'Fishing', 'Foraging', 'Hunting', 'Carpentry', 'Smithing', 'Cooking', 'Crafting', 'Farming', 'Husbandry', 'Talar', 'Wayfaring', 'Melee', 'Defense', 'Constitution']
 // Creatures fought (never the hunted, and not the Trow or Draugr: Nathan, 2026-11-27).
@@ -89,8 +96,7 @@ async function loadAll() {
   const jobs = []
   for (const u of ['stone', 'red', 'frame-gold', 'frame-stone', 'slot', 'parchment', 'bricks']) jobs.push(load('ui:' + u, IMG + 'ui/stonehold/' + u + '.webp'))
   for (const s of ALL_SKILLS) jobs.push(load('skill:' + s, IMG + 'skills/' + s + 'Skill.png'))
-  const items = new Set(['Lanai_Hunting_Bow', 'Deerhide', 'Ambren_Arrow', 'Gold'])
-  for (const [, its] of CRAFTS) its.forEach(i => items.add(i))
+  const items = new Set()
   for (const it of items) jobs.push(load('item:' + it, IMG + 'items/' + it + '.png'))
   for (const c of [...BEASTS_A, ...BEASTS_B, ...TEAR_SHAPES]) jobs.push(load('beast:' + c, IMG + 'bestiary/' + c + '.png'))
   for (const f of new Set(Object.values(SHOTS).map(s => s[0]))) jobs.push(load('shot:' + f, 'shots/' + f + '.jpg'))
@@ -172,6 +178,9 @@ function goldText(str, x, y, size, opts = {}) {
   g.font = `${italic ? 'italic ' : ''}${weight} ${size}px Garamond`
   g.textAlign = align; g.textBaseline = 'middle'
   if ('letterSpacing' in g) g.letterSpacing = spacing + 'px'
+  // never wider than the frame: shrink to fit (the 9:16 cut needs this)
+  const room = W - 100 - (align === 'left' ? x : 0), wide = g.measureText(str).width
+  if (wide > room) { size = size * room / wide; g.font = `${italic ? 'italic ' : ''}${weight} ${size}px Garamond`; if ('letterSpacing' in g) g.letterSpacing = (spacing * room / wide) + 'px' }
   if (color) g.fillStyle = color
   else { const gr = g.createLinearGradient(0, y - size * .55, 0, y + size * .5); gr.addColorStop(0, '#f5dc94'); gr.addColorStop(.45, '#e4c06a'); gr.addColorStop(.55, '#c9a14a'); gr.addColorStop(1, '#8a6a2c'); g.fillStyle = gr }
   g.shadowColor = 'rgba(0,0,0,.95)'; g.shadowBlur = size * .18; g.shadowOffsetY = size * .04
@@ -215,12 +224,16 @@ function skillIcon(name, x, y, s, alpha = 1) { const im = images['skill:' + name
 function flash(a, color = '255,240,200') { if (a <= 0) return; g.fillStyle = `rgba(${color},${clamp(a)})`; g.fillRect(0, 0, W, H) }
 function shake(t, since, amount) { const k = amount * Math.exp(-since * 9); g.translate(Math.sin(t * 97) * k, Math.cos(t * 83) * k) }
 
+// How big a framed screen is drawn, and how far below the middle.
+const PANEL_DY = V ? -60 : 20
+const panelScale = (cw, ch) => Math.min((V ? W - 90 : 1560) / cw, (V ? H * .55 : 860) / ch)
 // A real game screen. 'full' fills the frame with the crop; 'panel' sets the crop
 // in a gold frame over the whole screen, blurred and dimmed.
 function shot(key, lt, opts = {}) {
-  const [file, cx, cy, cw, ch] = SHOTS[key]
+  const [file, cx, cy, cw, ch] = (V && SHOTS_V[key]) || SHOTS[key]
   const im = images['shot:' + file]; if (!im) return
-  const { mode = 'full', zoom = .06, dir = 1, len = BAR } = opts
+  const { zoom = .06, dir = 1, len = BAR } = opts
+  const mode = V ? 'panel' : (opts.mode || 'full')
   const z = 1 + zoom * easeOut(lt / (len * 1.4))
   g.fillStyle = '#080808'; g.fillRect(0, 0, W, H)
   if (mode === 'full') {
@@ -230,9 +243,8 @@ function shot(key, lt, opts = {}) {
     vignette(.7)
   } else {
     g.save(); g.filter = 'blur(10px) brightness(.35)'; cover(im, -40, -40, W + 80, H + 80, 1.02 + zoom * easeOut(lt / len)); g.restore()
-    const maxW = 1560, maxH = 860
-    const s = Math.min(maxW / cw, maxH / ch) * (1 + zoom * .5 * easeOut(lt / len))
-    const iw = cw * s, ih = ch * s, x = (W - iw) / 2, y = (H - ih) / 2 + 20
+    const s = panelScale(cw, ch) * (1 + zoom * .5 * easeOut(lt / len))
+    const iw = cw * s, ih = ch * s, x = (W - iw) / 2, y = (H - ih) / 2 + PANEL_DY
     g.save(); g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 60; g.fillStyle = '#000'; g.fillRect(x, y, iw, ih); g.restore()
     g.drawImage(im, cx, cy, cw, ch, x, y, iw, ih)
     goldFrame(x - 16, y - 16, iw + 32, ih + 32)
@@ -244,31 +256,11 @@ function plate(name, line, lt, icon) {
   const a = clamp(lt / .12), slide = 60 * (1 - easeOut(lt / .25))
   g.save(); g.globalAlpha = a; g.translate(-slide, 0)
   const gr = g.createLinearGradient(0, 0, 900, 0); gr.addColorStop(0, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)')
-  g.fillStyle = gr; g.fillRect(0, H - 230, 900, 170)
+  g.fillStyle = gr; g.fillRect(0, H - 230, V ? W : 900, 170)
   if (icon) { slotTile(150, H - 145, 120); skillIcon(icon, 150, H - 145, 92) }
   g.restore()
   goldText(name, (icon ? 240 : 90) - slide, H - (line ? 165 : 145), 74, { align: 'left', weight: 700, spacing: 2, alpha: a })
   if (line) plainText(line, (icon ? 242 : 92) - slide, H - 105, 34, { align: 'left', italic: true, weight: 400, alpha: a })
-}
-// A crafted-thing card: skill icon, then its goods popping in on the beat.
-function craftCard(name, items, lt, t) {
-  stoneBackdrop(t, .62)
-  const lg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 800)
-  lg.addColorStop(0, 'rgba(201,140,60,.22)'); lg.addColorStop(1, 'rgba(0,0,0,0)')
-  g.fillStyle = lg; g.fillRect(0, 0, W, H)
-  embers(t, 40, [228, 150, 60], 1.5, .6)
-  const p = backOut(lt / .2)
-  slotTile(W / 2, H / 2 - 80, 250 * p); skillIcon(name, W / 2, H / 2 - 80, 190 * p)
-  items.forEach((it, k) => {
-    const q = backOut((lt - .05 - k * .05) / .2)
-    const x = W / 2 + (k - 1) * 330 * (k === 1 ? 0 : 1) + (k === 1 ? 0 : 0)
-    const xx = k === 0 ? W / 2 - 330 : k === 1 ? W / 2 + 330 : W / 2
-    const yy = k === 2 ? H / 2 + 230 : H / 2 - 60
-    if (k < 2) item(it, xx, yy, 170 * clamp(q, 0, 1.3), clamp(q * 3))
-  })
-  goldText(name, W / 2, H / 2 + 120, 96, { weight: 700, spacing: 4, alpha: clamp(lt / .08) })
-  vignette(.85)
-  flash(.12 * Math.exp(-lt * 12), '228,192,106')
 }
 function creature(k, lt, side) {
   const im = images['beast:' + k]
@@ -277,8 +269,8 @@ function creature(k, lt, side) {
   g.save(); g.globalAlpha = .5; cover(images['ui:red'], 0, 0, W, H, 1.1); g.restore()
   g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, W, H)
   const p = backOut(lt / .16)
-  if (im) { g.save(); g.translate(W / 2 + side * 220, H / 2 + 40); g.scale(p * 3.1, p * 3.1); g.shadowColor = 'rgba(255,80,40,.5)'; g.shadowBlur = 40; g.drawImage(im, -128, -128, 256, 256); g.restore() }
-  goldText(NAMES[k] || k.replace(/_/g, ' '), W / 2 - side * 470, H / 2 + 20, 96, { weight: 700, spacing: 3, alpha: clamp(lt / .05) })
+  if (im) { g.save(); g.translate(V ? W / 2 : W / 2 + side * 220, V ? H / 2 - 120 : H / 2 + 40); g.scale(p * 3.1, p * 3.1); g.shadowColor = 'rgba(255,80,40,.5)'; g.shadowBlur = 40; g.drawImage(im, -128, -128, 256, 256); g.restore() }
+  goldText(NAMES[k] || k.replace(/_/g, ' '), V ? W / 2 : W / 2 - side * 470, V ? H / 2 + 380 : H / 2 + 20, 96, { weight: 700, spacing: 3, alpha: clamp(lt / .05) })
   g.restore()
   vignette(.85)
   flash(.3 * Math.exp(-lt * 14), '255,140,100')
@@ -313,11 +305,13 @@ function sceneGame(t) {
   const im = images['shot:main']
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H)
   const z = lerp(1.35, 1.0, easeOut(lt / (BAR * 1.6)))
-  g.save(); g.translate(W / 2, H / 2); g.scale(z, z); g.drawImage(im, -W / 2, -H / 2, W, H); g.restore()
+  if (V) { shot('main', lt, { zoom: -.1 }) }
+  else { g.save(); g.translate(W / 2, H / 2); g.scale(z, z); g.drawImage(im, -W / 2, -H / 2, W, H); g.restore() }
   g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, W, H)
   const band = g.createLinearGradient(0, H - 260, 0, H); band.addColorStop(0, 'rgba(0,0,0,0)'); band.addColorStop(1, 'rgba(0,0,0,.9)')
   g.fillStyle = band; g.fillRect(0, H - 260, W, 260)
-  goldText('A medieval skilling world, in your browser', W / 2, H - 110, 64, { weight: 700, spacing: 2, alpha: win(t, s + .2, bar(4), .3, .15) })
+  goldText(V ? 'A medieval skilling world,' : 'A medieval skilling world, in your browser', W / 2, H - (V ? 300 : 110), 64, { weight: 700, spacing: 2, alpha: win(t, s + .2, bar(4), .3, .15) })
+  if (V) goldText('in your browser', W / 2, H - 215, 64, { weight: 700, spacing: 2, alpha: win(t, s + .2, bar(4), .3, .15) })
   flash(.4 * Math.exp(-lt * 6))
 }
 
@@ -325,9 +319,8 @@ function sceneSkillFlashes(t) {
   const s = bar(4), half = BAR / 2
   if (t < bar(7)) {
     const [i, lt] = slice(t, s, half, SKILL_FLASH.length)
-    const [name, kind, what] = SKILL_FLASH[i]
-    if (kind === 'shot') shot(what, lt, { len: half, dir: 0, zoom: .05 })
-    else craftCard(name, what, lt, t)
+    const [name, what] = SKILL_FLASH[i]
+    shot(what, lt, { len: half, dir: 0, zoom: .05 })
     plate(name, null, lt, name)
     flash(.15 * Math.exp(-lt * 14))
   } else if (t < bar(8)) {
@@ -335,8 +328,12 @@ function sceneSkillFlashes(t) {
     const [i, lt] = slice(t, bar(7), BEAT / 2, 8)
     creature(BEASTS_A[i], lt, i % 2 ? 1 : -1)
   } else {
-    const [i, lt] = slice(t, bar(8), BEAT, CRAFTS.length)
-    craftCard(CRAFTS[i][0], CRAFTS[i][1], lt, t)
+    // the benches, half a bar each: the public ones on Taiar
+    const [i, lt] = slice(t, bar(8), BAR / 2, BENCHES.length)
+    const [name, key, line] = BENCHES[i]
+    shot(key, lt, { mode: 'panel', len: BAR / 2, zoom: .05 })
+    plate(name, line, lt, name)
+    flash(.15 * Math.exp(-lt * 14))
   }
 }
 
@@ -347,11 +344,14 @@ function sceneSixteen(t) {
   const R = lerp(1000, 560, easeOut(u * 1.8))
   ALL_SKILLS.forEach((name, k) => {
     const ang = k / ALL_SKILLS.length * Math.PI * 2 + t * .35
-    const x = W / 2 + Math.cos(ang) * R * 1.25, y = H / 2 + Math.sin(ang) * R * .62
+    const x = W / 2 + Math.cos(ang) * R / 560 * W * (V ? .42 : .4), y = H / 2 + Math.sin(ang) * R / 560 * H * (V ? .36 : .32)
     slotTile(x, y, 118, .95); skillIcon(name, x, y, 86)
   })
-  goldText('Sixteen skills', W / 2, H / 2 - 50, 140, { weight: 700, spacing: 6, alpha: easeOut((t - s) / .3) })
-  plainText('Train any of them, all of them, from level one to a hundred.', W / 2, H / 2 + 55, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
+  goldText('Sixteen skills', W / 2, H / 2 - 50, V ? 110 : 140, { weight: 700, spacing: 6, alpha: easeOut((t - s) / .3) })
+  if (V) {
+    plainText('Train any of them, all of them,', W / 2, H / 2 + 40, 38, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
+    plainText('from level one to a hundred.', W / 2, H / 2 + 90, 38, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
+  } else plainText('Train any of them, all of them, from level one to a hundred.', W / 2, H / 2 + 55, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(11)) / .4) })
   vignette(.9)
   flash(.35 * Math.exp(-(t - s) * 5))
 }
@@ -392,13 +392,13 @@ function sceneSail(t) {
   const mw = 1080, gap = 260, ax = mw + gap
   const route = [...ROUTE_TAIAR.map(([x, y]) => [x * mw, y * mw]), ...ROUTE_ANTURA.map(([x, y]) => [ax + x * mw, y * mw])]
   // panel ends at 0.896 * (1 + .025) of 960 crop pixels on screen
-  const z0 = 0.896 * 1.025 * 960 / mw, zSail = .95
+  const z0 = panelScale(960, 960) * 1.025 * 960 / mw, zSail = V ? 1.1 : .95
   const find = easeInOut((t - (t0 + .5)) / .9)          // from the map's middle to Talador
   const travel = easeInOut(clamp((t - (t0 + 1.2)) / (bar(23) - t0 - 1.5)))
   const [bx, by] = catmull(route, travel)
   const camx = lerp(mw / 2, bx, find), camy = lerp(mw / 2, by, find), z = lerp(z0, zSail, find)
   g.fillStyle = SEA; g.fillRect(0, 0, W, H)
-  g.save(); g.translate(W / 2 - camx * z, H / 2 + 20 - camy * z); g.scale(z, z)
+  g.save(); g.translate(W / 2 - camx * z, H / 2 + PANEL_DY - camy * z); g.scale(z, z)
   if (soft.taiar) g.drawImage(soft.taiar, 0, 0, mw, mw)
   if (soft.antura) g.drawImage(soft.antura, ax, 0, mw, mw)
   if (travel > 0) {
@@ -468,7 +468,7 @@ function sceneTear(t) {
   TEAR_SHAPES.slice(0, 3).forEach((k, j) => {
     const c = shadows[k]; if (!c) return
     const q = clamp((t - bar(24) - j * BEAT) / (BEAT * 2.5)); if (q <= 0) return
-    const x = W / 2 + (j - 1) * 520, y = lerp(H / 2 - 150, H / 2 + 310, easeOut(q)), sc = lerp(.4, 1.2, easeOut(q))
+    const x = W / 2 + (j - 1) * (V ? 330 : 520), y = lerp(H / 2 - 150, H / 2 + 310, easeOut(q)), sc = lerp(.4, 1.2, easeOut(q))
     g.save(); g.globalAlpha = clamp(q * 3); g.translate(x, y); g.scale(sc, sc)
     g.shadowColor = 'rgba(200,80,255,.9)'; g.shadowBlur = 40; g.drawImage(c, -128, -128, 256, 256); g.restore()
   })
@@ -497,16 +497,24 @@ function sceneEnd(t) {
   lg.addColorStop(0, `rgba(201,140,60,${.3 + .15 * barPulse(t)})`); lg.addColorStop(1, 'rgba(0,0,0,0)')
   g.fillStyle = lg; g.fillRect(0, 0, W, H)
   embers(t, 110)
-  const fw = 1300, fh = 640, fa = easeOut((t - s) / .5)
+  const fw = V ? W - 100 : 1300, fh = V ? 900 : 640, fa = easeOut((t - s) / .5)
   g.save(); g.globalAlpha = fa * .8; g.fillStyle = 'rgba(8,8,8,.7)'; g.fillRect(W / 2 - fw / 2 + 20, H / 2 - fh / 2 + 20, fw - 40, fh - 40); g.restore()
   goldFrame(W / 2 - fw / 2, H / 2 - fh / 2, fw, fh, fa)
   const sc = lerp(1.15, 1, easeOut((t - s) / 1.2))
-  g.save(); g.translate(W / 2, H / 2 - 110); g.scale(sc, sc)
+  g.save(); g.translate(W / 2, H / 2 - (V ? 200 : 110)); g.scale(sc, sc)
   goldText('Talaran', 0, 0, 200, { weight: 700, spacing: 16, alpha: fa, glow: .6 + .4 * barPulse(t) })
   g.restore()
-  goldText('Version 1.0 launches December 11th, 2026', W / 2, H / 2 + 30, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
-  plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(29)) / .4) })
-  goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(30)) / .4), glow: 1 })
+  if (V) {
+    goldText('Version 1.0 launches', W / 2, H / 2 + 20, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
+    goldText('December 11th, 2026', W / 2, H / 2 + 100, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
+    plainText('Free to play in your browser.', W / 2, H / 2 + 200, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(29)) / .4) })
+    plainText('No download.', W / 2, H / 2 + 255, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(29)) / .4) })
+    goldText('talaran.net', W / 2, H / 2 + 360, 64, { weight: 700, spacing: 4, alpha: easeOut((t - bar(30)) / .4), glow: 1 })
+  } else {
+    goldText('Version 1.0 launches December 11th, 2026', W / 2, H / 2 + 30, 60, { weight: 600, spacing: 4, alpha: easeOut((t - bar(28)) / .4) })
+    plainText('Free to play in your browser. No download.', W / 2, H / 2 + 115, 42, { italic: true, weight: 400, alpha: easeOut((t - bar(29)) / .4) })
+    goldText('talaran.net', W / 2, H / 2 + 215, 60, { weight: 700, spacing: 4, alpha: easeOut((t - bar(30)) / .4), glow: 1 })
+  }
   vignette(.9)
   flash(.6 * Math.exp(-(t - s) * 3))
   plainText('Music: "Celtic Impulse" by Kevin MacLeod (incompetech.com), CC BY 4.0', W / 2, H - 50, 22, { alpha: .55 * easeOut((t - bar(31)) / 1), weight: 500 })
