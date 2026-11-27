@@ -7,6 +7,7 @@
 **Alternate title to test:** A Free Medieval MMO That Runs in Your Browser | Talaran 1.0 Trailer
 
 **Third title to test:** One Person Built This Entire Medieval MMO (And It's Free)
+Pair it with thumbnail 4 ("1 DEV / 16 SKILLS / 2 ISLANDS / FREE"), made for it: the thumbnail shows how much there is, the title says who made it.
 
 **Description:**
 

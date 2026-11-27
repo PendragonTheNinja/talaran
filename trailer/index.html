@@ -619,6 +619,29 @@ const THUMBS = [
     ribbon('DECEMBER 11', W / 2, 1000, 60)
     vignette(.6)
   },
+  // 4. For the "one person built this" title: how much there is, and who made it
+  () => {
+    g.fillStyle = SEA; g.fillRect(0, 0, W, H)
+    if (soft.taiar) g.drawImage(soft.taiar, -120, -60, 1200, 1200)
+    if (soft.antura) g.drawImage(soft.antura, 860, -40, 1200, 1200)
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H)
+    const im = images['shot:fight']
+    g.save(); g.translate(1180, 600); g.rotate(.05)
+    const w = 1000, h = w * 9 / 16
+    g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 80; g.fillStyle = '#000'; g.fillRect(-w / 2, -h / 2, w, h); g.shadowBlur = 0
+    g.drawImage(im, -w / 2, -h / 2, w, h); goldFrame(-w / 2 - 18, -h / 2 - 18, w + 36, h + 36)
+    g.restore()
+    const beast = images['beast:Hodag']
+    if (beast) { g.save(); g.translate(1640, 760); g.scale(2.6, 2.6); g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 40; g.drawImage(beast, -128, -128, 256, 256); g.restore() }
+    const fade = g.createLinearGradient(0, 0, 900, 0); fade.addColorStop(0, 'rgba(0,0,0,.92)'); fade.addColorStop(.7, 'rgba(0,0,0,.55)'); fade.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = fade; g.fillRect(0, 0, 900, H)
+    bigWord('1 DEV', 70, 360, 300, { align: 'left', spacing: 10 })
+    bigWord('16 SKILLS', 80, 600, 96, { align: 'left', spacing: 4, color: '#faf6ec' })
+    bigWord('2 ISLANDS', 80, 710, 96, { align: 'left', spacing: 4, color: '#faf6ec' })
+    bigWord('FREE', 80, 820, 96, { align: 'left', spacing: 4, color: '#faf6ec' })
+    ribbon('TALARAN 1.0', 1460, 120, 64)
+    vignette(.6)
+  },
 ]
 window.thumb = n => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none'; THUMBS[n](); g.restore() }
 window.DURATION = DURATION
