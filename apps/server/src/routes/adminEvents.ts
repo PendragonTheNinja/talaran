@@ -57,7 +57,7 @@ function eventStaff(handler: Handler) {
 }
 
 /** The Send a tear card: the realms and their creatures, and every tear sent or open, with its standings. */
-async function tearsOverview(): Promise<{ ok: true; realms: any[]; tears: any[] }> {
+async function tearsOverview(): Promise<{ ok: true; realms: any[]; tears: any[]; locations: any[] }> {
     const rows = await db('world_events as e').leftJoin('locations as l', 'l.id', 'e.location_id')
         .where('e.kind', INVASION_KIND)
         .where((q) => q.whereNull('e.ended_at').orWhere('e.ended_at', '>', db.raw("now() - interval '1 day'")))
@@ -71,7 +71,11 @@ async function tearsOverview(): Promise<{ ok: true; realms: any[]; tears: any[] 
             .where('w.event_id', r.id).orderBy('w.place').select('w.place', 'p.username as name', 'w.kills', 'w.gold');
         tears.push({ ...r, standings: await tearStandings(r.id), rewards });
     }
-    return { ok: true, realms: await realmsForStaff(), tears };
+    // Where a tear may open: any place but an islet (sendTear refuses those too).
+    // Sent here because a moderator cannot read the admin locations list.
+    const locations = await db('locations').where({ is_accessible: true }).whereNull('islet_kind')
+        .orderBy(['region', 'name']).select('id', 'name', 'region');
+    return { ok: true, realms: await realmsForStaff(), tears, locations };
 }
 
 async function endTear(staffId: number, eventId: number): Promise<{ ok: true } | { error: string }> {

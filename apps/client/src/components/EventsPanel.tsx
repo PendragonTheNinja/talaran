@@ -3,7 +3,7 @@ import './EventsPanel.css'
 import { useIsMobile } from '../lib/useIsMobile'
 import { useDockableWindow } from '../lib/useDockableWindow'
 import DockableWindow from './DockableWindow'
-import { useWorldEvents, timeLeft, dueIn, endedWords, isMerchant, type WorldEvent } from '../lib/worldEvents'
+import { useWorldEvents, timeLeft, dueIn, endedWords, isMerchant, isTear, type WorldEvent } from '../lib/worldEvents'
 
 interface EventsPanelProps {
     onClose: () => void
@@ -84,6 +84,18 @@ export default function EventsPanel({ onClose, closing }: EventsPanelProps) {
 }
 
 function LiveEvent({ event: e, now }: { event: WorldEvent; now: number }) {
+    // A tear warned of: where, and how soon. Nothing about what is coming.
+    if (isTear(e) && !e.opened) {
+        return (
+            <div className="ev-card">
+                <div className="ev-card-head">
+                    <span className="ev-card-name gold-text">{e.name}</span>
+                    <span className="ev-card-time">opens in {timeLeft(e.startsAt, now)}</span>
+                </div>
+                <div className="ev-card-where">{e.location} · <strong>something is coming through</strong></div>
+            </div>
+        )
+    }
     const left = Math.max(0, Math.min(100, (e.poolLeft / Math.max(1, e.poolTotal)) * 100))
     return (
         <div className="ev-card">
@@ -95,12 +107,13 @@ function LiveEvent({ event: e, now }: { event: WorldEvent; now: number }) {
                 {e.location}
                 {e.skill && <> · <strong>+{e.bonusPercent}% {e.skill} XP</strong></>}
                 {isMerchant(e) && <> · <strong>goods from round about</strong></>}
+                {isTear(e) && <> · <strong>+{e.bonusPercent}% combat XP</strong></>}
             </div>
             <div className="ev-pool" title={`${e.poolLeft} of ${e.poolTotal} left`}>
                 <div className="ev-pool-fill" style={{ width: `${left}%` }} />
             </div>
             <div className="ev-pool-label">
-                {e.poolLeft.toLocaleString()} of {e.poolTotal.toLocaleString()} {isMerchant(e) ? 'goods unsold' : 'actions left'}
+                {e.poolLeft.toLocaleString()} of {e.poolTotal.toLocaleString()} {isMerchant(e) ? 'goods unsold' : isTear(e) ? 'of the horde still to drive back' : 'actions left'}
             </div>
         </div>
     )

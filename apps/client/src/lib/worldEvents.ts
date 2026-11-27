@@ -20,6 +20,9 @@ export interface WorldEvent {
     location: string | null
     locationId: number | null
     announcement: string | null
+    /** A tear (kind 'invasion'): open yet, or only warned of; and the kills that place a player in its top three. */
+    opened?: boolean
+    minKills?: number | null
 }
 
 export interface WorldEvents {
@@ -34,8 +37,12 @@ const EMPTY: WorldEvents = { live: [], recent: [] }
 /** A visit from the travelling merchant, rather than a skill event. His pool is his goods. */
 export const isMerchant = (e: { kind: string }) => e.kind === 'merchant'
 
+/** A tear (docs/invasions-spec.md): creatures from another world, and a shared horde to drive back. */
+export const isTear = (e: { kind: string }) => e.kind === 'invasion'
+
 /** How each kind of event ended, in words. */
 export function endedWords(e: { kind: string; endReason: string | null }): string {
+    if (isTear(e)) return e.endReason === 'pool' ? 'was held' : e.endReason === 'admin' ? 'was closed' : 'closed on its own'
     if (isMerchant(e)) return e.endReason === 'pool' ? 'sold out' : e.endReason === 'admin' ? 'packed up early' : 'moved on'
     return e.endReason === 'pool' ? 'was used up' : e.endReason === 'admin' ? 'was called off' : 'ran its course'
 }

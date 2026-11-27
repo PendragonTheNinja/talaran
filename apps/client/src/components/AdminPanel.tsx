@@ -13,6 +13,7 @@ import './AdminQuests.css'
 import LanguageFlags from './LanguageFlags'
 import { FILTER_PLACE } from '../lib/filterPlaces'
 import AdminEvents from './AdminEvents'
+import AdminTears from './AdminTears'
 import { avatarSrc } from '../lib/avatar'
 import './AdminPanel.css'
 import ErrorLine from './ErrorLine'
@@ -62,6 +63,7 @@ interface ModPerms {
     can_view_players: boolean
     can_send_messages: boolean
     can_ban: boolean
+    can_run_events: boolean
 }
 
 interface AdminPanelProps {
@@ -72,7 +74,14 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPanelProps) {
-    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events' | 'chronicle' | 'polls' | 'quests' | 'islets'>('players')
+    const [mainTab, setMainTab] = useState<'players' | 'content' | 'balance' | 'manual' | 'events' | 'chronicle' | 'polls' | 'quests' | 'islets' | 'tears'>('players')
+    // A moderator who may run events (can_run_events) gets the Tears tab: the
+    // route answers them, and refuses anyone else (docs/invasions-spec.md §3).
+    const [runsEvents, setRunsEvents] = useState(false)
+    useEffect(() => {
+        if (isAdmin || !isMod) return
+        apiFetch('/api/admin/events/tears').then(() => setRunsEvents(true)).catch(() => { /* not theirs to run */ })
+    }, [isAdmin, isMod])
 
     /**
      * Problem count on the Balance label.
@@ -120,6 +129,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
         can_view_players: false,
         can_send_messages: false,
         can_ban: false,
+        can_run_events: false,
     })
     const [locations, setLocations] = useState<{ id: number; name: string; region: string }[]>([])
     const [teleRegion, setTeleRegion] = useState('')
@@ -182,6 +192,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
                 can_view_players: false,
                 can_send_messages: false,
                 can_ban: false,
+                can_run_events: false,
             })
             setView('player')
         } catch (err: any) {
@@ -410,6 +421,12 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             <div className="admin-header">
                 <div className="admin-header-main">
                     <h3 className="gold-text">Admin Panel</h3>
+                    {!isAdmin && runsEvents && (
+                        <div className="admin-tabs">
+                            <button className={`admin-tab ${mainTab === 'players' ? 'active' : ''}`} onClick={() => setMainTab('players')}>Players</button>
+                            <button className={`admin-tab ${mainTab === 'tears' ? 'active' : ''}`} onClick={() => setMainTab('tears')}>Tears</button>
+                        </div>
+                    )}
                     {isAdmin && (
                         <div className="admin-tabs">
                             <button
@@ -484,6 +501,7 @@ export default function AdminPanel({ onClose, closing, isAdmin, isMod }: AdminPa
             ) :
             mainTab === 'manual' ? <AdminManualEditor /> :
             mainTab === 'events' ? <AdminEvents /> :
+            mainTab === 'tears' ? <div className="admin-events"><AdminTears /></div> :
             mainTab === 'chronicle' ? <AdminChronicle /> :
             mainTab === 'polls' ? <AdminCrier /> :
             mainTab === 'quests' ? <AdminQuests /> :

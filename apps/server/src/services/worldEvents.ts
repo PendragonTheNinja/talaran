@@ -506,12 +506,14 @@ export async function listEvents(): Promise<{ live: any[]; recent: any[]; mercha
     const recentRows = await db('world_events as e').leftJoin('locations as l', 'l.id', 'e.location_id')
         .whereNotNull('e.ended_at').where('e.ended_at', '>', db.raw("now() - interval '1 day'"))
         .orderBy('e.ended_at', 'desc').limit(20).select(columns);
+    // A tear warned of but not yet open says where and when, never which world (spec §2).
+    const coming = (r: any) => r.kind === 'invasion' && !r.opened_at && !r.ended_at;
     const shape = (r: any) => ({
-        id: r.id, name: r.name, kind: r.kind, skill: r.skill,
+        id: r.id, name: coming(r) ? 'A tear' : r.name, kind: r.kind, skill: r.skill,
         bonusPercent: Math.round((Number(r.xp_multiplier) - 1) * 100),
         poolTotal: r.pool_total, poolLeft: r.pool_left,
         startsAt: r.starts_at, endsAt: r.ends_at, endedAt: r.ended_at, endReason: r.end_reason,
-        location: r.location, locationId: r.location_id, announcement: r.announcement,
+        location: r.location, locationId: r.location_id, announcement: coming(r) ? null : r.announcement,
         // A tear: whether it has opened yet (a warned one is still coming),
         // and how many kills place a player in its top three.
         ...(r.kind === 'invasion' ? { opened: !!r.opened_at, minKills: r.min_kills ?? null } : {}),

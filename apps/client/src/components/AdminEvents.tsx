@@ -4,6 +4,7 @@ import { onWorldEventsChanged, timeLeft, endedWords, isMerchant } from '../lib/w
 import ConfirmModal from './ConfirmModal'
 import './AdminEvents.css'
 import ErrorLine from './ErrorLine'
+import AdminTears from './AdminTears'
 
 /**
  * The Events tab (docs/WORLD-EVENTS-AND-MUSEUMS.md, "Admin: an Events section").
@@ -136,6 +137,9 @@ export default function AdminEvents() {
                     ? <p className="ev-admin-note">Nothing is running.</p>
                     : data.live.map(e => <LiveCard key={e.id} event={e} now={now} send={send} />)}
             </div>
+
+            {/* Tears (docs/invasions-spec.md): sent by hand, never by the scheduler. */}
+            <AdminTears />
 
             <StartCard data={data} send={send} />
 

@@ -24,7 +24,7 @@ import MyShopMenu from './MyShopMenu'
 import CaskPanel from './CaskPanel'
 import TaproomPanel from './TaproomPanel'
 import { useItemTooltip } from './ItemTooltip'
-import { useWorldEvents, isMerchant } from '../lib/worldEvents'
+import { useWorldEvents, isMerchant, isTear } from '../lib/worldEvents'
 import './EventsPanel.css'
 import { listWords } from '../lib/listWords'
 
@@ -92,6 +92,9 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
   const sharedHere: { propertyId: number; owner: string }[] = locationData?.sharedHomesteadsHere ?? []
   // A key given or taken back: the buttons below change.
   useEffect(() => onSocket('property_shared', () => onLocationRefresh?.()), [onLocationRefresh])
+  // A tear opening or closing here adds or takes away its fighting spot
+  // (server services/invasions.ts pushes tear_changed to the place).
+  useEffect(() => onSocket('tear_changed', () => onLocationRefresh?.()), [onLocationRefresh])
   const [shopUnseen, setShopUnseen] = useState(0)
   const [myShopOpen, setMyShopOpen] = useState(false)
 
@@ -493,7 +496,8 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
             <span className="location-event-name">{e.name}</span>
             {e.skill && <> · +{e.bonusPercent}% {e.skill} XP here</>}
             {isMerchant(e) ? ' is here' : ''}
-            {' · '}{e.poolLeft.toLocaleString()} {isMerchant(e) ? 'goods unsold' : 'left'}
+            {isTear(e) && !e.opened ? ' · something is coming through'
+              : <>{isTear(e) && <> · +{e.bonusPercent}% combat XP here</>}{' · '}{e.poolLeft.toLocaleString()} {isMerchant(e) ? 'goods unsold' : isTear(e) ? 'of the horde left' : 'left'}</>}
           </div>
         ))}
         {merchantHere && (

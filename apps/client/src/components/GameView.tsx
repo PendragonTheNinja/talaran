@@ -1233,9 +1233,16 @@ export default function GameView({
     }
     // Someone stood a round at the tavern (server services/rounds.ts).
     const onRound = (d: { message?: string }) => { if (d?.message) addLog(d.message, 'success') }
+    // A place in a tear's top three, paid when it closed (server services/invasions.ts).
+    const onTearReward = (d: { place: number; gold: number; kills: number; location: string | null; held: boolean }) => {
+      const where = d.location ? ` over ${d.location}` : ''
+      const placed = d.place === 1 ? 'brought down more than anyone' : `brought down the ${d.place === 2 ? 'second' : 'third'} most`
+      addLog(`The tear${where} ${d.held ? 'was held' : 'has closed'}. You ${placed}, ${d.kills.toLocaleString()} in all, and are paid ${d.gold.toLocaleString()} gold for it.`, 'success', 'lasting')
+    }
     const socket = getSocket()
     socket?.on('feat_earned', onFeat)
     socket?.on('round_stood', onRound)
+    socket?.on('invasion_reward', onTearReward)
 
     window.addEventListener('talaran:notice', onNotice)
 
@@ -1243,6 +1250,7 @@ export default function GameView({
     return () => {
       socket?.off('feat_earned', onFeat)
       socket?.off('round_stood', onRound)
+      socket?.off('invasion_reward', onTearReward)
       window.removeEventListener('talaran:notice', onNotice)
       window.removeEventListener('talaran:rate-limited', onLimited)
     }

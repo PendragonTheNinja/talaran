@@ -275,6 +275,10 @@ function App() {
       // reloads the pack once.
       socket.on('inventory_changed', coalesce(() => { loadInventory() }))
 
+      // Paid for a place in a tear's top three (server services/invasions.ts):
+      // the purse shown is re-read. The line itself is GameView's.
+      socket.on('invasion_reward', () => { loadPlayerData() })
+
       // Worn gear changed without the player touching it: a death leaves it
       // on the ground (services/groundItems.ts dropEverythingWithin).
       socket.on('equipment_changed', () => {
