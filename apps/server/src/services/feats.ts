@@ -109,8 +109,12 @@ async function snapshot(playerId: number) {
             this.on('k.creature_id', '=', 'c.id').andOn('k.player_id', '=', db.raw('?', [playerId]))
         })
         .where('c.is_active', true)
-        .select<{ kills: number | null }[]>('k.kills')
+        .select<{ kills: number | null; realm_id: number | null }[]>('k.kills', 'c.realm_id')
     const creatureKills = killRows.map(r => Number(r.kills ?? 0))
+    // Invaders come only through a tear staff open, so a completionist could
+    // not finish without them: 'bestiary_all' counts Talaran's own creatures
+    // (docs/invasions-spec.md §3). They count for 'bestiary_one' like any kill.
+    const nativeKills = killRows.filter(r => r.realm_id == null).map(r => Number(r.kills ?? 0))
 
     // Days this player had a line of their own in Wenna's tidings (the long
     // roll does not count, and a struck line is unsaid): 'chronicle_days'.
@@ -125,7 +129,7 @@ async function snapshot(playerId: number) {
     // The islands whose islets this player has met Quank among: 'quank_met'.
     const quankIslands = new Set<string>(await db('player_quank_met').where({ player_id: playerId }).pluck('island'))
 
-    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, chronicleDays, quankIslands }
+    return { stats, levels, totalLevel, tradeCount, museums, combatLevel, creatureKills, nativeKills, chronicleDays, quankIslands }
 }
 
 /**
@@ -141,7 +145,7 @@ function targetOf(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number
     if (feat.criterion_kind === 'museum_complete') return snap.museums.get(feat.criterion_target)?.total ?? 0
     // Every creature in the world today: a new creature raises it. Earned
     // feats are never taken back (player_feats rows stay).
-    if (feat.criterion_kind === 'bestiary_all') return snap.creatureKills.length
+    if (feat.criterion_kind === 'bestiary_all') return snap.nativeKills.length
     return Number(feat.criterion_value)
 }
 
@@ -178,7 +182,7 @@ function measure(feat: any, snap: Awaited<ReturnType<typeof snapshot>>): number 
         // How many creatures have at least criterion_target kills.
         case 'bestiary_all': {
             const bar = Number(feat.criterion_target) || 1
-            return snap.creatureKills.filter(k => k >= bar).length
+            return snap.nativeKills.filter(k => k >= bar).length
         }
         // Distinct days named in a page's own lines (services/chronicleComposer.ts).
         case 'chronicle_days':

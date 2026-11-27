@@ -47,6 +47,7 @@ import { jewelryAid } from './jewelry'
 import { noteDeed, firstToday, BESTIARY_MARKS, STRONG_KILL_GAP } from './chronicle'
 import { combatLevel } from '../lib/combatMath'
 import { dropIsletFind, isletFindHere, spendIsletFind } from './isletFinds'
+import { takeFromHordeWithin } from './invasions'
 
 /** Where a fallen fighter wakes (spec §14). */
 const RESPAWN_LOCATION = 'Talador'
@@ -184,6 +185,8 @@ interface KillReport {
     named: boolean
     /** This kill passed a Bestiary step past the first (10, 50, 250, 1,000). */
     bestiaryStep: boolean
+    /** At a tear: whether the kill counted against its horde. */
+    tear: { counted: boolean; left: number | null; total: number | null } | null
 }
 
 interface FightReport {
@@ -192,7 +195,7 @@ interface FightReport {
     events: (SwingEvent & { creature: string; hesitateText?: string })[]
     kills: KillReport[]
     /** How the fight ended in this settle, if it did. */
-    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won' | null
+    ended: 'died' | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won' | 'closed' | null
     froze: boolean
     hp: { current: number; max: number }
     view: FightView | null
@@ -214,7 +217,7 @@ function mostSwung(swings: Record<string, number>, inHand: number | null): numbe
 // ── The settle ───────────────────────────────────────────────────────────────
 
 /** 'replaced': another action is taking the fight's place (travel, Stop, a vein); the client already knows. */
-type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won'
+type EndMode = null | 'fled' | 'disconnected' | 'absent' | 'replaced' | 'broke' | 'won' | 'closed'
 
 /**
  * Lock the player's fight and play it up to `until`, inside `trx`. With
@@ -316,16 +319,26 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             if (r.diedAt !== null) { died = true; break }
             if (r.killedAt === null) break
 
+            // A tear's spot (docs/invasions-spec.md §3): the kill takes one
+            // from the shared horde, here in the settle's own transaction, and
+            // the tear's bonus raises the whole kill once, before the split.
+            // Not through awardXp's event bonus: three awards a kill would take
+            // three from a pool.
+            const tear = spot.world_event_id
+                ? await takeFromHordeWithin(trx, Number(spot.world_event_id), playerId, Number(creature.xp_per_kill), new Date(r.killedAt))
+                : null
+
             // The kill (§2): Melee the creature's XP; the defensive side twice
             // that, split by what armour stopped against what got through.
             // Misses count for Defense early on, fading by Defense 13 (dodgedWeight).
-            const split = killXp(creature.xp_per_kill, clock.absorbed, clock.landed, COMBAT, clock.dodged, levels.defense)
+            const split = killXp(Number(creature.xp_per_kill) * (tear?.multiplier ?? 1), clock.absorbed, clock.landed, COMBAT, clock.dodged, levels.defense)
             const xp: CombatLevels = {
                 melee: Math.round(split.melee), defense: Math.round(split.defense), constitution: Math.round(split.constitution),
             }
-            await awardXp(playerId, COMBAT_SKILLS.melee, xp.melee, trx)
-            await awardXp(playerId, COMBAT_SKILLS.defense, xp.defense, trx)
-            await awardXp(playerId, COMBAT_SKILLS.constitution, xp.constitution, trx)
+            const xpOpts = tear ? { eventBonus: false } : {}
+            await awardXp(playerId, COMBAT_SKILLS.melee, xp.melee, trx, xpOpts)
+            await awardXp(playerId, COMBAT_SKILLS.defense, xp.defense, trx, xpOpts)
+            await awardXp(playerId, COMBAT_SKILLS.constitution, xp.constitution, trx, xpOpts)
             killCount++
 
             // The Bestiary counts every kill (services/bestiary.ts). The first
@@ -422,6 +435,7 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
                 bestiaryStep,
                 questDrop,
                 named: !!questFoe,
+                tear: tear ? { counted: tear.counted, left: tear.left, total: tear.total } : null,
             })
 
             // An islet guardian (docs/islets-plan.md §6f) is one fight: its
@@ -430,6 +444,13 @@ async function settleWithin(trx: Knex.Transaction, playerId: number, until: numb
             if (spot.kind === 'guardian') {
                 await spendIsletFind(playerId, 'cache', creature.id, trx)
                 end = end ?? 'won'
+                break
+            }
+
+            // The tear has closed (held by this kill or another, or its time
+            // is up): this kill is paid, and nothing more comes through.
+            if (tear?.closed) {
+                end = end ?? 'closed'
                 break
             }
 
@@ -569,6 +590,7 @@ async function islandPortForPile(trx: Knex.Transaction, playerId: number, fellAt
 const END_MESSAGES: Record<string, string> = {
     fled: 'You break off and back away.',
     won: 'It falls, and what it guarded is yours. Nothing else waits for you here.',
+    closed: 'The tear has closed. Nothing more is coming through it.',
     disconnected: 'You broke off the fight when your connection dropped.',
     absent: 'You broke off the fight after a long while away.',
 }
@@ -658,7 +680,11 @@ async function afterFight(report: FightReport | null): Promise<void> {
                     // A break ends the fight, and the ending line names it.
                     message: kill.named ? `You bring down ${kill.creatureName}.` : `You bring down the ${kill.creatureName}.`
                         + (kill.firstKill ? ' A new entry in your Bestiary.' : '')
-                        + (kill.bestiaryStep ? ` Your Bestiary has more to tell about the ${kill.creatureName}.` : ''),
+                        + (kill.bestiaryStep ? ` Your Bestiary has more to tell about the ${kill.creatureName}.` : '')
+                        // A tear's horde (docs/invasions-spec.md §2).
+                        + (kill.tear?.counted && kill.tear.total !== null
+                            ? (kill.tear.left === 0 ? ' That was the last of them.' : ` ${kill.tear.total - (kill.tear.left ?? 0)} of ${kill.tear.total} driven back.`)
+                            : ''),
                 },
                 xpInfo: {
                     totalXp: meleeTotal,

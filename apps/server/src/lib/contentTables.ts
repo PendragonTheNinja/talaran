@@ -30,6 +30,14 @@ export interface ContentTableMeta {
     editable?: boolean;
     /** Columns never sent to the client, for anyone, in any response. */
     secretColumns?: string[];
+    /**
+     * Rows of a snapshotted table that are state, not content, left out of the
+     * export (a WHERE clause). A tear's fighting spot is made while the game
+     * runs and points at its world_events row, which is never snapshotted, so
+     * a snapshot taken during an invasion would carry it to a database where
+     * that event does not exist (docs/invasions-spec.md §3).
+     */
+    snapshotWhere?: string;
 }
 
 // CONTENT is listed in FK-dependency order: parents before children. Import
@@ -60,12 +68,16 @@ export const CONTENT_TABLES: Record<string, ContentTableMeta> = {
     animal_feeds:                { label: 'Animal Feeds',          group: 'Husbandry',  snapshot: true, editable: true },
     crops:                       { label: 'Crops',                 group: 'Farming',    snapshot: true, editable: true },
     // ---- Combat (docs/combat-spec.md §8) ----
+    // The worlds a tear opens onto (docs/invasions-spec.md); their creatures are creatures rows.
+    realms:                      { label: 'Realms',                group: 'Combat',     snapshot: true, editable: true },
     // Creatures, the places to fight them and which creature lives where.
     // creatures.xp_per_kill is derived (pnpm combat:derive), so edit the level
     // or xp_multiplier and re-run the script rather than typing a number.
     creatures:                   { label: 'Creatures',             group: 'Combat',     snapshot: true, editable: true },
-    fighting_spots:              { label: 'Fighting Spots',        group: 'Combat',     snapshot: true, editable: true },
-    fighting_spot_creatures:     { label: 'Fighting Spot Creatures', group: 'Combat',   snapshot: true, editable: true },
+    fighting_spots:              { label: 'Fighting Spots',        group: 'Combat',     snapshot: true, editable: true,
+                                   snapshotWhere: 'world_event_id IS NULL' },
+    fighting_spot_creatures:     { label: 'Fighting Spot Creatures', group: 'Combat',   snapshot: true, editable: true,
+                                   snapshotWhere: 'spot_id IN (SELECT id FROM fighting_spots WHERE world_event_id IS NULL)' },
     // Guaranteed uses and the break chance after them, per tier (§13). Single
     // items differ through items.durability_uses / durability_break_pct.
     durability_tiers:            { label: 'Durability Tiers',      group: 'Combat',     snapshot: true, editable: true },

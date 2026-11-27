@@ -389,6 +389,9 @@ export async function spawnRandomEvent(maxConcurrent: number): Promise<any | nul
 /** End events whose time is up. Returns how many ended. */
 export async function endExpiredEvents(): Promise<number> {
     const ended = await db('world_events')
+        // A tear closes through services/invasions.ts, which switches its
+        // fighting spot off and pays its top three.
+        .whereNot({ kind: 'invasion' })
         .whereNull('ended_at')
         .where('ends_at', '<=', db.fn.now())
         .update({ ended_at: db.fn.now(), end_reason: 'time' })
@@ -399,6 +402,10 @@ export async function endExpiredEvents(): Promise<number> {
 }
 
 async function schedulerTick(): Promise<void> {
+    // Tears (docs/invasions-spec.md): warned, opened, and closed on time.
+    // Imported here: invasions.ts imports this file.
+    const { invasionSweep } = await import('./invasions');
+    await invasionSweep();
     let changed = (await endExpiredEvents()) > 0;
     const settings = await db('world_event_settings').where({ id: 1 }).first();
     // A new event with probability 1/average_gap each minute: one every
@@ -487,10 +494,14 @@ export async function listEvents(): Promise<{ live: any[]; recent: any[]; mercha
     const columns = [
         'e.id', 'e.name', 'e.kind', 'e.skill', 'e.xp_multiplier', 'e.pool_total', 'e.pool_left',
         'e.starts_at', 'e.ends_at', 'e.ended_at', 'e.end_reason', 'e.announcement',
+        'e.opened_at', 'e.min_kills',
         'l.name as location', 'l.id as location_id',
     ];
     const liveRows = await db('world_events as e').leftJoin('locations as l', 'l.id', 'e.location_id')
         .whereNull('e.ended_at').where('e.ends_at', '>', db.fn.now())
+        // A tear staff have sent is not news until its warning goes out or it
+        // opens (docs/invasions-spec.md §2): a surprise stays one.
+        .where((q) => q.whereNot('e.kind', 'invasion').orWhereNotNull('e.warned_at').orWhereNotNull('e.opened_at'))
         .orderBy('e.ends_at', 'asc').select(columns);
     const recentRows = await db('world_events as e').leftJoin('locations as l', 'l.id', 'e.location_id')
         .whereNotNull('e.ended_at').where('e.ended_at', '>', db.raw("now() - interval '1 day'"))
@@ -501,6 +512,9 @@ export async function listEvents(): Promise<{ live: any[]; recent: any[]; mercha
         poolTotal: r.pool_total, poolLeft: r.pool_left,
         startsAt: r.starts_at, endsAt: r.ends_at, endedAt: r.ended_at, endReason: r.end_reason,
         location: r.location, locationId: r.location_id, announcement: r.announcement,
+        // A tear: whether it has opened yet (a warned one is still coming),
+        // and how many kills place a player in its top three.
+        ...(r.kind === 'invasion' ? { opened: !!r.opened_at, minKills: r.min_kills ?? null } : {}),
     });
     const settings = await db('world_event_settings').where({ id: 1 }).first();
     const merchantOut = liveRows.some((r: any) => r.kind === 'merchant');

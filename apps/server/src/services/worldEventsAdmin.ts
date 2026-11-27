@@ -224,6 +224,15 @@ export async function updateLiveEvent(adminId: number, eventId: number, change: 
 /** End it now. Players see it "was called off". */
 export async function endLiveEvent(adminId: number, eventId: number) {
     return answer('end', async () => {
+        // A tear closes through its own path: its spot goes off, its top three are paid.
+        const tear = await db('world_events').where({ id: eventId, kind: 'invasion' }).first('id', 'name');
+        if (tear) {
+            const { closeTear } = await import('./invasions');
+            if (!(await closeTear(eventId, 'admin'))) throw new Refusal('That event has already ended.');
+            await eventsChanged();
+            logger.info(`[events admin] player ${adminId} closed tear ${eventId} (${tear.name})`);
+            return {};
+        }
         const [row] = await db('world_events').where({ id: eventId }).whereNull('ended_at')
             .update({ ended_at: db.fn.now(), end_reason: 'admin' }).returning(['id', 'name']);
         if (!row) throw new Refusal('That event has already ended.');

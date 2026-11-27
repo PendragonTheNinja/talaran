@@ -11,7 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import db from '../db';
-import { SNAPSHOT_TABLES } from '../lib/contentTables';
+import { CONTENT_TABLES, SNAPSHOT_TABLES } from '../lib/contentTables';
 import { primaryKeyOf } from '../lib/contentKeys';
 
 const OUT_DIR = path.resolve(__dirname, '../../../../content-snapshots');
@@ -40,7 +40,10 @@ async function main() {
         // By the table's own primary key, not `id`: some content tables are
         // keyed by something else (lib/contentKeys.ts).
         const key = await primaryKeyOf(db, table);
-        const rows = await db(table).select('*').orderBy(key.map((column) => ({ column, order: 'asc' as const })));
+        const where = CONTENT_TABLES[table]?.snapshotWhere;
+        const query = db(table).select('*');
+        if (where) query.whereRaw(where);
+        const rows = await query.orderBy(key.map((column) => ({ column, order: 'asc' as const })));
         const file = path.join(OUT_DIR, `${table}.json`);
         fs.writeFileSync(file, JSON.stringify(rows, null, 2) + '\n');
         manifest.tables[table] = rows.length;

@@ -12,6 +12,8 @@ export const STAFF_PERMISSIONS = [
     'can_view_players',
     'can_send_messages',
     'can_ban',
+    // Send and run tears (docs/invasions-spec.md §3), for an event moderator.
+    'can_run_events',
 ] as const;
 
 export type StaffPermission = typeof STAFF_PERMISSIONS[number];

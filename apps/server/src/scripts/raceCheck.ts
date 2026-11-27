@@ -591,6 +591,54 @@ async function inFight(ctx: Ctx, creature: Record<string, unknown>, clock: { ene
     return { ...w, foe, spot, food };
 }
 
+/**
+ * A tear (docs/invasions-spec.md) open at Talador with `left` of its horde
+ * left, and `fighters` players each mid-fight there with a killing blow
+ * overdue: whoever settles lands a kill that takes one from the horde.
+ */
+async function tearFight(ctx: Ctx, fighters: number, left: number) {
+    const w = await world(ctx);
+    for (const name of ['Melee', 'Defense', 'Constitution']) await ctx.seed.row('skills', { name, type: 'combat' });
+    await ctx.seed.row('world_event_settings', { id: 1 });
+    const now = Date.now();
+    const event = await ctx.seed.row('world_events', {
+        name: 'A tear onto Racecheck', kind: 'invasion', location_id: w.town.id, xp_multiplier: 1.25,
+        pool_total: left, pool_left: left, starts_at: new Date(now - 60_000), opened_at: new Date(now - 60_000),
+        ends_at: new Date(now + 3_600_000), min_kills: 1,
+    });
+    const foe = await ctx.seed.row('creatures', { key: 'rc_invader', name: 'Racecheck Invader', level: 1, xp_per_kill: 26, defence: 0.01 });
+    const spot = await ctx.seed.row('fighting_spots', { key: 'tear_rc', location_id: w.town.id, name: 'The Tear over Talador', kind: 'chosen', world_event_id: event.id });
+    await ctx.seed.row('fighting_spot_creatures', { spot_id: spot.id, creature_id: foe.id, weight: 1 });
+    const blade = await ctx.seed.row('items', { name: 'Racecheck Blade', type: 'weapon', slot: 'mainhand', weapon_form: 'onehand', damage_type: 'slash', aim: 5000, power: 40 });
+    const players = [w.player];
+    for (let i = 1; i < fighters; i++) {
+        players.push(await ctx.seed.row('players', { username: `Fighter ${i}`, email: `fighter${i}@racecheck.test`, current_location_id: w.town.id }));
+    }
+    for (const p of players) {
+        await wearing(ctx, p.id, 'mainhand_item_id', blade.id);
+        const action = await ctx.seed.row('player_actions', {
+            player_id: p.id, action_type: 'combat', action_data: String(spot.id), location_id: w.town.id,
+            completes_at: new Date(now + 60_000), bot_check_pending: false,
+        });
+        await ctx.seed.row('combat_fights', {
+            action_id: action.id, player_id: p.id, spot_id: spot.id, chosen_creature_id: foe.id, creature_id: foe.id, enemy_hp: 1,
+            engage_at: new Date(now - 10_000), player_next_at: new Date(now - 9_000), enemy_next_at: new Date(now + 60_000),
+            settled_at: new Date(now - 10_000),
+        });
+    }
+    return { ...w, event, spot, foe, players };
+}
+
+/** Wait for a tear's after-commit payment to land (services/invasions.ts finishTear). */
+async function tearPaid(ctx: Ctx, eventId: number): Promise<boolean> {
+    for (let i = 0; i < 50; i++) {
+        const row = await ctx.db('world_events').where({ id: eventId }).first('rewards_paid_at');
+        if (row?.rewards_paid_at) return true;
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    return false;
+}
+
 /** A two-hand weapon never shares the hands with anything in the offhand (combat step 2). */
 async function bothHandsHeld(ctx: Ctx, playerId: number, twoHandIds: number[]): Promise<string | null> {
     const row = await ctx.db('player_equipment').where({ player_id: playerId }).first();
@@ -1739,6 +1787,55 @@ const SCENARIOS: Scenario[] = [
                 ?? changed('Melee XP', Math.round(killXp(26, 0, 0).melee), Number(melee?.xp ?? 0))
                 ?? (left ? 'the fight is still running after a flee' : null)
                 ?? succeeded(st, 1);
+        },
+    },
+    {
+        id: 'invasion', name: 'five fighters land a kill at once on a tear with two of its horde left', rounds: 10,
+        run: async (ctx) => {
+            // Each flee settles first, and each settle lands one kill. Only two
+            // may count against the horde: the take is one conditional
+            // statement, so the horde never goes below zero and exactly one
+            // kill closes the tear. Read and written back, every fighter took
+            // one from the same two and the tear never closed.
+            const t = await tearFight(ctx, 5, 2);
+            const st = await together(ctx, t.players, (p) => ctx.post(p.id, '/combat/flee', {}));
+            const event = await ctx.db('world_events').where({ id: t.event.id }).first();
+            const counted = Number((await ctx.db('world_event_participation').where({ event_id: t.event.id }).sum('actions as n'))[0].n ?? 0);
+            const paid = await tearPaid(ctx, t.event.id);
+            const rewards = await ctx.db('invasion_rewards').where({ event_id: t.event.id });
+            const ledger = await ctx.db('gold_ledger').where({ reason: 'invasion_reward', ref_id: t.event.id });
+            const spot = await ctx.db('fighting_spots').where({ id: t.spot.id }).first('is_active');
+            return changed('kills counted against the horde', 2, counted)
+                ?? changed('horde left', 0, Number(event.pool_left))
+                ?? (event.end_reason !== 'pool' ? `the tear ended as '${event.end_reason}', not held` : null)
+                ?? (spot.is_active ? 'the tear\'s spot is still open after it was held' : null)
+                ?? (!paid ? 'the top three were never paid' : null)
+                ?? changed('rewards paid', 2, rewards.length)
+                ?? changed('reward ledger rows', 2, ledger.length)
+                ?? await ledgerProblem(ctx)
+                ?? succeeded(st, 5);
+        },
+    },
+    {
+        id: 'invasion', name: "pay a closed tear's top three five times at once", rounds: 10,
+        run: async (ctx) => {
+            // A crash between the close and the payment is retried by the
+            // sweep, and a held tear is paid from its last kill's commit: the
+            // payment must be safe to run any number of times at once. Each
+            // place is gated on inserting its invasion_rewards row.
+            const t = await tearFight(ctx, 4, 10);
+            await ctx.db('world_events').where({ id: t.event.id }).update({ ended_at: new Date(), end_reason: 'time' });
+            for (const [i, p] of t.players.entries()) {
+                await ctx.seed.row('world_event_participation', { event_id: t.event.id, player_id: p.id, actions: 10 - i, invasion_xp: (10 - i) * 30, last_at: new Date() });
+            }
+            const { finishTear, rewardFor } = await import('../services/invasions');
+            await Promise.all(Array.from({ length: 5 }, () => finishTear(t.event.id)));
+            const gold = await Promise.all(t.players.map((p) => goldOf(ctx, p.id)));
+            const expected = [rewardFor(1, 300), rewardFor(2, 270), rewardFor(3, 240), 0];
+            const wrong = gold.findIndex((g, i) => g !== expected[i]);
+            return (wrong >= 0 ? `place ${wrong + 1} holds ${gold[wrong]} gold, not ${expected[wrong]}` : null)
+                ?? changed('rewards paid', 3, (await ctx.db('invasion_rewards').where({ event_id: t.event.id })).length)
+                ?? await ledgerProblem(ctx);
         },
     },
     {

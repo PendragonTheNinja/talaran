@@ -1,6 +1,6 @@
 # Invasions: design
 
-*Fourth draft, 2026-11-27: the roster is simulated and its drops are set; nothing is open. Nothing here is built. It extends the world-events system (`docs/WORLD-EVENTS-AND-MUSEUMS.md`, "Invasions, later") and the fight engine (`docs/combat-spec.md`). Where this conflicts with either, they win until Nathan decides otherwise. **OPEN** marks what waits on Nathan; **SIM** marks what `scripts/combatSim.ts` settles before any content is seeded.*
+*Fourth draft, 2026-11-27: the roster is simulated and its drops are set; nothing is open. **Built so far (2026-11-27):** steps 1 to 3 on the server, the realms and creatures of step 6, and the top-three gold of step 4; see §12. Nothing here is built. It extends the world-events system (`docs/WORLD-EVENTS-AND-MUSEUMS.md`, "Invasions, later") and the fight engine (`docs/combat-spec.md`). Where this conflicts with either, they win until Nathan decides otherwise. **OPEN** marks what waits on Nathan; **SIM** marks what `scripts/combatSim.ts` settles before any content is seeded.*
 
 **Decided (Nathan, 2026-11-27):** they are called **tears**. **Staff send every invasion**; there is no automatic schedule. Gatherers at the place **are not affected**. The realms are **Greek myth and the Welsh Otherworld**, twelve creatures between them (§7, roster approved). Invaders drop more and better than natives, and their rare gear has **no bad luck protection** (§6). An invader's best drops are **gear for other skills, better than its tier** (§6).
 
@@ -126,7 +126,7 @@ It is the rare weapons' rule (`docs/combat-spec.md` §10) carried into other ski
   |---|---|---|
   | Walking staff, boots | `items.agility_reduction`, read by `services/travel.ts` (Lanai Staff 0.03, Leather Boots 0.05) | a number only |
   | Gathering tool (hatchet, pick) | the tool's `items.tier` against the node's `required_tool_tier` (`calculateTimer`, `services/woodcutting.ts`) | **a new column, `works_as_tier`**: `items.tier` is derived from where an item is first had (CLAUDE.md §8), so a level 10 creature's hatchet is tier 1 by rule and must not be changed by hand; `calculateTimer` reads `works_as_tier ?? tier` |
-  | Bench tool (the smithy's hammer) | none: `checkStation` (`services/workstations.ts`) runs a player's own bench at ×1 whatever the tool, ×2 at a public bench or with a broken tool | **a new column, `bench_speed_pct`**, read by `checkStation` for the tools in the player's own bench slots; null on every made tool. The **Forgefire Hammer** (the smithing `hammer` slot, the Khalkotauros's) carries **0.05**: 5% quicker smithing at the player's own anvil. It replaced the first draft's bellows, which had no slot to go in |
+  | Bench tool (the smithy's hammer) | bench recipes already run 12% faster a tier the job's lowest tool is above the recipe (`tierMultiplier` in `services/workstations.ts`); smelting and sawing use no bench tool and never speed up (a player's report, 2026-11-27) | **waits on the tool-tier pass** (Nathan, 2026-11-27: every tool above its work's tier speeds it, bench tools included). The **Forgefire Hammer** (the smithing `hammer` slot, the Khalkotauros's) is built on whatever rule that pass settles, rather than a column of its own |
   | Foraging gloves | gloves today only open the prickly rows (`requiresGloves`, `services/foraging.ts`); they do not touch the timer | **a new column, `forage_speed_pct`**, read in `calculateForageTimer` after the knife; null on every made glove, so nothing else changes. The Gwiber-scale Gloves carry **0.02** (Nathan, 2026-11-27: gloves help speed "very slightly") and open the prickly rows like any gloves |
   | Hunting aids (the bow) | the bow's tier, as a gathering tool | `works_as_tier`, as above |
 
@@ -253,12 +253,28 @@ None. Everything in the first draft's list is decided (2026-11-27). New question
 
 ## 11. Build order
 
-1. **Schema:** `realms`, `creatures.realm_id`, `fighting_spots.world_event_id`, `world_events.starts_at`/`warned_at`/`opened_at`/`min_kills`/`rewards_paid_at`, `items.works_as_tier`, `items.forage_speed_pct`, `items.bench_speed_pct`, the `can_run_events` permission. Fresh-database safe (`hasContent`).
+1. **Schema:** `realms`, `creatures.realm_id`, `fighting_spots.world_event_id`, `world_events.starts_at`/`warned_at`/`opened_at`/`min_kills`/`rewards_paid_at`, `items.works_as_tier`, `items.forage_speed_pct`, the `can_run_events` permission. Fresh-database safe (`hasContent`).
 2. **The kind:** Send a tear (admin), the sweep that warns and opens, the spot created and retired, held and lost, announcements, the Events panel.
 3. **The fight hooks:** the pool take in settle, the tear's XP bonus, fights ending when it closes, `world_event_shares` counts. race:check `invasion`.
 4. **Rewards:** the top-three gold and its notice, Chronicle deed kinds, feats.
-5. **Gear hooks:** `works_as_tier` in `calculateTimer` and the hunting bow's check, `forage_speed_pct` in `calculateForageTimer`, `bench_speed_pct` in `checkStation`.
+5. **Gear hooks:** `works_as_tier` in `calculateTimer` and the hunting bow's check, `forage_speed_pct` in `calculateForageTimer`; the hammer on the tool-tier pass.
 6. **Content:** the Bronze Shore and Annwn, each a migration: realm, creatures, drops, rare gear, items with `island`, warning and opening lines. combatSim, combat:derive, values:derive.
 7. **Manual page** (how tears work, never what drops: that is the Bestiary's), patch notes.
 
 Each step ships and is proven on its own.
+
+---
+
+## 12. Built
+
+**Increment 1 (2026-11-27), server only.**
+- Migrations `20261127120000_invasions` (schema) and `20261127130000_invasion_realms` (the two realms, the twelve creatures with the §7 profiles and XP, their goods, coin, and trophies; each island's trophies named on its Spoils of the Fight). Both run up, up again, down, up on a scratch database built from the baseline and the 2026-11-23 snapshot.
+- `services/invasions.ts`: `sendTear` (one tear an island, sent or open; the roster is the realms' creatures whose level's tier is the island's), `invasionSweep` (warn, open, close on time, retry unpaid; from the world-events scheduler), `closeTear`, `closeHeldWithin`, `finishTear` (top three, gated on `invasion_rewards`), `takeFromHordeWithin` (one conditional statement a kill). A tear's spot is made when it is sent, inactive, with its roster, and switched on when it opens.
+- `services/combatFights.ts`: a kill at a tear's spot takes from the horde in the settle, the tear's bonus raises the kill before the split (`eventBonus: false` on the three awards), the kill card says how much of the horde is driven back, and the fight ends after the kill that finds the tear closed (`ended: 'closed'`).
+- Staff routes on `/api/admin/events`: `GET /tears`, `POST /tears/send`, `POST /tears/:id/end`, for admins and `can_run_events` moderators. The admin tab's End on a tear goes through `closeTear`.
+- `listEvents` hides a tear until its warning or its opening; `endExpiredEvents` leaves tears to the sweep. `bestiary_all` counts Talaran's own creatures only. A tear's spot and its creatures are left out of content snapshots (`snapshotWhere` in `lib/contentTables.ts`).
+- race:check `invasion` (two scenarios: five kills on a horde of two; five payments of one tear's top three), each shown to fail against a read-then-write take and an ungated payment.
+- `combatSim.ts roster` on the seeded rows: every invader 87 to 101%, as §7. `values:derive` prices the trophies at 810 (Ant-gold Nugget) to 1,650 (Horn of Annwn).
+
+**Still to build:** the Send a tear card and the tear on the location panel and Events panel (client), the `invasion_reward` notice, the moderator tick box, the Chronicle deed kinds and their verses, the feats, the seven pieces of rare gear and their hooks, the Manual page, and patch notes.
+
