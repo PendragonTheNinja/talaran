@@ -140,7 +140,7 @@ The honey is the sweetener that the whole preserve and pastry line of Cooking wa
 
 I will be plain about the experience: keeping bees pays very little of it. That is the bargain. No feeding, no mucking, no growing to wait through, and in exchange the ledger stays thin. You keep bees for the honey.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Every animal you may keep, what it eats, and how long it makes you wait:
 
 {{data:animals}}

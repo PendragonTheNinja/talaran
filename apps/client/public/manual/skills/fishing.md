@@ -89,7 +89,7 @@ Talk to him first. He is also, I am fairly sure, not telling us everything.
 
 Rods wear out, as every tool does, though a rod lasts about twice as long as a hatchet and a net about six times as long. When yours goes, you need not start again from flax. **Alder**, the carpenter in Talador, always keeps a rod or two on his shelf, and Georemy, once you are a regular at Luxmere, has been known to send a pupil off with a spare.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Every fish in both waters, what draws it, and when it runs:
 
 {{data:training-path:Fishing}}

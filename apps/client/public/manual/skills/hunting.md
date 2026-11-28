@@ -73,7 +73,7 @@ A bow in your hands, and arrows in your pack. The bow is the only tool; the arro
 
 {{data:tools:Hunting}}
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb:
 
 {{data:training-path:Hunting}}

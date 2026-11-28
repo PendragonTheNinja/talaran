@@ -73,7 +73,7 @@ These are names for now. When Talaran is finished, the islets will be named agai
 
 Leave the world while you are out on an islet, and you are brought home, with everything you were carrying. The sea is patient, but not that patient.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Every islet, and how often a voyage reaches it:
 
 {{data:islets}}

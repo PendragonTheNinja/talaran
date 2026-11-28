@@ -1,51 +1,54 @@
-Nothing in Talaran happens the instant you ask for it, and I am going to spend a page explaining why, because once you understand it, you will stop fighting the world and start living in it.
+Everything you do in Talaran runs on a timer. You start an action, it finishes after a set time, and you are paid when it does.
 
-## Everything worth doing takes time
+## One action at a time
 
-Swing at a rock, cast a line, set out for another town. Each begins an **action**, and each action has a duration. It finishes on its own. You need not watch it.
+Chopping a tree, mining a rock, cooking a dish, fighting, and traveling are all actions. You can run one at a time.
 
-I want to be emphatic about that last part, because I did watch. For weeks I watched. I have stared at more ore than any man alive and I can report that ore is entirely indifferent to being stared at.
+- Most actions **repeat** on their own: after each chop, the next one starts. They continue until you press **Stop**.
+- Bench work, such as smelting or cooking, lets you set an **Action Limit** first, so it stops after a set number.
+- Starting a journey stops whatever you were doing.
 
-This is not an inconvenience bolted onto the world. It is the shape of the world. You are *meant* to start a thing, walk away from it, and return to find it done.
+## Work that runs by itself
 
-## Active work and passive work
+Some things keep going while you do something else:
 
-Here is the distinction that matters more than every other distinction combined.
+- **Crops** grow in your fields.
+- **Snares** wait for a catch.
+- **Hides** soak in the tanning barrel, and **ale** brews in the cask.
+- **Animals** in your pens grow and produce, but only while their pen is fed and mucked out.
 
-**Active work** is what occupies you right now: mining, tilling, fishing. One at a time, your full attention, and it pays you for the seconds it takes.
+These run in real time, whether you are online or not. A good routine is to keep them going while you spend your active time on something else.
 
-**Passive work** does not care whether you exist. A crop grows. A hide soaks in the vat. A snare sits in the brush with infinite patience and no opinions. You set it going, you leave, and the world keeps its side of the arrangement in real hours, whether you are in Talaran or asleep in your own bed.
+## Logging off
 
-The good life here is built by keeping passive work running while you spend your attention on active work.
+If you close the game, your current action carries on for **30 minutes**, then stops. Work that runs by itself is not affected.
 
-A farmer who tills a field and then stands watching it has not been unlucky. He has misunderstood farming. I say this with authority.
+A fight is different: if you disconnect, you flee, unless you have turned on **Keep Fighting While Away** in the fight menu or in Settings > Combat.
 
-## Why you cannot start ten things at once
+## Bot checks
 
-There is a limit on how much you may have underway.
+Every 30 minutes of activity, a short question appears, such as a simple sum. Your action waits until you answer it, then carries on.
 
-I know. I have felt the same. But consider the alternative: a world where the person who prospers is simply the person who clicked most. The limit is what makes planning worth anything at all. It is a kindness disguised as an obstacle, which is the most common disguise a kindness wears.
+## What makes work faster
 
-## Levels shorten the work
+- **Your level.** Each level you have above an action's own level makes it 0.5% faster, up to half its time.
+- **Your tools.** A tool of a higher tier than the work makes it faster. A tool below the tier the work needs makes it slower.
+- **The floor.** No action gets faster than 20 seconds, unless it starts shorter than that.
 
-As a skill rises, the same job costs you less time. Every level past what a task demands trims a little more, and finer tools trim more still, while a tool *beneath* the grade a job calls for will punish you for the insult.
+Travel follows the same idea: a better mount and a higher Wayfaring level shorten journeys, but never to nothing.
 
-There is a floor. Work never becomes instant, however skilled you are, however magnificent your equipment. The same holds for travel: a good mount and a lifetime in the saddle will shorten a journey enormously and will never shorten it to nothing.
+## How experience is paid
 
-## Experience is paid for the work, not the winnings
+- **Each action pays a fixed amount** of experience, set by the action. A bigger yield, such as more grain from a field, does not pay more experience.
+- **Getting faster never lowers your pay.** Each action pays the same however quickly you finish it, so you earn more per hour as you improve.
+- Active work sometimes turns up a few **gold coins** as well.
 
-Two consequences, both of which surprise people, both of which are in your favour.
-
-**You are paid for the effort, not the yield.** Rich soil hands you more grain than poor soil. It does not hand you more experience. The harvesting was the same harvesting.
-
-**You are paid for what the job normally costs, not what it cost you.** Grow faster and you keep every scrap of the experience you would have earned while slow. Getting good is never punished here. I have checked. I checked suspiciously, several times, being the sort of man who assumes a trick.
-
-## The cost of a level
+## Experience needed per level
 
 {{data:xp-curve}}
 
-Every trade in Talaran climbs that same ladder, on every island, without exception. What differs between them is only how fast you earn the rungs, never how far you must go.
+Every skill uses this same table. Skills differ only in how quickly you earn experience.
 
----
+## Next
 
-Read a skill page next. [Mining](/manual/skills/mining) is the plainest of them, and plainness is a virtue in a first example.
+Read a skill page to see this in practice. [Mining](/manual/skills/mining) is a good first one.

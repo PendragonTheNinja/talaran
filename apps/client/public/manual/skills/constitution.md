@@ -35,6 +35,6 @@ If your health runs out, you fall. The [Combat](/manual/systems/combat) page say
 - **Defense** decides how much reaches Constitution in the first place.
 - **Melee** decides how long you must stand there.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 {{data:fight-food}}
 {{/details}}

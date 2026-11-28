@@ -1,43 +1,40 @@
-You have the shape of the thing now. A trade takes time, and the time passes whether you watch it or not.
+Which trade to try next. You do not need to pick one main skill: the trades depend on each other, and trying several early makes all of them easier later.
 
-What remains is choosing, and choosing is the part everyone overthinks. So let me make it small for you.
+## To start earning straight away
 
-## If you want to be useful immediately
+Take up **[Mining](/manual/skills/mining)** or **[Woodcutting](/manual/skills/woodcutting)**. You already carry the tools, and timber and metal are what most other trades need.
 
-Take up **[Mining](/manual/skills/mining)** or **[Woodcutting](/manual/skills/woodcutting)**.
+## To build things
 
-Both are gathering trades: go somewhere, do the thing, be paid. Neither asks anything of you that you do not already have. And both produce the raw material that half of Talaran is quietly desperate for, which means you will never lack for something to do with the results.
+**[Carpentry](/manual/skills/carpentry)** turns logs into planks, then into tools, benches, fences, and buildings. Your homestead, your shop, and your boat are all built with it. On Taiar, Geossica in Verdale teaches it and lends her bench.
 
-This is the boring recommendation. It is also the correct one, and I have noticed those categories overlap more than anybody admits.
+## To make tools and gear
 
-## If you want to build things
+**[Smithing](/manual/skills/smithing)** smelts ore into ingots and works them into tools, weapons, and armor at the anvil. On Taiar, Geoffrey in Emberra teaches it and lends his forge.
 
-Then the chain runs: cut timber, work it into planks and parts, raise something from them. **[Carpentry](/manual/skills/carpentry)** is the hinge the whole world turns on, farms and benches and fences and the lot, and it will make you popular in a way mining never quite does.
+## To hunt
 
-## If you want to be paid in stories
+**[Hunting](/manual/skills/hunting)** takes a bow and arrows into the hunting grounds for deer, boar, and larger game, and sets snares for smaller animals. Hides go to leather, and young animals can be raised in your pens. On Taiar, Geonsen at Eld Grove teaches it.
 
-**[Hunting](/manual/skills/hunting)** has the best tales in it, and I say that as a man who collects them professionally. You track something, you commit to a shot, and sometimes you miss. Very little else in Talaran lets you miss, and I find the honesty bracing.
+## To grow things
 
-On Taiar, speak to **Geonsen** at Eld Grove.
+**[Farming](/manual/skills/farming)** means tilling fields, sowing seeds, and harvesting later. Crops grow in real time while you do other things. On Taiar, Georgic at Novita teaches it.
 
-## If you want to grow something
+## To fight
 
-Then go to **Novita**, find **Georgic**, and read the [Farming](/manual/skills/farming) page. Understand going in that farming is a trade about leaving, and that this is a stranger discipline than it sounds.
+**[Combat](/manual/systems/combat)** is three skills: Melee, Defense, and Constitution. Bring food, because health does not come back on its own. On Taiar, Georold in Talador starts you off on the Dock Rats.
 
-## The thing I would tell my younger self
+## How the trades connect
 
-Do not specialize yet.
+A few examples:
 
-The trades of Talaran are so thoroughly braided together that early breadth is not indecision. It is groundwork. The hunter who has never cut timber cannot make his own arrows. The farmer who cannot build stands about waiting for planks.
+- Woodcutting supplies Carpentry, and Carpentry builds the benches every other trade works at.
+- Mining supplies Smithing, and Smithing makes the tools every gatherer uses.
+- Hunting and Husbandry supply hides for leather, which Crafting turns into gear.
+- Fishing, Farming, Foraging, and Hunting all supply Cooking, and cooked food keeps you alive in a fight.
 
-Try four things badly. You will discover that "badly" was never the point, and that the world had been quietly connecting them behind your back the entire time.
+## Antura
 
-Then choose, if you still want to. Many people find they no longer need to.
+Taiar Island is where everyone starts. Across the strait from Talador lies **[Antura](/manual/systems/antura)**, the second island, where most trades' tier 2 work begins at level 13. The ferry from Talador to Wendhaven costs 50 gold. A boat of your own makes the crossing for free once you have built one.
 
-## One more thing, for later
-
-Taiar Island is where all of us begin, but it is no longer the whole of the map. Across the strait from Talador lies **[Antura](/manual/systems/antura)**, the second island, for those of 13 and up, with its own places, its own work, and longer roads. The ferry will take you for fifty gold whenever you are ready, and a boat of your own will take you for nothing, once you have built one and learned to sail it.
-
-There is no hurry. Antura is not a reward for leaving Taiar; it is somewhere to go once Taiar has taught you what it can. The trades you learn here are world rules and travel with you. The places in this manual, the towns and groves and outcrops, belong to whichever island they stand on, and I name it.
-
-I intend to be insufferable about having written the first chapter. I am already insufferable about the second.
+Skills, tools, and levels work the same on every island. Places, people, and what can be found where belong to each island, and this Manual says which island it means.

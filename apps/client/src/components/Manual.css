@@ -248,15 +248,6 @@
     margin: 1em 0;
 }
 
-.manual-signature {
-    font-family: var(--font-body);
-    font-style: italic;
-    color: var(--color-text-dim, #6b5a3e);
-    text-align: right;
-    margin-top: var(--space-xl, 24px);
-    padding-top: var(--space-md, 12px);
-    border-top: 1px solid var(--color-border-dark, #2e2418);
-}
 
 .manual-message {
     color: var(--color-text-muted, #9a8060);
@@ -356,7 +347,7 @@
     padding-bottom: 3px;
 }
 
-/* Data blocks are the Geographer's copied ledgers — give them a ledger's edge. */
+/* Data blocks get a ledger's edge. */
 .manual-data {
     border-left: 2px solid var(--color-border-gold, #6b5030);
 }

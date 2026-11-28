@@ -44,7 +44,7 @@ The **Friddik brothers** send timed errands between each other, a letter here, a
 - **Crafting** sews the cordage every boat is rigged with.
 - **Every other trade** is waiting at the far end of a road, which is why this one is never wasted.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the road and the sea open as you climb:
 
 {{data:training-path:Wayfaring}}

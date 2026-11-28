@@ -69,7 +69,7 @@ The fight pays all three at once, so you never need to choose which to train. Yo
 
 ¹ I once carried three weapons into the Deep Wood to be ready for anything. You may now take any of them up mid-fight, which would have saved me, had I known which end to hold.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Where to go, and what you will meet when you get there:
 
 {{data:fighting-spots}}

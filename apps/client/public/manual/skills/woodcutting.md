@@ -50,7 +50,7 @@ The practical consequence: revisiting humble trees is not the waste it appears t
 
 If you take up only one gathering trade, take Woodcutting. More things are made of wood here than of anything else, and quality actually rewards your attention.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb, and where to find it:
 
 Every tree, what it asks of you, and what comes off it:

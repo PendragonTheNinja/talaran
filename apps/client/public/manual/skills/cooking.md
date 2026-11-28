@@ -133,7 +133,7 @@ And keep a provision going. Any provision. The worst one you own is worth more t
 - Forge the cauldron first, the mortar second.
 - Never leave the provision slot empty, if you can help it.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb, and where to make it:
 
 {{data:training-path:Cooking}}

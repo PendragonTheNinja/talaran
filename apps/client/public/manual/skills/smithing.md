@@ -105,7 +105,7 @@ Smithing sits at the middle of nearly everything, which is why it is worth the s
 
 If you have ever wondered why smiths seem to know everyone, it is not charm. It is that everyone eventually needs a nail.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb:
 
 {{data:training-path:Smithing}}

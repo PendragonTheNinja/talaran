@@ -53,7 +53,7 @@ Foraging asks almost nothing of you. No workstation, no property, no expensive t
 
 And it teaches the habit that makes every other trade cheaper, which is the habit of looking at ground you have already walked past a hundred times and wondering what is actually growing on it.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb, and where to find it:
 
 {{data:training-path:Foraging}}

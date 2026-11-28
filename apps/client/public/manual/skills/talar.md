@@ -128,7 +128,7 @@ A Talar trainer with no friends among the miners is a person standing at the Rif
 
 ¹ Georome says I was the first visitor in nine winters to ask whether the light could be bottled. He says it the way a man says something he has repeated at dinners.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the light opens as you climb:
 
 {{data:training-path:Talar}}

@@ -27,7 +27,7 @@ export default function ManualPage() {
                 <p className="manual-page-eyebrow">A Guide to Talaran</p>
                 <h1 className="manual-page-title">The Manual of Talaran</h1>
                 <p className="manual-page-subtitle">
-                    Compiled by the Geographer, who tried everything once
+                    How every trade, place, and system in the game works
                 </p>
             </div>
 

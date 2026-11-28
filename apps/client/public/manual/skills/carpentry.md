@@ -39,7 +39,7 @@ Carpentry divides cleanly, and it is worth knowing which half you are doing.
 
 Most players discover they enjoy one half considerably more than the other. Both pay.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb:
 
 {{data:training-path:Carpentry}}
@@ -85,7 +85,7 @@ Every structure here wants nails, and the larger ones want them in quantities th
 
 If you intend to build, make a friend at a forge before you make a plan. I have known perfectly competent carpenters brought to a complete halt by a shortage of the smallest component on the list, standing on a mountain of their own timber with nothing to fasten it with.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Every structure, what it asks, and what it costs to raise:
 
 {{data:buildings}}
@@ -110,7 +110,7 @@ You will want a mallet in hand and a saw in your pack, as for any building. You 
 
 When the last piece is in, the boat is yours, and it waits at whichever port you happen to be standing in. Boats, it turns out, are very obliging.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 {{data:boats}}
 {{/details}}
 {{/tabs}}

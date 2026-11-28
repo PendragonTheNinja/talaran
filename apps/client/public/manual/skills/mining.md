@@ -63,7 +63,7 @@ Every pickaxe, its tier, and where to get one:
 - **The islets** hold the best veins of all. An islet may hold an exposed seam, twenty-five to forty ore that is yours alone, with dense ore and gems likelier than anywhere on the mainland.
 - **Woodcutting** is Mining's twin: same rhythm, same tool logic, different substance. Whichever you learn first teaches you the other for free.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb, and where to find it:
 
 The rocks, and what comes out of them:

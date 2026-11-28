@@ -49,7 +49,7 @@ Your combat level is the average of your Melee, Defense, and Constitution. It is
 
 It does not count toward a tally licence. The tally boards are for the trades, and fighting is not a shortcut to them.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 {{data:fighting-spots}}
 
 {{data:creatures}}

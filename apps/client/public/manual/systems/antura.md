@@ -36,7 +36,7 @@ You may keep **one homestead and one shop on each island**. They are separate pl
 
 If you have just stepped off the ferry at 13 and do not know where to look first: walk to Underway with a pickaxe, or to Farefield with a forager's knife. Both open at 13, both feed something you will want later, and both are on the way to everything else.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Where the fighting is, on every island:
 
 {{data:fighting-spots}}

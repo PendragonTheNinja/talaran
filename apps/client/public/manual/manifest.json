@@ -3,197 +3,198 @@
     {
       "key": "getting-started",
       "title": "Getting Started",
-      "blurb": "Where I explain Talaran to you, at slightly greater length than strictly necessary.",
+      "blurb": "The basics: your first hour, how actions work, and the screen.",
       "pages": [
         {
           "slug": "your-first-hour",
           "title": "Your First Hour",
-          "blurb": "What to do the moment you set foot on Taiar Island."
+          "blurb": "Your starting kit, the pony, and your first two trades."
         },
         {
           "slug": "how-actions-work",
           "title": "How Actions Work",
-          "blurb": "Timers, patience, and why nothing here happens the instant you ask."
+          "blurb": "Timers, repeating work, logging off, and how experience is paid."
         },
         {
           "slug": "reading-the-screen",
           "title": "Reading the Screen",
-          "blurb": "Where everything lives, and the three keys worth memorising."
+          "blurb": "What each part of the screen does, and the F1 to F4 keys."
         },
         {
           "slug": "where-to-go-next",
           "title": "Where to Go Next",
-          "blurb": "Choosing a trade, made smaller than you are making it."
+          "blurb": "Which trade to try next, and how the trades connect."
         }
       ]
     },
     {
       "key": "skills",
       "title": "Skills",
-      "blurb": "One page to a trade, all built to the same shape so you need learn it only once.",
+      "blurb": "One page per skill, each laid out the same way.",
       "pages": [
         {
           "slug": "mining",
           "title": "Mining",
-          "blurb": "Rock, ore, and the veins that hide beneath both."
+          "blurb": "Rock, ore veins, and gems."
         },
         {
           "slug": "woodcutting",
           "title": "Woodcutting",
-          "blurb": "Mining's twin, with one difference worth the whole page."
+          "blurb": "Trees, logs, and timber quality."
         },
         {
           "slug": "foraging",
           "title": "Foraging",
-          "blurb": "The trade that will not tell you what you are about to get."
+          "blurb": "Gathering wild plants, berries, and mushrooms by habitat."
         },
         {
           "slug": "hunting",
           "title": "Hunting",
-          "blurb": "The chase, and the traps you leave working while you are elsewhere."
+          "blurb": "Hunting with bow and arrow, and setting snares."
         },
         {
           "slug": "fishing",
           "title": "Fishing",
-          "blurb": "The only trade that cares what hour it is."
+          "blurb": "Rods, bait, waters, and the hours fish bite."
         },
         {
           "slug": "farming",
           "title": "Farming",
-          "blurb": "A farmstead, and the strange discipline of leaving."
+          "blurb": "Fields, seeds, crops, and your homestead."
         },
         {
           "slug": "husbandry",
           "title": "Husbandry",
-          "blurb": "Animals, which unlike fields do not wait quietly for you."
+          "blurb": "Pens, animals, feeding, and what they produce."
         },
         {
           "slug": "carpentry",
           "title": "Carpentry",
-          "blurb": "The hinge Talaran turns on. Learn this one properly."
+          "blurb": "Planks, tools, benches, and buildings."
         },
         {
           "slug": "smithing",
           "title": "Smithing",
-          "blurb": "Everyone eventually needs a nail."
+          "blurb": "Smelting ore into ingots and working them at the anvil."
         },
         {
           "slug": "crafting",
           "title": "Crafting",
-          "blurb": "The trade that catches everything the other trades drop."
+          "blurb": "Leather, gems, jewelry, and cloth."
         },
         {
           "slug": "cooking",
           "title": "Cooking",
-          "blurb": "Fire, fuel, and the trade that makes every other trade worth something."
+          "blurb": "Fires, fuel, dishes, and provisions."
         },
         {
           "slug": "melee",
           "title": "Melee",
-          "blurb": "The only trade where the work fights back."
+          "blurb": "Weapons, damage types, and dealing damage in a fight."
         },
         {
           "slug": "defense",
           "title": "Defense",
-          "blurb": "Being hit less, and minding less when you are."
+          "blurb": "Armor and avoiding damage."
         },
         {
           "slug": "constitution",
           "title": "Constitution",
-          "blurb": "How much of you there is."
+          "blurb": "Your health, and how food restores it."
         },
         {
           "slug": "wayfaring",
           "title": "Wayfaring",
-          "blurb": "The road, the saddle, and the sea, and the trade that shortens all three."
+          "blurb": "Walking, riding, and sailing, and how to make journeys shorter."
         },
         {
           "slug": "talar",
           "title": "Talar",
-          "blurb": "The light under the Rift, and what a person can do with it."
+          "blurb": "Filling gems at the Rift, spells, and jewelry."
         }
       ]
     },
     {
       "key": "systems",
       "title": "Systems",
-      "blurb": "The parts of the world that are not obvious at a glance.",
+      "blurb": "How the larger parts of the game work.",
       "pages": [
         {
           "slug": "the-trades",
           "title": "How the Trades Fit Together",
-          "blurb": "No trade here is self-sufficient. Not one."
+          "blurb": "What each trade supplies to the others."
         },
         {
           "slug": "coin-and-commerce",
-          "title": "Coin & Commerce"
+          "title": "Coin & Commerce",
+          "blurb": "Gold, merchants, player shops, and trading."
         },
         {
           "slug": "travel-and-mounts",
           "title": "Travel & Mounts",
-          "blurb": "A hundred kilometers of Taiar, a strait to Antura, and how to make both cheaper."
+          "blurb": "Roads, mounts, travel times, and the ferry to Antura."
         },
         {
           "slug": "sailing-and-the-islets",
           "title": "Sailing & the Islets",
-          "blurb": "A boat, eight islets to an island, and whatever is waiting on them."
+          "blurb": "Boats, crossings, and exploring the islets."
         },
         {
           "slug": "antura",
           "title": "Antura",
-          "blurb": "The second island, for those who have outgrown the first."
+          "blurb": "The second island: its places, work, and how to get there."
         },
         {
           "slug": "quests-and-npcs",
           "title": "Quests & People",
-          "blurb": "There is no notice-board. There are only people standing still."
+          "blurb": "Quests, daily tasks, errands, and the people who give them."
         },
         {
           "slug": "guilds",
           "title": "Guilds",
-          "blurb": "Four people is faster than five trades."
+          "blurb": "Ranks, the guild hall, the storehouse, and guild events."
         },
         {
           "slug": "the-town-crier",
           "title": "The Town Crier",
-          "blurb": "Hollin Bray, his questions, and the chits he pays for answers."
+          "blurb": "Polls, answering them, and Crier's Chits."
         },
         {
           "slug": "the-homestead",
           "title": "The Homestead",
-          "blurb": "Ground with your name on it, and fifty slots of consequences."
+          "blurb": "Your land: fields, pens, storage, and upgrades."
         },
         {
           "slug": "combat",
           "title": "Combat",
-          "blurb": "Fighting spots, food, falling, and the gear that wears out."
+          "blurb": "Fighting spots, food, death, and gear that wears out."
         },
         {
           "slug": "bestiary",
           "title": "The Bestiary",
-          "blurb": "The book you write by killing things."
+          "blurb": "What you learn about each creature as you defeat more of them."
         },
         {
           "slug": "invasions",
           "title": "Invasions",
-          "blurb": "When the sky splits over a town, and what comes through the tear."
+          "blurb": "Tears in the sky, the creatures that come through, and the rewards."
         }
       ]
     },
     {
       "key": "reference",
       "title": "Reference",
-      "blurb": "My appendices. Copied faithfully; argue with Talaran, not with me.",
+      "blurb": "Tables to look things up in.",
       "pages": [
         {
           "slug": "xp-curve",
           "title": "The Cost of a Level",
-          "blurb": "One ladder, shared by every trade in Talaran."
+          "blurb": "Experience needed for every level, shared by all skills."
         },
         {
           "slug": "quests",
           "title": "Every Quest",
-          "blurb": "The whole catalogue, and who is holding each one."
+          "blurb": "Every quest, and who gives it."
         }
       ]
     }

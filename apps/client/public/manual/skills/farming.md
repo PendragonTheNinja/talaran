@@ -91,7 +91,7 @@ Farming does not stand alone, and was never meant to.
 
 If you are wondering which to raise first: the Carpentry, then the farm. Do it the other way about and you will spend a memorable afternoon standing in Novita, waiting on planks, composing a document.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 The cost of enclosing each successive field, and the Farming level it asks of you:
 
 {{data:plot-costs}}

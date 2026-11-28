@@ -154,7 +154,7 @@ None of these is glamorous. Every one of them is the thing somebody is short of 
 - **Combat** brings you every pelt, plate, and scale an armor set is sewn from.
 - **Foraging** finds the nettle and the flax.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Everything the trade opens as you climb:
 
 {{data:training-path:Crafting}}
