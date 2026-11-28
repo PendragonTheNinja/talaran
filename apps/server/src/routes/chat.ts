@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { emotesFor } from '../services/cosmetics';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { startOfGameDay, nextGameMidnight } from '../lib/gameTime';
@@ -312,11 +313,14 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       const now = new Date();
       const timestamp = now.toTimeString().slice(0, 5);
 
+      // Emotes the sender owns (services/cosmetics.ts), fixed on the line.
+      const whisperEmotes = await emotesFor(playerId, whisperMessage);
       const whisperData = {
         type: 'whisper',
         from: player.username,
         to: targetName,
         message: whisperMessage,
+        emotes: whisperEmotes,
         timestamp,
         sentAt: now.toISOString(),
         guildTag: null, // will add later
@@ -330,6 +334,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         message: `→ ${targetName}: ${whisperMessage}`,
         player_name: player.username,
         guild_tag: player.guild_tag || null,
+        emotes: whisperEmotes,
         sent_at: now,
       }).returning('id');
 
@@ -342,6 +347,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
         message: whisperMessage,
         player_name: player.username,
         guild_tag: player.guild_tag || null,
+        emotes: whisperEmotes,
         sent_at: now,
       }).returning('id');
 
@@ -375,6 +381,8 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       }
     }
     const processedMessage = await resolveForumBreadcrumbs(typed);
+    // Emotes the sender owns (services/cosmetics.ts), fixed on the line when sent.
+    const emotes = await emotesFor(playerId, typed);
 
     const chatMessage = await db('chat_messages').insert({
       player_id: playerId,
@@ -384,6 +392,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       message: processedMessage,
       player_name: player.username,
       guild_tag: player.guild_tag || null,
+      emotes,
       // No badge columns here. chat_messages has none, and adding them to the
       // insert made every send fail with "Server error". The badge rides on the
       // EMITTED payload below instead, resolved fresh each time, which is also
@@ -401,6 +410,7 @@ router.post('/send', chatLimit, requireAuth, async (req: AuthRequest, res: Respo
       // A supporter's name color (services/store.ts NAME_COLORS), or none.
       nameColor: player.name_color || null,
       message: processedMessage,
+      emotes,
       timestamp,
       sentAt: now.toISOString(),
       region: channel === 'region' ? region : null,

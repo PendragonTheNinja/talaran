@@ -1064,6 +1064,8 @@ export async function shopsAtLocation(locationId: number) {
             'player_shops.name as name',
             'player_shops.tagline as tagline',
             'player_shops.is_open as isOpen',
+            'player_shops.sign_style as sign',
+            'player_shops.awning_color as awning',
             'players.id as ownerId',
             'players.username as owner',
         )
@@ -1090,6 +1092,9 @@ export async function shopsAtLocation(locationId: number) {
         name: r.name,
         tagline: r.tagline,
         isOpen: Boolean(r.isOpen),
+        // The owner's sign and awning (services/cosmetics.ts), or none.
+        sign: r.sign ?? null,
+        awning: r.awning ?? null,
         ownerId: r.ownerId,
         owner: r.owner,
         isEmpty: !stocked.has(r.id),

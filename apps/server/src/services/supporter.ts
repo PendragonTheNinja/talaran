@@ -56,6 +56,9 @@ export async function syncSupporter(playerId: number, announce = true): Promise<
         if (announce) {
             for (const f of fresh) pushToPlayer(playerId, 'supporter_badge', { name: f.name, badge: f.badge })
         }
+        // Supporter pets go with the steps (services/pets.ts).
+        const { syncSupporterPets } = await import('./pets')
+        await syncSupporterPets(playerId, cents)
         return fresh
     } catch (err) {
         logger.error(`[supporter] sync for player ${playerId} failed: ${err}`)

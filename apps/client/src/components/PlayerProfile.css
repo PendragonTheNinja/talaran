@@ -9,6 +9,7 @@
 }
 
 .profile-popup {
+    position: relative;
     background: linear-gradient(180deg, var(--color-bg-raised) 0%, var(--color-bg-dark) 100%);
     border: 1px solid var(--color-border-gold);
     border-radius: var(--radius-lg);
@@ -220,3 +221,6 @@
     font-size: 14px;
     color: var(--color-text-base);
 }
+
+/* A supporter's backdrop sits behind the header (Cosmetics.tsx ProfileBackdrop). */
+.profile-popup > .profile-header, .profile-popup > .profile-tabs { position: relative; }

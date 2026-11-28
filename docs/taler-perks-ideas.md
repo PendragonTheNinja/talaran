@@ -13,8 +13,9 @@
 | Gifting | Yes | `giftItem`, a Give button on every store card |
 | Patrons plaque | Yes, as a museum plaque of the top ten (rank and name, never amounts; opt-out) | museum Patrons tab |
 | Seasonal themes | Yes: Christmas first | Yuletide, sold through December |
-| Avatar frames, chat emotes, shop sign and awning, bell packs | Yes | waiting on art and sounds |
-| Profile backdrop | Not now | |
+| Avatar frames, chat emotes, shop sign and awning, bell packs | Yes | `services/cosmetics.ts`, migration `20261128100000`; sold now, each with a fallback until its art (docs/art-list.md) |
+| Profile backdrop | Yes (Nathan, 2026-11-28: public-domain art) | eight in `BACKDROPS`, a gradient until the picture |
+| Pets | Yes | `services/pets.ts`, docs/pets-spec.md |
 | Boat livery, mount trappings, map styles, guild banner | Later | |
 | Homestead sign, gilded plaque | Unsure | |
 | Lanterns, the toast | No | |

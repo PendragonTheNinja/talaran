@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useCallback } from 'react'
+import { PetMark } from './Cosmetics'
 import SharedStoragePanel from './SharedStoragePanel'
 import TallyBoardPanel from './TallyBoardPanel'
 import { apiFetch } from '../lib/api'
@@ -50,6 +51,9 @@ interface PlayerAtLocation {
   badge?: string | null
   /** A supporter's name color (server services/store.ts NAME_COLORS), or none. */
   name_color?: string | null
+  /** A worn pet (server services/pets.ts), and its emoji until the sprite exists. */
+  pet_key?: string | null
+  pet_emoji?: string | null
   combat_level?: number
   onRequestTrade?: (playerId: number) => void
 }
@@ -1139,6 +1143,7 @@ export default function LocationPanel({ locationData, currentAction, onStartActi
                     and a badge out there reads as another tag rather than as
                     part of who you are. */}
                 <Badge badgeKey={p.badge_key} glyph={p.badge} size={20} title="A feat badge" />
+                <PetMark petKey={p.pet_key} emoji={p.pet_emoji} size={18} title="A pet" />
               </span>
               {/* Trails the name, matching chat and the highscores. Outside the
                   clickable name so it does not read as part of the profile

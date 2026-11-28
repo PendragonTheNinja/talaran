@@ -1243,6 +1243,12 @@ export default function GameView({
     const onSupporterBadge = (d: { name: string }) => {
       addLog(`Thank you for supporting Talaran. You may now wear the ${d.name} badge; choose it in your Feats.`, 'success', 'lasting')
     }
+    // A pet found or given (server services/pets.ts).
+    const onPetFound = (d: { name: string; emoji: string; source: string }) => {
+      addLog(d.source === 'supporter'
+        ? `${d.emoji} A ${d.name} has come to keep you company, with thanks for your support. Choose it in Settings, under Profile.`
+        : `${d.emoji} You have found a pet: a ${d.name}! Choose it in Settings, under Profile, to have it walk beside your name.`, 'success', 'lasting')
+    }
     // A gift from the store (server services/store.ts giftItem).
     const onStoreGift = (d: { from: string; item: string }) => {
       addLog(`${d.from} has given you ${d.item}. It is in the Support panel.`, 'success', 'lasting')
@@ -1253,6 +1259,7 @@ export default function GameView({
     socket?.on('round_stood', onRound)
     socket?.on('invasion_reward', onTearReward)
     socket?.on('supporter_badge', onSupporterBadge)
+    socket?.on('pet_found', onPetFound)
     socket?.on('store_gift', onStoreGift)
 
     window.addEventListener('talaran:notice', onNotice)
@@ -1263,6 +1270,7 @@ export default function GameView({
       socket?.off('round_stood', onRound)
       socket?.off('invasion_reward', onTearReward)
       socket?.off('supporter_badge', onSupporterBadge)
+      socket?.off('pet_found', onPetFound)
       socket?.off('store_gift', onStoreGift)
       window.removeEventListener('talaran:notice', onNotice)
       window.removeEventListener('talaran:rate-limited', onLimited)

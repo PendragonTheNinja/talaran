@@ -20,7 +20,7 @@
  */
 
 export type BellMode = 'off' | 'once' | 'always'
-export type BellSound = 'ping' | 'chime' | 'bell' | 'knock' | 'custom'
+export type BellSound = 'ping' | 'chime' | 'bell' | 'knock' | 'custom' | `pack:${string}`
 
 export const BELL_SOUNDS: { id: BellSound; label: string }[] = [
     { id: 'ping', label: 'Ping' },
@@ -28,6 +28,18 @@ export const BELL_SOUNDS: { id: BellSound; label: string }[] = [
     { id: 'bell', label: 'Bell' },
     { id: 'knock', label: 'Knock' },
     { id: 'custom', label: 'Your own sound' },
+]
+
+/**
+ * The Bell Pack perk's sounds (server services/cosmetics.ts BELLS): files at
+ * /sounds/bells/<key>.mp3, shared by everyone who owns the pack. A missing
+ * file falls back to the chime, so the pack can be sold before the sounds ship.
+ */
+export const PACK_SOUNDS: { id: BellSound; label: string }[] = [
+    { id: 'pack:anvil', label: 'Anvil' },
+    { id: 'pack:church-bell', label: 'Church Bell' },
+    { id: 'pack:gull', label: 'Gull' },
+    { id: 'pack:horn', label: 'Horn' },
 ]
 
 /** Largest custom file accepted, and the longest it may play. */
@@ -70,7 +82,8 @@ export function onBellMode(fn: (m: BellMode) => void): () => void {
 }
 
 export function bellSound(): BellSound {
-    return BELL_SOUNDS.find(s => s.id === read(SOUND_KEY))?.id ?? 'chime'
+    const saved = read(SOUND_KEY)
+    return [...BELL_SOUNDS, ...PACK_SOUNDS].find(s => s.id === saved)?.id ?? 'chime'
 }
 export function setBellSound(s: BellSound) { write(SOUND_KEY, s) }
 
@@ -237,6 +250,26 @@ export async function clearCustomSound() {
     if (bellSound() === 'custom') setBellSound('chime')
 }
 
+// ── Bell pack sounds, fetched once each ─────────────────────────────────────
+
+const packBuffers = new Map<string, Promise<AudioBuffer | null>>()
+function loadPack(key: string): Promise<AudioBuffer | null> {
+    let p = packBuffers.get(key)
+    if (!p) {
+        p = (async () => {
+            const a = audio()
+            if (!a) return null
+            try {
+                const res = await fetch(`/sounds/bells/${key}.mp3`)
+                if (!res.ok) return null
+                return await a.decodeAudioData(await res.arrayBuffer())
+            } catch { return null }
+        })()
+        packBuffers.set(key, p)
+    }
+    return p
+}
+
 // ── Ringing ─────────────────────────────────────────────────────────────────
 
 /** Play the chosen sound now, whatever the mode (the Test button). */
@@ -247,6 +280,19 @@ export async function playBell(sound: BellSound = bellSound(), volume = bellVolu
     const out = a.createGain()
     out.gain.value = volume
     out.connect(a.destination)
+    if (sound.startsWith('pack:')) {
+        const buf = await loadPack(sound.slice('pack:'.length))
+        if (buf) {
+            const src = a.createBufferSource()
+            src.buffer = buf
+            src.connect(out)
+            src.start()
+            src.stop(a.currentTime + CUSTOM_MAX_SECONDS)
+            return
+        }
+        playBuiltIn(a, out, 'chime')
+        return
+    }
     if (sound === 'custom') {
         const buf = await loadCustom()
         if (buf) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { FramedAvatar, PetBadge, ProfileBackdrop } from './Cosmetics'
 import Badge from './Badge'
 import { formatGameDateLong } from '../lib/time'
 import { apiFetch } from '../lib/api'
@@ -35,6 +36,11 @@ interface ProfileData {
         forum_post_count: number
         created_at: string
         avatar_url?: string | null
+        /** Supporter cosmetics (server services/cosmetics.ts). */
+        avatar_frame?: string | null
+        profile_backdrop?: string | null
+        /** Pets found, given, or bought, and the one worn (server services/pets.ts). */
+        pets?: { worn: string | null; pets: { key: string; name: string; emoji: string; skill: string | null; kind: string; foundAt: string | null }[] }
     }
     skills: ProfileSkill[]
     equipment: Record<string, string | null>
@@ -88,7 +94,7 @@ export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage,
     }, [])
     const [profile, setProfile] = useState<ProfileData | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'skills' | 'equipment' | 'guild'>('equipment')
+    const [activeTab, setActiveTab] = useState<'skills' | 'equipment' | 'guild' | 'pets'>('equipment')
     // The guild behind the tag, fetched when the tag is tapped (forum, 2026-11-17).
     const [guild, setGuild] = useState<PublicGuild | null>(null)
     const [guildError, setGuildError] = useState('')
@@ -123,10 +129,13 @@ export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage,
                     <p className="muted-text" style={{ padding: '32px', textAlign: 'center', fontSize: '14px' }}>Player not found.</p>
                 ) : (
                     <>
+                        <ProfileBackdrop backdrop={profile.player.profile_backdrop} />
                         {/* Header */}
                         <div className="profile-header">
                             {avatarSrc(profile.player.avatar_url) && (
-                                <img className="profile-avatar" src={avatarSrc(profile.player.avatar_url)!} alt={profile.player.username} />
+                                <FramedAvatar frame={profile.player.avatar_frame} size={96}>
+                                    <img className="profile-avatar" src={avatarSrc(profile.player.avatar_url)!} alt={profile.player.username} />
+                                </FramedAvatar>
                             )}
                             <div className="profile-header-main">
                             <div className="profile-username">
@@ -209,7 +218,24 @@ export default function PlayerProfile({ playerId, onClose, onWhisper, onMessage,
                             {profile.player.guild_tag && (
                                 <button className={`profile-tab ${activeTab === 'guild' ? 'active' : ''}`} onClick={() => openGuild(profile.player.guild_tag!)}>Guild</button>
                             )}
+                            {!!profile.player.pets?.pets.length && (
+                                <button className={`profile-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => setActiveTab('pets')}>Pets</button>
+                            )}
                         </div>
+
+                        {/* Pets tab: every pet they have, the worn one first */}
+                        {activeTab === 'pets' && profile.player.pets && (
+                            <div className="pet-collection" style={{ padding: 'var(--space-md)' }}>
+                                {[...profile.player.pets.pets]
+                                    .sort((a, b) => Number(b.key === profile.player.pets!.worn) - Number(a.key === profile.player.pets!.worn))
+                                    .map(p => (
+                                        <div key={p.key} className="pet-collection-item" title={p.foundAt ? `${p.name}, since ${new Date(p.foundAt).toLocaleDateString()}` : p.name}>
+                                            <PetBadge petKey={p.key} emoji={p.emoji} size={48} />
+                                            <span className={p.key === profile.player.pets!.worn ? 'gold-text' : 'muted-text'}>{p.name}</span>
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
 
                         {/* Skills tab */}
                         {activeTab === 'skills' && (

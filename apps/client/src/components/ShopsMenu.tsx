@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { ShopFront as ShopSign } from './Cosmetics'
 import { apiFetch } from '../lib/api'
 import { getItemIcon } from '../lib/items'
 import './ShopsMenu.css'
@@ -22,6 +23,9 @@ interface ShopSummary {
     ownerId: number
     owner: string
     isEmpty: boolean
+    /** The owner's sign and awning (server services/cosmetics.ts), or none. */
+    sign?: string | null
+    awning?: string | null
 }
 
 interface Listing {
@@ -302,7 +306,7 @@ export default function ShopsMenu({ onClose, onChanged, onManage, onActionStarte
                                             className={`shp-front${s.isOpen ? '' : ' is-shut'}`}
                                             onClick={() => s.isOpen && enterShop(s.id)}
                                         >
-                                            <span className="shp-front-name">{s.name}</span>
+                                            <span className="shp-front-name"><ShopSign sign={s.sign} awning={s.awning}>{s.name}</ShopSign></span>
                                             <span className="shp-front-owner">{s.owner}</span>
                                             {s.tagline && <span className="shp-front-tag">{s.tagline}</span>}
                                             <span className="shp-front-state">

@@ -1,6 +1,6 @@
 # Pets: design
 
-*First draft, 2026-11-27, from Nathan's brief. Nothing is built. **OPEN** marks what waits on Nathan.*
+*First draft, 2026-11-27, from Nathan's brief. Built 2026-11-28 (below); the sprites wait on art.*
 
 ## What Nathan asked for
 
@@ -80,3 +80,9 @@ So about a third of those who take a skill to 100 still have no pet for it. Chos
 2. Wearing a pet; Players Here and profile display; the animation.
 3. Badges and emotes (with the emote system).
 4. Supporter pets, then holiday pets in the store.
+
+## Built (2026-11-28)
+
+- Migration `20261128100000_cosmetics_and_pets`: `pets` (content, 22 rows: 16 skill, 5 supporter, 1 holiday; the proposal list above, editable in the admin content browser), `player_pets` (unique player and pet: the first-find gate), `players.worn_pet`, the Chronicle kind `pet_found` with ten verses.
+- `services/pets.ts`: `rollPets` runs once per skill an action paid, in `emitActionComplete` (every action and every kill, the three combat skills each); a win inserts with ON CONFLICT DO NOTHING and only the insert that lands announces (chat `found_line`, Chronicle, a `pet_found` push). Supporter pets follow `syncSupporter`; the Snow Robin is a December store item (`pet:snow-robin`).
+- Shown: beside the name in Players Here, a Pets tab on the profile, a chooser and the collection in Settings > Profile. Emoji until the art: sprite strip `/images/pets/<key>.png` (frames side by side, each as wide as it is tall; any count), badge `/images/badges/pet-<key>.png`, emote `/images/emotes/pet-<key>.png` (`:pet-<key>:` in chat for owners).

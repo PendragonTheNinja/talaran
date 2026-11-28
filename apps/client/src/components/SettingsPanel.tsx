@@ -547,7 +547,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                 {tab === 'game' && (
                     <div className="settings-section">
                         <h4 className="settings-section-title">Game Options</h4>
-                        <BellSetting hasCustomPerk={owns('perk:custom_sound')} />
+                        <BellSetting hasCustomPerk={owns('perk:custom_sound')} hasBellPack={owns('perk:bell_pack')} />
                         <NotificationSetting />
                         <div className="settings-toggle-row">
                             <div className="settings-toggle-info">

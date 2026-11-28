@@ -6,6 +6,7 @@
 // the panels.
 
 import Badge from './Badge'
+import { withEmotes } from '../lib/emoteText'
 import { openChronicle } from '../lib/chronicleLink'
 import type { ReactNode } from 'react'
 
@@ -19,6 +20,8 @@ export interface ChatMessage {
     /** A supporter's name color (server services/store.ts NAME_COLORS), or none. */
     nameColor?: string | null
     message: string
+    /** Emote keys this line may draw (server services/cosmetics.ts emotesFor). */
+    emotes?: string[] | null
     timestamp: string      // display format HH:MM
     rawTimestamp: number   // unix ms for sorting
     isWhisper?: boolean
@@ -80,7 +83,8 @@ function linkify(text: string, keyPrefix: string): ReactNode[] {
 }
 
 /** Turns [[FORUMLINK|id|label]] markers into clickable spans, and web addresses into links. */
-export function renderMessageText(text: string, onOpenForum?: (threadId: number) => void) {
+export function renderMessageText(text: string, onOpenForum?: (threadId: number) => void, emotes?: string[] | null) {
+    const plain = (t: string, k: string) => withEmotes(t, emotes, linkify).map((n, i) => <span key={`${k}-${i}`}>{n}</span>)
     const nodes: ReactNode[] = []
     const regex = /\[\[FORUMLINK\|(\d+)\|(.*?)\]\]/g
     let lastIndex = 0
@@ -88,7 +92,7 @@ export function renderMessageText(text: string, onOpenForum?: (threadId: number)
     let key = 0
 
     while ((match = regex.exec(text)) !== null) {
-        if (match.index > lastIndex) nodes.push(...linkify(text.slice(lastIndex, match.index), `t${key}`))
+        if (match.index > lastIndex) nodes.push(...plain(text.slice(lastIndex, match.index), `t${key}`))
         const threadId = parseInt(match[1])
         nodes.push(
             <span
@@ -103,7 +107,7 @@ export function renderMessageText(text: string, onOpenForum?: (threadId: number)
         lastIndex = regex.lastIndex
     }
 
-    if (lastIndex < text.length) nodes.push(...linkify(text.slice(lastIndex), 'end'))
+    if (lastIndex < text.length) nodes.push(...plain(text.slice(lastIndex), 'end'))
     return nodes
 }
 
@@ -183,7 +187,7 @@ export default function ChatMessageLine({ msg, onOpenForum, onPlayerClick }: Cha
                         {msg.playerName}
                     </span>
                     {' '}
-                    {renderMessageText(msg.message.slice(4), onOpenForum)}
+                    {renderMessageText(msg.message.slice(4), onOpenForum, msg.emotes)}
                 </span>
             </div>
         )
@@ -218,7 +222,7 @@ export default function ChatMessageLine({ msg, onOpenForum, onPlayerClick }: Cha
             </span>
             <span className="chat-colon muted-text">: </span>
             <span className="chat-text" style={{ color: CHANNEL_COLORS[msg.channel] }}>
-                {renderMessageText(msg.message, onOpenForum)}
+                {renderMessageText(msg.message, onOpenForum, msg.emotes)}
             </span>
         </div>
     )

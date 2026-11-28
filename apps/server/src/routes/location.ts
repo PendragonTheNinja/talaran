@@ -3,6 +3,7 @@ import { islandTowns } from '../services/islands';
 import db from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { onlinePlayers } from '../lib/realtime';
+import { petEmoji } from '../services/pets';
 import { eventStandingsAt } from '../services/worldEvents';
 import { liveIsletFind } from '../services/isletFinds';
 import { waterFor } from '../services/fishing';
@@ -266,7 +267,11 @@ router.get('/players-here', requireAuth, async (req: AuthRequest, res: Response)
       // glyph joined in as the fallback for art that does not exist yet.
       .select('players.id', 'players.username', 'players.guild_tag',
               'players.worn_badge as badge_key', 'bf.badge as badge',
-              'players.worn_title as title', 'players.name_color');
+              'players.worn_title as title', 'players.name_color', 'players.worn_pet as pet_key');
+
+    // A worn pet (services/pets.ts): its emoji rides along until the sprite exists.
+    const emoji = await petEmoji();
+    for (const p of players as any[]) p.pet_emoji = p.pet_key ? emoji.get(p.pet_key) ?? null : null;
 
     res.json({ players });
   } catch (err) {

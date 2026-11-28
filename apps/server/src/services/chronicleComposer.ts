@@ -291,6 +291,8 @@ async function readDay(dayKey: string, settings: ChronicleSettings, names: boole
             place2: data.place2 ?? null,
             // The world a tear opened onto (services/invasions.ts).
             realm: data.realm ?? null,
+            // A pet found (services/pets.ts).
+            pet: data.pet ?? null,
             skill: data.skill ?? null,
             level: data.level ?? data.total ?? null,
             n: data.kills ?? data.n ?? data.tier ? countWord(Number(data.kills ?? data.n ?? data.tier)) : null,

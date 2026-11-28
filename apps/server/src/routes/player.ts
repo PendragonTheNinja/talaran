@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { petsShownFor } from '../services/pets';
 import db from '../db';
 import { hasPermission } from '../lib/staffPermissions';
 import { requireAuth, AuthRequest } from '../middleware/auth';
@@ -191,6 +192,9 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
           'players.worn_badge',
           // Their picture: public, like the forum shows it.
           'players.avatar_url',
+          // Supporter cosmetics and pets (services/cosmetics.ts, services/pets.ts): public, like the avatar.
+          'players.avatar_frame',
+          'players.profile_backdrop',
           // failed_bot_checks is self-only. It is a joke, and a joke about
           // yourself lands differently from one somebody else can point at.
           ...(isSelf ? ['players.last_login', 'players.total_seconds_played', 'players.failed_bot_checks'] : []),
@@ -209,6 +213,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       player.badge_glyph = badge?.badge ?? null;
       // A name changed lately: the old one shows for a month (services/nameChange.ts).
       player.formerly = await formerName(targetId);
+      player.pets = await petsShownFor(targetId);
 
       const skills = await db('player_skills')
         .where({ player_id: targetId })

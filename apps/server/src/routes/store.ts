@@ -3,6 +3,9 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import { requireTrusted } from '../lib/trust';
 import { logger } from '../lib/logger';
 import { STORE_ITEMS, getUnlocks, purchaseItem, effectivePrice, onSaleNow, saleEndsAt, giftItem, setNameColor, NAME_COLORS } from '../services/store';
+// Registers the cosmetics' store items (services/cosmetics.ts) before any purchase is checked.
+import { cosmeticsState, wearCosmetic } from '../services/cosmetics';
+import { petsFor, wearPet } from '../services/pets';
 import db from '../db';
 import { getTalerBalance } from '../services/talers';
 import { failureStatus } from '../lib/serviceResult';
@@ -23,6 +26,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
             nameColors: NAME_COLORS,
             nameColor: me?.name_color ?? null,
             nameChangeTokens: Number(me?.name_change_tokens ?? 0),
+            // Frames, backdrops, shop looks, emotes, and bells: owned and worn (services/cosmetics.ts).
+            cosmetics: await cosmeticsState(playerId),
             items: STORE_ITEMS.map(i => ({
                 key: i.key,
                 name: i.name,
@@ -95,6 +100,45 @@ router.post('/name-color', requireAuth, async (req: AuthRequest, res: Response) 
         res.json({ success: true });
     } catch (err) {
         logger.error(`Name color error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Wear a frame, backdrop, shop sign, or awning, or take it off (services/cosmetics.ts).
+router.post('/cosmetic', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const result = await wearCosmetic(req.player!.playerId, req.body?.kind, req.body?.key ?? null);
+        if (!result.ok) {
+            res.status(failureStatus(result.error)).json({ error: result.error });
+            return;
+        }
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Cosmetic error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Every pet, which are yours, and the one worn (services/pets.ts).
+router.get('/pets', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        res.json(await petsFor(req.player!.playerId));
+    } catch (err) {
+        logger.error(`Pets list error: ${err}`);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/pet', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const result = await wearPet(req.player!.playerId, req.body?.key ?? null);
+        if (!result.ok) {
+            res.status(failureStatus(result.error)).json({ error: result.error });
+            return;
+        }
+        res.json({ success: true });
+    } catch (err) {
+        logger.error(`Wear pet error: ${err}`);
         res.status(500).json({ error: 'Server error' });
     }
 });

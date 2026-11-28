@@ -1,0 +1,117 @@
+/* Supporter cosmetics and pets (Cosmetics.tsx). Theme tokens only. */
+
+.pet-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    vertical-align: middle;
+    line-height: 1;
+}
+.pet-mark-sprite {
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    animation: pet-walk 0.8s steps(var(--pet-frames, 1)) infinite;
+}
+@keyframes pet-walk {
+    from { background-position: 0 0; }
+    to { background-position: var(--pet-strip, 0) 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pet-mark-sprite { animation: none; }
+}
+
+.pet-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-gold);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.pet-badge img { image-rendering: auto; }
+.pet-badge-dim { filter: grayscale(1) brightness(0.45); }
+
+/* Avatar frames: the art over the picture, or a border until it exists. */
+.framed-avatar {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.framed-avatar > img:first-child,
+.framed-avatar > :first-child { width: 100%; height: 100%; }
+.framed-avatar-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.frame-fallback { border-radius: 6px; box-shadow: 0 0 0 3px var(--frame-color, var(--color-gold)), 0 0 0 5px var(--color-bg-deep); }
+.frame-knotwork { --frame-color: #6b4a2a; }
+.frame-gilt { --frame-color: #e4c06a; }
+.frame-driftwood { --frame-color: #9a948a; }
+.frame-iron { --frame-color: #3a3836; }
+.frame-holly { --frame-color: #3f7a3a; }
+.frame-annwn { --frame-color: #8fd0c4; }
+
+/* Profile backdrops: the picture, or a gradient until it exists. */
+.profile-backdrop {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.55;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent);
+    mask-image: linear-gradient(to bottom, black 40%, transparent);
+}
+.backdrop-fallback { background: linear-gradient(135deg, var(--backdrop-a, #2a3a4a), var(--backdrop-b, #0f0f0f)); }
+.backdrop-harbor-dusk { --backdrop-a: #3b4a6b; --backdrop-b: #c9824a; }
+.backdrop-forest-edge { --backdrop-a: #2f4a2a; --backdrop-b: #7a8a3a; }
+.backdrop-castle-hill { --backdrop-a: #4a4a5a; --backdrop-b: #8a7a5a; }
+.backdrop-market-square { --backdrop-a: #7a3a2a; --backdrop-b: #c9a14a; }
+.backdrop-tapestry-hunt { --backdrop-a: #4e0d0b; --backdrop-b: #7d6532; }
+.backdrop-sea-chart { --backdrop-a: #1b3a5a; --backdrop-b: #cfc6b4; }
+.backdrop-winter-village { --backdrop-a: #5a6a7a; --backdrop-b: #ece4d0; }
+.backdrop-starry-hills { --backdrop-a: #0a0f2a; --backdrop-b: #2a2a4a; }
+
+.chat-emote {
+    height: 1.35em;
+    width: 1.35em;
+    vertical-align: -0.3em;
+    margin: 0 1px;
+}
+
+/* Shop fronts: a sign behind the name, an awning above it. */
+.shop-front { position: relative; display: inline-block; }
+.shop-sign { padding: 2px 8px; color: var(--color-text-bright); }
+.shop-sign {
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+.shop-sign-fallback { background: linear-gradient(var(--sign-a, #5a3f22), var(--sign-b, #3a2814)); border: 2px solid var(--sign-edge, #2a1c0e); border-radius: 4px; }
+.shop-sign-carved-oak { --sign-a: #6b4a2a; --sign-b: #4a321c; }
+.shop-sign-painted-board { --sign-a: #2f5a4a; --sign-b: #1f3f34; }
+.shop-sign-iron-bound { --sign-a: #4a3a2a; --sign-b: #2a2016; --sign-edge: #111; }
+.shop-sign-gilt-edged { --sign-a: #2a2016; --sign-b: #1a140e; --sign-edge: #c9a14a; }
+.shop-awning {
+    display: block;
+    height: 6px;
+    margin: -2px -8px 3px;
+    border-radius: 3px 3px 0 0;
+    background: repeating-linear-gradient(90deg, var(--awning, #a3231a) 0 14px, #f2ead8 14px 28px);
+}
+.shop-awning-red { --awning: #a3231a; }
+.shop-awning-green { --awning: #3f7a3a; }
+.shop-awning-blue { --awning: #2f5a8a; }
+.shop-awning-gold { --awning: #c9a14a; }
+.shop-awning-purple { --awning: #6a2ca0; }
+.shop-awning-white { --awning: #cfc6b4; }
+
+.cosmetic-picker { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.pet-collection { display: flex; flex-wrap: wrap; gap: 6px; }
+.pet-collection-item { display: flex; flex-direction: column; align-items: center; width: 64px; text-align: center; font-size: 11px; }

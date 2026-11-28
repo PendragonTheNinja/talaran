@@ -39,6 +39,7 @@ import { takeEventXp } from './worldEvents';
 import { takeGuildXp } from './guildCompanions';
 import { takeJewelryNotes, jewelryAid } from './jewelry';
 import { wearToolsAfter, takeToolWear, handBreakMessage, whereToBuyAgain } from './toolWear';
+import { rollPets } from './pets';
 import { realtimeServer, pushToPlayer, announcePlayersHere } from '../lib/realtime';
 
 const TICK_INTERVAL = 2000;
@@ -227,6 +228,13 @@ async function emitActionComplete(io: Server | null, action: any, payload: any):
   }
 
   if (!result) return;
+
+  // Pets (services/pets.ts): one roll for each skill this action paid.
+  const paid: string[] = Array.isArray(result.xpAwards) && result.xpAwards.length
+    ? result.xpAwards.filter((a: any) => a?.skill && a.xp > 0).map((a: any) => a.skill)
+    : (result.skillName && (result.xpAwarded ?? 0) > 0 ? [result.skillName] : []);
+  if (paid.length) await rollPets(action.player_id, paid);
+
   await recordLoot(action.player_id, action.action_type, action.location_id ?? null, {
     drops: result.drops,
     xpAwards: result.xpAwards,

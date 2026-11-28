@@ -185,6 +185,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
             timestamp: formatTime(new Date(m.sent_at)),
             rawTimestamp: new Date(m.sent_at).getTime(),
             isWhisper: m.channel === 'whisper',
+            emotes: m.emotes ?? null,
           }))
           all.push(...formatted)
         } catch (err) {
@@ -265,6 +266,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           badgeKey: data.badgeKey ?? null,
           badge: data.badge ?? null,
           nameColor: data.nameColor ?? null,
+          emotes: data.emotes ?? null,
           message: data.message,
           timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
@@ -296,6 +298,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
           isWhisper: true,
+          emotes: data.emotes ?? null,
         }
         addMessages([msg], true)
         // Ready to reply, but only into an empty box (or one holding nothing
@@ -319,6 +322,7 @@ export default function ChatPanel({ onOpenForum, draft, onDraftConsumed, isGuest
           timestamp: formatTime(data.sentAt ? new Date(data.sentAt) : new Date()),
           rawTimestamp: data.sentAt ? new Date(data.sentAt).getTime() : Date.now(),
           isWhisper: true,
+          emotes: data.emotes ?? null,
           whisperTo: data.to,
         }
         addMessages([msg], true)

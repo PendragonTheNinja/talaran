@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-    BELL_SOUNDS, CUSTOM_MAX_BYTES, CUSTOM_MAX_SECONDS, bellMode, bellSound, bellVolume, clearCustomSound,
+    BELL_SOUNDS, PACK_SOUNDS, CUSTOM_MAX_BYTES, CUSTOM_MAX_SECONDS, bellMode, bellSound, bellVolume, clearCustomSound,
     customSoundName, onBellMode, playBell, saveCustomSound, setBellMode, setBellSound, setBellVolume,
     type BellMode, type BellSound,
 } from '../lib/bell'
@@ -14,7 +14,7 @@ import BellEventsPicker from './BellEventsPicker'
  * whether it is on, all for this device only. "Your own sound" needs the
  * Custom Sound perk; the file is kept in this browser and never uploaded.
  */
-export default function BellSetting({ hasCustomPerk }: { hasCustomPerk: boolean }) {
+export default function BellSetting({ hasCustomPerk, hasBellPack = false }: { hasCustomPerk: boolean; hasBellPack?: boolean }) {
     const [mode, setMode] = useState<BellMode>(bellMode)
     const [sound, setSound] = useState<BellSound>(bellSound)
     const [volume, setVolume] = useState(bellVolume)
@@ -77,7 +77,7 @@ export default function BellSetting({ hasCustomPerk }: { hasCustomPerk: boolean 
 
                 <span className="settings-toggle-label bell-setting-sub">Sound</span>
                 <div className="settings-size-row" role="radiogroup" aria-label="Bell sound">
-                    {BELL_SOUNDS.filter(s => s.id !== 'custom' || (hasCustomPerk && customName)).map(s => (
+                    {[...BELL_SOUNDS.filter(s => s.id !== 'custom' || (hasCustomPerk && customName)), ...(hasBellPack ? PACK_SOUNDS : [])].map(s => (
                         <button
                             key={s.id}
                             role="radio"
