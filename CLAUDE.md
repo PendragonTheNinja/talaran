@@ -404,13 +404,14 @@ Applies to everything a player reads: item and habitat descriptions, NPC dialogu
 - **American spelling** (Nathan, 2026-11-19): harbor, gray, color, favor, armor in prose. Names already given keep theirs (the Grey Wolf), and code keys and columns stay as they are (`armour`, the ship log's `grey` weather). Older text is changed by migration when touched, never by a sweep.
 - **Always the Oxford comma** (Nathan, 2026-11-13): "A, B, and C", never "A, B and C"; the same with "or". Lists the game builds go through `listWords` (`lib/listWords.ts`, a copy in the server and the client), so a list built in code gets it too. This applies to conversation with Nathan as well.
 - **Banned:** "it's not just X, it's Y", "more than just", "not merely", "a testament to", "at its core", "the heart of", "delve", "tapestry", "rich history of", "seamlessly", "unlock", "whether you're a X or a Y", corporate register (leverage, streamline, optimize, robust, utilize, facilitate), and a closing sentence that restates the paragraph.
-- **Concrete nouns** ("tannin-stained hands", not "the tanning experience"). **Specific numbers** ("nine winters", not "many years"; the Manual narrator may use period diction like "a great many").
+- **Concrete nouns** ("tannin-stained hands", not "the tanning experience"). **Specific numbers** ("nine winters", not "many years").
 - **Vary sentence length hard.** Fragments are good. No three-item lists used for rhythm.
 - **Written from inside the world.** A pickaxe description does not mention mining levels. Period-plausible diction. NPCs talk like working people, not narrators. Plain, concrete, a little folkloric.
 - **Overused, now capped:** the corrective reversal ("It is not a hunt. It is a transaction with a deer.") at most once per page and only where it genuinely turns the meaning. "Which is a different thing" is retired. Grep for both.
 - Don't add rules aimed at evading AI detection. Write well because Talaran should sound like itself.
 
 ### The Manual (`docs/manual-spec.md` is the authority)
+- **Plain information, no narrator** (Nathan, 2026-11-28): a new player called the old Geographer voice "obviously AI" and left. Second person, short sentences, what to do, where, with what; no first person, jokes, asides, or footnotes. `docs/manual-spec.md` §6 has the rules.
 - Prose is markdown in `apps/client/public/manual/<section>/<slug>.md`; `manifest.json` drives the nav.
 - **Numbers are never hand-written:** `{{data:<query>[:<param>]}}` resolves against the registry in `routes/manual.ts`. Content names a registered query, never a table.
 - `{{tabs}}` / `{{tab:Label}}` / `{{/tabs}}` for one skill with several faces; `{{details:Label}}` / `{{/details}}` for appendices.

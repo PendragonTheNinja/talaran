@@ -1,39 +1,41 @@
-You have arrived on Taiar Island with a pony, a dream, and no earthly idea what to do with either. Take heart. This is precisely the correct amount of equipment and very nearly the correct amount of idea.
+You start in Talador, the port town of Taiar Island, with three things in your pack: an **Ambren Hatchet**, an **Ambren Pickaxe**, and a **Novice's Pony**.
 
-I arrived the same way, some years ago, and spent my first hour standing on the shore composing a five-year plan. I have since learned that Talaran does not read plans. It does, however, reward the curious with almost embarrassing generosity, so let us get you moving.
+## Equip the pony
 
-## Take the pony seriously
+Open your pack and equip the Novice's Pony. It goes in your mount slot. Riding takes about a third off every journey, and Taiar is a hundred kilometers from end to end, so this matters from your first trip.
 
-I am aware of how that sounds.
+Travel takes real time. Choose where to go from the map or the roads listed at your location, and you arrive when the journey ends. You can chat, check your pack, or read this Manual on the way.
 
-Taiar runs a hundred kilometres from end to end, and you will spend more of your life crossing it than you will ever spend arriving anywhere. Your pony cuts a journey to a third of what your own two legs will charge you. Call that a third of your life handed back to you.
+## Start with Woodcutting and Mining
 
-Ride the pony. It is not a decoration, it is not a pet, and it is certainly not, as I once treated mine, a sort of large anxious wheelbarrow.
+Most things in Talaran are made from timber or metal, and you already carry the tools for both.
 
-Travel is real work that takes real time. You will not blink and be elsewhere. Set out, then go and do something useful while the road happens to you.
+- **Woodcutting:** equip the hatchet and go to **Lanaivale**, west of Talador. Choose **Chop Lanai Tree**.
+- **Mining:** equip the pickaxe and go to **Origrund**, in the mountains northwest of Talador. Choose **Mine Granite Rock**. Ambren ore veins open from the rock as you mine it.
 
-## Pick up a trade, not a plan
+Each swing or chop is one action. It runs on a timer, pays experience when it finishes, and repeats until you stop it. [How Actions Work](/manual/getting-started/how-actions-work) explains the timers.
 
-New arrivals love to decide which trade they shall *master* before laying a finger on any of them. I did this. I produced a document. I was very pleased with it.
+## Talk to people
 
-Here is the trouble. The trades of Talaran lean on one another so thoroughly that the question dissolves the moment you begin. The woodcutter feeds the carpenter. The carpenter builds the farm. The hunter clothes the crafter. Ask "which trade should I choose" and the world answers "yes."
+Nobody posts work on a board. The people who teach each trade stand in towns and wait to be spoken to. Tap a name in **Players Here** to talk to them.
 
-If you want a recommendation rather than a philosophy, and at this stage you should, begin with **Woodcutting** and **Mining**. Nearly everything downstream is made of timber or metal, they teach you the rhythm of gathering, and neither demands a tool you do not already have.
+On Taiar:
 
-## Talk to everyone
+- **Quank** in Talador explains the basics.
+- **Georold** in Talador teaches combat.
+- **Geoffrey** in Emberra teaches Smithing.
+- **Geossica** in Verdale teaches Carpentry.
+- **Geomima** in Phoenwick teaches Cooking.
+- **Geosper** in Caliwen teaches gem cutting, part of Crafting.
+- **Geonsen** at Eld Grove teaches Hunting.
+- **Georgic** at Novita teaches Farming, and **Geothro**, also at Novita, teaches Husbandry.
+- **Georemy** at Luxmere teaches Fishing.
+- **Georome** at the Talar Rift teaches Talar.
 
-The people who teach the trades do not advertise. There is no board in the square with work pinned to it. There are only people, standing about in towns, looking thoroughly unremarkable, waiting to be asked.
-
-They will not chase you. They will not wave. They will simply stand there, indefinitely, knowing something you don't.
-
-On Taiar, Geonsen at Eld Grove will teach you to hunt, and Georgic at Novita will teach you to farm. There are others, all of them on Taiar, which is where beginners are. Speak to anyone standing still, and mind that some of them are more patient than they look.
+Each teacher gives you a short task and the tools to begin. Once you have done it, they also lend you their bench or offer a daily task.
 
 ## Where to go from here
 
-Read [How Actions Work](/manual/getting-started/how-actions-work) next. It will spare you more confusion than anything else I have written.
-
-Then pick a trade and read its page. They are all built to a similar shape, so the second will take you half as long as the first, and the fifth will take you no time at all.
-
----
-
-¹ I once walked from Novita to Eld Grove to ask a question I could have asked anyone. The pony watched me leave. I have thought about that pony a great deal since.
+- [How Actions Work](/manual/getting-started/how-actions-work): timers, levels, and what happens when you log off.
+- [Reading the Screen](/manual/getting-started/reading-the-screen): what each part of the screen does.
+- [Where to Go Next](/manual/getting-started/where-to-go-next): which trade to try after the first two.

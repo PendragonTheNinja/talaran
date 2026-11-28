@@ -1,100 +1,82 @@
-Fishing is the only trade in Talaran that cares what hour it is.
-
-Everything else you do here is indifferent to the clock. A tree is a tree at dawn and a tree at midnight. Ore does not keep hours. But the water changes character four times a day and four times a year, and if you turn up at the wrong moment you will spend an afternoon catching things you did not want and never once see the fish you came for.
-
-This annoys people for about a week. Then they start planning their days around it, and they do not go back.
+Fishing catches fish with a rod or a net. Raw fish go to Cooking. Some fish only bite at certain hours of the day or in certain seasons, so when you fish matters.
 
 ## Where and how to start
 
-There are two waters on Taiar, and they are not the same trade wearing different hats.
+On Taiar, talk to **Georemy** at **Luxmere**. He gives you a rod.
 
-**Luxmere** is the lake, and it is freshwater, and it is honest. Seven fish, nearly all of them available whenever you show up. It is the water you learn on.
+Equip a rod, stand at a water, and choose to fish. Each cast draws one fish from everything you can currently catch there, weighted. You can catch a fish if:
 
-**Dawncrest** is the sea, and it is saltwater, and it has moods. Eleven fish, three of which appear only within a single stretch of the day, three of which vanish for whole seasons. It rewards knowing things.
+- your level is high enough,
+- it is the right hour, and
+- it is the right season.
 
-**Antura** has two more, both from **Fishing 13**, and the same pair of characters again. **Bidewater** is the lake: tench, rudd, zander, and the **Glassback**, which rises only after dark and is the reason Antura's anglers look tired. **Farvick Narrows** is the strait: mackerel, pollock, sea bass, and turbot, a cold, generous water with a tide in it.
+You do not see what a water holds until you catch it. Uncaught fish show as question marks.
 
-Stand at any of them, equip a rod, and cast. That is the whole of the beginning. Each cast draws one fish from everything you are currently eligible for, weighted, and eligibility is three questions asked at once: are you skilled enough, is it the right hour, is it the right season.
+**Taiar:**
 
-As with foraging, **you do not see what a water holds until you have pulled it out yourself.** Question marks until then. I will not pretend this is not the reason I have stood at Dawncrest at four in the morning.
+- **Luxmere** (lake, freshwater): seven fish, nearly all available at any time. The best place to learn.
+- **Dawncrest** (sea, saltwater): eleven fish. Three appear only at one time of day, and three disappear for whole seasons.
 
-## Bait, which is the whole trade
+**Antura** (both from **Fishing 13**):
 
-You can fish with a bare hook forever and catch everything in the water. I want that said plainly, because the rest of this section reads like a requirement and it is not one.
+- **Bidewater** (lake): tench, rudd, zander, and the **Glassback**, which only bites after dark.
+- **Farvick Narrows** (strait): mackerel, pollock, sea bass, and turbot.
 
-What bait does is **weight the odds and shorten the wait**. There are five kinds, and every fish prefers exactly one:
+## Bait
 
-- **Grain** for the small quiet feeders
-- **Cheese**, which is for carp and for nothing else, and is the finest bit of real fishing lore in the game
-- **Egg**, standing in for roe
-- **Spawn**, meaning frogspawn, which the predators cannot refuse
-- **Meat**, which is most of the sea
+You can fish with a bare hook and still catch everything. Bait **makes the fish that likes it more likely, and shortens the wait.** There are five kinds, and each fish prefers one:
 
-You do not thread items onto your hook one at a time. You **break them down into a pouch**, and the pouch keeps its count between sessions. A single frogspawn is worth twenty casts. A handful of grain is worth one each. Rarity sets the value, not size, which is why the spawn you find once in a hundred hedgerow searches is worth a whole evening at the lake.
+- **Grain**: small, quiet feeders
+- **Cheese**: carp
+- **Egg**: fish that take roe
+- **Spawn** (frogspawn): predators
+- **Meat**: most sea fish
 
-And when the pouch runs dry, nothing stops. You simply carry on unbaited, a little slower, taking whatever comes.
+You break bait items down into a **bait pouch**, which keeps its count between sessions. Rarer items are worth more casts: one frogspawn is worth twenty casts, one handful of grain is worth one. When the pouch runs out, you keep fishing unbaited.
 
 ## Cutting bait
 
-A butchering knife turns any fish into meat bait. Twenty seconds, a little experience in Fishing, and a little in Crafting, and your smallest catches stop being clutter.
-
-I will be honest about the arithmetic, because you will work it out anyway: cutting everything you catch is very slightly slower than simply fishing. There is no catch hidden in that. Cut bait exists so a poor haul is never wasted, and so you are never stood at the water with nothing to offer it.
+A butchering knife turns any fish into meat bait. It takes twenty seconds and pays a little Fishing and a little Crafting experience. Cutting everything you catch is slightly slower than just fishing; it is there so small catches are never wasted.
 
 ## The net
 
-A net is the other way to fish, and it is not a better rod.
+A net catches four to six fish per haul instead of one, but each haul takes much longer. It ignores bait and never brings up the rarest fish in a water. Experience per hour is lower than with a rod. Use it when you want a lot of fish; use a rod when you want a particular one.
 
-It takes four to six fish at a haul instead of one, and it takes far longer, and it ignores bait entirely, and it will never bring up anything from the top of the water. Experience per hour sits below rod fishing on purpose.
+## Weights
 
-Use it when you want fish. Use the rod when you want *a* fish.
+Every fish is weighed. Your heaviest and lightest of each species are recorded. Most catches are near the middle; extreme weights are uncommon.
 
-## Weights, and the point of them
+## Salvage and chests
 
-Every catch is weighed, and your heaviest and your lightest of each species are kept forever.
+Waters also give up things that are not fish: amber, river mussels, bog Lanai, frogspawn, and at sea, now and then, a **Locked Rusty Chest**. Salvage is not weighed.
 
-The roll leans toward the middle, so most fish are unremarkable and the extremes are genuinely uncommon. A record-breaking conger is a real thing that happened to you and not a thing the water hands out.
+Take a locked chest to **Geoffrey** in **Emberra**, who picks the lock for a fee. Opening it is then a short job of your own, which pays Fishing. Sea chests from the islets' guardians open the same way.
 
-I keep a smallest Tiddle. It is a fourteenth of a pound. I am not going to explain myself.
+## A broken line
 
-## Salvage, and the chests
-
-Not everything that comes up is a fish. Every water gives back a little of what fell into it: amber, river mussels, bog-sunk Lanai, frogspawn, and at the sea a **Locked Rusty Chest** now and then. Salvage is not weighed, and nobody keeps records of the smallest mussel, except me.
-
-A locked chest is taken to **Geoffrey** in **Emberra**, who picks the lock for a fee. Opening it after that is your own short job, and pays **Fishing**, because it was the water that gave it to you. The sea chests left by the islets' guardians are opened the same way.
-
-## When the line breaks
-
-Sometimes something takes the hook that you are simply not ready for, and it leaves with your bait and your dignity.
-
-This can only happen where there is genuinely a bigger fish in that water than you can yet land. It costs you the bait, it gives you nothing, and it is the water telling you that it has more in it than you have seen. Come back better.
+Sometimes a fish too big for your level takes the hook and breaks the line. You lose the bait and catch nothing. This only happens in waters that hold a fish you cannot yet land.
 
 ## Tools and gear
 
-A rod in your hands to cast, a net in your hands to net, and a butchering knife to cut bait. None of them does anything from your pack. Every one, by tier:
+A rod in your main hand to cast, a net in your main hand to net, and a butchering knife to cut bait. Tools only work when equipped.
+
+Rods last about twice as long as a hatchet, and nets about six times as long. **Alder**, the carpenter in Talador, sells rods, and Georemy sometimes gives a spare to regulars at Luxmere.
 
 {{data:tools:Fishing}}
 
-## What it feeds
+## Connections
 
-- **Cooking** is the answer. Raw fish are not food; cooked over any fire, they are, and every fish in Talaran has its dish.
-- **Crafting** takes a small share of the experience when you cut bait.
-- **Carpentry and Smithing** build the trade rather than take from it: the rod is a Lanai rod, an Ambren hook, and two lengths of linen line, assembled at a bench in Verdale. The **Serph rod**, from Carpentry 15, is the same with a Serph hook, and the proper rod for Antura's waters. The net is knotted linen on a plank frame.
-- **The islets** keep shoals. A landing may put you over forty casts of the best water on that island, bigger and better fish, and no bait spent at all.
+- **Cooking** turns raw fish into food. Every fish has a dish.
+- **Crafting** gets a little experience when you cut bait.
+- **Carpentry and Smithing** make the gear. A rod is a Lanai rod, an Ambren hook, and two lengths of linen line, put together at a bench in Verdale. The **Serph rod** (Carpentry 15) uses a Serph hook and is the right rod for Antura. A net is knotted linen on a plank frame.
+- **The islets** can hold a shoal: forty casts at the best water on that island, with bigger fish and no bait used. See [Sailing & the Islets](/manual/systems/sailing-and-the-islets).
 
-## Georemy
-
-He is at Luxmere. He has been following water for thirty years, he speaks about a half-ounce tadpole with the gravity of a man describing a leviathan, and he will give you a rod.
-
-Talk to him first. He is also, I am fairly sure, not telling us everything.
-
-Rods wear out, as every tool does, though a rod lasts about twice as long as a hatchet and a net about six times as long. When yours goes, you need not start again from flax. **Alder**, the carpenter in Talador, always keeps a rod or two on his shelf, and Georemy, once you are a regular at Luxmere, has been known to send a pupil off with a spare.
-
-{{details:The Geographer's ledgers}}
-Every fish in both waters, what draws it, and when it runs:
+{{details:Numbers and tables}}
+Every fish, what draws it, and when it runs:
 
 {{data:training-path:Fishing}}
 
-And what the bait is worth, which decides most of the rest:
+What each bait item is worth:
 
 {{data:bait}}
 {{/details}}

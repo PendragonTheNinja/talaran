@@ -345,7 +345,7 @@ export default function ManualBrowser({
                         {supportsReference(section || '') && (
                             <div className="manual-mode">
                                 <span className="manual-mode-label">
-                                    {reference ? 'Reference' : 'The Geographer'}
+                                    {reference ? 'Tables only' : 'Full page'}
                                 </span>
                                 <button
                                     className={`manual-mode-switch ${reference ? 'on' : ''}`}
@@ -383,9 +383,6 @@ export default function ManualBrowser({
                             reference={reference && supportsReference(section || '')}
                             inGame={variant === 'panel'}
                         />
-                        {!(reference && supportsReference(section || '')) && (
-                            <p className="manual-signature">— the Geographer</p>
-                        )}
                     </article>
                 )}
             </div>

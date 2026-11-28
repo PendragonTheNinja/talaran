@@ -564,7 +564,7 @@ export default function SettingsPanel({ onClose, closing, initialTab }: Settings
                             <div className="settings-toggle-info">
                                 <span className="settings-toggle-label">Manual: Reference Mode</span>
                                 <span className="muted-text" style={{ fontSize: '13px' }}>
-                                    Show skill pages as tables and headings only, without the Geographer's writing. Guides are unaffected.
+                                    Show skill pages as tables and headings only, without the written explanations. Getting Started pages are unaffected.
                                 </span>
                             </div>
                             <button

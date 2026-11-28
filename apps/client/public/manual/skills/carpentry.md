@@ -1,130 +1,104 @@
-If you learn one trade properly, learn this one.
-
-I say that having tried them all, and having been mediocre at most. Carpentry is the hinge Talaran turns on. The farm is built of it. The tannery is built of it. Arrows are built of it, fences are built of it, and half the workstations of every other trade came out of somebody's saw. A world of wood needs somebody to work the wood, and that somebody is never short of work.
+Carpentry saws logs into planks and works planks into tools, benches, fences, and buildings. Farms, shops, boats, and the workstations of other trades are all built with it.
 
 {{tabs}}
 {{tab:The Bench}}
 
 ## Where and how to start
 
-There are two ways to work timber, and you will use both.
+You can work at a public bench or at your own.
 
-**A public bench** asks nothing of you but permission. On Taiar, **Geossica**'s bench at **Verdale** opens to you once you have done the carpenter's introductory work, and you may use it from that moment with no equipment of your own at all. It lends you its sawhorse, its plane, and its saw, and none of them wear.
+**A public bench:** on Taiar, **Geossica**'s bench at **Verdale** opens to you once you have done her introductory task. It lends you its sawhorse, plane, and saw, and none of them wear. Work there takes **twice as long** as at your own bench.
 
-Public benches are Taiar's alone. By the time anyone reaches Antura they have made every tool they need twice over, and Antura's carpenters are expected to bring their own.
+Public benches are on Taiar only. On Antura you need your own tools.
 
-The catch is that public benches are slow. Everything takes twice as long there as it would at your own. That is the price of using somebody else's tools, and it is a fair one.
-
-**Your own workstation** is the real answer. You will want one as soon as you can afford it.
+**Your own bench** works at full speed.
 
 ## Setting up your own bench
 
-A bench is a **Sawhorse**, set down where you mean to work, and a **Plane** set beside it. Like the smith's anvil, they then belong to the place and do not travel with you, though either can be taken out again.
+Your bench is a **Sawhorse**, placed where you work, and a **Plane** beside it. Once placed, they stay at that location; you can take them out again.
 
-The **Saw** is different. It never goes on the bench. At your own bench you hold it, and it wears in your hand. At a public bench you need not own one at all, since Geossica lends hers, which is how a new carpenter saws a first plank before owning a saw.
+The **Saw** is not part of the bench. At your own bench you hold it in your hand, and it wears there. At Geossica's bench you do not need one, since she lends hers.
 
 {{data:bench-tools:carpentry}}
 
-The tools you hold rather than set down, the saw and the mallet:
+Hand tools, the saw and the mallet:
 
 {{data:tools:Carpentry}}
 
-## The two halves of the trade
+## Sawing and woodworking
 
-Carpentry divides cleanly, and it is worth knowing which half you are doing.
+**Sawing** turns logs into planks. It is fast and repetitive, and everything else needs it. It pays **23** experience a saw, or **31** from **Carpentry 13**.
 
-**Sawing** turns logs into planks. It is repetitive, it is fast, and it is the foundation of everything after. It pays by the wood's tier: **23** experience a saw, and **31** once you reach **Carpentry 13**, Lanai's second rung, when the same log teaches a better hand more.
+**Woodworking** turns planks and parts into finished things: tools, furniture, workstations for other trades, and farm fittings.
 
-**Woodworking** turns parts into things. Tools, furnishings, workstations for other trades, the fittings a farm needs.
-
-Most players discover they enjoy one half considerably more than the other. Both pay.
-
-{{details:The Geographer's ledgers}}
-Everything the trade opens as you climb:
+{{details:Numbers and tables}}
+What the trade opens as you level:
 
 {{data:training-path:Carpentry}}
 {{/details}}
 
 {{tab:Building}}
 
-Sawing is the trade. Building is what the trade is *for*.
+Building raises structures in place: tally boards, shops, homesteads, and their fields and pens. A built structure stays where it is. It cannot be picked up, moved, or sold, so choose the location first.
 
-There comes a point, usually somewhere around the fourth hundred planks, when a carpenter stops thinking in boards and starts thinking in structures. It is a pleasant moment and I recommend savouring it, because what follows is a great deal of counting.
+Every structure is built with a **mallet** in your main hand and a **saw** in your off hand, and pays **Carpentry** experience, whatever it is for.
 
-## The difference between making and raising
+## Structures
 
-A plank is made. You stand at a bench, you spend a log, you receive a board, and if you walk away afterwards the board comes with you.
+**Tally board:** Carpentry 5, a small amount of planks and nails of the island's metal (Ambren on Taiar, Serph on Antura). It can go almost anywhere except an islet. Everyone may keep one on each island; more need a licence, bought with gold, and only sold to players with a high enough total level. Each island keeps its own count.
 
-A homestead is raised. You spend a considerable quantity of everything, you receive a place, and the place stays exactly where you put it for as long as it exists. Nothing built in this section can be picked up, moved, sold, or regretted into a refund. Choose the ground before you choose the timber.
+**Shop:** a low level requirement but a lot of materials. One per island, built in its port: **Talador** on Taiar, **Wendhaven** on Antura.
 
-## What asks for what
+**Homestead:** 500 planks, 500 granite blocks, and 1,000 nails. One per island: **Novita** on Taiar, **Farefield** on Antura.
 
-Two of these are carpentry outright. Two more are farming's, and two are the stockman's, but every one of them is raised with a saw in hand and boards on the ground, which is why they are all listed here rather than scattered across four pages by whichever trade happens to claim the level requirement.
+**Tier 2** (from **Carpentry 13**) uses Serph nails. A tier 2 homestead stores eighty kinds of item instead of fifty. A tier 2 shop stores a hundred, with eighteen selling slots and eight buying slots. You can **build** a tier 2 homestead or shop outright on new ground, or **upgrade** a tier 1 for less. The table below has both prices.
 
-The **tally board** is the cheapest thing on the list and the first most people build. It asks for Carpentry level 5, and a modest pile of boards and nails, of the island's own metal: Ambren on Taiar, Serph on Antura. It can go up almost anywhere, though not on an islet, where there is nobody to read it.
-
-How many you may keep is a separate question from whether you can build one, and it is no longer mine to answer. **Each island keeps its own count.** Everyone may keep one on every island. Beyond that, you buy a licence in coin, and the town will only sell you one if your total level across every trade is high enough to suggest you have something worth watching. A person who has spent three hundred hours perfecting a single skill in a single place is welcome to their mastery, but they do not need six boards to tell them about it.
-
-The **shop** is the first serious undertaking. It asks very little of your level and a great deal of your stores. You may keep **one on each island**, raised in its port: **Talador** on Taiar, **Wendhaven** on Antura.
-
-The **homestead** is the largest single expense of tier 1. Five hundred boards, five hundred blocks of granite, and a thousand nails. I have watched people work for a fortnight toward it. I have also watched them build it and immediately begin planning the next thing, which tells you something about people. Every island has its homestead ground, **Novita** on Taiar and **Farefield** on Antura, and you may keep one on each.
-
-**Tier 2**, from **Carpentry 13**, wants Serph nails. A tier 2 homestead holds eighty kinds of thing in its store instead of fifty; a tier 2 shop holds a hundred, with eighteen selling slots and eight buying. Either may be **built outright** at tier 2, on fresh ground, or **raised** from tier 1 for a good deal less. The ledger has both prices.
-
-**Plots**, **coops**, and **paddocks** are the fittings that go on a homestead afterwards, and they share an awkward habit: each one costs more than the last. The second coop is dearer than the first, the sixth dearer still. This is deliberate, and it is worth planning around rather than discovering.
+**Fields, coops, and paddocks** go on a homestead afterwards. Each costs more than the one before.
 
 ## Hiring a carpenter
 
-You need not raise a thing yourself to own it. Stand at the ground, name the carpenter, and lay down the fee and whatever materials you mean to supply; they build your **homestead** or **shop** with their own hands and their own mallet, and the fee is theirs the moment it stands. The Carpentry experience is theirs too. That is rather the point of being hired.
+You do not have to build a homestead or shop yourself. Stand at the location, name a carpenter, and pay the fee and any materials you are supplying. They build it with their own tools and keep the fee and the Carpentry experience.
 
-**Boats and guild halls** are hired by the piece instead. Name your hands, set a wage for each piece they place, and lay a purse at the slip or the hall. They build at their own pace and are paid as they go. Whatever is left in the purse when the work is done comes back to you.
+**Boats and guild halls** are hired by the piece: name the workers, set a wage per piece, and put a purse at the slip or hall. They are paid as they place each piece. Anything left in the purse at the end comes back to you.
 
-## A word on the nails
+## Nails
 
-Every structure here wants nails, and the larger ones want them in quantities that will surprise you. A thousand for a homestead. Seven hundred for a shop.
+Large structures need a lot of nails: 1,000 for a homestead, 700 for a shop. Arrange a supply from Smithing before you start.
 
-If you intend to build, make a friend at a forge before you make a plan. I have known perfectly competent carpenters brought to a complete halt by a shortage of the smallest component on the list, standing on a mountain of their own timber with nothing to fasten it with.
-
-{{details:The Geographer's ledgers}}
-Every structure, what it asks, and what it costs to raise:
+{{details:Numbers and tables}}
+Every structure, what it needs, and what it costs:
 
 {{data:buildings}}
 {{/details}}
 
 {{tab:Boats}}
 
-A boat is the largest thing a carpenter makes, and the only one that leaves.
-
 ## The two boats
 
-- **The Skiff**, a tier 1 rowing boat, from **Carpentry 10**. It reaches Taiar's islets and crosses to Antura.
-- **The Cog**, a tier 2 sailing boat, from **Carpentry 19**. It reaches Antura's islets as well, and makes the crossing in about five minutes.
+- **Skiff**: tier 1 rowing boat, from **Carpentry 10**. Reaches Taiar's islets and crosses to Antura.
+- **Cog**: tier 2 sailing boat, from **Carpentry 19**. Also reaches Antura's islets, and crosses in about five minutes.
 
-Sailing one is Wayfaring's business, not yours: the Skiff from Wayfaring 1, the Cog from Wayfaring 13. A carpenter may well finish a Cog he is not yet fit to captain. I did.
+Sailing a boat is Wayfaring: the Skiff from Wayfaring 1, the Cog from Wayfaring 13. You can finish building a Cog before you can sail it.
 
 ## Building one
 
-A boat is not made at a bench. You **lay its keel on a slip**, at **Talador** or **Wendhaven**, and raise it there in pieces, in order: keel and ribs, planking, and the rest. Each building turn sets one to five of the piece's materials into the hull, more often five the better a carpenter you are, and pays Carpentry for the turn. The hull waits on its slip between sessions, and nobody can take it from you.
+Boats are built on a **slip** at **Talador** or **Wendhaven**, in pieces, in order: keel and ribs, then planking, then the rest. Each building turn adds one to five of the piece's materials (more often five at higher levels) and pays Carpentry experience. The unfinished hull stays on its slip between sessions, and only you can work on it.
 
-You will want a mallet in hand and a saw in your pack, as for any building. You will also want rope: a Skiff takes thirty lengths of **Nettle Cordage**, a Cog sixty, and twenty bolts of linen for its sail. Cordage is a Crafting job, twisted from stinging nettle, and the cheapest part of the whole boat to forget.
+You need a mallet in your main hand and a saw in your off hand, plus rope: a Skiff needs 30 **Nettle Cordage** and a Cog 60, and a Cog also needs 20 bolts of linen for its sail. Nettle Cordage is made with Crafting, from stinging nettle.
 
-When the last piece is in, the boat is yours, and it waits at whichever port you happen to be standing in. Boats, it turns out, are very obliging.
+When the last piece is in, the boat is yours. It waits at whichever port you are in.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 {{data:boats}}
 {{/details}}
 {{/tabs}}
 
 ## Connections
 
-Carpentry has more of these than any other trade, which is precisely the argument for learning it.
-
-- **Woodcutting** feeds it entirely. Learn both or befriend someone who did.
-- **Smithing** supplies the nails, and a farmstead alone wants a thousand of them.
-- **Farming** cannot begin without you. Every farmstead and every fence panel is carpentry.
+- **Woodcutting** supplies all the logs.
+- **Smithing** supplies the nails.
+- **Farming** needs a farmstead and fences, all built with Carpentry.
 - **Crafting** needs the tanning rack and barrel.
 - **Hunting** needs arrow shafts.
-- **Wayfaring** sails the boats you build, and pays you nothing for them; that is what the Carpentry was for.
-- **Carpentry itself** builds its own sawhorse, which I have always found pleasing in a way I cannot fully justify.
-
-Look at that list and notice what it means. A carpenter is never selling to one market. When farming is fashionable he sells fences; when hunting is fashionable he sells shafts. He is the only tradesman in Talaran who cannot really have a bad season.
+- **Wayfaring** sails the boats you build.
+- **Carpentry** builds its own sawhorse.

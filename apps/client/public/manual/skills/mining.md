@@ -1,55 +1,49 @@
-Mining is the most honest trade in Talaran, and I mean that as the compliment it is.
-
-You strike a rock. The rock yields, or the rock does not. At no point does the rock flatter you, mislead you, or suggest that you are special. I spent two years at it and never once felt handled. After a season among merchants, I cannot tell you what a relief that was.
-
-But here is the thing every newcomer misses, so lean in. **The rock is not the prize. The rock is how you find the prize.**
+Mining breaks rock for stone and finds ore veins inside it. Stone goes to builders; ore goes to Smithing; gems found along the way go to Crafting and Talar.
 
 ## Where and how to start
 
-Find a stone outcrop. Equip a pickaxe. That is genuinely the entire entrance examination.
+Equip a pickaxe and go to a mine. Every rock and vein shows the level it needs and the pickaxe tier it expects.
 
-On Taiar there are two mines, and you want both. **Origrund**'s granite opens onto **Ambren** veins, **Grundagr**'s onto **Burgh**, and Ambren is only smelted with Burgh beside it. On **Antura**, **Underway**'s granite asks for **Mining 13** and opens onto **Serph**, which smelts alone.
+- **Origrund** (Taiar): granite that opens onto **Ambren** veins.
+- **Grundagr** (Taiar): granite that opens onto **Burgh** veins. Ambren is smelted with Burgh beside it, so you need both mines.
+- **Underway** (Antura): granite that needs **Mining 13** and opens onto **Serph** veins. Serph smelts alone.
 
-Every outcrop states plainly what level it expects of you and what grade of pickaxe it would prefer. Work within your means at first. An outcrop above your station will not refuse you outright. It will simply take its time, at your expense, and say nothing.
+You can mine a rock above your level, but it is slow.
 
-## Rock first, ore second
+## Rock and veins
 
-Strike an outcrop and you get **stone**, plus experience. Unglamorous, reliable, and the backbone of every builder's supply in Talaran.
+Each swing at a rock gives **stone** and experience. Each swing also has a chance to find a **vein**, a seam of ore. Mining a vein gives the ore itself.
 
-But each strike also carries a chance at something better. You find a **vein**, a genuine seam of ore, ambren or burgh or whatever the ground there has been hoarding. Working a vein hands you the metal itself rather than more gravel.
+- **A vein you find is yours alone for ten minutes.** After that, anyone at the location can see it and mine it.
+- A vein holds a fixed amount of ore and does not refill.
 
-Now attend closely, because this next part has cost me personally, and I would rather it cost you nothing.
+Mine a vein as soon as you find it.
 
-**A vein you discover is yours alone for ten minutes.** After that it becomes visible to everyone at that location, and anyone at all may work it. A vein holds a finite quantity. It does not refill.
+## Gems
 
-So when you find one, *work it*. Do not go and put your affairs in order. Do not nip back to town. Do not, as I once did, carefully return a borrowed axe first.
+Rough gems turn up now and then while mining granite.
 
-I have lost more good ambren to tidiness than to any rival I ever had.
+- **Taiar's granite** gives mostly **quartz**.
+- **Underway's granite** gives mostly **garnet**, some quartz, and rarely (about one in a thousand) a rough **amethyst**, which belongs to a later tier.
 
-## Gems, which fall out while you are not looking
-
-Granite holds stones as well as seams, and a rough gem turns up now and then in the ordinary run of swings. Taiar's granite gives mostly **quartz**. Underway's gives mostly **garnet**, quartz still, and very rarely, something like one stone in a thousand, a rough **amethyst**, which belongs to a tier nobody has yet reached and is kept by people who like to be ready.
-
-Rough gems are cut at a lapidary, Geosper's in Caliwen or your own there or in Wendhaven, and filled with light at the Rift, and both of those are Crafting's and Talar's business. Yours is only to notice them in your pack and not sell them to the first person who asks.
+Rough gems are cut at a lapidary (Geosper's in Caliwen, or your own in Caliwen or Wendhaven) and filled at the Rift. See [Crafting](/manual/skills/crafting) and [Talar](/manual/skills/talar).
 
 ## Dense ore
 
-Once you are well past what an ore demands, fifteen levels clear of it, you will begin occasionally pulling **dense** ore instead of the ordinary sort. The chance climbs steadily from there, and once you stand forty-five levels above the requirement it stops being a chance at all. Every piece comes out dense.
-
-This is the quiet argument for going back to ore you have decided is beneath you. A master working humble ambren is not wasting his afternoon. He is being paid twice for the same swing, and smiling about it.
+Once your level is fifteen or more above an ore's requirement, you sometimes get **dense** ore instead of the ordinary kind. The chance rises with your level, and at forty-five levels above the requirement every piece is dense. Mining lower-level ore stays worthwhile for this reason.
 
 ## Tools and gear
 
-Grade matters in both directions, and the arithmetic is worth committing to memory.
+A pickaxe's tier changes your speed:
 
-- A pickaxe **above** the required grade speeds the work, up to about a third faster at three grades over, which is as much as the tool will ever give you.
-- A pickaxe **below** grade punishes you badly. Each grade short adds roughly forty percent to the time.
+- **Above** the required tier: faster, up to about a third faster at three tiers over.
+- **Below** the required tier: each tier short adds about forty percent to the time.
 
-Read those two figures again and note that they are not symmetrical. The lesson is therefore not "always carry the finest pickaxe." The lesson is **never work an outcrop with a pickaxe beneath it.** The penalty for arriving under-equipped dwarfs the reward for arriving over-equipped, which is true of a great many things besides mining.
+The penalty for too weak a pickaxe is much larger than the bonus for a strong one, so always use at least the required tier.
 
-Underway's granite is slower than Taiar's, thirty seconds a swing against twenty, and pays for it. Its Serph veins come a little rarer for the time spent than Ambren's do. Take a Serph pickaxe; an Ambren one will work Underway, and will remind you of the forty percent on every swing.
+Underway's granite takes thirty seconds a swing against Taiar's twenty, and pays more for it. Its Serph veins come a little less often than Ambren veins do. Bring a Serph pickaxe; an Ambren one works there but is about forty percent slower.
 
-**Merrick** in Talador always has an Ambren pickaxe or two on his shelf. **Wystan** in Mettlefell sells Serph ones. Nobody is ever locked out of the trade by a broken handle.
+**Merrick** in Talador sells Ambren pickaxes. **Wystan** in Mettlefell sells Serph ones.
 
 Every pickaxe, its tier, and where to get one:
 
@@ -57,20 +51,18 @@ Every pickaxe, its tier, and where to get one:
 
 ## Connections
 
-- **Smithing** is where the ore goes. Mining and Smithing are effectively one long trade wearing two hats, and raising Mining alone means selling raw metal to someone who read further than you did.
-- **Crafting** wants the gemstones that mining turns up in passing.
-- **Carpentry** and **Farming** both eat granite by the cartload, every fence and every farmstead border. On Taiar this makes a miner permanently welcome in Novita.
-- **The islets** hold the best veins of all. An islet may hold an exposed seam, twenty-five to forty ore that is yours alone, with dense ore and gems likelier than anywhere on the mainland.
-- **Woodcutting** is Mining's twin: same rhythm, same tool logic, different substance. Whichever you learn first teaches you the other for free.
+- **Smithing** smelts your ore into ingots.
+- **Crafting** uses the gems you find.
+- **Carpentry** and **Farming** use granite for fences and homestead borders.
+- **The islets** can hold an exposed seam of twenty-five to forty ore that only you can mine, with better odds of dense ore and gems than on the mainland. See [Sailing & the Islets](/manual/systems/sailing-and-the-islets).
+- **Woodcutting** works the same way as Mining, with trees instead of rock.
 
-{{details:The Geographer's ledgers}}
-Everything the trade opens as you climb, and where to find it:
-
+{{details:Numbers and tables}}
 The rocks, and what comes out of them:
 
 {{data:rocks}}
 
-And the veins, which are worth knowing about before you find one:
+The veins:
 
 {{data:veins}}
 {{/details}}

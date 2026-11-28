@@ -1,79 +1,75 @@
-Every island in Talaran has a coast, and every coast has things off it: rocks, holms, a spit of shingle, the bones of a ship. Eight of them to an island, as far as anyone has counted. Nobody farms them, nobody mines them, nobody lives on them, which is precisely why they are worth the trip.
-
-I went out to my first islet in a borrowed rowing boat with a pickaxe, a sandwich, and no plan. I came back with the sandwich. I would like you to do better, and so would the sandwich.
+Each island has eight islets off its coast, reached by boat. Islets hold private work spots with better odds than the mainland, guarded chests, young animals, artefacts, and more.
 
 ## What you need
 
-- **A boat of your own.** The **Skiff** reaches Taiar's islets; the **Cog** reaches Antura's, and Taiar's too. Carpentry builds them, in pieces, on the slip at a port. The Carpentry page has the building.
-- **The Wayfaring to sail it.** A Skiff from Wayfaring 1, a Cog from Wayfaring 13.
-- **A port.** You put to sea from **Talador** on Taiar or **Wendhaven** on Antura, and the islets you reach are that island's.
-- **Whatever tools you would want ashore**, because there is no merchant out there and no going back for a hatchet.
+- **Your own boat.** The **Skiff** reaches Taiar's islets; the **Cog** reaches Antura's and Taiar's. Boats are built with Carpentry; see [Carpentry](/manual/skills/carpentry).
+- **The Wayfaring level to sail it:** Skiff from Wayfaring 1, Cog from Wayfaring 13.
+- **A port.** Set sail from **Talador** on Taiar or **Wendhaven** on Antura. You reach that island's islets.
+- **Any tools you will need**, since there are no merchants on the islets.
 
-The ferry will not take you to an islet. It goes to Wendhaven and back, and it has no interest in your adventures.
+The ferry does not go to islets.
 
 ## A voyage
 
-Put to sea, and the voyage lands you on one of the island's islets, by chance. Some are reached often, some seldom, and one rarely. When you are done there, **sail on** to another, up to **three landings** a voyage. Then the water runs low in the casks and you must make port, which you do from wherever you are with a single word.
+Set sail and the voyage lands you on one of the island's islets, chosen at random. Some islets come up often, some seldom, and one rarely. When you are done, **sail on** to another, up to **three landings** per voyage. Then return to port, which you can do from wherever you are.
 
-Every leg at sea pays Wayfaring, at about a rider's rate, on the time the leg would have taken.
+Each leg at sea pays Wayfaring, at about the riding rate, based on the leg's base time.
 
-## What is on the shore
+## What is on an islet
 
-Two things on every landing, and they are not the same kind of thing.
+Every landing has two things.
 
-**The strandline** is what the tide left. Every landing has something washed up: coins, crop seeds, bait for the pouch, and now and then a bird's nest or a locked chest. It is small, it is certain, and it is yours.
+**The strandline:** something washed up. Coins, crop seeds, bait, and sometimes a bird's nest or a locked chest. Always yours.
 
-**The find** is the islet's own. Every landing rolls one, and it is yours alone and gone when you sail off. A work find is always the best of its kind you have the level for, and its good finds are **three times as likely** as on the mainland:
+**The find:** one per landing, only for you, and gone when you leave. A work find is always the best of its kind for your level, and its good results are **three times as likely** as on the mainland:
 
 - **A stand of trees**: forty chops.
-- **An exposed vein**: a private seam of twenty-five to forty ore, with dense ore and gems likelier.
-- **A shoal**: forty casts into the island's best water, bigger fish, and no bait spent.
-- **A wild patch**: forty picks at the island's best habitat, its notable finds likelier.
-- **A game trail**: fifteen hunts at the island's best quarry, surer shots, and trophies likelier.
+- **An exposed vein**: twenty-five to forty ore, with better odds of dense ore and gems.
+- **A shoal**: forty casts at the island's best water, with bigger fish and no bait used.
+- **A wild patch**: forty searches at the island's best habitat, with notable finds more likely.
+- **A game trail**: fifteen hunts at the island's best quarry, with surer shots and trophies more likely.
 
-Other landings turn up **young animals**, chicks, calves, piglets, and once in a long while a foal, for a stockman with an empty pen; **wild flowers** for the bees; **birds' nests**; **a buried chest**; **an artefact**; or **a guarded cache**.
+Other finds: **young animals** (chicks, calves, piglets, and rarely a foal), **wild flowers** for bees, **birds' nests**, **a buried chest**, **an artefact**, or **a guarded cache**.
 
 ## Guardians
 
-A guarded cache is watched, and what watches it came out of the sea.
+A guarded cache is watched by a creature from the sea. Each guardian is one long fight that pays like several ordinary kills. Some have special attacks: a song or a drag that makes your blow miss. Taiar's guardians are for fighters of level 9 to 12; Antura's for 15 to 20. Bring plenty of food.
 
-Each guardian is one long fight, paid like several ordinary kills, and some of them do more than hit back: they sing, or they drag, and a blow you were sure of never lands. Taiar's are for fighters of nine to twelve; Antura's for fifteen to twenty. Bring food, more than you think. There is nobody out there to sell you a pie.
+A guardian always drops a locked sea chest, and sometimes a keepsake. The Bestiary shows more once you have fought one.
 
-A guardian always leaves a locked sea chest, and now and then a keepsake of its own. The Bestiary will tell you more once you have met one, and not before.
+If you die to a guardian, your belongings wait for you at the port the voyage left from.
 
-If you fall to a guardian, your things are not left on a rock in the sea. They wait for you at the port the voyage left from.
+## Chests
 
-## Chests and locks
+Sea chests are locked. **Geoffrey** in **Emberra** picks locks for a fee: **25 gold** for a Locked Rusty Chest, **100** for a Locked Sea Chest, **200** for a Locked Antura Chest. Opening it is then a short job of your own, which pays Fishing.
 
-A chest from the sea is locked, and you cannot open it with your hands or your temper. **Geoffrey** in **Emberra** picks locks for a fee: **25 gold** for a Locked Rusty Chest, **100** for a Locked Sea Chest, **200** for a Locked Antura Chest. Opening it after that is your own short job, and pays Fishing, the sea having given it to you.
-
-Inside are coins, worked goods, ore, gems, and sometimes more.
+Chests hold coins, worked goods, ore, gems, and sometimes more.
 
 ## The sailor's set
 
-Somebody sailed these waters before you, and their kit went down with them. It comes back up in the guardians' chests: four on Taiar and three on Antura, and **no piece repeats until you have found every one**. A chest holds a piece about one time in three, and a long run of chests without one ends in a piece for certain.
+Pieces of an old sailor's kit come up in the guardians' chests: four on Taiar and three on Antura. **No piece repeats until you have found them all.** A chest holds a piece about one time in three, and a long run without one guarantees one.
 
-**Each piece worn takes one percent off a sea journey.** All of them are worn from level 1. One of the pieces you are wearing wears a little each voyage, like any gear.
+**Each piece worn takes 1% off a sea journey.** All can be worn from level 1. One worn piece wears a little each voyage.
 
 ## Artefacts
 
-The two rare islets, the **Ruin** off Taiar and the **Wreck** off Antura, hold things left by whoever lived or died out there: a carved lintel, a lamp, a ship's bell clapper, a sealed letter case. Each island's museum keeps a case for them, **From the Islets**, beside the guardians' keepsakes. Take them home. They have been waiting long enough.
+The two rare islets, the **Ruin** off Taiar and the **Wreck** off Antura, hold artefacts: a carved lintel, a lamp, a ship's bell clapper, a sealed letter case, and others. Each island's museum has a **From the Islets** case for them, beside the guardians' keepsakes.
 
 ## The ship's log
 
-Every voyage is written down, watch by watch: the weather as it sets in, things seen over the side, stories the crew tell across several watches. Very rarely the log records a sighting that leaves something in your hands. I will not say what. I have one, and I have never once been believed.
+Every voyage is recorded watch by watch: the weather, things seen over the side, and stories from the crew. Very rarely, a log entry leaves you with an item.
 
 ## Naming an islet
 
-The islets were here before anybody named them, and a good many still have no name at all. **The first person to land on an unnamed islet may put a name and a note to the Harbor Council**, but only while they stand there. Sail off, and the chance passes to the next to land. If the council turns a name down, the islet waits for someone else. When they choose one, everybody hears.
+Many islets have no name yet. **The first player to land on an unnamed islet can propose a name and a note to the Harbor Council**, while they are standing there. If they leave first, the chance passes to the next player to land. If the council turns a name down, the islet opens again; when it accepts one, it is announced to everyone.
 
-These are names for now. When Talaran is finished, the islets will be named again.
+These names are for the alpha. The islets will be named again at 1.0.
 
-## Nobody is stranded
+## Logging off at sea
 
-Leave the world while you are out on an islet, and you are brought home, with everything you were carrying. The sea is patient, but not that patient.
+If you log off while on an islet, you are brought back to port with everything you were carrying.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 Every islet, and how often a voyage reaches it:
 
 {{data:islets}}

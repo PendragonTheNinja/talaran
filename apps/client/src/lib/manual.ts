@@ -396,9 +396,8 @@ export function toReference(nodes: ManualNode[]): ManualNode[] {
             continue
         }
         if (node.type === 'details') {
-            // Unwrapped, not relabelled. "The Geographer's ledgers" is the
-            // Cartographer speaking, and reference mode is the view without
-            // him in it. Flattening also settles an inconsistency that was
+            // Unwrapped, not relabelled: reference mode is tables only.
+            // Flattening also settles an inconsistency that was
             // plainly visible on the page: some tables sat inside a collapsible
             // ledger and others sat loose, for no reason a reader could see.
             // Every table now sits at the same level.

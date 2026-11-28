@@ -1,25 +1,23 @@
-I kept a notebook of every creature I fought. It began as a list of names and grew into the most useful book I own, chiefly because every page in it was paid for.
-
-Yours fills the same way. You cannot read about a creature in your Bestiary until you have killed one, and it tells you more the more of them you kill.
+Your Bestiary records every creature you have fought. A creature's page appears with your first kill, and shows more as you kill more of them.
 
 {{open:bestiary:Open your Bestiary}}
 
 ## How it fills
 
-The first kill gives a creature its page: its picture, its level, and where it lives.
+Your first kill of a creature adds its page: picture, level, and where it lives.
 
-After that, the page grows in steps. Each step is told to you when you reach it.
+The page then adds more at each step below. You are told when you reach a step.
 
 {{data:bestiary-steps}}
 
-## What it will not tell you
+## What it does not show
 
-The Bestiary never writes down a chance. It will tell you, in time, that a Wrecker sometimes carries something worth having. It will never tell you how often. You will know that the way I knew it: from the number of Wreckers it took.
+The Bestiary never shows drop chances. It tells you what a creature can drop, but not how often.
 
-Nor does any other book. What a creature carries and what it fears are written nowhere but in your own Bestiary, which is why it is worth keeping.
+What a creature drops and what it is weak to are only shown in your Bestiary, not anywhere else in the Manual or on item pages.
 
-## Why it matters
+## Weaknesses
 
-The step that tells you what a creature is **weak to** is the one that changes how you fight. Every creature takes more from one kind of blow and less from another, and from then on the fight itself reminds you which. A fighter who has learned that much carries the right weapon.
+The step that shows a creature's **weakness** is the most useful. Every creature takes more damage from one damage type and less from another. Once you know it, the fight reminds you which, so you can bring the right weapon.
 
-The last step is a line of the creature's story, and a mark beside its name. Nothing else. It is the only reward in Talaran given purely for patience, and I think that is the right reward for it.
+The final step adds a line of the creature's story and a mark beside its name.

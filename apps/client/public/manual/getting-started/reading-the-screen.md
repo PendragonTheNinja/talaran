@@ -1,51 +1,51 @@
-I am going to break a small rule on this page.
+What each part of the game screen does.
 
-Everywhere else in this manual I speak of Talaran as though it were simply the world, because that is the polite fiction and I am fond of it. But you are looking at the world through a frame, and pretending otherwise would leave you fumbling. So: the frame. Briefly, and then we shall never mention it again.
+## Keys
 
-## The three keys worth knowing
+- **F1**: your Skills
+- **F2**: your Stats
+- **F3**: your Quests
+- **F4**: your Feats
 
-Nearly everything you consult regularly lives behind three keys.
+## Left side
 
-- **F1** for your Skills
-- **F2** for your Stats
-- **F3** for your Quests
+Your **pack** is at the top. Below it is the **paper doll**, showing what you are wearing and holding. Tools and gear only work once they are equipped, so check the doll if an action refuses to start.
 
-Learn those three and you have learned most of the furniture. I resisted them for an unreasonably long time on the grounds that a scholar ought to be able to find things by hand.
+## Middle
 
-## What sits where
+The middle shows where you are and what you are doing: a description of the place, your current action and its timer, and the result card when an action finishes.
 
-Your **inventory** and the paper doll of what you are wearing sit down the left. The doll is worth a glance now and then. It is the fastest way to see what you are actually wearing and wielding, as opposed to what you own.
+## Your location
 
-The **middle** is wherever you are and whatever you may do there. Work appears when you arrive somewhere it can be done, and not before. If a trade seems to be missing, the usual answer is that you are standing in the wrong place, a diagnosis I have delivered to myself more often than I care to record.
+The panel beside the middle lists what you can do here: work, buildings, people, and roads. Work only appears at a place where it can be done. If a trade seems to be missing, you are probably in the wrong place.
 
-**Chat** runs along the bottom, in different types, because Talaran is talkative and not all of it is talking to you:
+- **Players Here** lists everyone at your location. Tap a character marked NPC to talk to them, or a player to see their profile.
+- **On the Ground** shows anything dropped here.
 
-- **World** reaches everyone, everywhere, across every island. Loud, occasionally useful.
-- **Region** reaches the island you are standing on. Better odds of relevance.
-- **Guild** reaches your own people, if you have found any.
-- **Trade** is for buying and selling. Skip it while you are new; return when you have something worth arguing over.
-- **Help** is for questions and the people who answer them. There is no shame here. There is, in fact, a mild social credit.
+## Chat
 
-Note the difference between the first two, because it will matter more as Talaran grows. World chat is the whole world. Region chat is the ground beneath your feet.
+Chat runs along the bottom, in channels:
 
-The chat box takes the color of the channel it will send to, so a whisper meant for one person looks different before you press Enter, which has saved more than one reputation.
+- **World** reaches everyone on every island.
+- **Region** reaches everyone on the island you are standing on.
+- **Guild** reaches your guild.
+- **Trade** is for buying and selling.
+- **Help** is for questions. Experienced players answer there.
 
-## The right-hand side
+The message box takes the color of the channel it will send to, so you can see where a message is going before you press Enter.
 
-Your **skills** and the **minimap** of where you stand sit on the right. The minimap's marked edges are the roads out of the place. Among the place's own links, at a port, every way onto the water is gathered under one **Sail**.
+## Right side
 
-The **island map** opens from there. Scroll or pinch to zoom, drag to look about, and double-click or double-tap to look closer. On an islet it shows that island's islets instead. It also shows the hour in Talaran, which matters to anglers and to anyone who wants Geomima's fires lit.
+Your **skills** and the **minimap** sit on the right. The minimap's marked edges are the roads out of the place. At a port, every way onto the water is gathered under one **Sail** button.
 
-## The buttons in the corners
+The **Island Map** opens from the minimap. Scroll or pinch to zoom, drag to move, and double-click or double-tap to zoom in. On an islet it shows that island's islets instead. It also shows the time of day in Talaran, which matters for fishing and for some cooks' hours.
 
-- **The loot log** keeps what your work has brought in, grouped by job, and your journeys with it. **The travel log** and the **ship's log** keep your roads and voyages, newest first.
-- **The bell** rings when a job stops, if you ask it to, and its arrow opens a list of what it should ring for, one-off jobs included.
-- **A pinned feat** keeps a small window of its progress on screen while you work. Drag it by its name; pull any edge to resize it.
+## Corner buttons
 
-## The panels along the top
+- **The loot log** lists what your work has brought in, grouped by job, along with your journeys. **The travel log** and **the ship's log** list your roads and voyages, newest first.
+- **The bell** rings when an action stops, if you turn it on. Its arrow opens a list of what it should ring for.
+- **A pinned feat** shows its progress in a small window while you work. Drag it by its name, and pull any edge to resize it.
 
-The row across the top opens the larger rooms: your messages, the forum, your guild, the highscores, the news, and this manual. They open over the world rather than taking you away from it, and any of them shuts with the same gesture that opened it.
+## Top bar
 
-## And that is the frame
-
-Good. The fiction resumes on the next page, and I intend to keep it up for the remainder of the manual.
+The buttons along the top open larger windows: Messages, Forum, Guild, Journal, Events, Highscores, Manual, News, and Support. The gear opens Settings. They open over the game, so your actions keep running.

@@ -1,148 +1,106 @@
-Cooking is the trade that makes every other trade worth something.
-
-I do not say that to flatter it. Say it plainly: a fish in your pack is a fish. A carrot is a carrot. Neither does anything for you until somebody puts them over a fire together, and the person who does that is a cook. Many trades feed into this one and only this one feeds back out.
-
-It is also the first trade I have written about where the thing you make gets eaten and is gone. Everything else leaves you holding something. A cook holds an empty pot and a full belly, and has to go and do it again tomorrow.
+Cooking turns raw fish, meat, crops, and forage into food. Cooked food heals you in a fight, provisions speed up other trades, and ale buffs everyone at a tavern.
 
 ## Where and how to start
 
-The cookhouse is at **Phoenwick**, and it belongs to Geomima, who has been in it longer than most of us have been on the island.
+On Taiar, the cookhouse is at **Phoenwick** and belongs to **Geomima**. Ask her about the work and she sets you six fish to cook. Bring them back and you can use her hearth.
 
-She will not simply let you use it. Ask her about the work and she will set you six fish to cook properly, and when you bring them back the hearth is yours to borrow. Borrow, mind. It is still hers, and it is slow, and she will tell you so.
+- **Geomima's hearth**: works at half speed, needs no tools of yours.
+- **Your own hearth**: full speed, once built. On Taiar it goes in Phoenwick; on **Antura**, at **Farefield**. There is no hearth to borrow on Antura.
+- **A campfire**: between the two in speed, and burns out after half an hour.
 
-- **Geomima's hearth** runs at half speed and needs no tools of yours
-- **Your own hearth**, once built, runs at full speed
-- **A campfire** runs between the two and burns out in half an hour
+A Serph cauldron or skillet is the right tool for Antura's dishes; Ambren ones work there, more slowly.
 
-On Taiar your own hearth goes up in Phoenwick, beside Geomima's. On **Antura** it goes up at **Farefield**, among the fields, where the barley, beans, and cabbage are already to hand. There is nobody at Farefield to lend you a hearth: build your own, or roast on a campfire where you stand. A Serph cauldron or skillet is the proper tool for Antura's dishes; the Ambren ones still cook them, more slowly, as every tool a tier too low does.
+Plain cooking (one raw item into one cooked item) needs no tools: put a fish on a fire.
 
-Cooking a thing raw into a thing cooked needs no equipment at all. That is the whole of the beginning: stand at a fire, put a fish on it, take the fish off before it turns black (you will fail this part often at first).
+## Your hearth's tools
 
-## What a hearth is made of
-
-A cookhouse is not one object. It is a rack of tools, and each one opens a different kind of cooking.
-
-Only the hearth itself is required. Everything else is a door you open later.
+A hearth is a set of tools, each opening a kind of cooking. Only the hearth itself is required.
 
 | Tool | What it opens |
 |---|---|
-| Granite Hearth | The fire itself. Built on site. Nothing works without it. |
-| Ambren Cauldron | Pottages, broths, stews, chowder |
-| Ambren Skillet | Frying, omelettes, quick work |
+| Granite Hearth | The fire. Built on site; nothing works without it. |
+| Ambren Cauldron | Pottages, broths, stews, and chowder |
+| Ambren Skillet | Frying, omelettes, and quick dishes |
 | Granite Mortar and Pestle | Herbs and infusions |
-| Ambren Cooking Knife | Prep for most composite dishes |
+| Ambren Cooking Knife | Preparation for most composite dishes |
 | Ambren Meat Cleaver | Jointing carcasses |
 | Ambren Ladle | Serving from the pot |
 | Ambren Flesh Hook | Lifting meat out of a boiling cauldron |
 
-The hearth and the mortar are granite, cut by hand.
-
-The rest are forged. A smith's problem, not yours, unless you are also the smith.
-
-Each tool is set into its place at your hearth and stays there. Which of them fits where, and which wear out:
+The hearth and mortar are cut from granite; the rest are made with Smithing. Each is fitted at your hearth and stays there.
 
 {{data:bench-tools:cooking}}
 
-And the one tool you hold yourself, the tinderbox, which lights both a hearth and a campfire:
+The tinderbox, held in your hand, lights a hearth or a campfire:
 
 {{data:tools:Cooking}}
 
-## Fire needs wood
+## Fuel
 
-A hearth is a hole full of cold stone until somebody puts fuel in it.
+A hearth needs wood. One feeding burns for about **two hours**, and you can cook as much as you like in that time.
 
-Wood buys **time**, not dishes. One feeding burns about two hours, and you may cook as much as you like within it. When it goes out, your hearth feeds itself from whatever wood you are carrying, worst first, so nobody's good timber goes on the fire while there is rubbish in the pack to burn instead. Just be sure to have a Tinderbox equipped, or you'll be left kicking dry logs and hoping they burst into flame.
+- **1 excellent log**, **2 fine**, or **3 poor** per feeding. Any wood works.
+- When the fire goes out, the hearth refuels itself from the wood you carry, worst first. You need a **tinderbox** equipped for this.
+- If you carry no wood, the fire stays out.
 
-- **1 excellent log**, or **2 fine**, or **3 poor**
-- Any wood will do. The fire has no opinion about species.
-- If you are carrying nothing, the fire goes out and stays out
+**A campfire:** hold a tinderbox and use a log to light one where you stand. It lasts half an hour and only does plain roasting.
 
-A campfire works the same way, except the fuel and the fire are the same thing. Hold a tinderbox, click a log, and you have half an hour of plain roasting wherever you happen to be standing. No cauldron, no skillet, nothing that needs a bench. A fish and a fire and that is all.
+## Burning
 
-## Burning things
+Some dishes come out burnt. The chance falls as your level rises but never quite reaches zero. A burnt dish still pays half its experience.
 
-You will burn food. Everyone burns food.
+- Dishes with more ingredients burn **less** often.
+- About twenty levels above a recipe, burning stops mattering.
+- Infusions never burn.
 
-The chance falls as you improve and it never quite reaches nothing, so a burnt fish at a high level is bad luck rather than incompetence. A burnt dish still pays half its experience, which is the game's way of saying the time was not wasted even though the fish was.
+## Kinds of cooking
 
-- A dish with more ingredients in it burns **less often**, not more
-- Burning stops mattering roughly twenty levels above a recipe
-- Infusions never burn. You are steeping herbs, not searing them.
+- **Plain cooking**: one raw item to one cooked item, no tools, any fire. Your bulk.
+- **Composite dishes**: several ingredients into one better dish. Most of the levels are here, and one pie heals as much as several plain dishes while taking one pack slot.
+- **Provisions**: eaten for an effect on another trade, not for healing.
 
-The reason a five-ingredient pie burns less than a plain fish is worth a moment. That pie is four skills' work sat in a dish. If it burned as readily as a tiddle it would be five times the punishment for the same lapse of attention, and nobody would ever make one.
+## Provisions
 
-## Three kinds of cooking
+A provision gives a small boost to one trade, usually a little off every action, for several hours. For example, one second off every Mining action for four hours.
 
-**Plain cooking** turns one raw thing into one cooked thing. They need no tools other than a burning hearth. This is your bulk. 
+- Eat it from your pack, or from the strip below your equipment.
+- **Only one provision works at a time.** Eating another replaces the first.
 
-**Composite dishes** take several things and make one better thing. This is where the levels are, and where a farm and a byre and a hedgerow all end up in the same pot. One pie replaces a handful of roast fish and occupies one space in your pack instead of five.
+Most provisions help a single trade. On Antura, **Crafter's Pottage** (Cooking 20) helps Crafting, and **Cook's Supper** (Cooking 21) helps Cooking.
 
-**Provisions** are the odd ones out. These are appreciated by the skills that **aren't** combat.
+## Salt
 
-- **Plain cooking**: one raw thing to one cooked thing, no tools, any fire
-- **Composite dishes**: several ingredients into one better one, most of the levels
-- **Provisions**: eaten for the effect, not the meal
+The cooking menu has a salt switch. With it on, each dish uses one **Sea Salt** from your pack and has a **one in ten** chance of making two. With no salt in your pack, it cooks unsalted. A burnt dish still uses the salt and does not double.
 
-## Provisions, and what they are for
+Sea Salt is found only on Antura's **Tidal Shore** at Farvick Narrows, by foragers of level 19 and up.
 
-A provision is a meal you eat for what it does to your afternoon.
+## Ale
 
-Small effects, long durations, and **only one at a time**. A second off every Mining action for four hours is not a bonus you notice in a minute. It is a bonus you notice at the end of a session, which is the point of it.
+From **Cooking 20** you can brew ale in the town cask at **Mettlefell**.
 
-- Eat one from your pack, or from the strip beneath your equipment
-- Eating another **replaces** what you had, including another of the same dish
+1. **Load the cask.** Each batch takes **3 Barley and 1 Meadowsweet** and makes **4 Ale**. You can load ten batches at Cooking 20, rising to twenty-five at higher levels.
+2. **Wait six hours.** It brews whether you are online or not.
+3. **Draw it off.** Each batch pays Cooking experience.
 
-Most of them favour a single trade, and are named for the people who ate them. A ploughman's lunch is bread and cheese and a raw onion. A miner's pasty has a crust thick enough to hold in a filthy hand and throw away after.
+You can have one brew going at a time.
 
-Two of the provisions belong to Antura and to trades that had none: **Crafter's Pottage**, from **Cooking 20**, for Crafting, and **Cook's Supper**, from **21**, for Cooking itself, which I consider a cook looking after his own.
+**Ale does nothing on its own.** At a tavern (the **Salty Sloth** in Talador or the **Gaster's Gaze** in Wendhaven) with at least **three** players present, **stand a round**: one Ale for everyone there, including you. Everyone present gets **every skill 1% faster for six hours**. This buff has its own slot, separate from your provision, so both work together. A second round restarts the six hours; it does not stack.
 
-## A pinch of salt
+**Odda Fenn** at the Gaster's Gaze sells Ale, but brewing your own is much cheaper.
 
-The cooking menu has a switch for salt. With it on, every dish you make spends one **Sea Salt** from your pack, and has a **one in ten** chance of coming out as two. With none in the pack it simply cooks unsalted, and says nothing.
+## Suggested order
 
-A burnt dish still takes its pinch and does not double. Salt is not a cure for inattention. Salt is found on Antura's Tidal Shore, at Farvick Narrows, by a forager of 19 or better, and nowhere else.
+- Do Geomima's six fish first. It takes about an hour and gets you her hearth.
+- Cook plain dishes for a good while before moving to the cauldron.
+- Make a cauldron first, then a mortar.
+- Keep a provision active whenever you can.
 
-## Ale, which is for company
-
-From **Cooking 20**, a cook may brew. There is one cask in Talaran fit for it, in **Mettlefell**, and you do not build it or carry it; it is the town's.
-
-1. **Load the cask.** Each batch takes **3 Barley and 1 Meadowsweet** and gives **4 Ale**. A cask takes ten batches at Cooking 20, and more as you climb, to twenty-five.
-2. **Walk away for six hours.** It brews on its own clock, wherever you are.
-3. **Draw it off.** Every batch pays Cooking when it is drawn.
-
-One brew at a time. The cask does not mind whose barley it is, but it will only keep one brew of yours going.
-
-Now the curious part. **Ale alone does nothing.** Drink it by yourself and you are simply a person who has had an ale. Take it to a tavern, the **Salty Sloth** in Talador or the **Gaster's Gaze** in Wendhaven, where at least **three** of you are gathered, and **stand a round**: one Ale for everyone there, yourself included. Everyone present gets **every skill one percent faster for six hours**.
-
-That buff has a slot of its own, beside your provision, so the two run together. A second round restarts the six hours rather than doubling them. And **Odda Fenn** at the Gaster's Gaze will sell you Ale over the bar, at a price designed to make you go and brew your own.
-
-I have always held that a drink shared is the only kind worth having. Talaran, it turns out, agrees with me, and has made it a rule.
-
-## What I would actually do
-
-Get the six fish done and the hearth borrowed on your first evening. It costs nothing but an hour and it opens the trade.
-
-Then cook plainly for a long while. Every fish you have ever caught and could not sell is a level now. Do not rush toward the cauldron; the plain recipes carry you further than you expect and they can be done at a campfire in the middle of nowhere, if needed.
-
-The cauldron is the first tool worth forging. The mortar is the second, and only because infusions are cheap and the herbs were going to rot in your pack anyway.
-
-And keep a provision going. Any provision. The worst one you own is worth more than the empty slot it is sitting in.
-
-- Do Geomima's six fish first. An hour, and the trade opens.
-- Cook plainly for a long stretch before reaching for a cauldron.
-- Forge the cauldron first, the mortar second.
-- Never leave the provision slot empty, if you can help it.
-
-{{details:The Geographer's ledgers}}
-Everything the trade opens as you climb, and where to make it:
+{{details:Numbers and tables}}
+What the trade opens as you level, and where to make it:
 
 {{data:training-path:Cooking}}
 
-And every dish that mends you in a fight, with how much:
+Every dish that heals in a fight, and how much:
 
 {{data:fight-food}}
 {{/details}}
-
----
-
-I have eaten a great many things in the course of writing this appendix, and I regret only the Witch's Butter Confit, which I will not be eating again.

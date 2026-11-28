@@ -79,8 +79,8 @@ export default function ManualSearch({
 
             {!searching && (
                 <p className="msearch-hint">
-                    Type at least two letters. Names of items, places and trades all work, and so
-                    does anything the Geographer wrote.
+                    Type at least two letters. Names of items, places, and trades all work, and so
+                    does any text on a page.
                 </p>
             )}
 

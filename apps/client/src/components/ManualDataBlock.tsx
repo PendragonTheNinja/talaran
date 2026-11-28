@@ -48,9 +48,9 @@ interface ManualDataBlockProps {
  * Renders one {{data:query:param}} directive as a table, read live from the
  * database via /api/manual/data (docs/manual-spec.md §4).
  *
- * Empty and error states are in-voice and deliberate: manual pages will ship
- * before their content is seeded, and a half-built ledger should read as the
- * Geographer's honest gap, never as a broken table.
+ * Empty and error states are deliberate: manual pages can ship before their
+ * content is seeded, and a half-built table should read as a plain gap, never
+ * as a broken one.
  */
 export default function ManualDataBlock({ query, param }: ManualDataBlockProps) {
     const [table, setTable] = useState<ManualTable | null>(null)

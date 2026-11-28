@@ -1,55 +1,35 @@
-There comes a moment in every trade when you have more things than you can carry, and Talaran's answer to that moment is property.
+A homestead is land you own on an island, with storage, fields, and pens. On Taiar the homestead ground is **Novita**; on Antura, **Farefield**. You can have one on each island. They are separate: each has its own fields, pens, and storage.
 
-## Property is a place you own
+## Homesteads and workstations
 
-A homestead is not a workstation. This distinction matters, so let me draw it clearly.
+A **workstation** (an anvil, a tanning rack) does one job. A **homestead** is a place that holds other things: storage, fields, pens, and an apiary.
 
-A **workstation** is a tool that has become a place. The smith's anvil, the tanner's rack. It does one job.
+## Building one
 
-A **homestead** is a place that holds other things. It does no job at all by itself. It is ground with your name on it, and what happens on that ground is up to you.
+A homestead is built with Carpentry from timber, stone, and nails, not bought. The full cost is on the [Farming](/manual/skills/farming) page. You can also hire a carpenter to build it for you; see [Carpentry](/manual/skills/carpentry).
 
-On Taiar, the farmstead at **Novita** is the homestead you will meet first. On **Antura** the homestead ground is **Farefield**. You may keep one on each island, and they are separate places: each has its own fields, pens, and store, and nothing in one can be reached from the other except by carrying it across the water.
+## Storage
 
-## What it costs
+A tier 1 homestead has **50 storage slots**. **One slot holds one kind of item, in any quantity**: 4,000 planks take one slot, and so does a single trophy.
 
-The building of a homestead is a serious piece of Carpentry, and I have covered the farmstead's particular bill on the [Farming](/manual/skills/farming) page.
+Storage is used where you stand: you must be at the homestead to put things in or take them out.
 
-The pattern is worth noting even if farming does not interest you. Property is **built**, not bought. It is paid for in timber, stone, and nails rather than coin, which means the road to owning land runs through the gathering trades whether you like it or not.
+## Tier 2
 
-I consider this the single most characterful decision in Talaran's design. You cannot arrive wealthy and skip to the end. Somebody had to cut the trees, and on your homestead, that somebody was you.
+From **Carpentry 13**, a homestead can be tier 2, with **80** storage slots. Build it outright on new ground, or upgrade a tier 1 for less. Both use Serph nails; the prices are in the Carpentry tables. You can also hire a carpenter for the upgrade.
 
-## Storage, and the thing everybody misunderstands
+## Sharing storage
 
-Your homestead stores things. Fifty slots of them.
+You can give **one** other player access to your homestead's storage. At the homestead, open the **Storage** tab and name them. They can then put in and take out items whenever they are at your homestead.
 
-Now attend, because the arithmetic here is better than it sounds. **One slot holds one kind of item, in any quantity whatsoever.**
+They get the storage only, not your fields, pens, or the building. Every change either of you makes is logged where both of you can see it. Either of you can end the arrangement at any time, from anywhere. Items in storage when it ends stay there.
 
-Not fifty items. Fifty *kinds*. A slot holding four thousand planks is one slot. A slot holding a single trophy is also one slot, and I would gently suggest you have made a poor decision.
+## Why build early
 
-This means homestead storage rewards the hoarder of few things and punishes the collector of many. A player storing bulk materials will never come close to filling it. A player storing one of everything he has ever seen will fill it in a fortnight and then write to me about it.
-
-## The second tier
-
-From **Carpentry 13**, a homestead can be made bigger. A tier 2 homestead holds **eighty** kinds of thing instead of fifty. Build it outright on fresh ground, or raise the one you have for a good deal less; either way it wants Serph nails. Both prices are in the Carpentry ledger. And if your Carpentry is not up to it, hire someone whose is: name them at your homestead, lay their fee, and let them get on with it.
-
-## Sharing the store
-
-You may give **one** other player a key to your homestead's store. Stand there, open the Storage tab, and name them. From then on they can put in and take out whenever they stand at your homestead, which makes it the simplest way to trade with a partner whose work feeds yours: the miner who leaves ore, the smith who leaves ingots.
-
-They get the store and nothing else. Your fields, your pens, and the building itself stay yours. Every move either of you makes is written down where you both can read it, and either of you may end the arrangement at any moment, from anywhere. What is in the store when it ends stays in the store.
-
-Choose with care. A key is a key.
-
-## Why you want one earlier than you think
-
-New players treat property as a late-game reward and leave it far too long. Property is infrastructure, and infrastructure pays from the day it exists.
-
-The moment you have somewhere to put four thousand planks, your gathering trips stop being limited by what you can carry and start being limited by how long you feel like going. That is a different game, and a considerably better one.
-
-Build early. Build badly if you must. The planks will still be there.
+Storage lets you gather far more than you can carry. A homestead early on makes every gathering trip longer and more useful.
 
 ## Connections
 
-- **Carpentry** builds it, and is paid handsomely for doing so.
+- **Carpentry** builds it, and is paid for doing so.
 - **Mining** and **Woodcutting** supply the materials.
-- **Farming** happens on it, and on Taiar is the reason most people build one at all. Antura's homestead holds ten fields, not twenty.
+- **Farming** and **Husbandry** happen on it. Antura's homestead holds ten fields; Taiar's holds twenty.

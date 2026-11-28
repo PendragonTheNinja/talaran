@@ -1,40 +1,37 @@
-Constitution is how much of you there is.
-
-It is the plainest trade in Talaran. It has no tools, no workshop, and no technique. Every level makes you a little harder to kill, and that is the whole of it. I used to think it a dull skill. Then I counted the number of times a little more of me was the difference, and I stopped thinking so.
+Constitution is your health. Each level adds to it. It rises from fighting, from the blows you take and survive.
 
 ## Where and how to start
 
-You cannot practise Constitution on purpose. It rises from fighting: on Taiar, start where Melee starts, at **The Docks** in Talador, and on Antura, wherever the Melee page sends you from 13.
+Constitution rises from fighting. On Taiar, start at **The Docks** in Talador; on Antura, from level 13, see [Melee](/manual/skills/melee) for the fighting places.
 
-Every kill pays Defense and Constitution between them. **What got past your armour goes to Constitution.** The more blows you take and live through, the more it climbs. It is the one trade in which being hit is progress, which is a comfort, and not a large one.
+Every kill pays experience to Defense and Constitution. **What gets past your armor goes to Constitution**, so the more blows you take and survive, the faster it rises.
 
-## Training path
+## Health per level
 
-Each level adds to your health and nothing else.
+Each level adds health and nothing else.
 
 {{data:constitution-hp}}
 
-## Health, and getting it back
+## Health and healing
 
-Your health is the bar beside your name. It falls when you are hit and it does not come back on its own. **Food is the only thing that mends you.**
+Your health is the bar beside your name. It falls when you are hit and **does not come back on its own. Only food heals you.**
 
-Eat from your pack whenever you like, in a fight or out of one. During a fight the meal is taken at once. It costs you no swing and the creature gets no free one, so the only mistake is waiting too long. A meal you meant to eat does not mend anybody.
+Eat from your pack at any time, in a fight or out of one. In a fight, eating is instant: it does not cost you a swing or give the creature a free one.
 
-If your health runs out, you fall. The [Combat](/manual/systems/combat) page says what that costs, and I would read it before it happens rather than after.
+If your health runs out, you die. See [Combat](/manual/systems/combat) for what that costs.
 
 ## Tools and gear
 
-**Equipped:** nothing.
-
-**Carried:** food, and plenty of it. The ledger below lists what mends and by how much. Dishes cooked to quicken a trade mend nothing at all, however good they smell.
+- **Equipped:** nothing.
+- **Carried:** food. The table below lists what heals and how much. Provisions (dishes that speed up a trade) do not heal.
 
 ## Connections
 
-- **Fishing** and **Cooking** are this skill's real teachers. A fighter's reach is exactly as long as his food. Antura's dishes mend the most yet; its Shore Pie is the best of them.
-- **Talar** helps here too: a Hearty Amulet makes every meal eaten in a fight mend more.
-- **Defense** decides how much reaches Constitution in the first place.
-- **Melee** decides how long you must stand there.
+- **Fishing** and **Cooking** supply food. Antura's dishes heal the most; its Shore Pie is the best.
+- **Talar**: a Hearty Amulet makes food eaten in a fight heal more.
+- **Defense** decides how much damage reaches you.
+- **Melee** decides how long a fight lasts.
 
-{{details:The Geographer's ledgers}}
+{{details:Numbers and tables}}
 {{data:fight-food}}
 {{/details}}

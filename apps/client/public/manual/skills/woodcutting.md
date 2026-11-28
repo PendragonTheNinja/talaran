@@ -1,59 +1,46 @@
-Woodcutting looks like Mining's plainer cousin. Same rhythm, same tools-and-tiers arithmetic, same business of going to a thing and doing the thing until the thing is done.
-
-I believed this for a year and a half. I was wrong in a way I find genuinely delightful, and I shall keep you in suspense for exactly two sections.
+Woodcutting fells trees for logs. Logs go to Carpentry, which turns them into planks, tools, and buildings. Unlike ore, logs come in qualities, and your level decides which you get.
 
 ## Where and how to start
 
-Find a tree. Equip a hatchet. Swing.
+Equip a hatchet and go to a stand of trees. Every tree shows the level it needs and the hatchet tier it expects.
 
-On Taiar, the **Lanai** trees at **Lanaivale** take anyone from their first day. The **Deep Lanai** at **Eld Grove** wants **Woodcutting 13** and is the island's tier 2 wood, older, slower to fell, and better for it. Antura grows no timber you cannot already cut on Taiar. Wood, unlike rock, keeps two tiers to a kind, and Lanai is both of them.
+- **Lanai** at **Lanaivale** (Taiar): from level 1.
+- **Deep Lanai** at **Eld Grove** (Taiar): needs **Woodcutting 13**. This is tier 2 wood, slower to fell and worth more.
 
-Every stand of timber states the level it wants and the grade of hatchet it would prefer. Work within your means at first, because a hatchet beneath the job does not fail politely. It fails slowly, which is worse.
+Antura has no trees of its own to add: each wood covers two tiers, and Lanai is both of Taiar's.
 
 ## Tools and gear
 
-The arithmetic is Mining's exactly, and worth knowing in both trades:
+- Each level above a tree's requirement makes chopping 0.5% faster, up to half the time.
+- A hatchet **above** the required tier is faster again, up to about a third faster at three tiers over.
+- A hatchet **below** the required tier adds about forty percent per tier short.
 
-- Every level you stand above what a tree requires trims half a percent off the work, up to half again at best.
-- A hatchet **above** the required grade speeds you further, to a ceiling of about a third at three grades over.
-- A hatchet **below** grade adds roughly forty percent per grade short.
+Deep Lanai is meant to be cut with a **Serph Hatchet**. An Ambren one works at about seven swings for every five. **Merrick** in Talador sells Ambren hatchets; **Wystan** in Mettlefell sells Serph ones.
 
-Note once more that these are not symmetrical. Being over-equipped is a modest luxury. Being under-equipped is a tax you pay on every single swing.
-
-Deep Lanai is worked at its stated pace with a **Serph hatchet**. An Ambren one still fells it, at about seven swings for every five. Merrick in Talador always has an Ambren hatchet; Wystan in Mettlefell sells the Serph.
-
-**Carry a skep while you chop.** A wild hive turns up in a hollow trunk now and then, and with a skep in your pack it comes home with you as a colony. Without one you rob a comb and leave the bees. Husbandry has the whole of that story.
+**Carry a skep while you chop.** Now and then you find a wild hive in a hollow trunk. With a skep in your pack, you bring the colony home. Without one, you take a comb and leave the bees. See [Husbandry](/manual/skills/husbandry).
 
 Every hatchet, its tier, and where to get one:
 
 {{data:tools:Woodcutting}}
 
-## Here is the interesting part
+## Log quality
 
-Timber comes out poor, fine, or excellent.
+Logs come out **poor**, **fine**, or **excellent**.
 
-**Your skill changes which**.
+Each level you have above a tree's requirement makes poor logs rarer and excellent logs more common. This keeps improving for thirty levels above the requirement, then stops. Even then, some logs still come out poor.
 
-Every level you stand above the tree's requirement pushes the odds: poor becomes rarer, excellent becomes commoner. The effect accumulates for thirty levels before it stops, and even then poor never vanishes entirely and excellent never quite runs away with it.
-
-I want you to appreciate how unusual this is. Stone is stone. The outcrop decided what it was long before you arrived, and the finest miner in Talaran pulls the same proportions from it as the worst. But a tree is not a fixed quantity of timber. A tree is a fixed quantity of timber *and a question about who is holding the hatchet*.
-
-The practical consequence: revisiting humble trees is not the waste it appears to be. Come back to the wood you first learned on when you are forty levels past it, and you will find it has quietly become a much better wood.
+Mining does not work this way: a rock gives the same stone whoever mines it. So a tree you first learned on gives much better logs once you are well past it.
 
 ## Connections
 
-- **Carpentry** is where every log goes. Woodcutting alone is a supply trade, and there is honest money in supply, but the value multiplies the moment you work your own timber.
-- **Hunting** needs arrow shafts, which need timber, which needs you.
-- **Farming** needs fence panels, which need planks, which need logs.
-- **The islets** reach stands nobody else has touched: an islet may hold forty chops of the best tree you have the level for, with good timber three times as likely as ashore.
-- **Mining** is Woodcutting's twin. Learn either and you have most of the other for free, which is the single best trade-in-training bargain in Talaran.
+- **Carpentry** saws logs into planks and builds with them.
+- **Hunting** needs arrow shafts, made from timber.
+- **Farming** needs fence panels, made from planks.
+- **The islets** can hold forty chops of the best tree you have the level for, with good logs three times as likely as on the mainland. See [Sailing & the Islets](/manual/systems/sailing-and-the-islets).
+- **Mining** works the same way, with rock instead of trees.
 
-If you take up only one gathering trade, take Woodcutting. More things are made of wood here than of anything else, and quality actually rewards your attention.
-
-{{details:The Geographer's ledgers}}
-Everything the trade opens as you climb, and where to find it:
-
-Every tree, what it asks of you, and what comes off it:
+{{details:Numbers and tables}}
+Every tree, what it needs, and what comes off it:
 
 {{data:trees}}
 {{/details}}

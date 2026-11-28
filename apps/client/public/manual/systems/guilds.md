@@ -1,93 +1,63 @@
-Talaran is perfectly survivable alone. I managed it for years, largely out of stubbornness, and I would not particularly recommend the experience.
+A guild is a named group of players with its own chat, ranks, forum, and, once built, a hall with a shared storehouse. Its main use is supply: members in different trades can provide for each other.
 
-A guild is the mechanism for not doing that.
+## Founding a guild
 
-## What a guild actually is
-
-A named company of players with a shared banner, a private channel to talk in, and, once they have raised one, a hall with a storehouse. It will not shorten your timers, and what it adds to your learning is small enough to ignore (I come to that below).
-
-What it does is solve the supply problem, which is the real problem in a world where every trade feeds another.
-
-Consider the arithmetic. A hunter needs arrows, so he needs a carpenter and a smith. The carpenter needs logs, so he needs a woodcutter. The smith needs ore, so he needs a miner. Alone, you either learn all five trades or spend your life negotiating. In a guild of five, you each learn one properly and the chain simply exists.
-
-That is the whole value, and it is a larger value than it sounds.
-
-## Founding one
-
-You need a **name**, unique across Talaran, and a **tag** of one to five characters, also unique. The tag is what appears beside your people's names, so choose something you will not tire of seeing.
-
-Tags are stored in capitals whatever you type, which has spared a number of guilds from themselves.
+You need a **name** and a **tag** of one to five characters, both unique. The tag appears beside members' names and is stored in capitals.
 
 ## Ranks
 
-Four of them. **Recruit**, **Member**, **Officer**, and **Leader**. The founder holds the Leader's rank for as long as they lead, and if they ever hand the guild on, they step down to Officer like anyone else.
+There are four: **Recruit**, **Member**, **Officer**, and **Leader**. The founder is Leader. A Leader who hands over the guild becomes an Officer.
 
-The Leader may do everything. What the other three may do is the Leader's choice, set once for the whole guild: inviting players, removing them, promoting them, taking from the storehouse, approving requests, keeping the guild forum, posting news. Left alone, Officers may do all of it, Members may take items from the storehouse, and Recruits may do none of it.
+The Leader can do everything, and decides what each other rank may do: invite, remove, promote, take from the storehouse, approve requests, manage the guild forum, and post news. By default, Officers can do all of it, Members can take from the storehouse, and Recruits can do none of it.
 
-Whatever the Leader allows, nobody acts on anyone of their own rank or above. An Officer can remove a Member and never another Officer. Only the Leader makes Officers.
+Nobody can act on someone of their own rank or higher. Only the Leader can make Officers.
 
 ## Joining
 
-You are invited, or you apply to a guild that is taking applications and somebody with the right to say yes says it. Either way, someone chooses you.
+You join by invitation, or by applying to a guild that accepts applications and being approved. To be invited, be active and helpful: answer questions in Help chat and trade fairly.
 
-This sounds unfriendly and is the opposite. An invitation means somebody looked at you and decided you would be a good addition, which is a considerably warmer welcome than a queue.
+## Guild chat
 
-If you want one, go and be visible. Talk in Help chat. Answer a question you know the answer to. Trade fairly with someone who will remember it. Guilds recruit the people they have noticed, and being noticed in Talaran costs nothing but a little willingness to be useful.
-
-## The guild channel
-
-Your guild has its own chat, seen only by its members.
-
-This is the part I underrated for far too long. The channel is the entire point of the thing. A world of long timers and slow roads becomes a completely different world when there is somebody to talk to while the timers run.
+Your guild has its own chat channel, seen only by members.
 
 ## Working side by side
 
-Stand at the same place as a guildmate, doing the same kind of work, and you each learn a little faster: one part in a hundred. Two woodcutters in one wood, two smiths at one forge, two fighters at one spot. A guildmate stopped by a bot check does not count while they are stopped.
-
-One part in a hundred is a courtesy, not a reason to do anything. On a short job it often comes to less than a point, so it arrives as a chance at a single extra point, which over an evening works out to exactly the hundredth part. The result card shows it when it lands.
+When you and a guildmate are at the same place doing the same kind of work, you each earn **1% more experience**. On short jobs this often comes out as a chance at one extra point; over time it averages to 1%. A guildmate waiting on a bot check does not count. The result card shows when the bonus applies.
 
 ## The guild hall
 
-A guild may raise one hall on each island, wherever its Leader chooses to lay the foundations. The Leader stands on the spot and says so. That is the whole ceremony.
+A guild can build one hall on each island, wherever its Leader chooses. The Leader stands at the location and lays the foundation.
 
-Then everyone builds it. Each turn is a short spell of work with a **mallet and saw** in hand, setting one to three planks or blocks or fistfuls of nails into the walls, three more often the better the carpenter, and it pays **Carpentry**, as any building does. Bring the materials, start the work, and it carries on piece by piece until you stop or run out. A hall is meant to take a guild, not a person. The figures are large on purpose.
+Members then build it. Each building turn places one to three planks, blocks, or nails (more often three for better carpenters), needs a **mallet and saw** equipped, and pays **Carpentry**. Building continues piece by piece until you stop or run out of materials. Halls need a lot of materials.
 
 {{data:guild-hall-tiers}}
 
-A finished tier opens the storehouse, or makes it larger. The second tier asks for **Carpentry 22** of whoever builds it.
+Each finished tier opens or enlarges the storehouse. The second tier needs **Carpentry 22** to build.
 
-A guild short of carpenters can **hire hands** by the piece: name them, set a wage for each piece set, and lay a purse at the hall. The purse is its own, kept apart from the storehouse's gold, and what is left over when the work is done comes back to it.
+A guild can **hire workers** by the piece: name them, set a wage per piece, and put a purse at the hall. The purse is separate from the storehouse's gold, and anything left when the work is done goes back to it.
 
-If the hall is in the wrong place, the Leader can pull it down and raise it elsewhere, from nothing. Only once the storehouse is empty, gold and all. Nothing inside a hall is ever thrown away.
+The Leader can tear down a hall and build it elsewhere, but only when its storehouse is empty, gold included. Nothing in a hall is ever thrown away.
 
 ## The storehouse
 
-The storehouse counts its room by the item, not by the stack. Three hundred blocks of granite and seven lumps of ore take three hundred and seven.
+Storehouse space is counted per item, not per stack: 300 granite blocks and 7 ore take 307 spaces. Gold takes no space.
 
-Any member may put things in, and gold as well, of which it holds as much as you like. Taking things out is a matter of rank. Every coming and going is written in the **ledger**, with a name and a time, which settles more arguments than it causes.
+Any member can put items and gold in. Taking things out depends on rank. Every deposit and withdrawal is recorded in the **ledger** with a name and a time.
 
-You must be standing in the hall to put things in or take them out. **Looking** is another matter: the Hall tab shows what is in each of your guild's storehouses from anywhere, so you can find out what the guild has before you walk all the way there to discover it has none.
+You must be at the hall to put things in or take them out. The **Hall** tab shows the contents of every guild storehouse from anywhere.
 
-### Asking for things
+### Requests
 
-A rank that may not take can ask. Choose what you want, and anyone allowed to approve requests (Officers, unless the Leader has said otherwise) will see it. Approved, the goods are set aside on a shelf of their own, out of everyone else's reach, and you collect them at the hall when you next pass. Denied, nothing moves. The ledger names who said yes.
+Members whose rank cannot take items can request them. Anyone allowed to approve requests (Officers, by default) sees the request. If approved, the items are set aside for you to collect at the hall. If denied, nothing moves. The ledger records who approved.
 
 ## Guild news
 
-Every guild has a **News** board in its forum. Officers may start a story there, unless the Leader has said otherwise; anyone in the guild may reply. The three latest headlines sit on the guild's front page, which is where most of your people will see them.
+Each guild has a **News** board in its forum. Officers can post stories (unless the Leader changes this); any member can reply. The three latest headlines show on the guild's front page. The News board cannot be deleted.
 
-The board cannot be deleted. Neither can history.
+## World events
 
-## When an event comes
+When a world event takes place somewhere, that place records the ten players and ten guilds who did the most there. The lists stay in the place's description until the next event there.
 
-When a world event draws people to a place, the place keeps score. Afterward its description shows the ten players who did the most there, and the ten guilds. It stays until the next event at that place.
+## When to join
 
-A guild that turns up together tends to be on that list. I have noticed it is rarely the same guild twice.
-
-## What I would tell you
-
-Join one earlier than you think you should.
-
-New players often feel they should have something to offer first, and wait until they are worth recruiting. I did this for an embarrassing length of time. It is exactly backwards. The cheapest thing a guild can give a new member is the surplus of five established trades, and the cheapest thing a new member can give a guild is the gathering nobody senior wants to do.
-
-Both sides come out ahead immediately. Waiting only delays it.
+As early as you like. A new member can do gathering work the guild needs, and gets access to what established members make.

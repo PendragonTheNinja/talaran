@@ -1,159 +1,128 @@
-I have been asked, more than once, why I keep a page for animals separate from the page for fields. They are both farming, the argument goes. They are both mud and patience and getting up earlier than you would like.
-
-Here is the difference, and I will put it as plainly as I know how.
-
-A field is a transaction. You break the soil, you press the seed in, you go away, you come back, you take the crop, and the field forgets you entirely. The arrangement is closed. Nothing is owed in either direction.
-
-An animal is a **standing relationship with something that eats**. You do not finish with a cow. You are simply, from the day you acquire her, a person who has a cow.
+Husbandry keeps animals in pens on your homestead: chickens, cows, pigs, and horses, plus bees in an apiary. Animals give eggs, milk, and other produce while you keep them, and meat and hides when butchered. Horses become mounts.
 
 ## Where and how to start
 
-Husbandry begins where Farming begins, at your own **farmstead**, because you cannot keep animals on ground that isn't yours. On Taiar that is **Novita**; on Antura, **Farefield**. Each island's homestead keeps its own pens.
+Animals live at your own **farmstead** (see [Farming](/manual/skills/farming) for raising one). On Taiar that is at **Novita**; on Antura, **Farefield**. Each island's homestead has its own pens.
 
-Speak to **Geothro**. Georgic sends him the ones who have taken to the soil, which is his polite way of saying he inherits Georgic's students. He has two chicks spare and will hand them over along with a pail and a fork, which is the entire trade in miniature: something to feed, something to feed it with, and something to clean up after it.
+Talk to **Geothro** at Novita. He gives you two chicks, a pail, and a fork.
 
 ## Pens
 
-Animals live in pens, and pens are joinery, the same fencing and nails your fields are enclosed with.
+Pens are built from the same fencing and nails as fields.
 
-- A **coop** is boarded tight with a latching door, and holds six birds.
-- A **paddock** is posts and panels, and holds three larger beasts.
+- A **coop** holds six birds.
+- A **paddock** holds three larger animals.
 
-**One pen keeps one kind of animal.** A paddock given over to cattle is a cattle paddock until the last one leaves it. This is not fussiness on my part. Put a pig in with your cows and see how long the arrangement lasts.
+**A pen holds one kind of animal.** The pen takes the kind of the first animal you put in it, and frees up when the last one leaves.
 
-Your **Husbandry level** decides how many pens you may keep. One to begin with, another every three levels, to a ceiling of twelve. Your Farming level does the same for fields, and the two counts do not interfere. The ceiling of twelve holds on every island's homestead, Antura's included, though Antura's fields stop at ten.
+Your **Husbandry level** sets how many pens you can have: one to start, another every three levels, up to **twelve**. This is separate from your field count. Twelve is the limit on every island, including Antura.
 
-Your pens are ranked by what their grown animals give. The pen whose milk, eggs, or honey teaches the most comes first and teaches you all of it; the next teaches a little less, and so on, as fields do, and the pens list says how much. You never have to arrange them. Young animals give nothing yet, so a pen of them waits at the back until they grow. The work of feeding, mucking, and collecting is paid in full in every pen, and no animal gives a drop less for being in the twelfth. The ranking runs across **every pen you own, on every island**, so a second homestead's pens take their places among the first's rather than starting fresh.
+**Experience from pens:** your pens are ranked by what their adult animals produce. The top pen pays full experience; each one after pays a little less, as fields do. The pens list shows each share, and you do not need to arrange anything. Pens of young animals rank last until they grow. Feeding, mucking, and collecting are paid in full in every pen, and the produce is never reduced. The ranking counts **every pen you own on every island**.
 
-## The wheel
+## The cycle
 
-Every animal turns the same wheel:
+1. **Get a young animal.** There is no breeding; every animal starts as one found in the wild (see below).
+2. **Put it in a pen.** It arrives with a name.
+3. **Feed it.**
+4. **Collect** what it produces: eggs, milk, or, from pigs, the occasional truffle.
+5. **Butcher it** when you choose.
 
-1. **Find one young.** There is no breeding here (at least... yet?). Every animal you own began as something small found in the wild.
-2. **Put it in the pen.** It arrives already named, which will matter to you more than you expect.
-3. **Feed it.** This is the whole of the work.
-4. **Take what it gives**: eggs, milk, or the occasional astonishing thing a pig digs out of the ground.
-5. **Take the rest of it,** eventually, when it slows.
+## Feeding
 
-## On feeding, which is the only rule that matters
+One feeding action fills a pen for **twelve hours**, for every animal in it.
 
-Feeding fills a pen for **twelve hours**, every animal in it, one action and one pail.
+**An animal that is not fed does not die.** Its clock stops: it does not grow or produce until you feed it again. Being away only costs you the time.
 
-Now attend to this, because it is the single most important sentence on this page: **an animal that is not fed does not die.**
-
-It does not sicken. It does not waste. It stops. Growing stops, laying stops, the whole clock halts, and the animal stands there being an animal, and rather hungry, until you come back. Return in a month and you will find it precisely as you left it, and a month behind where it might have been.
-
-Neglect costs you the time you were away and nothing more. I have known players who found this unsatisfying, wanting a farm that punishes them properly. I would gently suggest that a game which kills your named cow because you had a difficult week is not teaching you husbandry. It is teaching you not to have a cow.
-
-**Mucking out** works the same way, only on the calendar rather than on feeding: a pen wants clearing about once a day, and a fouled pen halts exactly as a hungry one does. The muck itself is not waste. Barrow it over to your fields and it is next year's harvest.
+**Mucking out** works the same way: a pen needs clearing about once a day, and a dirty pen stops just as a hungry one does. The muck is manure for your fields.
 
 ## What they eat
 
-An animal eats what it would really eat, and most will eat several things. Grain, barley, peas, and beans go at the usual measure. Roots, greens, and nuts are bulkier and lighter, and go at **twice** the measure. A cow will take grain or barley, or twice as much turnip or beet; a pig will eat very nearly anything, hazelnuts included, which tells you everything about pigs.
+Each animal eats several feeds. Grain, barley, peas, and beans count at the normal measure. Roots, greens, and nuts count at **half**, so they take twice as many. A cow eats grain or barley, or twice as much turnip or beet. A pig eats almost anything, including hazelnuts.
 
-Choose a pen's feed by hand in the Animals tab, or let **Feed All** and the **Larder Ward** choose for you, in which case they use the cheapest feed you hold. The whole list for each animal is in the ledger at the foot of this page.
+Choose a pen's feed in the Animals tab, or let **Feed All** and the **Larder Ward** pick the cheapest feed you hold. The full list for each animal is in the tables below.
 
-This is the quiet reason Antura's farmers keep animals: barley, beans, beet, and cabbage all grow there, and every one of them is fodder.
+On Antura, barley, beans, beet, and cabbage all work as feed.
 
-## Young, adult, elder
+## Young, adult, and elder
 
-Three stages, and only the middle one is at full strength.
+- A **juvenile** grows, and only while fed. It produces nothing.
+- An **adult** produces at the full rate.
+- An **elder** produces more slowly, and never dies of age.
 
-A **juvenile** does nothing but grow, and only while fed. An **adult** works at full rate. An **elder** is slower at everything. Fewer eggs, less milk, and so on. She will go on being slow, and old, and yours for as long as you care to keep her.
+**An elder butchers for exactly as much as an adult.** Age only slows produce.
 
-She will never die on her own. That is deliberate. The game will not take her from you; it only makes the case, gently and continuously, that a younger one in her place would produce better.
+## The animals
 
-Most stockmen take the hint. Some don't and keep an old favorite on at the end of the row purely out of sentiment, at a cost of a few eggs a day. I have never once thought worse of them for it.
-
-One mercy worth knowing: **an elder butchers out exactly as well as a prime adult.** Age slows what an animal *makes*; it takes nothing off the animal itself. You are never punished for having been fond of Bessie.
-
-## What the animals are for
-
-- **Chickens** *(level 1)*: eggs, meat, and feathers. The fastest wheel on the farm and the one to learn on.
-- **Cows** *(level 9)*: and here is the real decision of this trade. Milk her for as long as you keep her, or take the beef and the hide the day you stop. The hide tans into **leather**, which is a different material entirely from the buckskin a hunter brings home: farmed, uniform, and available in quantity, which is what makes saddlery and harness possible at all.
-- **Pigs** *(level 17)*: kept for the killing, but a good sow earns her grain first. There is no better nose in Talaran for a **truffle**, and a truffle is worth rather more than the pig.
+- **Chickens** (level 1): eggs, meat, and feathers. The fastest cycle.
+- **Cows** (level 9): milk for as long as you keep them, or beef and a hide when butchered. The hide tans into **leather**, which is separate from the buckskin hunters bring in, and comes in the quantities saddlery and harness need.
+- **Pigs** (level 17): mostly kept for meat, but a sow finds **truffles** while you keep her, and a truffle is worth more than the pig.
 
 ## Mounts
 
-Mounts are raised in a paddock like anything else, and then they are not.
+Horses are raised in a paddock. When a horse is grown, put a **halter** on it and it leaves the pen as a mount item. Mounts do not age.
 
-When a horse comes of age you put a **halter** on it, and at that moment it stops being an animal in your paddock and becomes a horse in your keeping. It will not age further. It will not slow. It is simply, permanently, your horse.
+- The **rouncey** can be raised from level 1.
+- The **palfrey** needs **Husbandry 13** to raise and **Wayfaring 13** to ride.
 
-The **rouncey** is an honest all-purpose animal you may raise from your first day. The **palfrey** is smooth-gaited and bred for distance, and wants Husbandry 13 to raise, and separately, **Wayfaring 13 to ride**. Note the two gates. Raising a horse and being fit to ride one are different accomplishments, and it is entirely possible to stand in your own paddock beside an animal you have fed for two days and cannot yet get on.
+## Tools
 
-## Tools, which must be equipped
+- **Feed Pail**, in your off hand, to feed.
+- **Lanai Buckets**, carried in your pack, to hold milk. Each holds ten units of milk, is never used up, and frees again when you pour the milk into your farmstead storage. Two is plenty.
+- **Mucking Fork**, in your main hand, to muck out.
+- **Halter & Lead**, equipped, to bring in a grown horse.
+- **Butchering Knife**, in your main hand, to butcher.
 
-- **Feed Pail**, offhand. To feed. In your pack it feeds nobody.
-- **Lanai Buckets**, carried. Milk has to go *somewhere*. Each bucket holds ten "milk items", the buckets are never used up, and pouring your milk into the farmstead storage frees them again. Carry two and you may stop thinking about it.
-- **Mucking Fork**, mainhand. For the bedding.
-- **Halter & Lead**, hands. To bring a grown horse in.
-- **A Butcher Knife**, mainhand. For the last job.
-
-The pail and the fork are always on **Alder's** shelf in Talador, a few each day, so a broken one never ends the trade.
-
-Every one of them, by tier:
+**Alder** in Talador sells pails and forks, a few each day.
 
 {{data:tools:Husbandry}}
 
 ## Where young animals come from
 
-There is no breeding. This is the constraint the whole skill is built around, and it is what sends you back out into the world.
+There is no breeding. Young animals come from the wild:
 
-**Snares** take small things alive: a nesting hen, and with some luck a wild sow with a piglet at foot. **Hunting** turns up the larger young: a calf strayed from a drove, or a foal standing beside something you were tracking for entirely different reasons.
-
-**The islets** are the third road, for anyone with a boat. Some landings turn up young animals on the shore: chicks, calves, piglets, and now and then a foal, left by whoever farmed out there once, or simply born there and never told. Sailing and the Islets has the rest of that.
-
-I find there is something fitting in that. The tame animals of Talaran all begin as wild ones, and the stockman's craft is not making animals. It is bringing them in, and then getting up in the morning.
+- **Snares** (see [Hunting](/manual/skills/hunting)): chicks from a Nesting Hen, piglets from a Wild Sow.
+- **Hunting**: calves and foals, sometimes, while hunting larger game.
+- **The islets**: some landings turn up chicks, calves, piglets, and now and then a foal. See [Sailing & the Islets](/manual/systems/sailing-and-the-islets).
 
 ## Bees
 
-Bees are not livestock, and the apiary is not a pen (whatever the farmstead calls it).
+An apiary is not a pen. Bees need no feeding, no mucking, and do not grow.
 
-They eat nothing. You will not feed them, you will not muck them out, and there is no young bee to stand about waiting on. What you place in an apiary is a working colony that was doing perfectly well without you a fortnight ago.
+- **Weave a skep** from straw.
+- **Carry it while chopping.** Now and then you find a wild hive in a hollow tree.
+- **With a skep** in your pack, the colony comes home with you.
+- **Without one**, you take a single comb and leave the bees.
 
-- **Weave a skep** from straw. A dome of coiled straw, and the whole of the equipment.
-- **Carry it while chopping.** A wild hive turns up in a hollow trunk now and then.
-- **With a skep**, the colony goes in and comes home with you.
-- **Without one**, you rob the nest for a single comb and leave the bees.
+There is no breeding or swarming. Every hive comes from a tree.
 
-That last is worth reading twice, because most people meet their first hive without a skep and lose it. It is also what everybody actually did. Keeping bees means catching them; robbing a nest is just theft with better manners.
+### Flowers
 
-There is no breeding here either, and no swarming. Every hive on the island came off a tree, and there will never be another way.
+An apiary makes honey on its own, but slowly. Flowers in the stand speed it up. Any flower works, including those found walking the roads.
 
-### Flowers, and why the hives are slow
+- **Ten flowers** fill a stand, for the best rate.
+- An empty stand works at just over a third of that.
+- **Season** matters too: full in spring and summer, two thirds in autumn, a third in winter.
 
-An apiary with nothing in bloom nearby still makes honey. It makes very little.
+### What a hive gives
 
-Set flowers into the stand and the hives quicken. Any flower will do, including the ones you pick up walking the roads on foot, which is the only use those have ever had.
+**Honeycomb** every four hours. Press it into honey and beeswax. Honey is needed for Cooking's preserves, cordials, and pastries.
 
-- **Ten flowers** to a stand, and a full one works at its best
-- An empty stand runs at something over a third
-- The **season** matters as much: full in spring and summer, two thirds in autumn, a third in winter
+Bees pay very little experience. You keep them for the honey.
 
-Winter never stops them entirely. A lean month is not a dead one, and a hive that gave you nothing for a quarter of the year would simply not be worth the stand it stood on.
-
-### What comes off a hive
-
-**Honeycomb**, every four hours, and that is all. Press it and it parts into honey and beeswax.
-
-The honey is the sweetener that the whole preserve and pastry line of Cooking waits on. Without it there is no conserve, no cordial, no tart worth the name.
-
-I will be plain about the experience: keeping bees pays very little of it. That is the bargain. No feeding, no mucking, no growing to wait through, and in exchange the ledger stays thin. You keep bees for the honey.
-
-{{details:The Geographer's ledgers}}
-Every animal you may keep, what it eats, and how long it makes you wait:
+{{details:Numbers and tables}}
+Every animal, what it eats, and how long it takes:
 
 {{data:animals}}
 
-What each gives you for the trouble of keeping it alive:
+What each produces:
 
 {{data:animal-produce}}
 
-And what comes off one at the end:
+What each gives when butchered:
 
 {{data:animal-slaughter}}
 
-The churn and the cheese press, and everything the trade opens as you climb:
+The churn, the cheese press, and everything the trade opens as you level:
 
 {{data:training-path:Husbandry}}
 {{/details}}
