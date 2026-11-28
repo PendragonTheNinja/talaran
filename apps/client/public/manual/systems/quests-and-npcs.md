@@ -1,60 +1,47 @@
-There is no board in the square.
+How quests, daily tasks, and errands work, and where to find the people who give them.
 
-I want to open with that, because every arrival spends their first days looking for one. Some notice-board, some guild register, some tidy list of Available Work with a queue beside it. It does not exist. I checked thoroughly, and then I checked again in a different town, in case Novita were simply being rude.
+## Finding quests
 
-Talaran does not advertise its work. Talaran *stands about*, looking unremarkable, waiting to be spoken to.
+There is no quest board or quest list. Every quest starts with a person: find them, talk to them, and they may offer you work. A quest you have not been offered does not appear anywhere.
 
-## Quests are conversations
+**Talk to anyone standing still.** Some people have nothing for you; some will have something later, once you know more; some have work waiting.
 
-Every piece of work begins with a person. You find them, you talk to them, and if they judge you capable, and they are generous judges, they will offer you something to do.
+The trade tutors on Taiar all have names starting with Geo-: for example, **Geonsen** at Eld Grove teaches Hunting and **Georgic** at Novita teaches Farming. See [Your First Hour](/manual/getting-started/your-first-hour) for the full list. Tutors are on Taiar only. On **Antura**, the people you meet have quests but no lessons.
 
-This means a quest you have not yet been offered does not appear anywhere. Not in a list, not greyed out, not marked on a map with a helpful exclamation. It simply is not there yet, because the conversation has not happened.
+## How quests work
 
-Which makes the finding of work an activity in itself. I consider this a feature, and I concede that I would say that, being a man who talks to people professionally.
+Quests are made of steps, tracked as you go: build something, till a field, hunt an animal, gather goods, or talk to someone.
 
-## Therefore: talk to anyone standing still
+- **Work you have already done counts.** If a quest asks you to till a field and you already have, that step completes at once.
+- **To hand in, talk to the person who gave you the quest.**
 
-That is the whole technique. Anyone motionless in a town is worth a word.
+## Several quests from one person
 
-Some will have nothing for you. Some will have nothing for you *yet*, so come back when you know more and they will have noticed. And some have been standing there the entire time, holding the exact thing you needed a week ago.
+A person can have more than one quest, usually one at a time. Finishing one may open the next, and some quests wait until another is done.
 
-The ones who teach the trades share a naming habit you may notice. On Taiar, **Geonsen** at Eld Grove teaches hunting and **Georgic** at Novita teaches farming, and there are others in the same mould. They are all of a school. It was, if you will permit an old man a moment of vanity, *my* school. It teaches beginners, and beginners are all on Taiar, so Taiar is where my pupils stay. On **Antura** you will meet working people with troubles of their own and no lesson to give. Georgic was the patient one, which is presumably why he ended up in a field.
-
-## What a quest asks of you
-
-Work is made of small honest tasks, tracked as you go. Build the thing, till the ground, hunt the animal, gather the goods, or simply go and speak to someone.
-
-Two conveniences worth knowing.
-
-**Progress you have already made counts.** Accept a task to till a field when you have been tilling fields all morning, and the world credits what you have already done rather than pretending it never happened. Nobody enjoys performing work twice for a witness.
-
-**Turning in is a conversation too.** You return to the person who sent you and you tell them. No form to file, no quiet tick in a ledger. Someone asked you to do a thing, and now you get to say that you did it, which is most of the pleasure of doing things.
-
-## One person, several quests
-
-A person may have more than one thing to ask, but rarely all at once. Finish what they asked first and they may think of something else; some quests wait on another being done. And now and then two people want opposite things of you. **Take one side and the other closes.** Choose with some care. I once agreed to help a man with his hedge before I had heard what his neighbor thought of it, and I have not been able to walk down that lane since.
+Sometimes two people want opposite things. **Starting one quest closes its rival.** Choose carefully.
 
 ## Daily tasks
 
-A tutor whose lesson you have finished does not forget you. Come back on another day and they will have **a task for the day**: goods of their trade, brought to them. In return they pay about twenty minutes of that trade's experience at your level, the full value of the goods in gold, which is better than any merchant will give you, and a tool of their craft, Ambren while you are below 13 and Serph after. Georome pays in a cut stone, being Georome.
+Once you have finished a tutor's lesson, they offer **a daily task**: bring them goods of their trade. In return you get:
 
-One task a tutor a day, and the task is the same all that day, however often you ask. Between tasks they have a little more to say, and very occasionally something they did not mean to.
+- about twenty minutes' worth of that trade's experience at your level,
+- the goods' full value in gold (more than a merchant pays), and
+- a tool of their trade: Ambren below level 13, Serph from 13. Georome gives a cut gem instead.
+
+One task per tutor per day. The task stays the same all day, however often you ask.
 
 ## Errands
 
-Three brothers named **Friddik** send things to one another, and they are always short of someone to carry them: **Nathan** in Verdale, **Matthew** at Dawncrest, and **Christopher** at Talar Rift.
+The **Friddik brothers** send things to each other and need someone to carry them: **Nathan** in Verdale, **Matthew** at Dawncrest, and **Christopher** at the Talar Rift.
 
-- Ask one of them and he offers an **errand**: a letter, a parcel, and sometimes everyday goods that you must find and bring yourself.
-- Each leg has a **limit**, worked out from the roads at a new walker's pace, with a little to spare. A leg that brings goods gets a quarter of an hour more.
-- Each leg pays about **forty gold and seventy-five Wayfaring**, on top of the walk.
-- **A late leg ends the errand there.** You are paid for any goods you brought and nothing else, and the brother tells you how late you were, to the second, which I find needlessly precise.
+- Ask one and he offers an **errand**: a letter, a parcel, or sometimes everyday goods you have to find and bring yourself.
+- Each leg has a **time limit**, based on the roads at a new walker's pace, with a little spare. A leg where you bring goods gets fifteen minutes more.
+- Each leg pays about **40 gold and 75 Wayfaring**, plus the experience from the walk.
+- **A late leg ends the errand.** You are paid only for any goods you brought, and told exactly how late you were.
 
-An open errand shows in your quest log, counting down. One at a time. Turn an errand down and ask again, and you will be offered the same one: the brothers are men of habit.
+Your open errand shows in the Quests menu with its time counting down. You can have one at a time. If you turn an errand down and ask again, you are offered the same one.
 
-## A word on rewards
+## Rewards
 
-Quests hand over goods and experience, and the tutorial ones hand over the tool you will need for the trade they teach, which is the world being quietly thoughtful and worth noticing.
-
-But the real reward of a tutorial quest is that somebody walks you through the correct order of a trade before you invent a worse order yourself. I did not have this. I invented a great many worse orders. Several of them are still spoken about in hushed voices at taverns. 
-
-Go and talk to someone.
+Quests pay goods and experience. Tutorial quests also give you the tools for the trade they teach, and walk you through the trade in the right order.

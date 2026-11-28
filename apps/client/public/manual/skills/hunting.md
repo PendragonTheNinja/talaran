@@ -19,7 +19,7 @@ Choose **Hunting Grounds** at the location, then pick an animal.
 
 Each hunt tracks the animal, stalks it, and takes the shot, then ends in a kill or a miss.
 
-Animals unlock in eight-level steps, three to a forest, and each forest has its own. On Taiar you start with deer at Eld Grove; boar and larger game come later.
+New animals open every eight levels, three to a forest, and each forest has its own. On Taiar you start with deer at Eld Grove; boar and larger game come later.
 
 {{data:huntable-animals}}
 

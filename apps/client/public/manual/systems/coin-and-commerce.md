@@ -1,115 +1,85 @@
-For most of Talaran's history there was no money in it. People swapped things directly, or they did not swap at all, and a great many good hides rotted in packs because the man who wanted them lived three towns over.
+How gold works, what merchants pay and charge, trading with other players, and running a shop of your own.
 
-Then somebody minted coin, and the whole island rearranged itself around the idea.
+## Getting gold
 
-## Gold, and where it comes from
+- **Selling** to merchants or other players. This is most of your income early on.
+- **Finding coins** while working. Active work (mining, chopping, fishing, and so on) sometimes turns up a few coins. Passive work never does.
 
-Coin arrives in your purse two ways.
+## What things are worth
 
-Mostly you sell things. A merchant will buy nearly anything off you, and for a long while that is the whole of your income.
+Every item has a base value. Merchants price against it, and the harder an item is to get, the higher its value. Prices between players can differ a lot from these values; what something is worth to another player is whatever they will pay.
 
-The other way is that you simply find it. Coins turn up in the work: wedged in a seam, spilling out of a hollow trunk, tangled in weed on the end of a line. Not often, and never much, but often enough that everyone who has worked a trade for an afternoon has had it happen. Somebody was here before you and was careless.
+## Taiar's marketplace
 
-## What a thing is worth
+Talador's market square has four merchants and a pawnbroker.
 
-Every item has a rough baseline behind it, and the merchants price against that baseline rather than against their mood. Broadly, the harder a thing was to come by, the more it is worth, and that ordering holds across every trade.
+- Merchants **sell** at **175%** of an item's value and **buy** at **45%**.
+- **Corvin**, the pawnbroker, buys almost anything at **35%**.
 
-I would not encourage you to treat those numbers as gospel. They are a floor and a ceiling, nothing more. What a plank is *actually* worth on a given afternoon is whatever somebody will hand you for it, and the island works that out for itself, constantly, without consulting anybody's arithmetic. Every experienced trader I know has opinions about prices that no ledger would support, and most of them are right.
-
-Learn the rough shape of it by trading. That is genuinely the only way, and it is not a hardship.
-
-## The Taiar Marketplace
-
-Talador's market square holds four merchants and a pawnbroker.
-
-They will **sell** you things at **175% of value** and **buy** things from you at **45%**. The pawnbroker, Corvin, takes absolutely anything at **35%**, which is his way of charging you for not having to sort your pack first.
-
-Your first thought on reading that is that they are robbing you. They are not, quite. They are charging for two things worth paying for.
-
-The first is **certainty**. Merrick will buy your ore today, at that price, in any quantity you can carry, and he will do it again tomorrow. No haggling, no waiting for a buyer, no wondering whether anyone wants ore this week. There are afternoons when that is worth a great deal more than the difference.
-
-The second is **being there**. Your pickaxe snaps at the wrong moment. You could go and learn Smithing, or find someone who has, or wait. Or you could walk into the square with coin in your hand and walk out with a pickaxe, and be back at the rock face inside the hour. Merrick's prices are steep precisely because he is holding stock against the day you need it, which is a service whether or not it feels like one at the counter.
-
-So: the merchants are dear, and worth it more often than pride will let you admit. They are also, quietly, the reason everybody roughly agrees what things cost. When a trader tells you a price, the number in the back of their head came from that square.
-
-What the merchants are *not* is a way to get rich. You cannot buy at 175% and sell back at 45%. There is no loop there, no clever ordering of purchases that turns a profit, and looking for one is time you could spend swinging a pick.
+Merchants are expensive, but they always have stock and always buy, in any quantity. There is no way to profit by buying from a merchant and selling back.
 
 ### Antura's markets
 
-Antura has two. The **Mettlefell Market** keeps **Wystan**, the smith, who sells every Serph tool, weapon, and piece of armor there is, and **Ashby**, the carpenter. The **Wendhaven Market** keeps **Maude**, the craftswoman; **Gil**, the provisioner, who buys and never sells; and **Osric**, the pawnbroker, who is Corvin's equal in every respect that matters and some that do not. The same walls hold on both islands: dear to buy, cheap to sell.
+- **Mettlefell Market:** **Wystan**, the smith, who sells every Serph tool, weapon, and piece of armor, and **Ashby**, the carpenter.
+- **Wendhaven Market:** **Maude**, the craftswoman; **Gil**, the provisioner, who buys but does not sell; and **Osric**, the pawnbroker.
 
-### Why they run out
+The same prices apply on both islands.
 
-No merchant will sell you an unlimited number of anything. Each has a daily allowance, and it is **per person**, so nobody is racing you for it and nobody in a kinder timezone got there first.
+### Daily limits
 
-There is one exception, and it is a kindness. **The gathering tools are always on the shelf**: a few each day, every day, on top of whatever else is stocked. **Merrick** keeps the Ambren Pickaxe, Hatchet, Foraging Knife, Hoe, and Butchering Knife; **Alder** keeps the Ambren Fishing Rod, the Lanai Hunting Bow, the Feed Pail, and the Mucking Fork; **Tessa** keeps Snares. Nobody is locked out of a trade because a handle broke on a quiet day. A broken tool will even tell you who sells another.
+Each merchant has a **daily allowance per player** for each item, so other players never use up your share.
 
-Selling works the same way in reverse. Sell a merchant a modest quantity of something and he pays the full rate. Keep going and his enthusiasm visibly declines: the rate steps down, and down again, and stays low until the day turns over at midnight. He has only so much use for two hundred rabbit pelts, and he would like you to understand that.
+**Gathering tools are always in stock**, a few each day:
 
-Talaran's day runs on Eastern time, in case you are the sort who plans around it.
+- **Merrick:** Ambren Pickaxe, Hatchet, Foraging Knife, Hoe, and Butchering Knife.
+- **Alder:** Ambren Fishing Rod, Lanai Hunting Bow, Feed Pail, and Mucking Fork.
+- **Tessa:** Snares.
 
-The panel will always show you the arithmetic before you agree to anything. If a sale crosses one of those steps you will see exactly where, and exactly what the whole lot fetches, before a single item leaves your pack. A merchant who paid you less than the screen promised would be a merchant nobody trusted twice.
+A broken tool tells you who sells a replacement.
 
-## Trading hand to hand
+**Selling** works the same way in reverse: a merchant pays full rate for a modest amount of an item, then the rate steps down as you sell more, until the day resets at midnight (Eastern time). The sale screen shows exactly what a sale pays, including any step-downs, before you confirm.
 
-The plainest market of all is two people standing in the same place. **In a port**, Talador on Taiar or Wendhaven on Antura, you may ask anyone standing there with you to trade: from the Trade beside their name among the players here, or from the Trade on their profile. Each of you lays out goods and gold, both of you agree, and the lot changes hands at once, or not at all.
+## Trading with other players
 
-Nothing is taken off the top and nobody sets the price but the two of you. It is also the one kind of trade in which you can look the other party in the eye, which I recommend, briefly, before you agree.
+**In a port** (Talador on Taiar, Wendhaven on Antura), you can trade directly with anyone standing there: use **Trade** beside their name in Players Here, or on their profile. Each of you puts in goods and gold, both of you accept, and the whole trade happens at once or not at all. There is no fee.
 
 ## Player shops
 
-Everything above describes the floor and the ceiling. **Players live in between.**
+A shop is a building you raise with Carpentry in an island's port: **Talador** on Taiar, **Wendhaven** on Antura. You can have one on each island, each managed in its own port. A shop trades **whether you are online or not**.
 
-A shop is a building you raise yourself, with Carpentry, in an island's port: **Talador** on Taiar and **Wendhaven** on Antura. You may keep one on each, and each is managed in its own port. Once it stands it trades **whether you are online or not**, which is the entire point of it.
-
-### Raising one
+### Building one
 
 {{data:shop-cost}}
 
-You will need a mallet equipped and a saw equipped, the same as any other structure. Carpentry level one is enough; this is not a building that asks for mastery, only for materials. **Tier 2**, from Carpentry 13, is built outright or raised from tier 1, and wants Serph nails. Or hire a carpenter to raise it for you; the Carpentry page explains how.
+You need a mallet in your main hand and a saw in your off hand. Carpentry 1 is enough. **Tier 2** (Carpentry 13) can be built outright or upgraded from tier 1, and uses Serph nails. You can also hire a carpenter to build it; see [Carpentry](/manual/skills/carpentry).
 
-### What you get
+### Capacity
 
-A shop of the first tier holds **seventy-five storage slots**, offers **twelve things for sale** at once, and can post **six standing offers to buy**. The second tier holds a hundred, with eighteen for sale and eight to buy.
+- **Tier 1:** 75 storage slots, 12 items for sale at once, and 6 standing buy offers.
+- **Tier 2:** 100 storage slots, 18 for sale, and 8 buy offers.
 
-Storage behaves exactly as your homestead's does: one slot holds one kind of item in any quantity. Twelve selling slots means twelve *kinds* of thing on the shelf, not twelve objects, and you may pile four thousand planks into one of them if the mood takes you.
+One storage slot holds one kind of item in any quantity. Each selling slot is one kind of item, in any quantity.
 
 ### Selling
 
-Move goods from your pack into storage, then list them from storage at whatever price you like.
+Move goods from your pack into the shop's storage, then list them at the price you choose. Listed goods move from storage onto the shelf, so a shop never lists more than it holds.
 
-Listed goods leave the back room and sit on the shelf. This is deliberate: a shop can never advertise more than it actually holds, which is a promise worth making.
-
-Money from sales goes into your **till**, not your purse, and waits there until you next visit the shop to collect it. A **tithe of three percent** comes out of every sale, and I will not pretend to you that it goes anywhere. It leaves the world entirely. Somebody has to drain the bath.
+Money from sales goes into your **till**. Collect it from the shop. A **3% tithe** is taken from every sale and removed from the game.
 
 ### Buying
 
-The other half is stranger and better.
+You can post **standing offers to buy**, for example 200 Ambren Ore at 6 gold each. Put gold into the shop's **buying fund** and post the offer; any player can then sell to you while you are away. Partial fills are normal.
 
-You may post **standing offers to buy**: two hundred Ambren Ore at six gold apiece, say. Put gold into your shop's **buying fund**, post the offer, and any passing player may sell you ore without you being anywhere near. Partial fills are normal, and you will pay for what actually arrives.
+Gold for an offer is **reserved** when you post it. The fund shows what is reserved and what is free, and only the free part can be withdrawn. The till and the buying fund are kept separate.
 
-The gold behind an offer is **reserved** the moment you post it. You will see your fund split into what is promised and what is free, and only the free part can be withdrawn. That reservation is what lets a seller walk in with two hundred ore and know he will actually be paid for them.
+### Name and description
 
-Your till and your buying fund never mix. One is money you have made; the other is money you have committed to spend.
+A shop has a **name**, a one-line **tagline** shown in the shop list, and a longer **description** shown inside. Line breaks in the description are kept.
 
-### Being found
-
-Your shop has a **name**, a one-line **tagline** shown in the list of shopfronts, and a longer **description** displayed inside. Line breaks in the description are kept, so a price list reads as a price list.
-
-There is deliberately **no master list of every item for sale on the island**. If you want to know who has the cheapest planks, you walk the row and look, or you ask in chat. Finding a good price is meant to be something a person does, not something a search box does for them.
-
-Which means, quietly, that a well-named shop with a clear tagline and a fair reputation is worth more than a cheap one nobody bothers to enter.
-
-## What this is all for
-
-Sell to a merchant and you get a fair-ish price, guaranteed, instantly, forever, with no waiting and no conversation.
-
-Sell to a person and you get whatever the two of you agree on, which is very often a great deal more.
-
-The distance between those two is where the whole trade of Talaran happens. Everything else on this page is scaffolding around it.
+There is **no search across all shops**. To find the best price, visit the shops or ask in chat.
 
 ## Connections
 
-- **Carpentry** raises the shop, and takes the same mallet and saw as everything else it builds.
-- **The Homestead** is the same property system wearing a different hat; if you understand one you understand both.
-- Every **gathering trade** feeds this page, because everything you have ever picked up is worth something to somebody.
+- **Carpentry** builds the shop.
+- **The Homestead** uses the same storage system.
+- Every **gathering trade** supplies goods to sell.

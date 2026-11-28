@@ -1,39 +1,42 @@
-Now and then the sky over a town splits, and things that belong somewhere else come through. Folk call the split a tear, and what comes out of it an invasion. The Laranists at the Rift have a great deal to say about why, and most of it is wrong in interesting ways.
-
-A tear is not the Rift. The Rift goes down, to where the light comes from. A tear goes sideways, into another world entirely, and that world does not much care for ours.
+Sometimes the sky over a town tears open, and creatures from another world come through. Fighting them at the tear drives them back, and the top three fighters are paid in gold.
 
 ## How you hear of one
 
-Sometimes there is a warning first. The server channel says the air over some place has begun to shimmer, and the Events panel shows it as coming, with how long until it opens. It will not say what is on the far side. Nobody knows until it opens.
+Sometimes there is a warning: a message in chat says the air over a place has begun to shimmer, and the **Events** panel shows the tear as coming, with the time until it opens. It does not say what will come through.
 
-Sometimes there is no warning at all.
+Sometimes there is no warning.
 
-When it opens, the channel says so, and says what is pouring out. The place it opened over gains a new place to fight: **The Tear over** wherever it is. Walk there and you will find it in the location menu with the rest.
+When a tear opens, chat says so and names what is coming through. The place gains a new fighting spot, **The Tear over** that place, in its location menu.
 
 ## Fighting at a tear
 
-It is an ordinary fight. You choose what to stand against, you eat when you must, and you can fall. Everything you know from the Combat page holds, death included, so do not go in carrying what you cannot afford to lose.
+It is a normal fight: choose your creature, eat when you need to, and you can die. Everything on the [Combat](/manual/systems/combat) page applies, including dropping your belongings.
 
-What comes through is drawn from the world on the other side, and from the creatures of it that suit the island you are on: the small ones for new arrivals, the large ones for those who have been about a while. Pick something your own size. The tear will not mind which.
+The creatures come from the other world, matched to the island: weaker ones on Taiar, stronger ones on Antura. Choose one near your level.
 
-Every kill drives one of the horde back. The location menu and the Events panel both show how many are left, and so does the line after each kill. A tear also makes the work worth more than usual while it is open: you can see how much in the Events panel.
+Each kill drives one creature of the horde back. The location menu, the Events panel, and the message after each kill show how many are left. Kills at a tear pay extra experience while it is open; the Events panel shows how much.
 
-Those gathering or crafting nearby are not troubled. A tear has its own business.
+Gathering and crafting nearby are not affected.
 
-## Held, or lost
+## Held or lost
 
-A tear stays open for a set time. If the horde is driven back before it closes, the place is **held**: the last kill shuts it, and the channel says so. If the time runs out first, the tear closes on its own and the rest of the horde goes back through. Either way, any fight there ends once you have finished the creature in front of you.
+A tear stays open for a set time.
 
-What each creature carries is the Bestiary's to tell, as it always is. I will say only that they are worth killing, and that some of what they drop is better than it has any right to be.
+- If the horde is driven back before then, the place is **held**: the last kill closes the tear, and chat announces it.
+- If time runs out first, the tear closes on its own and the rest of the horde leaves.
 
-## The three who did most
+Either way, a fight at the tear ends after the creature you are fighting.
 
-When a tear closes, held or lost, the three who brought down the most there are paid in gold, by how many they killed and how hard those things were to kill. The first takes the whole of their share, the second and third rather less. You must have killed a fair few to be counted at all; the number is shown on the tear in the Events panel. If two of you tie, the one who got there first takes the place.
+What each creature drops is shown in your [Bestiary](/manual/systems/bestiary). Some invader drops are better than their level.
 
-You will be told what you were paid, and it lands in your purse at once.
+## The top three
+
+When a tear closes, held or lost, the three players with the most kills there are paid gold, based on their kills and how strong the creatures were. First place gets their full share; second and third get less. You need a minimum number of kills to be counted; the Events panel shows it on the tear. Ties go to whoever arrived first.
+
+You are told what you were paid, and it goes straight into your gold.
 
 ## Afterward
 
-Wenna keeps note of every tear for the Chronicle: who held the line at a tear that was held, and, more kindly, the ones that were not. There are feats for standing at tears, for topping one, and for bringing down one of everything that has ever come through.
+Every tear is recorded in the Chronicle, held or lost. There are feats for standing at tears, for topping one, and for defeating one of every creature that has come through.
 
-Tears are opened by the Maker and those he trusts, never by chance. Keep an eye on the channel.
+Tears are opened by the game's staff, never at random. Watch the chat.

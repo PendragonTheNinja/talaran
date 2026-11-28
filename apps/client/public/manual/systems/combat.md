@@ -1,53 +1,51 @@
-Every other trade in Talaran waits for you. The ore keeps, the field grows, the fish do not come ashore to look for you. Fighting is the exception, and it has rules of its own. Here they are, all in one place, so that you learn them from me and not from a Hodag.
+How fights work: fighting spots, health and food, dying, gear wear, and fighting while away. Each combat skill has its own page: [Melee](/manual/skills/melee), [Defense](/manual/skills/defense), and [Constitution](/manual/skills/constitution).
 
 ## How a fight goes
 
-Fights happen at **fighting spots**, each one a place in a town or a wild corner of the island. Go there and ask for a fight.
+Fights happen at **fighting spots** in towns and wild places. Go to one and choose **Fight**.
 
-- At most spots you take **whatever comes**. Several kinds of creature live there and one of them comes for you.
-- At a few you may **pick** which one you go after.
+- At most spots, **whatever lives there** comes at you.
+- At a few, you can **choose** which creature to fight.
 
-A creature does not appear at your elbow. You see it **closing in** for a few moments first. Then you trade blows, each side swinging at its own pace, until one of you drops. When it falls, the next one is already on its way, and so on, one after another, until you stop.
+You see the creature approaching for a few moments before it reaches you. Then you both attack, each at your own speed, until one of you falls. When a creature dies, the next is already on its way. This continues until you stop.
 
-To stop, **flee**. Travelling anywhere ends a fight too. A fight never ends badly by itself unless your health runs out.
-
-What each skill does in all this is on its own page: [Melee](/manual/skills/melee) for the hitting, [Defense](/manual/skills/defense) for the armour, [Constitution](/manual/skills/constitution) for the health.
+To stop, **Flee**. Starting a journey also ends a fight. A fight only ends badly if your health runs out.
 
 ## Health and food
 
-Your health does not come back by itself. **Food mends you, and nothing else does.** Eat from your pack whenever you like. During a fight it is taken at once, without costing you a swing. A dish cooked to quicken some other trade will not mend you; it was not made for this.
+**Health does not come back on its own; only food heals you.** Eat from your pack any time. In a fight, eating is instant and costs no swing. Provisions (dishes that speed up a trade) do not heal.
 
-Carry more than you think you need. Everybody says that and nobody does it, so I say it in bold: **carry more than you think you need.**
+Carry more food than you expect to need.
 
-## Falling
+## Dying
 
-If your health runs out, you fall. You come round in **Talador**, with your health full again and your purse untouched, **wherever you fell**. Fall on Antura and you wake on Taiar, with a ferry between you and your things. That is deliberate. The further from home you fight, the more a fall costs, and a fighter who means to go far had better go well fed.
+If your health runs out, you die. You wake in **Talador** with full health and your gold, **wherever you died**. Die on Antura and you wake on Taiar, a ferry away from your belongings.
 
-Everything else stays where you fell. **Every item you carried and every item you wore** is left in a pile on the ground at that spot. For a short while only you can see it. After that, anybody passing can take it.
+**Everything you carried and wore** is left in a pile where you died. For a short while only you can see it; after that, anyone can take it.
 
-So go back for it, and go back quickly. Take food. While the pile is still yours alone, one word takes back everything in it, and puts back on whatever you were wearing.
+Go back quickly, with food. While the pile is still private, **Take back your things** returns everything in one go and puts back on what you were wearing.
 
-Fall to a guardian on an islet, and your things are not left on a rock in the sea. They wait at the port the voyage left from.
+If you die to a guardian on an islet, your belongings wait at the port the voyage left from.
 
-You keep your gold, which is not a thing you carry, and your trophy, which is not a thing anyone else wants.
+You keep your gold and your trophy slot.
 
 ## Wear and breakage
 
-Gear wears with use. Your weapon wears with every kill, and so do a couple of the armour pieces you have on, picked at random each time. Every piece is guaranteed a good long run before it can fail at all; past that, each kill carries a small chance that it **breaks** and is gone. Better metal lasts longer.
+Your weapon wears with every kill, and so do a couple of randomly chosen armor pieces. Each piece has a long guaranteed life before it can break; after that, each kill has a small chance of breaking it. Higher-tier gear lasts longer.
 
-Wear is counted as a creature falls, so a break never comes mid-swing. If something gives out, you are paid for that kill and the fight ends there. Nobody fights on with half their kit gone without noticing.
+Breaks happen when a creature dies, never mid-swing. If something breaks, you are paid for that kill and the fight ends. Re-equip to continue.
 
 ## While you are away
 
-A fight does not carry on without you. If you leave the game, it ends where you left it, as if you had fled. You may tell it otherwise, in the fight menu or in Settings, and fight on while away for a while; read the warning before you tick it, because a creature does not care that you are asleep.
+If you disconnect, you flee. You can change this in the fight menu or in **Settings > Combat** with **Keep Fighting While Away**, which keeps you fighting for a while after you leave. Read the warning before turning it on.
 
-Now and then, between one creature and the next, you will be asked a question to show you are still there. The fight waits for the answer. You may choose how long you go between questions, from five minutes to thirty; a short wait is a good safety stop against something that hits hard. The creature, I am told, is very patient about it.
+Between creatures, you are occasionally asked a short question to check you are there. The fight waits until you answer. You can set how long you go between questions, from five to thirty minutes. A short wait is a useful safety stop against strong creatures.
 
 ## Combat level
 
-Your combat level is the average of your Melee, Defense, and Constitution. It is the number creatures are measured against, and it has its own place on the highscores.
+Your combat level is the average of Melee, Defense, and Constitution. Creatures are measured against it, and it has its own highscores board.
 
-It does not count toward a tally licence. The tally boards are for the trades, and fighting is not a shortcut to them.
+Combat skills do not count toward tally licences.
 
 {{details:Numbers and tables}}
 {{data:fighting-spots}}
