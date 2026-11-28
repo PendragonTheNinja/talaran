@@ -728,7 +728,7 @@ const registry: Record<string, QueryHandler> = {
                 timer: `${r.timer}s`,
                 xp: Number(r.xp).toLocaleString(),
             })),
-            note: 'Base odds are what you face at the required level with the plainest bow. Every level above, and every better bow, improves them.',
+            note: 'Base odds are at the required level, with arrows of the animal\'s tier. Each level above improves them; a weaker arrow lowers them.',
         };
     },
 
@@ -891,7 +891,7 @@ const handleData = async (req: Request, res: Response): Promise<void> => {
         res.json(data);
     } catch (err) {
         logger.error(`Manual data error (${key}): ${err}`);
-        res.status(500).json({ error: 'Could not read that from the ledger.' });
+        res.status(500).json({ error: 'Could not read that table.' });
     }
 };
 
