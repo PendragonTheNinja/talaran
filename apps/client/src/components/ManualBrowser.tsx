@@ -408,8 +408,7 @@ function ManualOverview({
     return (
         <div className="manual-overview">
             <p className="manual-overview-intro">
-                I have kept notes on every trade I attempted on this island, and I attempted all of
-                them. What follows is the tidy version.
+                How Talaran works: every trade, place, and system, with live numbers from the game.
             </p>
 
             {manifest.sections.map(s => (

@@ -187,8 +187,13 @@ interface OverrideRef {
  * reason the shipped manifest is used unchanged, so the manual never goes dark
  * because the database is unhappy.
  */
+// The Manual's files are plain static files, cached by the browser like any
+// other (nginx sends no-cache for index.html only). The build stamp makes every
+// deploy ask for fresh copies, so a reader never sees last week's page.
+const FRESH = `?v=${encodeURIComponent(__TALARAN_BUILD__)}`
+
 export async function loadManifest(): Promise<ManualManifest> {
-    const res = await fetch('/manual/manifest.json')
+    const res = await fetch(`/manual/manifest.json${FRESH}`)
     if (!res.ok) throw new Error('Could not load the manual index.')
     const manifest: ManualManifest = await res.json()
 
@@ -248,14 +253,14 @@ export async function loadPage(section: string, slug: string): Promise<string> {
         // Fall through to the file.
     }
 
-    const res = await fetch(`/manual/${section}/${slug}.md`)
+    const res = await fetch(`/manual/${section}/${slug}.md${FRESH}`)
     if (!res.ok) throw new Error('That page is not in the manual.')
     return res.text()
 }
 
 /** The shipped file only, ignoring overrides. The editor needs this to diff. */
 export async function loadShippedPage(section: string, slug: string): Promise<string | null> {
-    const res = await fetch(`/manual/${section}/${slug}.md`)
+    const res = await fetch(`/manual/${section}/${slug}.md${FRESH}`)
     return res.ok ? res.text() : null
 }
 
