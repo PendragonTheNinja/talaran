@@ -1,68 +1,62 @@
-Talar is the trade of the light that comes up out of the ground.
-
-I will tell you what I know about that light, which is less than the priests claim and more than I can prove. It rises at the Rift, strongest at night and in the cold months. It will not stay in a bare hand. It will stay in a cut stone, and from the stone it will go into you, and once it is in you it can be spent.
-
-That is the whole skill in three steps: fill a stone, take in the light, spend it. Everything below is detail, though I grant you it is good detail.
+Talar is the light that rises at the Rift. You fill cut gems with it, take it into yourself, and spend it on spells and on the rings and amulets that use it.
 
 {{tabs}}
 {{tab:Overview}}
 
 ## Where and how to start
 
-On Taiar, everything begins at the **Talar Rift**, in the island's far north-east.
+On Taiar, everything starts at the **Talar Rift**, in the island's far northeast.
 
-1. Walk to the Rift and find **Georome**, who keeps the chapel there. He will give you a Cut Quartz and set you a short task.
-2. Hold the quartz out over the Rift and let it fill. A Cut Quartz takes half an hour.
-3. When it glows, it has become a **Lit Quartz**. Take its light into yourself.
-4. Go back to Georome.
+1. Go to the Rift and talk to **Georome**, who keeps the chapel there. He gives you a Cut Quartz and a short task.
+2. Fill the quartz at the Rift. A Cut Quartz takes half an hour.
+3. When full, it becomes a **Lit Quartz**. Take its light into yourself.
+4. Return to Georome.
 
-That is your first stone and most of your first level, and it costs you nothing but the walk.
+**Antura has no Rift and no church.** Every gem is filled and every spell learned on Taiar.
 
-**Antura has no Rift and no church.** Whatever the light is, it rises on Taiar, and every stone in Talaran is filled there and every spell learned there. An Antura miner with a pack of garnets has a ferry to catch.
+The light is strongest at night and in the cold months.
 
 ## The reservoir
 
-The light you take in sits inside you, in a reservoir. Three things about it, and all three matter:
+Light you take in goes into your reservoir.
 
-- It starts at **300 Talar** and grows by **25** with every level, so a practised hand carries a great deal more than a beginner.
-- It does not leak, spoil, or fade while you sleep.
-- **It is not lost when you fall.** Your pack goes to the ground; your reservoir stays where it is, inside you.
+- It starts at **300 Talar** and grows by **25** each level.
+- It does not drain over time.
+- **It is kept when you die.** Your pack drops; your reservoir does not.
 
-A stone that will not all fit can still be taken in, but whatever does not fit spills away and is gone. You are told how much before you agree, so the only way to waste a stone is on purpose.
+If a stone holds more than you have room for, you can still take it in, but the excess is lost. You are told how much before you confirm.
 
 ## What it is spent on
 
-Two things, at present. **Spells**, which are learned at a church and spent deliberately. And **jewelry**, which a crafter makes from charged stones and which draws on you quietly as you work. Each has its own tab.
+**Spells**, learned at a church and cast when you choose, and **jewelry**, which draws on your reservoir as you work. Each has its own tab.
 
 {{tab:Stones}}
 
-## Where stones come from
+## Where gems come from
 
-Rough stones turn up in the work of other trades. On Taiar:
+Rough gems come from other trades. On Taiar:
 
-- **Miners** find quartz and, more rarely, garnet, both in Granite and in Ambren and Burgh ore.
-- **Fighters** find them now and then in the creatures they kill. Which ones, the Bestiary will tell you once you have killed enough.
+- **Mining**: quartz, and more rarely garnet, from Granite and from Ambren and Burgh ore.
+- **Combat**: some creatures drop them. The Bestiary shows which once you have defeated enough.
 
-On **Antura**, Underway's granite gives **garnet** as its common stone, quartz still, and very rarely a rough **amethyst**, which is a stone of the third tier and waits for a hand that can fill it. A lucky walker on Antura's roads may even find a **Lit Garnet** lying at the verge, already full, which nobody has ever satisfactorily explained.
+On **Antura**, Underway's granite gives mostly **garnet**, some quartz, and very rarely a rough **amethyst** (a tier 3 gem that cannot be filled yet). Walkers on Antura's roads sometimes find a **Lit Garnet**, already full.
 
-A rough stone is no use to the light. It must be cut first, at a lapidary. That is Crafting's work, done at Geosper's bench in Caliwen or at your own, and it is described on the Crafting page.
+A rough gem must be cut at a lapidary before it can be filled. See [Crafting](/manual/skills/crafting).
 
 ## Filling
 
-Stand at the Rift and fill a cut stone. The light goes in a little each minute, and you see the stone and how full it is the whole time. You are paid for every minute of it.
+Stand at the Rift and fill a cut gem. Light goes in a little each minute, and you can see how full it is. You are paid experience for every minute.
 
-Two things worth knowing:
+- **Stopping loses nothing.** Leave and come back later; the gem keeps what it has.
+- **A better cut holds more.** Polished holds half again as much as Cut and fills a little faster; Flawless holds three times as much.
 
-- **Leaving costs you nothing.** Stop, walk off, come back next week: the stone keeps what it had taken.
-- **A better cut holds more.** A Polished stone holds half again what a Cut one does and fills a little faster; a Flawless one holds three times as much. That is why a good cutter is worth knowing.
+**Gems are filled from the first level of their tier**: quartz from level 1, garnet from **Talar 13**. A garnet holds much more than a quartz and takes longer.
 
-**A stone is filled from the first level of its tier**: quartz from your first day, garnet from **Talar 13**. A garnet holds a great deal more than a quartz, and takes longer about it.
-
-When a stone is full it glows and goes into your pack as a charged stone: **Lit**, **Bright**, or **Radiant**, after the cut it began as. Charged stones can be kept, traded, or taken in.
+A full gem goes into your pack as a charged stone: **Lit**, **Bright**, or **Radiant**, depending on its cut. Charged stones can be kept, traded, or taken in.
 
 ## Surges
 
-Now and then the Rift breathes harder, and for an hour or two everyone filling there is paid a quarter more. It is announced when it happens. If you are anywhere near, go.
+Sometimes the Rift surges, and for an hour or two everyone filling there earns a quarter more. It is announced when it starts.
 
 {{data:talar-gems}}
 
@@ -70,19 +64,17 @@ Now and then the Rift breathes harder, and for an hour or two everyone filling t
 
 ## Learning a spell
 
-Spells are taught in a church. On Taiar, that is the Seam Chapel at the Rift.
+Spells are learned at a church. On Taiar, that is the Seam Chapel at the Rift.
 
-Learning one is not a matter of being told the words. You keep a **vigil**: some minutes on your knees with a charged stone, going over the words until they stay. At the end the stone is given up. The first spells ask only that; the later ones also ask for a **writ**, a page of instruction found somewhere out in the world, which is given up with the stone.
+To learn one, you keep a **vigil**: a few minutes with a charged stone, which is used up at the end. Later spells also need a **writ**, a page found out in the world, used up with the stone. You cannot learn a spell above your level. A learned spell is never forgotten.
 
-You may not keep a vigil for a spell beyond your level, and you need not hurry. A spell learned is never forgotten.
-
-Writs turn up in the ordinary work of other trades. The Writ of Sending is found on the road by those who walk it. The Writ of Kindling is found in the rock. The Writ of the Open Door is carried by something with claws. All of them can be traded.
+Writs come from other trades: the Writ of Sending is found on the road by walkers, the Writ of Kindling in rock, and the Writ of the Open Door from a clawed creature. Writs can be traded.
 
 ## Casting
 
-A spell is spoken from your spellbook, wherever you are, and it is instant. Most leave whatever you were doing alone; the two that move you (Daily Step, and stepping through a Portal) end it, as setting off down the road would. Each has its own wait before it will answer again, and each costs Talar from your reservoir. Some cost a fixed amount. Others are priced by what they do, so a long road skipped costs more than a short one.
+Cast a spell from your spellbook, anywhere. It is instant. Most spells do not interrupt what you are doing; the two that move you (Daily Step, and stepping through a Portal) end your current action, as starting a journey does. Each spell has its own cooldown and costs Talar from your reservoir, either a fixed amount or an amount based on what it does (a longer road skipped costs more).
 
-Casting pays experience, more for the rarer spells. Two of them, Kindle and Portal, pay you again for every other person who uses what you made. I am told this is to encourage company. I have never needed encouragement, but I appreciate the gesture.
+Casting pays experience, more for rarer spells. Kindle and Portal also pay you again for each other player who uses what you made.
 
 {{data:spells}}
 
@@ -90,46 +82,36 @@ Casting pays experience, more for the rarer spells. Two of them, Kindle and Port
 
 ## Rings and amulets
 
-A crafter can set charged stones in metal, and the piece keeps the light in a useful shape. One ring and one amulet may be worn at a time.
+A crafter sets charged stones in metal to make rings and amulets. You can wear one ring and one amulet.
 
-Every piece helps with one particular thing: a little less wear on your kit, a vein that runs deeper, a seed kept back at harvest, a meal that mends more in a fight, a sharper eye on the road, bait that is not taken. The helping is small and steady, which is exactly what you want from something you wear every day.
+Each piece helps with one thing: less wear on your tools, a vein that runs deeper, a seed kept back at harvest, food that heals more in a fight, better road finds, or bait that is not used up.
 
 ## The draw
 
-A piece is never idle and never free. It draws a little Talar from you **for every action it helps with**, whether or not its luck came up that time, so the cost is plain and steady: one Talar for every twenty such actions.
+A piece draws **one Talar for every twenty actions it helps with**, whether or not its effect triggers that time. When your reservoir is empty, the piece stops working until you refill it. It never goes into debt. When a piece's effect triggers, it tells you.
 
-When your reservoir runs dry, the piece goes quiet. It does no harm and runs no debt. It simply waits for you to fill a stone.
-
-When a piece does something worth noticing, it says so.
-
-**Two tiers of the same six.** The first set is quartz in Ambren, worn from your first day. The second is **garnet in Serph**, set at **Crafting 20** for the rings and **22** for the amulets, worn from **Talar 13**: the Garnet Keeper's Band, Prospector's Ring, and Seedsaver's Ring; the Garnet Hearty Amulet, Wayfinder's Amulet, and Baitkeeper's Amulet. Each helps with the same thing as its quartz twin, and helps more.
+**Two tiers of the same six pieces.** Tier 1 is quartz in Ambren, worn from level 1. Tier 2 is **garnet in Serph**, made at **Crafting 20** for rings and **22** for amulets, and worn from **Talar 13**: the Garnet Keeper's Band, Prospector's Ring, and Seedsaver's Ring, and the Garnet Hearty Amulet, Wayfinder's Amulet, and Baitkeeper's Amulet. Each does the same as its quartz version, more strongly.
 
 {{data:jewelry}}
 
 {{/tabs}}
 
-## Tools & gear
+## Tools and gear
 
-Nothing need be worn to fill a stone or cast a spell: the Rift does the one, and you do the other.
+You do not need to wear anything to fill a gem or cast a spell.
 
-- **Carried:** cut stones to fill, charged stones to take in or offer at a vigil, and writs.
-- **Worn:** rings on the finger, amulets at the neck. These are the only part of the trade that sits in an equipment slot.
+- **Carried:** cut gems to fill, charged stones to take in or use at a vigil, and writs.
+- **Worn:** a ring and an amulet.
 
 ## Connections
 
-The light is the end of a long chain, and very little of it is yours alone.
-
-- **Mining** and **combat** find the rough stones.
-- **Crafting** cuts them, and later sets them in rings and amulets.
-- **Smithing** makes the chisel and the pliers the lapidary needs; **Carpentry** makes the wheel.
-- And the light pays back into all of them: Sending for anyone who keeps a store, Larder Ward for anyone who keeps animals, a Kindled spot for whichever trade you light it over.
-
-A Talar trainer with no friends among the miners is a person standing at the Rift with an empty hand. I know. I stood there.¹
-
-¹ Georome says I was the first visitor in nine winters to ask whether the light could be bottled. He says it the way a man says something he has repeated at dinners.
+- **Mining** and **combat** find the rough gems.
+- **Crafting** cuts them, and sets charged stones into jewelry.
+- **Smithing** makes the gem chisel and jeweller's pliers; **Carpentry** makes the lap wheel.
+- Spells help other trades: Sending for anyone with storage, Larder Ward for animal keepers, and Kindle for whatever trade you cast it over.
 
 {{details:Numbers and tables}}
-Everything the light opens as you climb:
+What Talar opens as you level:
 
 {{data:training-path:Talar}}
 {{/details}}
